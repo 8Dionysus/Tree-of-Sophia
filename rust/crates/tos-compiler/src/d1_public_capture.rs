@@ -121,16 +121,40 @@ fn check_capture_active(
 }
 
 impl PublicCaptureInputPaths {
+    /// Maintained runtime source selector; no filesystem discovery.
+    pub fn runtime(root: &Path) -> Self {
+        Self {
+            index_path: root.join("ToS/derived-exports/tos_corpus_index.min.json"),
+            philosophy_graph_projection_path: root
+                .join("ToS/derived-exports/philosophy_graph_projection.min.json"),
+            bibliographic_graph_path: root
+                .join("ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"),
+            entity_type_registry_path: root
+                .join("ToS/doctrine/semantic-interchange/entity-types.v1.json"),
+            relation_type_registry_path: root
+                .join("ToS/doctrine/semantic-interchange/relation-types.v1.json"),
+            philosophy_post_planting_audit_path: root.join(
+                "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+            ),
+            evidence_projection_path: root
+                .join("ToS/derived-exports/epistemic_evidence_projection.min.json"),
+        }
+    }
+
+    pub(crate) fn selected_paths(&self) -> [(&Path, bool); 7] {
+        [
+            (&self.index_path, true),
+            (&self.philosophy_graph_projection_path, true),
+            (&self.bibliographic_graph_path, true),
+            (&self.entity_type_registry_path, true),
+            (&self.relation_type_registry_path, true),
+            (&self.philosophy_post_planting_audit_path, false),
+            (&self.evidence_projection_path, false),
+        ]
+    }
+
     fn validate(&self) -> Result<()> {
-        for path in [
-            &self.index_path,
-            &self.philosophy_graph_projection_path,
-            &self.bibliographic_graph_path,
-            &self.entity_type_registry_path,
-            &self.relation_type_registry_path,
-            &self.philosophy_post_planting_audit_path,
-            &self.evidence_projection_path,
-        ] {
+        for (path, _) in self.selected_paths() {
             if !path.is_absolute() || path.to_str().is_none() {
                 return Err(Error::Invalid("selected public D1 input path"));
             }
@@ -208,6 +232,14 @@ impl ControlledCaptureIdentity {
     }
 }
 
+#[derive(Clone, Copy)]
+struct CaptureOperation {
+    deadline: Instant,
+    work_limit: u64,
+    vm_limit: u64,
+    phase_limited: bool,
+}
+
 pub struct PublicCapture {
     root: PathBuf,
     prepared_profile: bool,
@@ -224,7 +256,7 @@ pub struct PublicCapture {
     work_bytes: Arc<AtomicU64>,
     max_work_bytes: u64,
     deadline: Instant,
-    operation_deadline: Mutex<Option<Instant>>,
+    operation_deadline: Mutex<Option<CaptureOperation>>,
     limits: PublicCaptureLimits,
     vm_used: Arc<AtomicU64>,
     shared_vm: bool,
@@ -356,7 +388,7 @@ pub(crate) fn json(raw: &[u8], cap: usize) -> Result<JsonValue> {
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("public D1 JSON limits"))?;
     Ok(parse_json(raw, JsonMode::PublishedStrict, limits)
-        .map_err(|e| Error::Source(e.to_string()))?
+        .map_err(foundation_json_error)?
         .into_root())
 }
 
@@ -366,7 +398,108 @@ pub(crate) fn compact(value: &JsonValue, cap: usize) -> Result<Vec<u8>> {
         JsonLimits::new(cap, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("public D1 JSON output"))?,
     )
-    .map_err(|e| Error::Source(e.to_string()))
+    .map_err(foundation_json_error)
+}
+
+const FOUNDATION_JSON_DIAGNOSTICS: &[&str] = &[
+    "runtime carrier compact cutoff/cancellation",
+    "runtime carrier compact work overflow",
+    "runtime carrier compact original work",
+    "runtime carrier compact visits overflow",
+    "runtime carrier creation cutoff/cancellation",
+    "JSON limits must be positive",
+    "JSON parser state budget exceeded",
+    "JSON structural budget exceeded",
+    "expected JSON value",
+    "expected array comma or close",
+    "expected object comma or close",
+    "invalid JSON literal",
+    "unexpected JSON token",
+    "unterminated JSON string",
+    "incomplete JSON escape",
+    "short Unicode escape",
+    "invalid Unicode escape",
+    "invalid JSON escape",
+    "unescaped control in JSON string",
+    "invalid JSON string",
+    "object key must be string",
+    "duplicate decoded JSON member",
+    "leading zero",
+    "missing integer digits",
+    "missing fraction digits",
+    "missing exponent digits",
+    "integer digit budget exceeded",
+    "nonfinite or unrepresentable float",
+    "trailing JSON input",
+    "JSON input is not UTF-8",
+    "JSON byte budget exceeded",
+    "JSON output byte budget exceeded",
+    "JSON output structural budget exceeded",
+    "JSON visit counter overflow",
+    "JSON writer budget exceeded",
+    "JSON array is too large",
+    "canonical writer state/visit budget",
+    "JSON output key is not a Unicode scalar string",
+    "canonical UTF-8 cannot encode a lone surrogate",
+    "number lexeme and kind disagree",
+    "float lexeme is invalid",
+    "JSON retained storage overflow",
+    "JSON retained container storage overflow",
+    "JSON string retained storage overflow",
+];
+
+fn foundation_json_error(error: tos_foundation::FoundationError) -> Error {
+    // Foundation JSON diagnostics on these parse/write paths are fixed
+    // mechanical messages. Keep only known strings so a future Foundation
+    // detail cannot carry source text, provider text, or a path across the
+    // compiler error boundary. The code and optional numeric byte offset stay
+    // typed and bounded even for an unknown detail.
+    let message = FOUNDATION_JSON_DIAGNOSTICS
+        .iter()
+        .copied()
+        .find(|known| *known == error.detail)
+        .unwrap_or("unclassified Foundation JSON error");
+    Error::FoundationJson {
+        code: error.code,
+        message,
+        byte_offset: error.byte_offset,
+    }
+}
+
+#[cfg(test)]
+mod foundation_json_error_tests {
+    use super::*;
+
+    #[test]
+    fn preserves_known_cause_and_redacts_unknown_detail_through_cold_bridge() {
+        let known = foundation_json_error(
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "JSON output byte budget exceeded",
+            )
+            .at(17),
+        );
+        assert_eq!(
+            known.to_string(),
+            "Foundation JSON budget_exceeded at byte 17: JSON output byte budget exceeded"
+        );
+        assert_eq!(
+            crate::ColdOperationFailure::from(known).to_string(),
+            "Foundation JSON budget_exceeded at byte 17: JSON output byte budget exceeded"
+        );
+
+        let unknown = foundation_json_error(tos_foundation::FoundationError::new(
+            tos_foundation::FoundationErrorCode::BudgetExceeded,
+            "private provider text /srv/private/source.json",
+        ));
+        let rendered = unknown.to_string();
+        assert_eq!(
+            rendered,
+            "Foundation JSON budget_exceeded: unclassified Foundation JSON error"
+        );
+        assert!(!rendered.contains("private provider text"));
+        assert!(!rendered.contains("/srv/private/source.json"));
+    }
 }
 
 fn selected_rows(role: &str, collection: &str) -> bool {
@@ -423,6 +556,8 @@ pub(crate) struct CreationState<'a> {
     deadline: Instant,
     cancelled: &'a std::sync::atomic::AtomicBool,
     cancelled_handle: Arc<std::sync::atomic::AtomicBool>,
+    // Only model/read state borrows its authentic retained capture phase owner.
+    capture_owner: Option<&'a PublicCapture>,
 }
 pub(crate) struct CreationStateHold<'a, 'budget> {
     owner: &'a CreationState<'budget>,
@@ -476,6 +611,7 @@ impl<'budget> CreationState<'budget> {
             deadline: budget.operation_deadline,
             cancelled: budget.cancelled.as_ref(),
             cancelled_handle: Arc::clone(budget.cancelled),
+            capture_owner: None,
         })
     }
     pub(crate) fn remaining_json_visits(&self) -> Result<usize> {
@@ -513,7 +649,11 @@ impl<'budget> CreationState<'budget> {
         Arc::clone(&self.cancelled_handle)
     }
     pub(crate) fn sql_vm_limit(&self) -> u64 {
-        self.sql_vm_limit
+        self.capture_owner.map_or(self.sql_vm_limit, |owner| {
+            owner
+                .active_vm_limit()
+                .map_or(0, |limit| limit.min(self.sql_vm_limit))
+        })
     }
     pub(crate) fn heap(&self) -> &Arc<sqlite_budget::DedicatedSessionSqliteHeap> {
         &self.sqlite_heap
@@ -675,7 +815,12 @@ impl<'budget> CreationState<'budget> {
     }
     pub(crate) fn charge_work(&self, bytes: usize) -> Result<()> {
         self.remaining(0)?;
-        checked_add(&self.work, bytes, self.work_limit)
+        let limit = self.capture_owner.map_or(Ok(self.work_limit), |owner| {
+            owner
+                .active_work_limit()
+                .map(|limit| limit.min(self.work_limit))
+        })?;
+        checked_add(&self.work, bytes, limit)
     }
     pub(crate) fn encode_json<T: serde::Serialize + ?Sized>(
         &self,
@@ -778,6 +923,16 @@ impl<'budget> CreationState<'budget> {
         let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("owned model canonical limits"))?;
         self.encode_foundation_canonical_with_limits(&document, limits)
+    }
+    pub(crate) fn with_foundation_compact_bytes<T>(
+        &self,
+        value: &JsonValue,
+        cap: usize,
+        source_bytes: usize,
+        operation: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
+        let bytes = compact_with_owned_state(self, value, cap, source_bytes)?;
+        operation(&bytes)
     }
     pub(crate) fn clone_foundation(&self, value: &JsonValue) -> Result<JsonValue> {
         let upper = value
@@ -997,7 +1152,11 @@ impl<'budget> CreationState<'budget> {
         result
     }
     pub(crate) fn remaining(&self, prospective: usize) -> Result<usize> {
-        check_capture_active(Some(self.cancelled), self.deadline)?;
+        let deadline = match self.capture_owner {
+            Some(capture) => self.deadline.min(capture.active_deadline()?),
+            None => self.deadline,
+        };
+        check_capture_active(Some(self.cancelled), deadline)?;
         let total = self
             .retained
             .get()
@@ -1347,6 +1506,108 @@ impl std::ops::Deref for CreationJson<'_> {
         &self.value
     }
 }
+impl std::ops::DerefMut for CreationJson<'_> {
+    fn deref_mut(&mut self) -> &mut JsonValue {
+        &mut self.value
+    }
+}
+
+pub(crate) fn foundation_scoped<'a>(
+    raw: &[u8],
+    cap: usize,
+    owner: Option<&'a CreationState<'a>>,
+) -> Result<CreationJson<'a>> {
+    match owner {
+        Some(owner) => creation_json(owner, raw, cap),
+        None => Ok(CreationJson {
+            value: json(raw, cap)?,
+            _hold: None,
+        }),
+    }
+}
+
+fn compact_with_owned_state<'a>(
+    owner: &'a CreationState<'a>,
+    value: &JsonValue,
+    cap: usize,
+    source_bytes: usize,
+) -> Result<CreationBytes<'a>> {
+    let before = owner.json_visits.get();
+    let allowance = owner
+        .max_json_visits
+        .checked_sub(before)
+        .filter(|value| *value > 0)
+        .ok_or(Error::Budget("runtime carrier compact visits"))?
+        .min(1_000_000)
+        .min(
+            source_bytes
+                .checked_mul(6)
+                .and_then(|n| n.checked_add(2))
+                .ok_or(Error::Budget("runtime carrier compact visit bound"))?,
+        );
+    // Two passes each visit values, keys and numeric-lexeme validation;
+    // every such token originates in the bounded original input bytes.
+    // PythonPublishedCompact cannot expand an original token beyond this
+    // finite bound: quoted UTF-16 units need <=6 bytes, finite binary64
+    // shortest spelling fits 32 bytes, integer digits retain their input
+    // width, and container punctuation is already present in source bytes.
+    let output_cap = source_bytes
+        .checked_mul(32)
+        .and_then(|n| n.checked_add(2))
+        .ok_or(Error::Budget("runtime carrier compact token bound"))?
+        .min(cap);
+    let limits = JsonLimits::new(output_cap, 96, allowance, 4096)
+        .map_err(|_| Error::Budget("runtime carrier compact limits"))?;
+    let available = owner.remaining(0)?;
+    let mut check = || {
+        check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "runtime carrier compact cutoff/cancellation",
+            )
+        })
+    };
+    let work = &owner.work;
+    let limit = owner.work_limit;
+    let mut admit = |bytes: usize, visits: usize| {
+        let amount = bytes.checked_add(visits).ok_or_else(|| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "runtime carrier compact work overflow",
+            )
+        })?;
+        checked_add(work, amount, limit).map_err(|_| {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "runtime carrier compact original work",
+            )
+        })?;
+        owner
+            .json_visits
+            .set(owner.json_visits.get().checked_add(visits).ok_or_else(|| {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "runtime carrier compact visits overflow",
+                )
+            })?);
+        Ok(())
+    };
+    let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
+        value, limits, available, &mut check, &mut admit,
+    )
+    .map_err(foundation_json_error)?;
+    owner.json_visits.set(
+        before
+            .checked_add(visits)
+            .ok_or(Error::Budget("runtime carrier compact visits"))?,
+    );
+    let hold = owner.hold(bytes.capacity())?;
+    Ok(CreationBytes {
+        bytes,
+        _hold: Some(hold),
+    })
+}
+
 struct CreationBytes<'a> {
     bytes: Vec<u8>,
     _hold: Option<CreationStateHold<'a, 'a>>,
@@ -1491,7 +1752,7 @@ fn creation_json_with_limits<'a>(
         available,
         &mut check,
     )
-    .map_err(|_| Error::Invalid("runtime carrier creation JSON"))?;
+    .map_err(foundation_json_error)?;
     owner.json_visits.set(
         before
             .checked_add(parsed.visits())
@@ -1500,7 +1761,7 @@ fn creation_json_with_limits<'a>(
     let value = parsed.into_root();
     let bytes = value
         .retained_storage_bytes()
-        .map_err(|_| Error::Budget("runtime carrier creation JSON state"))?;
+        .map_err(foundation_json_error)?;
     let hold = owner.hold(bytes)?;
     Ok(CreationJson {
         value,
@@ -1524,89 +1785,13 @@ impl<'a> CaptureWriter<'a> {
         cap: usize,
         source_bytes: usize,
     ) -> Result<CreationBytes<'a>> {
-        let Some(owner) = self.creation else {
-            return Ok(CreationBytes {
+        match self.creation {
+            Some(owner) => compact_with_owned_state(owner, value, cap, source_bytes),
+            None => Ok(CreationBytes {
                 bytes: compact(value, cap)?,
                 _hold: None,
-            });
-        };
-        let before = owner.json_visits.get();
-        let allowance = owner
-            .max_json_visits
-            .checked_sub(before)
-            .filter(|value| *value > 0)
-            .ok_or(Error::Budget("runtime carrier compact visits"))?
-            .min(1_000_000)
-            .min(
-                source_bytes
-                    .checked_mul(6)
-                    .and_then(|n| n.checked_add(2))
-                    .ok_or(Error::Budget("runtime carrier compact visit bound"))?,
-            );
-        // Two passes each visit values, keys and numeric-lexeme validation;
-        // every such token originates in the bounded original input bytes.
-        // PythonPublishedCompact cannot expand an original token beyond this
-        // finite bound: quoted UTF-16 units need <=6 bytes, finite binary64
-        // shortest spelling fits 32 bytes, integer digits retain their input
-        // width, and container punctuation is already present in source bytes.
-        let output_cap = source_bytes
-            .checked_mul(32)
-            .and_then(|n| n.checked_add(2))
-            .ok_or(Error::Budget("runtime carrier compact token bound"))?
-            .min(cap);
-        let limits = JsonLimits::new(output_cap, 96, allowance, 4096)
-            .map_err(|_| Error::Budget("runtime carrier compact limits"))?;
-        let available = owner.remaining(0)?;
-        let mut check = || {
-            check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
-                tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact cutoff/cancellation",
-                )
-            })
-        };
-        let work = self.work;
-        let limit = self.limits.max_work_bytes;
-        let mut admit = |bytes: usize, visits: usize| {
-            let amount = bytes
-                .checked_mul(2)
-                .and_then(|bytes| bytes.checked_add(visits))
-                .ok_or_else(|| {
-                    tos_foundation::FoundationError::new(
-                        tos_foundation::FoundationErrorCode::BudgetExceeded,
-                        "runtime carrier compact work overflow",
-                    )
-                })?;
-            checked_add(work, amount, limit).map_err(|_| {
-                tos_foundation::FoundationError::new(
-                    tos_foundation::FoundationErrorCode::BudgetExceeded,
-                    "runtime carrier compact original work",
-                )
-            })?;
-            owner
-                .json_visits
-                .set(before.checked_add(visits).ok_or_else(|| {
-                    tos_foundation::FoundationError::new(
-                        tos_foundation::FoundationErrorCode::BudgetExceeded,
-                        "runtime carrier compact visits overflow",
-                    )
-                })?);
-            Ok(())
-        };
-        let (bytes, visits) = emit_python_compact_json_with_state_budget_and_visits_and_check(
-            value, limits, available, &mut check, &mut admit,
-        )
-        .map_err(|_| Error::Budget("runtime carrier compact original budget"))?;
-        owner.json_visits.set(
-            before
-                .checked_add(visits)
-                .ok_or(Error::Budget("runtime carrier compact visits"))?,
-        );
-        let hold = owner.hold(bytes.capacity())?;
-        Ok(CreationBytes {
-            bytes,
-            _hold: Some(hold),
-        })
+            }),
+        }
     }
     fn page_step(&mut self, bytes: usize) -> Result<()> {
         check_capture_active(self.cancelled, self.deadline)?;
@@ -3244,58 +3429,81 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
     Ok(())
 }
 
-fn runtime_companion(label: &str) -> Option<&'static [u8]> {
-    match label {
-        "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json" => Some(include_bytes!(
-            "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
-        )),
-        "access/contracts/knowledge-api.v1.json" => Some(include_bytes!(
-            "../../../../access/contracts/knowledge-api.v1.json"
-        )),
-        "access/contracts/knowledge-graph.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/knowledge-graph.v1.schema.json"
-        )),
-        "access/contracts/knowledge-search-indexed.v2.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/knowledge-search-indexed.v2.schema.json"
-        )),
-        "access/contracts/readable-context.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/readable-context.v1.schema.json"
-        )),
-        "access/contracts/lens-spec.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/lens-spec.v1.schema.json"
-        )),
-        "access/contracts/lens-result.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/lens-result.v1.schema.json"
-        )),
-        "access/contracts/temporal-comparison-request.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/temporal-comparison-request.v1.schema.json"
-        )),
-        "access/contracts/temporal-comparison-result.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/temporal-comparison-result.v1.schema.json"
-        )),
-        "access/contracts/source-read.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/source-read.v1.schema.json"
-        )),
-        "access/contracts/exploration-request.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-request.v1.schema.json"
-        )),
-        "access/contracts/exploration-result.v1.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-result.v1.schema.json"
-        )),
-        "access/contracts/exploration-request.v2.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-request.v2.schema.json"
-        )),
-        "access/contracts/exploration-result.v2.schema.json" => Some(include_bytes!(
-            "../../../../access/contracts/exploration-result.v2.schema.json"
-        )),
-        "ToS/contracts/semantic-entity-type-registry.schema.json" => Some(include_bytes!(
-            "../../../../ToS/contracts/semantic-entity-type-registry.schema.json"
-        )),
-        "ToS/contracts/semantic-relation-type-registry.schema.json" => Some(include_bytes!(
-            "../../../../ToS/contracts/semantic-relation-type-registry.schema.json"
-        )),
-        _ => None,
-    }
+/// Compiled runtime companions owned by capture; census uses this same selection.
+pub(crate) fn runtime_companions() -> impl Iterator<Item = (&'static str, &'static [u8])> {
+    const INPUTS: &[(&str, &[u8])] = &[
+        (
+            "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
+            include_bytes!(
+                "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+            ),
+        ),
+        (
+            "access/contracts/knowledge-api.v1.json",
+            include_bytes!("../../../../access/contracts/knowledge-api.v1.json"),
+        ),
+        (
+            "access/contracts/knowledge-graph.v1.schema.json",
+            include_bytes!("../../../../access/contracts/knowledge-graph.v1.schema.json"),
+        ),
+        (
+            "access/contracts/knowledge-search-indexed.v2.schema.json",
+            include_bytes!("../../../../access/contracts/knowledge-search-indexed.v2.schema.json"),
+        ),
+        (
+            "access/contracts/readable-context.v1.schema.json",
+            include_bytes!("../../../../access/contracts/readable-context.v1.schema.json"),
+        ),
+        (
+            "access/contracts/lens-spec.v1.schema.json",
+            include_bytes!("../../../../access/contracts/lens-spec.v1.schema.json"),
+        ),
+        (
+            "access/contracts/lens-result.v1.schema.json",
+            include_bytes!("../../../../access/contracts/lens-result.v1.schema.json"),
+        ),
+        (
+            "access/contracts/temporal-comparison-request.v1.schema.json",
+            include_bytes!(
+                "../../../../access/contracts/temporal-comparison-request.v1.schema.json"
+            ),
+        ),
+        (
+            "access/contracts/temporal-comparison-result.v1.schema.json",
+            include_bytes!(
+                "../../../../access/contracts/temporal-comparison-result.v1.schema.json"
+            ),
+        ),
+        (
+            "access/contracts/source-read.v1.schema.json",
+            include_bytes!("../../../../access/contracts/source-read.v1.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-request.v1.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-request.v1.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-result.v1.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-result.v1.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-request.v2.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-request.v2.schema.json"),
+        ),
+        (
+            "access/contracts/exploration-result.v2.schema.json",
+            include_bytes!("../../../../access/contracts/exploration-result.v2.schema.json"),
+        ),
+        (
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+            include_bytes!("../../../../ToS/contracts/semantic-entity-type-registry.schema.json"),
+        ),
+        (
+            "ToS/contracts/semantic-relation-type-registry.schema.json",
+            include_bytes!("../../../../ToS/contracts/semantic-relation-type-registry.schema.json"),
+        ),
+    ];
+    INPUTS.iter().copied()
 }
 
 impl PublicCapture {
@@ -3487,23 +3695,7 @@ impl PublicCapture {
         let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
         Self::create_runtime_selected(
             root,
-            &PublicCaptureInputPaths {
-                index_path: root.join("ToS/derived-exports/tos_corpus_index.min.json"),
-                philosophy_graph_projection_path:
-                    root.join("ToS/derived-exports/philosophy_graph_projection.min.json"),
-                bibliographic_graph_path: root.join(
-                    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-                ),
-                entity_type_registry_path: root
-                    .join("ToS/doctrine/semantic-interchange/entity-types.v1.json"),
-                relation_type_registry_path: root
-                    .join("ToS/doctrine/semantic-interchange/relation-types.v1.json"),
-                philosophy_post_planting_audit_path: root.join(
-                    "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-                ),
-                evidence_projection_path:
-                    root.join("ToS/derived-exports/epistemic_evidence_projection.min.json"),
-            },
+            &PublicCaptureInputPaths::runtime(root),
             staging,
             limits,
             deadline,
@@ -3682,6 +3874,83 @@ impl PublicCapture {
         selected: &PublicCaptureInputPaths,
         profile: RuntimeCaptureProfile,
         staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+        budget: RuntimeCaptureOwnedBudget<'_>,
+        usage: &mut RuntimeCaptureCreationUsage,
+    ) -> Result<Self> {
+        Self::create_selected_with_owned_budget(
+            root,
+            Some(selected),
+            true,
+            profile,
+            staging,
+            limits,
+            deadline,
+            cancelled,
+            budget,
+            usage,
+        )
+    }
+
+    /// Full public-site capture from the maintained public input route, under
+    /// the original dedicated process heap, state, work and VM owners.
+    pub(crate) fn create_public_with_owned_budget(
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+        budget: RuntimeCaptureOwnedBudget<'_>,
+        usage: &mut RuntimeCaptureCreationUsage,
+    ) -> Result<Self> {
+        Self::create_selected_with_owned_budget(
+            root,
+            None,
+            false,
+            RuntimeCaptureProfile::Whole,
+            staging,
+            limits,
+            deadline,
+            cancelled,
+            budget,
+            usage,
+        )
+    }
+
+    /// Runtime full-root capture under the original dedicated native process.
+    /// This preserves the maintained runtime input profile without requiring
+    /// selected-path aliases or constructing a new resource domain.
+    pub fn create_runtime_with_owned_budget(
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        cancelled: Arc<std::sync::atomic::AtomicBool>,
+        budget: RuntimeCaptureOwnedBudget<'_>,
+        usage: &mut RuntimeCaptureCreationUsage,
+    ) -> Result<Self> {
+        Self::create_selected_with_owned_budget(
+            root,
+            None,
+            true,
+            RuntimeCaptureProfile::Whole,
+            staging,
+            limits,
+            deadline,
+            cancelled,
+            budget,
+            usage,
+        )
+    }
+
+    fn create_selected_with_owned_budget(
+        root: &Path,
+        selected: Option<&PublicCaptureInputPaths>,
+        runtime_profile: bool,
+        profile: RuntimeCaptureProfile,
+        staging: &Path,
         mut limits: PublicCaptureLimits,
         deadline: Instant,
         cancelled: Arc<std::sync::atomic::AtomicBool>,
@@ -3751,10 +4020,13 @@ impl PublicCapture {
             deadline: creation_deadline,
             cancelled: cancelled.as_ref(),
             cancelled_handle: Arc::clone(&cancelled),
+            capture_owner: None,
         };
         let result = (|| {
             state.sqlite_heap.verify_current()?;
-            selected.validate()?;
+            if let Some(selected) = selected {
+                selected.validate()?;
+            }
             let role = match profile {
                 RuntimeCaptureProfile::Carrier(role) => Some(role),
                 RuntimeCaptureProfile::Whole => None,
@@ -3766,8 +4038,8 @@ impl PublicCapture {
                 creation_deadline,
                 false,
                 false,
-                true,
-                Some(selected),
+                runtime_profile,
+                selected,
                 Some(Arc::clone(&cancelled)),
                 role,
                 Some(&state),
@@ -3942,6 +4214,7 @@ impl PublicCapture {
             deadline: creation_deadline,
             cancelled: self.cancelled.as_ref(),
             cancelled_handle: Arc::clone(&self.cancelled),
+            capture_owner: Some(self),
         })
     }
 
@@ -4308,23 +4581,10 @@ impl PublicCapture {
         for relative in [
             "ToS/doctrine/semantic-interchange/entity-types.v1.json",
             "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-            "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
-            "access/contracts/knowledge-api.v1.json",
-            "access/contracts/knowledge-graph.v1.schema.json",
-            "access/contracts/knowledge-search-indexed.v2.schema.json",
-            "access/contracts/readable-context.v1.schema.json",
-            "access/contracts/lens-spec.v1.schema.json",
-            "access/contracts/lens-result.v1.schema.json",
-            "access/contracts/temporal-comparison-request.v1.schema.json",
-            "access/contracts/temporal-comparison-result.v1.schema.json",
-            "access/contracts/source-read.v1.schema.json",
-            "access/contracts/exploration-request.v1.schema.json",
-            "access/contracts/exploration-result.v1.schema.json",
-            "access/contracts/exploration-request.v2.schema.json",
-            "access/contracts/exploration-result.v2.schema.json",
-            "ToS/contracts/semantic-entity-type-registry.schema.json",
-            "ToS/contracts/semantic-relation-type-registry.schema.json",
-        ] {
+        ]
+        .into_iter()
+        .chain(runtime_companions().map(|(path, _)| path))
+        {
             if evidence_profile || runtime_capture_role.is_some() {
                 continue;
             }
@@ -4338,7 +4598,7 @@ impl PublicCapture {
                 continue;
             }
             if runtime_profile {
-                if let Some(raw) = runtime_companion(relative) {
+                if let Some((_, raw)) = runtime_companions().find(|(path, _)| *path == relative) {
                     if raw.len() as u64 > limits.max_input_bytes {
                         return Err(Error::Budget("runtime compiled companion bytes"));
                     }
@@ -4561,6 +4821,17 @@ impl PublicCapture {
         deadline: Instant,
         operation: impl FnOnce() -> Result<T>,
     ) -> Result<T> {
+        self.with_owned_operation_deadline_and_limits(deadline, None, operation)
+    }
+
+    /// Phase limits are deltas against the original monotonic counters. They
+    /// narrow this serial operation without resetting or refunding prior work.
+    pub(crate) fn with_owned_operation_deadline_and_limits<T>(
+        &self,
+        deadline: Instant,
+        phase_limits: Option<(u64, u64)>,
+        operation: impl FnOnce() -> Result<T>,
+    ) -> Result<T> {
         if !self.shared_vm || deadline > self.deadline {
             return Err(Error::Invalid("controlled capture operation deadline"));
         }
@@ -4573,9 +4844,29 @@ impl PublicCapture {
             if active.is_some() {
                 return Err(Error::Invalid("overlapping controlled capture operation"));
             }
-            *active = Some(deadline);
+            let (work_limit, vm_limit) = match phase_limits {
+                Some((work, vm)) => (
+                    self.work_bytes
+                        .load(std::sync::atomic::Ordering::Acquire)
+                        .checked_add(work)
+                        .ok_or(Error::Budget("capture phase work overflow"))?
+                        .min(self.max_work_bytes),
+                    self.vm_used
+                        .load(std::sync::atomic::Ordering::Acquire)
+                        .checked_add(vm)
+                        .ok_or(Error::Budget("capture phase VM overflow"))?
+                        .min(self.limits.max_sql_vm_steps),
+                ),
+                None => (self.max_work_bytes, self.limits.max_sql_vm_steps),
+            };
+            *active = Some(CaptureOperation {
+                deadline,
+                work_limit,
+                vm_limit,
+                phase_limited: phase_limits.is_some(),
+            });
         }
-        struct Restore<'a>(&'a Mutex<Option<Instant>>);
+        struct Restore<'a>(&'a Mutex<Option<CaptureOperation>>);
         impl Drop for Restore<'_> {
             fn drop(&mut self) {
                 match self.0.lock() {
@@ -4588,16 +4879,64 @@ impl PublicCapture {
         let result = operation();
         if result.is_ok() {
             check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
+            if self.work_bytes.load(std::sync::atomic::Ordering::Acquire)
+                > self.active_work_limit()?
+                || self.vm_used.load(std::sync::atomic::Ordering::Acquire)
+                    > self.active_vm_limit()?
+            {
+                return Err(Error::Budget("capture operation final work/VM fence"));
+            }
         }
         result
     }
 
-    fn active_deadline(&self) -> Result<Instant> {
+    /// End the verified cold scan's work/VM intersection while keeping this
+    /// operation's original cutoff and monotonic counters through QRY/close.
+    /// The caller reinstalls its SQL progress hook with the original ceiling
+    /// before the independently budgeted query begins.
+    pub(crate) fn finish_owned_operation_phase_limits(&self) -> Result<()> {
+        let mut active = self
+            .operation_deadline
+            .lock()
+            .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
+        let phase = active
+            .as_mut()
+            .filter(|phase| phase.phase_limited)
+            .ok_or(Error::Invalid("capture limited operation phase absent"))?;
+        check_capture_active(Some(self.cancelled.as_ref()), phase.deadline)?;
+        if self.work_bytes.load(std::sync::atomic::Ordering::Acquire) > phase.work_limit
+            || self.vm_used.load(std::sync::atomic::Ordering::Acquire) > phase.vm_limit
+        {
+            return Err(Error::Budget("capture cold phase final work/VM fence"));
+        }
+        phase.work_limit = self.max_work_bytes;
+        phase.vm_limit = self.limits.max_sql_vm_steps;
+        phase.phase_limited = false;
+        Ok(())
+    }
+
+    pub(crate) fn active_deadline(&self) -> Result<Instant> {
         let active = self
             .operation_deadline
             .lock()
             .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
-        Ok(active.map_or(self.deadline, |deadline| deadline.min(self.deadline)))
+        Ok(active.map_or(self.deadline, |phase| phase.deadline.min(self.deadline)))
+    }
+
+    fn active_work_limit(&self) -> Result<u64> {
+        let active = self
+            .operation_deadline
+            .lock()
+            .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
+        Ok(active.map_or(self.max_work_bytes, |phase| phase.work_limit))
+    }
+
+    fn active_vm_limit(&self) -> Result<u64> {
+        let active = self
+            .operation_deadline
+            .lock()
+            .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
+        Ok(active.map_or(self.limits.max_sql_vm_steps, |phase| phase.vm_limit))
     }
 
     pub fn charge_work(&self, bytes: u64) -> Result<()> {
@@ -4605,11 +4944,12 @@ impl PublicCapture {
         if Instant::now() >= self.active_deadline()? {
             return Err(Error::Budget("public D1 build deadline"));
         }
+        let limit = self.active_work_limit()?;
         let mut current = self.work_bytes.load(std::sync::atomic::Ordering::Acquire);
         loop {
             let next = current
                 .checked_add(bytes)
-                .filter(|value| *value <= self.max_work_bytes)
+                .filter(|value| *value <= limit)
                 .ok_or(Error::Budget("public D1 build work bytes"))?;
             match self.work_bytes.compare_exchange_weak(
                 current,
@@ -4966,7 +5306,7 @@ impl PublicCapture {
         let shared_window = if self.shared_vm {
             Some(sqlite_budget::SharedVmWindow::reserve(
                 Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps,
+                self.active_vm_limit()?,
             )?)
         } else {
             None
@@ -5016,7 +5356,7 @@ impl PublicCapture {
         let shared_window = if self.shared_vm {
             Some(sqlite_budget::SharedVmWindow::reserve(
                 Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps,
+                self.active_vm_limit()?,
             )?)
         } else {
             None
@@ -5043,7 +5383,7 @@ impl PublicCapture {
         let shared_window = if self.shared_vm {
             Some(sqlite_budget::SharedVmWindow::reserve(
                 Arc::clone(&self.vm_used),
-                self.limits.max_sql_vm_steps,
+                self.active_vm_limit()?,
             )?)
         } else {
             None

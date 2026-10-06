@@ -15,7 +15,7 @@ from pathlib import Path
 import socket
 import stat
 import time
-from threading import RLock
+from threading import RLock, Event
 from typing import Any, Callable
 
 from .native_io import owned_exchange, _bounded_json
@@ -353,9 +353,10 @@ class _QueryStoreSnapshot:
 
 @dataclass(frozen=True)
 class _CallClock:
-    admission: NativeCoreSnapshotAdmission
+    admission: NativeCoreSnapshotAdmission | None
     child_deadline: float
     work_deadline_ns: int
+    state: Any = None
 
     @property
     def work_deadline(self) -> float:
@@ -367,13 +368,40 @@ class NativeCoreSnapshotClient:
 
     def __init__(self, native_prefix: str | Path,
                  selection: NativeCoreSnapshotSelection,
-                 admission_provider: Callable[[str], NativeCoreSnapshotAdmission]):
+                 admission_provider: Callable[[str], NativeCoreSnapshotAdmission] | None = None,
+                 *, search_read_model=None, snapshot_root=None, release_root=None,
+                 expected_reference_release_guard=None):
         self.native_prefix = _absolute_path(native_prefix, 'native_prefix')
         if not isinstance(selection, NativeCoreSnapshotSelection):
             raise TypeError('native Core snapshot requires an explicit carrier selection')
-        if not callable(admission_provider):
+        if admission_provider is not None and not callable(admission_provider):
             raise TypeError('native Core snapshot requires a caller-owned admission provider')
         self.selection = selection
+        self._snapshot_root = None if snapshot_root is None else _absolute_path(snapshot_root, 'snapshot_root')
+        self._release_root = None if release_root is None else _absolute_path(release_root, 'release_root')
+        if self._snapshot_root is not None and (admission_provider is not None
+                or selection.tos_root != self._snapshot_root / 'data'):
+            raise ValueError('native guarded selection must retain snapshot root/data')
+        if self._release_root is not None and self._snapshot_root is None:
+            raise ValueError('ReferenceRelease requires its selected snapshot root')
+        if expected_reference_release_guard is not None and (
+                self._release_root is None or type(expected_reference_release_guard) is not str
+                or len(expected_reference_release_guard) != 64
+                or any(c not in '0123456789abcdef' for c in expected_reference_release_guard)):
+            raise ValueError('native Reference release constructor receipt differs')
+        self._expected_snapshot_guard = None
+        self._expected_reference_release_guard = expected_reference_release_guard
+        if search_read_model is not None:
+            if admission_provider is not None:
+                raise ValueError('native-owned search sidecar selector requires native-owned operation route')
+            if (type(search_read_model) is not dict or set(search_read_model) !=
+                    {'path', 'max_bytes', 'max_postings', 'max_verify_chars'}):
+                raise ValueError('native Core search sidecar selector shape differs')
+            _absolute_path(search_read_model['path'], 'search_read_model.path')
+            for name in ('max_bytes', 'max_postings', 'max_verify_chars'):
+                _integer(search_read_model[name], 'search_read_model.' + name)
+            search_read_model = dict(search_read_model)
+        self._search_read_model = search_read_model
         self._admission_provider = admission_provider
         self._lock = RLock()
         self._closed = False
@@ -381,10 +409,79 @@ class NativeCoreSnapshotClient:
         self._published_graph = None
         self._published_catalog = None
         self._catalog_graph = None
+        if self._snapshot_root is not None:
+            from .native_core_session_factory import owned_native_ordinary_source_session
+            from .native_core_session_control import NativeSessionLimits
+            with self._operation('tos_native_guard_open') as call:
+                with owned_native_ordinary_source_session(prefix=self.native_prefix,
+                        selection=self.selection, transport=NativeSessionLimits(65536, 16777216, 258, 1, 65536, 16777216),
+                        state=call.state, cancelled=call.state._cancelled, maximum_owner_objects=100000,
+                        snapshot_root=self._snapshot_root, release_root=self._release_root,
+                        expected_reference_release_guard=self._expected_reference_release_guard) as client:
+                    self._accept_snapshot_guard(client._snapshot_guard)
+
+    def _accept_snapshot_guard(self, guard):
+        if self._snapshot_root is None:
+            if guard is not None:
+                raise ValueError('raw native selection returned a snapshot guard')
+            return
+        from .core import DataAccessUnavailable
+        if (type(guard) is not str or len(guard) != 64
+                or any(c not in '0123456789abcdef' for c in guard)):
+            raise DataAccessUnavailable('native snapshot guard receipt missing or invalid')
+        if self._expected_snapshot_guard is not None and guard != self._expected_snapshot_guard:
+            raise DataAccessUnavailable('native data snapshot changed since Core construction')
+        self._expected_snapshot_guard = guard
 
     @contextmanager
     def _operation(self, operation_id: str, absolute_deadline=None):
         boundary = time.monotonic()
+        if absolute_deadline is not None and (type(absolute_deadline) not in (float, int) or not math.isfinite(absolute_deadline)):
+            raise ValueError('outer native Root deadline must be finite')
+        if self._admission_provider is None:
+            from .native_core_session_receiver import ReceiverState, original_receiver_state
+            from .native_core_session_census import retained_owner_state
+            state = original_receiver_state()
+            if state is None:
+                if 'TOS_SDK_STAGE_CONFIG' in os.environ:
+                    raise ValueError('controlled public Core requires its bound original receiver')
+                whole = boundary + 50.0
+                if absolute_deadline is not None:
+                    if type(absolute_deadline) not in (float, int) or not math.isfinite(absolute_deadline):
+                        raise ValueError('outer native Root deadline must be finite')
+                    whole = min(whole, absolute_deadline)
+                state = ReceiverState(original_state_bytes=536870912,
+                    caller_retained_state_bytes=0, deadline=math.floor((whole - 5.0) * 1000000000) / 1000000000,
+                    cancelled=Event(), json_limits=NativeCoreJsonLimits(
+                        _FRAME_CAP, 128, 1000000, 20))
+            state.active()
+            work = state._deadline
+            if absolute_deadline is not None and absolute_deadline < work + 5:
+                # A narrower call cutoff changes transport time only; the same
+                # original State/counters remain, with no reset or renewal.
+                work = min(work, absolute_deadline - 5.0)
+            remaining = work - time.monotonic()
+            if remaining <= 0 or not self._lock.acquire(timeout=remaining):
+                raise TimeoutError('Native Core operation expired waiting for its owner lock')
+            try:
+                if self._closed:
+                    raise RuntimeError('native Core snapshot client is closed')
+                retained_owner_state(state, (self.native_prefix, self.selection,
+                    self._published_graph, self._published_catalog, self._state_file, self._search_read_model,
+                    self._snapshot_root, self._release_root, self._expected_snapshot_guard),
+                    maximum_objects=100000)
+                yield _CallClock(None, work + 5.0, math.floor(work * 1000000000), state)
+            except Exception as error:
+                from .native_core_session import NativeSessionRefused
+                if isinstance(error, NativeSessionRefused) and error.code == 'DataAccessUnavailable':
+                    from .core import DataAccessUnavailable
+                    state.reserve(DataAccessUnavailable.__basicsize__ + state.geometry.gc_header
+                                  + state.geometry.tuple_base + state.geometry.pointer)
+                    raise DataAccessUnavailable(str(error)) from error
+                raise
+            finally:
+                self._lock.release()
+            return
         admission = self._admission_provider(operation_id)
         if not isinstance(admission, NativeCoreSnapshotAdmission):
             raise TypeError('admission provider must return one immutable NativeCoreSnapshotAdmission')
@@ -411,7 +508,7 @@ class NativeCoreSnapshotClient:
             self._lock.release()
 
     @staticmethod
-    def _validate_state_file(file, admission: NativeCoreSnapshotAdmission):
+    def _validate_state_file(file, admission: NativeCoreSnapshotAdmission | None):
         if file is None or file.closed:
             raise ValueError('native Core state descriptor is absent or closed')
         fd = file.fileno()
@@ -419,7 +516,7 @@ class NativeCoreSnapshotClient:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_size <= 0:
             raise ValueError('native Core state descriptor is not a nonempty regular sealed file')
-        if info.st_size > admission.whole_max_state_bytes:
+        if (admission is not None and info.st_size > admission.whole_max_state_bytes) or info.st_size > _U64_MAX:
             raise ValueError('native Core state descriptor exceeds its caller-owned byte admission')
         try:
             seals = fcntl.fcntl(fd, fcntl.F_GET_SEALS)
@@ -433,7 +530,28 @@ class NativeCoreSnapshotClient:
     def _exchange(self, operation_id: str, arguments: dict[str, Any], call: _CallClock,
                   *, prior_state=None, state_reply=False):
         admission = call.admission
-        fds = [admission.stage_ticket_fd]
+        if admission is None and operation_id not in ('tos_knowledge_graph', 'tos_knowledge_snapshot',
+                                                       'tos_knowledge_graph_addressed', 'tos_knowledge_snapshot_once'):
+            from .native_core_session_factory import owned_native_ordinary_source_session
+            from .native_core_session_control import NativeSessionLimits
+            transport = NativeSessionLimits(65536, 16777216, 258, 1, 65536, 16777216)
+            tool = arguments['tool'] if operation_id == 'tos_native_call' else operation_id
+            search_read_model = self._search_read_model if tool == 'tos_knowledge_search_indexed_v2' else None
+            with owned_native_ordinary_source_session(prefix=self.native_prefix,
+                    selection=self.selection, transport=transport, state=call.state,
+                    cancelled=call.state._cancelled, maximum_owner_objects=100000,
+                    search_read_model=search_read_model, snapshot_root=self._snapshot_root,
+                    expected_snapshot_guard=self._expected_snapshot_guard,
+                    expected_reference_release_guard=self._expected_reference_release_guard,
+                    release_root=self._release_root) as client:
+                self._accept_snapshot_guard(client._snapshot_guard)
+                tool = arguments['tool'] if operation_id == 'tos_native_call' else operation_id
+                values = arguments['arguments'] if operation_id == 'tos_native_call' else arguments
+                result = client.call(tool, values, absolute_deadline=call.work_deadline)
+            if time.monotonic() >= call.work_deadline:
+                raise TimeoutError('native ordinary caller cutoff expired before disclosure')
+            return result, None, None
+        fds = [] if admission is None else [admission.stage_ticket_fd]
         argv = ['core-snapshot', '--root', os.fspath(self.selection.tos_root),
                 '--operation', operation_id,
                 '--work-deadline-ns', str(call.work_deadline_ns)]
@@ -445,25 +563,39 @@ class NativeCoreSnapshotClient:
         receiver = sender = None
         request = {
             'arguments': arguments,
-            'admission': admission.wire(call.work_deadline_ns),
+            'admission': admission.wire(call.work_deadline_ns) if admission is not None else None,
             'source_paths': self.selection.source_paths_wire(),
             'query_store': self.selection.query_store_wire(),
         }
-        if admission.query_store_limits is not None:
+        if admission is not None and admission.query_store_limits is not None:
             if not isinstance(admission.query_store_limits, NativeCoreQueryStoreLimits):
                 raise TypeError('selected QueryStore requires typed caller limits')
             request['query_store_limits'] = admission.query_store_limits.wire()
-        if operation_id == 'tos_native_call' and admission.query_profile is not None:
+        if admission is not None and operation_id == 'tos_native_call' and admission.query_profile is not None:
             if not isinstance(admission.query_profile, NativeCoreQueryProfile):
                 raise TypeError('Root query requires typed caller-owned immutable query limits')
             request['http'] = admission.query_profile.wire()
         # Native selection requires this profile when the actual Root query
         # owner is used. A selected immutable-store catalog uses its separate
         # explicit limits, so the SDK does not require unrelated Root budgets.
+        if admission is None:
+            request.pop('admission')
+            request['schema_version'] = 'tos_native_core_ordinary_snapshot_startup_v1'
+            if self._snapshot_root is not None:
+                request['snapshot_root'] = str(self._snapshot_root)
+                request['expected_snapshot_guard'] = self._expected_snapshot_guard
+            if self._expected_reference_release_guard is not None:
+                request['expected_reference_release_guard'] = self._expected_reference_release_guard
+            request['original_whole_deadline_ns'] = int(call.state._deadline * 1000000000) + 5000000000
         new_state = None
         received_state = None
         try:
-            payload = _bounded_json(request, _INPUT_CAP, call.work_deadline)
+            if call.state is not None:
+                from .native_core_session_census import retained_owner_state
+                retained_owner_state(call.state, (request,), maximum_objects=100000)
+            payload = _bounded_json(request, _INPUT_CAP, call.work_deadline,
+                call.state._cancelled if call.state is not None else None,
+                receiving_state=call.state)
             if state_reply:
                 receiver, sender = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
                 receiver.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
@@ -473,22 +605,38 @@ class NativeCoreSnapshotClient:
             for key in tuple(inherited):
                 if key.startswith('TOS_') or key == 'ABYSS_STAGE_TICKET_FD':
                     inherited.pop(key, None)
-            with owned_exchange(argv, prefix=self.native_prefix,
-                                input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP,
-                                absolute_deadline=call.child_deadline,
-                                operation_seconds=admission.operation_seconds,
-                                env=inherited, pass_fds=tuple(fds)) as channel:
+            if admission is None:
+                from .native_core_session import owned_native_snapshot_exchange
+                exchange = owned_native_snapshot_exchange(prefix=self.native_prefix,
+                    selection=self.selection, state=call.state, operation_id=operation_id,
+                    prior_fd=prior_state.fileno() if prior_state is not None else None,
+                    reply_fd=sender.fileno() if sender is not None else None,
+                    absolute_work_deadline=call.work_deadline, snapshot_root=self._snapshot_root,
+                    release_root=self._release_root)
+            else:
+                exchange = owned_exchange(argv, prefix=self.native_prefix,
+                    input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP,
+                    absolute_deadline=call.child_deadline,
+                    operation_seconds=admission.operation_seconds,
+                    env=inherited, pass_fds=tuple(fds))
+            with exchange as channel:
                 channel.write_input(payload + b'\n', close=True)
                 frames = iter(channel.frames())
                 try:
                     first_frame = next(frames)
                 except StopIteration as error:
                     raise ValueError('native Core private CLI returned no JSON frame') from error
-                envelope = _decode_object(first_frame, 'result envelope')
+                envelope = (call.state.decode(memoryview(first_frame)) if call.state is not None
+                            else _decode_object(first_frame, 'result envelope'))
                 del first_frame
                 if next(frames, None) is not None:
                     raise ValueError('native Core private CLI returned more than one JSON frame')
+                if admission is None and type(envelope) is dict and envelope.get('ok') is False:
+                    from .native_core_session import NativeSessionRefused
+                    raise NativeSessionRefused.from_envelope(envelope, call.state, _RESULT_SCHEMA)
                 base_keys = {'schema_version', 'ok', 'result'}
+                if self._snapshot_root is not None:
+                    base_keys.add('snapshot_guard')
                 weak_store = envelope.get('state_profile') == 'tos_query_store_v1'
                 expected_keys = (base_keys | {'state_reused'}) if state_reply else base_keys
                 if weak_store:
@@ -510,7 +658,8 @@ class NativeCoreSnapshotClient:
                     expected_count = 0 if reused or weak_store else 1
                     received_state, marker = channel.receive_descriptors(
                         receiver, expected_count=expected_count)
-                    marker_object = _decode_object(marker, 'state marker')
+                    marker_object = (call.state.decode(memoryview(marker)) if call.state is not None
+                                     else _decode_object(marker, 'state marker'))
                     expected_marker = ({'role': 'tos-native-query-store-snapshot-v1',
                                         'schema_version': 'tos_query_store_v1'} if weak_store
                                        else {'role': _STATE_ROLE, 'schema_version': _STATE_SCHEMA})
@@ -521,6 +670,7 @@ class NativeCoreSnapshotClient:
                     if received_state is not None:
                         self._validate_state_file(received_state, admission)
                         new_state, received_state = received_state, None
+                self._accept_snapshot_guard(envelope.get('snapshot_guard'))
                 return envelope['result'], envelope.get('state_reused'), new_state
         except BaseException:
             if received_state is not None:

@@ -182,20 +182,95 @@ fn source_refs(rows: &[JsonValue]) -> Vec<JsonValue> {
     refs.into_iter().map(|s| text(&s)).collect()
 }
 
-struct CorpusRead<'a, 'b, 'c, A: ?Sized> {
-    read: &'a mut Reader<'b, 'c, A>,
+pub(crate) fn controlled_status(header: &JsonValue, context: &CorpusReadContext,
+    views: &[JsonValue]) -> JsonValue {
+        object(vec![
+            ("schema", text("tos_corpus_mcp_status_v1")),
+            ("index_exists", JsonValue::Bool(true)),
+            ("tos_root", text(&context.tos_root)),
+            ("index_path", text(&context.index_path)),
+            ("owner_repo", field(header, "owner_repo").clone()),
+            ("surface_kind", field(header, "surface_kind").clone()),
+            ("counts", default(header, "counts", object(vec![]))),
+            (
+                "graph_views",
+                array(views.iter().map(|v| field(v, "view_id").clone()).collect()),
+            ),
+            (
+                "authority_order",
+                default(header, "authority_order", array(vec![])),
+            ),
+            (
+                "runtime_projection_boundary",
+                default(header, "runtime_projection_boundary", object(vec![])),
+            ),
+        ])
+}
+
+/// The three metadata packets reuse the maintained field projection. Callers
+/// supply only Original rows authorized by their retained native owner.
+pub(crate) fn controlled_metadata(header: &JsonValue, context: &CorpusReadContext,
+    views: Vec<JsonValue>, branches: Vec<JsonValue>, request: &CorpusReadRequest)
+    -> Result<JsonValue, SearchV2Error> {
+    match request {
+        CorpusReadRequest::Status => Ok(controlled_status(header, context, &views)),
+        CorpusReadRequest::GraphViews => Ok(object(vec![
+            ("schema", text("tos_corpus_mcp_graph_views_v1")), ("graph_views", array(views))])),
+        CorpusReadRequest::Summary => Ok(object(vec![
+            ("schema", text("tos_corpus_mcp_summary_v1")),
+            ("status", controlled_status(header, context, &views)),
+            ("counts", default(header, "counts", object(vec![]))),
+            ("branches", array(branches)), ("graph_views", array(views)),
+            ("runtime_projection_boundary", default(header, "runtime_projection_boundary", object(vec![]))),
+            ("authority_order", default(header, "authority_order", array(vec![]))),
+        ])),
+        _ => Err(fail(SearchV2ErrorCode::InvalidRequest, "controlled corpus metadata operation unavailable")),
+    }
+}
+
+/// The maintained Corpus kernel requires only authenticated Original rows and
+/// interruption. Existing selected Reader and controlled Original owner each
+/// implement these two operations; neither kernel can open a model or mint a cut.
+pub(crate) trait CorpusOriginalRead {
+    fn check_interrupt(&mut self) -> Result<(), SearchV2Error>;
+    fn corpus_row(&mut self, receipt: &CorpusOriginalReceipt, collection: Collection,
+        selector: &Selector, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error>;
+    fn charge_kernel_work(&mut self, _steps: usize) -> Result<(), SearchV2Error> {
+        self.check_interrupt()
+    }
+}
+impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusOriginalRead for Reader<'_, '_, A> {
+    fn check_interrupt(&mut self) -> Result<(), SearchV2Error> { Reader::check_interrupt(self) }
+    fn corpus_row(&mut self, receipt: &CorpusOriginalReceipt, collection: Collection,
+        selector: &Selector, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+        Reader::corpus_row(self, receipt, collection, selector, after)
+    }
+}
+
+pub(crate) fn compute_controlled_corpus<R: CorpusOriginalRead + ?Sized>(
+    read: &mut R, receipt: CorpusOriginalReceipt, header: JsonValue,
+    context: &CorpusReadContext, request: &CorpusReadRequest, budget: CorpusReadBudget,
+) -> Result<JsonValue, SearchV2Error> {
+    request.validate(context, budget)?;
+    let mut corpus = CorpusRead { read, receipt, header, context,
+        remaining: budget.max_work_steps };
+    corpus.packet(request)
+}
+
+struct CorpusRead<'a, R: CorpusOriginalRead + ?Sized> {
+    read: &'a mut R,
     receipt: CorpusOriginalReceipt,
     header: JsonValue,
     context: &'a CorpusReadContext,
     remaining: u64,
 }
-impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A> {
+impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
     fn work(&mut self, steps: usize) -> Result<(), SearchV2Error> {
         self.remaining = self
             .remaining
             .checked_sub(u64::try_from(steps).map_err(|_| budget_error())?)
             .ok_or_else(budget_error)?;
-        self.read.check_interrupt()
+        self.read.charge_kernel_work(steps)
     }
     fn rows(
         &mut self,
@@ -274,27 +349,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A
             .collect())
     }
     fn status(&self, views: &[JsonValue]) -> JsonValue {
-        object(vec![
-            ("schema", text("tos_corpus_mcp_status_v1")),
-            ("index_exists", JsonValue::Bool(true)),
-            ("tos_root", text(&self.context.tos_root)),
-            ("index_path", text(&self.context.index_path)),
-            ("owner_repo", field(&self.header, "owner_repo").clone()),
-            ("surface_kind", field(&self.header, "surface_kind").clone()),
-            ("counts", default(&self.header, "counts", object(vec![]))),
-            (
-                "graph_views",
-                array(views.iter().map(|v| field(v, "view_id").clone()).collect()),
-            ),
-            (
-                "authority_order",
-                default(&self.header, "authority_order", array(vec![])),
-            ),
-            (
-                "runtime_projection_boundary",
-                default(&self.header, "runtime_projection_boundary", object(vec![])),
-            ),
-        ])
+        controlled_status(&self.header, self.context, views)
     }
     fn search(
         &mut self,
@@ -642,35 +697,12 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A
     }
     fn packet(&mut self, request: &CorpusReadRequest) -> Result<JsonValue, SearchV2Error> {
         match request {
-            CorpusReadRequest::Status => {
+            CorpusReadRequest::Status | CorpusReadRequest::GraphViews | CorpusReadRequest::Summary => {
                 let views = self.views()?;
-                Ok(self.status(&views))
-            }
-            CorpusReadRequest::GraphViews => {
-                let views = self.views()?;
-                Ok(object(vec![
-                    ("schema", text("tos_corpus_mcp_graph_views_v1")),
-                    ("graph_views", array(views)),
-                ]))
-            }
-            CorpusReadRequest::Summary => {
-                let views = self.views()?;
-                let branches = self.rows(Collection::Branches, Selector::All, None)?;
-                Ok(object(vec![
-                    ("schema", text("tos_corpus_mcp_summary_v1")),
-                    ("status", self.status(&views)),
-                    ("counts", default(&self.header, "counts", object(vec![]))),
-                    ("branches", array(branches)),
-                    ("graph_views", array(views)),
-                    (
-                        "runtime_projection_boundary",
-                        default(&self.header, "runtime_projection_boundary", object(vec![])),
-                    ),
-                    (
-                        "authority_order",
-                        default(&self.header, "authority_order", array(vec![])),
-                    ),
-                ]))
+                let branches = if matches!(request, CorpusReadRequest::Summary) {
+                    self.rows(Collection::Branches, Selector::All, None)?
+                } else { Vec::new() };
+                controlled_metadata(&self.header, self.context, views, branches, request)
             }
             CorpusReadRequest::Search {
                 query,
@@ -896,7 +928,22 @@ fn execute_selected_corpus_health_seed_with_meter<
                     "selected corpus header invalid",
                 ));
             }
-            let index_schema = field(&header.1, "schema_version")
+            let mut corpus = CorpusRead {
+                read,
+                receipt,
+                header: header.1,
+                context,
+                remaining: budget.max_work_steps,
+            };
+            let views = corpus.views()?;
+            controlled_health_seed(&corpus.header, &views, budget.inspect.max_field_bytes)
+        },
+    )
+}
+
+pub(crate) fn controlled_health_seed(header: &JsonValue, views: &[JsonValue],
+    max_field_bytes: usize) -> Result<JsonValue, SearchV2Error> {
+            let index_schema = field(header, "schema_version")
                 .as_str()
                 .filter(|value| !value.is_empty())
                 .ok_or_else(|| {
@@ -906,19 +953,10 @@ fn execute_selected_corpus_health_seed_with_meter<
                     )
                 })?
                 .to_owned();
-            if index_schema.len() > budget.inspect.max_field_bytes {
+            if index_schema.len() > max_field_bytes {
                 return Err(budget_error());
             }
-            let mut corpus = CorpusRead {
-                read,
-                receipt,
-                header: header.1,
-                context,
-                remaining: budget.max_work_steps,
-            };
-            let first_view = corpus
-                .views()?
-                .iter()
+            let first_view = views.iter().filter(|v| field(v, "view_id").as_str().is_some_and(supported))
                 .find_map(|view| field(view, "view_id").as_str().map(str::to_owned));
             let seed = object(vec![
                 ("schema_version", text("tos_selected_corpus_health_seed_v1")),
@@ -929,8 +967,6 @@ fn execute_selected_corpus_health_seed_with_meter<
                 ),
             ]);
             Ok(seed)
-        },
-    )
 }
 
 fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(

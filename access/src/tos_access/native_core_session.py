@@ -26,6 +26,25 @@ _CONSUMER = 2684354560
 _AGGREGATE = 3221225472
 
 
+class NativeSessionRefused(ValueError):
+    """Authentic bounded native refusal; message/code remain borrowed values."""
+    __slots__ = ('code',)
+
+    @classmethod
+    def from_envelope(cls, envelope, state, schema):
+        if (type(envelope) is not dict or set(envelope) != {'schema_version', 'ok', 'error', 'code'}
+                or envelope.get('schema_version') != schema or envelope.get('ok') is not False
+                or type(envelope['error']) is not str or not 0 < len(envelope['error']) <= 4096
+                or type(envelope['code']) is not str or not 0 < len(envelope['code']) <= 128):
+            raise ValueError('native SDK refusal envelope differs')
+        g = state.geometry
+        state.reserve(cls.__basicsize__ + g.gc_header + g.tuple_base + 2 * g.pointer)
+        state.active()
+        refusal = cls(envelope['error'])
+        refusal.code = envelope['code']
+        return refusal
+
+
 def _unique(pairs):
     result = {}
     for key, value in pairs:
@@ -92,6 +111,23 @@ def _path_workspace(value, state):
 
 
 @dataclass(frozen=True)
+class NativeSDKSearchCacheConfiguration:
+    path: Path
+    source_root: Path
+    max_build_bytes: int
+    max_temp_bytes: int
+
+    def __post_init__(self):
+        if any(not isinstance(value, Path) or not value.is_absolute()
+               or any(part in ('.', '..') for part in value.parts)
+               for value in (self.path, self.source_root)):
+            raise ValueError('native SDK search cache paths must be canonical absolute paths')
+        if any(type(value) is not int or not 0 < value < 1 << 64
+               for value in (self.max_build_bytes, self.max_temp_bytes)):
+            raise ValueError('native SDK search cache byte selectors must be positive u64 values')
+
+
+@dataclass(frozen=True)
 class NativeSDKStageConfiguration:
     setup_cgroup: Path
     consumer_cgroup: Path
@@ -102,6 +138,7 @@ class NativeSDKStageConfiguration:
     persistent_store: Path | None
     setup_as_bytes: int | None = None
     guardian_state_bytes: int | None = None
+    search_cache: NativeSDKSearchCacheConfiguration | None = None
 
     @classmethod
     def from_bootstrap_environment(cls, *, receiving_state=None):
@@ -114,8 +151,9 @@ class NativeSDKStageConfiguration:
             g = receiving_state.geometry
             receiving_state.reserve(g.bytes_base + 4 * len(raw)
                                     + memoryview.__basicsize__ + g.gc_header
-                                    + cls.__basicsize__ + g.gc_header + g.dict_bytes(9)
-                                    + 2 * g.list_bytes(2))
+                                    + cls.__basicsize__ + g.gc_header + g.dict_bytes(10)
+                                    + NativeSDKSearchCacheConfiguration.__basicsize__ + g.gc_header
+                                    + g.dict_bytes(4) + 2 * g.list_bytes(2))
             encoded = raw.encode('utf-8')
             if len(encoded) > 65536:
                 raise ValueError('native SDK bootstrap configuration byte cap exceeded')
@@ -126,7 +164,7 @@ class NativeSDKStageConfiguration:
                   'unshare_exe', 'original_whole_deadline_ns', 'original_work_deadline_ns',
                   'maximum_shutdown_ms', 'quota_bytes', 'inode_limit', 'working_ram_bytes',
                   'aggregate_ram_bytes', 'swap_max_bytes'}
-        if type(v) is not dict or not fields <= v.keys() or v.keys() - fields - {'persistent_store', 'setup_as_bytes', 'guardian_state_bytes'}:
+        if type(v) is not dict or not fields <= v.keys() or v.keys() - fields - {'persistent_store', 'setup_as_bytes', 'guardian_state_bytes', 'search_cache'}:
             raise ValueError('native SDK bootstrap field contract differs')
         if v['schema'] != 'tos_sdk_stage_config_v1':
             raise ValueError('native SDK bootstrap schema differs')
@@ -174,10 +212,22 @@ class NativeSDKStageConfiguration:
                         or not raw_projection.isascii() or not raw_projection.isdigit()
                         or int(raw_projection) != expected):
                     raise ValueError('native SDK bounded bootstrap projection differs')
+        cache_value = v.get('search_cache')
+        search_cache = None
+        if cache_value is not None:
+            expected_cache_fields = {'path', 'source_root', 'max_build_bytes', 'max_temp_bytes'}
+            if (type(cache_value) is not dict or set(cache_value) != expected_cache_fields
+                    or type(cache_value['max_build_bytes']) is not int
+                    or type(cache_value['max_temp_bytes']) is not int):
+                raise ValueError('native SDK search cache bootstrap fields differ')
+            search_cache = NativeSDKSearchCacheConfiguration(
+                _path(cache_value['path'], receiving_state),
+                _path(cache_value['source_root'], receiving_state),
+                cache_value['max_build_bytes'], cache_value['max_temp_bytes'])
         return cls(*(_path(v[name], receiving_state) for name in ('setup_cgroup', 'consumer_cgroup',
                     'scratch_parent', 'unshare_exe')), *clocks,
                    _path(v['persistent_store'], receiving_state) if 'persistent_store' in v else None,
-                   setup_as, guardian)
+                   setup_as, guardian, search_cache)
 
     def active(self):
         now = time.monotonic_ns()
@@ -185,6 +235,60 @@ class NativeSDKStageConfiguration:
             raise TimeoutError('native SDK original work cutoff expired')
         if self.original_whole_deadline_ns - now > 50000000000:
             raise ValueError('native SDK original whole profile exceeds 50 seconds')
+
+
+@dataclass(frozen=True)
+class NativeSDKHostSessionRequest:
+    """One caller operation clock; the native host owner issues every grant."""
+    original_whole_deadline_ns: int
+    original_work_deadline_ns: int
+
+    @classmethod
+    def from_operation_state(cls, state):
+        g = state.geometry
+        code = cls.from_operation_state.__func__.__code__
+        slots = code.co_nlocals + len(code.co_cellvars) + len(code.co_freevars) + code.co_stacksize
+        scalar = max(g.unicode_bytes(20), int.__basicsize__ + 3 * g.int_digit)
+        import types
+        state.reserve(cls.__basicsize__ + g.gc_header + g.dict_bytes(2) + 2 * scalar
+                      + types.FrameType.__basicsize__ + g.gc_header + slots * (g.pointer + scalar))
+        work = int(state._deadline * 1e9)
+        request = cls(work + 5000000000, work)
+        request.active()
+        return request
+
+    def active(self):
+        now = time.monotonic_ns()
+        if (type(self.original_whole_deadline_ns) is not int
+                or type(self.original_work_deadline_ns) is not int
+                or self.original_whole_deadline_ns - self.original_work_deadline_ns != 5000000000
+                or not now < self.original_work_deadline_ns < 1 << 64
+                or self.original_whole_deadline_ns - now > 50000000000):
+            raise ValueError('ordinary SDK original operation clock differs')
+
+
+class NativeSDKHostCustody:
+    """Native owns host leases/cgroups; Python holds the child through terminal."""
+    def __init__(self, request, cancelled):
+        self.config, self.cancelled, self.channel = request, cancelled, None
+        self.verify_current()
+
+    def verify_current(self):
+        self.config.active()
+        if self.cancelled.is_set():
+            raise InterruptedError('ordinary SDK operation cancelled')
+
+    def verify_after_shutdown(self):
+        if time.monotonic_ns() >= self.config.original_whole_deadline_ns:
+            raise TimeoutError('ordinary SDK original cleanup cutoff')
+        if (self.channel is None or self.channel._unknown or self.channel._terminal is None
+                or self.channel._terminal.si_code != os.CLD_EXITED or self.channel._terminal.si_status != 0):
+            raise RuntimeError('native host grant/cgroup cleanup terminal unproved')
+
+    def close(self):
+        # No invented Python kernel-placement handles. owned_exchange retains
+        # direct child/image custody on both primary failure and successful close.
+        self.channel = None
 
 
 class NativeSDKPlacement:
@@ -333,7 +437,14 @@ class NativeSDKSession:
         self._sequence += 1
         self._placement.verify_current()
         if kind == 6:
-            raise ValueError('native SDK owner refused selected call')
+            state = self._receiving_state
+            if state is None:
+                raise ValueError('native SDK owner refused selected call')
+            # Kind6 is a complete refusal before any result disclosure. Decode
+            # once under the ORIGINAL ledger; no new clock/counter or retry.
+            envelope = state.decode(result)
+            raise NativeSessionRefused.from_envelope(envelope, state,
+                'tos_native_core_snapshot_result_v1')
         return result
 
     def close(self):
@@ -341,55 +452,109 @@ class NativeSDKSession:
             return
         self._placement.verify_current()
         self._control.send(4, self._sequence, b'')
-        self._receive(frozenset((5,)), self._sequence, 'close_ack')
+        kind, payload = self._receive(frozenset((5, 6)), self._sequence, 'close_ack')
+        if kind == 6:
+            if self._receiving_state is None:
+                raise ValueError('native SDK close refused')
+            envelope = self._receiving_state.decode(payload)
+            raise NativeSessionRefused.from_envelope(envelope, self._receiving_state,
+                'tos_native_core_snapshot_result_v1')
         self._channel.finish_control_session()
         self._placement.verify_after_shutdown()
         self._closed = True
 
 
+def _release_environment(release_root):
+    if release_root is None:
+        return None
+    environment = dict(os.environ)
+    environment['TOS_RELEASE_ROOT'] = os.fspath(release_root)
+    return environment
+
+
 @contextmanager
 def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
                              receiver_buffer, frame_buffer, config, receiving_state=None,
-                             session_operation='tos_native_session'):
+                             session_operation='tos_native_session', snapshot_root=None,
+                             search_cache_path=None, release_root=None):
     """Launch issuer directly from SDK using original clock and child-only ticket.
 
     Encoded startup and buffers are caller-owned original receiving state; no
     Python model/parser/allocation allowance is manufactured by this transport.
     """
-    if type(session_operation) is not str or session_operation not in ('tos_native_session', 'tos_native_probe_session', 'tos_native_lazy_session'):
+    if type(session_operation) is not str or session_operation not in ('tos_native_session', 'tos_native_probe_session', 'tos_native_lazy_session', 'tos_native_ordinary_session'):
         raise ValueError('native SDK session profile operation unavailable')
     if not isinstance(limits, NativeSessionLimits) or not isinstance(cancelled, threading.Event):
         raise TypeError('native SDK original typed transport limits/cancellation required')
+    if (getattr(config, 'search_cache', None) is not None
+            and not isinstance(config.search_cache, NativeSDKSearchCacheConfiguration)):
+        raise TypeError('native SDK search cache requires its typed bootstrap owner')
     if type(startup_bytes) is not bytes or len(startup_bytes) > 65536:
         raise ValueError('native SDK original bounded encoded startup required')
     selected_root = _path(root, receiving_state)
+    if snapshot_root is not None:
+        snapshot_root = _path(snapshot_root, receiving_state)
+        if selected_root != snapshot_root / 'data':
+            raise ValueError('native snapshot root/data selector differs')
+    if release_root is not None:
+        release_root = _path(release_root, receiving_state)
+        if (session_operation != 'tos_native_ordinary_session' or snapshot_root is None):
+            raise ValueError('ReferenceRelease requires an ordinary guarded snapshot session')
+    if search_cache_path is not None:
+        search_cache_path = _path(search_cache_path, receiving_state)
+        if session_operation != 'tos_native_ordinary_session':
+            raise ValueError('native cache host selector requires ordinary operation')
     if receiving_state is not None:
         from .native_core_session_launch_state import reserve_sdk_launch
         reserve_sdk_launch(receiving_state, config, prefix, selected_root,
-                           session_operation=session_operation)
+                           session_operation=session_operation,
+                           protected_root=snapshot_root if snapshot_root is not None else
+                               selected_root if session_operation == 'tos_native_ordinary_session' else None,
+                           search_cache_path=search_cache_path)
     with ExitStack() as stack:
-        placement = NativeSDKPlacement(config)
+        outside = isinstance(config, NativeSDKHostSessionRequest)
+        if outside and session_operation != 'tos_native_ordinary_session':
+            raise ValueError('outside host request requires ordinary native owner')
+        placement = NativeSDKHostCustody(config, cancelled) if outside else NativeSDKPlacement(config)
         stack.callback(placement.close)
         parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
         stack.callback(parent.close)
         stack.callback(child.close)
         fd = child.fileno()
-        arguments = ['private-stage-run', '--unshare-exe', str(config.unshare_exe),
-            '--consumer-cgroup', str(config.consumer_cgroup), '--scratch-parent', str(config.scratch_parent),
-            '--quota-bytes', str(_SETUP), '--inodes', '65536', '--working-ram-bytes', str(_CONSUMER),
-            '--work-deadline-ns', str(config.original_whole_deadline_ns), '--maximum-shutdown-ms', '5000',
-            '--consumer-control-fd', str(fd)]
-        if config.setup_as_bytes is not None:
-            arguments += ['--sdk-setup-as-bytes', str(config.setup_as_bytes),
-                          '--sdk-guardian-state-bytes', str(config.guardian_state_bytes)]
-        if config.persistent_store is not None:
-            arguments += ['--persistent-store', str(config.persistent_store)]
-        # The installed image path is selected/held by native_dispatch, never root.
-        # /proc/self/exe names that same issuer image inside its selected child.
-        arguments += ['--', '/proc/self/exe', 'native-process-exec',
-            '--address-space-bytes', str(_CONSUMER), '--file-size-bytes', str(_SETUP), '--',
-            'core-snapshot', '--root', str(selected_root), '--operation', session_operation,
-            '--session-control-fd', str(fd), '--work-deadline-ns', str(config.original_work_deadline_ns)]
+        if outside:
+            arguments = ['sdk-host-session', '--root', str(selected_root),
+                '--consumer-control-fd', str(fd), '--work-deadline-ns',
+                str(config.original_whole_deadline_ns)]
+        else:
+            arguments = ['private-stage-run', '--unshare-exe', str(config.unshare_exe),
+                '--consumer-cgroup', str(config.consumer_cgroup), '--scratch-parent', str(config.scratch_parent),
+                '--quota-bytes', str(_SETUP), '--inodes', '65536', '--working-ram-bytes', str(_CONSUMER),
+                '--work-deadline-ns', str(config.original_whole_deadline_ns), '--maximum-shutdown-ms', '5000',
+                '--consumer-control-fd', str(fd)]
+            if config.setup_as_bytes is not None:
+                arguments += ['--sdk-setup-as-bytes', str(config.setup_as_bytes),
+                              '--sdk-guardian-state-bytes', str(config.guardian_state_bytes)]
+            if config.persistent_store is not None:
+                arguments += ['--persistent-store', str(config.persistent_store)]
+            if config.search_cache is not None:
+                cache = config.search_cache
+                arguments += ['--search-cache-path', str(cache.path),
+                    '--search-cache-source-root', str(cache.source_root),
+                    '--search-cache-max-build-bytes', str(cache.max_build_bytes),
+                    '--search-cache-max-temp-bytes', str(cache.max_temp_bytes)]
+            # The installed image path is selected/held by native_dispatch, never root.
+            # /proc/self/exe names that same issuer image inside its selected child.
+            arguments += ['--', '/proc/self/exe', 'native-process-exec',
+                '--address-space-bytes', str(_CONSUMER), '--file-size-bytes', str(_SETUP), '--',
+                'core-snapshot', '--root', str(selected_root), '--operation', session_operation,
+                '--session-control-fd', str(fd), '--work-deadline-ns', str(config.original_work_deadline_ns)]
+        if outside and snapshot_root is not None:
+            arguments += ['--snapshot-root', str(snapshot_root)]
+        elif not outside and session_operation == 'tos_native_ordinary_session':
+            boundary = arguments.index('--')
+            arguments[boundary:boundary] = ['--protected-ro', str(snapshot_root if snapshot_root is not None else selected_root)]
+        if outside and search_cache_path is not None:
+            arguments += ['--search-cache-path', str(search_cache_path)]
         selected_image = None
         if receiving_state is not None:
             selected_image = stack.enter_context(native_dispatch.verified_image(
@@ -399,7 +564,10 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
         channel = stack.enter_context(native_io.owned_exchange(arguments, prefix=prefix,
             input_cap=65536, frame_cap=65536, cancelled=cancelled,
             absolute_deadline=config.original_whole_deadline_ns / 1e9,
-            operation_seconds=50, pass_fds=(fd,), selected_image=selected_image))
+            operation_seconds=50, env=_release_environment(release_root),
+            pass_fds=(fd,), selected_image=selected_image))
+        if outside:
+            placement.channel = channel
         child.close()
         control = NativeSessionControl(parent, deadline=config.original_work_deadline_ns / 1e9,
             cancelled=cancelled, receiver_buffer=receiver_buffer, frame_buffer=frame_buffer,
@@ -409,3 +577,110 @@ def owned_native_sdk_session(*, prefix, root, startup_bytes, limits, cancelled,
         _, startup = session._receive(frozenset((2,)), 0, 'startup')
         yield session, startup
         session.close()
+
+
+@contextmanager
+def owned_native_snapshot_exchange(prefix, selection, state, operation_id,
+                                   prior_fd=None, reply_fd=None, config=None,
+                                   *, absolute_work_deadline=None, snapshot_root=None,
+                                   release_root=None):
+    """Keep authentic placement and original call custody through stdio terminal."""
+    from .native_core_session_receiver import ReceiverState
+    from .native_core_snapshot import NativeCoreSnapshotSelection, _INPUT_CAP, _FRAME_CAP
+    from .native_core_session_launch_state import reserve_sdk_launch
+    if (not isinstance(state, ReceiverState)
+            or not isinstance(selection, NativeCoreSnapshotSelection)
+            or operation_id not in ('tos_knowledge_graph', 'tos_knowledge_snapshot',
+                                    'tos_knowledge_graph_addressed', 'tos_knowledge_snapshot_once')):
+        raise TypeError('native retained operation requires original typed owners')
+    for fd in (reply_fd, prior_fd):
+        if fd is not None and (type(fd) is not int or fd < 3):
+            raise ValueError('native retained inherited FD role unavailable')
+    if prior_fd is not None and (reply_fd is None or prior_fd == reply_fd):
+        raise ValueError('native retained reply/prior roles differ')
+    if config is None:
+        config = (NativeSDKStageConfiguration.from_bootstrap_environment(receiving_state=state)
+                  if 'TOS_SDK_STAGE_CONFIG' in os.environ else
+                  NativeSDKHostSessionRequest.from_operation_state(state))
+    if (not isinstance(config, (NativeSDKStageConfiguration, NativeSDKHostSessionRequest))
+            or state._deadline != config.original_work_deadline_ns / 1e9
+            or state._limit != _SETUP):
+        raise ValueError('native retained original operation owner differs')
+    config.active()
+    import math
+    operation_deadline = config.original_work_deadline_ns / 1e9
+    if absolute_work_deadline is not None:
+        if (type(absolute_work_deadline) not in (int, float) or not math.isfinite(absolute_work_deadline)
+                or absolute_work_deadline <= time.monotonic() or absolute_work_deadline > operation_deadline):
+            raise ValueError('native retained public cutoff outside original work')
+        operation_deadline = absolute_work_deadline
+    cleanup_deadline = min(config.original_whole_deadline_ns / 1e9, operation_deadline + 5)
+    prefix, root = _path(prefix, state), _path(selection.tos_root, state)
+    reserve_sdk_launch(state, config, prefix, root, session_operation=operation_id,
+                       input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP,
+                       protected_root=snapshot_root if snapshot_root is not None else root)
+    if snapshot_root is not None:
+        snapshot_root = _path(snapshot_root, state)
+        if root != snapshot_root / 'data':
+            raise ValueError('native retained snapshot root/data selector differs')
+    if release_root is not None:
+        release_root = _path(release_root, state)
+        if snapshot_root is None:
+            raise ValueError('ReferenceRelease requires its selected snapshot root')
+    outside = isinstance(config, NativeSDKHostSessionRequest)
+    with ExitStack() as stack:
+        placement = NativeSDKHostCustody(config, state._cancelled) if outside else NativeSDKPlacement(config)
+        stack.callback(placement.close)
+        stage_control_fd = None
+        if not outside and config.setup_as_bytes is not None:
+            stage_control_fd = reply_fd
+            if stage_control_fd is None:
+                control_parent, control_child = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+                stack.callback(control_parent.close)
+                stack.callback(control_child.close)
+                stage_control_fd = control_child.fileno()
+        roles = []
+        for name, fd in (('--state-reply-fd', reply_fd), ('--snapshot-state-fd', prior_fd)):
+            if fd is not None:
+                roles += [name, str(fd)]
+        if outside:
+            arguments = ['sdk-host-session', '--root', str(root), '--snapshot-operation', operation_id,
+                         '--work-deadline-ns', str(config.original_whole_deadline_ns)] + roles
+        else:
+            arguments = ['private-stage-run', '--unshare-exe', str(config.unshare_exe),
+                '--consumer-cgroup', str(config.consumer_cgroup), '--scratch-parent', str(config.scratch_parent),
+                '--quota-bytes', str(_SETUP), '--inodes', '65536', '--working-ram-bytes', str(_CONSUMER),
+                '--work-deadline-ns', str(config.original_whole_deadline_ns), '--maximum-shutdown-ms', '5000'] + roles
+            if config.setup_as_bytes is not None:
+                arguments += ['--consumer-control-fd', str(stage_control_fd)]
+                arguments += ['--sdk-setup-as-bytes', str(config.setup_as_bytes),
+                              '--sdk-guardian-state-bytes', str(config.guardian_state_bytes)]
+            if config.persistent_store is not None:
+                arguments += ['--persistent-store', str(config.persistent_store)]
+            arguments += ['--', '/proc/self/exe', 'native-process-exec',
+                '--address-space-bytes', str(_CONSUMER), '--file-size-bytes', str(_SETUP), '--',
+                'core-snapshot', '--root', str(root), '--operation', operation_id,
+                '--native-ordinary-startup', '--work-deadline-ns', str(config.original_work_deadline_ns)] + roles
+        if outside and snapshot_root is not None:
+            arguments += ['--snapshot-root', str(snapshot_root)]
+        elif not outside:
+            boundary = arguments.index('--')
+            arguments[boundary:boundary] = ['--protected-ro', str(snapshot_root if snapshot_root is not None else root)]
+        image = stack.enter_context(native_dispatch.verified_image(prefix,
+            absolute_deadline=operation_deadline,
+            absolute_cleanup_deadline=cleanup_deadline,
+            receiving_state=state))
+        channel = stack.enter_context(native_io.owned_exchange(arguments, prefix=prefix,
+            input_cap=_INPUT_CAP, frame_cap=_FRAME_CAP, cancelled=state._cancelled,
+            absolute_deadline=cleanup_deadline,
+            operation_seconds=50, env=_release_environment(release_root),
+            pass_fds=tuple(dict.fromkeys(fd for fd in (reply_fd, prior_fd, stage_control_fd) if fd is not None)),
+            selected_image=image))
+        if outside:
+            placement.channel = channel
+        placement.verify_current()
+        yield channel
+        channel.finish()
+        placement.verify_after_shutdown()
+        if time.monotonic() >= operation_deadline:
+            raise TimeoutError('native retained public work cutoff')

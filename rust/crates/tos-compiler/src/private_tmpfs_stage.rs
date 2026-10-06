@@ -107,6 +107,10 @@ struct PersistentStoreTicket {
     root_inode: u64,
     quota_scope: String,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SearchCacheTicket {path:PathBuf,source_root:PathBuf,parent_device:u64,parent_inode:u64,parent_fd:i32,max_build_bytes:u64,max_temp_bytes:u64,quota_scope:String}
+fn deserialize_cache<'de,D:serde::Deserializer<'de>>(reader:D)->std::result::Result<Option<SearchCacheTicket>,D::Error> {SearchCacheTicket::deserialize(reader).map(Some)}
 // Missing field is v1. An explicitly present null is not a capability shape.
 fn deserialize_store<'de, D: serde::Deserializer<'de>>(
     reader: D,
@@ -164,6 +168,8 @@ struct Ticket {
     consumer_requires_dumpable_zero: bool,
     #[serde(default, deserialize_with = "deserialize_store")]
     persistent_store: Option<PersistentStoreTicket>,
+    #[serde(default,deserialize_with="deserialize_cache")]
+    search_cache:Option<SearchCacheTicket>,
 }
 
 /// Current kernel-accounted allocation in the selected private tmpfs.
@@ -178,6 +184,7 @@ pub struct PrivateTmpfsStageIsolation {
     ticket: Ticket,
     custody: File,
     persistent_custody: Option<File>,
+    search_cache_custody:Option<File>,
 }
 impl PrivateTmpfsStageIsolation {
     /// Call before source capture and before starting writer descendants. Each
@@ -252,9 +259,18 @@ impl PrivateTmpfsStageIsolation {
                             && !Path::new(fallback).starts_with(&store.root)
                     })
             }
+            ("abyss_machine_private_tmpfs_stage_v3",None)=>ticket.search_cache.as_ref().is_some_and(|cache| {
+                cache.quota_scope=="outside-private-tmpfs-original-io" && cache.parent_device!=ticket.root_device && cache.parent_fd>=3
+                && cache.max_build_bytes>=4096 && cache.max_temp_bytes>=cache.max_build_bytes
+                && cache.max_build_bytes.checked_add(cache.max_temp_bytes).is_some()
+                && cache.path.parent().is_some_and(|parent|parent!=Path::new("/")
+                    && !parent.starts_with(&ticket.root) && !ticket.root.starts_with(parent)
+                    && !["/tmp","/var/tmp","/usr/tmp"].iter().any(|f|parent==Path::new(f) || Path::new(f).starts_with(parent)))
+            }),
             _ => false,
         };
-        if !version_valid
+        let cache_version_valid=ticket.search_cache.is_none() || ticket.schema=="abyss_machine_private_tmpfs_stage_v3";
+        if !version_valid || !cache_version_valid
             || ticket.quota_bytes != quota_bytes
             || ticket.inode_limit != inode_limit
             || ticket.working_ram_bytes != working_ram_bytes
@@ -274,13 +290,75 @@ impl PrivateTmpfsStageIsolation {
             .as_ref()
             .map(|store| open_store(&store.root))
             .transpose()?;
+        let search_cache_custody=ticket.search_cache.as_ref().map(|cache| {
+            let raw=unsafe{libc::fcntl(cache.parent_fd,libc::F_DUPFD_CLOEXEC,3)};
+            if raw<0 {return Err(Error::from(std::io::Error::last_os_error()));}
+            Ok(unsafe{File::from_raw_fd(raw)})
+        }).transpose()?;
         let result = Self {
             ticket,
             custody,
             persistent_custody,
+            search_cache_custody,
         };
         result.verify_kernel()?;
         Ok(result)
+    }
+    /// Select the actual issuer ticket as the normal native session's resource
+    /// envelope. Ticket contents remain bounded claims: the ordinary caller
+    /// still validates seals, fd binding, namespace, mount, root and kernel
+    /// quota before exposing these values to admission.
+    pub fn select_issued_from_environment() -> Result<Self> {
+        if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
+            return Err(std::io::Error::last_os_error().into());
+        }
+        let raw: i32 = bounded_env(b"ABYSS_STAGE_TICKET_FD\0", 32)?
+            .into_string()
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .filter(|value| *value > 2)
+            .ok_or(Error::Invalid("private stage custody FD missing"))?;
+        let duplicate = unsafe { libc::fcntl(raw, libc::F_DUPFD_CLOEXEC, 3) };
+        if duplicate < 0 {
+            return Err(std::io::Error::last_os_error().into());
+        }
+        let custody = unsafe { File::from_raw_fd(duplicate) };
+        let seals = unsafe { libc::fcntl(custody.as_raw_fd(), libc::F_GET_SEALS) };
+        let required =
+            libc::F_SEAL_SEAL | libc::F_SEAL_WRITE | libc::F_SEAL_GROW | libc::F_SEAL_SHRINK;
+        let len = custody.metadata()?.len();
+        if seals < 0 || seals & required != required || len > 8192 {
+            return Err(Error::Invalid("unsealed or oversized private stage ticket"));
+        }
+        let mut bytes = vec![0; len as usize];
+        custody.read_exact_at(&mut bytes, 0)?;
+        let ticket: Ticket = serde_json::from_slice(&bytes)
+            .map_err(|_| Error::Invalid("private stage ticket shape"))?;
+        if ticket.quota_bytes == 0
+            || ticket.inode_limit < 16
+            || ticket.working_ram_bytes == 0
+            || ticket.quota_bytes.checked_add(ticket.working_ram_bytes).is_none()
+        {
+            return Err(Error::Invalid("private stage ticket resource envelope"));
+        }
+        let limits = (
+            ticket.quota_bytes,
+            ticket.inode_limit,
+            ticket.working_ram_bytes,
+        );
+        drop(ticket);
+        drop(bytes);
+        drop(custody);
+        Self::select_from_environment(limits.0, limits.1, limits.2)
+    }
+    /// Return only the finite resource values held by this validated stage
+    /// ticket; callers continue to recheck the ticket at each owned stage use.
+    pub fn resource_limits(&self) -> (u64, u64, u64) {
+        (
+            self.ticket.quota_bytes,
+            self.ticket.inode_limit,
+            self.ticket.working_ram_bytes,
+        )
     }
     pub fn root(&self) -> &Path {
         &self.ticket.root
@@ -315,6 +393,7 @@ impl PrivateTmpfsStageIsolation {
             add(store.root.capacity())?;
             add(store.quota_scope.capacity())?;
         }
+        if let Some(cache)=&ticket.search_cache {add(cache.path.capacity())?;add(cache.source_root.capacity())?;add(cache.quota_scope.capacity())?;}
         Ok(bytes)
     }
 
@@ -352,6 +431,34 @@ impl PrivateTmpfsStageIsolation {
             .ok_or(Error::Invalid("persistent store custody missing"))
     }
 
+    /// Borrow only the exact issued cacheparent; ceilings may narrow its
+    /// original reserved IO allowance but never expand it or reset counters.
+    pub fn search_cache_custody(&self,requested:&Path,max_build_bytes:u64,max_temp_bytes:u64)->Result<&File> {
+        let cache=self.ticket.search_cache.as_ref().ok_or(Error::Invalid("stage has no search cache capability"))?;
+        if requested!=cache.path || max_build_bytes<4096 || max_temp_bytes<max_build_bytes || max_build_bytes>cache.max_build_bytes || max_temp_bytes>cache.max_temp_bytes {return Err(Error::Invalid("search cache selector/caps differ from issued capability"));}
+        self.verify_kernel()?;
+        self.search_cache_custody.as_ref().ok_or(Error::Invalid("search cache custody absent"))
+    }
+    /// Return physical build/temp ceilings only for the exact issued cache path.
+    /// Public read-model build caps are applied only if this operation rebuilds.
+    pub fn search_cache_limits(&self,requested:&Path)->Result<(u64,u64)> {
+        let cache=self.ticket.search_cache.as_ref().ok_or(Error::Invalid("stage has no search cache capability"))?;
+        if requested!=cache.path {return Err(Error::Invalid("search cache path differs from issued capability"));}
+        Ok((cache.max_build_bytes,cache.max_temp_bytes))
+    }
+    pub fn search_cache_path(&self)->Option<&Path> {self.ticket.search_cache.as_ref().map(|c|c.path.as_path())}
+    pub fn search_cache_source_root(&self)->Option<&Path> {self.ticket.search_cache.as_ref().map(|c|c.source_root.as_path())}
+    fn verify_search_cache_identity(&self)->Result<()> {
+        match(&self.ticket.search_cache,&self.search_cache_custody) {
+            (None,None)=>Ok(()),
+            (Some(cache),Some(held))=>{
+                let parent=cache.path.parent().ok_or(Error::Invalid("search cache parent"))?;
+                let named=open_store(parent)?.metadata()?;let actual=held.metadata()?;
+                if !actual.is_dir() || (actual.dev(),actual.ino())!=(cache.parent_device,cache.parent_inode) || (named.dev(),named.ino())!=(cache.parent_device,cache.parent_inode) || actual.mode()&0o022!=0 {return Err(Error::Invalid("search cache held/named parent identity changed"));}
+                Ok(())
+            },_=>Err(Error::Invalid("search cache custody absent"))
+        }
+    }
     fn verify_store_identity(&self) -> Result<()> {
         match (&self.ticket.persistent_store, &self.persistent_custody) {
             (None, None) => Ok(()),
@@ -525,6 +632,7 @@ impl PrivateTmpfsStageIsolation {
             return Err(Error::Invalid("stage custody lost"));
         }
         self.verify_store_identity()?;
+        self.verify_search_cache_identity()?;
         Ok(())
     }
 }
@@ -623,6 +731,7 @@ mod persistent_boundary_controls {
             ticket,
             custody: File::open("/dev/null").unwrap(),
             persistent_custody: None,
+            search_cache_custody:None,
         };
         assert!(matches!(
             readonly.verify_persistent_store(Path::new("/selected-fixture-store")),
@@ -641,6 +750,7 @@ mod persistent_boundary_controls {
             ticket,
             custody: File::open("/dev/null").unwrap(),
             persistent_custody: None,
+            search_cache_custody:None,
         };
         assert!(matches!(
             unselected.verify_persistent_store(Path::new("/adjacent-fixture-store")),
@@ -692,6 +802,7 @@ mod persistent_boundary_controls {
             ticket,
             custody: File::open("/dev/null").unwrap(),
             persistent_custody: Some(held),
+            search_cache_custody:None,
         };
         fs::rename(&path, root.join("retained")).unwrap();
         fs::create_dir(&path).unwrap();

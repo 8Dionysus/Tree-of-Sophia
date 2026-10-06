@@ -10,11 +10,13 @@ use tos_foundation::{
 };
 
 use crate::knowledge_binding::BoundCmpKnowledge;
+use crate::search_candidate::SearchCandidateModel;
 use crate::search_candidate::SelectedSearchCandidate;
 use crate::search_execute::{
     ObservedSearchCandidate, PrivateSearchKindPage, SearchCurrentAuthority, SearchKindBudget,
     advance_private_kind, execute_private_kind_page, exhausted_private_kind,
 };
+use crate::search_index::{SearchGramModel, SearchPostingModel};
 use crate::search_v2::{
     CurrentPolicyBinding, INDEXED_SEARCH_V2_OPERATION, IndexedSearchV2Request,
     SearchContinuationState, SearchKind, SearchV2Error, SearchV2ErrorCode, SelectedQueryVocabulary,
@@ -23,6 +25,33 @@ use crate::search_v2::{
 pub const INDEXED_SEARCH_OPERATION_ID: &str = "tos.knowledge.search";
 pub const INDEXED_SEARCH_CARRIER_LAYER: &str = "tos_knowledge_public_graph_projection_v1";
 pub const INDEXED_SEARCH_INTENDED_USE: &str = "read_only_public_knowledge_search_v1";
+
+/// Exact selected model operations required by the maintained indexed page
+/// kernel. A controlled compiler model implements the same narrow traits; it
+/// does not expose its connection, state, custody or open counters.
+pub(crate) trait IndexedSearchModel:
+    SearchGramModel + SearchPostingModel + SearchCandidateModel
+{
+    fn check_bound(&self, bound: &BoundCmpKnowledge<'_>) -> Result<(), SearchV2Error>;
+    fn check_open_vm_budget(&self, maximum: u64) -> Result<(), SearchV2Error>;
+}
+
+impl IndexedSearchModel for VerifiedKnowledgeModel<'_> {
+    fn check_bound(&self, bound: &BoundCmpKnowledge<'_>) -> Result<(), SearchV2Error> {
+        bound.check_model(self)
+    }
+
+    fn check_open_vm_budget(&self, maximum: u64) -> Result<(), SearchV2Error> {
+        if maximum == 0 || self.open_vm_steps() > maximum {
+            Err(error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "indexed packet admission unavailable",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
 
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
     SearchV2Error { code, message }
@@ -170,11 +199,21 @@ impl<'hold, A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized> SearchCurrentAut
     }
 }
 
-/// Wire token semantics remain local to the native adapter. Python's unsigned
-/// base64url JSON token with a 15-minute expiry and Worker's epoch-bound token
-/// are not advertised as interoperable or as authorization.
+/// Wire token semantics remain owned by each adapter. The ordinary source
+/// sidecar may use Reference's unsigned public cursor shape; the legacy lazy
+/// adapter keeps its native token. Neither token grants access or authority.
 pub trait IndexedWireCursorCodec {
     fn decode(&mut self, token: &str) -> Result<SearchContinuationState, SearchV2Error>;
+    /// Supply the exact selected trigram after bounded query execution. Native
+    /// Reference-compatible cursors use it to validate and issue V3 children;
+    /// other cursor codecs keep their existing wire contract.
+    fn observe_page_gram(
+        &mut self,
+        _kind: SearchKind,
+        _selected_gram: Option<&str>,
+    ) -> Result<(), SearchV2Error> {
+        Ok(())
+    }
     fn encode(&mut self, state: &SearchContinuationState) -> Result<String, SearchV2Error>;
 }
 
@@ -228,6 +267,7 @@ impl DisclosableIndexedSearch {
 pub struct DisclosableScopedIndexedSearch<'hold> {
     body: Vec<u8>,
     lease: Box<dyn IndexedDisclosureLease + 'hold>,
+    work_bytes: u64,
 }
 
 impl std::fmt::Debug for DisclosableScopedIndexedSearch<'_> {
@@ -250,6 +290,9 @@ impl<'hold> DisclosableScopedIndexedSearch<'hold> {
     }
     pub fn recheck(&mut self) -> Result<(), SearchV2Error> {
         self.lease.recheck()
+    }
+    pub(crate) fn work_bytes(&self) -> u64 {
+        self.work_bytes
     }
 }
 
@@ -436,7 +479,7 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
     cursor_in: Option<&str>,
     budget: IndexedPageBudget,
 ) -> Result<DisclosableIndexedSearch, SearchV2Error> {
-    let scoped = execute_scoped_indexed_search_page::<'static, A>(
+    let scoped = execute_scoped_indexed_search_page(
         model,
         bound,
         authority,
@@ -450,22 +493,49 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
 }
 
 /// Same indexed page kernel with a borrowed owner-issued delivery hold.
-pub fn execute_scoped_indexed_search_page<
-    'hold,
-    A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
->(
-    model: &mut VerifiedKnowledgeModel<'_>,
+pub fn execute_scoped_indexed_search_page<'hold, M, A>(
+    model: &mut M,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     cursor_codec: &mut dyn IndexedWireCursorCodec,
     request: IndexedSearchV2Request,
     cursor_in: Option<&str>,
     budget: IndexedPageBudget,
-) -> Result<DisclosableScopedIndexedSearch<'hold>, SearchV2Error> {
+) -> Result<DisclosableScopedIndexedSearch<'hold>, SearchV2Error>
+where
+    M: IndexedSearchModel,
+    A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
+{
+    let normalized = request.clone().normalize(bound.selection(), bound)?;
+    execute_scoped_indexed_search_page_normalized(
+        model,
+        bound,
+        authority,
+        cursor_codec,
+        request,
+        normalized,
+        cursor_in,
+        budget,
+    )
+}
+
+pub(crate) fn execute_scoped_indexed_search_page_normalized<'hold, M, A>(
+    model: &mut M,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    cursor_codec: &mut dyn IndexedWireCursorCodec,
+    request: IndexedSearchV2Request,
+    normalized: crate::search_v2::NormalizedIndexedSearchV2Request,
+    cursor_in: Option<&str>,
+    budget: IndexedPageBudget,
+) -> Result<DisclosableScopedIndexedSearch<'hold>, SearchV2Error>
+where
+    M: IndexedSearchModel,
+    A: ScopedIndexedKnowledgeAuthority<'hold> + ?Sized,
+{
     bound.require_source_revision()?;
     let raw_query = request.query.clone();
     if budget.max_open_vm_steps == 0
-        || model.open_vm_steps() > budget.max_open_vm_steps
         || budget.max_response_bytes == 0
         || budget.max_cursor_bytes == 0
         || raw_query.len() > budget.max_response_bytes
@@ -475,13 +545,14 @@ pub fn execute_scoped_indexed_search_page<
             "indexed packet admission unavailable",
         ));
     }
+    model.check_open_vm_budget(budget.max_open_vm_steps)?;
     if cursor_in.is_some_and(|value| value.is_empty() || value.len() > budget.max_cursor_bytes) {
         return Err(error(
             SearchV2ErrorCode::InvalidRequest,
             "indexed cursor is empty or exceeds adapter cap",
         ));
     }
-    bound.check_model(model)?;
+    model.check_bound(bound)?;
     let policy = authority.policy_binding();
     let scope = authority.disclosure_scope();
     scope.validate_for(
@@ -490,7 +561,6 @@ pub fn execute_scoped_indexed_search_page<
         INDEXED_SEARCH_OPERATION_ID,
         INDEXED_SEARCH_INTENDED_USE,
     )?;
-    let normalized = request.normalize(bound.selection(), bound)?;
     let state = match cursor_in {
         Some(token) => cursor_codec.decode(token)?,
         None => SearchContinuationState::new(
@@ -558,8 +628,22 @@ pub fn execute_scoped_indexed_search_page<
     if !next_state.is_exhausted(SearchKind::Relations) {
         advance_private_kind(&mut next_state, SearchKind::Relations, &relations)?;
     }
+    cursor_codec.observe_page_gram(
+        SearchKind::Nodes,
+        nodes
+            .gram_seed
+            .as_ref()
+            .and_then(|seed| seed.gram.as_deref()),
+    )?;
+    cursor_codec.observe_page_gram(
+        SearchKind::Relations,
+        relations
+            .gram_seed
+            .as_ref()
+            .and_then(|seed| seed.gram.as_deref()),
+    )?;
     owner.check_selected()?;
-    bound.check_model(model)?;
+    model.check_bound(bound)?;
     let has_more = !next_state.is_exhausted(SearchKind::Nodes)
         || !next_state.is_exhausted(SearchKind::Relations);
     let next_cursor = if has_more {
@@ -587,10 +671,53 @@ pub fn execute_scoped_indexed_search_page<
         &relations,
         limits,
     )?;
+    let filter_bytes = state
+        .request()
+        .sources()
+        .into_iter()
+        .flatten()
+        .chain(state.request().kind_ids())
+        .chain(state.request().predicate_ids())
+        .try_fold(raw_query.len() as u64, |sum, value| {
+            sum.checked_add(value.len() as u64).ok_or_else(|| {
+                error(
+                    SearchV2ErrorCode::BudgetExceeded,
+                    "indexed query work overflow",
+                )
+            })
+        })?;
+    let work_bytes = [
+        filter_bytes,
+        nodes.verified_bytes,
+        relations.verified_bytes,
+        nodes.observed_bytes,
+        relations.observed_bytes,
+        u64::try_from(body.len()).map_err(|_| {
+            error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "indexed response work overflow",
+            )
+        })?,
+        cursor_in.map_or(0, |value| value.len() as u64),
+        next_cursor.as_ref().map_or(0, |value| value.len() as u64),
+    ]
+    .into_iter()
+    .try_fold(0u64, |sum, value| {
+        sum.checked_add(value).ok_or_else(|| {
+            error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "indexed query work overflow",
+            )
+        })
+    })?;
     let mut consulted = nodes.observed;
     consulted.extend(relations.observed);
     let mut lease = owner.0.acquire_disclosure(&scope, &consulted)?;
     lease.recheck()?;
-    bound.check_model(model)?;
-    Ok(DisclosableScopedIndexedSearch { body, lease })
+    model.check_bound(bound)?;
+    Ok(DisclosableScopedIndexedSearch {
+        body,
+        lease,
+        work_bytes,
+    })
 }

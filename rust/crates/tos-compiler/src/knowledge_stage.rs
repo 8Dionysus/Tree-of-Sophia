@@ -1245,7 +1245,9 @@ impl<'a> KnowledgeStage<'a> {
     /// Disposable public-output staging. Its local inode/lease and SQLite
     /// limits are not a kernel aggregate-spill quota or selected admission.
     /// Only the compiler's full public D1 builder may invoke this entry.
-    pub(crate) fn create_public_build(
+    /// Existing prepare-only companion under its local byte/page profile;
+    /// explicitly distinct from the dedicated owned full-public producer.
+    pub(crate) fn create_prepared_public_build(
         candidate: &Path,
         limits: StageLimits,
         receipt: ExactInputReceipt,
@@ -1271,6 +1273,46 @@ impl<'a> KnowledgeStage<'a> {
                 max_work_bytes,
             )),
             Some(deadline),
+        )
+    }
+
+    pub(crate) fn create_public_build_owned(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        vm_used: Arc<AtomicU64>,
+        work_used: Arc<AtomicU64>,
+        cancelled: Arc<AtomicBool>,
+        max_work_bytes: u64,
+        deadline: Instant,
+        remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
+        creation_state: &'a crate::d1_public_capture::CreationState<'a>,
+    ) -> Result<Self> {
+        let budget = NativeStageOwnedBudget {
+            remaining_after_retained,
+            heap: creation_state.heap(),
+            creation_state,
+            cancelled: Arc::clone(&cancelled),
+            original_sql_limit: creation_state.sql_vm_limit().min(limits.sqlite.max_sql_vm_steps),
+            retained_rust_bytes: 0,
+        };
+        Self::create_inner_owned(
+            candidate,
+            limits,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
+            None,
+            Some(vm_used),
+            Some((
+                PublicWorkLedger::Shared {
+                    used: work_used,
+                    cancelled,
+                },
+                max_work_bytes,
+            )),
+            Some(deadline),
+            Some(budget),
         )
     }
 

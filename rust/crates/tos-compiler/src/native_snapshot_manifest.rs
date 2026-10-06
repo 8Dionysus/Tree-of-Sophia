@@ -21,12 +21,6 @@ use tos_foundation::{
 };
 
 pub const NATIVE_DATA_SCHEMA: &str = "tos_access_native_data_snapshot_v1";
-pub const HISTORICAL_CORPUS_REVISION: &str =
-    "5bf2c949b2cec6c758bda0bc3fbe51d03c89ac70088e2e3e34893600304c5183";
-pub const HISTORICAL_DATA_REVISION: &str =
-    "0c3ad532bdbc41f2cd109c494878642bf011c2ca5501e0ca332f403d61c80050";
-pub const HISTORICAL_SNAPSHOT_MANIFEST_SHA256: &str =
-    "2a92fee317b30448690ff4ed7839f44d2d2e1bfdf3195be17f50c97784a8f0dd";
 pub const NATIVE_SELECTION_PATH: &str = "data/native-selection.json";
 pub const NATIVE_MODEL_PATH: &str = "data/native-knowledge.sqlite3";
 pub const RUNTIME_DATA_DECLARATION_PATH: &str = "access/contracts/runtime-data.v1.json";
@@ -44,33 +38,13 @@ pub const EVIDENCE_SCENES_PATH: &str =
     "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json";
 pub const EVIDENCE_SCENES_SOURCE: &[u8] =
     include_bytes!("../../../../ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json");
-pub const HISTORICAL_SOURCE_BINDINGS: [(&str, &str); 4] = [
-    (
-        CORPUS_INDEX_PATH,
-        "f65ddde53ac1cd7278978adf3490e6df28f9ee7fffd33c73aad9da5e5db13dc3",
-    ),
-    (
-        PHILOSOPHY_GRAPH_PATH,
-        "7b1b1f0aec8c1590285a4ec0f4195d3f02f25643d8da7a2469b7e2372d407ee4",
-    ),
-    (
-        CLAIM_GRAPH_PATH,
-        "8aa3d862a70534be1f9accaa50f9f271452336b2a4e4f3155f0411f1d12e9f9f",
-    ),
-    (
-        EVIDENCE_PROJECTION_PATH,
-        "26a8e901c578c3cb6b491751def72eb8f35067eaee607932a32a7e8bf172f44b",
-    ),
-];
-pub const EVIDENCE_SCENES_SHA256: &str =
-    "fb26079f33bd72c101c835f96d803a6790bfba14ab19c7177e19c495af8c9f39";
 
 const EXECUTING_IMAGE_LOGICAL_PATH: &str = "tos-command/current-executable";
 // These exact producer code and producer-config inputs are embedded into the
 // running image. The held executing ELF hash separately fingerprints the
 // complete built image; this selected set is intentionally incomplete and is
 // not a reproducible-source or full dependency-closure claim.
-const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 11] = [
+const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 12] = [
     (
         "rust/crates/tos-compiler/src/d1_public_capture.rs",
         include_bytes!("d1_public_capture.rs"),
@@ -90,6 +64,10 @@ const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 11] = [
     (
         "rust/crates/tos-compiler/src/knowledge_corpus_source.rs",
         include_bytes!("knowledge_corpus_source.rs"),
+    ),
+    (
+        "rust/crates/tos-compiler/src/native_cold_resources.rs",
+        include_bytes!("native_cold_resources.rs"),
     ),
     (
         "rust/crates/tos-compiler/src/native_snapshot.rs",
@@ -136,22 +114,118 @@ pub const NATIVE_PRODUCER_MAX_DATA_BYTES: u64 = MAX_DATA_BYTES;
 pub const NATIVE_PRODUCER_MAX_MODEL_BYTES: u64 = MAX_NATIVE_MODEL_BYTES;
 pub const NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES: u64 = MAX_CAPTURE_CLOSURE_BYTES;
 pub const NATIVE_PRODUCER_MAX_MEMBERS: usize = MAX_DATA_MEMBERS;
-pub const NATIVE_PRODUCER_EXPECTED_HISTORICAL_MEMBERS: usize = HISTORICAL_RETAINED_MEMBER_COUNT;
-pub const NATIVE_PRODUCER_EXPECTED_HISTORICAL_BYTES: u64 = HISTORICAL_RETAINED_MEMBER_BYTES;
+/// Explicit independently expected source selection. Evidence refs remain opaque;
+/// this profile selects data, never installed code or an ambient checkout.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativeSelectedSnapshotProfile {
+    pub schema_version: String,
+    pub runtime_data_root: String,
+    pub manifest_path: String,
+    pub manifest_sha256: String,
+    pub corpus_revision: String,
+    pub data_revision: String,
+    pub runtime_data_declaration_sha256: String,
+    pub evidence_scenes_sha256: String,
+    pub excluded_compiled_model: SelectedExcludedSourceMember,
+}
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HistoricalExcludedSourceMember {
-    pub path: &'static str,
-    pub sha256: &'static str,
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SelectedExcludedSourceMember {
+    pub path: String,
+    pub sha256: String,
     pub size_bytes: u64,
 }
 
-/// Exact metadata-only identity of the historical compiled SQLite exclusion.
-pub const fn historical_excluded_source_member() -> HistoricalExcludedSourceMember {
-    HistoricalExcludedSourceMember {
-        path: HISTORICAL_EXCLUDED_MODEL,
-        sha256: HISTORICAL_EXCLUDED_MODEL_SHA256,
-        size_bytes: HISTORICAL_EXCLUDED_MODEL_BYTES,
+fn runtime_data_declaration() -> Result<Value> {
+    let limits = JsonLimits::new(
+        64 * 1024,
+        MAX_JSON_DEPTH,
+        MAX_JSON_VISITS,
+        MAX_JSON_INTEGER_DIGITS,
+    )
+    .map_err(|_| Error::Budget("runtime declaration limits"))?;
+    parse_json(RUNTIME_DATA_DECLARATION, JsonMode::PublishedStrict, limits)
+        .map_err(|error| Error::Source(error.to_string()))?;
+    serde_json::from_slice(RUNTIME_DATA_DECLARATION)
+        .map_err(|_| Error::Invalid("runtime data declaration JSON"))
+}
+
+impl NativeSelectedSnapshotProfile {
+    pub fn validate(&self) -> Result<()> {
+        if self.schema_version != "tos_native_selected_snapshot_profile_v1" {
+            return Err(Error::Invalid("selected snapshot profile schema"));
+        }
+        for path in [&self.runtime_data_root, &self.manifest_path] {
+            if path.len() > MAX_MEMBER_PATH_BYTES
+                || !Path::new(path).is_absolute()
+                || Path::new(path)
+                    .components()
+                    .any(|part| matches!(part, Component::ParentDir | Component::CurDir))
+            {
+                return Err(Error::Invalid("selected snapshot explicit path"));
+            }
+        }
+        for digest in [
+            &self.manifest_sha256,
+            &self.corpus_revision,
+            &self.data_revision,
+            &self.runtime_data_declaration_sha256,
+            &self.evidence_scenes_sha256,
+            &self.excluded_compiled_model.sha256,
+        ] {
+            sha_text(digest, "selected snapshot expected digest invalid")?;
+        }
+        // The owner declaration identifies the disposable legacy compiler output.
+        // Its exact size/hash are independently selected, never a suffix/glob rule.
+        let declaration = runtime_data_declaration()?;
+        let outputs = declaration
+            .get("compiled_subjects")
+            .and_then(Value::as_array)
+            .ok_or(Error::Invalid("runtime compiled subject declaration"))?;
+        let excluded = &self.excluded_compiled_model;
+        relative(&excluded.path, "selected excluded member path")?;
+        if excluded.size_bytes == 0
+            || !outputs.iter().any(|row| {
+                row.get("output_path")
+                    .and_then(Value::as_str)
+                    .is_some_and(|path| excluded.path == format!("data/{path}"))
+            })
+        {
+            return Err(Error::Invalid(
+                "selected exclusion is not declared compiler output",
+            ));
+        }
+        if Digest256::of_bytes(RUNTIME_DATA_DECLARATION).to_hex()
+            != self.runtime_data_declaration_sha256
+            || Digest256::of_bytes(EVIDENCE_SCENES_SOURCE).to_hex() != self.evidence_scenes_sha256
+        {
+            return Err(Error::Invalid(
+                "selected software source definition differs",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        [
+            &self.schema_version,
+            &self.runtime_data_root,
+            &self.manifest_path,
+            &self.manifest_sha256,
+            &self.corpus_revision,
+            &self.data_revision,
+            &self.runtime_data_declaration_sha256,
+            &self.evidence_scenes_sha256,
+            &self.excluded_compiled_model.path,
+            &self.excluded_compiled_model.sha256,
+        ]
+        .into_iter()
+        .try_fold(std::mem::size_of::<Self>(), |n, value| {
+            n.checked_add(value.capacity())
+                .ok_or(Error::Budget("selected profile state"))
+        })
     }
 }
 const MAX_MEMBER_PATH_BYTES: usize = 4096;
@@ -163,64 +237,7 @@ const MAX_JSON_DEPTH: usize = 64;
 const MAX_JSON_INTEGER_DIGITS: usize = 4300;
 const NATIVE_COMPILER_FINGERPRINT_DOMAIN: &[u8] =
     b"tos-native-snapshot-embedded-producer-image-v1\0";
-pub const HISTORICAL_RUNTIME_DATA_ROOT: &str =
-    "/srv/abyss-machine/artifacts/tos-corpus/vertical-scenario-20260914/snapshot/data";
-const HISTORICAL_MANIFEST_BYTES: u64 = 1_478_181;
-const HISTORICAL_MANIFEST_MAX_BYTES: usize = 2 * 1024 * 1024;
-const HISTORICAL_MEMBER_COUNT: usize = 3_296;
-const HISTORICAL_MEMBER_BYTES: u64 = 2_086_210_314;
-const HISTORICAL_RETAINED_MEMBER_COUNT: usize = 3_295;
-const HISTORICAL_RETAINED_MEMBER_BYTES: u64 = 21_805_834;
-const HISTORICAL_EXCLUDED_MODEL: &str = "data/ToS/derived-exports/runtime/knowledge.sqlite3";
-const HISTORICAL_EXCLUDED_MODEL_BYTES: u64 = 2_064_404_480;
-const HISTORICAL_EXCLUDED_MODEL_SHA256: &str =
-    "86b9e99c237d50fd3d9c7dd1ee341822cad82bf3c359e8ab6b642376e6dbee89";
-const HISTORICAL_COMPILER_INPUT_BINDINGS: [(&str, &str); 5] = [
-    (
-        CLAIM_GRAPH_PATH,
-        "8aa3d862a70534be1f9accaa50f9f271452336b2a4e4f3155f0411f1d12e9f9f",
-    ),
-    (
-        PHILOSOPHY_GRAPH_PATH,
-        "7b1b1f0aec8c1590285a4ec0f4195d3f02f25643d8da7a2469b7e2372d407ee4",
-    ),
-    (
-        CORPUS_INDEX_PATH,
-        "f65ddde53ac1cd7278978adf3490e6df28f9ee7fffd33c73aad9da5e5db13dc3",
-    ),
-    (
-        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-        "c6b393113a4c293436cc79ff0c1d6691b83fa1215bb75da2f66224201b6c5e1d",
-    ),
-    (
-        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-        "39581dc0f2f80e7eff20f651626fe86a2c51895e34db276db07f5e8e8160a081",
-    ),
-];
-const HISTORICAL_SOURCE_BINDING_SIZES: [(&str, u64); 4] = [
-    (CORPUS_INDEX_PATH, 10_875),
-    (PHILOSOPHY_GRAPH_PATH, 135_684),
-    (CLAIM_GRAPH_PATH, 8_461),
-    (EVIDENCE_PROJECTION_PATH, 9_765),
-];
-const CURRENT_COMPILED_COMPANIONS: [&str; 16] = [
-    "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
-    "access/contracts/knowledge-api.v1.json",
-    "access/contracts/knowledge-graph.v1.schema.json",
-    "access/contracts/knowledge-search-indexed.v2.schema.json",
-    "access/contracts/readable-context.v1.schema.json",
-    "access/contracts/lens-spec.v1.schema.json",
-    "access/contracts/lens-result.v1.schema.json",
-    "access/contracts/temporal-comparison-request.v1.schema.json",
-    "access/contracts/temporal-comparison-result.v1.schema.json",
-    "access/contracts/source-read.v1.schema.json",
-    "access/contracts/exploration-request.v1.schema.json",
-    "access/contracts/exploration-result.v1.schema.json",
-    "access/contracts/exploration-request.v2.schema.json",
-    "access/contracts/exploration-result.v2.schema.json",
-    "ToS/contracts/semantic-entity-type-registry.schema.json",
-    "ToS/contracts/semantic-relation-type-registry.schema.json",
-];
+const SELECTED_MANIFEST_MAX_BYTES: usize = 2 * 1024 * 1024;
 
 /// Compose the maintained FullKnowledge profile from the production portable
 /// public limits, replacing no pipeline limit with a test-fixture shortcut.
@@ -278,6 +295,43 @@ pub struct NativeCompilerFingerprint {
     code_bytes: u64,
 }
 impl NativeCompilerFingerprint {
+    /// Retained typed Rust owners only; the embedded/executing source bytes
+    /// remain read/hash IO and are not represented as resident payloads here.
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        let mut bytes = std::mem::size_of::<Self>()
+            + self.compiler_sha256.capacity()
+            + self.compiler_paths.capacity() * std::mem::size_of::<String>();
+        let string_node =
+            11 * std::mem::size_of::<(String, String)>() + 16 * std::mem::size_of::<usize>();
+        let size_node =
+            11 * std::mem::size_of::<(String, u64)>() + 16 * std::mem::size_of::<usize>();
+        bytes = bytes
+            .checked_add(
+                self.input_bindings
+                    .len()
+                    .checked_mul(string_node)
+                    .ok_or(Error::Budget("compiler fingerprint tree slots"))?,
+            )
+            .and_then(|n| n.checked_add(self.code_sizes.len().checked_mul(size_node)?))
+            .ok_or(Error::Budget("compiler fingerprint retained slots"))?;
+        for path in &self.compiler_paths {
+            bytes = bytes
+                .checked_add(path.capacity())
+                .ok_or(Error::Budget("compiler fingerprint retained strings"))?;
+        }
+        for (path, digest) in &self.input_bindings {
+            bytes = bytes
+                .checked_add(path.capacity())
+                .and_then(|n| n.checked_add(digest.capacity()))
+                .ok_or(Error::Budget("compiler fingerprint retained strings"))?;
+        }
+        for path in self.code_sizes.keys() {
+            bytes = bytes
+                .checked_add(path.capacity())
+                .ok_or(Error::Budget("compiler fingerprint retained strings"))?;
+        }
+        Ok(bytes)
+    }
     pub fn compiler_sha256(&self) -> &str {
         &self.compiler_sha256
     }
@@ -320,16 +374,17 @@ impl NativeDataManifestLimits {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct NativeDataSnapshotManifestInput<'a> {
-    /// Historical admitted corpus revision. Keep this separate from the
+    /// Selected admitted corpus revision. Keep this separate from the
     /// producer selection's `native-projection:<source revision>` source cut.
     pub corpus_revision: &'a str,
+    pub selected_profile: &'a NativeSelectedSnapshotProfile,
+    pub selected_census: &'a NativeSelectedSnapshotCensus,
     /// The selected model ABI from `NativeKnowledgeSelection::expectation()`.
     pub model_abi: &'a str,
     pub compiler: &'a NativeCompilerFingerprint,
-    /// Compact authored source-root bindings. The four selected graph/evidence
-    /// roots are required. The EvidenceLens scene definition is held and
+    /// Compact authenticated bindings from the maintained capture source selector. The EvidenceLens scene definition is held and
     /// checked separately because it is not a member of the admitted bundle.
     pub source_bindings: &'a BTreeMap<String, String>,
     /// Exact paths below `data_root`, all prefixed with `data/`.
@@ -411,7 +466,8 @@ struct HistoricalManifestMember {
 /// Held metadata-only view of the exact historical runtime snapshot. Its
 /// payload paths are censused before capture/build; the compiler later checks
 /// the retained PublicCapture closure against these rows before copying.
-pub struct NativeHistoricalCensus {
+pub struct NativeSelectedSnapshotCensus {
+    profile: NativeSelectedSnapshotProfile,
     source_root: PathBuf,
     manifest_path: PathBuf,
     manifest_file: File,
@@ -419,9 +475,49 @@ pub struct NativeHistoricalCensus {
     manifest_sha256: String,
     members: BTreeMap<String, HistoricalMember>,
     member_bytes: u64,
+    source_bindings: BTreeMap<String, String>,
 }
 
-impl NativeHistoricalCensus {
+impl NativeSelectedSnapshotCensus {
+    pub fn retained_state_upper_bound(&self) -> Result<usize> {
+        // One complete BTree node per member conservatively covers all
+        // leaf/internal slots and child edges without inventing payload bytes.
+        let node = 11 * std::mem::size_of::<(String, HistoricalMember)>()
+            + 16 * std::mem::size_of::<usize>();
+        let mut bytes = std::mem::size_of::<Self>()
+            .checked_add(self.profile.retained_state_upper_bound()?)
+            .and_then(|n| n.checked_add(self.source_root.capacity()))
+            .and_then(|n| n.checked_add(self.manifest_path.capacity()))
+            .and_then(|n| n.checked_add(self.manifest_sha256.capacity()))
+            .and_then(|n| n.checked_add(self.members.len().checked_mul(node)?))
+            .ok_or(Error::Budget("historical census retained slots"))?;
+        for (path, member) in &self.members {
+            bytes = bytes
+                .checked_add(path.capacity())
+                .and_then(|n| n.checked_add(member.sha256.capacity()))
+                .ok_or(Error::Budget("historical census retained strings"))?;
+        }
+        let binding_node =
+            11 * std::mem::size_of::<(String, String)>() + 16 * std::mem::size_of::<usize>();
+        bytes = bytes
+            .checked_add(
+                self.source_bindings
+                    .len()
+                    .checked_mul(binding_node)
+                    .ok_or(Error::Budget("selected binding slots"))?,
+            )
+            .ok_or(Error::Budget("selected binding slots"))?;
+        for (path, digest) in &self.source_bindings {
+            bytes = bytes
+                .checked_add(path.capacity())
+                .and_then(|n| n.checked_add(digest.capacity()))
+                .ok_or(Error::Budget("selected binding strings"))?;
+        }
+        Ok(bytes)
+    }
+    pub fn source_bindings(&self) -> &BTreeMap<String, String> {
+        &self.source_bindings
+    }
     pub fn source_root(&self) -> &Path {
         &self.source_root
     }
@@ -459,11 +555,11 @@ impl NativeHistoricalCensus {
             }
             total = total
                 .checked_add(count as u64)
-                .filter(|value| *value <= HISTORICAL_MANIFEST_MAX_BYTES as u64)
+                .filter(|value| *value <= SELECTED_MANIFEST_MAX_BYTES as u64)
                 .ok_or(Error::Budget("historical manifest bytes"))?;
             hash.update(&block[..count]);
         }
-        if total != HISTORICAL_MANIFEST_BYTES
+        if total != self.manifest_stamp.size
             || hash.finalize().to_hex() != self.manifest_sha256
             || FileStamp::from(&self.manifest_file.metadata()?) != self.manifest_stamp
             || FileStamp::from(&fs::symlink_metadata(&self.manifest_path)?) != self.manifest_stamp
@@ -509,11 +605,16 @@ impl NativeHistoricalCensus {
             }
         }
         let mut expected = self.members.clone();
-        for path in CURRENT_COMPILED_COMPANIONS {
-            let current = observed
-                .get(path)
-                .cloned()
-                .ok_or(Error::Invalid("current compiled runtime companion absent"))?;
+        for (path, raw) in crate::d1_public_capture::runtime_companions() {
+            let current = HistoricalMember {
+                sha256: Digest256::of_bytes(raw).to_hex(),
+                size_bytes: raw.len() as u64,
+            };
+            if observed.get(path) != Some(&current) {
+                return Err(Error::Invalid(
+                    "current compiled runtime companion absent or differs",
+                ));
+            }
             expected.insert(path.to_owned(), current);
         }
         if expected.len() != observed.len() || expected != observed {
@@ -521,19 +622,9 @@ impl NativeHistoricalCensus {
                 "captured closure differs from historical census",
             ));
         }
-        for (path, digest) in HISTORICAL_SOURCE_BINDINGS {
-            let size = HISTORICAL_SOURCE_BINDING_SIZES
-                .iter()
-                .find(|(root, _)| *root == path)
-                .map(|(_, size)| *size)
-                .ok_or(Error::Invalid("native historical root size absent"))?;
-            if expected.get(path)
-                != Some(&HistoricalMember {
-                    sha256: digest.to_owned(),
-                    size_bytes: size,
-                })
-            {
-                return Err(Error::Invalid("captured historical selected root differs"));
+        for (path, digest) in &self.source_bindings {
+            if expected.get(path).map(|member| &member.sha256) != Some(digest) {
+                return Err(Error::Invalid("captured selected root differs"));
             }
         }
         let mut members = expected
@@ -550,18 +641,19 @@ impl NativeHistoricalCensus {
 }
 
 /// Metadata-only census of the old full runtime manifest and every retained
-/// path. It skips the 2 GiB Python SQLite member without opening its payload.
-pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHistoricalCensus> {
+/// path. It skips only the independently pinned declared legacy output without opening its payload.
+pub fn census_selected_runtime_closure(
+    profile: &NativeSelectedSnapshotProfile,
+    deadline: Instant,
+) -> Result<NativeSelectedSnapshotCensus> {
     active(deadline)?;
-    let source_root = PathBuf::from(HISTORICAL_RUNTIME_DATA_ROOT);
+    profile.validate()?;
+    let source_root = PathBuf::from(&profile.runtime_data_root);
     no_symlink_path(&source_root)?;
     if !fs::symlink_metadata(&source_root)?.is_dir() {
         return Err(Error::Invalid("historical runtime source root"));
     }
-    let manifest_path = source_root
-        .parent()
-        .ok_or(Error::Invalid("historical manifest parent"))?
-        .join("manifest.json");
+    let manifest_path = PathBuf::from(&profile.manifest_path);
     no_symlink_path(&manifest_path)?;
     let mut manifest_file = OpenOptions::new()
         .read(true)
@@ -570,12 +662,13 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
     let manifest_metadata = manifest_file.metadata()?;
     let manifest_stamp = FileStamp::from(&manifest_metadata);
     if !manifest_metadata.is_file()
-        || manifest_metadata.len() != HISTORICAL_MANIFEST_BYTES
+        || manifest_metadata.len() == 0
+        || manifest_metadata.len() > SELECTED_MANIFEST_MAX_BYTES as u64
         || FileStamp::from(&fs::symlink_metadata(&manifest_path)?) != manifest_stamp
     {
         return Err(Error::Invalid("historical manifest size/type custody"));
     }
-    let mut raw = Vec::with_capacity(HISTORICAL_MANIFEST_BYTES as usize);
+    let mut raw = Vec::with_capacity(manifest_stamp.size as usize);
     let mut hash = Digest256Hasher::new();
     let mut total = 0u64;
     let mut block = [0u8; 64 * 1024];
@@ -587,21 +680,21 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
         }
         total = total
             .checked_add(count as u64)
-            .filter(|value| *value <= HISTORICAL_MANIFEST_MAX_BYTES as u64)
+            .filter(|value| *value <= SELECTED_MANIFEST_MAX_BYTES as u64)
             .ok_or(Error::Budget("historical manifest read ceiling"))?;
         hash.update(&block[..count]);
         raw.extend_from_slice(&block[..count]);
     }
     let manifest_sha256 = hash.finalize().to_hex();
-    if total != HISTORICAL_MANIFEST_BYTES
-        || manifest_sha256 != HISTORICAL_SNAPSHOT_MANIFEST_SHA256
+    if total != manifest_stamp.size
+        || manifest_sha256 != profile.manifest_sha256
         || FileStamp::from(&manifest_file.metadata()?) != manifest_stamp
         || FileStamp::from(&fs::symlink_metadata(&manifest_path)?) != manifest_stamp
     {
         return Err(Error::Invalid("historical manifest digest/custody"));
     }
     let json_limits = JsonLimits::new(
-        HISTORICAL_MANIFEST_MAX_BYTES,
+        SELECTED_MANIFEST_MAX_BYTES,
         MAX_JSON_DEPTH,
         700_000,
         MAX_JSON_INTEGER_DIGITS,
@@ -613,10 +706,11 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
         serde_json::from_slice(&raw).map_err(|error| Error::Source(error.to_string()))?;
     drop(raw);
     if old.schema_version != "tos_access_data_snapshot_v1"
-        || old.corpus_revision != HISTORICAL_CORPUS_REVISION
-        || old.data_revision != HISTORICAL_DATA_REVISION
-        || old.members.len() != HISTORICAL_MEMBER_COUNT
-        || old.input_bindings.len() != HISTORICAL_RETAINED_MEMBER_COUNT
+        || old.corpus_revision != profile.corpus_revision
+        || old.data_revision != profile.data_revision
+        || old.members.is_empty()
+        || old.members.len() > MAX_DATA_MEMBERS + 1
+        || old.input_bindings.len() > MAX_DATA_MEMBERS
         || old.compiler.compiler_paths.is_empty()
         || old.compiler.compiler_paths.len() > MAX_PRODUCER_FILES
         || old
@@ -645,21 +739,18 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
         MAX_PRODUCER_FILES,
         MAX_COMPILER_PATH_TOTAL_BYTES,
     )?;
-    // In this historical schema, compiler.input_bindings is a five-entry
-    // data/config map, not a per-file digest map for compiler_paths. The
-    // pinned manifest SHA authenticates the complete historical path list.
-    if old.compiler.input_bindings.len() != HISTORICAL_COMPILER_INPUT_BINDINGS.len()
-        || HISTORICAL_COMPILER_INPUT_BINDINGS
-            .iter()
-            .any(|(path, digest)| {
-                old.compiler.input_bindings.get(*path).map(String::as_str) != Some(*digest)
-            })
-    {
-        return Err(Error::Invalid(
-            "historical compiler config binding set differs",
-        ));
+    // The authenticated manifest owns historical compiler data/config bindings.
+    for (path, digest) in &old.compiler.input_bindings {
+        if old.input_bindings.get(path) != Some(digest) {
+            return Err(Error::Invalid("selected compiler config binding differs"));
+        }
     }
-
+    validate_map(
+        &old.input_bindings,
+        "selected input binding invalid",
+        MAX_DATA_MEMBERS,
+        MAX_MEMBER_PATH_TOTAL_BYTES,
+    )?;
     let mut total_member_bytes = 0u64;
     let mut retained_bytes = 0u64;
     let mut excluded_seen = false;
@@ -681,13 +772,17 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
         total_member_bytes = total_member_bytes
             .checked_add(member.size_bytes)
             .ok_or(Error::Budget("historical member byte arithmetic"))?;
-        if member.path == HISTORICAL_EXCLUDED_MODEL {
+        if member.path == profile.excluded_compiled_model.path {
             if excluded_seen
-                || member.size_bytes != HISTORICAL_EXCLUDED_MODEL_BYTES
-                || member.sha256 != HISTORICAL_EXCLUDED_MODEL_SHA256
-                || old
-                    .input_bindings
-                    .contains_key("ToS/derived-exports/runtime/knowledge.sqlite3")
+                || member.size_bytes != profile.excluded_compiled_model.size_bytes
+                || member.sha256 != profile.excluded_compiled_model.sha256
+                || old.input_bindings.contains_key(
+                    profile
+                        .excluded_compiled_model
+                        .path
+                        .strip_prefix("data/")
+                        .ok_or(Error::Invalid("excluded data prefix"))?,
+                )
             {
                 return Err(Error::Invalid(
                     "historical compiled model exclusion differs",
@@ -706,7 +801,8 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
         }
         retained_bytes = retained_bytes
             .checked_add(member.size_bytes)
-            .ok_or(Error::Budget("historical source byte arithmetic"))?;
+            .filter(|bytes| *bytes <= MAX_CAPTURE_CLOSURE_BYTES)
+            .ok_or(Error::Budget("selected source byte ceiling"))?;
         let path = source_root.join(&source_path);
         no_symlink_path(&path)?;
         let metadata = fs::symlink_metadata(&path)?;
@@ -726,29 +822,36 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
             return Err(Error::Invalid("historical member duplicate path"));
         }
     }
-    if total_member_bytes != HISTORICAL_MEMBER_BYTES
-        || retained_bytes != HISTORICAL_RETAINED_MEMBER_BYTES
-        || members.len() != HISTORICAL_RETAINED_MEMBER_COUNT
-        || old.input_bindings.len() != members.len()
-        || !excluded_seen
-    {
-        return Err(Error::Invalid("historical source closure census differs"));
+    if old.input_bindings.len() != members.len() || !excluded_seen {
+        return Err(Error::Invalid("selected source closure census differs"));
     }
-    for (path, expected_digest) in HISTORICAL_SOURCE_BINDINGS {
-        let member = members
-            .get(path)
-            .ok_or(Error::Invalid("historical selected root missing"))?;
-        let expected_size = HISTORICAL_SOURCE_BINDING_SIZES
-            .iter()
-            .find(|(root, _)| *root == path)
-            .map(|(_, size)| *size)
-            .ok_or(Error::Invalid("historical selected root size missing"))?;
-        if member.sha256 != expected_digest || member.size_bytes != expected_size {
-            return Err(Error::Invalid("historical selected root metadata differs"));
+    let mut source_bindings = BTreeMap::new();
+    let declaration = runtime_data_declaration()?;
+    let subjects = declaration
+        .get("subjects")
+        .and_then(Value::as_array)
+        .ok_or(Error::Invalid("runtime source subjects"))?;
+    let selected = crate::PublicCaptureInputPaths::runtime(&source_root);
+    for (path, required) in selected.selected_paths() {
+        let relative = path
+            .strip_prefix(&source_root)
+            .map_err(|_| Error::Invalid("selected input root"))?
+            .to_str()
+            .ok_or(Error::Invalid("selected input UTF8"))?;
+        if let Some(member) = members.get(relative) {
+            source_bindings.insert(relative.to_owned(), member.sha256.clone());
+        } else if required
+            || subjects.iter().any(|row| {
+                row.get("source_path").and_then(Value::as_str) == Some(relative)
+                    && row.get("required").and_then(Value::as_bool) == Some(true)
+            })
+        {
+            return Err(Error::Invalid("selected source root missing"));
         }
     }
     active(deadline)?;
-    Ok(NativeHistoricalCensus {
+    Ok(NativeSelectedSnapshotCensus {
+        profile: profile.clone(),
         source_root,
         manifest_path,
         manifest_file,
@@ -756,6 +859,7 @@ pub fn census_historical_runtime_closure(deadline: Instant) -> Result<NativeHist
         manifest_sha256,
         members,
         member_bytes: retained_bytes,
+        source_bindings,
     })
 }
 
@@ -1149,7 +1253,17 @@ fn validate_manifest_input(
 ) -> Result<Vec<String>> {
     limits.validate()?;
     sha_text(input.corpus_revision, "native corpus revision invalid")?;
-    if input.corpus_revision != HISTORICAL_CORPUS_REVISION {
+    input.selected_profile.validate()?;
+    if &input.selected_census.profile != input.selected_profile
+        || input.selected_census.manifest_sha256 != input.selected_profile.manifest_sha256
+        || input.selected_census.source_root != Path::new(&input.selected_profile.runtime_data_root)
+        || input.selected_census.manifest_path != Path::new(&input.selected_profile.manifest_path)
+    {
+        return Err(Error::Invalid(
+            "selected manifest census/profile binding differs",
+        ));
+    }
+    if input.corpus_revision != input.selected_profile.corpus_revision {
         return Err(Error::Invalid("historical corpus revision changed"));
     }
     if !matches!(
@@ -1219,20 +1333,17 @@ fn validate_manifest_input(
             return Err(Error::Invalid("native source binding lacks data member"));
         }
     }
-    for required in [
-        CORPUS_INDEX_PATH,
-        PHILOSOPHY_GRAPH_PATH,
-        CLAIM_GRAPH_PATH,
-        EVIDENCE_PROJECTION_PATH,
-    ] {
-        if !input.source_bindings.contains_key(required) {
-            return Err(Error::Invalid("native selected source binding absent"));
+    for (path, expected) in &input.selected_census.source_bindings {
+        if input.source_bindings.get(path) != Some(expected) {
+            return Err(Error::Invalid("selected source root binding changed"));
         }
     }
-    for (path, expected) in HISTORICAL_SOURCE_BINDINGS {
-        if input.source_bindings.get(path).map(String::as_str) != Some(expected) {
-            return Err(Error::Invalid("historical selected root binding changed"));
-        }
+    if !input
+        .selected_census
+        .source_bindings
+        .contains_key(CORPUS_INDEX_PATH)
+    {
+        return Err(Error::Invalid("selected corpus root binding absent"));
     }
     let declaration_digest = Digest256::of_bytes(RUNTIME_DATA_DECLARATION).to_hex();
     if input
@@ -1244,8 +1355,9 @@ fn validate_manifest_input(
             .source_bindings
             .get(EVIDENCE_SCENES_PATH)
             .map(String::as_str)
-            != Some(EVIDENCE_SCENES_SHA256)
-        || Digest256::of_bytes(EVIDENCE_SCENES_SOURCE).to_hex() != EVIDENCE_SCENES_SHA256
+            != Some(input.selected_profile.evidence_scenes_sha256.as_str())
+        || Digest256::of_bytes(EVIDENCE_SCENES_SOURCE).to_hex()
+            != input.selected_profile.evidence_scenes_sha256
     {
         return Err(Error::Invalid(
             "native software/source-definition binding differs",
@@ -1557,4 +1669,99 @@ pub fn write_completed_native_data_manifest(
         ));
     }
     write_native_data_manifest(data_root, input, selection, limits)
+}
+
+#[cfg(test)]
+mod selected_snapshot_tests {
+    use super::*;
+
+    fn fixture(root: &Path) -> NativeSelectedSnapshotProfile {
+        fs::create_dir_all(root).unwrap();
+        let mut bindings = BTreeMap::new();
+        let mut rows = BTreeMap::new();
+        let selected = crate::PublicCaptureInputPaths::runtime(root);
+        for (path, _) in selected.selected_paths() {
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, b"{}").unwrap();
+            let relative = path
+                .strip_prefix(root)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned();
+            let digest = Digest256::of_bytes(b"{}").to_hex();
+            bindings.insert(relative.clone(), digest.clone());
+            rows.insert(
+                format!("data/{relative}"),
+                json!({"path": format!("data/{relative}"),
+                "size_bytes": 2, "sha256": digest}),
+            );
+        }
+        let declaration = runtime_data_declaration().unwrap();
+        let output = declaration["compiled_subjects"][0]["output_path"]
+            .as_str()
+            .unwrap();
+        let excluded = SelectedExcludedSourceMember {
+            path: format!("data/{output}"),
+            sha256: Digest256::of_bytes(b"excluded old SQL").to_hex(),
+            size_bytes: 100,
+        };
+        rows.insert(
+            excluded.path.clone(),
+            json!({"path": excluded.path,
+            "sha256": excluded.sha256, "size_bytes": excluded.size_bytes}),
+        );
+        // No excluded SQL payload exists: census must retain only its exact metadata.
+        let corpus_revision = Digest256::of_bytes(b"fixture corpus").to_hex();
+        let data_revision = Digest256::of_bytes(b"fixture data").to_hex();
+        let manifest = serde_json::to_vec(&json!({
+            "schema_version": "tos_access_data_snapshot_v1", "corpus_revision": corpus_revision,
+            "data_revision": data_revision, "input_bindings": bindings,
+            "compiler": {"schema": "fixture", "compiler_version": "fixture",
+                "compiler_sha256": Digest256::of_bytes(b"old producer").to_hex(),
+                "compiler_paths": ["software/producer.rs"], "input_bindings": bindings},
+            "members": rows.into_values().collect::<Vec<_>>()
+        }))
+        .unwrap();
+        let manifest_path = root.parent().unwrap().join("explicit-manifest.json");
+        fs::write(&manifest_path, &manifest).unwrap();
+        NativeSelectedSnapshotProfile {
+            schema_version: "tos_native_selected_snapshot_profile_v1".into(),
+            runtime_data_root: root.to_str().unwrap().into(),
+            manifest_path: manifest_path.to_str().unwrap().into(),
+            manifest_sha256: Digest256::of_bytes(&manifest).to_hex(),
+            corpus_revision,
+            data_revision,
+            runtime_data_declaration_sha256: Digest256::of_bytes(RUNTIME_DATA_DECLARATION).to_hex(),
+            evidence_scenes_sha256: Digest256::of_bytes(EVIDENCE_SCENES_SOURCE).to_hex(),
+            excluded_compiled_model: excluded,
+        }
+    }
+
+    #[test]
+    fn selected_snapshot_relocation_uses_authenticated_census_and_exact_exclusion() {
+        let first = tempfile::tempdir().unwrap();
+        let second = tempfile::tempdir().unwrap();
+        let a = fixture(&first.path().join("selected-data"));
+        let b = fixture(&second.path().join("other-explicit-data"));
+        assert_eq!(a.manifest_sha256, b.manifest_sha256);
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let mut left = census_selected_runtime_closure(&a, deadline).unwrap();
+        let right = census_selected_runtime_closure(&b, deadline).unwrap();
+        assert_eq!(left.members, right.members);
+        assert_eq!(left.member_bytes(), right.member_bytes());
+        assert_eq!(left.member_count(), left.source_bindings().len());
+        left.recheck_manifest(deadline).unwrap();
+        let mut wrong = b.clone();
+        wrong.manifest_sha256 = Digest256::of_bytes(b"wrong manifest").to_hex();
+        assert!(census_selected_runtime_closure(&wrong, deadline).is_err());
+        wrong = b.clone();
+        wrong.excluded_compiled_model.sha256 = Digest256::of_bytes(b"wrong SQL identity").to_hex();
+        assert!(census_selected_runtime_closure(&wrong, deadline).is_err());
+        wrong = b.clone();
+        wrong.excluded_compiled_model.path = "data/other.sqlite3".into();
+        assert!(census_selected_runtime_closure(&wrong, deadline).is_err());
+        fs::write(&b.manifest_path, b"{}").unwrap();
+        assert!(census_selected_runtime_closure(&b, deadline).is_err());
+    }
 }

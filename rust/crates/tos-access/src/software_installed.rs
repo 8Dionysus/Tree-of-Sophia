@@ -292,10 +292,9 @@ impl VerifiedInstalledAccess {
     }
 
     /// Check held inodes and the explicitly selected names, then rehash every file.
-    pub fn verify_current(
-        &mut self,
+    fn check_original_operation(
+        &self,
         deadline: Instant,
-        cancel: &mut dyn FnMut() -> Result<()>,
         budget: &mut InstalledAccessBudget,
     ) -> Result<()> {
         budget.bind_deadline(deadline)?;
@@ -305,6 +304,40 @@ impl VerifiedInstalledAccess {
         {
             return Err("installed Access recheck requires its original operation budget".into());
         }
+        Ok(())
+    }
+    /// Retained identity fence for the short publication critical section.
+    /// This neither rehashes software nor creates admission: the private holder
+    /// can only be issued by the complete installed software verifier. Its
+    /// caller retains full verification outside the exclusive release lock.
+    pub(crate) fn verify_current_identity(
+        &self,
+        deadline: Instant,
+        cancel: &mut dyn FnMut() -> Result<()>,
+        budget: &mut InstalledAccessBudget,
+    ) -> Result<()> {
+        self.check_original_operation(deadline, budget)?;
+        for member in &self.held {
+            check(deadline, cancel)?;
+            budget.descriptors()?;
+            let named = if member.directory {
+                tos_fd_open::open_absolute_directory(&member.path).checked()?
+            } else {
+                tos_fd_open::open_absolute_regular(&member.path, member.identity.bytes).checked()?
+            };
+            if identity(&named)? != member.identity || identity(&member.file)? != member.identity {
+                return Err("installed Access association changed".into());
+            }
+        }
+        check(deadline, cancel)
+    }
+    pub fn verify_current(
+        &mut self,
+        deadline: Instant,
+        cancel: &mut dyn FnMut() -> Result<()>,
+        budget: &mut InstalledAccessBudget,
+    ) -> Result<()> {
+        self.check_original_operation(deadline, budget)?;
         let required = self
             .held
             .iter()

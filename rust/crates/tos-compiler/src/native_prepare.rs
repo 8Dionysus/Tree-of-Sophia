@@ -6,7 +6,7 @@ use crate::{
     d1_public_build::portable_public_d1_limits,
     d1_public_capture::{PublicCapture, compact, json},
     d1_public_graph::{
-        PublicRepositoryRoot, PublicStageOwner, exact_receipt, ingest_family_rows,
+        PublicRepositoryRoot, PublicStageOwner, exact_prepared_receipt, ingest_family_rows,
         prepare_family_rows,
     },
     d1_public_header::build_public_header,
@@ -380,12 +380,12 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     let registry = validate_public_current_registries(&capture, &entity, &relation)?;
     let vocabulary = QueryVocabulary::parse(&descriptor, NATIVE_KNOWLEDGE_ADAPTER_PROFILES)?;
     prepare_family_rows(&capture, limits.capture)?;
-    let receipt = exact_receipt(&capture, &vocabulary, &source_revision)?;
+    let receipt = exact_prepared_receipt(&capture, &vocabulary, &source_revision)?;
     let owner = PublicStageOwner {
         capture: &capture,
         receipt: receipt.clone(),
     };
-    let mut stage = KnowledgeStage::create_public_build(
+    let mut stage = KnowledgeStage::create_prepared_public_build(
         &scratch_dir.join("normalized.sqlite3"),
         limits.stage,
         receipt,

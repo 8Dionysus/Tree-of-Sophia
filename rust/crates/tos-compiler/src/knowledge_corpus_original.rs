@@ -1,6 +1,10 @@
 //! Named original corpus projection custody. Capture identity is distinct from
 //! authored-source identity; neither projection custody nor selection admits it.
+use crate::d1_public_capture::CreationState;
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
+use crate::knowledge_selected::{
+    owned_schema_equal, owned_schema_sql_error, owned_schema_step, with_owned_schema_statement,
+};
 use crate::knowledge_stage::{
     KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout, KnowledgeStage, WritePhase,
 };
@@ -779,7 +783,56 @@ fn receipt(db: &Connection) -> Result<CorpusOriginalReceipt> {
     validate_receipt(&r)?;
     Ok(r)
 }
-fn selection(
+pub(crate) fn selection_index(selector: &CorpusOriginalSelector) -> &'static str {
+    use CorpusOriginalSelector as S;
+    match selector {
+        S::NodeId(_) | S::NodeIds(_) => " INDEXED BY corpus_original_node",
+        S::PackId(_) | S::PackIds(_) => " INDEXED BY corpus_original_pack",
+        S::ViewId(_) => " INDEXED BY corpus_original_view",
+        S::OwnerBranch(_) => " INDEXED BY corpus_original_owner",
+        S::Resources {
+            resource_kind: Some(_),
+            ..
+        } => " INDEXED BY corpus_original_resource",
+        S::Resources {
+            resource_kind: None,
+            owner_branch: Some(_),
+        } => " INDEXED BY corpus_original_owner",
+        _ => "",
+    }
+}
+
+/// Forecast the existing selector builder's SQL and argument copies before
+/// its allocation. This creates no ledger and cannot grant a row read.
+pub(crate) fn selection_workspace(selector: &CorpusOriginalSelector) -> Result<usize> {
+    use CorpusOriginalSelector as S;
+    let mut count = 0usize; let mut bytes = 0usize;
+    let mut add = |value: &str| -> Result<()> {
+        if value.len() > MAX_INDEX_TEXT_BYTES { return Err(Error::Budget("corpus selector bytes")); }
+        count = count.checked_add(1).ok_or(Error::Budget("corpus selector count"))?;
+        bytes = bytes.checked_add(value.len()).ok_or(Error::Budget("corpus selector state"))?;
+        Ok(())
+    };
+    match selector {
+        S::All => (),
+        S::NodeId(v) | S::PackId(v) | S::ViewId(v) | S::OwnerBranch(v) => add(v)?,
+        S::IncidentNode(v) => { add(v)?; add(v)?; add("relation_edges")?; add("relation_edges")?; }
+        S::NodeIds(vs) | S::PackIds(vs) => {
+            if vs.len() > 1024 { return Err(Error::Budget("corpus selector set")); }
+            for v in vs { add(v)?; }
+        }
+        S::Resources {resource_kind, owner_branch} => {
+            if let Some(v) = resource_kind { add(v)?; }
+            if let Some(v) = owner_branch { add(v)?; }
+        }
+    }
+    bytes.checked_mul(3).and_then(|n| n.checked_add(1024))
+        .and_then(|n| count.checked_mul(4 * (std::mem::size_of::<String>()
+            + std::mem::size_of::<rusqlite::types::Value>()) + 8).and_then(|f| n.checked_add(f)))
+        .ok_or(Error::Budget("corpus selector workspace"))
+}
+
+pub(crate) fn selection(
     collection: CorpusOriginalCollection,
     s: &CorpusOriginalSelector,
 ) -> Result<(String, Vec<String>)> {
@@ -859,21 +912,7 @@ pub(crate) fn page_with_layout(
     }
     let (where_sql, args) = selection(collection, selector)?;
     use CorpusOriginalSelector as S;
-    let index = match selector {
-        S::NodeId(_) | S::NodeIds(_) => " INDEXED BY corpus_original_node",
-        S::PackId(_) | S::PackIds(_) => " INDEXED BY corpus_original_pack",
-        S::ViewId(_) => " INDEXED BY corpus_original_view",
-        S::OwnerBranch(_) => " INDEXED BY corpus_original_owner",
-        S::Resources {
-            resource_kind: Some(_),
-            ..
-        } => " INDEXED BY corpus_original_resource",
-        S::Resources {
-            resource_kind: None,
-            owner_branch: Some(_),
-        } => " INDEXED BY corpus_original_owner",
-        _ => "",
-    };
+    let index = selection_index(selector);
     let carrier_join = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
         " LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len)"
     } else {
@@ -1324,3 +1363,501 @@ pub(crate) fn verify(
 
 // Existing captured source API is retained without a second implementation.
 pub use retain_corpus_original as retain_captured_corpus_original;
+
+// Owned cold verification path; reused selected-state SQL authority.
+fn with_values<T>(
+    raw: &[u8],
+    cap: usize,
+    state: Option<&CreationState<'_>>,
+    operation: impl FnOnce(&Value) -> Result<T>,
+) -> Result<T> {
+    if let Some(state) = state {
+        let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("corpus original JSON bounds"))?;
+        state.with_serde_owned_with_limits(raw, limits, operation)
+    } else {
+        operation(&values(raw, cap)?)
+    }
+}
+
+fn scalar_owned(db: &Connection, sql: &std::ffi::CStr, state: &CreationState<'_>) -> Result<i64> {
+    with_owned_schema_statement(db, sql, state, |q| {
+        if !owned_schema_step(q, state)? {
+            return Err(Error::Invalid("original scalar missing"));
+        }
+        q.integer(0).map_err(owned_schema_sql_error)
+    })
+}
+
+fn present_with_state(db: &Connection, state: Option<&CreationState<'_>>) -> Result<bool> {
+    let Some(state) = state else {
+        return present(db);
+    };
+    let n=scalar_owned(db,c"SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('corpus_original_meta','corpus_original_rows')",state)?;
+    if n != 0 && n != 2 {
+        return Err(Error::Invalid("corpus original partial tables"));
+    }
+    Ok(n == 2)
+}
+
+fn receipt_with_state(
+    db: &Connection,
+    state: Option<&CreationState<'_>>,
+) -> Result<CorpusOriginalReceipt> {
+    let Some(state) = state else {
+        return receipt(db);
+    };
+    let _sql = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(),
+    )?;
+    let n = scalar_owned(db, c"SELECT count(*) FROM corpus_original_meta", state)?;
+    if n != 1 {
+        return Err(Error::Invalid("corpus original receipt count"));
+    }
+    let r = with_owned_schema_statement(
+        db,
+        c"SELECT receipt FROM corpus_original_meta WHERE singleton=1",
+        state,
+        |q| {
+            if !owned_schema_step(q, state)? {
+                return Err(Error::Invalid("corpus receipt missing"));
+            }
+            let raw = q
+                .value_ref(0)
+                .map_err(owned_schema_sql_error)?
+                .as_blob()
+                .map_err(|_| Error::Invalid("original packet column type"))?;
+            if raw.len() > JsonLimits::default().max_bytes {
+                return Err(Error::Budget("corpus original receipt bytes"));
+            }
+            let r = state.with_serde_owned_value_with_limits(raw, JsonLimits::default(), |v| {
+                let members = v["origin"]["members"].as_array().map_or(0, Vec::len);
+                let collections = v["collections"].as_array().map_or(0, Vec::len);
+                let bytes = raw
+                    .len()
+                    .checked_add(std::mem::size_of::<CorpusOriginalReceipt>())
+                    .and_then(|n| {
+                        n.checked_add(
+                            members
+                                .max(4)
+                                .checked_mul(4 * std::mem::size_of::<CorpusOriginalMember>())?,
+                        )
+                    })
+                    .and_then(|n| {
+                        n.checked_add(collections.max(4).checked_mul(
+                            4 * std::mem::size_of::<CorpusOriginalCollectionReceipt>(),
+                        )?)
+                    })
+                    .ok_or(Error::Budget("corpus original typed receipt"))?;
+                state.retain(bytes)?;
+                state.charge_work(raw.len())?;
+                serde_json::from_value(v).map_err(|_| Error::Invalid("corpus original receipt"))
+            })?;
+            Ok(r)
+        },
+    )?;
+    validate_receipt_with_state(&r, Some(state))?;
+    Ok(r)
+}
+
+fn bounded_text<'a>(
+    value: rusqlite::types::ValueRef<'a>,
+    cap: usize,
+    state: &CreationState<'_>,
+) -> Result<&'a str> {
+    let bytes = match value {
+        rusqlite::types::ValueRef::Text(v) => v,
+        _ => return Err(Error::Invalid("original bounded text kind")),
+    };
+    if bytes.len() > cap {
+        return Err(Error::Budget("original bounded text bytes"));
+    }
+    state.charge_work(bytes.len())?;
+    std::str::from_utf8(bytes).map_err(|_| Error::Invalid("original bounded text UTF8"))
+}
+
+pub(crate) fn verify_ddl_with_owned_state_and_layout(
+    db: &Connection,
+    state: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    let Some(state) = state else {
+        return verify_ddl_with_layout(db, layout);
+    };
+    let _sql = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(),
+    )?;
+    for (kind, name, ddl) in [
+        ("table", META_TABLE, META_DDL),
+        (
+            "table",
+            ROW_TABLE,
+            if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                ROW_DDL_CARRIER
+            } else {
+                ROW_DDL
+            },
+        ),
+    ]
+    .into_iter()
+    .chain(INDEXES.into_iter().map(|(n, d)| ("index", n, d)))
+    {
+        with_owned_schema_statement(
+            db,
+            c"SELECT sql FROM sqlite_master WHERE type=?1 AND name=?2",
+            state,
+            |q| {
+                state.charge_work(
+                    kind.len()
+                        .checked_add(name.len())
+                        .ok_or(Error::Budget("original DDL bindings"))?,
+                )?;
+                state.active()?;
+                q.bind_text(1, kind).map_err(owned_schema_sql_error)?;
+                q.bind_text(2, name).map_err(owned_schema_sql_error)?;
+                if !owned_schema_step(q, state)? {
+                    return Err(Error::Invalid("corpus original DDL missing"));
+                }
+                let actual =
+                    bounded_text(q.value_ref(0).map_err(owned_schema_sql_error)?, 4096, state)?;
+                if !owned_schema_equal(state, actual.as_bytes(), ddl.as_bytes())? {
+                    return Err(Error::Invalid("corpus original DDL"));
+                }
+                Ok(())
+            },
+        )?;
+    }
+    state.active()
+}
+
+fn verify_rows_owned(
+    db: &Connection,
+    r: &CorpusOriginalReceipt,
+    l: crate::NavigationOriginalLimits,
+    work: &mut u64,
+    cap: u64,
+    state: &CreationState<'_>,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    l.validate()?;
+    let _sql = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(),
+    )?;
+    let mut total = 0u64;
+    let mut all = 0u64;
+    for collection in
+        std::iter::once(CorpusOriginalCollection::Header).chain(CorpusOriginalCollection::ROWS)
+    {
+        let target = if collection == CorpusOriginalCollection::Header {
+            1
+        } else {
+            r.collections
+                .iter()
+                .find(|c| c.collection == collection.as_str())
+                .ok_or(Error::Invalid("corpus collection receipt"))?
+                .rows
+        };
+        let mut hash = order_hash(collection.as_str());
+        let mut n = 0u64;
+        let sql = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            c"SELECT ordinal,packet_len,packet_sha256,packet,node_id,from_id,to_id,pack_id,view_id,resource_kind,owner_branch FROM corpus_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE collection=?1 ORDER BY ordinal"
+        } else {
+            c"SELECT ordinal,packet_len,packet_sha256,packet,node_id,from_id,to_id,pack_id,view_id,resource_kind,owner_branch FROM corpus_original_rows WHERE collection=?1 ORDER BY ordinal"
+        };
+        with_owned_schema_statement(db, sql, state, |q| {
+            state.charge_work(collection.as_str().len())?;
+            state.active()?;
+            q.bind_text(1, collection.as_str())
+                .map_err(owned_schema_sql_error)?;
+            while owned_schema_step(q, state)? {
+                state.active()?;
+                let ordinal = q.integer(0).map_err(owned_schema_sql_error)?;
+                let declared = q.unsigned_integer(1).map_err(owned_schema_sql_error)?;
+                let digest: [u8; 32] = q
+                    .value_ref(2)
+                    .map_err(owned_schema_sql_error)?
+                    .as_blob()
+                    .map_err(|_| Error::Invalid("original packet column type"))?
+                    .try_into()
+                    .map_err(|_| Error::Invalid("corpus original packet digest"))?;
+                let raw = q
+                    .value_ref(3)
+                    .map_err(owned_schema_sql_error)?
+                    .as_blob()
+                    .map_err(|_| Error::Invalid("original packet column type"))?;
+                if ordinal < 0
+                    || ordinal as u64 != n
+                    || declared != raw.len() as u64
+                    || raw.len() > l.max_row_bytes
+                {
+                    return Err(Error::Invalid("corpus original ordinal/length coverage"));
+                }
+                let mut index = [None; 7];
+                let mut key_bytes = 0usize;
+                for i in 0..FIELDS.len() {
+                    index[i] = match q
+                        .value_ref((i + 4) as i32)
+                        .map_err(owned_schema_sql_error)?
+                    {
+                        rusqlite::types::ValueRef::Null => None,
+                        rusqlite::types::ValueRef::Text(v) => {
+                            if v.len() > 4096 {
+                                return Err(Error::Budget("corpus original lookup bytes"));
+                            }
+                            *work = work
+                                .checked_add(v.len() as u64)
+                                .filter(|n| *n <= cap)
+                                .ok_or(Error::Budget("corpus original lookup cold work"))?;
+                            state.charge_work(v.len())?;
+                            let v = std::str::from_utf8(v)
+                                .map_err(|_| Error::Invalid("corpus original lookup UTF8"))?;
+                            Some(v)
+                        }
+                        _ => return Err(Error::Invalid("corpus original lookup kind")),
+                    };
+                    key_bytes = key_bytes
+                        .checked_add(index[i].map_or(0, str::len))
+                        .ok_or(Error::Budget("corpus original key bytes"))?;
+                }
+                let row_work = (raw.len() as u64)
+                    .checked_add(40)
+                    .ok_or(Error::Budget("corpus original row work"))?;
+                *work = work
+                    .checked_add(row_work)
+                    .filter(|n| *n <= cap)
+                    .ok_or(Error::Budget("corpus original cold work"))?;
+                state.charge_work(
+                    raw.len()
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(40))
+                        .ok_or(Error::Budget("corpus original hash work"))?,
+                )?;
+                if Digest256::of_bytes(raw).as_bytes() != &digest {
+                    return Err(Error::Invalid("corpus original packet digest differs"));
+                }
+                let _header_digest = state.hold(64)?;
+                with_values(raw, l.max_row_bytes, Some(state), |v| {
+                    if collection == CorpusOriginalCollection::Header {
+                        if !v.is_object()
+                            || v["schema_version"] != "tos_corpus_index_v1"
+                            || Digest256::from_bytes(digest).to_hex() != r.header_sha256
+                            || CorpusOriginalCollection::ROWS
+                                .iter()
+                                .any(|c| v.get(c.as_str()).is_some())
+                            || v.get("source_navigation").is_some()
+                        {
+                            return Err(Error::Invalid("corpus detached original header"));
+                        }
+                    } else {
+                        order_item(&mut hash, n, raw);
+                    }
+                    if index != indexed_fields(collection, v)? {
+                        return Err(Error::Invalid("corpus original lookup binding"));
+                    }
+                    Ok(())
+                })?;
+                total = total
+                    .checked_add(raw.len() as u64)
+                    .filter(|n| *n <= l.max_total_bytes)
+                    .ok_or(Error::Budget("corpus original cold bytes"))?;
+                all = all
+                    .checked_add(1)
+                    .filter(|n| *n <= l.max_rows)
+                    .ok_or(Error::Budget("corpus original cold rows"))?;
+                n = n
+                    .checked_add(1)
+                    .filter(|n| *n <= target)
+                    .ok_or(Error::Invalid("corpus excess rows"))?;
+            }
+            Ok(())
+        })?;
+        let _digest = state.hold(64)?;
+        if n != target {
+            return Err(Error::Invalid("corpus original count coverage"));
+        }
+        if collection != CorpusOriginalCollection::Header
+            && hash.finalize().to_hex()
+                != r.collections
+                    .iter()
+                    .find(|c| c.collection == collection.as_str())
+                    .ok_or(Error::Invalid("corpus collection receipt"))?
+                    .ordered_root_sha256
+        {
+            return Err(Error::Invalid("corpus original order root"));
+        }
+    }
+    let actual = scalar_owned(db, c"SELECT count(*) FROM corpus_original_rows", state)?;
+    if actual < 0 || actual as u64 != all || total != r.total_bytes {
+        return Err(Error::Invalid("corpus original whole coverage"));
+    }
+    state.active()
+}
+
+fn metadata_matches(
+    db: &Connection,
+    key: &str,
+    expected: &str,
+    state: Option<&CreationState<'_>>,
+) -> Result<bool> {
+    if let Some(state) = state {
+        return with_owned_schema_statement(
+            db,
+            c"SELECT CAST(value AS TEXT) FROM metadata WHERE key=?1",
+            state,
+            |q| {
+                state.charge_work(key.len())?;
+                state.active()?;
+                q.bind_text(1, key).map_err(owned_schema_sql_error)?;
+                if !owned_schema_step(q, state)? {
+                    return Ok(false);
+                }
+                let value =
+                    bounded_text(q.value_ref(0).map_err(owned_schema_sql_error)?, 4096, state)?;
+                owned_schema_equal(state, value.as_bytes(), expected.as_bytes())
+            },
+        );
+    }
+    let _hold=state.map(|s|s.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())).transpose()?;
+    let mut q = db.prepare("SELECT CAST(value AS TEXT) FROM metadata WHERE key=?1")?;
+    let mut rows = q.query([key])?;
+    let Some(row) = rows.next()? else {
+        return Ok(false);
+    };
+    let value = if let Some(state) = state {
+        bounded_text(row.get_ref(0)?, 4096, state)?
+    } else {
+        row.get_ref(0)?
+            .as_str()
+            .map_err(|_| Error::Invalid("original text column type"))?
+    };
+    Ok(value == expected)
+}
+
+fn sealed_root_with_state(
+    db: &Connection,
+    r: &CorpusOriginalReceipt,
+    state: Option<&CreationState<'_>>,
+) -> Result<()> {
+    let Some(state) = state else {
+        return sealed_root(db, r);
+    };
+    let _sql = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(),
+    )?;
+    with_owned_schema_statement(
+        db,
+        c"SELECT value FROM metadata WHERE key='corpus_original_root_sha256'",
+        state,
+        |q| {
+            if !owned_schema_step(q, state)? {
+                return Err(Error::Invalid("corpus original sealed root missing"));
+            }
+            let value = bounded_text(q.value_ref(0).map_err(owned_schema_sql_error)?, 64, state)?;
+            if value.len() != 64
+                || !owned_schema_equal(state, value.as_bytes(), r.component_root_sha256.as_bytes())?
+            {
+                return Err(Error::Invalid("corpus original sealed root"));
+            }
+            Ok(())
+        },
+    )
+}
+
+pub(crate) fn verify_with_owned_state(
+    db: &Connection,
+    e: &KnowledgeSelectedExpectation,
+    l: ColdOpenLimits,
+    work: &mut u64,
+    state: Option<&CreationState<'_>>,
+) -> Result<Option<CorpusOriginalReceipt>> {
+    let layout = if e.model_abi == KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+        KnowledgePayloadLayout::CarrierOnceV1
+    } else {
+        KnowledgePayloadLayout::InlineV1
+    };
+    let _presence_sql = state.map(|s|s.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())).transpose()?;
+    let found = present_with_state(db, state)?;
+    if found != e.corpus_original_root_sha256.is_some()
+        || found
+            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI]
+                .contains(&e.model_abi.as_str()))
+    {
+        return Err(Error::Invalid("corpus original ABI/expected presence"));
+    }
+    if !found {
+        let n: i64 = if let Some(state) = state {
+            scalar_owned(
+                db,
+                c"SELECT count(*) FROM metadata WHERE key='corpus_original_root_sha256'",
+                state,
+            )?
+        } else {
+            db.query_row(
+                "SELECT count(*) FROM metadata WHERE key='corpus_original_root_sha256'",
+                [],
+                |r| r.get(0),
+            )?
+        };
+        if n != 0 {
+            return Err(Error::Invalid("corpus phantom seal"));
+        }
+        return Ok(None);
+    }
+    verify_ddl_with_owned_state_and_layout(db, state, layout)?;
+    let r = receipt_with_state(db, state)?;
+    if e.corpus_original_root_sha256.as_deref() != Some(r.component_root_sha256.as_str())
+        || r.descriptor_sha256 != e.descriptor_sha256
+        || r.source_cut != e.source_cut
+        || r.membership_root != e.membership_root
+    {
+        return Err(Error::Invalid("corpus selected composition"));
+    }
+    let size = if let Some(state) = state {
+        state.with_json_encoded(&r, JsonLimits::default().max_bytes, |raw| {
+            Ok(raw.len() as u64)
+        })?
+    } else {
+        serde_json::to_vec(&r)
+            .map_err(|_| Error::Invalid("corpus receipt encoding"))?
+            .len() as u64
+    };
+    *work = work
+        .checked_add(size)
+        .filter(|n| *n <= l.max_work_bytes)
+        .ok_or(Error::Budget("corpus receipt cold work"))?;
+    verify_rows_with_state(
+        db,
+        &r,
+        crate::NavigationOriginalLimits {
+            max_rows: l.max_rows.min(crate::knowledge_original_rows::MAX_ROWS),
+            max_row_bytes: l
+                .max_row_bytes
+                .min(crate::knowledge_original_rows::MAX_ROW_BYTES),
+            max_total_bytes: l
+                .max_work_bytes
+                .min(crate::knowledge_original_rows::MAX_TOTAL_BYTES),
+        },
+        work,
+        l.max_work_bytes,
+        state,
+        layout,
+    )?;
+    sealed_root_with_state(db, &r, state)?;
+    Ok(Some(r))
+}
+
+fn verify_rows_with_state(
+    db: &Connection,
+    r: &CorpusOriginalReceipt,
+    l: crate::NavigationOriginalLimits,
+    work: &mut u64,
+    cap: u64,
+    state: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    if let Some(state) = state {
+        verify_rows_owned(db, r, l, work, cap, state, layout)
+    } else {
+        verify_rows(db, r, l, work, cap, layout)
+    }
+}

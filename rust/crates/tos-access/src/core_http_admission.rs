@@ -469,7 +469,153 @@ pub(crate) struct HttpAdmission {
     checkpoint_max_entries: usize,
     checkpoint_max_encoded_bytes: usize,
 }
+
+fn ordinary_json_limits() -> serde_json::Value {
+    serde_json::json!({
+        "max_bytes": 16 * 1024 * 1024,
+        "max_depth": 64,
+        "max_visits": 1_000_000,
+        "max_integer_digits": 64
+    })
+}
+
+fn ordinary_inspect() -> serde_json::Value {
+    serde_json::json!({
+        "max_open_vm_steps": 1_000_000,
+        "max_read_vm_steps": 1_000_000,
+        "max_matches": 100_000,
+        "max_rows": 1_000_000,
+        "max_field_bytes": 1024 * 1024,
+        "max_payload_bytes": 8 * 1024 * 1024,
+        "max_decoded_bytes": 16 * 1024 * 1024,
+        "max_response_bytes": 8 * 1024 * 1024,
+        "json": ordinary_json_limits()
+    })
+}
+
+fn ordinary_document() -> serde_json::Value {
+    serde_json::json!({
+        "max_carrier_bytes": 64 * 1024 * 1024,
+        "max_document_bytes": 4 * 1024 * 1024,
+        "max_document_code_points": 1_000_000,
+        "json": ordinary_json_limits()
+    })
+}
+
+fn ordinary_search_kind() -> serde_json::Value {
+    serde_json::json!({
+        "grams": {
+            "max_lookups": 4096,
+            "max_candidates": 1_000_000,
+            "max_vm_steps": 100_000_000,
+            "max_rows": 1_000_000,
+            "max_decoded_bytes": 64 * 1024 * 1024
+        },
+        "postings": {
+            "max_probes": 1_000_000,
+            "max_rows": 1_000_000,
+            "max_decoded_bytes": 64 * 1024 * 1024,
+            "max_vm_steps": 100_000_000,
+            "page_rows": 512
+        },
+        "candidate": {
+            "max_vm_steps": 100_000_000,
+            "max_decoded_bytes": 64 * 1024 * 1024,
+            "max_payload_bytes": 8 * 1024 * 1024,
+            "max_field_bytes": 1024 * 1024,
+            "max_document_chars": 1_000_000
+        },
+        "verify": {
+            "document": ordinary_document(),
+            "max_rank_field_bytes": 64 * 1024,
+            "max_rank_values": 100_000
+        },
+        "max_candidate_vm_steps": 100_000_000,
+        "max_candidate_decoded_bytes": 64 * 1024 * 1024,
+        "max_verified_chars": 4_000_000,
+        "max_verified_bytes": 16 * 1024 * 1024,
+        "max_observed_candidates": 100_000,
+        "max_observed_bytes": 64 * 1024 * 1024,
+        "max_selected_result_bytes": 8 * 1024 * 1024
+    })
+}
+
 impl HttpAdmission {
+    /// Ordinary native sessions own their finite query allowances; no Python
+    /// or startup JSON field can expand this profile.
+    pub(crate) fn native_ordinary() -> Result<Self, &'static str> {
+        let raw = serde_json::json!({
+            "max_startup_receipt_bytes": 1024 * 1024,
+            "selected": {
+                "catalog": {
+                    "max_open_vm_steps": 100_000_000,
+                    "max_read_vm_steps": 100_000_000,
+                    "max_packet_bytes": 16 * 1024 * 1024,
+                    "max_decoded_bytes": 64 * 1024 * 1024,
+                    "json": ordinary_json_limits()
+                },
+                "inspect": ordinary_inspect(),
+                "lens": {
+                    "inspect": ordinary_inspect(),
+                    "max_candidates": 100_000,
+                    "max_path_steps": 100_000,
+                    "max_adjacency_rows": 1_000_000,
+                    "block_size": 512
+                },
+                "exploration": {
+                    "read": ordinary_inspect(),
+                    "max_work_units": 1_000_000,
+                    "max_session_nodes": 100_000,
+                    "max_session_relations": 100_000,
+                    "max_state_bytes": 16 * 1024 * 1024,
+                    "max_checkpoint_bytes": 4 * 1024 * 1024,
+                    "max_checkpoints": 256
+                }
+            },
+            "legacy": {
+                "inspect": ordinary_inspect(),
+                "document": ordinary_document(),
+                "max_candidates": 100_000,
+                "max_document_bytes": 64 * 1024 * 1024,
+                "max_document_code_points": 4_000_000,
+                "max_retained_per_kind": 10_000,
+                "max_retained_bytes": 16 * 1024 * 1024,
+                "block_size": 512
+            },
+            "indexed": {
+                "nodes": ordinary_search_kind(),
+                "relations": ordinary_search_kind(),
+                "max_open_vm_steps": 100_000_000,
+                "max_response_bytes": 16 * 1024 * 1024,
+                "max_cursor_bytes": 64 * 1024,
+                "json": ordinary_json_limits()
+            },
+            "contracts": {
+                "max_input_bytes": 16 * 1024 * 1024,
+                "max_registry_bytes": 8 * 1024 * 1024,
+                "max_response_bytes": 8 * 1024 * 1024,
+                "json": ordinary_json_limits()
+            },
+            "max_request_bytes": 16 * 1024 * 1024,
+            "max_response_bytes": 64 * 1024 * 1024,
+            "max_mcp_frame_bytes": 64 * 1024 * 1024,
+            "max_line_bytes": 16 * 1024 * 1024,
+            "query_seconds": 30.0,
+            "checkpoint_ttl_seconds": 900,
+            "checkpoint_max_entries": 256,
+            "checkpoint_max_encoded_bytes": 16 * 1024 * 1024
+        });
+        let profile: Self = serde_json::from_value(raw)
+            .map_err(|_| "Core ordinary native HTTP profile shape")?;
+        profile.profile()?;
+        profile.selected.native()?;
+        profile.legacy.native()?;
+        profile.indexed.native()?;
+        profile.contracts.native()?;
+        drop(profile.checkpoints()?);
+        Ok(profile)
+    }
+
     pub(crate) fn profile(&self) -> Result<crate::AccessProfile, &'static str> {
         if self.max_startup_receipt_bytes == 0
             || self.max_startup_receipt_bytes > 64 * 1024 * 1024

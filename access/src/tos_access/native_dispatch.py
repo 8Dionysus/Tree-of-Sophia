@@ -25,6 +25,37 @@ _PROOF_KEYS = {'schema_version', 'sha256', 'size_bytes', 'target', 'source_commi
                'source_tree', 'lock_sha256', 'toolchain', 'profile'}
 
 
+def selected_native_prefix(prefix=None) -> Path:
+    """Select software only: explicit, environment, bundled SDK, absolute PATH.
+
+    This is navigation, never code admission: verified_image still holds the
+    actual installation manifest, build proof and exact ELF for every call.
+    """
+    selected = prefix or os.environ.get('TOS_NATIVE_PREFIX')
+    if selected:
+        result = Path(selected).expanduser()
+        if not result.is_absolute() or '..' in result.parts:
+            raise ValueError('native_prefix requires an explicit absolute path')
+        return result
+    from .locations import PACKAGE_ROOT
+    package_root = PACKAGE_ROOT.resolve()
+    suffix = ('software', 'access', 'src', 'tos_access')
+    if package_root.parts[-len(suffix):] == suffix:
+        return package_root.parents[3]
+    import shutil
+    entry = shutil.which('tos')
+    if entry is not None:
+        candidate = Path(entry)
+        if not candidate.is_absolute():
+            raise ValueError('PATH native software selection requires an absolute entrypoint')
+        image = candidate.resolve(strict=True)
+        image_suffix = ('software', 'access', 'src', 'tos_access', 'tos-access')
+        if image.parts[-len(image_suffix):] == image_suffix:
+            return image.parents[4]
+        raise ValueError('PATH tos is not the standard installed native Access entrypoint')
+    raise ValueError('native operation requires native_prefix, TOS_NATIVE_PREFIX, the installed SDK layout, or standard tos on PATH')
+
+
 def _identity(fd):
     s = os.fstat(fd)
     return s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns

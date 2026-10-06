@@ -433,11 +433,20 @@ pub struct LegacyStore {
     view_attempted: bool,
     // Only the owned route binds these original counters. Old callers keep None.
     owned: Option<OriginalStoreCounters>,
+    /// Authenticated compiler metadata admitted with the selected Store.
+    search_indexed_fts5: bool,
 }
 #[path = "source_diagnostic_legacy.rs"]
 mod legacy;
+pub use legacy::{
+    query_store_indexed_default_sources, QueryStoreIndexedContinuation,
+    QueryStoreIndexedPage, QueryStoreIndexedSearchRequest,
+};
 
 impl LegacyStore {
+    pub fn supports_indexed_fts5(&self) -> bool {
+        self.owned.is_some() && self.search_indexed_fts5
+    }
     pub fn open(
         path: &Path,
         inputs: &[(String, PathBuf)],
@@ -578,6 +587,11 @@ impl LegacyStore {
         let rows = m.rows;
         let work = m.work;
         let held = std::mem::take(&mut m.held);
+        let search_indexed_fts5 = metadata
+            .get("search_accelerator")
+            .and_then(|value| value.get("mode"))
+            .and_then(Value::as_str)
+            == Some("fts5-trigram");
         drop(m);
         Ok(Self {
             revision,
@@ -597,6 +611,7 @@ impl LegacyStore {
             database_path: path.to_owned(),
             view_attempted: false,
             owned: None,
+            search_indexed_fts5,
         })
     }
     pub fn verify_currentness(&self) -> Result<()> {
@@ -1776,6 +1791,11 @@ impl LegacyStore {
                 "query store unsupported/incomplete/stale snapshot",
             ));
         }
+        let metadata_claims_indexed_fts5 = metadata
+            .get("search_accelerator")
+            .and_then(|value| value.get("mode"))
+            .and_then(Value::as_str)
+            == Some("fts5-trigram");
         let captured_bindings = metadata
             .get("snapshot_bindings")
             .and_then(Value::as_object)
@@ -1795,6 +1815,23 @@ impl LegacyStore {
                 return Err(owned_err("query store stale snapshot bindings"));
             }
         }
+        // Metadata only records the compiler's claim. READY may expose the
+        // indexed QueryStore route only after both physical FTS5 tables and
+        // their exact tokenizer/options have been read from this held DB.
+        let search_indexed_fts5 = metadata_claims_indexed_fts5
+            && verify_owned_fts5_trigram_tables(
+                &db,
+                budget,
+                usage,
+                deadline,
+                &probe,
+                original_rows,
+                original_input,
+                retained,
+                fixed,
+                progress_storage,
+                metadata_state,
+            )?;
         // Move the authentic metadata trees; no header/catalog clone at open.
         let graph_header = metadata
             .remove("graph_header")
@@ -1850,6 +1887,7 @@ impl LegacyStore {
             database_path: path.to_owned(),
             view_attempted: false,
             owned: Some(counters),
+            search_indexed_fts5,
         };
         // The construction window ends here; retain the original owner lifetime.
         // install_owned_progress admits simultaneous old/new callback storage.
@@ -1967,6 +2005,152 @@ fn owned_tree_controller_frame_bytes() -> usize {
         + std::mem::size_of::<&Value>()
         + std::mem::size_of::<&dyn Fn() -> Result<()>>();
     walk
+}
+
+/// Metadata's `search_accelerator` value is only a compiler claim. Admit the
+/// indexed capability from the physical held database: exact expected FTS5
+/// DDL plus a real MATCH execution against each contentless table.
+fn verify_owned_fts5_trigram_tables(
+    db: &tos_source_store::PinnedSqliteConnection,
+    budget: &OriginalStoreBudget<'_>,
+    usage: &mut StoreUsage,
+    deadline: Instant,
+    probe: &dyn AbortProbe,
+    original_rows: u64,
+    original_input: u64,
+    retained: usize,
+    fixed: usize,
+    progress_storage: usize,
+    metadata_state: usize,
+) -> Result<bool> {
+    const TABLES: [(&str, &str); 2] = [
+        (
+            "knowledge_nodes_trigram",
+            "CREATE VIRTUAL TABLE knowledge_nodes_trigram USING fts5(search_text, content='', detail=none, columnsize=0, tokenize='trigram case_sensitive 1')",
+        ),
+        (
+            "knowledge_relations_trigram",
+            "CREATE VIRTUAL TABLE knowledge_relations_trigram USING fts5(search_text, content='', detail=none, columnsize=0, tokenize='trigram case_sensitive 1')",
+        ),
+    ];
+    let held = state_add(
+        state_add(state_add(retained, fixed)?, progress_storage)?,
+        metadata_state,
+    )?;
+    let statement_state = state_add(
+        std::mem::size_of::<tos_source_store::PinnedBoundedStatement<'_>>(),
+        tos_source_store::PinnedBoundedStatement::text_validation_rust_workspace_upper_bound(),
+    )?;
+    let held_with_statement = state_add(held, statement_state)?;
+    (budget.remaining_after_retained)(held_with_statement)?;
+    let mut statement = db
+        .prepare_static_bounded(c"SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=64 THEN name ELSE NULL END, CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=512 THEN sql ELSE NULL END FROM sqlite_master WHERE type='table' AND name IN ('knowledge_nodes_trigram','knowledge_relations_trigram') ORDER BY name LIMIT 3")
+        .map_err(owned_err)?;
+    let mut rows = 0usize;
+    let mut valid = true;
+    while statement.step().map_err(owned_err)? {
+        budget.check(deadline, probe)?;
+        usage.rows = usage
+            .rows
+            .checked_add(1)
+            .filter(|count| *count <= original_rows)
+            .ok_or_else(|| owned_err("legacy FTS schema row allowance"))?;
+        rows += 1;
+        if rows > TABLES.len() {
+            valid = false;
+            break;
+        }
+        let (name, sql) = {
+            let name_is_text = matches!(
+                statement.value_ref(0).map_err(owned_err)?,
+                rusqlite::types::ValueRef::Text(_)
+            );
+            let sql_is_text = matches!(
+                statement.value_ref(1).map_err(owned_err)?,
+                rusqlite::types::ValueRef::Text(_)
+            );
+            if !name_is_text || !sql_is_text {
+                valid = false;
+                (None, None)
+            } else {
+                let mut check = |bytes: usize| {
+                    budget
+                        .check(deadline, probe)
+                        .and_then(|_| {
+                            let bytes = u64::try_from(bytes).map_err(owned_err)?;
+                            atomic_charge(&budget.byte_work, budget.max_byte_work, bytes)?;
+                            atomic_charge(&budget.store_steps, budget.max_store_steps, bytes)
+                        })
+                        .map_err(|_| {
+                            tos_source_store::StoreError::new(
+                                tos_source_store::StoreErrorCode::BudgetExceeded,
+                                "legacy original FTS schema text work/deadline",
+                            )
+                        })
+                };
+                let check_state = state_add(held_with_statement, std::mem::size_of_val(&check))?;
+                (budget.remaining_after_retained)(check_state)?;
+                let name = statement
+                    .text_with_check(0, &mut check)
+                    .map_err(owned_err)?;
+                let sql = statement
+                    .text_with_check(1, &mut check)
+                    .map_err(owned_err)?;
+                (Some(name), Some(sql))
+            }
+        };
+        if let (Some(name), Some(sql)) = (name, sql) {
+            usage.input_bytes = usage
+                .input_bytes
+                .checked_add(
+                    u64::try_from(name.len().saturating_add(sql.len())).map_err(owned_err)?,
+                )
+                .filter(|count| *count <= original_input)
+                .ok_or_else(|| owned_err("legacy FTS schema input allowance"))?;
+            let expected = TABLES.get(rows - 1);
+            let comparison_work = name
+                .len()
+                .checked_add(sql.len())
+                .ok_or_else(|| owned_err("legacy FTS schema comparison overflow"))?;
+            let comparison_work = u64::try_from(comparison_work).map_err(owned_err)?;
+            atomic_charge(&budget.byte_work, budget.max_byte_work, comparison_work)?;
+            atomic_charge(&budget.store_steps, budget.max_store_steps, comparison_work)?;
+            valid &= expected.is_some_and(|(expected_name, expected_sql)| {
+                name == *expected_name && sql == *expected_sql
+            });
+        }
+    }
+    drop(statement);
+    if !valid || rows != TABLES.len() {
+        return Ok(false);
+    }
+
+    // sqlite_master can contain a plausible declaration without a usable FTS
+    // module or shadow index. Run one bounded MATCH query on each real table.
+    for query in [
+        c"SELECT count(*) FROM knowledge_nodes_trigram WHERE knowledge_nodes_trigram MATCH '\"abc\"'",
+        c"SELECT count(*) FROM knowledge_relations_trigram WHERE knowledge_relations_trigram MATCH '\"abc\"'",
+    ] {
+        budget.check(deadline, probe)?;
+        (budget.remaining_after_retained)(state_add(
+            held,
+            std::mem::size_of::<tos_source_store::PinnedBoundedStatement<'_>>(),
+        )?)?;
+        let mut statement = db.prepare_static_bounded(query).map_err(owned_err)?;
+        if !statement.step().map_err(owned_err)? {
+            return Err(owned_err("legacy FTS physical probe result absent"));
+        }
+        statement.unsigned_integer(0).map_err(owned_err)?;
+        usage.rows = usage
+            .rows
+            .checked_add(1)
+            .filter(|count| *count <= original_rows)
+            .ok_or_else(|| owned_err("legacy FTS probe row allowance"))?;
+        if statement.step().map_err(owned_err)? {
+            return Err(owned_err("legacy FTS physical probe returned extra rows"));
+        }
+    }
+    Ok(true)
 }
 
 fn serde_clone_storage(value: &Value, check: &dyn Fn() -> Result<()>) -> Result<usize> {

@@ -19,6 +19,19 @@ use std::{
 };
 use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
 
+/// The native controlled driver borrows this guard from its original State
+/// owner. It admits bounded thin plan frames before construction. Exact row
+/// and reply copies are additionally admitted by that same driver/heap before
+/// resume; all these holds outlive continuations and final packet delivery.
+/// Query VM remains in the controlled reader, never in this pure plan.
+pub(crate) trait OriginalLensBudget {
+    fn check(&self) -> Result<(), SearchV2Error>;
+    fn charge_work(&self, units: usize) -> Result<(), SearchV2Error>;
+    fn admit_workspace(&self, bytes: usize) -> Result<(), SearchV2Error>;
+    fn canonicalize(&self, value: &JsonValue, limits: tos_foundation::JsonLimits)
+        -> Result<Vec<u8>, SearchV2Error>;
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LensCandidateCursor {
     Id(String),
@@ -253,9 +266,9 @@ impl LensRead {
 /// A plan has at most one outstanding concrete read. A reply is accepted once;
 /// the terminal result is returned once. The driver checks its I/O cancellation
 /// independently; this plan checks between bounded synchronous domain phases.
-pub struct LensPlan {
+pub struct LensPlan<'original> {
     read: LensRead,
-    execution: Option<Pin<Box<dyn Future<Output = Result<JsonValue, SearchV2Error>>>>>,
+    execution: Option<Pin<Box<dyn Future<Output = Result<JsonValue, SearchV2Error>> + 'original>>>,
     output: Option<JsonValue>,
     terminal: bool,
 }
@@ -438,7 +451,8 @@ impl PublishedMetadata {
         })
     }
 }
-struct Execution {
+struct Execution<'original> {
+    original: Option<&'original dyn OriginalLensBudget>,
     read: LensRead,
     vocabulary: LensVocabulary,
     public: JsonValue,
@@ -483,13 +497,14 @@ impl Drop for RetainedRow {
         );
     }
 }
-impl Execution {
+impl Execution<'_> {
     fn scoped(&self, row: &JsonValue) -> bool {
         self.sources
             .iter()
             .any(|source| source == string(get(row, "source_graph")))
     }
     fn candidate(&mut self) -> Result<(), SearchV2Error> {
+        self.check()?;
         self.candidates = self.candidates.checked_add(1).ok_or_else(budget)?;
         if self.candidates > self.budget.max_candidates {
             return Err(budget());
@@ -846,8 +861,12 @@ struct OrderedStream {
     rows: std::collections::VecDeque<LensHeader>,
     done: bool,
 }
-impl Execution {
+impl Execution<'_> {
     fn check(&self) -> Result<(), SearchV2Error> {
+        if let Some(original) = self.original {
+            original.check()?;
+            original.charge_work(1)?;
+        }
         interrupt(self.probe.as_deref())
     }
     fn scan(&self, kind: SearchKind) -> Scan {
@@ -1561,7 +1580,7 @@ impl RelationCursor {
     }
     async fn next(
         &mut self,
-        execution: &mut Execution,
+        execution: &mut Execution<'_>,
         generic: Option<&[KeyedHeader]>,
     ) -> Result<Option<LensHeader>, SearchV2Error> {
         if let Some(headers) = generic {
@@ -1600,7 +1619,7 @@ impl RelationCursor {
         }
     }
 }
-impl Execution {
+impl Execution<'_> {
     async fn execute(
         mut self,
         revision: String,
@@ -1702,12 +1721,13 @@ impl Execution {
                         let q = lower(string(field(&spec, "seed.text_query")));
                         if !q.is_empty() {
                             self.callback()?;
-                            let compact = canonical_bytes_v1(
-                                &node,
-                                CanonicalProfile::SourceRecordDigestV1,
-                                self.budget.inspect.json,
-                            )
-                            .map_err(|_| budget())?;
+                            let compact = if let Some(original) = self.original {
+                                original.canonicalize(&node, self.budget.inspect.json)?
+                            } else {
+                                canonical_bytes_v1(&node,
+                                    CanonicalProfile::SourceRecordDigestV1,
+                                    self.budget.inspect.json).map_err(|_| budget())?
+                            };
                             let searchable = String::from_utf8(compact)
                                 .map_err(|_| corrupt("lens searchable JSON invalid"))?;
                             if !lower(&crate::knowledge_lens::json_spaces(&searchable)).contains(&q)
@@ -2133,7 +2153,7 @@ impl Execution {
     }
 }
 
-impl LensPlan {
+impl<'original> LensPlan<'original> {
     pub fn published(
         value: &JsonValue,
         metadata: &JsonValue,
@@ -2196,6 +2216,7 @@ impl LensPlan {
                 budget.max_cache_entries,
             )),
             probe,
+            None,
         )
     }
     #[cfg(not(target_arch = "wasm32"))]
@@ -2222,8 +2243,36 @@ impl LensPlan {
             available,
             None,
             probe,
+            None,
         )
     }
+    /// Controlled native construction. `workspace_bytes` is the driver's
+    /// checked upper bound for its thin traversal/sort/identity frames. The
+    /// same driver separately admits actual vocabulary, authenticated row,
+    /// reply and packet geometries before their corresponding plan phase.
+    /// All admissions stay with the original owner through disclosure.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn native_with_original(
+        public: JsonValue,
+        vocabulary: LensVocabulary,
+        revision: &str,
+        authority: JsonValue,
+        publication: JsonValue,
+        budget: LensBudget,
+        available: (u64, u64),
+        probe: Option<std::sync::Arc<dyn AbortProbe>>,
+        original: &'original dyn OriginalLensBudget,
+        workspace_bytes: usize,
+    ) -> Result<Self, SearchV2Error> {
+        if workspace_bytes == 0 { return Err(budget_error()); }
+        original.check()?;
+        original.admit_workspace(workspace_bytes)?;
+        original.charge_work(workspace_bytes)?;
+        let spec = bind_plan_properties(&public, &vocabulary)?;
+        Self::create(public, spec, vocabulary, revision, authority,
+            Some(publication), budget, None, available, None, probe, Some(original))
+    }
+
     fn create(
         public: JsonValue,
         spec: JsonValue,
@@ -2236,6 +2285,7 @@ impl LensPlan {
         available: (u64, u64),
         limits: Option<(usize, usize, usize, usize)>,
         probe: Option<std::sync::Arc<dyn AbortProbe>>,
+        original: Option<&'original dyn OriginalLensBudget>,
     ) -> Result<Self, SearchV2Error> {
         if budget.max_candidates == 0
             || budget.max_candidates >= i64::MAX as usize
@@ -2261,6 +2311,7 @@ impl LensPlan {
             .map(|v| string(v).to_owned())
             .collect();
         let execution = Execution {
+            original,
             read: read.clone(),
             vocabulary,
             public,
@@ -2304,6 +2355,7 @@ impl LensPlan {
         if self.read.0.borrow().need.is_some() {
             return Err(corrupt("lens reply is required before advance"));
         }
+        // The execution itself also checks between bounded domain phases.
         let mut context = Context::from_waker(Waker::noop());
         let result = self
             .execution
@@ -2394,7 +2446,7 @@ impl LensPlan {
             .ok_or_else(|| corrupt("lens terminal packet already consumed"))
     }
 }
-impl Drop for LensPlan {
+impl Drop for LensPlan<'_> {
     fn drop(&mut self) {
         self.clear();
     }

@@ -1,6 +1,10 @@
 //! Exact ordered philosophy projection input retained under the selected lease.
 //! Mechanical custody only: authored source and current policy retain authority.
+use crate::d1_public_capture::CreationState;
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
+use crate::knowledge_selected::{
+    owned_schema_equal, owned_schema_sql_error, owned_schema_step, with_owned_schema_statement,
+};
 use crate::knowledge_stage::{
     InputCollectionReceipt, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout,
     KnowledgeStage, WritePhase,
@@ -779,5 +783,521 @@ pub(crate) fn verify(
         layout,
     )?;
     sealed_root(db, &r)?;
+    Ok(Some(r))
+}
+
+// Owned cold verification path; reused selected-state SQL authority.
+fn root_with_state(
+    r: &PhilosophyOriginalReceipt,
+    state: Option<&CreationState<'_>>,
+) -> Result<String> {
+    if let Some(state) = state {
+        let bytes = [
+            &r.profile,
+            &r.descriptor_sha256,
+            &r.source_cut,
+            &r.membership_root,
+            &r.source_graph,
+            &r.node_input_root_sha256,
+            &r.edge_input_root_sha256,
+            &r.header_sha256,
+            &r.nodes_root_sha256,
+            &r.edges_root_sha256,
+        ]
+        .into_iter()
+        .try_fold(24usize, |n, s| {
+            n.checked_add(s.len())
+                .ok_or(Error::Budget("philosophy original root work"))
+        })?;
+        state.charge_work(bytes)?;
+        state.retain(64)?;
+    }
+    root(r)
+}
+
+fn with_object<T>(
+    raw: &[u8],
+    cap: usize,
+    state: Option<&CreationState<'_>>,
+    operation: impl FnOnce(&serde_json::Value) -> Result<T>,
+) -> Result<T> {
+    if let Some(state) = state {
+        let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("philosophy original JSON limits"))?;
+        state.with_serde_owned_with_limits(raw, limits, |value| {
+            if !value.is_object() {
+                return Err(Error::Invalid("philosophy original object"));
+            }
+            operation(value)
+        })
+    } else {
+        operation(&object(raw, cap)?)
+    }
+}
+
+fn header_with_state(
+    raw: &[u8],
+    r: &PhilosophyOriginalReceipt,
+    cap: usize,
+    state: Option<&CreationState<'_>>,
+) -> Result<()> {
+    let _digest_hold = state.map(|s| s.hold(64)).transpose()?;
+    with_object(raw, cap, state, |v| {
+        if let Some(state) = state {
+            state.charge_work(raw.len())?;
+        }
+        if v.get("nodes").is_some()
+            || v.get("edges").is_some()
+            || v["schema_version"].as_str().is_none_or(str::is_empty)
+            || v["counts"]["nodes"].as_u64() != Some(r.nodes)
+            || v["counts"]["edges"].as_u64() != Some(r.edges)
+            || Digest256::of_bytes(raw).to_hex() != r.header_sha256
+        {
+            return Err(Error::Invalid("philosophy original detached header"));
+        }
+        Ok(())
+    })
+}
+
+fn scalar_owned(db: &Connection, sql: &std::ffi::CStr, state: &CreationState<'_>) -> Result<i64> {
+    with_owned_schema_statement(db, sql, state, |q| {
+        if !owned_schema_step(q, state)? {
+            return Err(Error::Invalid("original scalar missing"));
+        }
+        q.integer(0).map_err(owned_schema_sql_error)
+    })
+}
+
+fn present_with_state(db: &Connection, state: Option<&CreationState<'_>>) -> Result<bool> {
+    let Some(state) = state else {
+        return present(db);
+    };
+    let n=scalar_owned(db,c"SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('philosophy_original_meta','philosophy_original_rows')",state)?;
+    if n != 0 && n != 2 {
+        return Err(Error::Invalid("philosophy original partial tables"));
+    }
+    Ok(n == 2)
+}
+
+fn bounded_text<'a>(
+    value: rusqlite::types::ValueRef<'a>,
+    cap: usize,
+    state: &CreationState<'_>,
+) -> Result<&'a str> {
+    let bytes = match value {
+        rusqlite::types::ValueRef::Text(v) => v,
+        _ => return Err(Error::Invalid("original bounded text kind")),
+    };
+    if bytes.len() > cap {
+        return Err(Error::Budget("original bounded text bytes"));
+    }
+    state.charge_work(bytes.len())?;
+    std::str::from_utf8(bytes).map_err(|_| Error::Invalid("original bounded text UTF8"))
+}
+
+pub(crate) fn verify_ddl_with_owned_state_and_layout(
+    db: &Connection,
+    state: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    let Some(state) = state else {
+        return verify_ddl_with_layout(db, layout);
+    };
+    let _sql = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(),
+    )?;
+    for (table, ddl) in [
+        (META_TABLE, META_DDL),
+        (
+            ROW_TABLE,
+            if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                ROW_DDL_CARRIER
+            } else {
+                ROW_DDL
+            },
+        ),
+    ] {
+        with_owned_schema_statement(
+            db,
+            c"SELECT sql FROM sqlite_master WHERE type='table' AND name=?1",
+            state,
+            |q| {
+                state.charge_work(table.len())?;
+                state.active()?;
+                q.bind_text(1, table).map_err(owned_schema_sql_error)?;
+                if !owned_schema_step(q, state)? {
+                    return Err(Error::Invalid("philosophy original DDL missing"));
+                }
+                let actual =
+                    bounded_text(q.value_ref(0).map_err(owned_schema_sql_error)?, 4096, state)?;
+                if !owned_schema_equal(state, actual.as_bytes(), ddl.as_bytes())? {
+                    return Err(Error::Invalid("philosophy original DDL"));
+                }
+                Ok(())
+            },
+        )?;
+    }
+    state.active()
+}
+
+fn metadata_matches(
+    db: &Connection,
+    key: &str,
+    expected: &str,
+    state: Option<&CreationState<'_>>,
+) -> Result<bool> {
+    if let Some(state) = state {
+        return with_owned_schema_statement(
+            db,
+            c"SELECT value FROM metadata WHERE key=?1",
+            state,
+            |q| {
+                state.charge_work(key.len())?;
+                state.active()?;
+                q.bind_text(1, key).map_err(owned_schema_sql_error)?;
+                if !owned_schema_step(q, state)? {
+                    return Ok(false);
+                }
+                let bytes = match q.value_ref(0).map_err(owned_schema_sql_error)? {
+                    rusqlite::types::ValueRef::Text(v) | rusqlite::types::ValueRef::Blob(v) => v,
+                    _ => return Err(Error::Invalid("philosophy original metadata bytes")),
+                };
+                owned_schema_equal(state, bytes, expected.as_bytes())
+            },
+        );
+    }
+    let _hold = state.map(|s| s.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())).transpose()?;
+    let mut q = db.prepare("SELECT value FROM metadata WHERE key=?1")?;
+    let mut rows = q.query([key])?;
+    let Some(row) = rows.next()? else {
+        return Ok(false);
+    };
+    let value = row.get_ref(0)?;
+    let bytes = match value {
+        rusqlite::types::ValueRef::Text(v) | rusqlite::types::ValueRef::Blob(v) => v,
+        _ => return Err(Error::Invalid("philosophy original metadata bytes")),
+    };
+    if let Some(state) = state {
+        state.charge_work(bytes.len())?;
+    }
+    Ok(bytes == expected.as_bytes())
+}
+
+pub(crate) fn receipt_with_state(
+    db: &Connection,
+    state: Option<&CreationState<'_>>,
+) -> Result<PhilosophyOriginalReceipt> {
+    let Some(state) = state else {
+        return receipt(db);
+    };
+    let _sql = state.hold(
+        tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(),
+    )?;
+    let count = scalar_owned(db, c"SELECT count(*) FROM philosophy_original_meta", state)?;
+    if count != 1 {
+        return Err(Error::Invalid("philosophy original receipt coverage"));
+    }
+    with_owned_schema_statement(
+        db,
+        c"SELECT receipt FROM philosophy_original_meta WHERE singleton=1",
+        state,
+        |q| {
+            if !owned_schema_step(q, state)? {
+                return Err(Error::Invalid("philosophy original receipt missing"));
+            }
+            let raw = q
+                .value_ref(0)
+                .map_err(owned_schema_sql_error)?
+                .as_blob()
+                .map_err(|_| Error::Invalid("original packet column type"))?;
+            if raw.len() > JsonLimits::default().max_bytes {
+                return Err(Error::Budget("philosophy original receipt bytes"));
+            }
+            // Receipt strings are decoded from this input. Its byte length bounds all
+            // copied UTF-8 text; the typed owner is retained separately from the DOM.
+            state.retain(
+                raw.len()
+                    .checked_add(std::mem::size_of::<PhilosophyOriginalReceipt>())
+                    .ok_or(Error::Budget("philosophy original typed receipt"))?,
+            )?;
+            state.with_serde_owned_value_with_limits(raw, JsonLimits::default(), |value| {
+                state.charge_work(raw.len())?;
+                serde_json::from_value(value)
+                    .map_err(|_| Error::Invalid("philosophy original receipt"))
+            })
+        },
+    )
+}
+
+fn verify_rows_owned(
+    db: &Connection,
+    r: &PhilosophyOriginalReceipt,
+    l: NavigationOriginalLimits,
+    work: &mut u64,
+    work_cap: u64,
+    state: &CreationState<'_>,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    l.validate()?;
+    if r.nodes
+        .checked_add(r.edges)
+        .and_then(|n| n.checked_add(1))
+        .is_none_or(|n| n > l.max_rows)
+        || r.total_bytes > l.max_total_bytes
+    {
+        return Err(Error::Budget("philosophy original aggregate limits"));
+    }
+    let _sql = state.hold(
+        2 * tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound(
+        ),
+    )?;
+    let mut total = 0u64;
+    for (collection, wanted, expected, input_sha) in [
+        (
+            PhilosophyOriginalCollection::Header,
+            1,
+            &r.header_sha256,
+            None,
+        ),
+        (
+            PhilosophyOriginalCollection::Nodes,
+            r.nodes,
+            &r.nodes_root_sha256,
+            Some(&r.node_input_root_sha256),
+        ),
+        (
+            PhilosophyOriginalCollection::Edges,
+            r.edges,
+            &r.edges_root_sha256,
+            Some(&r.edge_input_root_sha256),
+        ),
+    ] {
+        let sql = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            c"SELECT ordinal,packet_len,packet_sha256,packet FROM philosophy_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE collection=?1 ORDER BY ordinal"
+        } else {
+            c"SELECT ordinal,packet_len,packet_sha256,packet FROM philosophy_original_rows WHERE collection=?1 ORDER BY ordinal"
+        };
+        let mut count = 0u64;
+        let mut h = ordered_hash(collection.as_str());
+        with_owned_schema_statement(db, sql, state, |q| {
+            state.charge_work(collection.as_str().len())?;
+            state.active()?;
+            q.bind_text(1, collection.as_str())
+                .map_err(owned_schema_sql_error)?;
+            while owned_schema_step(q, state)? {
+                state.active()?;
+                let ordinal = q.integer(0).map_err(owned_schema_sql_error)?;
+                let declared = q.unsigned_integer(1).map_err(owned_schema_sql_error)?;
+                let digest: [u8; 32] = q
+                    .value_ref(2)
+                    .map_err(owned_schema_sql_error)?
+                    .as_blob()
+                    .map_err(|_| Error::Invalid("original packet column type"))?
+                    .try_into()
+                    .map_err(|_| Error::Invalid("philosophy original row digest"))?;
+                let raw = q
+                    .value_ref(3)
+                    .map_err(owned_schema_sql_error)?
+                    .as_blob()
+                    .map_err(|_| Error::Invalid("original packet column type"))?;
+                if ordinal < 0
+                    || ordinal as u64 != count
+                    || declared != raw.len() as u64
+                    || raw.len() > l.max_row_bytes
+                {
+                    return Err(Error::Invalid(
+                        "philosophy original ordinal/length coverage",
+                    ));
+                }
+                let row_work = raw.len() as u64 + 40;
+                *work = work
+                    .checked_add(row_work)
+                    .filter(|n| *n <= work_cap)
+                    .ok_or(Error::Budget("philosophy original cold work"))?;
+                state.charge_work(
+                    raw.len()
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(40))
+                        .ok_or(Error::Budget("philosophy original hash work"))?,
+                )?;
+                if Digest256::of_bytes(raw).as_bytes() != &digest {
+                    return Err(Error::Invalid("philosophy original row digest differs"));
+                }
+                if collection == PhilosophyOriginalCollection::Header {
+                    header_with_state(raw, r, l.max_row_bytes, Some(state))?;
+                } else {
+                    ordered_item(&mut h, count, raw);
+                }
+                count = count
+                    .checked_add(1)
+                    .filter(|n| *n <= wanted)
+                    .ok_or(Error::Invalid("philosophy original excess rows"))?;
+                total = total
+                    .checked_add(raw.len() as u64)
+                    .filter(|n| *n <= l.max_total_bytes)
+                    .ok_or(Error::Budget("philosophy original bytes"))?;
+            }
+            Ok(())
+        })?;
+        state.charge_work(64)?;
+        let _hash = state.hold(64)?;
+        if count != wanted
+            || collection != PhilosophyOriginalCollection::Header
+                && &h.finalize().to_hex() != expected
+        {
+            return Err(Error::Invalid("philosophy original count/order root"));
+        }
+        if let Some(expected) = input_sha {
+            let mut h = Digest256Hasher::new();
+            with_owned_schema_statement(db,c"SELECT id,packet_sha256 FROM philosophy_original_rows WHERE collection=?1 ORDER BY id",state,|q| {
+            state.charge_work(collection.as_str().len())?;state.active()?;
+            q.bind_text(1,collection.as_str()).map_err(owned_schema_sql_error)?;
+            while owned_schema_step(q,state)? {
+                let bytes = match q.value_ref(0).map_err(owned_schema_sql_error)? {rusqlite::types::ValueRef::Text(v)=>v,
+                    _=>return Err(Error::Invalid("philosophy original input ID"))};
+                let sha = q.value_ref(1).map_err(owned_schema_sql_error)?.as_blob().map_err(|_|Error::Invalid("original packet column type"))?;
+                if bytes.is_empty() || bytes.len() > 4096 || sha.len() != 32 { return Err(Error::Invalid("philosophy original input ID/SHA")); }
+                *work = work.checked_add(bytes.len() as u64 + 32).filter(|n| *n <= work_cap).ok_or(Error::Budget("philosophy original input cold work"))?;
+                state.charge_work(bytes.len()+32)?;
+                let id=std::str::from_utf8(bytes).map_err(|_|Error::Invalid("philosophy original input UTF8"))?;
+                text(&mut h,id); h.update(sha);
+            }
+            Ok(())
+            })?;
+            if &h.finalize().to_hex() != expected {
+                return Err(Error::Invalid("philosophy original input root"));
+            }
+        }
+    }
+    let all = scalar_owned(db, c"SELECT count(*) FROM philosophy_original_rows", state)?;
+    if total != r.total_bytes || all < 0 || all as u64 != r.nodes + r.edges + 1 {
+        return Err(Error::Invalid("philosophy original total coverage"));
+    }
+    state.active()
+}
+
+fn verify_rows_with_state(
+    db: &Connection,
+    r: &PhilosophyOriginalReceipt,
+    l: NavigationOriginalLimits,
+    work: &mut u64,
+    work_cap: u64,
+    state: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
+) -> Result<()> {
+    if let Some(state) = state {
+        verify_rows_owned(db, r, l, work, work_cap, state, layout)
+    } else {
+        verify_rows(db, r, l, work, work_cap, layout)
+    }
+}
+
+fn sealed_root_with_state(
+    db: &Connection,
+    r: &PhilosophyOriginalReceipt,
+    state: Option<&CreationState<'_>>,
+) -> Result<()> {
+    if r.component_root_sha256.len() != 64
+        || !metadata_matches(
+            db,
+            "philosophy_original_root_sha256",
+            &r.component_root_sha256,
+            state,
+        )?
+    {
+        return Err(Error::Invalid("philosophy original sealed root"));
+    }
+    Ok(())
+}
+
+pub(crate) fn verify_with_owned_state(
+    db: &Connection,
+    e: &KnowledgeSelectedExpectation,
+    l: ColdOpenLimits,
+    work: &mut u64,
+    state: Option<&CreationState<'_>>,
+) -> Result<Option<PhilosophyOriginalReceipt>> {
+    let layout = if e.model_abi == KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+        KnowledgePayloadLayout::CarrierOnceV1
+    } else {
+        KnowledgePayloadLayout::InlineV1
+    };
+    let _presence_sql = state.map(|s|s.hold(tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())).transpose()?;
+    let found = present_with_state(db, state)?;
+    if found != e.philosophy_original_root_sha256.is_some()
+        || found
+            && ![
+                KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+                crate::KNOWLEDGE_CORPUS_MODEL_ABI,
+                KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
+            ]
+            .contains(&e.model_abi.as_str())
+    {
+        return Err(Error::Invalid("philosophy original ABI/expected coverage"));
+    }
+    if !found {
+        let n: i64 = if let Some(state) = state {
+            scalar_owned(
+                db,
+                c"SELECT count(*) FROM metadata WHERE key='philosophy_original_root_sha256'",
+                state,
+            )?
+        } else {
+            db.query_row(
+                "SELECT count(*) FROM metadata WHERE key='philosophy_original_root_sha256'",
+                [],
+                |r| r.get(0),
+            )?
+        };
+        if n != 0 {
+            return Err(Error::Invalid("philosophy original phantom seal"));
+        }
+        return Ok(None);
+    }
+    verify_ddl_with_owned_state_and_layout(db, state, layout)?;
+    let r = receipt_with_state(db, state)?;
+    if r.profile != PHILOSOPHY_ORIGINAL_PROFILE
+        || e.philosophy_original_root_sha256.as_deref() != Some(r.component_root_sha256.as_str())
+        || root_with_state(&r, state)? != r.component_root_sha256
+        || r.descriptor_sha256 != e.descriptor_sha256
+        || r.source_cut != e.source_cut
+        || r.membership_root != e.membership_root
+        || !e.source_scopes.iter().any(|s| {
+            s.source_graph == r.source_graph && s.adapter_profile == "philosophy-node-edge-v1"
+        })
+    {
+        return Err(Error::Invalid("philosophy original selected binding"));
+    }
+    let receipt_bytes = if let Some(state) = state {
+        state.with_json_encoded(&r, JsonLimits::default().max_bytes, |raw| {
+            Ok(raw.len() as u64)
+        })?
+    } else {
+        serde_json::to_vec(&r)
+            .map_err(|_| Error::Invalid("philosophy original receipt"))?
+            .len() as u64
+    };
+    *work = work
+        .checked_add(receipt_bytes)
+        .filter(|n| *n <= l.max_work_bytes)
+        .ok_or(Error::Budget("philosophy original receipt cold work"))?;
+    verify_rows_with_state(
+        db,
+        &r,
+        NavigationOriginalLimits {
+            max_rows: l.max_rows.min(crate::knowledge_original_rows::MAX_ROWS),
+            max_row_bytes: l
+                .max_row_bytes
+                .min(crate::knowledge_original_rows::MAX_ROW_BYTES),
+            max_total_bytes: l
+                .max_work_bytes
+                .min(crate::knowledge_original_rows::MAX_TOTAL_BYTES),
+        },
+        work,
+        l.max_work_bytes,
+        state,
+        layout,
+    )?;
+    sealed_root_with_state(db, &r, state)?;
     Ok(Some(r))
 }

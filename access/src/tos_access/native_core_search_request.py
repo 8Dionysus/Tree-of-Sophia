@@ -7,6 +7,8 @@ All encoded owners are admitted before allocation under ReceiverState.
 _HEX = '0123456789abcdef'
 _PREFIX = ',"operation":"tos_native_call","arguments":{"tool":"tos_knowledge_search","arguments":'
 _SUFFIX = '},"work_deadline_ns":'
+_INDEXED_PREFIX = ',"operation":"tos_native_call","arguments":{"tool":"tos_knowledge_search_indexed_v2","arguments":'
+_INDEXED_KEYS = ('query', 'sources', 'kind_ids', 'predicate_ids', 'limit', 'cursor')
 _KEYS = ('query', 'sources', 'kind_ids', 'predicate_ids', 'offset', 'limit')
 
 
@@ -44,17 +46,20 @@ def _string(state, value):
     return result, amount
 
 
-def validate_search_arguments(state, arguments):
+def validate_search_arguments(state, arguments, *, indexed=False):
     """Reject foreign objects using borrowed exact types before owner census."""
     if type(arguments) is not dict or len(arguments) > 6:
         raise ValueError('native Search public argument shape differs')
     for key, value in arguments.items():
         state.visit()
-        if type(key) is not str or key not in _KEYS:
+        if type(key) is not str or key not in (_INDEXED_KEYS if indexed else _KEYS):
             raise ValueError('native Search public argument unavailable')
         if key == 'query':
             if type(value) is not str:
                 raise ValueError('native Search query must be a string')
+        elif indexed and key == 'cursor':
+            if value is not None and type(value) is not str:
+                raise ValueError('native indexed cursor must be a string or null')
         elif key in ('offset', 'limit'):
             maximum = 100000 if key == 'offset' else 100
             if type(value) is not int or not 0 <= value <= maximum:
@@ -68,7 +73,7 @@ def validate_search_arguments(state, arguments):
                     raise ValueError('native Search public filter element must be a string')
 
 
-def search_fragment(state, arguments, max_call_bytes):
+def search_fragment(state, arguments, max_call_bytes, *, indexed=False):
     # The sole client invokes the shared exact borrowed validator before census.
     state.active()
     g = state.geometry
@@ -78,12 +83,14 @@ def search_fragment(state, arguments, max_call_bytes):
               + 8 * (g.tuple_base + 2 * g.pointer))
     state.reserve(amount)
     parts = []
-    for key in _KEYS:
+    keys = _INDEXED_KEYS if indexed else _KEYS
+    prefix = _INDEXED_PREFIX if indexed else _PREFIX
+    for key in keys:
         state.visit()
         if key not in arguments:
             continue
         value = arguments[key]
-        if key == 'query':
+        if key == 'query' or (indexed and key == 'cursor' and value is not None):
             encoded, cost = _string(state, value)
             amount += cost
         elif key in ('offset', 'limit'):
@@ -111,7 +118,7 @@ def search_fragment(state, arguments, max_call_bytes):
         state.reserve(member_cost)
         amount += member_cost
         parts.append('"' + key + '":' + encoded)
-    length = len(_PREFIX) + len(_SUFFIX) + 2
+    length = len(prefix) + len(_SUFFIX) + 2
     for part in parts:
         state.visit()
         length += len(part) + 1
@@ -121,6 +128,6 @@ def search_fragment(state, arguments, max_call_bytes):
     final_cost = 4 * g.unicode_bytes(length)
     state.reserve(final_cost)
     amount += final_cost
-    result = _PREFIX + '{' + ','.join(parts) + '}' + _SUFFIX
+    result = prefix + '{' + ','.join(parts) + '}' + _SUFFIX
     state.active()
     return result, amount

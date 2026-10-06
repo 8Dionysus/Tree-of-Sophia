@@ -11,11 +11,14 @@ import threading
 import types
 
 
-def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_native_session'):
+def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_native_session',
+                       input_cap=65536, frame_cap=65536, protected_root=None, search_cache_path=None):
     from . import native_io
-    from .native_core_session import (NativeSDKPlacement, NativeSDKSession,
-                                      owned_native_sdk_session)
+    from .native_core_session import (NativeSDKPlacement, NativeSDKHostCustody, NativeSDKHostSessionRequest, NativeSDKSession,
+                                      owned_native_sdk_session, owned_native_snapshot_exchange)
     from .native_core_session_control import NativeSessionControl
+    if type(input_cap) is not int or type(frame_cap) is not int or min(input_cap, frame_cap) <= 0:
+        raise ValueError('native launcher actual transport capacities required')
     g = state.geometry
     scalar = max(g.unicode_bytes(1), g.tuple_base + 5 * g.pointer,
                  int.__basicsize__ + 3 * g.int_digit)
@@ -24,10 +27,11 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
     # Class dictionaries/code objects are original borrowed module owners.
     # Summing code attribute-name slots is a source-derived upper bound for
     # their instance dictionaries, including platform branches; no magic count.
-    for owner in (subprocess.Popen, native_io._Exchange, NativeSDKPlacement,
+    owners = (subprocess.Popen, native_io._Exchange, NativeSDKPlacement,
                   NativeSDKSession, NativeSessionControl, threading.Event,
                   threading.Condition, contextlib.ExitStack,
-                  contextlib._GeneratorContextManager):
+                  contextlib._GeneratorContextManager, NativeSDKHostCustody)
+    for owner in owners:
         for method in owner.__dict__.values():
             if isinstance(method, types.FunctionType):
                 code = method.__code__
@@ -37,24 +41,32 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
         frame_state += owner.__basicsize__ + g.gc_header
     for fn in (native_io._environment, native_io._borrowed_fds, native_io._contract,
                native_io.owned_exchange.__wrapped__,
-               owned_native_sdk_session.__wrapped__, reserve_sdk_launch):
+               owned_native_sdk_session.__wrapped__, owned_native_snapshot_exchange.__wrapped__, reserve_sdk_launch):
         code = fn.__code__
         slots = code.co_nlocals + len(code.co_cellvars) + len(code.co_freevars) + code.co_stacksize
         frame_state += types.FrameType.__basicsize__ + g.gc_header + slots * (g.pointer + scalar)
     # Nine concrete controller kinds above; two simultaneous dictionary
     # tables bound each resize. Three generator-context instances are live.
-    instance_state = (9 + 2) * 2 * g.dict_bytes(names)
-    # Original43 argv entries plus four authenticated setup-AS selectors.
-    # Existing routes retain the conservative47-slot forecast.
+    instance_state = (len(owners) + 2) * 2 * g.dict_bytes(names)
+    # The base47 argv entries include four authenticated setup-AS selectors.
+    # Native-issued search-cache selection adds four exact flag/value pairs.
     # Three simultaneous source/native/Popen argument lists and exact C argv
     # pointer/descriptor arrays coexist before successful exec.
-    count = 47
-    argument_state = 3 * g.list_bytes(count) + (count + 1) * g.pointer + 16 * 4
-    # Six selected paths have original4096-byte bound. Their cached strings are
-    # caller-owned; newly formatted argument/label and encoded exec byte values
-    # have explicit corresponding owners, distinct from immutable constants.
-    for selected in (config.unshare_exe, config.consumer_cgroup,
-                     config.scratch_parent, config.persistent_store, prefix, root):
+    cache = getattr(config, 'search_cache', None)
+    # Retained outer/core FD pairs and phase-auth use at most55 base entries.
+    # Added RO/cache selectors are actual additional flag/value pairs.
+    count = 55 + (8 if cache is not None else 0) + (2 if protected_root is not None else 0) + (2 if search_cache_path is not None else 0)
+    argument_state = (3 * g.list_bytes(count) + (count + 1) * g.pointer + 16 * 4
+                      + g.tuple_base + 6 * g.pointer)
+    if cache is not None:
+        argument_state += g.tuple_base + 2 * g.pointer
+    # Selected paths have their original4096-byte bound. Their cached strings
+    # are caller-owned; formatted argv and encoded exec bytes are separate.
+    selected_paths = ((prefix, root) if isinstance(config, NativeSDKHostSessionRequest) else
+                      (config.unshare_exe, config.consumer_cgroup,
+                       config.scratch_parent, config.persistent_store, prefix, root))
+    selected_paths += (protected_root, search_cache_path)
+    for selected in selected_paths:
         if selected is None:
             continue
         parts = getattr(selected, '_tail_cached', None)
@@ -70,12 +82,27 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
             raise ValueError('native launcher original path cap differs')
         argument_state += (2 * g.unicode_bytes(characters + 64)
                            + 2 * (g.bytes_base + 4 * (characters + 64)))
-    argument_state += 10 * (g.unicode_bytes(20) + g.bytes_base + 20)
+    if cache is not None:
+        for selected in (cache.path, cache.source_root):
+            parts = getattr(selected, '_tail_cached', None)
+            if parts is None:
+                parts = getattr(selected, '_parts', None)
+            if type(parts) is not list:
+                raise ValueError('native launcher selected Path cache unavailable')
+            characters = len(parts) + 2
+            for part in parts:
+                state.visit()
+                characters += len(part)
+            if characters > 4098:
+                raise ValueError('native launcher original path cap differs')
+            argument_state += (2 * g.unicode_bytes(characters + 64)
+                               + 2 * (g.bytes_base + 4 * (characters + 64)))
+    argument_state += (10 + (2 if cache is not None else 0)) * (g.unicode_bytes(20) + g.bytes_base + 20)
     # Popen's _fork_exec preparation encodes borrowed static argv literals
     # too. Price each actual source constant independently, not inside frame
     # scalar scratch; the direct launcher constants form a conservative owned
     # superset of its fixed argv entries. No encoding occurs during forecast.
-    for owner in (owned_native_sdk_session.__wrapped__, native_io._Exchange._open):
+    for owner in (owned_native_sdk_session.__wrapped__, owned_native_snapshot_exchange.__wrapped__, native_io._Exchange._open):
         for literal in owner.__code__.co_consts:
             if type(literal) is str:
                 state.visit()
@@ -89,8 +116,8 @@ def reserve_sdk_launch(state, config, prefix, root, *, session_operation='tos_na
     pipe_state = (3 * (io.FileIO.__basicsize__ + g.gc_header)
                   + io.BufferedWriter.__basicsize__ + 2 * io.BufferedReader.__basicsize__
                   + 3 * io.DEFAULT_BUFFER_SIZE
-                  + 4 * (bytearray.__basicsize__ + 65536 + 1)
-                  + 2 * (g.bytes_base + 65536))
+                  + 4 * (bytearray.__basicsize__ + frame_cap + 1)
+                  + 2 * (g.bytes_base + frame_cap))
     socket_state = 2 * (socket.socket.__basicsize__ + g.gc_header)
     # Event/Condition waiter deques and locks are actual fixed owner structures;
     # source methods above cover their instance dictionaries and frames.

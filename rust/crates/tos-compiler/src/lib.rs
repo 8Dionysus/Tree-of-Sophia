@@ -88,6 +88,7 @@ mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
 pub mod native_snapshot;
+pub mod native_cold_resources;
 pub mod native_snapshot_carriers;
 pub mod native_snapshot_manifest;
 pub use knowledge_philosophy_original::{
@@ -121,6 +122,9 @@ mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
+mod controlled_cold_model;
+pub use controlled_cold_model::{ControlledLensKeySelection, ControlledLensKeyRow, ControlledOriginalReceipt, ControlledOriginalCollection, ControlledOriginalRowRead, ControlledSidecarModel, SearchSidecarAdmissionError};
+pub use controlled_cold_model::{ControlledCarrierSelection, ControlledKnowledgeModel, ControlledQueryHeap, ControlledSearchKind, ControlledGramStat, ControlledPostingPage, ControlledSearchCandidate};
 mod knowledge_semantic_join;
 pub mod knowledge_source_claims;
 mod knowledge_source_claims_prepare;
@@ -309,11 +313,106 @@ pub enum Error {
     ManagedSourceUnsupported(&'static str),
     Source(String),
     Budget(&'static str),
+    FoundationJson {
+        code: tos_foundation::FoundationErrorCode,
+        message: &'static str,
+        byte_offset: Option<usize>,
+    },
     SqliteVmBudget {
         phase: knowledge_stage::WritePhase,
         used_steps: u64,
         max_steps: u64,
     },
+    ControlledColdClose {
+        operation: Option<ColdOperationFailure>,
+        close: rusqlite::Error,
+    },
+}
+
+/// Non-recursive evidence retained when an opened controlled cold database
+/// reports both an operation failure and an explicit SQLite close failure.
+#[derive(Debug)]
+pub enum ColdOperationFailure {
+    Io(std::io::Error),
+    Sql(rusqlite::Error),
+    SqlitePhase {
+        phase: knowledge_stage::WritePhase,
+        error: rusqlite::Error,
+    },
+    Invalid(&'static str),
+    PreparedUnsupported(&'static str),
+    ManagedSourceUnsupported(&'static str),
+    Source(String),
+    Budget(&'static str),
+    FoundationJson {
+        code: tos_foundation::FoundationErrorCode,
+        message: &'static str,
+        byte_offset: Option<usize>,
+    },
+    SqliteVmBudget {
+        phase: knowledge_stage::WritePhase,
+        used_steps: u64,
+        max_steps: u64,
+    },
+    NestedControlledColdClose,
+}
+impl fmt::Display for ColdOperationFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(error) => write!(f, "I/O: {error}"),
+            Self::Sql(error) => write!(f, "SQLite: {error}"),
+            Self::SqlitePhase { phase, error } => write!(f, "SQLite in {phase:?}: {error}"),
+            Self::Invalid(message) => write!(f, "invalid compiler input: {message}"),
+            Self::PreparedUnsupported(message) => {
+                write!(f, "unsupported local prepared carrier/profile: {message}")
+            }
+            Self::ManagedSourceUnsupported(message) => {
+                write!(f, "unsupported managed selected source: {message}")
+            }
+            Self::Source(message) => write!(f, "source carrier: {message}"),
+            Self::Budget(message) => write!(f, "compiler budget exceeded: {message}"),
+            Self::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            } => write_foundation_json_failure(f, *code, message, *byte_offset),
+            Self::SqliteVmBudget { phase, used_steps, max_steps } => write!(
+                f,
+                "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
+            ),
+            Self::NestedControlledColdClose => {
+                f.write_str("nested controlled cold operation and close failure")
+            }
+        }
+    }
+}
+impl std::error::Error for ColdOperationFailure {}
+impl From<Error> for ColdOperationFailure {
+    fn from(error: Error) -> Self {
+        match error {
+            Error::Io(error) => Self::Io(error),
+            Error::Sql(error) => Self::Sql(error),
+            Error::SqlitePhase { phase, error } => Self::SqlitePhase { phase, error },
+            Error::Invalid(message) => Self::Invalid(message),
+            Error::PreparedUnsupported(message) => Self::PreparedUnsupported(message),
+            Error::ManagedSourceUnsupported(message) => Self::ManagedSourceUnsupported(message),
+            Error::Source(message) => Self::Source(message),
+            Error::Budget(message) => Self::Budget(message),
+            Error::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            } => Self::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            },
+            Error::SqliteVmBudget { phase, used_steps, max_steps } => {
+                Self::SqliteVmBudget { phase, used_steps, max_steps }
+            }
+            Error::ControlledColdClose { .. } => Self::NestedControlledColdClose,
+        }
+    }
 }
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -330,6 +429,11 @@ impl fmt::Display for Error {
             }
             Self::Source(s) => write!(f, "source carrier: {s}"),
             Self::Budget(s) => write!(f, "compiler budget exceeded: {s}"),
+            Self::FoundationJson {
+                code,
+                message,
+                byte_offset,
+            } => write_foundation_json_failure(f, *code, message, *byte_offset),
             Self::SqliteVmBudget {
                 phase,
                 used_steps,
@@ -338,10 +442,30 @@ impl fmt::Display for Error {
                 f,
                 "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
             ),
+            Self::ControlledColdClose { operation, close } => match operation {
+                Some(operation) => write!(
+                    f,
+                    "controlled cold operation failed ({operation}); explicit SQLite close failed ({close})"
+                ),
+                None => write!(f, "explicit controlled cold SQLite close failed ({close})"),
+            },
         }
     }
 }
 impl std::error::Error for Error {}
+
+fn write_foundation_json_failure(
+    f: &mut fmt::Formatter<'_>,
+    code: tos_foundation::FoundationErrorCode,
+    message: &str,
+    byte_offset: Option<usize>,
+) -> fmt::Result {
+    match byte_offset {
+        Some(offset) => write!(f, "Foundation JSON {} at byte {offset}: {message}", code.as_str()),
+        None => write!(f, "Foundation JSON {}: {message}", code.as_str()),
+    }
+}
+
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Self::Io(e)

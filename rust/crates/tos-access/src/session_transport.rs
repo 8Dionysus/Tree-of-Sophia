@@ -223,7 +223,9 @@ impl Reply<'_, '_> {
     pub fn send(&mut self, kind: u8, sequence: u64, segments: &[&[u8]]) -> Result<()> {
         if self.sent
             || sequence != self.expected_sequence
-            || (kind != self.expected_kind && !(self.expected_kind == REPLY && kind == REFUSAL))
+            || (kind != self.expected_kind
+                && !((self.expected_kind == REPLY || self.expected_kind == CLOSE_ACK)
+                    && kind == REFUSAL))
         {
             return Err("Core session reply kind");
         }
@@ -329,6 +331,7 @@ pub(super) struct Driver<'a, 'w> {
     sequence: u64,
     started: bool,
     pending: bool,
+    response_started: bool,
     closed: bool,
     poisoned: bool,
 }
@@ -416,7 +419,13 @@ impl Driver<'_, '_> {
                     if total.is_some() || h.total != 0 {
                         return Err("Core session close during frame");
                     }
-                    fence()?;
+                    if let Err(error) = fence() {
+                        if error == "DataAccessUnavailable" {
+                            self.refuse_close()?;
+                            return Ok(false);
+                        }
+                        return Err(error);
+                    }
                     let mut reply = Reply {
                         fd: self.control.as_raw_fd(),
                         limits: self.limits,
@@ -466,6 +475,7 @@ impl Driver<'_, '_> {
             // respond checks source/currentness immediately before execution;
             // pending inspection does not repeat that expensive owner fence.
             self.pending = true;
+            self.response_started = false;
             Ok(true)
         })();
         self.workspace.borrow_mut().release(callback_bytes);
@@ -515,7 +525,9 @@ impl Driver<'_, '_> {
                 sent: false,
                 completed: false,
             };
-            call(self.sequence, &self.request, &mut reply)?;
+            let called = call(self.sequence, &self.request, &mut reply);
+            self.response_started |= reply.sent;
+            called?;
             if !reply.completed {
                 return Err("Core session reply absent");
             }
@@ -531,6 +543,109 @@ impl Driver<'_, '_> {
         if result.is_ok() {
             self.poisoned = false;
         }
+        result
+    }
+    /// Report only an undisclosed pending operation failure. The original
+    /// counters/cutoff still apply; a failed or partial reply can never retry.
+    fn refuse_pending(&mut self, primary: &'static str) -> Result<()> {
+        if !self.started || !self.pending || self.response_started || primary.len() > 512 {
+            return Err("Core session refusal unavailable");
+        }
+        active(self.deadline, self.cancelled)?;
+        #[derive(serde::Serialize)]
+        struct Refusal<'a> {
+            schema_version: &'static str,
+            ok: bool,
+            error: &'a str,
+            code: &'static str,
+        }
+        let reserve = 4096
+            + std::mem::size_of::<Refusal>()
+            + std::mem::size_of::<io::Cursor<&mut [u8]>>()
+            + std::mem::size_of::<Reply>()
+            + std::mem::size_of::<[&[u8]; 1]>();
+        self.workspace.borrow_mut().reserve(reserve)?;
+        let result = (|| {
+            let refusal = Refusal {
+                schema_version: "tos_native_core_snapshot_result_v1",
+                ok: false,
+                error: primary,
+                code: if primary == "DataAccessUnavailable" {
+                    "DataAccessUnavailable"
+                } else {
+                    "NativeRefused"
+                },
+            };
+            let mut buffer = [0_u8; 4096];
+            let mut output = io::Cursor::new(buffer.as_mut_slice());
+            serde_json::to_writer(&mut output, &refusal)
+                .map_err(|_| "Core session refusal encoding")?;
+            let length = output.position() as usize;
+            self.workspace.borrow_mut().charge_work(length as u64)?;
+            self.response_started = true;
+            self.poisoned = true;
+            let mut reply = Reply {
+                fd: self.control.as_raw_fd(),
+                limits: self.limits,
+                deadline: self.deadline,
+                cancelled: self.cancelled,
+                total_sent: &mut self.total_sent,
+                workspace: &self.workspace,
+                expected_kind: REPLY,
+                expected_sequence: self.sequence,
+                sent: false,
+                completed: false,
+            };
+            reply.send(REFUSAL, self.sequence, &[&buffer[..length]])
+        })();
+        self.workspace.borrow_mut().release(reserve);
+        result
+    }
+
+    fn refuse_close(&mut self) -> Result<()> {
+        #[derive(serde::Serialize)]
+        struct Refusal<'a> {
+            schema_version: &'static str,
+            ok: bool,
+            error: &'a str,
+            code: &'static str,
+        }
+        let reserve = 4096
+            + std::mem::size_of::<Refusal>()
+            + std::mem::size_of::<io::Cursor<&mut [u8]>>()
+            + std::mem::size_of::<Reply>()
+            + std::mem::size_of::<[&[u8]; 1]>();
+        self.workspace.borrow_mut().reserve(reserve)?;
+        let result = (|| {
+            let refusal = Refusal {
+                schema_version: "tos_native_core_snapshot_result_v1",
+                ok: false,
+                error: "Selected data snapshot is unavailable",
+                code: "DataAccessUnavailable",
+            };
+            let mut buffer = [0_u8; 4096];
+            let mut output = io::Cursor::new(buffer.as_mut_slice());
+            serde_json::to_writer(&mut output, &refusal)
+                .map_err(|_| "Core session close refusal encoding")?;
+            let length = output.position() as usize;
+            self.workspace.borrow_mut().charge_work(length as u64)?;
+            let mut reply = Reply {
+                fd: self.control.as_raw_fd(),
+                limits: self.limits,
+                deadline: self.deadline,
+                cancelled: self.cancelled,
+                total_sent: &mut self.total_sent,
+                workspace: &self.workspace,
+                expected_kind: CLOSE_ACK,
+                expected_sequence: self.sequence,
+                sent: false,
+                completed: false,
+            };
+            reply.send(REFUSAL, self.sequence, &[&buffer[..length]])?;
+            self.closed = true;
+            Ok(())
+        })();
+        self.workspace.borrow_mut().release(reserve);
         result
     }
     /// Honest primitive loop for an already selected borrowed owner. A lazy
@@ -612,10 +727,15 @@ pub(super) fn with_driver(
             sequence: 1,
             started: false,
             pending: false,
+            response_started: false,
             closed: false,
             poisoned: false,
         };
-        consume(&mut driver)?;
+        if let Err(primary) = consume(&mut driver) {
+            // Best effort static refusal never replaces the authentic primary error.
+            let _ = driver.refuse_pending(primary);
+            return Err(primary);
+        }
         if !driver.closed || driver.poisoned {
             return Err("Core session driver returned before acknowledged close");
         }

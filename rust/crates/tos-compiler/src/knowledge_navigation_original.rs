@@ -912,3 +912,260 @@ mod addressed_membership_tests {
         assert!(member_exact(&db, "nodes", "agent:one", 8192).is_err());
     }
 }
+
+/// Same selected Navigation Original verifier under the active authentic
+/// CreationState. The row and statement holds are acquired before bounded SQL
+/// decode; aggregate work is charged before parsing, hashing or retaining each
+/// row. The legacy unowned verifier remains unchanged for legacy callers.
+pub(crate) fn verify_with_owned_state(
+    db: &Connection,
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<Option<NavigationOriginalReceipt>> {
+    use crate::d1_public_capture::CreationStateHold;
+    let state = context.owned_state();
+    let statement_bytes = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
+    let fixed = std::mem::size_of::<(
+        &Connection,
+        &KnowledgeSelectedExpectation,
+        ColdOpenLimits,
+        &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+        &crate::d1_public_capture::CreationState<'_>,
+        CreationStateHold<'_, '_>,
+        Result<Option<NavigationOriginalReceipt>>,
+        Option<NavigationOriginalReceipt>,
+        Digest256Hasher,
+        Result<String>,
+        Result<()>,
+    )>()
+    .checked_add(statement_bytes.checked_mul(2).ok_or(Error::Budget("owned navigation statement workspace"))?)
+    .ok_or(Error::Budget("owned navigation verifier frame"))?;
+    let _fixed = state.hold(fixed)?;
+    context.check()?;
+    let receipt_bytes = 8 * 4096usize
+        .checked_add(4096)
+        .ok_or(Error::Budget("owned navigation receipt workspace"))?;
+    let _receipt_hold = state.hold(receipt_bytes)?;
+    // Bound the small metadata/decode frame before receipt() materializes its
+    // explicitly capped strings and 32-byte digest carriers.
+    state.charge_work(receipt_bytes)?;
+    let present = present(db)?;
+    if present != expected.navigation_original_root_sha256.is_some()
+        || present
+            && ![
+                KNOWLEDGE_NAVIGATION_MODEL_ABI,
+                crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+                crate::KNOWLEDGE_CORPUS_MODEL_ABI,
+                crate::KNOWLEDGE_MANAGED_MODEL_ABI,
+                crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
+            ]
+            .contains(&expected.model_abi.as_str())
+    {
+        return Err(Error::Invalid("navigation original model ABI coverage"));
+    }
+    if !present {
+        let n: i64 = db.query_row(
+            "SELECT COUNT(*) FROM metadata WHERE key='navigation_original_root_sha256'",
+            [],
+            |r| r.get(0),
+        )?;
+        if n != 0 {
+            return Err(Error::Invalid("navigation original phantom seal"));
+        }
+        return Ok(None);
+    }
+    verify_ddl(db)?;
+    let receipt = receipt(db)?;
+    let receipt_work = receipt.profile.len()
+        .checked_add(receipt.descriptor_sha256.len())
+        .and_then(|n| n.checked_add(receipt.source_cut.len()))
+        .and_then(|n| n.checked_add(receipt.membership_root.len()))
+        .and_then(|n| n.checked_add(receipt.source_graph.len()))
+        .and_then(|n| n.checked_add(6 * 32 + 6 * 8))
+        .ok_or(Error::Budget("owned navigation receipt work"))?;
+    state.charge_work(receipt_work)?;
+    context.check()?;
+    if expected.navigation_original_root_sha256.as_deref()
+        != Some(receipt.component_root_sha256.as_str())
+        || receipt.profile != NAVIGATION_ORIGINAL_PROFILE
+        || receipt.descriptor_sha256 != expected.descriptor_sha256
+        || receipt.source_cut != expected.source_cut
+        || receipt.membership_root != expected.membership_root
+        || receipt.rights.checked_add(1).is_none_or(|n| n > limits.max_rows)
+        || receipt.total_bytes > limits.max_work_bytes
+        || !expected.source_scopes.iter().any(|scope| {
+            scope.source_graph == receipt.source_graph
+                && scope.adapter_profile == "source-navigation-node-edge-v1"
+        })
+        || root(&receipt)? != receipt.component_root_sha256
+    {
+        return Err(Error::Invalid("navigation original selected binding"));
+    }
+    let row_limits = NavigationOriginalLimits {
+        max_rows: limits.max_rows.saturating_sub(1),
+        max_row_bytes: limits.max_row_bytes.min(8 * 1024 * 1024),
+        max_total_bytes: limits.max_work_bytes.min(256 * 1024 * 1024),
+    };
+    verify_rows_with_owned_state(db, &receipt, row_limits, context)?;
+    let meta: Option<String> = db.query_row(
+        "SELECT CAST(value AS TEXT) FROM metadata WHERE key='navigation_original_root_sha256' AND length(CAST(value AS BLOB))=64",
+        [],
+        |r| r.get(0),
+    ).optional()?;
+    state.charge_work(meta.as_ref().map_or(0, String::len))?;
+    if meta.as_deref() != Some(&receipt.component_root_sha256) {
+        return Err(Error::Invalid("navigation original sealed root"));
+    }
+    context.check()?;
+    Ok(Some(receipt))
+}
+
+fn verify_rows_with_owned_state(
+    db: &Connection,
+    receipt: &NavigationOriginalReceipt,
+    limits: NavigationOriginalLimits,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<()> {
+    let state = context.owned_state();
+    if receipt.rights
+        .checked_add(receipt.nodes)
+        .and_then(|n| n.checked_add(receipt.edges))
+        .is_none_or(|n| n > limits.max_rows)
+        || receipt.total_bytes
+            .checked_add(receipt.member_index_bytes)
+            .is_none_or(|n| n > limits.max_total_bytes)
+    {
+        return Err(Error::Budget("navigation original aggregate limits"));
+    }
+    let row_workspace = limits.max_row_bytes
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(std::mem::size_of::<NavigationOriginalPage>() + 4096))
+        .ok_or(Error::Budget("owned navigation row workspace"))?;
+    let statement_bytes = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
+    let mut after = None;
+    let mut count = 0u64;
+    let mut bytes = 0u64;
+    let mut rights = rights_hash();
+    loop {
+        context.check()?;
+        let row_hold_bytes = row_workspace
+            .checked_add(statement_bytes)
+            .ok_or(Error::Budget("owned navigation row statement workspace"))?;
+        let _row_hold = state.hold(row_hold_bytes)?;
+        let page = page(
+            db,
+            after,
+            1,
+            limits.max_row_bytes,
+            (limits.max_row_bytes as u64).min(64 * 1024 * 1024),
+        )?;
+        for (ordinal, raw) in &page.rows {
+            // Charge the authenticated row bytes and its fixed hash fields before
+            // JSON decode/canonical checks or digest work.
+            state.charge_work(raw.len().checked_add(40).ok_or(Error::Budget("owned navigation row work"))?)?;
+            context.check()?;
+            let want = count as i64 - 1;
+            if *ordinal != want {
+                return Err(Error::Invalid("navigation original ordinal coverage"));
+            }
+            if *ordinal == -1 {
+                header(raw, receipt, limits.max_row_bytes)?;
+                if Digest256::of_bytes(raw).to_hex() != receipt.header_sha256 {
+                    return Err(Error::Invalid("navigation original header SHA"));
+                }
+            } else {
+                right(raw, limits.max_row_bytes)?;
+                row_hash(&mut rights, *ordinal, raw);
+            }
+            count = count
+                .checked_add(1)
+                .filter(|n| *n <= limits.max_rows.saturating_add(1))
+                .ok_or(Error::Budget("navigation original count"))?;
+            bytes = bytes
+                .checked_add(raw.len() as u64)
+                .ok_or(Error::Budget("navigation original bytes"))?;
+        }
+        after = page.next_ordinal;
+        if after.is_none() {
+            break;
+        }
+    }
+    if count != receipt.rights + 1
+        || bytes != receipt.total_bytes
+        || rights.finalize().to_hex() != receipt.rights_root_sha256
+    {
+        return Err(Error::Invalid("navigation original root/coverage"));
+    }
+    verify_members_with_owned_state(db, receipt, limits.max_rows, context)
+}
+
+fn verify_members_with_owned_state(
+    db: &Connection,
+    receipt: &NavigationOriginalReceipt,
+    row_cap: u64,
+    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+) -> Result<()> {
+    let state = context.owned_state();
+    let statement_bytes = tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
+    let row_workspace = 8192usize
+        .checked_add(16 * std::mem::size_of::<NavigationOriginalMember>() + 8192)
+        .and_then(|n| n.checked_add(statement_bytes))
+        .ok_or(Error::Budget("owned navigation member workspace"))?;
+    let mut count = 0u64;
+    let mut bytes = 0u64;
+    let mut index = member_hash();
+    for (collection, wanted, wanted_root) in [
+        ("edges", receipt.edges, &receipt.edge_input_root_sha256),
+        ("nodes", receipt.nodes, &receipt.node_input_root_sha256),
+    ] {
+        let mut after = None;
+        let mut seen = 0u64;
+        let mut input = Digest256Hasher::new();
+        loop {
+            context.check()?;
+            let _row_hold = state.hold(row_workspace)?;
+            let page = member_page(db, collection, after.as_deref(), 1, 8192)?;
+            for member in &page.rows {
+                let charge = member_charge(member) as usize;
+                state.charge_work(charge)?;
+                context.check()?;
+                member_item(&mut index, member)?;
+                hash_text(&mut input, &member.id);
+                input.update(
+                    Digest256::from_hex(&member.raw_sha256)
+                        .map_err(|_| Error::Invalid("navigation original input SHA"))?
+                        .as_bytes(),
+                );
+                count = count
+                    .checked_add(1)
+                    .filter(|n| *n <= row_cap)
+                    .ok_or(Error::Budget("navigation original member count"))?;
+                seen += 1;
+                bytes = bytes
+                    .checked_add(member_charge(member))
+                    .ok_or(Error::Budget("navigation original member bytes"))?;
+            }
+            after = page.next_id;
+            if after.is_none() {
+                break;
+            }
+        }
+        if seen != wanted || input.finalize().to_hex() != *wanted_root {
+            return Err(Error::Invalid("navigation original input coverage/root"));
+        }
+    }
+    let total: i64 = db.query_row(
+        "SELECT COUNT(*) FROM navigation_original_members",
+        [],
+        |row| row.get(0),
+    )?;
+    if total < 0
+        || total as u64 != count
+        || bytes != receipt.member_index_bytes
+        || index.finalize().to_hex() != receipt.member_index_root_sha256
+    {
+        return Err(Error::Invalid("navigation original member index closure"));
+    }
+    Ok(())
+}

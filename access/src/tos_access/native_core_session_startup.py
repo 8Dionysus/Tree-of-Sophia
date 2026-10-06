@@ -171,3 +171,73 @@ def startup_bytes(admission, selection, config, state, *, selected_probe=False, 
     # Conservatively retain writer/buffer/framework reservation until session
     # cleanup. It is not recycled into responses while constructor frames live.
     return result
+
+
+def ordinary_startup_bytes(selection, transport, config, state, *, search_read_model=None, snapshot_root=None, expected_snapshot_guard=None, expected_reference_release_guard=None):
+    """Serialize selectors for the native-issued ordinary operation profile.
+
+    Native owns Stage/capture/Cold/Query admission. Python supplies no operation
+    allowance and retains the existing transport and original bootstrap clock.
+    """
+    config.active()
+    transport.validate()
+    if state._deadline != config.original_work_deadline_ns / 1e9:
+        raise ValueError('ordinary startup must retain original bootstrap clock')
+    w = _StartupWriter(state)
+    w.literal(b'{"schema_version":"tos_native_core_ordinary_session_startup_v1","source_paths":{')
+    for index, name in enumerate(_SOURCE_PATH_FIELDS):
+        if index:
+            w.literal(b',')
+        w.string(name)
+        w.literal(b':')
+        w.path(getattr(selection, name))
+    w.literal(b'},"query_store":{"path":')
+    w.path(selection.query_store_path)
+    w.literal(b',"configured":true},"session":{'
+              if selection.query_store_configured else
+              b',"configured":false},"session":{')
+    w.fields(transport, ('max_call_bytes', 'max_reply_bytes', 'max_chunks_per_frame',
+        'max_calls', 'max_total_request_bytes', 'max_total_reply_bytes'))
+    if search_read_model is not None:
+        if (type(search_read_model) is not dict or set(search_read_model) !=
+                {'path', 'max_bytes', 'max_postings', 'max_verify_chars'}):
+            raise ValueError('ordinary search sidecar selector shape differs')
+        path = search_read_model['path']
+        if type(path) is not str or not path.startswith('/') or '..' in path.split('/'):
+            raise ValueError('ordinary search sidecar requires resolved absolute path')
+        w.literal(b'},"search_read_model":{"path":')
+        w.string(path)
+        for name in ('max_bytes', 'max_postings', 'max_verify_chars'):
+            w.literal(b',')
+            w.string(name)
+            w.literal(b':')
+            value = search_read_model[name]
+            if type(value) is not int or not 0 <= value < 1 << 64:
+                raise ValueError('ordinary search sidecar selector requires u64')
+            w.literal(str(value).encode('ascii'))
+    w.literal(b'}')
+    if snapshot_root is not None:
+        w.literal(b',"snapshot_root":')
+        w.path(snapshot_root)
+    if expected_snapshot_guard is not None:
+        if (snapshot_root is None or type(expected_snapshot_guard) is not str
+                or len(expected_snapshot_guard) != 64
+                or any(c not in '0123456789abcdef' for c in expected_snapshot_guard)):
+            raise ValueError('native snapshot guard receipt differs')
+        w.literal(b',"expected_snapshot_guard":')
+        w.string(expected_snapshot_guard)
+    if expected_reference_release_guard is not None:
+        if (snapshot_root is None or type(expected_reference_release_guard) is not str
+                or len(expected_reference_release_guard) != 64
+                or any(c not in '0123456789abcdef' for c in expected_reference_release_guard)):
+            raise ValueError('native Reference release guard receipt differs')
+        w.literal(b',"expected_reference_release_guard":')
+        w.string(expected_reference_release_guard)
+    w.literal(b',"original_whole_deadline_ns":')
+    w.integer(config.original_whole_deadline_ns)
+    w.literal(b'}')
+    g = state.geometry
+    state.reserve(g.bytes_base + w.offset + 2 * (memoryview.__basicsize__ + g.gc_header))
+    result = bytes(memoryview(w.buffer)[:w.offset])
+    state.active()
+    return result

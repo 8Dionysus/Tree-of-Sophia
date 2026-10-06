@@ -59,6 +59,11 @@ impl DerefMut for PinnedSqliteConnection {
         &mut self.db
     }
 }
+/// Keeps the original allocated-space reservation and exact inode custody
+/// alive after SQLite close, through bounded external publication. No grant.
+pub struct PinnedSqliteDerivedWriteGuard {
+    _policy: Arc<dyn FdIoPolicy>,
+}
 impl PinnedSqliteConnection {
     /// One registered FD VFS descriptor remains live for this native process.
     /// The dedicated caller reserves this once, before any pinned open; it is
@@ -168,6 +173,31 @@ impl PinnedSqliteConnection {
         Ok(db)
     }
 
+    /// Native ordinary sidecar opening over a fresh unnamed inode. Settings
+    /// SQL belongs to the compiler's authentic hook, so this constructor issues
+    /// no PRAGMA. The guard must outlive every caller FD for this temporary inode.
+    pub fn open_private_derived_budgeted_unconfigured(
+        file: &File,
+        io: crate::PinnedSqliteIoBudget,
+        space: crate::PinnedSqliteSpaceBudget,
+        logical: u64,
+        allocated: u64,
+        deadline: Instant,
+        cancelled: Arc<AtomicBool>,
+    ) -> Result<(Self, PinnedSqliteDerivedWriteGuard)> {
+        let policy = crate::pinned_sqlite_aux::strict_main_policy(
+            file, io, space, logical, allocated, deadline, cancelled,
+        )?;
+        let db = Self::open_with_policy(file, false, Some(policy.clone()), true)?;
+        Ok((db, PinnedSqliteDerivedWriteGuard { _policy: policy }))
+    }
+    pub fn budgeted_derived_rust_state_upper_bound() -> Result<usize> {
+        crate::pinned_sqlite_aux::strict_main_declared_custody_bytes()?
+            .checked_add(Self::immutable_retained_rust_state_upper_bound())
+            .and_then(|n| n.checked_add(Self::immutable_open_rust_workspace_upper_bound()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<PinnedSqliteDerivedWriteGuard>()))
+            .ok_or_else(|| invalid("budgeted derived Rust custody overflow"))
+    }
     /// Continue one owner-sanctioned preparation of an already-populated,
     /// disposable private capture. FD possession is mechanical custody;
     /// source/family authority, finite ceilings and permanent failure stay
@@ -228,7 +258,7 @@ impl PinnedSqliteConnection {
             deadline,
             cancelled,
         });
-        Self::open_with_policy(file, true, Some(policy), false)
+        Self::open_with_policy(file, true, Some(policy), true)
     }
 
     /// Preserve SQLite's explicit close result and keep the pinned descriptor
@@ -338,7 +368,10 @@ impl PinnedSqliteConnection {
                         ffi::sqlite3_close(raw);
                     }
                 }
-                return Err(invalid("exact pinned SQLite main database open failed"));
+                return Err(bounded_sql_error(
+                    status,
+                    "exact pinned SQLite main database open failed",
+                ));
             }
             if !modern {
                 unsafe {
@@ -1005,6 +1038,12 @@ fn bounded_sql_error(status: i32, detail: &'static str) -> StoreError {
     match status & 0xff {
         ffi::SQLITE_INTERRUPT | ffi::SQLITE_NOMEM => {
             StoreError::new(StoreErrorCode::BudgetExceeded, detail)
+        }
+        ffi::SQLITE_CORRUPT | ffi::SQLITE_NOTADB => {
+            StoreError::new(StoreErrorCode::CorruptSelectedObject, detail)
+        }
+        ffi::SQLITE_IOERR | ffi::SQLITE_CANTOPEN | ffi::SQLITE_FULL => {
+            StoreError::new(StoreErrorCode::Io, detail)
         }
         _ => invalid(detail),
     }

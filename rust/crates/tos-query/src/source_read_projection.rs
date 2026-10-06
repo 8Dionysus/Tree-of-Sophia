@@ -51,7 +51,7 @@ fn valid_id(id: &str, claim: bool) -> bool {
                     .all(|c| c.is_ascii_digit() || c.is_ascii_lowercase())
         })
 }
-fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits) -> Option<JsonValue> {
+fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits, canonical: &mut dyn FnMut(&JsonValue, JsonLimits) -> Option<Vec<u8>>) -> Option<JsonValue> {
     record.as_object()?;
     let (kind, field) = if claim {
         (None, "claim_id")
@@ -97,7 +97,7 @@ fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits) -> Option<
     let sha = format!(
         "sha256:{}",
         Digest256::of_bytes(
-            &canonical_bytes_v1(record, CanonicalProfile::SourceRecordDigestV1, limits).ok()?
+            &canonical(record, limits)?
         )
         .to_hex()
     );
@@ -125,7 +125,7 @@ fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits) -> Option<
     }
     Some(object(fields))
 }
-fn target(item: &JsonValue, limits: JsonLimits) -> Option<JsonValue> {
+fn target(item: &JsonValue, limits: JsonLimits, canonical: &mut dyn FnMut(&JsonValue, JsonLimits) -> Option<Vec<u8>>) -> Option<JsonValue> {
     let envelope = item.object_get("source_record")?;
     let fields = envelope.as_object()?;
     if fields.len() != 4
@@ -153,7 +153,7 @@ fn target(item: &JsonValue, limits: JsonLimits) -> Option<JsonValue> {
         .object_get("source_claim")
         .filter(|value| !matches!(value, JsonValue::Null));
     match (metadata, claim) {
-        (None, Some(record)) => record_target(record, true, limits),
+        (None, Some(record)) => record_target(record, true, limits, canonical),
         (Some(record), None) => {
             if payload.object_get("pack_id").is_some() || payload.object_get("edge_id").is_some() {
                 let pack = get(payload, "pack_id")?;
@@ -186,8 +186,7 @@ fn target(item: &JsonValue, limits: JsonLimits) -> Option<JsonValue> {
                 let sha = format!(
                     "sha256:{}",
                     Digest256::of_bytes(
-                        &canonical_bytes_v1(record, CanonicalProfile::SourceRecordDigestV1, limits)
-                            .ok()?
+                        &canonical(record, limits)?
                     )
                     .to_hex()
                 );
@@ -200,7 +199,7 @@ fn target(item: &JsonValue, limits: JsonLimits) -> Option<JsonValue> {
                     ("content_revision", text(&sha)),
                 ]))
             } else {
-                record_target(record, false, limits)
+                record_target(record, false, limits, canonical)
             }
         }
         _ => None,
@@ -230,12 +229,44 @@ fn project_targets(
     identity: &str,
     limits: JsonLimits,
 ) -> JsonValue {
+    let mut canonical = |record: &JsonValue, limits| canonical_bytes_v1(record,
+        CanonicalProfile::SourceRecordDigestV1, limits).ok();
+    project_targets_with_canonical(items, identity_field, identity, limits, &mut canonical)
+}
+
+/// Controlled callers supply the original-state canonicalizer. A refusal is
+/// returned after projection traversal; it can never become a missing target.
+pub(crate) fn controlled_source_read_targets(
+    items: &[JsonValue], identity: &str, managed: bool, limits: JsonLimits,
+    mut canonical: impl FnMut(&JsonValue, JsonLimits) -> Result<Vec<u8>, crate::search_v2::SearchV2Error>,
+) -> Result<JsonValue, crate::search_v2::SearchV2Error> {
+    let mut refused = None;
+    let mut checked = |record: &JsonValue, limits| {
+        if refused.is_some() { return None; }
+        match canonical(record, limits) {
+        Ok(raw) => Some(raw),
+        Err(error) => { refused = Some(error); None }
+        }
+    };
+    let projected = project_targets_with_canonical(items,
+        if managed { "managed_source_root_sha256" } else { "source_revision" },
+        identity, limits, &mut checked);
+    match refused { Some(error) => Err(error), None => Ok(projected) }
+}
+
+fn project_targets_with_canonical(
+    items: &[JsonValue],
+    identity_field: &str,
+    identity: &str,
+    limits: JsonLimits,
+    canonical: &mut dyn FnMut(&JsonValue, JsonLimits) -> Option<Vec<u8>>,
+) -> JsonValue {
     let mut seen: BTreeMap<String, (Option<JsonValue>, bool)> = BTreeMap::new();
     for item in items {
         let Some(id) = get(item, "id").filter(|id| !id.is_empty()) else {
             continue;
         };
-        let value = target(item, limits);
+        let value = target(item, limits, canonical);
         seen.entry(id.to_owned())
             .and_modify(|(old, conflict)| *conflict |= *old != value)
             .or_insert((value, false));

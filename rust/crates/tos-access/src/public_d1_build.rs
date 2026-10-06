@@ -33,6 +33,8 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
     let mut output = None;
     let mut runtime = None;
     let mut seconds = None;
+    let mut state_bytes = None;
+    let mut json_visits = None;
     let mut options = args.iter().skip(1);
     while let Some(option) = options.next() {
         let value = options
@@ -43,6 +45,8 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
             "--output" => &mut output,
             "--runtime" => &mut runtime,
             "--max-build-seconds" => &mut seconds,
+            "--max-state-bytes" => &mut state_bytes,
+            "--max-json-visits" => &mut json_visits,
             _ => return Err(format!("unknown public D1 option: {option}")),
         };
         if slot.replace(value.as_str()).is_some() {
@@ -58,7 +62,18 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
     let seconds = seconds
         .parse::<u64>()
         .map_err(|_| "invalid public D1 build seconds")?;
-    let limits = portable_public_d1_limits(seconds).map_err(|e| e.to_string())?;
+    let mut limits = portable_public_d1_limits(seconds).map_err(|e| e.to_string())?;
+    limits.max_state_bytes = state_bytes.map(str::to_owned)
+        .or_else(|| env::var("TOS_BUILD_MAX_STATE_BYTES").ok())
+        .ok_or("TOS_BUILD_MAX_STATE_BYTES or --max-state-bytes is required")?
+        .parse().map_err(|_| "invalid public D1 state bytes")?;
+    limits.max_json_visits = json_visits.map(str::to_owned)
+        .or_else(|| env::var("TOS_BUILD_MAX_JSON_VISITS").ok())
+        .ok_or("TOS_BUILD_MAX_JSON_VISITS or --max-json-visits is required")?
+        .parse().map_err(|_| "invalid public D1 JSON visits")?;
+    if limits.max_state_bytes < 131072 || limits.max_json_visits == 0 {
+        return Err("public D1 requires --max-state-bytes >=131072 and --max-json-visits >0".into());
+    }
     let source = path(source.ok_or("--source-root is required")?)?;
     let output = path(output.ok_or("--output is required")?)?;
     let runtime = path(runtime.ok_or("--runtime is required")?)?;

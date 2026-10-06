@@ -521,6 +521,20 @@ impl InspectPlan {
         Ok(())
     }
     pub fn into_packet(self) -> Result<JsonValue, SearchV2Error> {
+        let limits = self.budget.json;
+        self.into_packet_with_targets(|items, identity, managed| {
+            if managed {
+                #[cfg(not(target_arch = "wasm32"))]
+                return Ok(crate::source_read_projection::managed_source_read_targets(items, identity, limits));
+                #[cfg(target_arch = "wasm32")]
+                return Err(corrupt());
+            }
+            Ok(source_read_targets(items, identity, limits))
+        })
+    }
+    pub(crate) fn into_packet_with_targets(self,
+        targets: impl FnOnce(&[JsonValue], &str, bool) -> Result<JsonValue, SearchV2Error>,
+    ) -> Result<JsonValue, SearchV2Error> {
         if self.need.is_some() {
             return Err(corrupt());
         }
@@ -544,7 +558,7 @@ impl InspectPlan {
                     "tos_knowledge_relation_packet_v1"
                 },
                 vec![("source_revision", text(&revision))],
-                source_read_targets(&items, &revision, self.budget.json),
+                targets(&items, &revision, false)?,
             ),
             #[cfg(not(target_arch = "wasm32"))]
             InspectIdentity::Managed { basis, root } => (
@@ -557,11 +571,7 @@ impl InspectPlan {
                     ("source_basis", basis),
                     ("managed_source_root_sha256", text(&root)),
                 ],
-                crate::source_read_projection::managed_source_read_targets(
-                    &items,
-                    &root,
-                    self.budget.json,
-                ),
+                targets(&items, &root, true)?,
             ),
         };
         let mut fields = vec![("schema", text(schema))];

@@ -11,6 +11,8 @@ import struct
 import sys
 import time
 import types
+import contextvars
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 from .native_core_snapshot import NativeCoreJsonLimits
@@ -86,6 +88,54 @@ class ReceiverGeometry:
         return self.unicode_base + 4 * (characters + 1)
 
 
+
+_ORIGINAL_RECEIVER = contextvars.ContextVar('tos_original_receiving_state', default=None)
+
+
+def original_receiver_state():
+    """Borrow the controlled entry's original ledger; this issues no grant."""
+    return _ORIGINAL_RECEIVER.get()
+
+
+@contextmanager
+def original_receiver_scope(state):
+    """Bind a ledger around the existing controlled body/public Core calls.
+
+    A nested scope may borrow only the SAME owner. Reset is unconditional so
+    primary failure/cancellation cannot leak a receiver into the next body.
+    Native placement, clock, admission and Stage remain independently checked.
+    """
+    if not isinstance(state, ReceiverState):
+        raise TypeError('public SDK receiving scope requires original ReceiverState')
+    state.active()
+    previous = _ORIGINAL_RECEIVER.get()
+    if previous is not None and previous is not state:
+        raise ValueError('public SDK scope cannot replace original receiving owner')
+    g = state.geometry
+    # copy_context is O(1); its map is borrowed. Insertion may copy up to the
+    # seven 5-bit levels of CPython's 32-bit HAMT, including collision slots.
+    probe = contextvars.Context.__basicsize__ + g.gc_header
+    state.reserve(probe)
+    context = contextvars.copy_context()
+    entries = len(context) + 1
+    workspace = (contextvars.Token.__basicsize__ + g.gc_header
+                 + 2 * 7 * (g.tuple_base + g.gc_header + 2 * entries * g.pointer))
+    state.reserve(workspace)
+    token = _ORIGINAL_RECEIVER.set(state)
+    failed = False
+    try:
+        yield state
+    except BaseException:
+        failed = True
+        raise
+    finally:
+        _ORIGINAL_RECEIVER.reset(token)
+        # A primary exception may retain this frame/token/context in its
+        # traceback. Keep those owners charged until the original call ends.
+        if not failed:
+            state.release(probe + workspace)
+
+
 class ReceiverState:
     __slots__ = ('geometry', '_limit', '_retained', '_deadline', '_cancelled', '_json', '_visits', '_outputs', '_bootstrap_reserved', '_framework_reserved', '_external_owners', '_opaque_workspace')
 
@@ -128,7 +178,8 @@ class ReceiverState:
                            tuple.__basicsize__ + gc + 5 * pointer)
         for fn in (cls.decode, cls.active, cls.reserve, cls.release, cls.reserve_opaque_workspace, cls.settle_opaque_workspace, cls.visit,
                    ReceiverGeometry.list_bytes, ReceiverGeometry.dict_bytes,
-                   ReceiverGeometry.unicode_bytes):
+                   ReceiverGeometry.unicode_bytes, original_receiver_state,
+                   original_receiver_scope, original_receiver_scope.__wrapped__):
             code = fn.__code__
             local_slots = code.co_nlocals + len(code.co_cellvars) + len(code.co_freevars) + code.co_stacksize
             framework += types.FrameType.__basicsize__ + gc + local_slots * (pointer + fixed_scalar)

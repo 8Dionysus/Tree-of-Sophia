@@ -247,7 +247,7 @@ fn canonical_filter(
 ) -> Result<Option<Vec<String>>, SearchV2Error> {
     let mut canonical = BTreeSet::new();
     for value in values {
-        if value.is_empty()
+        if (field == "source" && value.is_empty())
             || value.len() > SEARCH_V2_MAX_FILTER_VALUE_UTF8_BYTES
             || value.chars().count() > SEARCH_V2_MAX_FILTER_VALUE_CODE_POINTS
             || !contains(&value)
@@ -256,8 +256,8 @@ fn canonical_filter(
                 SearchV2ErrorCode::InvalidRequest,
                 match field {
                     "source" => "indexed search v2 source filter is not in the selected vocabulary",
-                    "kind" => "indexed search v2 kind filter is empty or overlong",
-                    _ => "indexed search v2 predicate filter is empty or overlong",
+                    "kind" => "indexed search v2 kind filter is overlong",
+                    _ => "indexed search v2 predicate filter is overlong",
                 },
             ));
         }

@@ -324,8 +324,13 @@ class NativeCore:
     def knowledge_search(self, query: str='', *, sources: list[str] | None=None, kind_ids: list[str] | None=None, predicate_ids: list[str] | None=None, offset: int=0, limit: int=40) -> dict:
         return self._packet("tos_knowledge_search", {'query': query, 'sources': sources, 'kind_ids': kind_ids, 'predicate_ids': predicate_ids, 'offset': offset, 'limit': limit, 'mode': 'legacy'}, source_errors=False)
 
-    def knowledge_search_indexed(self, query: str='', *, sources: list[str] | None=None, kind_ids: list[str] | None=None, predicate_ids: list[str] | None=None, cursor: str | None=None, limit: int=40) -> dict:
-        return self._packet("tos_knowledge_search", {'query': query, 'sources': sources, 'kind_ids': kind_ids, 'predicate_ids': predicate_ids, 'cursor': cursor, 'limit': limit, 'mode': 'indexed'}, source_errors=False)
+    def knowledge_search_indexed(self, query: str='', *, sources: list[str] | None=None, kind_ids: list[str] | None=None, predicate_ids: list[str] | None=None, cursor: str | None=None, limit: int=40, search_read_model: dict[str, Any] | None=None) -> dict:
+        request = {'query': query, 'sources': sources, 'kind_ids': kind_ids,
+                   'predicate_ids': predicate_ids, 'cursor': cursor, 'limit': limit,
+                   'mode': 'indexed'}
+        if search_read_model is not None:
+            request['search_read_model'] = search_read_model
+        return self._packet("tos_knowledge_search", request, source_errors=False)
 
     def knowledge_search_compressed(self, query: str='', *, sources: list[str] | None=None, kind_ids: list[str] | None=None, predicate_ids: list[str] | None=None, cursor: str | None=None, limit: int=40) -> dict:
         return self._packet("tos_knowledge_search", {'query': query, 'sources': sources, 'kind_ids': kind_ids, 'predicate_ids': predicate_ids, 'cursor': cursor, 'limit': limit, 'mode': 'compressed'}, source_errors=False)

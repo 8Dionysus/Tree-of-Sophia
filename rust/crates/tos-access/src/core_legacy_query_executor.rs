@@ -8,7 +8,9 @@ fn denied(message: &'static str) -> AccessError {
 struct StoreFence<'a> {
     store: &'a Mutex<tos_query::source_diagnostic::LegacyStore>,
     resources: &'a crate::native_cold_resources::LinuxCgroupColdOpenResourceHold,
-    request: &'a Request,
+    // The disclosure fence needs only the immutable process envelope; the
+    // callback-local request retains its same-thread accounting Cells.
+    process: &'a tos_compiler::NativeProcessLimits,
     deadline: Instant,
     cancelled: &'a Arc<AtomicBool>,
     probe: Arc<dyn tos_query::AbortProbe>,
@@ -26,9 +28,7 @@ impl DisclosureFence for StoreFence<'_> {
         self.resources
             .check_current(self.deadline, self.cancelled.as_ref())
             .map_err(|_| denied("legacy query resources changed"))?;
-        self.request
-            .admission
-            .process
+        self.process
             .verify_current()
             .map_err(|_| denied("legacy query process changed"))
     }
@@ -50,7 +50,7 @@ impl<'a> StoreExecutor<'a> {
         let mut fence = StoreFence {
             store: self.store,
             resources: self.resources,
-            request: self.request,
+            process: &self.request.admission.process,
             deadline: self.deadline,
             cancelled: self.cancelled,
             probe: probe.clone(),
@@ -173,7 +173,7 @@ pub(super) fn serve_legacy_store(
     let mut fence = StoreFence {
         store: &store,
         resources,
-        request,
+        process: &request.admission.process,
         deadline,
         cancelled,
         probe,

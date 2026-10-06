@@ -16,6 +16,8 @@ pub mod edge_sql;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
 mod indexed_cursor;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod reference_cursor;
 pub mod knowledge;
 pub mod managed_local;
 #[cfg(not(target_arch = "wasm32"))]
@@ -89,3 +91,6 @@ mod core_http_admission;
 pub mod source_projection_catalog_capture;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod source_projection_coverage;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod controlled_reference_health;

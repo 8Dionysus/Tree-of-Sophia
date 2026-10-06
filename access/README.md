@@ -1294,16 +1294,19 @@ Graph/Snapshot is fresh, no strong model-state FD or publication epoch is claime
 Captured SourceRoot resource/lower-carrier requests require their separately
 selected owner; this factory does not fall back to software-only resources.
 Independent Reading, Word and SourceRead retain their existing selections.
-Installed constructor/query parity and a public default switch remain unproved;
-`ToSAccessCore` continues to select Reference.
+The maintained `ToSAccessCore` source alias selects `NativeToSAccessCore`.
+`ReferenceToSAccessCore` remains the explicit comparison oracle. An installed
+consumer requires the matching native product and SDK; this explicit-provider
+factory has its own limits and supported operations.
 
 ## Explicit SourceRoot SDK adapter
 
 The opt-in `NativeAccessCore.from_source_root` adapter selects native software,
 seven source carrier paths, and a separate legacy QueryStore path. It uses the
 native `core-snapshot` entry; the selected installation must contain the matching
-entry. This source implementation has not established installed whole-Core parity
-or changed the `ToSAccessCore` default alias.
+entry. This explicit-provider adapter retains its declared resource and source
+ownership. The public `ToSAccessCore.discover(tos_root=...)` source route uses
+ordinary native ownership when no admission provider is supplied.
 
 The following selections come from the caller's data and resource owners:
 
@@ -2004,9 +2007,20 @@ descriptors; the explicit embedded profile below retains their actual objects.
 The native facade serves the established knowledge, corpus, philosophy, lens,
 evidence, bounded source-navigation and exact-source MCP operations plus native
 resource reads. The remaining graph/snapshot builders and complete carrier APIs
-are still being migrated. The current `ToSAccessCore` default remains the
-reference implementation pending migration of its remaining maintained callers;
-selecting `NativeAccessCore` never falls back to it.
+use the native whole-Core source route in `ToSAccessCore`. The default source
+alias selects `NativeToSAccessCore`; `ReferenceToSAccessCore` is the explicitly
+selected comparison implementation. Software selection follows explicit
+`native_prefix`, `TOS_NATIVE_PREFIX`, the bundled SDK layout, then the standard
+installed `tos` entrypoint on absolute `PATH` entries.
+
+For the whole-Core SDK, `TOS_RELEASE_ROOT` with no data-root selection resolves
+the current Reference release through native metadata and freezes its receipt
+at construction. Each ordinary operation rechecks that receipt, snapshot
+members and withdrawal under the native guard. Supplying an explicit snapshot
+root selects its `data/` child; pairing it with a Reference release retains the
+same guard. Python frames paths and receipts without reading release pointers.
+The generic `NativeAccessCore` release adapter retains its separately selected
+ManagedRelease route.
 
 The additive `NativeCore.philosophy_projection()` uses the sole
 `full_projection: true` branch of the existing philosophy scale operation.

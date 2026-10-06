@@ -78,6 +78,13 @@ impl InspectVisitMeter {
         self.remaining = remaining;
         Ok(())
     }
+    /// Narrow a composite query window using visits already spent by its
+    /// authentic Original parser/writer. This never grants or replenishes the
+    /// original aggregate budget and does not create an Original receipt.
+    pub fn charge_original_visits(&mut self, visits: usize) -> Result<(), FoundationError> {
+        if self.failed { return Err(Self::budget_error()); }
+        self.charge(visits)
+    }
     pub fn parse_json(
         &mut self,
         raw: &[u8],
@@ -274,6 +281,26 @@ pub trait InspectCurrentAuthority<'hold> {
     fn disclosure_scope(&self) -> IndexedDisclosureScope;
     fn check_selected(&mut self) -> Result<(), SearchV2Error>;
     fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchV2Error>;
+    /// Borrowed selected-row authorization avoids retaining a second parsed
+    /// payload tree. The temporary clone stays under the caller's same-state
+    /// workspace hold.
+    fn authorize_current_borrowed(
+        &mut self,
+        kind: SearchKind,
+        id: &str,
+        position: u64,
+        payload_sha256: Digest256,
+        payload: &JsonValue,
+    ) -> Result<(), SearchV2Error> {
+        let carrier = InspectedCarrier {
+            kind,
+            id: id.to_owned(),
+            position,
+            payload_sha256,
+            payload: payload.clone(),
+        };
+        self.authorize_current(&carrier)
+    }
     fn acquire_disclosure(
         &mut self,
         scope: &IndexedDisclosureScope,
@@ -291,6 +318,13 @@ impl Deref for DisclosableInspect<'_> {
     }
 }
 impl<'hold> DisclosableInspect<'hold> {
+    pub(crate) fn from_controlled(
+        body: Vec<u8>,
+        lease: Box<dyn InspectDisclosureLease + 'hold>,
+    ) -> Self {
+        Self { body, lease }
+    }
+
     /// Move authenticated bytes and the disclosure hold into a transport packet.
     pub fn into_parts(self) -> (Vec<u8>, Box<dyn InspectDisclosureLease + 'hold>) {
         (self.body, self.lease)
@@ -300,7 +334,7 @@ impl<'hold> DisclosableInspect<'hold> {
     }
 }
 
-fn scope_owned_state(scope: &IndexedDisclosureScope) -> Result<usize, SearchV2Error> {
+pub(crate) fn scope_owned_state(scope: &IndexedDisclosureScope) -> Result<usize, SearchV2Error> {
     let IndexedDisclosureScope {
         operation_id,
         carrier_layer,

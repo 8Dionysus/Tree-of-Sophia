@@ -79,6 +79,10 @@ impl PublicRepositoryRoot {
         if !stage.public_build() || source_cut != &format!("public-projection:{source_revision}") {
             return Err(Error::Invalid("public D1 repository root binding"));
         }
+        if let Some(state) = stage.owned_creation_state() {
+            state.retain(source_cut.len() + 128 + std::mem::size_of::<Self>())?;
+            state.charge_work(PUBLIC_ROOT_PRODUCER.len() + source_cut.len() + 2 * PUBLIC_ROOT_ROW.len())?;
+        }
         let mut software = Digest256Hasher::new();
         software.update(PUBLIC_ROOT_PRODUCER.as_bytes());
         software.update(source_cut.as_bytes());
@@ -854,12 +858,39 @@ pub(crate) fn captured_input_roots_owned(
     Ok((collections, membership.finalize().to_hex(), corpus_root))
 }
 
-pub(crate) fn exact_receipt(
+/// Existing prepare companion budget profile. It cannot construct a controlled
+/// public build or manufacture the dedicated CreationState owner.
+pub(crate) fn exact_prepared_receipt(
     capture: &PublicCapture,
     vocabulary: &QueryVocabulary,
     source_revision: &str,
 ) -> Result<ExactInputReceipt> {
     let (collections, membership, corpus_root) = captured_input_roots(capture, vocabulary)?;
+    Ok(ExactInputReceipt {
+        binding: SourceBinding {
+            owner_profile: "tos-public-projection-snapshot-v1".into(),
+            source_cut: format!("public-projection:{source_revision}"),
+            through_commit_seq: 0,
+            membership_root: membership,
+            index_generation: "public-d1-v9".into(),
+            route_map_version: "public-d1-v9".into(),
+            reader_abi: "public-d1-v9".into(),
+            projection_root_sha256: corpus_root.to_hex(),
+            complete: true,
+        },
+        collections,
+    })
+}
+
+pub(crate) fn exact_receipt_owned(
+    capture: &PublicCapture,
+    vocabulary: &QueryVocabulary,
+    source_revision: &str,
+    state: &CreationState<'_>,
+) -> Result<ExactInputReceipt> {
+    let (collections, membership, corpus_root) = captured_input_roots_owned(capture, vocabulary, state)?;
+    state.retain("tos-public-projection-snapshot-v1".len() + "public-projection:".len()
+        + source_revision.len() + 3 * "public-d1-v9".len() + 64)?;
     Ok(ExactInputReceipt {
         binding: SourceBinding {
             owner_profile: "tos-public-projection-snapshot-v1".into(),
