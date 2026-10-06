@@ -2359,13 +2359,22 @@ impl<'c> NativeSourceValidator<'c> {
         io: &PinnedSqliteIoBudget,
     ) -> io::Result<()> {
         active(self.deadline, self.cancel)?;
+        // The capacity producer reads its authored selection through the
+        // selected V2 slice; other preparations use the candidate spool slice.
+        // Both retain state on this invocation's ledger. Require exact IO
+        // identity with one of its issued slices, never merely shared writes.
+        let selected_io = self
+            .spooled_profile
+            .as_ref()
+            .is_some_and(|profile| profile.2.shares_with(io))
+            || self
+                .segment_v2_profile
+                .as_ref()
+                .is_some_and(|profile| profile.io.shares_with(io));
         if bytes == 0
             || bytes == usize::MAX
             || !self.spooled_route_selected
-            || self
-                .spooled_profile
-                .as_ref()
-                .is_none_or(|profile| !profile.2.shares_with(io))
+            || !selected_io
         {
             return Err(invalid("spooled external state original owner differs"));
         }
