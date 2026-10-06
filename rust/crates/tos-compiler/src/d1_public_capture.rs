@@ -4107,13 +4107,44 @@ impl PublicCapture {
     }
 
     pub(crate) fn retained_input_length(&self, label: &str) -> Result<usize> {
+        if let Some(raw) = self.prepared_software_input(label) {
+            return Ok(raw.len());
+        }
         self.check_custody()?;
-        let source = self
+        if let Some(source) = self
             .sources
             .iter()
             .find(|source| source.label == label && source.digest.is_some())
-            .ok_or(Error::Invalid("owned model retained input absent"))?;
-        usize::try_from(source.len).map_err(|_| Error::Budget("owned model retained input width"))
+        {
+            return usize::try_from(source.len)
+                .map_err(|_| Error::Budget("owned model retained input width"));
+        }
+        // The retained reader also owns partition members. Obtain their
+        // selected length before admitting/materializing the raw payload.
+        let path = self.retained_member_path(label)?;
+        let db = self.read_db()?;
+        let len: Option<u64> = db
+            .query_row(
+                "SELECT size_bytes FROM capture_sources WHERE path=?1",
+                [path
+                    .to_str()
+                    .ok_or(Error::Invalid("captured runtime path UTF8"))?],
+                |row| row.get(0),
+            )
+            .optional()?;
+        usize::try_from(len.ok_or(Error::Invalid("owned model retained input absent"))?)
+            .map_err(|_| Error::Budget("owned model retained input width"))
+    }
+
+    fn retained_member_path(&self, label: &str) -> Result<PathBuf> {
+        let selected = Path::new(label);
+        if selected.is_absolute() {
+            Ok(selected.to_owned())
+        } else {
+            let relative = tos_foundation::RelativePath::parse(label)
+                .map_err(|_| Error::Invalid("captured runtime member path"))?;
+            Ok(self.root.join(relative.as_str()))
+        }
     }
 
     /// Existing allocation/JSON admission owner reused by the Whole producer.
@@ -5568,23 +5599,17 @@ impl PublicCapture {
     /// including partition members. No ambient relative-path read is admitted.
     pub fn read_retained_input(&self, label: &str, cap: usize) -> Result<Vec<u8>> {
         self.check_custody()?;
-        if self
-            .sources
-            .iter()
-            .any(|source| source.label == label && source.digest.is_some())
+        if self.prepared_software_input(label).is_some()
+            || self
+                .sources
+                .iter()
+                .any(|source| source.label == label && source.digest.is_some())
         {
             return self
                 .read_input(label, cap)?
                 .ok_or(Error::Invalid("captured runtime member absent"));
         }
-        let selected = Path::new(label);
-        let path = if selected.is_absolute() {
-            selected.to_owned()
-        } else {
-            let relative = tos_foundation::RelativePath::parse(label)
-                .map_err(|_| Error::Invalid("captured runtime member path"))?;
-            self.root.join(relative.as_str())
-        };
+        let path = self.retained_member_path(label)?;
         let db = self.read_db()?;
         let part: Option<(Vec<u8>, u64)> = db
             .query_row(
@@ -6377,31 +6402,31 @@ impl PublicCapture {
         self.partitioned
     }
 
+    fn prepared_software_input(&self, label: &str) -> Option<&'static [u8]> {
+        if !self.prepared_profile {
+            return None;
+        }
+        match label {
+            "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json" => Some(include_bytes!(
+                "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+            )),
+            "ToS/contracts/semantic-entity-type-registry.schema.json" => Some(include_bytes!(
+                "../../../../ToS/contracts/semantic-entity-type-registry.schema.json"
+            )),
+            "ToS/contracts/semantic-relation-type-registry.schema.json" => Some(include_bytes!(
+                "../../../../ToS/contracts/semantic-relation-type-registry.schema.json"
+            )),
+            _ => None,
+        }
+    }
+
     pub fn read_input(&self, label: &str, cap: usize) -> Result<Option<Vec<u8>>> {
-        if self.prepared_profile {
-            let software: Option<&[u8]> = match label {
-                "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json" => {
-                    Some(include_bytes!(
-                        "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
-                    ))
-                }
-                "ToS/contracts/semantic-entity-type-registry.schema.json" => Some(include_bytes!(
-                    "../../../../ToS/contracts/semantic-entity-type-registry.schema.json"
-                )),
-                "ToS/contracts/semantic-relation-type-registry.schema.json" => {
-                    Some(include_bytes!(
-                        "../../../../ToS/contracts/semantic-relation-type-registry.schema.json"
-                    ))
-                }
-                _ => None,
-            };
-            if let Some(raw) = software {
-                if raw.len() > cap {
-                    return Err(Error::Budget("prepared software companion bytes"));
-                }
-                self.charge_work(raw.len() as u64)?;
-                return Ok(Some(raw.to_vec()));
+        if let Some(raw) = self.prepared_software_input(label) {
+            if raw.len() > cap {
+                return Err(Error::Budget("prepared software companion bytes"));
             }
+            self.charge_work(raw.len() as u64)?;
+            return Ok(Some(raw.to_vec()));
         }
         self.check_custody()?;
         let source = self

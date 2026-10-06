@@ -2312,6 +2312,35 @@ mod classified_io_tests {
     use super::*;
     use std::sync::atomic::AtomicBool;
 
+    #[test]
+    fn shared_read_phases_use_one_pool_and_keep_metadata_out_of_payload_returns() {
+        use tos_source_store::{PinnedSqliteIoBudget, PinnedSqliteIoFailure};
+        let root = PinnedSqliteIoBudget::new(20, 1).unwrap();
+        let spool =
+            PinnedSqliteIoBudget::new_with_shared_io_authority(20, 1, root.clone()).unwrap();
+        let tree = PinnedSqliteIoBudget::new_with_shared_io_authority(20, 1, root.clone()).unwrap();
+        // An asymmetric execution fits without reserving unused tree maxima.
+        spool.charge_read_upper_bound(3).unwrap();
+        spool.charge_read(12).unwrap();
+        tree.charge_read(5).unwrap();
+        assert!(tree.charge_read(1).is_err());
+        // Permitted transfers can report their actual result after a refusal.
+        spool.record_read_returned(12).unwrap();
+        tree.record_read_returned(5).unwrap();
+        let total = root.snapshot();
+        assert_eq!(total.read_attempted_bytes, 21);
+        assert_eq!(total.read_permitted_bytes, 20);
+        assert_eq!(total.read_upper_bound_attempted_bytes, 3);
+        assert_eq!(total.read_returned_bytes, 17);
+        assert_eq!(total.failure, Some(PinnedSqliteIoFailure::ReadLimit));
+        assert_eq!(
+            spool.snapshot().read_attempted_bytes + tree.snapshot().read_attempted_bytes,
+            total.read_attempted_bytes
+        );
+        assert!(spool.record_read_returned(1).is_err());
+        assert_eq!(root.snapshot().read_returned_bytes, 17);
+    }
+
     fn ledger(cancelled: &AtomicBool) -> FoundationRemainingBudget<'_> {
         let caps = FoundationInvocationBudgets {
             operation_wall_ms: 60_000,

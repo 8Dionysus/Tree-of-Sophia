@@ -1486,7 +1486,17 @@ fn copy_directory(
         if name == "." || name == ".." {
             continue;
         }
-        if depth == 0 && (name == "current.json" || name == ".admission.lock") {
+        // The admitted root also hosts temporary work and the fresh image.
+        // Copy only the store-owned namespaces; walking every root child
+        // would recurse into the destination or copy live auxiliary databases.
+        // The selected current pointer is copied atomically below, and the
+        // restored lock is newly created after closure verification.
+        if depth == 0
+            && !matches!(
+                name.as_str(),
+                "objects" | "revisions" | "staging" | "segments-v2"
+            )
+        {
             continue;
         }
         debit_name_resolution(io, &name)?;

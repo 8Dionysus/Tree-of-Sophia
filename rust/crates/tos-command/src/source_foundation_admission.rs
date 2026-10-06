@@ -800,7 +800,7 @@ impl<'c> NativeSourceValidator<'c> {
             let remaining = ledger.remaining().map_err(command)?;
             let aggregate_write = PinnedSqliteIoBudget::new(remaining.source_read_bytes, write_cap)
                 .map_err(invalid)?;
-            let io = PinnedSqliteIoBudget::new_with_shared_write_authority(
+            let io = PinnedSqliteIoBudget::new_with_shared_io_authority(
                 remaining.source_read_bytes,
                 write_cap,
                 aggregate_write.clone(),
@@ -1520,28 +1520,16 @@ impl<'c> NativeSourceValidator<'c> {
             .checked_sub(reserved_store_reads)
             .filter(|bytes| *bytes != 0 && *bytes < u64::MAX)
             .ok_or_else(|| invalid("spooled IO leaves no room for final store guards"))?;
+        // Candidate reads and V2 reads spend the same original cumulative
+        // authority. Case tree ceilings bound work within that pool; reserving
+        // their maxima as disjoint byte slices can reject a fitting execution.
+        let original_io_read_cap = candidate_limits.max_read_bytes.min(spooled_io_read_cap);
+        let candidate_read_cap = original_io_read_cap;
         let segment_v2_read_cap = if segment_v2_store_bytes.is_some() {
-            let base_tree_read_cap = (spooled_io_read_cap / 4).min(64 * 1024 * 1024);
-            let case_read_cap = match v2_case.as_ref() {
-                Some(case) => case
-                    .point_tree_bytes
-                    .checked_mul(2)
-                    .and_then(|n| n.checked_add(case.tree_bytes))
-                    .ok_or_else(|| invalid("V2 case read profile overflow"))?,
-                None => 0,
-            };
-            base_tree_read_cap
-                .checked_add(case_read_cap)
-                .filter(|cap| *cap < spooled_io_read_cap)
-                .ok_or_else(|| invalid("V2 case leaves no candidate read allowance"))?
+            original_io_read_cap
         } else {
             0
         };
-        let candidate_read_cap = spooled_io_read_cap
-            .checked_sub(segment_v2_read_cap)
-            .filter(|bytes| *bytes != 0)
-            .ok_or_else(|| invalid("V2 profile leaves no candidate read allowance"))?;
-        let original_io_read_cap = candidate_limits.max_read_bytes;
         let cap_usize = count(candidate_read_cap)?;
         candidate_limits.max_read_bytes = candidate_limits.max_read_bytes.min(candidate_read_cap);
         candidate_limits.admission.max_batch_bytes =
@@ -1844,7 +1832,7 @@ impl<'c> NativeSourceValidator<'c> {
         };
         let io_budget = match &self.generated_input {
             Some(early) => early.io.clone(),
-            None => PinnedSqliteIoBudget::new_with_shared_write_authority(
+            None => PinnedSqliteIoBudget::new_with_shared_io_authority(
                 original_io_read_cap,
                 candidate_limits.max_write_bytes,
                 aggregate_write.clone(),
@@ -2034,7 +2022,7 @@ impl<'c> NativeSourceValidator<'c> {
         };
         self.segment_v2_profile = match (segment_v2_store_bytes, segment_v2_allocation) {
             (Some(max_allocated_bytes), Some((allocation_space, allocation_reservation))) => {
-                let io = PinnedSqliteIoBudget::new_with_shared_write_authority(
+                let io = PinnedSqliteIoBudget::new_with_shared_io_authority(
                     segment_v2_read_cap,
                     segment_v2_write_cap,
                     aggregate_write.clone(),
@@ -2417,7 +2405,7 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_spooled_terminal_budget()
     }
 
-    /// Check the distinct local read ledgers and their common original write
+    /// Check distinct producer ledgers backed by the common original IO
     /// authority selected by this invocation.
     pub(crate) fn verify_spooled_v2_io(
         &self,
@@ -2447,7 +2435,7 @@ impl<'c> NativeSourceValidator<'c> {
     }
 
     /// Observe both selected local read ledgers and their single original
-    /// cumulative-write authority for runtime refusal evidence.
+    /// cumulative IO authority for runtime refusal evidence.
     pub(crate) fn spooled_invocation_io_snapshot(&self) -> io::Result<NativeInvocationIoSnapshot> {
         let spool = &self
             .spooled_profile
@@ -2626,6 +2614,25 @@ impl<'c> NativeSourceValidator<'c> {
             || usage.read_returned_bytes > usage.read_permitted_bytes
             || usage.write_permitted_bytes > usage.write_attempted_bytes
             || usage.write_returned_bytes > usage.write_permitted_bytes
+            || aggregate_write
+                .read_limit_bytes
+                .is_none_or(|cap| aggregate_write.read_permitted_bytes > cap)
+            || usage
+                .read_attempted_bytes
+                .checked_add(segment_v2_usage.map_or(0, |v| v.read_attempted_bytes))
+                != Some(aggregate_write.read_attempted_bytes)
+            || usage
+                .read_upper_bound_attempted_bytes
+                .checked_add(segment_v2_usage.map_or(0, |v| v.read_upper_bound_attempted_bytes))
+                != Some(aggregate_write.read_upper_bound_attempted_bytes)
+            || usage
+                .read_permitted_bytes
+                .checked_add(segment_v2_usage.map_or(0, |v| v.read_permitted_bytes))
+                != Some(aggregate_write.read_permitted_bytes)
+            || usage
+                .read_returned_bytes
+                .checked_add(segment_v2_usage.map_or(0, |v| v.read_returned_bytes))
+                != Some(aggregate_write.read_returned_bytes)
             || aggregate_write.write_attempted_bytes > selected_write_cap
             || aggregate_write.write_permitted_bytes > aggregate_write.write_attempted_bytes
             || aggregate_write.write_returned_bytes > aggregate_write.write_permitted_bytes

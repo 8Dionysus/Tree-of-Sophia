@@ -73,8 +73,10 @@ struct IoState {
     // Charge and restriction share one linearization point. An atomic ceiling
     // alone would permit a charge to commit against a stale, larger limit.
     limits: Mutex<IoLimits>,
-    // One immutable root write authority, never another child. Reads stay local.
+    // One immutable root authority, never another child. Existing write-only
+    // children retain local reads; shared-IO children debit both root ceilings.
     aggregate_write: Option<PinnedSqliteIoBudget>,
+    share_reads: bool,
     read_attempted: AtomicU64,
     read_upper_bound_attempted: AtomicU64,
     read_upper_bound_permitted: AtomicU64,
@@ -121,6 +123,7 @@ impl PinnedSqliteIoBudget {
                 read_origin: std::panic::Location::caller(),
             }),
             aggregate_write: None,
+            share_reads: false,
             read_attempted: AtomicU64::new(0),
             read_upper_bound_attempted: AtomicU64::new(0),
             read_upper_bound_permitted: AtomicU64::new(0),
@@ -169,6 +172,26 @@ impl PinnedSqliteIoBudget {
         Ok(local)
     }
 
+    /// Keep local producer counters while admitting every read and write
+    /// against the same original root. This permits sequential phases to use
+    /// unused read capacity without granting either phase a second pool.
+    #[track_caller]
+    pub fn new_with_shared_io_authority(
+        max_local_read_bytes: u64,
+        max_local_write_bytes: u64,
+        root: Self,
+    ) -> Result<Self> {
+        let mut local = Self::new_with_shared_write_authority(
+            max_local_read_bytes,
+            max_local_write_bytes,
+            root,
+        )?;
+        Arc::get_mut(&mut local.0)
+            .expect("new local IO ledger has one owner")
+            .share_reads = true;
+        Ok(local)
+    }
+
     /// Exact identity of the shared write pool, including root/child pairs.
     pub fn shares_write_authority_with(&self, other: &Self) -> bool {
         let root = self.0.aggregate_write.as_ref().unwrap_or(self);
@@ -177,7 +200,7 @@ impl PinnedSqliteIoBudget {
     }
 
     /// The aggregate census is observed separately, never added to the local
-    /// write sum as a third producer. Root reads are not charged by children.
+    /// write sum as a third producer. Only shared-IO children charge root reads.
     pub fn shared_write_snapshot(&self) -> PinnedSqliteIoSnapshot {
         self.0.aggregate_write.as_ref().unwrap_or(self).snapshot()
     }
@@ -212,6 +235,7 @@ impl PinnedSqliteIoBudget {
                 read_origin: std::panic::Location::caller(),
             }),
             aggregate_write: None,
+            share_reads: false,
             read_attempted: AtomicU64::new(0),
             read_upper_bound_attempted: AtomicU64::new(0),
             read_upper_bound_permitted: AtomicU64::new(0),
@@ -236,6 +260,11 @@ impl PinnedSqliteIoBudget {
     }
 
     fn charge_read_classified(&self, bytes: u64, upper_bound: bool) -> Result<()> {
+        if self.0.share_reads {
+            if let Some(root) = self.0.aggregate_write.as_ref() {
+                return self.charge_shared_read(root, bytes, upper_bound);
+            }
+        }
         let limits = self.0.limits.lock().map_err(|_| {
             if upper_bound {
                 saturating_add(&self.0.read_upper_bound_attempted, bytes);
@@ -267,6 +296,59 @@ impl PinnedSqliteIoBudget {
             // The same limit lock protects total and tagged permits, so a
             // payload return cannot borrow a metadata-only envelope.
             saturating_add(&self.0.read_upper_bound_permitted, bytes);
+        }
+        Ok(())
+    }
+
+    fn charge_shared_read(&self, root: &Self, bytes: u64, upper_bound: bool) -> Result<()> {
+        // Match the write lock order: local then root. No root locks a child.
+        let record_attempt = || {
+            for ledger in [self, root] {
+                saturating_add(&ledger.0.read_attempted, bytes);
+                if upper_bound {
+                    saturating_add(&ledger.0.read_upper_bound_attempted, bytes);
+                }
+            }
+        };
+        let local_limits = self.0.limits.lock().map_err(|_| {
+            record_attempt();
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite local read limit lock is poisoned")
+        })?;
+        let root_limits = root.0.limits.lock().map_err(|_| {
+            record_attempt();
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite aggregate read limit lock is poisoned")
+        })?;
+        record_attempt();
+        if self.failure_code() != 0 {
+            return Err(budget_error(
+                "SQLite shared read ledger has a prior failure",
+            ));
+        }
+        let local_next = self
+            .0
+            .read_permitted
+            .load(Ordering::Acquire)
+            .checked_add(bytes)
+            .filter(|n| *n <= local_limits.max_read);
+        let root_next = root
+            .0
+            .read_permitted
+            .load(Ordering::Acquire)
+            .checked_add(bytes)
+            .filter(|n| *n <= root_limits.max_read);
+        let (Some(local_next), Some(root_next)) = (local_next, root_next) else {
+            self.fail(PinnedSqliteIoFailure::ReadLimit);
+            return Err(budget_error(
+                "SQLite local or aggregate cumulative read budget exceeded",
+            ));
+        };
+        self.0.read_permitted.store(local_next, Ordering::Release);
+        root.0.read_permitted.store(root_next, Ordering::Release);
+        if upper_bound {
+            saturating_add(&self.0.read_upper_bound_permitted, bytes);
+            saturating_add(&root.0.read_upper_bound_permitted, bytes);
         }
         Ok(())
     }
@@ -360,7 +442,13 @@ impl PinnedSqliteIoBudget {
         record_returned_up_to(&self.0.read_returned, allowed, bytes).map_err(|_| {
             self.fail(PinnedSqliteIoFailure::Io);
             budget_error("SQLite read return exceeded payload permits")
-        })
+        })?;
+        if self.0.share_reads {
+            if let Some(root) = self.0.aggregate_write.as_ref() {
+                root.record_read_returned(bytes)?;
+            }
+        }
+        Ok(())
     }
 
     /// Narrow this same cumulative ledger to the caller's genuinely remaining

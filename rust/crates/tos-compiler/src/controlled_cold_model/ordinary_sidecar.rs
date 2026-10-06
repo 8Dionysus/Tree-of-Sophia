@@ -128,10 +128,14 @@ impl ControlledSidecarModel<'_, '_, '_, '_> {
         let _hold = context
             .owned_state()
             .hold(PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())?;
+        let cache_vm_limit = vm
+            .checked_sub(selected.vm_steps)
+            .filter(|remaining| *remaining != 0)
+            .ok_or(Error::Budget("sidecar candidate VM page allowance"))?;
         let (cache_decoded, cache_vm) = crate::knowledge_payload_read::with_query_vm_window(
             context,
             self.cache,
-            vm,
+            cache_vm_limit,
             || {
                 let mut stmt=self.cache.prepare_cached("SELECT id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest FROM search_documents WHERE kind=?1 AND position=?2")?;
                 let mut rows = stmt.query(params![kind_name(kind), position as i64])?;
@@ -181,10 +185,8 @@ impl ControlledSidecarModel<'_, '_, '_, '_> {
             .checked_add(cache_decoded)
             .filter(|n| *n <= decoded)
             .ok_or(Error::Budget("sidecar candidate decoded page allowance"))?;
-        selected.rows = selected
-            .rows
-            .checked_add(1)
-            .ok_or(Error::Budget("sidecar candidate rows"))?;
+        // One candidate is returned. The sidecar verifies that same logical
+        // row; its additional VM and decoded bytes are charged above.
         self.check_pin()?;
         Ok(selected)
     }
