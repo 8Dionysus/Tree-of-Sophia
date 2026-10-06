@@ -2748,6 +2748,70 @@ pub(super) fn run(
             .ok_or("Core probe Stage retained state overflow")?,
     );
     state.remaining(0)?;
+    // Snapshot verification opens its selected SQLite metadata connection.
+    // Establish the one process heap before that first connection, under the
+    // same original state ledger and actual kernel resource custody.
+    request
+        .admission
+        .process
+        .verify_current()
+        .map_err(|_| "Core probe actual process envelope")?;
+    // Same actual Linux RAM/swap custody used by the existing Root owner. Its
+    // bounded helper uses two <=8194-byte path arrays/membership buffers and <=64-byte
+    // scalar observations. This local conservative forecast remains ORIGINAL state/work.
+    const KERNEL_WORKSPACE: usize = 64 * 1024;
+    const KERNEL_READ_WORK: u64 = 2 * 8194 + 16 * 64;
+    let kernel_setup = state.reserve(KERNEL_WORKSPACE)?;
+    state.charge_work(KERNEL_READ_WORK)?;
+    let resources = crate::native_cold_resources::LinuxCgroupColdOpenResourceHold::acquire(
+        request.admission.working_ram_bytes,
+        deadline,
+        cancelled.clone(),
+    )
+    .map_err(|_| "Core probe genuine kernel RAM custody")?;
+    drop(kernel_setup);
+    state.retained.set(
+        state
+            .retained
+            .get()
+            .checked_add(
+                resources
+                    .retained_state_upper_bound()
+                    .map_err(|_| "Core probe kernel custody retained state")?,
+            )
+            .ok_or("Core probe kernel state overflow")?,
+    );
+    state.remaining(0)?;
+    // Dedicated native process only. One finite HALF-original-state backend
+    // suballocation, never widened or renewed by a selected-profile transition.
+    let heap_bytes = tos_compiler::dedicated_session_heap_bytes(state.state_limit)
+        .map_err(|_| "Core lazy original SQLite pool profile")?;
+    let heap_remaining = |bytes| state.remaining(bytes).map_err(tos_compiler::Error::Invalid);
+    let _heap_locals = state.reserve(
+        std::mem::size_of_val(&heap_remaining)
+            + std::mem::size_of::<Arc<tos_compiler::DedicatedSessionSqliteHeap>>()
+            + std::mem::size_of::<usize>(),
+    )?;
+    let sqlite_heap = tos_compiler::DedicatedSessionSqliteHeap::establish(
+        heap_bytes,
+        &heap_remaining,
+        deadline,
+        cancelled.as_ref(),
+    )
+    .map_err(|error| match error {
+        // These owner-authored static reasons include the original ledger's
+        // refusal. Dynamic SQL, I/O and source text stay behind the boundary.
+        tos_compiler::Error::Invalid(reason) | tos_compiler::Error::Budget(reason) => reason,
+        _ => "Core lazy dedicated SQLite backend admission",
+    })?;
+    state.retained.set(
+        state
+            .retained
+            .get()
+            .checked_add(sqlite_heap.reserved_state_bytes())
+            .ok_or("Core lazy SQLite reserved state overflow")?,
+    );
+    state.remaining(0)?;
     let mut startup_guard_refused = false;
     if request.snapshot_root.is_some() || request.expected_snapshot_guard.is_some() {
         let _guard_setup = state.reserve(ordinary_snapshot_guard::MAX_RETAINED_STATE_BYTES)?;
@@ -2841,67 +2905,6 @@ pub(super) fn run(
     } else {
         (None, None)
     };
-    request
-        .admission
-        .process
-        .verify_current()
-        .map_err(|_| "Core probe actual process envelope")?;
-    // Same actual Linux RAM/swap custody used by the existing Root owner. Its
-    // bounded helper uses two <=8194-byte path arrays/membership buffers and <=64-byte
-    // scalar observations. This local conservative forecast remains ORIGINAL state/work.
-    const KERNEL_WORKSPACE: usize = 64 * 1024;
-    const KERNEL_READ_WORK: u64 = 2 * 8194 + 16 * 64;
-    let kernel_setup = state.reserve(KERNEL_WORKSPACE)?;
-    state.charge_work(KERNEL_READ_WORK)?;
-    let resources = crate::native_cold_resources::LinuxCgroupColdOpenResourceHold::acquire(
-        request.admission.working_ram_bytes,
-        deadline,
-        cancelled.clone(),
-    )
-    .map_err(|_| "Core probe genuine kernel RAM custody")?;
-    drop(kernel_setup);
-    state.retained.set(
-        state
-            .retained
-            .get()
-            .checked_add(
-                resources
-                    .retained_state_upper_bound()
-                    .map_err(|_| "Core probe kernel custody retained state")?,
-            )
-            .ok_or("Core probe kernel state overflow")?,
-    );
-    state.remaining(0)?;
-    // Dedicated native process only. One finite HALF-original-state backend
-    // suballocation, never widened or renewed by a selected-profile transition.
-    let heap_bytes = tos_compiler::dedicated_session_heap_bytes(state.state_limit)
-        .map_err(|_| "Core lazy original SQLite pool profile")?;
-    let heap_remaining = |bytes| state.remaining(bytes).map_err(tos_compiler::Error::Invalid);
-    let _heap_locals = state.reserve(
-        std::mem::size_of_val(&heap_remaining)
-            + std::mem::size_of::<Arc<tos_compiler::DedicatedSessionSqliteHeap>>()
-            + std::mem::size_of::<usize>(),
-    )?;
-    let sqlite_heap = tos_compiler::DedicatedSessionSqliteHeap::establish(
-        heap_bytes,
-        &heap_remaining,
-        deadline,
-        cancelled.as_ref(),
-    )
-    .map_err(|error| match error {
-        // These owner-authored static reasons include the original ledger's
-        // refusal. Dynamic SQL, I/O and source text stay behind the boundary.
-        tos_compiler::Error::Invalid(reason) | tos_compiler::Error::Budget(reason) => reason,
-        _ => "Core lazy dedicated SQLite backend admission",
-    })?;
-    state.retained.set(
-        state
-            .retained
-            .get()
-            .checked_add(sqlite_heap.reserved_state_bytes())
-            .ok_or("Core lazy SQLite reserved state overflow")?,
-    );
-    state.remaining(0)?;
     let mut workspace = Workspace(&state);
     let fence_without_snapshot = || {
         active(deadline)?;
