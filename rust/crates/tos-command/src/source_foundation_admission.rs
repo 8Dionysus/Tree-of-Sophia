@@ -152,7 +152,7 @@ fn bounded_error_sha256(error: &io::Error) -> Option<String> {
     if std::env::var("TOS_PRIVATE_COMMAND_IO_ERROR_SHA256").ok().as_deref()
         == Some(digest.as_str())
     {
-        eprintln!("private-owner-spool reason={error:?}");
+        eprintln!("private-owner-spool reason={error}");
     }
     Some(digest)
 }
