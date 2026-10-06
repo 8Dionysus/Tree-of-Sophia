@@ -2900,6 +2900,22 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         // existing 40-byte source-cause site bound exactly.
                         let mut site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
                         let mut cause = issue;
+                        if owner_report.labs.as_ref().is_none_or(|labs| labs.ordered_issues.is_empty())
+                            && owner_report.goldsets.as_ref().is_none_or(|goldsets| goldsets.ordered_issues.is_empty())
+                        {
+                            let finding = owner_report.discovery.issues.first()
+                                .map(|finding| ("d", finding.code, finding.location.as_str()))
+                                .or_else(|| owner_report.closure.issues.first()
+                                    .map(|(path, _)| ("c", "closure", path.as_str())));
+                            if let Some((district, code, path)) = finding {
+                                let code = Digest256::of_bytes(code.as_bytes()).to_hex();
+                                let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                                let located = format!("{site}-{district}{}-p{}", &code[..12], &path[..12]);
+                                if located.len() <= 40 {
+                                    site = located;
+                                }
+                            }
+                        }
                         if let Some(diagnostic) = evaluated.diagnostics.iter()
                             .find(|diagnostic| !diagnostic.result().is_valid())
                         {
