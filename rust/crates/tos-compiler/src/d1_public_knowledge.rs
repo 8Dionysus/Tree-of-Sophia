@@ -42,6 +42,69 @@ pub(crate) fn portabilize_public_stage(
         .to_str()
         .ok_or(Error::Invalid("public D1 root UTF-8"))?;
     let creation = stage.owned_creation_state();
+    if let Some(owner) = creation {
+        for relation in [false, true] {
+            let mut after = -1;
+            loop {
+                let mut next = None;
+                stage.with_write_page(
+                    WritePhase::Normalized,
+                    1,
+                    MAX_ROW_BYTES as u64,
+                    |stage| {
+                        let (_, cursor) = stage.with_normalized_rows_owned(
+                            relation,
+                            after,
+                            1,
+                            MAX_ROW_BYTES,
+                            |stage, metadata, raw, source| {
+                                capture.charge_work(raw.len() as u64)?;
+                                let mut value = crate::d1_public_capture::foundation_scoped(
+                                    raw,
+                                    MAX_ROW_BYTES,
+                                    Some(owner),
+                                )?;
+                                portable(&mut value, root);
+                                owner.with_foundation_compact_bytes(
+                                    &value,
+                                    MAX_ROW_BYTES,
+                                    raw.len(),
+                                    |bytes| {
+                                        capture.charge_work(bytes.len() as u64)?;
+                                        if bytes != raw {
+                                            if relation {
+                                                stage.replace_relation_logical_payload_if_current(
+                                                    metadata.id,
+                                                    bytes,
+                                                    source,
+                                                    Some(metadata.logical_digest),
+                                                )?;
+                                            } else {
+                                                stage.replace_node_logical_payload_if_current(
+                                                    metadata.id,
+                                                    bytes,
+                                                    source,
+                                                    Some(metadata.logical_digest),
+                                                )?;
+                                            }
+                                        }
+                                        Ok(())
+                                    },
+                                )
+                            },
+                        )?;
+                        next = cursor;
+                        Ok(())
+                    },
+                )?;
+                match next {
+                    Some(next) => after = next,
+                    None => break,
+                }
+            }
+        }
+        return Ok(());
+    }
     for table in ["knowledge_nodes", "knowledge_relations"] {
         let mut after = -1i64;
         loop {
@@ -74,8 +137,16 @@ pub(crate) fn portabilize_public_stage(
             if page.is_empty() {
                 break;
             }
-            let _changed_hold = creation.map(|owner| owner.hold(8 *
-                (std::mem::size_of::<(String, Vec<u8>)>() + std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>()))).transpose()?;
+            let _changed_hold = creation
+                .map(|owner| {
+                    owner.hold(
+                        8 * (std::mem::size_of::<(String, Vec<u8>)>()
+                            + std::mem::size_of::<
+                                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                            >()),
+                    )
+                })
+                .transpose()?;
             let mut changed = Vec::with_capacity(8);
             let mut changed_holds = Vec::with_capacity(8);
             let mut page_bytes = 0u64;
@@ -85,22 +156,31 @@ pub(crate) fn portabilize_public_stage(
                 }
                 after = position;
                 capture.charge_work(raw.len() as u64)?;
-                let mut value = crate::d1_public_capture::foundation_scoped(&raw, MAX_ROW_BYTES, creation)?;
+                let mut value =
+                    crate::d1_public_capture::foundation_scoped(&raw, MAX_ROW_BYTES, creation)?;
                 portable(&mut value, root);
                 let mut keep = |bytes: &[u8]| -> Result<()> {
                     capture.charge_work(bytes.len() as u64)?;
                     if bytes != raw {
-                        page_bytes = page_bytes.checked_add(bytes.len() as u64)
+                        page_bytes = page_bytes
+                            .checked_add(bytes.len() as u64)
                             .filter(|total| *total <= 64 * 1024 * 1024)
                             .ok_or(Error::Budget("public D1 normalized page bytes"))?;
-                        let hold = creation.map(|owner| owner.hold(bytes.len() + id.len())).transpose()?;
+                        let hold = creation
+                            .map(|owner| owner.hold(bytes.len() + id.len()))
+                            .transpose()?;
                         changed_holds.push(hold);
                         changed.push((id.clone(), bytes.to_vec()));
                     }
                     Ok(())
                 };
                 match creation {
-                    Some(owner) => owner.with_foundation_compact_bytes(&value, MAX_ROW_BYTES, raw.len(), &mut keep)?,
+                    Some(owner) => owner.with_foundation_compact_bytes(
+                        &value,
+                        MAX_ROW_BYTES,
+                        raw.len(),
+                        &mut keep,
+                    )?,
                     None => keep(&compact(&value, MAX_ROW_BYTES)?)?,
                 }
             }
@@ -743,6 +823,46 @@ pub(crate) fn emit_knowledge(
         ("node", "knowledge_nodes"),
         ("relation", "knowledge_relations"),
     ] {
+        if let Some(owner) = creation {
+            let mut after = -1;
+            let mut expected = 0i64;
+            loop {
+                let (_, next) = stage.with_normalized_rows_owned(
+                    kind == "relation", after, 1, limits.max_payload_bytes,
+                    |stage, metadata, raw, _| {
+                        if metadata.source_order != expected { return Err(Error::Invalid("public D1 knowledge order")); }
+                        let _row_hold = stage.hold_normalized_page(1, limits.max_payload_bytes, 0)?;
+                        owner.charge_work(raw.len())?;
+                        let carrier = SourceRow {
+                            position: metadata.source_order, id: metadata.id.to_owned(),
+                            source_graph: metadata.source_graph.to_owned(),
+                            native_id: metadata.native_id.map(str::to_owned),
+                            term_id: metadata.semantic_key.to_owned(), payload_len: raw.len() as i64,
+                            payload_sha256: metadata.logical_digest.as_bytes().to_vec(), payload: Some(raw.to_vec()),
+                        };
+                        capture.charge_work(raw.len() as u64)?;
+                        stage.with_connection(WritePhase::Search, |db| {
+                            let mut documents = db.prepare("SELECT id,document_chars,document_digest,id_lower,native_id_lower,identity_values,visible_values FROM search_documents WHERE kind=?1 AND position=?2")?;
+                            emit_normalized_row(capture, sink, &mut documents, lens_counts, max_lens_bytes,
+                                max_lens_memberships, kind, carrier, root, limits, creation)
+                        })?;
+                        expected = expected.checked_add(1).ok_or(Error::Budget("public D1 knowledge rows"))?;
+                        Ok(())
+                    },
+                )?;
+                match next {
+                    Some(next) => after = next,
+                    None => break,
+                }
+            }
+            let target = if table == "knowledge_nodes" {
+                &mut counts.nodes
+            } else {
+                &mut counts.relations
+            };
+            *target = expected as u64;
+            continue;
+        }
         stage.with_connection(WritePhase::Search, |db| {
             let mut documents = db.prepare("SELECT id,document_chars,document_digest,id_lower,native_id_lower,identity_values,visible_values FROM search_documents WHERE kind=?1 AND position=?2")?;
             let sql = if kind == "node" {

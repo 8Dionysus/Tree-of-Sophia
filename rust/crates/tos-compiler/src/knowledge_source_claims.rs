@@ -922,7 +922,37 @@ impl<'a> ClaimNormalizer<'a> {
     }
 }
 
-fn node(stage: &mut KnowledgeStage<'_>, id: &str, cap: usize) -> Result<Value> {
+struct ClaimNode<'a> {
+    value: Value,
+    _hold: Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
+}
+impl std::ops::Deref for ClaimNode<'_> {
+    type Target = Value;
+    fn deref(&self) -> &Value {
+        &self.value
+    }
+}
+impl std::ops::DerefMut for ClaimNode<'_> {
+    fn deref_mut(&mut self) -> &mut Value {
+        &mut self.value
+    }
+}
+fn node<'a>(stage: &mut KnowledgeStage<'a>, id: &str, cap: usize) -> Result<ClaimNode<'a>> {
+    if let Some(state) = stage.owned_creation_state() {
+        return stage
+            .with_node_payload_owned(id, cap, |_, bytes| {
+                let (value, hold) =
+                    state.serde_scoped_with_limits(bytes, SourceRow::json_limits(cap)?)?;
+                if required(&value, "id")? != id {
+                    return Err(Error::Invalid("Claim normalized endpoint ID"));
+                }
+                Ok(ClaimNode {
+                    value,
+                    _hold: Some(hold),
+                })
+            })?
+            .ok_or(Error::Invalid("Claim normalized endpoint absent/oversize"));
+    }
     let (bytes,sha):(Vec<u8>,Vec<u8>)=stage.with_connection(WritePhase::Sort,|db|{
         db.query_row("SELECT CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND length(payload)<=?2 THEN payload ELSE NULL END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 ELSE NULL END FROM knowledge_nodes WHERE id=?1",params![id,cap],|r|Ok((r.get(0)?,r.get(1)?)))
             .optional()?.ok_or(Error::Invalid("Claim normalized endpoint absent/oversize"))})?;
@@ -933,10 +963,24 @@ fn node(stage: &mut KnowledgeStage<'_>, id: &str, cap: usize) -> Result<Value> {
     if required(source.value(), "id")? != id {
         return Err(Error::Invalid("Claim normalized endpoint ID"));
     }
-    Ok(source.value().clone())
+    Ok(ClaimNode {
+        value: source.value().clone(),
+        _hold: None,
+    })
 }
 
 fn update_node(stage: &mut KnowledgeStage<'_>, value: &Value, cap: usize) -> Result<()> {
+    if let Some(state) = stage.owned_creation_state() {
+        let id = required(value, "id")?;
+        return stage
+            .with_node_payload_source_owned(id, cap, |stage, previous, source| {
+                let digest = Digest256::of_bytes(previous);
+                state.with_json_encoded(value, cap, |bytes| {
+                    stage.replace_node_logical_payload_if_current(id, bytes, source, Some(digest))
+                })
+            })?
+            .ok_or(Error::Invalid("Claim update absent"));
+    }
     let bytes = encode(value, cap)?;
     let sha = Digest256::of_bytes(&bytes);
     stage.charge_materialized(1, bytes.len() as u64)?;
@@ -1228,7 +1272,59 @@ pub fn prepare_claim_context_groups(
         let mut after = -1i64;
         let mut work = 0;
         loop {
-            let rows:Vec<(i64,String,String,Vec<u8>)>=stage.with_connection(WritePhase::Sort,|db|{
+            let _page_hold = stage.hold_normalized_page(1, limits.max_output_bytes, 0)?;
+            let rows: Vec<(i64, String, String, Vec<u8>)> = if let Some(state) =
+                stage.owned_creation_state()
+            {
+                let selected = stage.with_connection(WritePhase::Sort, |db| {
+                    let mut query = db.prepare("SELECT source_order,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN typeof(native_id)='text' AND length(CAST(native_id AS BLOB)) BETWEEN 1 AND 4096 THEN native_id END,kind_id FROM knowledge_nodes WHERE source_order>?1 AND kind_id IN ('claim','annotation-claim') ORDER BY source_order LIMIT 1")?;
+                    let mut rows = query.query([after])?;
+                    match rows.next()? {
+                        Some(row) => Ok(Some((row.get::<_, i64>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?, row.get::<_, String>(3)?, row.get::<_, String>(4)?))),
+                        None => Ok(None),
+                    }
+                })?;
+                let mut selected_rows = Vec::with_capacity(1);
+                if let Some((order, id, graph, native, kind)) = selected {
+                    if order <= after {
+                        return Err(Error::Invalid("Claim group base row order"));
+                    }
+                    stage
+                        .with_node_payload_owned(&id, limits.max_output_bytes, |_, bytes| {
+                            state.with_serde_owned_with_limits(
+                                bytes,
+                                SourceRow::json_limits(limits.max_output_bytes)?,
+                                |value| {
+                                    if required(value, "id")? != id
+                                        || required(value, "kind_id")? != kind
+                                        || required(value, "source_graph")? != graph
+                                        || required(value, "native_id")? != native
+                                    {
+                                        return Err(Error::Invalid("Claim group base row binding"));
+                                    }
+                                    let graph = required(value, "source_graph")?;
+                                    let native = required(value, "native_id")?;
+                                    if graph.len() > 4096 || native.len() > 4096 {
+                                        return Err(Error::Budget(
+                                            "Claim group base row identity bytes",
+                                        ));
+                                    }
+                                    state.charge_work(bytes.len())?;
+                                    selected_rows.push((
+                                        order,
+                                        graph.to_owned(),
+                                        native.to_owned(),
+                                        bytes.to_vec(),
+                                    ));
+                                    Ok(())
+                                },
+                            )
+                        })?
+                        .ok_or(Error::Invalid("Claim group base row disappeared"))?;
+                }
+                selected_rows
+            } else {
+                stage.with_connection(WritePhase::Sort,|db|{
                 let mut query=db.prepare("SELECT source_order,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB))<=4096 THEN source_graph ELSE NULL END,CASE WHEN typeof(native_id)='text' AND length(CAST(native_id AS BLOB))<=4096 THEN native_id ELSE NULL END,CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND length(payload)<=?3 THEN payload ELSE NULL END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 ELSE NULL END,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=4096 THEN id ELSE NULL END,kind_id FROM knowledge_nodes WHERE source_order>?1 AND kind_id IN ('claim','annotation-claim') ORDER BY source_order LIMIT ?2")?;
                 let mut selected=query.query(params![after,limits.max_page_rows,limits.max_output_bytes])?;let mut result=Vec::new();let mut page_work=0;
                 while let Some(r)=selected.next()?{
@@ -1237,14 +1333,19 @@ pub fn prepare_claim_context_groups(
                     if order<0 || order<=after || Digest256::of_bytes(&bytes).as_bytes().as_slice()!=sha {return Err(Error::Invalid("Claim group base row SHA/order"));}
                     let source=SourceRow::parse(&bytes,limits.max_output_bytes)?;
                     if required(source.value(),"id")?!=id||required(source.value(),"native_id")?!=native||required(source.value(),"source_graph")?!=graph||required(source.value(),"kind_id")?!=kind{return Err(Error::Invalid("Claim group base row binding"));}
-                    result.push((order,graph,native,bytes));}Ok(result)})?;
+                    result.push((order,graph,native,bytes));}Ok(result)})?
+            };
             if rows.is_empty() {
                 break;
             }
             for (order, graph, native, bytes) in rows {
-                after = order;
+                after = after.max(order);
                 charge(&mut work, bytes.len(), limits.max_work_bytes)?;
-                let source = SourceRow::parse(&bytes, limits.max_output_bytes)?;
+                let source = SourceRow::parse_scoped_with_optional_owned_state(
+                    &bytes,
+                    limits.max_output_bytes,
+                    stage.owned_creation_state(),
+                )?;
                 let owner = stage
                     .raw_by_id(&graph, "nodes", &native)?
                     .ok_or(Error::Invalid("Claim group ordered source absent"))?;

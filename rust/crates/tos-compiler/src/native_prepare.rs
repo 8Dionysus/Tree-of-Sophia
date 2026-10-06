@@ -278,6 +278,35 @@ impl StageRows<'_, '_> {
             "relation" => "knowledge_relations",
             _ => return Err(Error::Invalid("prepare row kind")),
         };
+        if let Some(state) = self.stage.owned_creation_state() {
+            let mut after = -1;
+            loop {
+                let (_, next) = self.stage.with_normalized_rows_owned(
+                    kind == "relation",
+                    after,
+                    1,
+                    self.cap,
+                    |_, _, raw, _| {
+                        self.capture.charge_work(
+                            (raw.len() as u64)
+                                .checked_mul(4)
+                                .ok_or(Error::Budget("prepare row copy work"))?,
+                        )?;
+                        let value = crate::d1_public_capture::foundation_scoped(
+                            raw,
+                            self.cap,
+                            Some(state),
+                        )?;
+                        sink(&value)
+                    },
+                )?;
+                match next {
+                    Some(next) => after = next,
+                    None => break,
+                }
+            }
+            return Ok(());
+        }
         self.stage.with_connection(WritePhase::Catalog, |db| {
             let mut statement = db.prepare(&format!("SELECT payload_len,payload_sha256,CASE WHEN payload_len<=?1 AND length(payload)=payload_len THEN payload ELSE NULL END FROM {table} ORDER BY source_order"))?;
             let mut rows = statement.query([self.cap as i64])?;

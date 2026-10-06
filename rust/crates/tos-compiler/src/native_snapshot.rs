@@ -2012,7 +2012,7 @@ fn foundation_snapshot_value_owned(
 }
 
 fn staged_rows(
-    db: &rusqlite::Connection,
+    stage: &mut KnowledgeStage<'_>,
     capture: &PublicCapture,
     table: &'static str,
     max_rows: u64,
@@ -2028,97 +2028,165 @@ fn staged_rows(
         return Err(Error::Invalid("native whole snapshot row table"));
     }
     if let Some(state) = state {
-        state.retain(512 + std::mem::size_of::<rusqlite::Statement<'_>>())?;
+        let mut result = Vec::new();
+        let mut bytes = 0usize;
+        let mut after = -1;
+        loop {
+            let (_, next) = stage.with_normalized_rows_owned(
+                table == "knowledge_relations",
+                after,
+                1,
+                max_row_bytes,
+                |_, metadata, raw, _| {
+                    check_snapshot_active(cancelled, deadline)?;
+                    if result.len() as u64 >= max_rows {
+                        return Err(Error::Budget("native whole snapshot row count"));
+                    }
+                    capture.charge_work(raw.len() as u64)?;
+                    let value = strict_snapshot_value_owned(
+                        raw,
+                        max_row_bytes,
+                        json,
+                        remaining_visits,
+                        cancelled,
+                        deadline,
+                        Some(state),
+                    )?;
+                    if value.get("id").and_then(serde_json::Value::as_str) != Some(metadata.id)
+                        || value
+                            .get("source_graph")
+                            .and_then(serde_json::Value::as_str)
+                            != Some(metadata.source_graph)
+                    {
+                        return Err(Error::Invalid("native whole snapshot row identity"));
+                    }
+                    state.with_json_encoded(&value, max_row_bytes, |encoded| {
+                        bytes = bytes
+                            .checked_add(encoded.len())
+                            .filter(|next| *next <= max_total_bytes)
+                            .ok_or(Error::Budget("native whole snapshot graph bytes"))?;
+                        Ok(())
+                    })?;
+                    // Vec geometric growth remains within four retained slots per row.
+                    state.retain(4 * std::mem::size_of::<serde_json::Value>())?;
+                    result.push(value);
+                    Ok(())
+                },
+            )?;
+            match next {
+                Some(next) => after = next,
+                None => break,
+            }
+        }
+        // The compatibility snapshot promises lexical ID order, independently
+        // of Stage's global encounter order. IDs are checked above and unique.
+        state.charge_work(
+            result
+                .len()
+                .checked_mul(4096)
+                .and_then(|n| n.checked_mul((result.len().max(1).ilog2() as usize) + 1))
+                .ok_or(Error::Budget("native whole snapshot lexical work"))?,
+        )?;
+        result.sort_unstable_by(|left, right| left["id"].as_str().cmp(&right["id"].as_str()));
+        state.active()?;
+        return Ok(result);
     }
-    let sql = format!(
-        "SELECT id,source_graph,payload_len,payload_sha256,
+    stage.with_connection(WritePhase::Finalize, |db| {
+        if let Some(state) = state {
+            state.retain(512 + std::mem::size_of::<rusqlite::Statement<'_>>())?;
+        }
+        let sql = format!(
+            "SELECT id,source_graph,payload_len,payload_sha256,
                 CASE WHEN payload_len BETWEEN 1 AND ?1
                      AND length(payload)=payload_len THEN payload END
            FROM {table} ORDER BY id"
-    );
-    let mut statement = db.prepare(&sql)?;
-    let mut rows = statement.query([max_row_bytes as i64])?;
-    let mut result = Vec::new();
-    let mut bytes = 0usize;
-    while let Some(row) = rows.next()? {
-        check_snapshot_active(cancelled, deadline)?;
-        if let Some(state) = state {
-            use rusqlite::types::ValueRef;
-            let id = match row.get_ref(0)? {
-                ValueRef::Text(value) => value,
-                _ => return Err(Error::Invalid("owned snapshot row id")),
-            };
-            let graph = match row.get_ref(1)? {
-                ValueRef::Text(value) => value,
-                _ => return Err(Error::Invalid("owned snapshot row graph")),
-            };
-            let raw = match row.get_ref(4)? {
-                ValueRef::Blob(value) => value,
-                _ => return Err(Error::Budget("native whole snapshot row bytes")),
-            };
-            let digest_len = match row.get_ref(3)? {
-                ValueRef::Blob(value) => value.len(),
-                _ => return Err(Error::Invalid("owned snapshot row digest")),
-            };
-            if digest_len != 32 {
+        );
+        let mut statement = db.prepare(&sql)?;
+        let mut rows = statement.query([max_row_bytes as i64])?;
+        let mut result = Vec::new();
+        let mut bytes = 0usize;
+        while let Some(row) = rows.next()? {
+            check_snapshot_active(cancelled, deadline)?;
+            if let Some(state) = state {
+                use rusqlite::types::ValueRef;
+                let id = match row.get_ref(0)? {
+                    ValueRef::Text(value) => value,
+                    _ => return Err(Error::Invalid("owned snapshot row id")),
+                };
+                let graph = match row.get_ref(1)? {
+                    ValueRef::Text(value) => value,
+                    _ => return Err(Error::Invalid("owned snapshot row graph")),
+                };
+                let raw = match row.get_ref(4)? {
+                    ValueRef::Blob(value) => value,
+                    _ => return Err(Error::Budget("native whole snapshot row bytes")),
+                };
+                let digest_len = match row.get_ref(3)? {
+                    ValueRef::Blob(value) => value.len(),
+                    _ => return Err(Error::Invalid("owned snapshot row digest")),
+                };
+                if digest_len != 32 {
+                    return Err(Error::Invalid("native whole snapshot row receipt"));
+                }
+                if id.len() > 4096 || graph.len() > 4096 || raw.len() > max_row_bytes {
+                    return Err(Error::Budget("owned snapshot row field bytes"));
+                }
+                state.retain(
+                    id.len()
+                        .checked_add(graph.len())
+                        .and_then(|n| n.checked_add(raw.len()))
+                        .and_then(|n| {
+                            n.checked_add(32 + 4 * std::mem::size_of::<serde_json::Value>())
+                        })
+                        .ok_or(Error::Budget("owned snapshot row copy state"))?,
+                )?;
+            }
+            let id: String = row.get(0)?;
+            let source_graph: String = row.get(1)?;
+            let declared: i64 = row.get(2)?;
+            let expected: Vec<u8> = row.get(3)?;
+            let raw: Option<Vec<u8>> = row.get(4)?;
+            let raw = raw.ok_or(Error::Budget("native whole snapshot row bytes"))?;
+            capture.charge_work(raw.len() as u64)?;
+            if result.len() as u64 >= max_rows
+                || declared <= 0
+                || declared as usize != raw.len()
+                || raw.len() > max_row_bytes
+                || expected.len() != 32
+                || Digest256::of_bytes(&raw).as_bytes().as_slice() != expected.as_slice()
+            {
                 return Err(Error::Invalid("native whole snapshot row receipt"));
             }
-            if id.len() > 4096 || graph.len() > 4096 || raw.len() > max_row_bytes {
-                return Err(Error::Budget("owned snapshot row field bytes"));
-            }
-            state.retain(
-                id.len()
-                    .checked_add(graph.len())
-                    .and_then(|n| n.checked_add(raw.len()))
-                    .and_then(|n| n.checked_add(32 + 4 * std::mem::size_of::<serde_json::Value>()))
-                    .ok_or(Error::Budget("owned snapshot row copy state"))?,
+            let value = strict_snapshot_value_owned(
+                &raw,
+                max_row_bytes,
+                json,
+                remaining_visits,
+                cancelled,
+                deadline,
+                state,
             )?;
+            if value.get("id").and_then(serde_json::Value::as_str) != Some(id.as_str())
+                || value
+                    .get("source_graph")
+                    .and_then(serde_json::Value::as_str)
+                    != Some(source_graph.as_str())
+            {
+                return Err(Error::Invalid("native whole snapshot row identity"));
+            }
+            let encoded = match state {
+                Some(state) => state.encode_json(&value, max_row_bytes)?,
+                None => serde_json::to_vec(&value)
+                    .map_err(|_| Error::Invalid("native whole snapshot row encoding"))?,
+            };
+            bytes = bytes
+                .checked_add(encoded.len())
+                .filter(|next| *next <= max_total_bytes)
+                .ok_or(Error::Budget("native whole snapshot graph bytes"))?;
+            result.push(value);
         }
-        let id: String = row.get(0)?;
-        let source_graph: String = row.get(1)?;
-        let declared: i64 = row.get(2)?;
-        let expected: Vec<u8> = row.get(3)?;
-        let raw: Option<Vec<u8>> = row.get(4)?;
-        let raw = raw.ok_or(Error::Budget("native whole snapshot row bytes"))?;
-        capture.charge_work(raw.len() as u64)?;
-        if result.len() as u64 >= max_rows
-            || declared <= 0
-            || declared as usize != raw.len()
-            || raw.len() > max_row_bytes
-            || expected.len() != 32
-            || Digest256::of_bytes(&raw).as_bytes().as_slice() != expected.as_slice()
-        {
-            return Err(Error::Invalid("native whole snapshot row receipt"));
-        }
-        let value = strict_snapshot_value_owned(
-            &raw,
-            max_row_bytes,
-            json,
-            remaining_visits,
-            cancelled,
-            deadline,
-            state,
-        )?;
-        if value.get("id").and_then(serde_json::Value::as_str) != Some(id.as_str())
-            || value
-                .get("source_graph")
-                .and_then(serde_json::Value::as_str)
-                != Some(source_graph.as_str())
-        {
-            return Err(Error::Invalid("native whole snapshot row identity"));
-        }
-        let encoded = match state {
-            Some(state) => state.encode_json(&value, max_row_bytes)?,
-            None => serde_json::to_vec(&value)
-                .map_err(|_| Error::Invalid("native whole snapshot row encoding"))?,
-        };
-        bytes = bytes
-            .checked_add(encoded.len())
-            .filter(|next| *next <= max_total_bytes)
-            .ok_or(Error::Budget("native whole snapshot graph bytes"))?;
-        result.push(value);
-    }
-    Ok(result)
+        Ok(result)
+    })
 }
 
 fn whole_snapshot_in_stage(
@@ -2167,7 +2235,7 @@ fn whole_snapshot_in_stage(
         deadline,
         state,
     )?;
-    let (nodes, relations, catalog_raw) = stage.with_connection(WritePhase::Finalize, |db| {
+    let catalog_raw = stage.with_connection(WritePhase::Finalize, |db| {
         check_snapshot_active(cancelled, deadline)?;
         let node_count: u64 =
             db.query_row("SELECT count(*) FROM knowledge_nodes", [], |row| row.get(0))?;
@@ -2226,45 +2294,47 @@ fn whole_snapshot_in_stage(
         {
             return Err(Error::Invalid("native whole snapshot catalog receipt"));
         }
-        let nodes = staged_rows(
-            db,
-            capture,
-            "knowledge_nodes",
-            graph_rows,
-            limits.max_row_bytes,
-            limits.max_graph_bytes.saturating_sub(header_bytes.len()),
-            limits.json,
-            &mut remaining_visits,
-            deadline,
-            cancelled,
-            state,
-        )?;
-        let node_bytes = nodes.iter().try_fold(0usize, |sum, node| {
-            let raw = match state {
-                Some(state) => state.encode_json(node, limits.max_row_bytes)?,
-                None => serde_json::to_vec(node).map_err(|_| Error::Invalid("native whole snapshot node encoding"))?,
-            };
-            sum.checked_add(raw.len())
-                .filter(|bytes| *bytes <= limits.max_graph_bytes.saturating_sub(header_bytes.len()))
-                .ok_or(Error::Budget("native whole snapshot graph bytes"))
-        })?;
-        let relations = staged_rows(
-            db,
-            capture,
-            "knowledge_relations",
-            graph_rows.saturating_sub(nodes.len() as u64),
-            limits.max_row_bytes,
-            limits
-                .max_graph_bytes
-                .saturating_sub(header_bytes.len().saturating_add(node_bytes)),
-            limits.json,
-            &mut remaining_visits,
-            deadline,
-            cancelled,
-            state,
-        )?;
-        Ok((nodes, relations, raw))
+        Ok(raw)
     })?;
+    let nodes = staged_rows(
+        stage,
+        capture,
+        "knowledge_nodes",
+        graph_rows,
+        limits.max_row_bytes,
+        limits.max_graph_bytes.saturating_sub(header_bytes.len()),
+        limits.json,
+        &mut remaining_visits,
+        deadline,
+        cancelled,
+        state,
+    )?;
+    let node_bytes = nodes.iter().try_fold(0usize, |sum, node| {
+        let raw = match state {
+            Some(state) => state.encode_json(node, limits.max_row_bytes)?,
+            None => serde_json::to_vec(node)
+                .map_err(|_| Error::Invalid("native whole snapshot node encoding"))?,
+        };
+        sum.checked_add(raw.len())
+            .filter(|bytes| *bytes <= limits.max_graph_bytes.saturating_sub(header_bytes.len()))
+            .ok_or(Error::Budget("native whole snapshot graph bytes"))
+    })?;
+    let relations = staged_rows(
+        stage,
+        capture,
+        "knowledge_relations",
+        graph_rows.saturating_sub(nodes.len() as u64),
+        limits.max_row_bytes,
+        limits
+            .max_graph_bytes
+            .saturating_sub(header_bytes.len().saturating_add(node_bytes)),
+        limits.json,
+        &mut remaining_visits,
+        deadline,
+        cancelled,
+        state,
+    )?;
+
     let mut graph = graph_header;
     if let Some(state) = state {
         let fields = graph

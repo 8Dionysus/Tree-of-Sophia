@@ -285,42 +285,72 @@ fn build_owned_header(
         return Err(Error::Invalid("public D1 entity registry bytes"));
     }
     let roots = stage.core_roots()?;
-    let (sources,states,mapped,missing,cross_layer)=stage.with_connection(WritePhase::Finalize,|db| {
-        let mut sources=BTreeMap::<String,u64>::new();
-        let mut states=[BTreeMap::<String,u64>::new(),BTreeMap::new()];
-        let mut mapped=[0u64;2]; let mut missing=[0u64;2]; let mut cross_layer=0u64;
-        let _query_hold=state.hold(512+tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())?;
-        for (kind,table) in ["knowledge_nodes","knowledge_relations"].into_iter().enumerate() {
-            let mut stmt=db.prepare(&format!("SELECT source_graph,payload_len,payload_sha256,CASE WHEN payload_len<=8000000 AND length(payload)=payload_len THEN payload ELSE NULL END FROM {table} ORDER BY source_order"))?;
-            let mut rows=stmt.query([])?;
-            while let Some(row)=rows.next()? {
-                state.active()?;
-                let source=row.get_ref(0)?.as_str().map_err(|_| Error::Invalid("public D1 SQL text"))?; let length:i64=row.get(1)?;
-                let sha=row.get_ref(2)?.as_blob().map_err(|_| Error::Invalid("public D1 SQL blob"))?;
-                let raw=row.get_ref(3)?.as_blob().map_err(|_|Error::Budget("public D1 header row bytes"))?;
-                if length<0 || length as usize !=raw.len() || raw.len()>8_000_000 || sha.len()!=32 {
-                    return Err(Error::Invalid("public D1 header row digest"));
-                }
-                capture.charge_work(raw.len() as u64)?;
-                if sha!=Digest256::of_bytes(raw).as_bytes() { return Err(Error::Invalid("public D1 header row digest")); }
-                let limits=tos_foundation::JsonLimits::new(8_000_000,96,1_000_000,4096)
-                    .map_err(|_|Error::Budget("owned header row JSON"))?;
-                state.with_serde_owned_with_limits(raw,limits,|value| {
-                    if kind==0 { increment_count(&mut sources,source,state)?; }
-                    else if source=="semantic-interchange" { cross_layer=cross_layer.checked_add(1).ok_or(Error::Budget("owned header cross-layer count"))?; }
-                    let display_key=if kind==0 {"summary_state"} else {"explanation_state"};
-                    let display=value["display"][display_key].as_str().ok_or(Error::Invalid("public D1 display state"))?;
-                    increment_count(&mut states[kind],display,state)?;
-                    let mapping=if kind==0 {"type_mapping"} else {"predicate_mapping"};
-                    if value[mapping]["status"]=="mapped" { mapped[kind]=mapped[kind].checked_add(1).ok_or(Error::Budget("owned header mapped count"))?; }
-                    let availability=if kind==0 {"source_summary_available"} else {"source_explanation_available"};
-                    if value["display"]["provenance"][availability]==false { missing[kind]=missing[kind].checked_add(1).ok_or(Error::Budget("owned header missing count"))?; }
+    let mut sources = BTreeMap::<String, u64>::new();
+    let mut states = [BTreeMap::<String, u64>::new(), BTreeMap::new()];
+    let mut mapped = [0u64; 2];
+    let mut missing = [0u64; 2];
+    let mut cross_layer = 0u64;
+    let limits = tos_foundation::JsonLimits::new(8_000_000, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("owned header row JSON"))?;
+    for kind in 0..2 {
+        let mut after = -1;
+        loop {
+            let (_, next) = stage.with_normalized_rows_owned(
+                kind == 1,
+                after,
+                1,
+                8_000_000,
+                |_, metadata, raw, _| {
+                    let source = metadata.source_graph;
+                    capture.charge_work(raw.len() as u64)?;
+                    state.with_serde_owned_with_limits(raw, limits, |value| {
+                        if kind == 0 {
+                            increment_count(&mut sources, source, state)?;
+                        } else if source == "semantic-interchange" {
+                            cross_layer = cross_layer
+                                .checked_add(1)
+                                .ok_or(Error::Budget("owned header cross-layer count"))?;
+                        }
+                        let display_key = if kind == 0 {
+                            "summary_state"
+                        } else {
+                            "explanation_state"
+                        };
+                        let display = value["display"][display_key]
+                            .as_str()
+                            .ok_or(Error::Invalid("public D1 display state"))?;
+                        increment_count(&mut states[kind], display, state)?;
+                        let mapping = if kind == 0 {
+                            "type_mapping"
+                        } else {
+                            "predicate_mapping"
+                        };
+                        if value[mapping]["status"] == "mapped" {
+                            mapped[kind] = mapped[kind]
+                                .checked_add(1)
+                                .ok_or(Error::Budget("owned header mapped count"))?;
+                        }
+                        let availability = if kind == 0 {
+                            "source_summary_available"
+                        } else {
+                            "source_explanation_available"
+                        };
+                        if value["display"]["provenance"][availability] == false {
+                            missing[kind] = missing[kind]
+                                .checked_add(1)
+                                .ok_or(Error::Budget("owned header missing count"))?;
+                        }
+                        Ok(())
+                    })?;
                     Ok(())
-                })?;
+                },
+            )?;
+            match next {
+                Some(next) => after = next,
+                None => break,
             }
         }
-        Ok((sources,states,mapped,missing,cross_layer))
-    })?;
+    }
     let entity_limits = tos_foundation::JsonLimits::new(4 * 1024 * 1024, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("owned header registry JSON"))?;
     let properties = state.with_serde_owned_with_limits(entity_bytes, entity_limits, |entity| {
