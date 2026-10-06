@@ -2205,10 +2205,14 @@ impl<'c> NativeSourceValidator<'c> {
         candidate: &SpoolCandidate<'_>,
     ) -> io::Result<()> {
         let result = self.account_spooled_candidate_inner(candidate);
-        if result.is_err() && self.prepared.is_some() {
-            self.account_spooled_terminal_io(candidate)?;
+        match result {
+            Err(primary) if self.prepared.is_some() => Err(self.retain_spooled_refusal(
+                candidate,
+                primary,
+                "native-v4 candidate accounting",
+            )),
+            other => other,
         }
-        result
     }
 
     fn account_spooled_candidate_inner(
@@ -2541,6 +2545,27 @@ impl<'c> NativeSourceValidator<'c> {
         Ok(())
     }
 
+    fn retain_spooled_refusal(
+        &mut self,
+        candidate: &SpoolCandidate<'_>,
+        primary: io::Error,
+        phase: &'static str,
+    ) -> io::Error {
+        let before = self.spooled_invocation_io_snapshot();
+        let accounting = self.account_spooled_terminal_io(candidate);
+        if accounting.is_ok() {
+            return primary;
+        }
+        // Failed phases may poison the ledger. Retain the primary cause and
+        // the accounting failure separately, as the outer CLI already does.
+        match (before, self.spooled_invocation_io_snapshot()) {
+            (Ok(before), Ok(after)) => io::Error::other(NativeSpoolRefusal::retain(
+                primary, phase, before, after, true, false,
+            )),
+            _ => primary,
+        }
+    }
+
     pub(crate) fn validate_spooled<'candidate>(
         &mut self,
         candidate: &'candidate SpoolCandidate<'_>,
@@ -2550,10 +2575,14 @@ impl<'c> NativeSourceValidator<'c> {
         // Early raw/history/metadata refusals can happen before bootstrap owns
         // a phase window. Preserve that attempted suffix under the original
         // ledger as well; never regrant a completed view after an error.
-        if result.is_err() && self.prepared.is_some() {
-            self.account_spooled_terminal_io(candidate)?;
+        match result {
+            Err(primary) if self.prepared.is_some() => Err(self.retain_spooled_refusal(
+                candidate,
+                primary,
+                "native-v4 whole foundation validation",
+            )),
+            other => other,
         }
-        result
     }
 
     fn validate_spooled_inner<'candidate>(
@@ -2776,7 +2805,8 @@ impl<'c> NativeSourceValidator<'c> {
                     ledger: failed.remaining_budget,
                     sources: failed.sources,
                 });
-                self.account_spooled_terminal_io(candidate)?;
+                // The outer validator accounts this restored failed phase
+                // without replacing its primary refusal with a finalizer error.
                 let reason =
                     foundation_orchestrator::FoundationOrchestratorError::Bootstrap(failed.error)
                         .public_reason();
