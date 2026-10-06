@@ -97,11 +97,10 @@ impl Read<'_> {
             .capacity()
             .checked_mul(std::mem::size_of::<T>())
             .ok_or(Error::Budget("complete carrier container"))?;
-        if actual
-            > new
-                .checked_add(available)
-                .ok_or(Error::Budget("complete carrier container"))?
-        {
+        // Compare only allocator over-allocation to the unspent remainder.
+        // An unconstrained caller uses usize::MAX; adding the already admitted
+        // request to that sentinel must not reject even a one-element carrier.
+        if actual.saturating_sub(new) > available {
             return Err(Error::Budget("complete carrier container capacity"));
         }
         self.retained = self

@@ -1245,7 +1245,8 @@ fn run_spooled(
                 terminal_io,
                 accounting.is_err(),
                 cleanup.is_err(),
-            );
+            )
+            .with_terminal_errors(accounting.as_ref().err(), cleanup.as_ref().err());
             match resources.v2_allocation_accountant.as_ref() {
                 Some(accountant) => Err(io::Error::other(RetainedNativeSpoolRefusal {
                     refusal,

@@ -132,14 +132,14 @@ fn decimal_limit(raw: &str) -> Option<usize> {
 
 pub(crate) fn compiler_query_error(reason: CompilerError) -> SearchV2Error {
     match reason {
-        CompilerError::Budget(_) | CompilerError::SqliteVmBudget { .. } => error(
+        // These owner reasons are static code-owned literals, never source
+        // values or parser text. Preserve the cause through the public adapter.
+        CompilerError::Budget(reason) => error(SearchV2ErrorCode::BudgetExceeded, reason),
+        CompilerError::SqliteVmBudget { .. } => error(
             SearchV2ErrorCode::BudgetExceeded,
             "controlled query owner budget exceeded",
         ),
-        CompilerError::Invalid(_) => error(
-            SearchV2ErrorCode::CorruptSelectedCarrier,
-            "controlled selected knowledge is invalid",
-        ),
+        CompilerError::Invalid(reason) => error(SearchV2ErrorCode::CorruptSelectedCarrier, reason),
         CompilerError::Sql(rusqlite::Error::SqliteFailure(failure, _))
             if failure.code == rusqlite::ErrorCode::OperationInterrupted =>
         {

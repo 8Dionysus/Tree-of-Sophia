@@ -5165,7 +5165,7 @@ pub fn inspect_source_foundation_records_from_cut_rolling_stored<'a>(
     ))
 }
 
-fn source_refusal_origin(error: ItemRefusal, stage: &'static str) -> ItemRefusal {
+pub(crate) fn source_refusal_origin(error: ItemRefusal, stage: &'static str) -> ItemRefusal {
     match error {
         // This district composes several owners. If an older owner still
         // supplies only its budget class, retain the actual dispatch stage

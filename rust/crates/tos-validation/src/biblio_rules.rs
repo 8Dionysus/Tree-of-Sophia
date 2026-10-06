@@ -15,6 +15,7 @@ use crate::source_foundation_default_rules::{
     SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
     SourceFoundationDefaultRecordsLookup,
 };
+use crate::source_foundation_records::source_refusal_origin;
 use crate::{KeyState, PredicateRead, ValidationFact};
 use serde_json::{Value, json};
 use std::borrow::Cow;
@@ -1488,8 +1489,10 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
         uncharged_report_header,
         limits.max_state_bytes,
     )?;
-    let registries = read_biblio_registries(&source, schemas, &mut rules)?;
-    let (types, kinds, routes) = index_biblio_registries(&registries, &source, &mut rules)?;
+    let registries = read_biblio_registries(&source, schemas, &mut rules)
+        .map_err(|e| source_refusal_origin(e, "biblio-registries"))?;
+    let (types, kinds, routes) = index_biblio_registries(&registries, &source, &mut rules)
+        .map_err(|e| source_refusal_origin(e, "biblio-registry-index"))?;
 
     let mut claim_ordinal = 0u64;
     let mut event_ordinal = 0u64;
@@ -1809,7 +1812,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                                     }
                                     // The verifier has no complete read receipt on failure, so the
                                     // Biblio entry cannot return a cost-complete owner report.
-                                    Err(error) => return Err(error),
+                                    Err(error) => return Err(source_refusal_origin(error, "biblio-native-compound")),
                                 }
                             }
                             if run_local_claim {
@@ -1830,7 +1833,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                                         schemas,
                                         local_limits,
                                         cancelled,
-                                    )?;
+                                    ).map_err(|e| source_refusal_origin(e, "biblio-local-claim"))?;
                                 if local_claim.input_identity != *input.input_identity()
                                     || local_claim.current_membership
                                         != *records.source_membership()
@@ -1994,7 +1997,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                 }
                 rules.state -= member_state;
                 Ok(())
-            })?;
+            }).map_err(|e| source_refusal_origin(e, "biblio-source-scan"))?;
     if scanned != *coverage
         || scanned.member_count() != source_scan_members
         || scanned.membership() != *records.source_membership()
@@ -2030,51 +2033,53 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
 
     let record_lookup = CandidateBiblioRecordLookup(record_lookup);
     let event_lookup = stored.biblio_event_lookup();
-    stored.for_each_claim(&mut |ordinal, claim| {
-        check(limits.deadline, cancelled)?;
-        let compound_verified =
-            s(&claim.value, "claim_id").is_some_and(|id| verified_native.contains(id));
-        inspect_claim(
-            &source,
-            claim,
-            &routes,
-            &types,
-            &kinds,
-            &record_lookup,
-            event_lookup,
-            schemas,
-            &mut rules,
-            compound_verified,
-        )?;
-        if let Some(id) = s(&claim.value, "claim_id") {
-            if stored
-                .claim_by_id(id)?
-                .is_some_and(|(first_ordinal, _)| first_ordinal < ordinal)
-            {
-                rules.issue(
-                    "duplicate-claim-id",
-                    &format!("{}:{}", claim.path, claim.line),
+    stored
+        .for_each_claim(&mut |ordinal, claim| {
+            check(limits.deadline, cancelled)?;
+            let compound_verified =
+                s(&claim.value, "claim_id").is_some_and(|id| verified_native.contains(id));
+            inspect_claim(
+                &source,
+                claim,
+                &routes,
+                &types,
+                &kinds,
+                &record_lookup,
+                event_lookup,
+                schemas,
+                &mut rules,
+                compound_verified,
+            )?;
+            if let Some(id) = s(&claim.value, "claim_id") {
+                if stored
+                    .claim_by_id(id)?
+                    .is_some_and(|(first_ordinal, _)| first_ordinal < ordinal)
+                {
+                    rules.issue(
+                        "duplicate-claim-id",
+                        &format!("{}:{}", claim.path, claim.line),
+                    )?;
+                }
+                rules.read(
+                    "source-claim-id".len()
+                        + id.len()
+                        + claim.path.len()
+                        + 1
+                        + if claim.line == 0 {
+                            1
+                        } else {
+                            claim.line.ilog10() as usize + 1
+                        },
+                    || PredicateRead::UniqueKey {
+                        namespace: "source-claim-id".into(),
+                        key: id.into(),
+                        owner: format!("{}:{}", claim.path, claim.line),
+                    },
                 )?;
             }
-            rules.read(
-                "source-claim-id".len()
-                    + id.len()
-                    + claim.path.len()
-                    + 1
-                    + if claim.line == 0 {
-                        1
-                    } else {
-                        claim.line.ilog10() as usize + 1
-                    },
-                || PredicateRead::UniqueKey {
-                    namespace: "source-claim-id".into(),
-                    key: id.into(),
-                    owner: format!("{}:{}", claim.path, claim.line),
-                },
-            )?;
-        }
-        Ok(())
-    })?;
+            Ok(())
+        })
+        .map_err(|e| source_refusal_origin(e, "biblio-claim-inspection"))?;
     drop(verified_native);
     rules.state = rules
         .state
@@ -2104,7 +2109,8 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
         &generation,
         topology_limits,
         cancelled,
-    )?;
+    )
+    .map_err(|e| source_refusal_origin(e, "biblio-topology"))?;
     reserve(
         &mut rules.state,
         topology_state,
@@ -2122,7 +2128,8 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
         &record_lookup,
         &scanned.membership().digest.to_prefixed(),
         &mut rules,
-    )?;
+    )
+    .map_err(|e| source_refusal_origin(e, "biblio-closure"))?;
     inspect_batches(
         &batch_claims,
         event_lookup,
@@ -2133,7 +2140,8 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
             .is_some()
             .then_some(&source as &dyn BiblioSourceAccess),
         &mut rules,
-    )?;
+    )
+    .map_err(|e| source_refusal_origin(e, "biblio-batches"))?;
     drop(batch_claims);
     rules.state = rules
         .state

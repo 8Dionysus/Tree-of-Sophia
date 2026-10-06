@@ -83,6 +83,8 @@ pub(crate) struct NativeSpoolRefusal {
     terminal_io: NativeInvocationIoSnapshot,
     accounting_failed: bool,
     cleanup_failed: bool,
+    terminal_accounting_error_sha256: Option<String>,
+    terminal_cleanup_error_sha256: Option<String>,
     output_failed: bool,
 }
 impl std::fmt::Display for NativeSpoolRefusal {
@@ -107,6 +109,8 @@ pub(crate) struct NativeSpoolRefusalPacket<'a> {
     terminal_io: NativeSpoolIoPacket,
     accounting_failed: bool,
     cleanup_failed: bool,
+    terminal_accounting_error_sha256: Option<&'a str>,
+    terminal_cleanup_error_sha256: Option<&'a str>,
     output_failed: bool,
 }
 #[derive(serde::Serialize)]
@@ -230,8 +234,31 @@ impl NativeSpoolRefusal {
             terminal_io,
             accounting_failed,
             cleanup_failed,
+            terminal_accounting_error_sha256: None,
+            terminal_cleanup_error_sha256: None,
             output_failed: false,
         }
+    }
+    /// Retain only bounded fingerprints of the real finalizer causes. The
+    /// primary validation refusal remains the outcome; no private text escapes.
+    pub(crate) fn with_terminal_errors(
+        mut self,
+        accounting: Option<&io::Error>,
+        cleanup: Option<&io::Error>,
+    ) -> Self {
+        if let Some(error) = accounting {
+            self.accounting_failed = true;
+            if self.terminal_accounting_error_sha256.is_none() {
+                self.terminal_accounting_error_sha256 = bounded_error_sha256(error);
+            }
+        }
+        if let Some(error) = cleanup {
+            self.cleanup_failed = true;
+            if self.terminal_cleanup_error_sha256.is_none() {
+                self.terminal_cleanup_error_sha256 = bounded_error_sha256(error);
+            }
+        }
+        self
     }
     pub(crate) fn with_output_refused(mut self) -> Self {
         self.output_failed = true;
@@ -264,6 +291,8 @@ impl NativeSpoolRefusal {
             terminal_io: self.terminal_io.into(),
             accounting_failed: self.accounting_failed,
             cleanup_failed: self.cleanup_failed,
+            terminal_accounting_error_sha256: self.terminal_accounting_error_sha256.as_deref(),
+            terminal_cleanup_error_sha256: self.terminal_cleanup_error_sha256.as_deref(),
             output_failed: self.output_failed,
         }
     }
@@ -2634,9 +2663,10 @@ impl<'c> NativeSourceValidator<'c> {
         // Failed phases may poison the ledger. Retain the primary cause and
         // the accounting failure separately, as the outer CLI already does.
         match (before, self.spooled_invocation_io_snapshot()) {
-            (Ok(before), Ok(after)) => io::Error::other(NativeSpoolRefusal::retain(
-                primary, phase, before, after, true, false,
-            )),
+            (Ok(before), Ok(after)) => io::Error::other(
+                NativeSpoolRefusal::retain(primary, phase, before, after, true, false)
+                    .with_terminal_errors(accounting.as_ref().err(), None),
+            ),
             _ => primary,
         }
     }
@@ -3400,8 +3430,23 @@ mod refusal_transport_tests {
             false,
             false,
         );
+        let refusal = refusal.with_terminal_errors(
+            Some(&io::Error::other("/private/accounting")),
+            Some(&io::Error::other("/private/cleanup")),
+        );
         let encoded = serde_json::to_string(&refusal.packet()).unwrap();
-        assert!(!encoded.contains("private/sentinel"));
+        assert!(!encoded.contains("/private/"));
+        let packet: Value = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(packet["accounting_failed"], true);
+        assert_eq!(packet["cleanup_failed"], true);
+        assert_eq!(
+            packet["terminal_accounting_error_sha256"],
+            tos_foundation::Digest256::of_bytes(b"/private/accounting").to_hex()
+        );
+        assert_eq!(
+            packet["terminal_cleanup_error_sha256"],
+            tos_foundation::Digest256::of_bytes(b"/private/cleanup").to_hex()
+        );
         assert!(
             serde_json::from_str::<Value>(&encoded).unwrap()["native_validation_reason"].is_null()
         );

@@ -53,6 +53,20 @@ unchanged to D1; existing read snapshots require regeneration to gain this
 correction. Processor dependency digests invalidate affected normalization
 cache entries, not source history.
 
+`normalization_binding` identifies the producer and configuration of a normalized
+snapshot. The Rust snapshot binds its compiled projection recipe and captured
+source cut, with configuration derived from the exact query-vocabulary and two
+registry inputs. Python Reference retains its own processor and configuration
+fingerprints. A change of implementation therefore need not preserve
+`processor_digest` or `configuration_digest`; copying the predecessor's hashes
+would misstate provenance. Cross-implementation compatibility checks verify each
+binding against its actual producer, then compare the public source revision,
+registry digests and complete source-preserving results. This distinction grants
+no permission to mix retained normalization state: assembly requires its exact
+shared binding, and prepared-state changes use the explicit
+[reviewed implementation transition](prepared-source-binding.v1.md#native-normalization-implementation-transition)
+or a real rebuild when configuration or rules change.
+
 `tos.knowledge.temporal.compare` compares two explicitly selected source
 Claim date envelopes within one required `source_revision`. Its request binds
 each exact normalized Claim ID and `content_revision`; native IDs, entity IDs

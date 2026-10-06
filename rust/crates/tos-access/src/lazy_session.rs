@@ -1055,7 +1055,7 @@ fn serve_whole_indexed_search(
                                 send_whole_result(ledger, reply, sequence, next, $revision, body).map_err(map)?;
                                 current().map_err(map)
                             },
-                        ).map_err(|_| "Core Whole scoped Search refused")?;
+                        ).map_err(|error| error.message)?;
                         current()
                     }, current).map_err(tos_compiler::Error::Invalid)
                 })
