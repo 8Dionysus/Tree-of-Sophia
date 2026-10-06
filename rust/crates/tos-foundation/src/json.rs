@@ -1127,13 +1127,46 @@ fn canonical_state_and_visits(
     available: usize,
     check: Option<&mut dyn FnMut() -> Result<()>>,
 ) -> Result<(Vec<u8>, usize)> {
-    let style = match profile {
+    write_with_state_budget_and_visits(
+        value,
+        canonical_write_style(profile),
+        limits,
+        available,
+        check,
+        None,
+        false,
+    )
+}
+
+fn canonical_write_style(profile: CanonicalProfile) -> WriteStyle {
+    match profile {
         CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
         CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
             WriteStyle::PythonCompact
         }
-    };
-    write_with_state_budget_and_visits(value, style, limits, available, check, None, false)
+    }
+}
+
+/// Canonical bytes with the same state/visit limits and a prefix work owner.
+/// Admit each count/emit byte and visitor prefix before processing it, retaining
+/// successful charges on refusal instead of charging the whole output ceiling.
+pub fn canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    available: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+    admit: &mut dyn FnMut(usize, usize) -> Result<()>,
+) -> Result<(Vec<u8>, usize)> {
+    write_with_state_budget_and_visits(
+        value,
+        canonical_write_style(profile),
+        limits,
+        available,
+        Some(check),
+        Some(admit),
+        true,
+    )
 }
 
 /// Resource text: Python ensure_ascii=False, indent=2, sort_keys=True, no LF.

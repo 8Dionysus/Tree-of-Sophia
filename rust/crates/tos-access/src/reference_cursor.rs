@@ -133,8 +133,12 @@ pub(crate) fn encode_reference_cursor_payload(
     value: &Value,
     cap: usize,
 ) -> Result<String, SearchV2Error> {
-    let raw =
-        serde_json::to_vec(value).map_err(|_| invalid("indexed cursor JSON cannot be encoded"))?;
+    // The Reference wire format sorts every object, independently of Cargo
+    // feature unification enabling serde_json's insertion-ordered maps.
+    let mut sorted = value.clone();
+    sorted.sort_all_objects();
+    let raw = serde_json::to_vec(&sorted)
+        .map_err(|_| invalid("indexed cursor JSON cannot be encoded"))?;
     if raw.len() > cap {
         return Err(error(
             SearchV2ErrorCode::BudgetExceeded,
@@ -219,7 +223,9 @@ impl ReferenceCursorBinding {
     }
 
     pub(crate) fn filters_digest(&self) -> Result<String, SearchV2Error> {
-        let raw = serde_json::to_vec(&self.filters_value())
+        let mut value = self.filters_value();
+        value.sort_all_objects();
+        let raw = serde_json::to_vec(&value)
             .map_err(|_| invalid("indexed cursor filters cannot be encoded"))?;
         Ok(Digest256::of_bytes(&raw).to_hex())
     }
@@ -635,5 +641,26 @@ impl IndexedWireCursorCodec for NativeReferenceIndexedCursorCodec {
             state.is_exhausted(SearchKind::Relations),
         )?;
         encode_reference_indexed_cursor(&self.binding, &envelope)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reference_wire_keys_and_filter_hash_are_sorted_with_any_map_features() {
+        let value = json!({"z": [{"z": "é", "a": 1}], "a": true});
+        let token = encode_reference_cursor_payload(&value, 1024).unwrap();
+        assert_eq!(
+            base64url_decode(&token, 1024).unwrap(),
+            "{\"a\":true,\"z\":[{\"a\":1,\"z\":\"é\"}]}".as_bytes(),
+        );
+        let binding =
+            ReferenceCursorBinding::new("revision", "query", vec![], vec![], vec![]).unwrap();
+        assert_eq!(
+            binding.filters_digest().unwrap(),
+            Digest256::of_bytes(br#"{"kind_ids":[],"predicate_ids":[],"sources":[]}"#,).to_hex()
+        );
     }
 }

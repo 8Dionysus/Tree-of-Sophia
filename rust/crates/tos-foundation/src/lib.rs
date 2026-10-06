@@ -23,6 +23,7 @@ pub use json::{
     JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1,
     canonical_bytes_v1_with_check, canonical_bytes_v1_with_state_budget,
     canonical_bytes_v1_with_state_budget_and_visits,
+    canonical_bytes_v1_with_state_budget_and_visits_and_admission,
     canonical_bytes_v1_with_state_budget_and_visits_and_check, canonical_bytes_v1_with_visits,
     canonical_count_v1, canonical_digest_v1, canonical_feed_digest_v1,
     canonical_feed_digest_v1_with_check, canonical_raw_bytes_profile, canonical_raw_bytes_v1,

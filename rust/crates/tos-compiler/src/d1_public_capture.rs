@@ -978,19 +978,7 @@ impl<'budget> CreationState<'budget> {
         );
         limits.max_depth = limits.max_depth.min(96);
         limits.max_integer_digits = limits.max_integer_digits.min(4096);
-        self.charge_work(
-            limits
-                .max_bytes
-                .checked_mul(2)
-                .and_then(|n| n.checked_add(limits.max_visits))
-                .ok_or(Error::Budget("owned model canonical work"))?,
-        )?;
         let available = self.remaining(0)?;
-        self.json_visits.set(
-            before
-                .checked_add(limits.max_visits)
-                .ok_or(Error::Budget("owned model canonical visits"))?,
-        );
         let mut check = || {
             self.remaining(0).map(|_| ()).map_err(|_| {
                 tos_foundation::FoundationError::new(
@@ -999,20 +987,37 @@ impl<'budget> CreationState<'budget> {
                 )
             })
         };
+        let mut admit = |bytes: usize, visits: usize| {
+            let failure = || {
+                tos_foundation::FoundationError::new(
+                    tos_foundation::FoundationErrorCode::BudgetExceeded,
+                    "owned model canonical work/visits",
+                )
+            };
+            let total = self
+                .json_visits
+                .get()
+                .checked_add(visits)
+                .filter(|n| *n <= self.max_json_visits)
+                .ok_or_else(failure)?;
+            self.charge_work(bytes.checked_add(visits).ok_or_else(failure)?)
+                .map_err(|_| failure())?;
+            self.json_visits.set(total);
+            Ok(())
+        };
         let (encoded, used) =
-            tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_check(
+            tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_admission(
                 value,
                 tos_foundation::CanonicalProfile::SourceRecordDigestV1,
                 limits,
                 available,
                 &mut check,
+                &mut admit,
             )
             .map_err(|_| Error::Budget("owned model canonical admission"))?;
-        self.json_visits.set(
-            before
-                .checked_add(used)
-                .ok_or(Error::Budget("owned model canonical visits"))?,
-        );
+        if self.json_visits.get().checked_sub(before) != Some(used) {
+            return Err(Error::Invalid("owned model canonical visit accounting"));
+        }
         Ok(encoded)
     }
     pub(crate) fn value_clone_state_upper_bound(&self, value: &serde_json::Value) -> Result<usize> {

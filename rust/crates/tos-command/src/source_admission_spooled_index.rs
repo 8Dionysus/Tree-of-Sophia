@@ -370,9 +370,15 @@ pub(crate) fn receiver_refusal(error: ItemRefusal) -> io::Error {
             };
         }
         ItemRefusal::Unsupported(reason) => {
+            // Retain enough shape to locate a formatted owner refusal without
+            // disclosing its source paths or parser text. The full digest is
+            // unchanged; the bounded prefix fingerprint distinguishes static
+            // error families whose variable details prevent literal lookup.
+            let prefix = Digest256::of_bytes(&reason.as_bytes()[..reason.len().min(32)]).to_hex();
+            let site = format!("Unsupported-{:x}-{}", reason.len(), &prefix[..8]);
             return io::Error::new(
                 io::ErrorKind::InvalidData,
-                bounded_source_cause("receiver-source", "ItemRefusal-Unsupported", &reason),
+                bounded_source_cause("receiver-source", &site, &reason),
             );
         }
     };
@@ -2258,6 +2264,16 @@ mod executor_refusal_tests {
         ChildTermination, ExchangeFailureContext, ExecutorFailure, SharedSchemaWorkerQuotaUsage,
     };
     use tos_validation::item_rules::ItemExecutorRefusal;
+
+    #[test]
+    fn unsupported_shape_fingerprint_preserves_digest_without_private_text() {
+        let private = "owner refusal: /private/source/member.json";
+        let reason = receiver_refusal(ItemRefusal::Unsupported(private.into())).to_string();
+        assert!(is_bounded_source_cause(&reason));
+        assert!(reason.ends_with(&Digest256::of_bytes(private.as_bytes()).to_hex()));
+        assert!(!reason.contains("private") && !reason.contains("owner refusal"));
+        assert!(reason.len() <= 192);
+    }
 
     #[test]
     fn receiver_preserves_all_executor_codes_and_committed_prefix_without_private_text() {

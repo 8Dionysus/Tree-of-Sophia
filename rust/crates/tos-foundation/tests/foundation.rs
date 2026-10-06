@@ -7,6 +7,67 @@ use tos_foundation::{
 };
 
 #[test]
+fn canonical_work_admission_counts_prefixes_without_spending_the_output_ceiling() {
+    use tos_foundation::{
+        FoundationError, canonical_bytes_v1_with_state_budget_and_visits_and_admission,
+    };
+    let limits = JsonLimits::default();
+    let value = parse_json(
+        br#"{"z":[1,"text"],"a":true}"#,
+        JsonMode::PublishedStrict,
+        limits,
+    )
+    .unwrap()
+    .into_root();
+    for profile in [
+        CanonicalProfile::SourceRecordDigestV1,
+        CanonicalProfile::CorpusSnapshotV1,
+    ] {
+        let mut work = 0usize;
+        let mut visits = 0usize;
+        let (actual, reported) = canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+            &value,
+            profile,
+            limits,
+            65536,
+            &mut || Ok(()),
+            &mut |bytes, count| {
+                work += bytes + count;
+                visits += count;
+                assert!(work <= 256);
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(actual, canonical_bytes_v1(&value, profile, limits).unwrap());
+        assert_eq!(reported, visits);
+        assert!(work > actual.len() && work < limits.max_bytes);
+    }
+    let mut charged = 0usize;
+    let failure = canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+        &value,
+        CanonicalProfile::SourceRecordDigestV1,
+        limits,
+        65536,
+        &mut || Ok(()),
+        &mut |bytes, visits| {
+            let next = charged + bytes + visits;
+            if next > 4 {
+                return Err(FoundationError::new(
+                    FoundationErrorCode::BudgetExceeded,
+                    "test work cap",
+                ));
+            }
+            charged = next;
+            Ok(())
+        },
+    )
+    .unwrap_err();
+    assert_eq!(failure.code, FoundationErrorCode::BudgetExceeded);
+    assert!(charged > 0 && charged <= 4);
+}
+
+#[test]
 fn exact_hash_stream_and_lexical_types() {
     let mut stream = Digest256Hasher::new();
     stream.update(b"a");
