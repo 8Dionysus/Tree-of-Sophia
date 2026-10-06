@@ -4130,11 +4130,7 @@ impl<'a> KnowledgeStage<'a> {
             stage_integrity_first_row_owned(self.db(), state)?
         } else {
             self.db().query_row("PRAGMA integrity_check", [], |row| {
-                Ok(row
-                    .get_ref(0)?
-                    .as_str()
-                    .map_err(|_| Error::Invalid("stage seek id type"))?
-                    == "ok")
+                Ok(row.get_ref(0)?.as_str()? == "ok")
             })?
         };
         if !integrity_ok {
