@@ -221,6 +221,7 @@ impl InitialCutPrepared<'_> {
 struct InitialCutFence<'a> {
     root_name: &'a Path,
     root: File,
+    workspace_root: File,
     root_identity: (u64, u64),
     root_stamp: (u64, u64, u64, i64, i64, i64, i64),
     proposal: SourceCensusSummary,
@@ -473,6 +474,7 @@ pub(crate) fn charge_name_guard(io: &PinnedSqliteIoBudget, name: &str) -> io::Re
 
 fn verify_store_root_entries(
     root: &File,
+    workspace_root: &File,
     io: &PinnedSqliteIoBudget,
     work: &mut InitialCutWork,
     deadline: Instant,
@@ -480,8 +482,10 @@ fn verify_store_root_entries(
 ) -> io::Result<()> {
     let mut seen = [false; 3];
     let mut lock_seen = false;
+    let mut workspace_seen = false;
     let mut buffer = [MaybeUninit::uninit(); 8192];
-    let mut entries = RawDir::new(root, &mut buffer);
+    let scan = tos_fd_open::reopen_directory(root).map_err(invalid)?;
+    let mut entries = RawDir::new(scan, &mut buffer);
     loop {
         active(deadline, cancel)?;
         if entries.is_buffer_empty() {
@@ -525,7 +529,24 @@ fn verify_store_root_entries(
                 }
                 1
             }
-            _ => return Err(invalid("initial store root contains an unexpected entry")),
+            _ => {
+                // The invocation may place its SQLite workspace in the same
+                // persistent Store. Admit only that held directory identity;
+                // a matching name prefix grants no namespace authority.
+                charge_name_guard(io, name)?;
+                let named = rustix::fs::statat(root, name, AtFlags::SYMLINK_NOFOLLOW)?;
+                let held = workspace_root.metadata()?;
+                if workspace_seen
+                    || !FileType::from_raw_mode(named.st_mode).is_dir()
+                    || (named.st_dev as u64, named.st_ino as u64) != (held.dev(), held.ino())
+                    || named.st_uid != held.uid()
+                    || (named.st_mode & 0o777) != (held.mode() & 0o777)
+                {
+                    return Err(invalid("initial store root contains an unexpected entry"));
+                }
+                workspace_seen = true;
+                continue;
+            }
         };
         charge_name_guard(io, name)?;
         let stat = rustix::fs::statat(root, name, AtFlags::SYMLINK_NOFOLLOW)?;
@@ -549,7 +570,8 @@ fn require_empty_directory(
     reason: &'static str,
 ) -> io::Result<()> {
     let mut buffer = [MaybeUninit::uninit(); 8192];
-    let mut entries = RawDir::new(directory, &mut buffer);
+    let scan = tos_fd_open::reopen_directory(directory).map_err(invalid)?;
+    let mut entries = RawDir::new(scan, &mut buffer);
     loop {
         active(deadline, cancel)?;
         if entries.is_buffer_empty() {
@@ -574,6 +596,7 @@ fn require_empty_directory(
 
 fn initial_store_namespaces(
     store: &AdmissionStore,
+    workspace_root: &File,
     io: &PinnedSqliteIoBudget,
     work: &mut InitialCutWork,
     deadline: Instant,
@@ -584,7 +607,7 @@ fn initial_store_namespaces(
         return Err(invalid("initial V2 store already has a segment namespace"));
     }
     let (root, objects, revisions) = store.backup_namespaces()?;
-    verify_store_root_entries(root, io, work, deadline, cancel)?;
+    verify_store_root_entries(root, workspace_root, io, work, deadline, cancel)?;
     charge_name_guard(io, "staging")?;
     let staging = tos_fd_open::open_directory_at(root, Path::new("staging")).map_err(invalid)?;
     Ok((objects.try_clone()?, revisions.try_clone()?, staging))
@@ -592,13 +615,14 @@ fn initial_store_namespaces(
 
 fn verify_initial_store_baseline(
     store: &AdmissionStore,
+    workspace_root: &File,
     io: &PinnedSqliteIoBudget,
     work: &mut InitialCutWork,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<()> {
     let (objects, revisions, staging) =
-        initial_store_namespaces(store, io, work, deadline, cancel)?;
+        initial_store_namespaces(store, workspace_root, io, work, deadline, cancel)?;
     require_empty_directory(
         &objects,
         io,
@@ -803,7 +827,8 @@ fn verify_object_inventory(
     cancel: &AtomicBool,
 ) -> io::Result<()> {
     let mut buffer = [MaybeUninit::uninit(); 8192];
-    let mut entries = RawDir::new(objects, &mut buffer);
+    let scan = tos_fd_open::reopen_directory(objects).map_err(invalid)?;
+    let mut entries = RawDir::new(scan, &mut buffer);
     let mut actual_count = 0u64;
     loop {
         active(deadline, cancel)?;
@@ -962,6 +987,7 @@ fn object_verify_read_work_units(size: u64) -> io::Result<u64> {
 
 fn verify_terminal_store_namespaces(
     store: &AdmissionStore,
+    workspace_root: &File,
     db: &PinnedSqliteConnection,
     namespace_io: &PinnedSqliteIoBudget,
     payload_io: &PinnedSqliteIoBudget,
@@ -973,7 +999,7 @@ fn verify_terminal_store_namespaces(
     cancel: &AtomicBool,
 ) -> io::Result<()> {
     let (objects, revisions, staging) =
-        initial_store_namespaces(store, namespace_io, work, deadline, cancel)?;
+        initial_store_namespaces(store, workspace_root, namespace_io, work, deadline, cancel)?;
     require_empty_directory(
         &revisions,
         namespace_io,
@@ -1191,6 +1217,7 @@ pub(crate) fn prepare_initial_cut<'a>(
         open_selected_root(root_name, &spool_io, deadline, cancel)?;
     let retained_cancel = Arc::clone(&aux.cancelled);
     work.charge_many(32)?;
+    let workspace_root = workspace.try_clone()?;
     let mut scope = PinnedSqliteAuxScope::new(workspace, aux)
         .map_err(|_| invalid("initial source cut held AUX scope refused"))?;
     let db =
@@ -1309,6 +1336,7 @@ pub(crate) fn prepare_initial_cut<'a>(
             root: root
                 .try_clone()
                 .map_err(|_| invalid("initial source root fence clone refused"))?,
+            workspace_root,
             root_identity,
             root_stamp,
             proposal,
@@ -1361,6 +1389,7 @@ impl InitialCutFence<'_> {
         }
         verify_initial_store_baseline(
             store,
+            &self.workspace_root,
             &self.v2_io,
             &mut self.work,
             self.deadline,
@@ -1427,6 +1456,7 @@ impl InitialCutFence<'_> {
             let db_guard = self.db.borrow_mut();
             verify_terminal_store_namespaces(
                 store,
+                &self.workspace_root,
                 &db_guard,
                 &self.v2_io,
                 &self.spool_io,
@@ -1450,5 +1480,33 @@ impl InitialCutFence<'_> {
             &self.cancel,
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod namespace_tests {
+    use super::*;
+
+    #[test]
+    fn initial_namespace_accepts_only_held_workspace_on_repeated_scans() {
+        let dir = tempfile::tempdir().unwrap();
+        for name in ["objects", "revisions", "staging", "tos-isolated-create-owned"] {
+            std::fs::create_dir(dir.path().join(name)).unwrap();
+        }
+        let root = File::open(dir.path()).unwrap();
+        let workspace = File::open(dir.path().join("tos-isolated-create-owned")).unwrap();
+        let io = PinnedSqliteIoBudget::new(1024 * 1024, 1024).unwrap();
+        let mut work = InitialCutWork::new(100).unwrap();
+        let deadline = Instant::now() + std::time::Duration::from_secs(5);
+        let cancel = AtomicBool::new(false);
+        for _ in 0..2 {
+            verify_store_root_entries(&root, &workspace, &io, &mut work, deadline, &cancel)
+                .unwrap();
+        }
+        std::fs::create_dir(dir.path().join("tos-isolated-create-foreign")).unwrap();
+        let error = verify_store_root_entries(
+            &root, &workspace, &io, &mut work, deadline, &cancel,
+        ).unwrap_err();
+        assert_eq!(error.to_string(), "initial store root contains an unexpected entry");
     }
 }
