@@ -18,6 +18,7 @@ _OPERATIONS = (
     'tos_corpus_index', 'tos_bibliographic_graph', 'tos_philosophy_projection',
     'tos_philosophy_audit_payload', 'tos_corpus_header',
 )
+_ORDINARY_DIRECT = ('tos_source_navigation', 'tos_knowledge_header', 'tos_evidence_projection')
 _FRAGMENTS = (
     ',"operation":"tos_corpus_index_exists","arguments":{},"work_deadline_ns":',
     ',"operation":"tos_philosophy_projection_exists","arguments":{},"work_deadline_ns":',
@@ -366,16 +367,36 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
             if type(cap) is not dict or type(cap.get('operation')) is not str:
                 raise ValueError('native ordinary capability entry differs')
             if len(cap) == 1:
-                if cap['operation'] not in (*_OPERATIONS, 'tos_native_resource_read'):
+                if cap['operation'] not in (*_OPERATIONS, *_ORDINARY_DIRECT, 'tos_native_resource_read'):
                     raise ValueError('native ordinary direct capability differs')
-            elif (len(cap) == 3 and cap['operation'] == 'tos_native_call'
-                    and type(cap.get('tool')) is str and cap['tool'].startswith('tos_')
-                    and 4 < len(cap['tool']) <= 256
-                    and type(cap.get('profiles')) is list and len(cap['profiles']) == 1
-                    and type(cap['profiles'][0]) is str and cap['profiles'][0] in _PROFILES):
-                whole = whole or cap['profiles'][0] == 'whole_root'
+                continue
+            profiles = cap.get('profiles')
+            if (type(profiles) is not list or not 1 <= len(profiles) <= len(_PROFILES)
+                    or any(type(profile) is not str or profile not in _PROFILES
+                           or profile in profiles[:index]
+                           for index, profile in enumerate(profiles))):
+                raise ValueError('native ordinary capability profiles differ')
+            for profile in profiles:
+                state.visit()
+            if len(cap) == 2 and cap['operation'] in _ORDINARY_DIRECT:
+                pass
+            elif (cap['operation'] == 'tos_native_call'
+                    and type(cap.get('tool')) is str and cap['tool'].startswith(('tos_', 'tos.'))
+                    and 4 < len(cap['tool']) <= 256):
+                if len(cap) == 5 and cap['tool'] == 'tos_native_resource_read':
+                    for key in ('resources', 'resource_templates'):
+                        values = cap.get(key)
+                        if type(values) is not list:
+                            raise ValueError('native ordinary resource capability differs')
+                        for value in values:
+                            state.visit()
+                            if type(value) is not str or not value:
+                                raise ValueError('native ordinary resource capability differs')
+                elif len(cap) != 3:
+                    raise ValueError('native ordinary capability shape differs')
             else:
                 raise ValueError('native ordinary capability shape differs')
+            whole = whole or 'whole_root' in profiles
         guard = ready.get('snapshot_guard')
         if guard is not None and (type(guard) is not str or len(guard) != 64
                 or any(c not in '0123456789abcdef' for c in guard)):
@@ -429,6 +450,10 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
             if not self._has_capability(operation):
                 raise ValueError('native ordinary direct capability unavailable')
             return super().call(operation, arguments, absolute_deadline=absolute_deadline)
+        if operation in _ORDINARY_DIRECT:
+            if not self._has_capability(operation):
+                raise ValueError('native ordinary direct capability unavailable')
+            return self._request(operation, arguments, absolute_deadline=absolute_deadline)
         if not self._has_capability('tos_native_call', operation):
             raise ValueError('native ordinary tool capability unavailable')
         if operation in ('tos_knowledge_search', 'tos_knowledge_search_indexed_v2'):
@@ -538,14 +563,16 @@ class NativeCoreOrdinarySessionResultClient(NativeCoreLazySessionResultClient):
             raise
 
     def read_resource(self, uri):
-        if not self._has_capability('tos_native_resource_read'):
+        if not self._has_capability('tos_native_call', 'tos_native_resource_read'):
             raise ValueError('native ordinary resource capability unavailable')
-        return self._request('tos_native_resource_read', {'uri':uri, 'render':False})
+        return self._request('tos_native_call', {'tool':'tos_native_resource_read',
+            'arguments':{'uri':uri, 'render':False}})
 
     def render_resource(self, uri):
-        if not self._has_capability('tos_native_resource_read'):
+        if not self._has_capability('tos_native_call', 'tos_native_resource_read'):
             raise ValueError('native ordinary render capability unavailable')
-        result = self._request('tos_native_resource_read', {'uri':uri, 'render':True})
+        result = self._request('tos_native_call', {'tool':'tos_native_resource_read',
+            'arguments':{'uri':uri, 'render':True}})
         if type(result) is not str:
             raise ValueError('native ordinary rendered result type differs')
         return result
