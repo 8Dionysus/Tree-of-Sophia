@@ -98,11 +98,21 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
         required_state_bytes: usize,
         max_operation_state_bytes: usize,
     ) -> Result<(), ItemRefusal> {
-        if self.callback_retained_state_bytes.get() < required_state_bytes
-            || self.max_owned_state_bytes.get() > max_operation_state_bytes
-        {
+        if self.callback_retained_state_bytes.get() < required_state_bytes {
             self.candidate.abandon();
-            return Err(tos_validation::item_budget_origin!());
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate callback retained state",
+                used: Some(required_state_bytes as u64),
+                limit: Some(self.callback_retained_state_bytes.get() as u64),
+            });
+        }
+        if self.max_owned_state_bytes.get() > max_operation_state_bytes {
+            self.candidate.abandon();
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate input operation state",
+                used: Some(self.max_owned_state_bytes.get() as u64),
+                limit: Some(max_operation_state_bytes as u64),
+            });
         }
         Ok(())
     }
