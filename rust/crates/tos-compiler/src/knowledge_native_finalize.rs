@@ -78,14 +78,24 @@ fn page(
     if let Some(state) = stage.owned_creation_state() {
         let mut batch = Vec::with_capacity(limits.max_page_rows);
         stage.with_normalized_rows_owned(
-            table == "knowledge_relations", after, limits.max_page_rows,
-            limits.max_row_bytes, |_, metadata, logical, source| {
-                state.charge_work(logical.len().checked_add(source.map_or(0, <[u8]>::len))
-                    .ok_or(Error::Budget("native final page copy work"))?)?;
+            table == "knowledge_relations",
+            after,
+            limits.max_page_rows,
+            limits.max_row_bytes,
+            |_, metadata, logical, source| {
+                state.charge_work(
+                    logical
+                        .len()
+                        .checked_add(source.map_or(0, <[u8]>::len))
+                        .ok_or(Error::Budget("native final page copy work"))?,
+                )?;
                 batch.push(Row {
-                    id: metadata.id.to_owned(), source: metadata.source_graph.to_owned(),
-                    native: metadata.native_id.map(str::to_owned), order: metadata.source_order,
-                    payload: logical.to_vec(), sha: metadata.logical_digest.as_bytes().to_vec(),
+                    id: metadata.id.to_owned(),
+                    source: metadata.source_graph.to_owned(),
+                    native: metadata.native_id.map(str::to_owned),
+                    order: metadata.source_order,
+                    payload: logical.to_vec(),
+                    sha: metadata.logical_digest.as_bytes().to_vec(),
                     source_packet: source.map(<[u8]>::to_vec),
                 });
                 Ok(())
@@ -194,7 +204,9 @@ where
             let mut after = -1i64;
             loop {
                 let _page_hold = stage.hold_normalized_page(
-                    limits.max_page_rows, limits.max_row_bytes, limits.max_row_bytes,
+                    limits.max_page_rows,
+                    limits.max_row_bytes,
+                    limits.max_row_bytes,
                 )?;
                 let batch = page(stage, table, after, limits)?;
                 if batch.is_empty() {

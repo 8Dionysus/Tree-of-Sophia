@@ -47,10 +47,14 @@ pub struct KnowledgeFocusRequest {
 }
 impl tos_foundation::OwnedState for KnowledgeFocusRequest {
     fn owned_heap_bytes(&self) -> tos_foundation::Result<usize> {
-        use tos_foundation::{checked_state_add, OwnedState};
-        checked_state_add(self.node_id.owned_heap_bytes()?,
-            checked_state_add(self.sources.owned_heap_bytes()?,
-                self.predicate_ids.owned_heap_bytes()?)?)
+        use tos_foundation::{OwnedState, checked_state_add};
+        checked_state_add(
+            self.node_id.owned_heap_bytes()?,
+            checked_state_add(
+                self.sources.owned_heap_bytes()?,
+                self.predicate_ids.owned_heap_bytes()?,
+            )?,
+        )
     }
 }
 impl KnowledgeFocusRequest {

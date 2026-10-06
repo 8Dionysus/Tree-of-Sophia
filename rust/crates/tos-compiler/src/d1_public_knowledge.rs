@@ -602,12 +602,15 @@ fn emit_normalized_row(
         return Err(Error::Invalid("public D1 knowledge row identity"));
     }
     let (item_json, _item_json_hold) = match creation {
-        Some(owner) => owner.with_foundation_compact_bytes(&item, MAX_ROW_BYTES, raw.len(), |raw| {
-            let hold = owner.hold(raw.len())?;
-            let bytes = raw.to_vec();
-            let text = String::from_utf8(bytes).map_err(|_| Error::Invalid("public D1 encoded UTF8"))?;
-            Ok((text, Some(hold)))
-        })?,
+        Some(owner) => {
+            owner.with_foundation_compact_bytes(&item, MAX_ROW_BYTES, raw.len(), |raw| {
+                let hold = owner.hold(raw.len())?;
+                let bytes = raw.to_vec();
+                let text = String::from_utf8(bytes)
+                    .map_err(|_| Error::Invalid("public D1 encoded UTF8"))?;
+                Ok((text, Some(hold)))
+            })?
+        }
         None => (encoded(capture, &item)?, None),
     };
     if item_json.as_bytes() != raw {
@@ -633,13 +636,26 @@ fn emit_normalized_row(
         creation,
     )?;
     let (stored, _stored_hold) = documents.query_row(
-        params![if kind == "node" { "nodes" } else { "relations" }, portable_row.position],
+        params![
+            if kind == "node" { "nodes" } else { "relations" },
+            portable_row.position
+        ],
         |r| {
-            let hold = sql_row_hold(creation, r,
-                6 * std::mem::size_of::<String>() + std::mem::size_of::<Vec<u8>>())
-                .map_err(|error| rusqlite::Error::ToSqlConversionFailure(Box::new(error)))?;
+            let hold = sql_row_hold(
+                creation,
+                r,
+                6 * std::mem::size_of::<String>() + std::mem::size_of::<Vec<u8>>(),
+            )
+            .map_err(|error| rusqlite::Error::ToSqlConversionFailure(Box::new(error)))?;
             let stored: (String, i64, Vec<u8>, String, String, String, String) = (
-                r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?);
+                r.get(0)?,
+                r.get(1)?,
+                r.get(2)?,
+                r.get(3)?,
+                r.get(4)?,
+                r.get(5)?,
+                r.get(6)?,
+            );
             Ok((stored, hold))
         },
     )?;
@@ -989,17 +1005,24 @@ fn emit_search(
 
 fn sql_row_hold<'state, 'budget>(
     creation: Option<&'state CreationState<'budget>>,
-    row: &rusqlite::Row<'_>, slots: usize,
+    row: &rusqlite::Row<'_>,
+    slots: usize,
 ) -> Result<Option<crate::d1_public_capture::CreationStateHold<'state, 'budget>>> {
-    let Some(owner) = creation else { return Ok(None); };
+    let Some(owner) = creation else {
+        return Ok(None);
+    };
     owner.active()?;
     let mut bytes = slots;
     for column in 0..row.as_ref().column_count() {
         let len = match row.get_ref(column)? {
-            rusqlite::types::ValueRef::Text(raw) | rusqlite::types::ValueRef::Blob(raw) => raw.len(),
+            rusqlite::types::ValueRef::Text(raw) | rusqlite::types::ValueRef::Blob(raw) => {
+                raw.len()
+            }
             _ => 0,
         };
-        bytes = bytes.checked_add(len).ok_or(Error::Budget("public D1 SQL row state"))?;
+        bytes = bytes
+            .checked_add(len)
+            .ok_or(Error::Budget("public D1 SQL row state"))?;
     }
     owner.charge_work(bytes)?;
     Ok(Some(owner.hold(bytes)?))

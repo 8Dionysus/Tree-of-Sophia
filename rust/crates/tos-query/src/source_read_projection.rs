@@ -51,7 +51,12 @@ fn valid_id(id: &str, claim: bool) -> bool {
                     .all(|c| c.is_ascii_digit() || c.is_ascii_lowercase())
         })
 }
-fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits, canonical: &mut dyn FnMut(&JsonValue, JsonLimits) -> Option<Vec<u8>>) -> Option<JsonValue> {
+fn record_target(
+    record: &JsonValue,
+    claim: bool,
+    limits: JsonLimits,
+    canonical: &mut dyn FnMut(&JsonValue, JsonLimits) -> Option<Vec<u8>>,
+) -> Option<JsonValue> {
     record.as_object()?;
     let (kind, field) = if claim {
         (None, "claim_id")
@@ -96,10 +101,7 @@ fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits, canonical:
     integer(version)?;
     let sha = format!(
         "sha256:{}",
-        Digest256::of_bytes(
-            &canonical(record, limits)?
-        )
-        .to_hex()
+        Digest256::of_bytes(&canonical(record, limits)?).to_hex()
     );
     let mut fields = vec![
         (
@@ -125,7 +127,11 @@ fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits, canonical:
     }
     Some(object(fields))
 }
-fn target(item: &JsonValue, limits: JsonLimits, canonical: &mut dyn FnMut(&JsonValue, JsonLimits) -> Option<Vec<u8>>) -> Option<JsonValue> {
+fn target(
+    item: &JsonValue,
+    limits: JsonLimits,
+    canonical: &mut dyn FnMut(&JsonValue, JsonLimits) -> Option<Vec<u8>>,
+) -> Option<JsonValue> {
     let envelope = item.object_get("source_record")?;
     let fields = envelope.as_object()?;
     if fields.len() != 4
@@ -185,10 +191,7 @@ fn target(item: &JsonValue, limits: JsonLimits, canonical: &mut dyn FnMut(&JsonV
                 }
                 let sha = format!(
                     "sha256:{}",
-                    Digest256::of_bytes(
-                        &canonical(record, limits)?
-                    )
-                    .to_hex()
+                    Digest256::of_bytes(&canonical(record, limits)?).to_hex()
                 );
                 Some(object(vec![
                     ("layer", text("authored_csv_record")),
@@ -229,29 +232,52 @@ fn project_targets(
     identity: &str,
     limits: JsonLimits,
 ) -> JsonValue {
-    let mut canonical = |record: &JsonValue, limits| canonical_bytes_v1(record,
-        CanonicalProfile::SourceRecordDigestV1, limits).ok();
+    let mut canonical = |record: &JsonValue, limits| {
+        canonical_bytes_v1(record, CanonicalProfile::SourceRecordDigestV1, limits).ok()
+    };
     project_targets_with_canonical(items, identity_field, identity, limits, &mut canonical)
 }
 
 /// Controlled callers supply the original-state canonicalizer. A refusal is
 /// returned after projection traversal; it can never become a missing target.
 pub(crate) fn controlled_source_read_targets(
-    items: &[JsonValue], identity: &str, managed: bool, limits: JsonLimits,
-    mut canonical: impl FnMut(&JsonValue, JsonLimits) -> Result<Vec<u8>, crate::search_v2::SearchV2Error>,
+    items: &[JsonValue],
+    identity: &str,
+    managed: bool,
+    limits: JsonLimits,
+    mut canonical: impl FnMut(
+        &JsonValue,
+        JsonLimits,
+    ) -> Result<Vec<u8>, crate::search_v2::SearchV2Error>,
 ) -> Result<JsonValue, crate::search_v2::SearchV2Error> {
     let mut refused = None;
     let mut checked = |record: &JsonValue, limits| {
-        if refused.is_some() { return None; }
+        if refused.is_some() {
+            return None;
+        }
         match canonical(record, limits) {
-        Ok(raw) => Some(raw),
-        Err(error) => { refused = Some(error); None }
+            Ok(raw) => Some(raw),
+            Err(error) => {
+                refused = Some(error);
+                None
+            }
         }
     };
-    let projected = project_targets_with_canonical(items,
-        if managed { "managed_source_root_sha256" } else { "source_revision" },
-        identity, limits, &mut checked);
-    match refused { Some(error) => Err(error), None => Ok(projected) }
+    let projected = project_targets_with_canonical(
+        items,
+        if managed {
+            "managed_source_root_sha256"
+        } else {
+            "source_revision"
+        },
+        identity,
+        limits,
+        &mut checked,
+    );
+    match refused {
+        Some(error) => Err(error),
+        None => Ok(projected),
+    }
 }
 
 fn project_targets_with_canonical(

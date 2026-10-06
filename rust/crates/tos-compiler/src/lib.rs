@@ -87,8 +87,8 @@ mod knowledge_navigation_finalize;
 mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
-pub mod native_snapshot;
 pub mod native_cold_resources;
+pub mod native_snapshot;
 pub mod native_snapshot_carriers;
 pub mod native_snapshot_manifest;
 pub use knowledge_philosophy_original::{
@@ -106,6 +106,7 @@ pub use knowledge_navigation_original::{
     NavigationOriginalPage, NavigationOriginalReceipt, navigation_original_rights_root,
     retain_navigation_original,
 };
+mod controlled_cold_model;
 mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
@@ -122,9 +123,15 @@ mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
-mod controlled_cold_model;
-pub use controlled_cold_model::{ControlledLensKeySelection, ControlledLensKeyRow, ControlledOriginalReceipt, ControlledOriginalCollection, ControlledOriginalRowRead, ControlledSidecarModel, SearchSidecarAdmissionError};
-pub use controlled_cold_model::{ControlledCarrierSelection, ControlledKnowledgeModel, ControlledQueryHeap, ControlledSearchKind, ControlledGramStat, ControlledPostingPage, ControlledSearchCandidate};
+pub use controlled_cold_model::{
+    ControlledCarrierSelection, ControlledGramStat, ControlledKnowledgeModel,
+    ControlledPostingPage, ControlledQueryHeap, ControlledSearchCandidate, ControlledSearchKind,
+};
+pub use controlled_cold_model::{
+    ControlledLensKeyRow, ControlledLensKeySelection, ControlledOriginalCollection,
+    ControlledOriginalReceipt, ControlledOriginalRowRead, ControlledSidecarModel,
+    SearchSidecarAdmissionError,
+};
 mod knowledge_semantic_join;
 pub mod knowledge_source_claims;
 mod knowledge_source_claims_prepare;
@@ -377,7 +384,11 @@ impl fmt::Display for ColdOperationFailure {
                 message,
                 byte_offset,
             } => write_foundation_json_failure(f, *code, message, *byte_offset),
-            Self::SqliteVmBudget { phase, used_steps, max_steps } => write!(
+            Self::SqliteVmBudget {
+                phase,
+                used_steps,
+                max_steps,
+            } => write!(
                 f,
                 "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
             ),
@@ -408,9 +419,15 @@ impl From<Error> for ColdOperationFailure {
                 message,
                 byte_offset,
             },
-            Error::SqliteVmBudget { phase, used_steps, max_steps } => {
-                Self::SqliteVmBudget { phase, used_steps, max_steps }
-            }
+            Error::SqliteVmBudget {
+                phase,
+                used_steps,
+                max_steps,
+            } => Self::SqliteVmBudget {
+                phase,
+                used_steps,
+                max_steps,
+            },
             Error::ControlledColdClose { .. } => Self::NestedControlledColdClose,
         }
     }
@@ -462,7 +479,11 @@ fn write_foundation_json_failure(
     byte_offset: Option<usize>,
 ) -> fmt::Result {
     match byte_offset {
-        Some(offset) => write!(f, "Foundation JSON {} at byte {offset}: {message}", code.as_str()),
+        Some(offset) => write!(
+            f,
+            "Foundation JSON {} at byte {offset}: {message}",
+            code.as_str()
+        ),
         None => write!(f, "Foundation JSON {}: {message}", code.as_str()),
     }
 }

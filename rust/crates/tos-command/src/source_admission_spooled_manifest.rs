@@ -63,11 +63,17 @@ fn row_json_state_upper_bound(limits: JsonLimits) -> io::Result<usize> {
 // Six escaped bytes per input byte plus 512 bytes cover keys, digests,
 // punctuation and integer fields. Preserve every caller ceiling.
 fn row_limits(limits: JsonLimits, locator_bytes: usize) -> io::Result<JsonLimits> {
-    let bytes = locator_bytes.checked_mul(6)
+    let bytes = locator_bytes
+        .checked_mul(6)
         .and_then(|n| n.checked_add(512))
         .ok_or_else(|| invalid("manifest encoded row bound overflow"))?;
-    JsonLimits::new(limits.max_bytes.min(bytes), limits.max_depth.min(2),
-        limits.max_visits.min(16), limits.max_integer_digits).map_err(invalid)
+    JsonLimits::new(
+        limits.max_bytes.min(bytes),
+        limits.max_depth.min(2),
+        limits.max_visits.min(16),
+        limits.max_integer_digits,
+    )
+    .map_err(invalid)
 }
 
 struct Output<'a, 'host> {
@@ -370,10 +376,15 @@ mod row_profile_tests {
             "event_sha256": "b".repeat(64), "event_size_bytes": u64::MAX});
         let full = JsonLimits::default();
         let bounded = row_limits(full, path.len() + event.len()).unwrap();
-        assert_eq!(canonical(&row, bounded).unwrap(), canonical(&row, full).unwrap());
+        assert_eq!(
+            canonical(&row, bounded).unwrap(),
+            canonical(&row, full).unwrap()
+        );
         assert!(row_json_state_upper_bound(bounded).unwrap() < 1024 * 1024);
         let scalar = row_limits(full, 0).unwrap();
-        assert_eq!(canonical(&Value::String("a".repeat(64)), scalar).unwrap(),
-            canonical(&Value::String("a".repeat(64)), full).unwrap());
+        assert_eq!(
+            canonical(&Value::String("a".repeat(64)), scalar).unwrap(),
+            canonical(&Value::String("a".repeat(64)), full).unwrap()
+        );
     }
 }

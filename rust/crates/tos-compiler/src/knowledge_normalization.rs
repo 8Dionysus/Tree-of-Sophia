@@ -243,7 +243,9 @@ pub(crate) fn serde_text_workspace_upper(units: usize) -> Result<usize> {
 /// Retained serde storage, using the same pinned container geometry as decode.
 pub(crate) fn serde_retained_heap_upper(value: &serde_json::Value, depth: usize) -> Result<usize> {
     fn add(total: &mut usize, amount: usize) -> Result<()> {
-        *total = total.checked_add(amount).ok_or(Error::Budget("serde retained state"))?;
+        *total = total
+            .checked_add(amount)
+            .ok_or(Error::Budget("serde retained state"))?;
         Ok(())
     }
     if depth > 96 {
@@ -253,9 +255,7 @@ pub(crate) fn serde_retained_heap_upper(value: &serde_json::Value, depth: usize)
     match value {
         serde_json::Value::Null | serde_json::Value::Bool(_) => {}
         serde_json::Value::Number(number) => {
-            bytes = serde_text_workspace_upper(
-                number.as_str().len(),
-            )?;
+            bytes = serde_text_workspace_upper(number.as_str().len())?;
         }
         serde_json::Value::String(text) => bytes = text.capacity(),
         serde_json::Value::Array(rows) => {

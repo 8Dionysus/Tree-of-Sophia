@@ -1,7 +1,7 @@
 //! Actual bounded V2 read -> cold image -> fresh restored read consumer.
 //! The writer/Native owner supplies the earned revision and original budgets.
 //! This consumer creates no admission token and does not synthesize history.
-use super::source_admission::{active, invalid, AdmissionWorkBudget};
+use super::source_admission::{AdmissionWorkBudget, active, invalid};
 use super::source_admission_v2_backup_restore::{
     V2HeldImageRoots, V2HeldSourceRoot, V2HeldTargetRoot, V2ImageLimits, V2ImageReceipt,
     open_selected_target, transfer_image, transfer_image_with_cold_spill,
@@ -397,9 +397,9 @@ fn read_backup_restore_case_inner(
                     persistent_space,
                     auxiliary_space,
                     requests,
-                    shared_work
-                        .clone()
-                        .ok_or_else(|| invalid("V2 cold held case lacks original shared work meter"))?,
+                    shared_work.clone().ok_or_else(|| {
+                        invalid("V2 cold held case lacks original shared work meter")
+                    })?,
                     deadline,
                     &cancel,
                 )?

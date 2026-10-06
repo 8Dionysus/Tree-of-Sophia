@@ -1492,7 +1492,9 @@ fn compute_on_graph<'a>(
                 ("runtime_projection_boundary", boundary()),
             ]))
         }
-        PhilosophyReadRequest::Layers => Ok(controlled_header_metadata(header, request).expect("header-only request")),
+        PhilosophyReadRequest::Layers => {
+            Ok(controlled_header_metadata(header, request).expect("header-only request"))
+        }
         PhilosophyReadRequest::Clusters {
             view_id,
             cluster_kind,
@@ -1534,7 +1536,9 @@ fn compute_on_graph<'a>(
                 ),
             ),
         ])),
-        PhilosophyReadRequest::Snapshot => Ok(controlled_header_metadata(header, request).expect("header-only request")),
+        PhilosophyReadRequest::Snapshot => {
+            Ok(controlled_header_metadata(header, request).expect("header-only request"))
+        }
         PhilosophyReadRequest::Unresolved { view_id } => {
             let unresolved = if let Some(id) = view_id.as_deref().filter(|id| !id.is_empty()) {
                 objs(get(graph.review(id)?, "unresolved_diagnostics"))
@@ -1559,8 +1563,10 @@ fn compute_on_graph<'a>(
 /// The controlled adapter admits its actual source geometry before cloning.
 /// Header-only maintained packets; the controlled owner supplies the Original
 /// header and admits clones before invoking this same field projection.
-pub(crate) fn controlled_header_metadata(header: &JsonValue,
-    request: &PhilosophyReadRequest) -> Option<JsonValue> {
+pub(crate) fn controlled_header_metadata(
+    header: &JsonValue,
+    request: &PhilosophyReadRequest,
+) -> Option<JsonValue> {
     match request {
         PhilosophyReadRequest::Status => Some(public::status(header)),
         PhilosophyReadRequest::Layers => Some(object(vec![
@@ -1568,12 +1574,18 @@ pub(crate) fn controlled_header_metadata(header: &JsonValue,
             ("graph_layers", list(header, "graph_layers")),
             ("layer_counts", list(header, "layer_counts")),
             ("visibility_model", metadata(header, "visibility_model")),
-            ("runtime_projection_boundary", metadata(header, "runtime_projection_boundary")),
+            (
+                "runtime_projection_boundary",
+                metadata(header, "runtime_projection_boundary"),
+            ),
         ])),
         PhilosophyReadRequest::Snapshot => Some(object(vec![
             ("schema", text("tos_philosophy_mcp_snapshot_v1")),
             ("snapshot_review", metadata(header, "snapshot_review")),
-            ("runtime_projection_boundary", metadata(header, "runtime_projection_boundary")),
+            (
+                "runtime_projection_boundary",
+                metadata(header, "runtime_projection_boundary"),
+            ),
             (
                 "authority_note",
                 text(
@@ -1701,55 +1713,59 @@ pub fn execute_selected_philosophy_health_seed_metered<
     execute_selected_philosophy_health_seed_with_meter(model, bound, authority, budget, Some(meter))
 }
 
-pub(crate) fn controlled_health_seed(header: &JsonValue, max_field_bytes: usize,
-    max_work_steps: u64, interrupt: &mut dyn FnMut() -> Result<(), SearchV2Error>)
-    -> Result<JsonValue, SearchV2Error> {
-    let mut work = Work { remaining: max_work_steps, interrupt };
-            let schema = get(header, "schema_version")
-                .as_str()
-                .filter(|value| !value.is_empty())
-                .ok_or_else(|| {
-                    failure(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
-                        "selected philosophy projection schema absent",
-                    )
-                })?
-                .to_owned();
-            if schema.len() > max_field_bytes {
-                return Err(failure(
-                    SearchV2ErrorCode::BudgetExceeded,
-                    "philosophy schema exceeds field budget",
-                ));
-            }
-            let mut first_view = None;
-            for view in arr(get(header, "views")) {
-                work.step()?;
-                if view.as_object().is_none()
-                    || !crate::knowledge_lens_spec::truthy(get(view, "view_id"))
-                {
-                    continue;
-                }
-                let id = crate::knowledge_lens_spec::py_string(get(view, "view_id"));
-                if id.len() > max_field_bytes {
-                    return Err(failure(
-                        SearchV2ErrorCode::BudgetExceeded,
-                        "philosophy view identity exceeds field budget",
-                    ));
-                }
-                first_view = Some(id);
-                break;
-            }
-            Ok(object(vec![
-                (
-                    "schema_version",
-                    text("tos_selected_philosophy_health_seed_v1"),
-                ),
-                ("projection_schema_version", text(&schema)),
-                (
-                    "first_view_id",
-                    first_view.as_deref().map(text).unwrap_or(JsonValue::Null),
-                ),
-            ]))
+pub(crate) fn controlled_health_seed(
+    header: &JsonValue,
+    max_field_bytes: usize,
+    max_work_steps: u64,
+    interrupt: &mut dyn FnMut() -> Result<(), SearchV2Error>,
+) -> Result<JsonValue, SearchV2Error> {
+    let mut work = Work {
+        remaining: max_work_steps,
+        interrupt,
+    };
+    let schema = get(header, "schema_version")
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            failure(
+                SearchV2ErrorCode::CorruptSelectedCarrier,
+                "selected philosophy projection schema absent",
+            )
+        })?
+        .to_owned();
+    if schema.len() > max_field_bytes {
+        return Err(failure(
+            SearchV2ErrorCode::BudgetExceeded,
+            "philosophy schema exceeds field budget",
+        ));
+    }
+    let mut first_view = None;
+    for view in arr(get(header, "views")) {
+        work.step()?;
+        if view.as_object().is_none() || !crate::knowledge_lens_spec::truthy(get(view, "view_id")) {
+            continue;
+        }
+        let id = crate::knowledge_lens_spec::py_string(get(view, "view_id"));
+        if id.len() > max_field_bytes {
+            return Err(failure(
+                SearchV2ErrorCode::BudgetExceeded,
+                "philosophy view identity exceeds field budget",
+            ));
+        }
+        first_view = Some(id);
+        break;
+    }
+    Ok(object(vec![
+        (
+            "schema_version",
+            text("tos_selected_philosophy_health_seed_v1"),
+        ),
+        ("projection_schema_version", text(&schema)),
+        (
+            "first_view_id",
+            first_view.as_deref().map(text).unwrap_or(JsonValue::Null),
+        ),
+    ]))
 }
 
 fn execute_selected_philosophy_health_seed_with_meter<
@@ -1789,8 +1805,12 @@ fn execute_selected_philosophy_health_seed_with_meter<
                 remaining: budget.max_work_steps,
                 interrupt: &mut interrupt,
             };
-            controlled_health_seed(&header, budget.inspect.max_field_bytes,
-                work.remaining, work.interrupt)
+            controlled_health_seed(
+                &header,
+                budget.inspect.max_field_bytes,
+                work.remaining,
+                work.interrupt,
+            )
         },
     )
 }

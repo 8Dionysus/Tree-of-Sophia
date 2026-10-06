@@ -5,7 +5,9 @@ use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::knowledge_base::{BaseNodeOverrides, KnowledgeBaseNormalizer};
 use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
-use crate::knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, NodeRow, RelationRow, WritePhase};
+use crate::knowledge_stage::{
+    KnowledgePayloadLayout, KnowledgeStage, NodeRow, RelationRow, WritePhase,
+};
 use crate::{Error, QueryVocabulary, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
@@ -1296,11 +1298,14 @@ fn repository_owned_write_limits(
         KnowledgePayloadLayout::CarrierOnceV1 => 2,
     };
     let (rows, bytes) = stage.write_page_limits();
-    let physical_bytes = limits.max_row_bytes.checked_mul(physical_rows)
+    let physical_bytes = limits
+        .max_row_bytes
+        .checked_mul(physical_rows)
         .ok_or(Error::Budget("repository physical row bytes"))?;
-    limits.max_page_rows = limits.max_page_rows
-        .min(rows / physical_rows)
-        .min(usize::try_from(bytes).map_err(|_| Error::Budget("repository page bytes conversion"))? / physical_bytes);
+    limits.max_page_rows = limits.max_page_rows.min(rows / physical_rows).min(
+        usize::try_from(bytes).map_err(|_| Error::Budget("repository page bytes conversion"))?
+            / physical_bytes,
+    );
     limits.validate()?;
     Ok((limits, physical_rows))
 }
@@ -1334,55 +1339,60 @@ fn materialize_repository_nodes_owned(
                     .and_then(|rows| rows.checked_mul(limits.max_row_bytes))
                     .and_then(|bytes| u64::try_from(bytes).ok())
                     .ok_or(Error::Budget("repository node page bytes"))?;
-                stage.with_write_page(WritePhase::Normalized, node_count * physical_rows, page_bytes, |stage| {
-                    for row in node_rows {
-                        state.active()?;
-                        let source = SourceRow::parse_scoped_with_owned_state(
-                            &row.material,
-                            limits.max_row_bytes,
-                            state,
-                        )?;
-                        let overrides = BaseNodeOverrides {
-                            native_id: Some(&row.native),
-                            identity_id: Some(&row.identity),
-                            kind_id: if row.kind.is_empty() {
-                                None
-                            } else {
-                                Some(&row.kind)
-                            },
-                        };
-                        normalizer.with_normalized_node_owned(
-                            &source,
-                            &receipt.source_graph,
-                            false,
-                            overrides,
-                            limits.max_row_bytes,
-                            |value, payload| {
-                                stage.insert_node_with_exact_source(
-                                    NodeRow {
-                                        id: required(value, "id")?,
-                                        source_graph: &receipt.source_graph,
-                                        native_id: Some(required(value, "native_id")?),
-                                        entity_id: Some(required(value, "entity_id")?),
-                                        kind_id: required(value, "kind_id")?,
-                                        type_id: required(value, "type_id")?,
-                                        source_order: order,
-                                        payload,
-                                    },
-                                    &row.material,
-                                )?;
-                                order = order
-                                    .checked_add(1)
-                                    .ok_or(Error::Budget("repository node order"))?;
-                                count = count
-                                    .checked_add(1)
-                                    .ok_or(Error::Budget("repository node count"))?;
-                                Ok(())
-                            },
-                        )?;
-                    }
-                    Ok(())
-                })?;
+                stage.with_write_page(
+                    WritePhase::Normalized,
+                    node_count * physical_rows,
+                    page_bytes,
+                    |stage| {
+                        for row in node_rows {
+                            state.active()?;
+                            let source = SourceRow::parse_scoped_with_owned_state(
+                                &row.material,
+                                limits.max_row_bytes,
+                                state,
+                            )?;
+                            let overrides = BaseNodeOverrides {
+                                native_id: Some(&row.native),
+                                identity_id: Some(&row.identity),
+                                kind_id: if row.kind.is_empty() {
+                                    None
+                                } else {
+                                    Some(&row.kind)
+                                },
+                            };
+                            normalizer.with_normalized_node_owned(
+                                &source,
+                                &receipt.source_graph,
+                                false,
+                                overrides,
+                                limits.max_row_bytes,
+                                |value, payload| {
+                                    stage.insert_node_with_exact_source(
+                                        NodeRow {
+                                            id: required(value, "id")?,
+                                            source_graph: &receipt.source_graph,
+                                            native_id: Some(required(value, "native_id")?),
+                                            entity_id: Some(required(value, "entity_id")?),
+                                            kind_id: required(value, "kind_id")?,
+                                            type_id: required(value, "type_id")?,
+                                            source_order: order,
+                                            payload,
+                                        },
+                                        &row.material,
+                                    )?;
+                                    order = order
+                                        .checked_add(1)
+                                        .ok_or(Error::Budget("repository node order"))?;
+                                    count = count
+                                        .checked_add(1)
+                                        .ok_or(Error::Budget("repository node count"))?;
+                                    Ok(())
+                                },
+                            )?;
+                        }
+                        Ok(())
+                    },
+                )?;
                 let last = node_rows
                     .last()
                     .ok_or(Error::Invalid("repository material node cursor"))?;
@@ -1536,77 +1546,88 @@ pub(crate) fn materialize_repository_relations_with_titles_owned(
                     .and_then(|rows| rows.checked_mul(limits.max_row_bytes))
                     .and_then(|bytes| u64::try_from(bytes).ok())
                     .ok_or(Error::Budget("repository relation page bytes"))?;
-                stage.with_write_page(WritePhase::Normalized, rows.len() * physical_rows, page_bytes, |stage| {
-                    for row in rows {
-                        state.active()?;
-                        let source = SourceRow::parse_scoped_with_owned_state(
-                            &row.material,
-                            limits.max_row_bytes,
-                            state,
-                        )?;
-                        let item = source.value();
-                        let from = owned_title_id(
-                            &receipt.source_graph,
-                            required(item, "from_id")?,
-                            state,
-                        )?;
-                        let to =
-                            owned_title_id(&receipt.source_graph, required(item, "to_id")?, state)?;
-                        crate::knowledge_global_titles::with_endpoint_title_pair_owned(
-                            stage,
-                            titles,
-                            &from.text,
-                            &to.text,
-                            max_title_bytes,
-                            |stage, left_title, right_title| {
-                                normalizer.with_normalized_relation_owned(
-                                    &source,
-                                    &receipt.source_graph,
-                                    None,
-                                    left_title,
-                                    right_title,
-                                    "derived-export",
-                                    limits.max_row_bytes,
-                                    |value, encoded| {
-                                        let row_work =
-                                            row.material.len().checked_add(encoded.len()).ok_or(
-                                                Error::Budget("repository relation work bytes"),
+                stage.with_write_page(
+                    WritePhase::Normalized,
+                    rows.len() * physical_rows,
+                    page_bytes,
+                    |stage| {
+                        for row in rows {
+                            state.active()?;
+                            let source = SourceRow::parse_scoped_with_owned_state(
+                                &row.material,
+                                limits.max_row_bytes,
+                                state,
+                            )?;
+                            let item = source.value();
+                            let from = owned_title_id(
+                                &receipt.source_graph,
+                                required(item, "from_id")?,
+                                state,
+                            )?;
+                            let to = owned_title_id(
+                                &receipt.source_graph,
+                                required(item, "to_id")?,
+                                state,
+                            )?;
+                            crate::knowledge_global_titles::with_endpoint_title_pair_owned(
+                                stage,
+                                titles,
+                                &from.text,
+                                &to.text,
+                                max_title_bytes,
+                                |stage, left_title, right_title| {
+                                    normalizer.with_normalized_relation_owned(
+                                        &source,
+                                        &receipt.source_graph,
+                                        None,
+                                        left_title,
+                                        right_title,
+                                        "derived-export",
+                                        limits.max_row_bytes,
+                                        |value, encoded| {
+                                            let row_work = row
+                                                .material
+                                                .len()
+                                                .checked_add(encoded.len())
+                                                .ok_or(Error::Budget(
+                                                    "repository relation work bytes",
+                                                ))?;
+                                            charge(&mut work, row_work, limits)?;
+                                            // Preserve the exact bytes parsed above. Repository
+                                            // relation material may itself be a generated packet;
+                                            // never substitute a separately retrieved raw record.
+                                            stage.insert_relation_with_exact_source(
+                                                RelationRow {
+                                                    id: required(value, "id")?,
+                                                    source_graph: &receipt.source_graph,
+                                                    native_id: Some(required(value, "native_id")?),
+                                                    from_id: required(value, "from_id")?,
+                                                    to_id: required(value, "to_id")?,
+                                                    predicate_id: required(value, "predicate_id")?,
+                                                    relation_type_id: required(
+                                                        value,
+                                                        "relation_type_id",
+                                                    )?,
+                                                    source_order: order,
+                                                    payload: encoded,
+                                                },
+                                                &row.material,
                                             )?;
-                                        charge(&mut work, row_work, limits)?;
-                                        // Preserve the exact bytes parsed above. Repository
-                                        // relation material may itself be a generated packet;
-                                        // never substitute a separately retrieved raw record.
-                                        stage.insert_relation_with_exact_source(
-                                            RelationRow {
-                                                id: required(value, "id")?,
-                                                source_graph: &receipt.source_graph,
-                                                native_id: Some(required(value, "native_id")?),
-                                                from_id: required(value, "from_id")?,
-                                                to_id: required(value, "to_id")?,
-                                                predicate_id: required(value, "predicate_id")?,
-                                                relation_type_id: required(
-                                                    value,
-                                                    "relation_type_id",
-                                                )?,
-                                                source_order: order,
-                                                payload: encoded,
-                                            },
-                                            &row.material,
-                                        )?;
-                                        order = order
-                                            .checked_add(1)
-                                            .ok_or(Error::Budget("repository relation order"))?;
-                                        count = count
-                                            .checked_add(1)
-                                            .ok_or(Error::Budget("repository relation count"))?;
-                                        Ok(())
-                                    },
-                                )
-                            },
-                        )?;
-                    }
-                    Ok(())
-                })?;
+                                            order = order.checked_add(1).ok_or(Error::Budget(
+                                                "repository relation order",
+                                            ))?;
+                                            count = count.checked_add(1).ok_or(Error::Budget(
+                                                "repository relation count",
+                                            ))?;
+                                            Ok(())
+                                        },
+                                    )
+                                },
+                            )?;
+                        }
+                        Ok(())
+                    },
+                )?;
                 let last = rows
                     .last()
                     .ok_or(Error::Invalid("repository material page cursor"))?;

@@ -2,9 +2,8 @@
 //! This establishes query semantics, not current policy or disclosure rights.
 
 use tos_compiler::{
-    KNOWLEDGE_MANAGED_MODEL_ABI, ControlledKnowledgeModel,
-    KnowledgeSelectedExpectation, KnowledgeSourceBasis, ManagedSourceProofV1, QueryVocabulary,
-    VerifiedKnowledgeModel,
+    ControlledKnowledgeModel, KNOWLEDGE_MANAGED_MODEL_ABI, KnowledgeSelectedExpectation,
+    KnowledgeSourceBasis, ManagedSourceProofV1, QueryVocabulary, VerifiedKnowledgeModel,
 };
 use tos_foundation::Digest256;
 
@@ -251,7 +250,9 @@ impl BoundCmpKnowledge<'_> {
             || source_basis != &self.source_basis
             || search_index_profile != self.selection.search_unicode_profile
         {
-            return Err(stale("selected controlled model differs from query binding"));
+            return Err(stale(
+                "selected controlled model differs from query binding",
+            ));
         }
         Ok(())
     }

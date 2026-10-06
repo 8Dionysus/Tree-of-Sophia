@@ -2118,13 +2118,18 @@ impl<'host> SpoolCandidate<'host> {
                 let Some(metadata) = self.member_after_bounded(after.as_ref(), allowance)? else {
                     break;
                 };
-                if after.as_ref().is_some_and(|p| metadata.path.as_str() <= p.as_str()) {
+                if after
+                    .as_ref()
+                    .is_some_and(|p| metadata.path.as_str() <= p.as_str())
+                {
                     return Err(invalid("candidate metadata visitor order"));
                 }
-                count = count.checked_add(1)
+                count = count
+                    .checked_add(1)
                     .filter(|n| *n <= before.membership.count)
                     .ok_or_else(|| invalid("candidate metadata visitor count"))?;
-                source_bytes = source_bytes.checked_add(metadata.size_bytes)
+                source_bytes = source_bytes
+                    .checked_add(metadata.size_bytes)
                     .filter(|n| *n <= before.source_bytes)
                     .ok_or_else(|| invalid("candidate metadata visitor bytes"))?;
                 feed(&mut hash, &metadata);
@@ -2132,13 +2137,20 @@ impl<'host> SpoolCandidate<'host> {
                 self.tick()?;
                 after = Some(metadata.path);
             }
-            if (SourceMembershipV1 { count, digest: hash.finalize() }) != before.membership
-                || source_bytes != before.source_bytes || self.fence()? != before {
+            if (SourceMembershipV1 {
+                count,
+                digest: hash.finalize(),
+            }) != before.membership
+                || source_bytes != before.source_bytes
+                || self.fence()? != before
+            {
                 return Err(invalid("candidate metadata visitor EOF/fence differs"));
             }
             self.tick()
         })();
-        if result.is_err() { self.failed.set(true); }
+        if result.is_err() {
+            self.failed.set(true);
+        }
         result
     }
     /// Borrow one verified current member at a time. The callback's genuine

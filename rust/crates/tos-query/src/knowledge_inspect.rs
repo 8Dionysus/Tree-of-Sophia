@@ -82,7 +82,9 @@ impl InspectVisitMeter {
     /// authentic Original parser/writer. This never grants or replenishes the
     /// original aggregate budget and does not create an Original receipt.
     pub fn charge_original_visits(&mut self, visits: usize) -> Result<(), FoundationError> {
-        if self.failed { return Err(Self::budget_error()); }
+        if self.failed {
+            return Err(Self::budget_error());
+        }
         self.charge(visits)
     }
     pub fn parse_json(

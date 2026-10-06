@@ -525,14 +525,17 @@ impl InspectPlan {
         self.into_packet_with_targets(|items, identity, managed| {
             if managed {
                 #[cfg(not(target_arch = "wasm32"))]
-                return Ok(crate::source_read_projection::managed_source_read_targets(items, identity, limits));
+                return Ok(crate::source_read_projection::managed_source_read_targets(
+                    items, identity, limits,
+                ));
                 #[cfg(target_arch = "wasm32")]
                 return Err(corrupt());
             }
             Ok(source_read_targets(items, identity, limits))
         })
     }
-    pub(crate) fn into_packet_with_targets(self,
+    pub(crate) fn into_packet_with_targets(
+        self,
         targets: impl FnOnce(&[JsonValue], &str, bool) -> Result<JsonValue, SearchV2Error>,
     ) -> Result<JsonValue, SearchV2Error> {
         if self.need.is_some() {

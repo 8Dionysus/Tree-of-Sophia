@@ -1,7 +1,8 @@
 //! Finite cold backup/fresh-restore of the private native V2 store.
 //! A copied selector is installed last, after the independent copy passes
 //! authenticated current/history closure checks. Bytes confer no admission.
-use super::source_admission::{active, invalid, AdmissionWorkBudget};
+use super::source_admission::{AdmissionWorkBudget, active, invalid};
+use super::source_admission_packed_objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLocationV2};
 use super::source_admission_segment_v2::{
     CompactCommitV2, MAX_COMPACT_COMMIT_V2_BYTES, SourceRevisionArtifactV2, SourceRevisionRootsV2,
     SourceRootSetV2, decode_workspace_upper_bound,
@@ -10,9 +11,6 @@ use super::source_admission_store::AdmissionStore;
 use super::source_admission_v2_seen_pack::{
     V2SeenPackSpill, V2SeenPackSpillLimits, V2SeenPackSpillRequest, V2SeenPackSpillRequests,
     history_row_holder_upper_bound,
-};
-use super::source_admission_packed_objects::{
-    PackedObjectLocationV2, MAX_PACKED_OBJECT_FRAMES_V2,
 };
 use rustix::fs::{AtFlags, FileType, Mode, OFlags, RawDir, RenameFlags};
 use std::{
@@ -298,10 +296,7 @@ impl V2ImageLimits {
             .ok_or_else(|| invalid("V2 image cold-spill state overflow"))?;
         let max_tree_nodes = u64::try_from(nodes).map_err(invalid)?;
         let max_history_roots = u64::try_from(limits.max_history_roots).map_err(invalid)?;
-        let max_pack_frames = limits
-            .segment
-            .max_frames
-            .min(MAX_PACKED_OBJECT_FRAMES_V2);
+        let max_pack_frames = limits.segment.max_frames.min(MAX_PACKED_OBJECT_FRAMES_V2);
         let profile = |request: &V2SeenPackSpillRequest| V2SeenPackSpillLimits {
             max_tree_nodes,
             max_history_roots,
@@ -688,8 +683,8 @@ fn verify_closure(
         Some(Vec::new())
     };
     let mut history_cursor = V2ColdHistoryCursorState::default();
-    while let Some(row) = next_tree_row(&mut stream, work.shared_work(), deadline, cancel)
-        .map_err(invalid)?
+    while let Some(row) =
+        next_tree_row(&mut stream, work.shared_work(), deadline, cancel).map_err(invalid)?
     {
         active(deadline, cancel)?;
         history_cursor.row_count = history_cursor
@@ -922,8 +917,8 @@ fn verify_revision_closure(
                 Some(tree_io.clone()),
             )
             .map_err(invalid)?;
-        while let Some(row) = next_tree_row(&mut identities, work.shared_work(), deadline, cancel)
-            .map_err(invalid)?
+        while let Some(row) =
+            next_tree_row(&mut identities, work.shared_work(), deadline, cancel).map_err(invalid)?
         {
             active(deadline, cancel)?;
             let id = std::str::from_utf8(&row.key).map_err(invalid)?;
@@ -947,8 +942,8 @@ fn verify_revision_closure(
                 Some(tree_io.clone()),
             )
             .map_err(invalid)?;
-        while let Some(row) = next_tree_row(&mut inverse, work.shared_work(), deadline, cancel)
-            .map_err(invalid)?
+        while let Some(row) =
+            next_tree_row(&mut inverse, work.shared_work(), deadline, cancel).map_err(invalid)?
         {
             active(deadline, cancel)?;
             if !row.value.is_empty() {
@@ -981,8 +976,8 @@ fn verify_revision_closure(
         )
         .map_err(invalid)?;
     let mut source_bytes = 0u64;
-    while let Some(row) = next_tree_row(&mut members, work.shared_work(), deadline, cancel)
-        .map_err(invalid)?
+    while let Some(row) =
+        next_tree_row(&mut members, work.shared_work(), deadline, cancel).map_err(invalid)?
     {
         active(deadline, cancel)?;
         let path = std::str::from_utf8(&row.key).map_err(invalid)?;
@@ -1021,8 +1016,8 @@ fn verify_revision_closure(
         )
         .map_err(invalid)?;
     let mut ordinal = 0u64;
-    while let Some(row) = next_tree_row(&mut retirements, work.shared_work(), deadline, cancel)
-        .map_err(invalid)?
+    while let Some(row) =
+        next_tree_row(&mut retirements, work.shared_work(), deadline, cancel).map_err(invalid)?
     {
         active(deadline, cancel)?;
         if row.key.as_slice() != ordinal.to_be_bytes() {
@@ -1064,8 +1059,7 @@ fn verify_revision_closure(
         .ok_or_else(|| invalid("V2 image retirement EOF absent"))?;
     work.record_tree(coverage.work, coverage.entries, limits)?;
     if let Some(objects_root) = packed {
-        let spill = pack_set
-            .ok_or_else(|| invalid("V2 packed closure spill is absent"))?;
+        let spill = pack_set.ok_or_else(|| invalid("V2 packed closure spill is absent"))?;
         let mut extents = segment
             .stream_authenticated_tree_v2_with_io(
                 objects_root,
@@ -1074,8 +1068,8 @@ fn verify_revision_closure(
             )
             .map_err(invalid)?;
         let mut previous = None;
-        while let Some(row) = next_tree_row(&mut extents, work.shared_work(), deadline, cancel)
-            .map_err(invalid)?
+        while let Some(row) =
+            next_tree_row(&mut extents, work.shared_work(), deadline, cancel).map_err(invalid)?
         {
             active(deadline, cancel)?;
             if row.key.len() != 32 {

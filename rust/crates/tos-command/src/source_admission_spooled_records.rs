@@ -1847,7 +1847,8 @@ fn report_page(
             deadline,
             cancelled,
         )?;
-        let value = decode_value(&payload, budget.max_state_bytes.get()).map_err(|error| refusal(error))?;
+        let value =
+            decode_value(&payload, budget.max_state_bytes.get()).map_err(|error| refusal(error))?;
         let fact = stored_fact_from_value(sink, row.state_bytes, collection, &value, &aux)
             .map_err(|error| refusal(error))?;
         output.push(fact);
@@ -2277,9 +2278,12 @@ fn decode_current_record_checked(
             "current Record row ID differs from its index key".into(),
         ));
     }
-    let record =
-        biblio_record_from_locator(sink, field(&value, "record").map_err(|error| refusal(error))?, meta.2)
-            .map_err(|error| refusal(error))?;
+    let record = biblio_record_from_locator(
+        sink,
+        field(&value, "record").map_err(|error| refusal(error))?,
+        meta.2,
+    )
+    .map_err(|error| refusal(error))?;
     check_operation(sink, deadline, cancelled)?;
     Ok(Some((record, meta.2, decode_state_bytes)))
 }
@@ -2664,7 +2668,8 @@ impl SourceFoundationRecordsStore for IndexSink<'_> {
                 ItemRefusal::Source("current Record outside candidate membership".into())
             })?;
         let size = usize::try_from(metadata.size_bytes).map_err(|_| ItemRefusal::Budget)?;
-        let read_state = current_record_read_state(&record.path, size).map_err(|error| refusal(error))?;
+        let read_state =
+            current_record_read_state(&record.path, size).map_err(|error| refusal(error))?;
         // Keep the full value/read workspace in state_bytes so every page and
         // lookup precharges it before reading or decoding the lazy document.
         let input = checked_add(input, read_state).map_err(|error| refusal(error))?;

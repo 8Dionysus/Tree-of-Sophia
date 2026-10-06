@@ -109,8 +109,21 @@ struct PersistentStoreTicket {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct SearchCacheTicket {path:PathBuf,source_root:PathBuf,parent_device:u64,parent_inode:u64,parent_fd:i32,max_build_bytes:u64,max_temp_bytes:u64,quota_scope:String}
-fn deserialize_cache<'de,D:serde::Deserializer<'de>>(reader:D)->std::result::Result<Option<SearchCacheTicket>,D::Error> {SearchCacheTicket::deserialize(reader).map(Some)}
+struct SearchCacheTicket {
+    path: PathBuf,
+    source_root: PathBuf,
+    parent_device: u64,
+    parent_inode: u64,
+    parent_fd: i32,
+    max_build_bytes: u64,
+    max_temp_bytes: u64,
+    quota_scope: String,
+}
+fn deserialize_cache<'de, D: serde::Deserializer<'de>>(
+    reader: D,
+) -> std::result::Result<Option<SearchCacheTicket>, D::Error> {
+    SearchCacheTicket::deserialize(reader).map(Some)
+}
 // Missing field is v1. An explicitly present null is not a capability shape.
 fn deserialize_store<'de, D: serde::Deserializer<'de>>(
     reader: D,
@@ -168,8 +181,8 @@ struct Ticket {
     consumer_requires_dumpable_zero: bool,
     #[serde(default, deserialize_with = "deserialize_store")]
     persistent_store: Option<PersistentStoreTicket>,
-    #[serde(default,deserialize_with="deserialize_cache")]
-    search_cache:Option<SearchCacheTicket>,
+    #[serde(default, deserialize_with = "deserialize_cache")]
+    search_cache: Option<SearchCacheTicket>,
 }
 
 /// Current kernel-accounted allocation in the selected private tmpfs.
@@ -184,7 +197,7 @@ pub struct PrivateTmpfsStageIsolation {
     ticket: Ticket,
     custody: File,
     persistent_custody: Option<File>,
-    search_cache_custody:Option<File>,
+    search_cache_custody: Option<File>,
 }
 impl PrivateTmpfsStageIsolation {
     /// Call before source capture and before starting writer descendants. Each
@@ -259,18 +272,33 @@ impl PrivateTmpfsStageIsolation {
                             && !Path::new(fallback).starts_with(&store.root)
                     })
             }
-            ("abyss_machine_private_tmpfs_stage_v3",None)=>ticket.search_cache.as_ref().is_some_and(|cache| {
-                cache.quota_scope=="outside-private-tmpfs-original-io" && cache.parent_device!=ticket.root_device && cache.parent_fd>=3
-                && cache.max_build_bytes>=4096 && cache.max_temp_bytes>=cache.max_build_bytes
-                && cache.max_build_bytes.checked_add(cache.max_temp_bytes).is_some()
-                && cache.path.parent().is_some_and(|parent|parent!=Path::new("/")
-                    && !parent.starts_with(&ticket.root) && !ticket.root.starts_with(parent)
-                    && !["/tmp","/var/tmp","/usr/tmp"].iter().any(|f|parent==Path::new(f) || Path::new(f).starts_with(parent)))
-            }),
+            ("abyss_machine_private_tmpfs_stage_v3", None) => {
+                ticket.search_cache.as_ref().is_some_and(|cache| {
+                    cache.quota_scope == "outside-private-tmpfs-original-io"
+                        && cache.parent_device != ticket.root_device
+                        && cache.parent_fd >= 3
+                        && cache.max_build_bytes >= 4096
+                        && cache.max_temp_bytes >= cache.max_build_bytes
+                        && cache
+                            .max_build_bytes
+                            .checked_add(cache.max_temp_bytes)
+                            .is_some()
+                        && cache.path.parent().is_some_and(|parent| {
+                            parent != Path::new("/")
+                                && !parent.starts_with(&ticket.root)
+                                && !ticket.root.starts_with(parent)
+                                && !["/tmp", "/var/tmp", "/usr/tmp"].iter().any(|f| {
+                                    parent == Path::new(f) || Path::new(f).starts_with(parent)
+                                })
+                        })
+                })
+            }
             _ => false,
         };
-        let cache_version_valid=ticket.search_cache.is_none() || ticket.schema=="abyss_machine_private_tmpfs_stage_v3";
-        if !version_valid || !cache_version_valid
+        let cache_version_valid = ticket.search_cache.is_none()
+            || ticket.schema == "abyss_machine_private_tmpfs_stage_v3";
+        if !version_valid
+            || !cache_version_valid
             || ticket.quota_bytes != quota_bytes
             || ticket.inode_limit != inode_limit
             || ticket.working_ram_bytes != working_ram_bytes
@@ -290,11 +318,17 @@ impl PrivateTmpfsStageIsolation {
             .as_ref()
             .map(|store| open_store(&store.root))
             .transpose()?;
-        let search_cache_custody=ticket.search_cache.as_ref().map(|cache| {
-            let raw=unsafe{libc::fcntl(cache.parent_fd,libc::F_DUPFD_CLOEXEC,3)};
-            if raw<0 {return Err(Error::from(std::io::Error::last_os_error()));}
-            Ok(unsafe{File::from_raw_fd(raw)})
-        }).transpose()?;
+        let search_cache_custody = ticket
+            .search_cache
+            .as_ref()
+            .map(|cache| {
+                let raw = unsafe { libc::fcntl(cache.parent_fd, libc::F_DUPFD_CLOEXEC, 3) };
+                if raw < 0 {
+                    return Err(Error::from(std::io::Error::last_os_error()));
+                }
+                Ok(unsafe { File::from_raw_fd(raw) })
+            })
+            .transpose()?;
         let result = Self {
             ticket,
             custody,
@@ -337,7 +371,10 @@ impl PrivateTmpfsStageIsolation {
         if ticket.quota_bytes == 0
             || ticket.inode_limit < 16
             || ticket.working_ram_bytes == 0
-            || ticket.quota_bytes.checked_add(ticket.working_ram_bytes).is_none()
+            || ticket
+                .quota_bytes
+                .checked_add(ticket.working_ram_bytes)
+                .is_none()
         {
             return Err(Error::Invalid("private stage ticket resource envelope"));
         }
@@ -393,7 +430,11 @@ impl PrivateTmpfsStageIsolation {
             add(store.root.capacity())?;
             add(store.quota_scope.capacity())?;
         }
-        if let Some(cache)=&ticket.search_cache {add(cache.path.capacity())?;add(cache.source_root.capacity())?;add(cache.quota_scope.capacity())?;}
+        if let Some(cache) = &ticket.search_cache {
+            add(cache.path.capacity())?;
+            add(cache.source_root.capacity())?;
+            add(cache.quota_scope.capacity())?;
+        }
         Ok(bytes)
     }
 
@@ -433,30 +474,78 @@ impl PrivateTmpfsStageIsolation {
 
     /// Borrow only the exact issued cacheparent; ceilings may narrow its
     /// original reserved IO allowance but never expand it or reset counters.
-    pub fn search_cache_custody(&self,requested:&Path,max_build_bytes:u64,max_temp_bytes:u64)->Result<&File> {
-        let cache=self.ticket.search_cache.as_ref().ok_or(Error::Invalid("stage has no search cache capability"))?;
-        if requested!=cache.path || max_build_bytes<4096 || max_temp_bytes<max_build_bytes || max_build_bytes>cache.max_build_bytes || max_temp_bytes>cache.max_temp_bytes {return Err(Error::Invalid("search cache selector/caps differ from issued capability"));}
+    pub fn search_cache_custody(
+        &self,
+        requested: &Path,
+        max_build_bytes: u64,
+        max_temp_bytes: u64,
+    ) -> Result<&File> {
+        let cache = self
+            .ticket
+            .search_cache
+            .as_ref()
+            .ok_or(Error::Invalid("stage has no search cache capability"))?;
+        if requested != cache.path
+            || max_build_bytes < 4096
+            || max_temp_bytes < max_build_bytes
+            || max_build_bytes > cache.max_build_bytes
+            || max_temp_bytes > cache.max_temp_bytes
+        {
+            return Err(Error::Invalid(
+                "search cache selector/caps differ from issued capability",
+            ));
+        }
         self.verify_kernel()?;
-        self.search_cache_custody.as_ref().ok_or(Error::Invalid("search cache custody absent"))
+        self.search_cache_custody
+            .as_ref()
+            .ok_or(Error::Invalid("search cache custody absent"))
     }
     /// Return physical build/temp ceilings only for the exact issued cache path.
     /// Public read-model build caps are applied only if this operation rebuilds.
-    pub fn search_cache_limits(&self,requested:&Path)->Result<(u64,u64)> {
-        let cache=self.ticket.search_cache.as_ref().ok_or(Error::Invalid("stage has no search cache capability"))?;
-        if requested!=cache.path {return Err(Error::Invalid("search cache path differs from issued capability"));}
-        Ok((cache.max_build_bytes,cache.max_temp_bytes))
+    pub fn search_cache_limits(&self, requested: &Path) -> Result<(u64, u64)> {
+        let cache = self
+            .ticket
+            .search_cache
+            .as_ref()
+            .ok_or(Error::Invalid("stage has no search cache capability"))?;
+        if requested != cache.path {
+            return Err(Error::Invalid(
+                "search cache path differs from issued capability",
+            ));
+        }
+        Ok((cache.max_build_bytes, cache.max_temp_bytes))
     }
-    pub fn search_cache_path(&self)->Option<&Path> {self.ticket.search_cache.as_ref().map(|c|c.path.as_path())}
-    pub fn search_cache_source_root(&self)->Option<&Path> {self.ticket.search_cache.as_ref().map(|c|c.source_root.as_path())}
-    fn verify_search_cache_identity(&self)->Result<()> {
-        match(&self.ticket.search_cache,&self.search_cache_custody) {
-            (None,None)=>Ok(()),
-            (Some(cache),Some(held))=>{
-                let parent=cache.path.parent().ok_or(Error::Invalid("search cache parent"))?;
-                let named=open_store(parent)?.metadata()?;let actual=held.metadata()?;
-                if !actual.is_dir() || (actual.dev(),actual.ino())!=(cache.parent_device,cache.parent_inode) || (named.dev(),named.ino())!=(cache.parent_device,cache.parent_inode) || actual.mode()&0o022!=0 {return Err(Error::Invalid("search cache held/named parent identity changed"));}
+    pub fn search_cache_path(&self) -> Option<&Path> {
+        self.ticket.search_cache.as_ref().map(|c| c.path.as_path())
+    }
+    pub fn search_cache_source_root(&self) -> Option<&Path> {
+        self.ticket
+            .search_cache
+            .as_ref()
+            .map(|c| c.source_root.as_path())
+    }
+    fn verify_search_cache_identity(&self) -> Result<()> {
+        match (&self.ticket.search_cache, &self.search_cache_custody) {
+            (None, None) => Ok(()),
+            (Some(cache), Some(held)) => {
+                let parent = cache
+                    .path
+                    .parent()
+                    .ok_or(Error::Invalid("search cache parent"))?;
+                let named = open_store(parent)?.metadata()?;
+                let actual = held.metadata()?;
+                if !actual.is_dir()
+                    || (actual.dev(), actual.ino()) != (cache.parent_device, cache.parent_inode)
+                    || (named.dev(), named.ino()) != (cache.parent_device, cache.parent_inode)
+                    || actual.mode() & 0o022 != 0
+                {
+                    return Err(Error::Invalid(
+                        "search cache held/named parent identity changed",
+                    ));
+                }
                 Ok(())
-            },_=>Err(Error::Invalid("search cache custody absent"))
+            }
+            _ => Err(Error::Invalid("search cache custody absent")),
         }
     }
     fn verify_store_identity(&self) -> Result<()> {
@@ -731,7 +820,7 @@ mod persistent_boundary_controls {
             ticket,
             custody: File::open("/dev/null").unwrap(),
             persistent_custody: None,
-            search_cache_custody:None,
+            search_cache_custody: None,
         };
         assert!(matches!(
             readonly.verify_persistent_store(Path::new("/selected-fixture-store")),
@@ -750,7 +839,7 @@ mod persistent_boundary_controls {
             ticket,
             custody: File::open("/dev/null").unwrap(),
             persistent_custody: None,
-            search_cache_custody:None,
+            search_cache_custody: None,
         };
         assert!(matches!(
             unselected.verify_persistent_store(Path::new("/adjacent-fixture-store")),
@@ -802,7 +891,7 @@ mod persistent_boundary_controls {
             ticket,
             custody: File::open("/dev/null").unwrap(),
             persistent_custody: Some(held),
-            search_cache_custody:None,
+            search_cache_custody: None,
         };
         fs::rename(&path, root.join("retained")).unwrap();
         fs::create_dir(&path).unwrap();

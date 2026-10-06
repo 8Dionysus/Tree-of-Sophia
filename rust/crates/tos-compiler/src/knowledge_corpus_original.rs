@@ -806,29 +806,61 @@ pub(crate) fn selection_index(selector: &CorpusOriginalSelector) -> &'static str
 /// its allocation. This creates no ledger and cannot grant a row read.
 pub(crate) fn selection_workspace(selector: &CorpusOriginalSelector) -> Result<usize> {
     use CorpusOriginalSelector as S;
-    let mut count = 0usize; let mut bytes = 0usize;
+    let mut count = 0usize;
+    let mut bytes = 0usize;
     let mut add = |value: &str| -> Result<()> {
-        if value.len() > MAX_INDEX_TEXT_BYTES { return Err(Error::Budget("corpus selector bytes")); }
-        count = count.checked_add(1).ok_or(Error::Budget("corpus selector count"))?;
-        bytes = bytes.checked_add(value.len()).ok_or(Error::Budget("corpus selector state"))?;
+        if value.len() > MAX_INDEX_TEXT_BYTES {
+            return Err(Error::Budget("corpus selector bytes"));
+        }
+        count = count
+            .checked_add(1)
+            .ok_or(Error::Budget("corpus selector count"))?;
+        bytes = bytes
+            .checked_add(value.len())
+            .ok_or(Error::Budget("corpus selector state"))?;
         Ok(())
     };
     match selector {
         S::All => (),
         S::NodeId(v) | S::PackId(v) | S::ViewId(v) | S::OwnerBranch(v) => add(v)?,
-        S::IncidentNode(v) => { add(v)?; add(v)?; add("relation_edges")?; add("relation_edges")?; }
-        S::NodeIds(vs) | S::PackIds(vs) => {
-            if vs.len() > 1024 { return Err(Error::Budget("corpus selector set")); }
-            for v in vs { add(v)?; }
+        S::IncidentNode(v) => {
+            add(v)?;
+            add(v)?;
+            add("relation_edges")?;
+            add("relation_edges")?;
         }
-        S::Resources {resource_kind, owner_branch} => {
-            if let Some(v) = resource_kind { add(v)?; }
-            if let Some(v) = owner_branch { add(v)?; }
+        S::NodeIds(vs) | S::PackIds(vs) => {
+            if vs.len() > 1024 {
+                return Err(Error::Budget("corpus selector set"));
+            }
+            for v in vs {
+                add(v)?;
+            }
+        }
+        S::Resources {
+            resource_kind,
+            owner_branch,
+        } => {
+            if let Some(v) = resource_kind {
+                add(v)?;
+            }
+            if let Some(v) = owner_branch {
+                add(v)?;
+            }
         }
     }
-    bytes.checked_mul(3).and_then(|n| n.checked_add(1024))
-        .and_then(|n| count.checked_mul(4 * (std::mem::size_of::<String>()
-            + std::mem::size_of::<rusqlite::types::Value>()) + 8).and_then(|f| n.checked_add(f)))
+    bytes
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(1024))
+        .and_then(|n| {
+            count
+                .checked_mul(
+                    4 * (std::mem::size_of::<String>()
+                        + std::mem::size_of::<rusqlite::types::Value>())
+                        + 8,
+                )
+                .and_then(|f| n.checked_add(f))
+        })
         .ok_or(Error::Budget("corpus selector workspace"))
 }
 

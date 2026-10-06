@@ -63,16 +63,22 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         .parse::<u64>()
         .map_err(|_| "invalid public D1 build seconds")?;
     let mut limits = portable_public_d1_limits(seconds).map_err(|e| e.to_string())?;
-    limits.max_state_bytes = state_bytes.map(str::to_owned)
+    limits.max_state_bytes = state_bytes
+        .map(str::to_owned)
         .or_else(|| env::var("TOS_BUILD_MAX_STATE_BYTES").ok())
         .ok_or("TOS_BUILD_MAX_STATE_BYTES or --max-state-bytes is required")?
-        .parse().map_err(|_| "invalid public D1 state bytes")?;
-    limits.max_json_visits = json_visits.map(str::to_owned)
+        .parse()
+        .map_err(|_| "invalid public D1 state bytes")?;
+    limits.max_json_visits = json_visits
+        .map(str::to_owned)
         .or_else(|| env::var("TOS_BUILD_MAX_JSON_VISITS").ok())
         .ok_or("TOS_BUILD_MAX_JSON_VISITS or --max-json-visits is required")?
-        .parse().map_err(|_| "invalid public D1 JSON visits")?;
+        .parse()
+        .map_err(|_| "invalid public D1 JSON visits")?;
     if limits.max_state_bytes < 131072 || limits.max_json_visits == 0 {
-        return Err("public D1 requires --max-state-bytes >=131072 and --max-json-visits >0".into());
+        return Err(
+            "public D1 requires --max-state-bytes >=131072 and --max-json-visits >0".into(),
+        );
     }
     let source = path(source.ok_or("--source-root is required")?)?;
     let output = path(output.ok_or("--output is required")?)?;

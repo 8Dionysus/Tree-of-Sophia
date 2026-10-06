@@ -885,27 +885,37 @@ trait ControlledReferenceModel {
     fn navigation_original_root(&self) -> Option<&str>;
 }
 impl ControlledReferenceModel for tos_compiler::ControlledKnowledgeModel<'_, '_, '_> {
-    fn check_reference_pin(&self) -> tos_compiler::Result<()> { self.check_pin() }
+    fn check_reference_pin(&self) -> tos_compiler::Result<()> {
+        self.check_pin()
+    }
     fn corpus_original_root(&self) -> Option<&str> {
-        self.corpus_original_receipt().map(|r| r.component_root_sha256.as_str())
+        self.corpus_original_receipt()
+            .map(|r| r.component_root_sha256.as_str())
     }
     fn philosophy_original_root(&self) -> Option<&str> {
-        self.philosophy_original_receipt().map(|r| r.component_root_sha256.as_str())
+        self.philosophy_original_receipt()
+            .map(|r| r.component_root_sha256.as_str())
     }
     fn navigation_original_root(&self) -> Option<&str> {
-        self.navigation_original_receipt().map(|r| r.component_root_sha256.as_str())
+        self.navigation_original_receipt()
+            .map(|r| r.component_root_sha256.as_str())
     }
 }
 impl ControlledReferenceModel for tos_compiler::ControlledSidecarModel<'_, '_, '_, '_> {
-    fn check_reference_pin(&self) -> tos_compiler::Result<()> { self.check_pin() }
+    fn check_reference_pin(&self) -> tos_compiler::Result<()> {
+        self.check_pin()
+    }
     fn corpus_original_root(&self) -> Option<&str> {
-        self.corpus_original_receipt().map(|r| r.component_root_sha256.as_str())
+        self.corpus_original_receipt()
+            .map(|r| r.component_root_sha256.as_str())
     }
     fn philosophy_original_root(&self) -> Option<&str> {
-        self.philosophy_original_receipt().map(|r| r.component_root_sha256.as_str())
+        self.philosophy_original_receipt()
+            .map(|r| r.component_root_sha256.as_str())
     }
     fn navigation_original_root(&self) -> Option<&str> {
-        self.navigation_original_receipt().map(|r| r.component_root_sha256.as_str())
+        self.navigation_original_receipt()
+            .map(|r| r.component_root_sha256.as_str())
     }
 }
 
@@ -918,10 +928,7 @@ pub(crate) fn with_controlled_metadata_context<'view, 'capture, M, H>(
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
     reserve_original: impl FnOnce(usize) -> Result<H>,
-    consume: impl FnOnce(
-        &mut M,
-        &mut ReferenceMetadataContext<'view, 'capture>,
-    ) -> Result<()>,
+    consume: impl FnOnce(&mut M, &mut ReferenceMetadataContext<'view, 'capture>) -> Result<()>,
 ) -> Result<()>
 where
     M: ControlledReferenceModel,
@@ -937,12 +944,15 @@ where
     }
     // This full carrier authority is issued only after all three original
     // receipts have passed the controlled cold owner, never from wire roots.
-    let corpus_root = model.corpus_original_root()
-        .ok_or(Error::Invalid("controlled Reference corpus original absent"))?;
-    let philosophy_root = model.philosophy_original_root()
-        .ok_or(Error::Invalid("controlled Reference philosophy original absent"))?;
-    let navigation_root = model.navigation_original_root()
-        .ok_or(Error::Invalid("controlled Reference navigation original absent"))?;
+    let corpus_root = model.corpus_original_root().ok_or(Error::Invalid(
+        "controlled Reference corpus original absent",
+    ))?;
+    let philosophy_root = model.philosophy_original_root().ok_or(Error::Invalid(
+        "controlled Reference philosophy original absent",
+    ))?;
+    let navigation_root = model.navigation_original_root().ok_or(Error::Invalid(
+        "controlled Reference navigation original absent",
+    ))?;
     let strings = [
         "reference_root_local_metadata_v1",
         "tos-access/reference-root",

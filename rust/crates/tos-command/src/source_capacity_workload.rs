@@ -1462,24 +1462,51 @@ mod weighted_scale_profile_tests {
         let seed = Digest256::of_bytes(b"seed");
         let recipe = Digest256::of_bytes(b"recipe");
         for (pointer, reference) in [
-            ("/rights_ref", WeightedScaleArtifactSupportRoleV1::Rights.path(7)),
-            ("/discovery_ref", WeightedScaleArtifactSupportRoleV1::Discovery.path(7)),
-            ("/custody/inventory_numbers/1", WeightedScaleArtifactSupportRoleV1::Resource.path(7)),
-            ("/provenance_event_ref", artifact_support_identity_v1(seed, recipe, 7, "event")),
+            (
+                "/rights_ref",
+                WeightedScaleArtifactSupportRoleV1::Rights.path(7),
+            ),
+            (
+                "/discovery_ref",
+                WeightedScaleArtifactSupportRoleV1::Discovery.path(7),
+            ),
+            (
+                "/custody/inventory_numbers/1",
+                WeightedScaleArtifactSupportRoleV1::Resource.path(7),
+            ),
+            (
+                "/provenance_event_ref",
+                artifact_support_identity_v1(seed, recipe, 7, "event"),
+            ),
         ] {
-            let edge = ScaleReferenceEdgeV1 { pointer: pointer.to_owned(), reference };
+            let edge = ScaleReferenceEdgeV1 {
+                pointer: pointer.to_owned(),
+                reference,
+            };
             assert!(generated_artifact_support_edge_v1(&edge, seed, recipe, 7));
             assert!(!generated_artifact_support_edge_v1(&edge, seed, recipe, 8));
-            let wrong_pointer = ScaleReferenceEdgeV1 { pointer: "/unrelated_ref".to_owned(), ..edge.clone() };
-            assert!(!generated_artifact_support_edge_v1(&wrong_pointer, seed, recipe, 7));
+            let wrong_pointer = ScaleReferenceEdgeV1 {
+                pointer: "/unrelated_ref".to_owned(),
+                ..edge.clone()
+            };
+            assert!(!generated_artifact_support_edge_v1(
+                &wrong_pointer,
+                seed,
+                recipe,
+                7
+            ));
         }
         let event = ScaleReferenceEdgeV1 {
             pointer: "/provenance_event_ref".to_owned(),
             reference: artifact_support_identity_v1(seed, recipe, 7, "event"),
         };
-        assert!(!generated_artifact_support_edge_v1(&event, seed, Digest256::of_bytes(b"other"), 7));
+        assert!(!generated_artifact_support_edge_v1(
+            &event,
+            seed,
+            Digest256::of_bytes(b"other"),
+            7
+        ));
     }
-
 
     #[test]
     fn weighted_record_ladder_preserves_100k_and_prices_billion_without_a_fake_cap() {
@@ -4821,7 +4848,10 @@ impl WeightedScaleGeneratedAllV1 {
                 .auxiliary
                 .members()
                 .filter(|member| {
-                    crate::source_current_cut::foundation_capture::selected(&member.source_ref, false)
+                    crate::source_current_cut::foundation_capture::selected(
+                        &member.source_ref,
+                        false,
+                    )
                 })
                 .nth(traversal.auxiliary_index)
                 .ok_or_else(|| io_invalid("physical member outside finite auxiliary selection"))?;
@@ -5430,7 +5460,9 @@ fn generated_artifact_support_edge_v1(
     let expected = match edge.pointer.as_str() {
         "/rights_ref" => WeightedScaleArtifactSupportRoleV1::Rights.path(ordinal),
         "/discovery_ref" => WeightedScaleArtifactSupportRoleV1::Discovery.path(ordinal),
-        "/custody/inventory_numbers/1" => WeightedScaleArtifactSupportRoleV1::Resource.path(ordinal),
+        "/custody/inventory_numbers/1" => {
+            WeightedScaleArtifactSupportRoleV1::Resource.path(ordinal)
+        }
         "/provenance_event_ref" => artifact_support_identity_v1(seed, recipe, ordinal, "event"),
         _ => return false,
     };
@@ -5449,7 +5481,9 @@ fn audit_fixture_references_v1(
 ) -> std::io::Result<()> {
     let local_generated_ids = collect_generated_ids_v1(value);
     let artifact_recipe_digest = if class == WeightedScaleClassV1::Artifact {
-        artifact_recipe.map(|recipe| recipe.selection.immutable_digest()).transpose()?
+        artifact_recipe
+            .map(|recipe| recipe.selection.immutable_digest())
+            .transpose()?
     } else {
         None
     };
@@ -5457,9 +5491,9 @@ fn audit_fixture_references_v1(
         // Only the declared Artifact recipe introduces these four support
         // relations. Bind pointer, role, recipe, and this exact generated row;
         // ordinary template references retain their existing pinned closure.
-        if artifact_recipe_digest.is_some_and(|recipe| {
-            generated_artifact_support_edge_v1(&edge, seed, recipe, ordinal)
-        }) {
+        if artifact_recipe_digest
+            .is_some_and(|recipe| generated_artifact_support_edge_v1(&edge, seed, recipe, ordinal))
+        {
             closure.generated_dependency_edges = closure
                 .generated_dependency_edges
                 .checked_add(1)
@@ -8543,10 +8577,10 @@ impl ComposedScaleMemberIterV1<'_, '_> {
                 ordinal,
                 self.observation,
             )?;
-            self.support_source_bytes = self
-                .support_source_bytes
-                .checked_add(bytes.len() as u64)
-                .ok_or_else(|| io_invalid("support observed source bytes overflow"))?;
+            self.support_source_bytes =
+                self.support_source_bytes
+                    .checked_add(bytes.len() as u64)
+                    .ok_or_else(|| io_invalid("support observed source bytes overflow"))?;
             self.support_ordinals[index] = ordinal
                 .checked_add(1)
                 .ok_or_else(|| io_invalid("support ordinal overflow"))?;
@@ -8669,7 +8703,8 @@ fn read_authored_aux_member_v1(
     drop(directory);
     let meta = file.metadata()?;
     let source_mode = meta.mode() & 0o777;
-    if !meta.is_file() || meta.len() != member.raw_bytes
+    if !meta.is_file()
+        || meta.len() != member.raw_bytes
         || !matches!(source_mode, 0o600 | 0o644 | 0o755)
     {
         return Err(io_invalid("authored auxiliary source descriptor differs"));
@@ -8706,8 +8741,10 @@ fn read_authored_aux_member_v1(
     if bytes.len() != size
         || after.len() != member.raw_bytes
         || after.mode() != meta.mode()
-        || after.mtime() != meta.mtime() || after.mtime_nsec() != meta.mtime_nsec()
-        || after.ctime() != meta.ctime() || after.ctime_nsec() != meta.ctime_nsec()
+        || after.mtime() != meta.mtime()
+        || after.mtime_nsec() != meta.mtime_nsec()
+        || after.ctime() != meta.ctime()
+        || after.ctime_nsec() != meta.ctime_nsec()
         || Digest256::of_bytes(&bytes) != member.raw_sha256
     {
         return Err(io_invalid("authored auxiliary full EOF or SHA differs"));
@@ -9394,9 +9431,11 @@ fn read_source_file_accounted_v1(
     let name = path
         .file_name()
         .ok_or_else(|| io_invalid("weighted source filename absent"))?;
-    let parent = tos_fd_open::open_absolute_directory(parent_path).map_err(std::io::Error::other)?;
+    let parent =
+        tos_fd_open::open_absolute_directory(parent_path).map_err(std::io::Error::other)?;
     let parent_before = parent.metadata()?;
-    let file = tos_fd_open::open_regular_at(&parent, Path::new(name)).map_err(std::io::Error::other)?;
+    let file =
+        tos_fd_open::open_regular_at(&parent, Path::new(name)).map_err(std::io::Error::other)?;
     let before = file.metadata()?;
     let expected = usize::try_from(before.len())
         .map_err(|_| io_invalid("weighted source size exceeds usize"))?;
@@ -9462,9 +9501,11 @@ fn read_source_file_accounted_v1(
         )
     };
     let after = file.metadata()?;
-    let current_parent = tos_fd_open::open_absolute_directory(parent_path).map_err(std::io::Error::other)?;
+    let current_parent =
+        tos_fd_open::open_absolute_directory(parent_path).map_err(std::io::Error::other)?;
     let parent_after = current_parent.metadata()?;
-    let current = tos_fd_open::open_regular_at(&current_parent, Path::new(name)).map_err(std::io::Error::other)?;
+    let current = tos_fd_open::open_regular_at(&current_parent, Path::new(name))
+        .map_err(std::io::Error::other)?;
     if bytes.len() != expected
         || stamp(&before) != stamp(&after)
         || stamp(&before) != stamp(&current.metadata()?)

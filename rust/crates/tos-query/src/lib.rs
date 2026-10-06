@@ -11,6 +11,14 @@ mod compressed_search_sqlite;
 #[cfg(not(target_arch = "wasm32"))]
 mod compressed_search_state;
 #[cfg(not(target_arch = "wasm32"))]
+mod controlled_inspect_adapter;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_lens_adapter;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_lens_budget;
+#[cfg(not(target_arch = "wasm32"))]
+mod controlled_query_adapter;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod corpus_read;
 pub mod exploration_plan;
 mod inspect_plan;
@@ -35,22 +43,20 @@ mod knowledge_sqlite;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_temporal;
 #[cfg(not(target_arch = "wasm32"))]
-mod controlled_query_adapter;
-#[cfg(not(target_arch = "wasm32"))]
-mod controlled_inspect_adapter;
-#[cfg(not(target_arch = "wasm32"))]
-mod controlled_lens_budget;
-#[cfg(not(target_arch = "wasm32"))]
-mod controlled_lens_adapter;
-#[cfg(not(target_arch = "wasm32"))]
-pub use controlled_lens_adapter::{execute_controlled_lens_response,
-    execute_controlled_lens_request_response, ControlledLensRequest};
+pub use controlled_lens_adapter::{
+    ControlledLensRequest, execute_controlled_lens_request_response,
+    execute_controlled_lens_response,
+};
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_original_reader;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_philosophy_adapter;
 #[cfg(not(target_arch = "wasm32"))]
-pub use controlled_philosophy_adapter::{execute_controlled_philosophy_status_response, execute_controlled_philosophy_status_response_render, execute_controlled_philosophy_metadata_response_render};
+pub use controlled_philosophy_adapter::{
+    execute_controlled_philosophy_metadata_response_render,
+    execute_controlled_philosophy_status_response,
+    execute_controlled_philosophy_status_response_render,
+};
 pub mod lens_plan;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod philosophy_read;
@@ -86,6 +92,15 @@ pub use inspect_plan::{
 };
 
 #[cfg(not(target_arch = "wasm32"))]
+pub use controlled_query_adapter::indexed_limit_from_foundation;
+#[cfg(not(target_arch = "wasm32"))]
+pub use controlled_query_adapter::{
+    execute_controlled_catalog_response, execute_controlled_knowledge_header_response,
+    execute_scoped_controlled_indexed_search_response,
+    execute_scoped_controlled_sidecar_indexed_search_response, with_controlled_knowledge_binding,
+    with_controlled_sidecar_knowledge_binding,
+};
+#[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_binding::{
     BoundCmpKnowledge, bind_managed_proof_verified_knowledge, bind_managed_verified_knowledge,
     bind_verified_knowledge,
@@ -111,16 +126,6 @@ pub use knowledge_packet::{
     ScopedIndexedKnowledgeAuthority, execute_indexed_search_page,
     execute_scoped_indexed_search_page,
 };
-#[cfg(not(target_arch = "wasm32"))]
-pub use controlled_query_adapter::{
-    execute_controlled_catalog_response,
-    execute_controlled_knowledge_header_response,
-    execute_scoped_controlled_indexed_search_response,
-    execute_scoped_controlled_sidecar_indexed_search_response,
-    with_controlled_knowledge_binding, with_controlled_sidecar_knowledge_binding,
-};
-#[cfg(not(target_arch = "wasm32"))]
-pub use controlled_query_adapter::indexed_limit_from_foundation;
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_temporal::execute_selected_temporal;
 pub use search_document::{
@@ -152,7 +157,9 @@ pub use controlled_inspect_adapter::execute_controlled_inspect_response;
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_corpus_adapter;
 #[cfg(not(target_arch = "wasm32"))]
-pub use controlled_corpus_adapter::{execute_controlled_corpus_metadata_response, execute_controlled_corpus_response};
+pub use controlled_corpus_adapter::{
+    execute_controlled_corpus_metadata_response, execute_controlled_corpus_response,
+};
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_corpus_reader;
 #[cfg(not(target_arch = "wasm32"))]
@@ -162,5 +169,7 @@ pub use controlled_philosophy_domain::execute_controlled_philosophy_domain_respo
 #[cfg(not(target_arch = "wasm32"))]
 mod controlled_health_children;
 #[cfg(not(target_arch = "wasm32"))]
-pub use controlled_health_children::{ControlledHealthSeed, execute_controlled_health_seed_response,
-    execute_controlled_knowledge_health_response};
+pub use controlled_health_children::{
+    ControlledHealthSeed, execute_controlled_health_seed_response,
+    execute_controlled_knowledge_health_response,
+};

@@ -142,16 +142,19 @@ fn read_page(
         let mut bytes = 0u64;
         for row in &mut batch {
             let payload = &mut row.payload;
-            stage.with_relation_payload_owned(&row.id, limits.max_row_bytes, |_, logical| {
-                bytes = bytes.checked_add(logical.len() as u64)
-                    .ok_or(Error::Budget("inherited page bytes"))?;
-                if bytes > limits.max_page_bytes {
-                    return Err(Error::Budget("inherited page bytes"));
-                }
-                state.charge_work(logical.len())?;
-                *payload = logical.to_vec();
-                Ok(())
-            })?.ok_or(Error::Invalid("inherited relation disappeared"))?;
+            stage
+                .with_relation_payload_owned(&row.id, limits.max_row_bytes, |_, logical| {
+                    bytes = bytes
+                        .checked_add(logical.len() as u64)
+                        .ok_or(Error::Budget("inherited page bytes"))?;
+                    if bytes > limits.max_page_bytes {
+                        return Err(Error::Budget("inherited page bytes"));
+                    }
+                    state.charge_work(logical.len())?;
+                    *payload = logical.to_vec();
+                    Ok(())
+                })?
+                .ok_or(Error::Invalid("inherited relation disappeared"))?;
         }
     }
     Ok(batch)
@@ -269,7 +272,9 @@ fn prepare_inner(
     let mut hash = Digest256Hasher::new();
     loop {
         let _page_hold = stage.hold_normalized_page(
-            limits.max_page_rows, limits.max_row_bytes, limits.max_row_bytes,
+            limits.max_page_rows,
+            limits.max_row_bytes,
+            limits.max_row_bytes,
         )?;
         let page = read_page(
             stage,
@@ -306,7 +311,9 @@ fn prepare_inner(
                     }
                     root_item(&mut hash, &relation.id, &relation.payload_sha);
                     let parsed = SourceRow::parse_scoped_with_optional_owned_state(
-                        &relation.payload, limits.max_row_bytes, stage.owned_creation_state(),
+                        &relation.payload,
+                        limits.max_row_bytes,
+                        stage.owned_creation_state(),
                     )?;
                     let value = parsed.value();
                     for (field, expected) in [

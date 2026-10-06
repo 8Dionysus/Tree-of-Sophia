@@ -7,10 +7,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Map, Value, json};
 use tos_foundation::Digest256;
-use tos_query::{IndexedWireCursorCodec, search_v2::{
-    SearchContinuationProgress, SearchContinuationState, SearchKind, SearchOrderKey,
-    SearchRank, SearchV2Error, SearchV2ErrorCode,
-}};
+use tos_query::{
+    IndexedWireCursorCodec,
+    search_v2::{
+        SearchContinuationProgress, SearchContinuationState, SearchKind, SearchOrderKey,
+        SearchRank, SearchV2Error, SearchV2ErrorCode,
+    },
+};
 
 pub(crate) const REFERENCE_INDEXED_CURSOR_MAX_BYTES: usize = 8 * 1024;
 pub(crate) const REFERENCE_SEARCH_CHILD_MAX_BYTES: usize = 2 * 1024;
@@ -26,17 +29,28 @@ fn invalid(message: &'static str) -> SearchV2Error {
     error(SearchV2ErrorCode::InvalidRequest, message)
 }
 fn stale_source() -> SearchV2Error {
-    error(SearchV2ErrorCode::StaleSelection, "indexed cursor source changed")
+    error(
+        SearchV2ErrorCode::StaleSelection,
+        "indexed cursor source changed",
+    )
 }
 fn stale_query() -> SearchV2Error {
-    error(SearchV2ErrorCode::StaleContinuation, "indexed cursor query or filters changed")
+    error(
+        SearchV2ErrorCode::StaleContinuation,
+        "indexed cursor query or filters changed",
+    )
 }
 
 pub(crate) fn reference_cursor_now_seconds() -> Result<u64, SearchV2Error> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|elapsed| elapsed.as_secs())
-        .map_err(|_| error(SearchV2ErrorCode::Unavailable, "indexed cursor clock unavailable"))
+        .map_err(|_| {
+            error(
+                SearchV2ErrorCode::Unavailable,
+                "indexed cursor clock unavailable",
+            )
+        })
 }
 
 fn b64_value(byte: u8) -> Option<u8> {
@@ -76,10 +90,17 @@ fn base64url_decode(token: &str, cap: usize) -> Result<Vec<u8>, SearchV2Error> {
 }
 
 fn base64url_encode(raw: &[u8], cap: usize) -> Result<String, SearchV2Error> {
-    let output_len = raw.len().checked_mul(4).and_then(|len| len.checked_add(2))
-        .map(|len| len / 3).ok_or_else(|| invalid("indexed cursor size overflow"))?;
+    let output_len = raw
+        .len()
+        .checked_mul(4)
+        .and_then(|len| len.checked_add(2))
+        .map(|len| len / 3)
+        .ok_or_else(|| invalid("indexed cursor size overflow"))?;
     if output_len > cap {
-        return Err(error(SearchV2ErrorCode::BudgetExceeded, "indexed cursor byte budget exceeded"));
+        return Err(error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "indexed cursor byte budget exceeded",
+        ));
     }
     let mut out = String::with_capacity(output_len);
     for chunk in raw.chunks(3) {
@@ -100,16 +121,25 @@ fn base64url_encode(raw: &[u8], cap: usize) -> Result<String, SearchV2Error> {
 
 /// Decode or encode one Reference base64url/compact-JSON payload. The caller
 /// supplies the protocol's separate outer or child byte cap.
-pub(crate) fn decode_reference_cursor_payload(token: &str, cap: usize) -> Result<Value, SearchV2Error> {
+pub(crate) fn decode_reference_cursor_payload(
+    token: &str,
+    cap: usize,
+) -> Result<Value, SearchV2Error> {
     let raw = base64url_decode(token, cap)?;
     serde_json::from_slice(&raw).map_err(|_| invalid("indexed cursor JSON is invalid"))
 }
 
-pub(crate) fn encode_reference_cursor_payload(value: &Value, cap: usize) -> Result<String, SearchV2Error> {
-    let raw = serde_json::to_vec(value)
-        .map_err(|_| invalid("indexed cursor JSON cannot be encoded"))?;
+pub(crate) fn encode_reference_cursor_payload(
+    value: &Value,
+    cap: usize,
+) -> Result<String, SearchV2Error> {
+    let raw =
+        serde_json::to_vec(value).map_err(|_| invalid("indexed cursor JSON cannot be encoded"))?;
     if raw.len() > cap {
-        return Err(error(SearchV2ErrorCode::BudgetExceeded, "indexed cursor byte budget exceeded"));
+        return Err(error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "indexed cursor byte budget exceeded",
+        ));
     }
     base64url_encode(&raw, cap)
 }
@@ -135,7 +165,13 @@ impl ReferenceCursorBinding {
         if source_revision.is_empty() {
             return Err(invalid("indexed cursor binding exceeds Reference bounds"));
         }
-        Self::new_for_query_store(Some(source_revision), query, sources, kind_ids, predicate_ids)
+        Self::new_for_query_store(
+            Some(source_revision),
+            query,
+            sources,
+            kind_ids,
+            predicate_ids,
+        )
     }
 
     /// Weak QueryStore binds the authentic graph-header value, including null.
@@ -152,16 +188,26 @@ impl ReferenceCursorBinding {
             values.sort();
             values.dedup();
             if values.iter().any(|value| value.chars().count() > 256) {
-                return Err(invalid("indexed cursor filter value exceeds Reference bound"));
+                return Err(invalid(
+                    "indexed cursor filter value exceeds Reference bound",
+                ));
             }
         }
-        let filter_count = sources.len().checked_add(kind_ids.len())
+        let filter_count = sources
+            .len()
+            .checked_add(kind_ids.len())
             .and_then(|count| count.checked_add(predicate_ids.len()))
             .ok_or_else(|| invalid("indexed cursor filter count overflow"))?;
         if query.chars().count() > 256 || filter_count > 100 {
             return Err(invalid("indexed cursor binding exceeds Reference bounds"));
         }
-        Ok(Self { source_revision, query, sources, kind_ids, predicate_ids })
+        Ok(Self {
+            source_revision,
+            query,
+            sources,
+            kind_ids,
+            predicate_ids,
+        })
     }
 
     fn filters_value(&self) -> Value {
@@ -177,7 +223,6 @@ impl ReferenceCursorBinding {
             .map_err(|_| invalid("indexed cursor filters cannot be encoded"))?;
         Ok(Digest256::of_bytes(&raw).to_hex())
     }
-
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -195,7 +240,12 @@ impl ReferenceCursorEnvelope {
         nodes_exhausted: bool,
         relations_exhausted: bool,
     ) -> Result<Self, SearchV2Error> {
-        let envelope = Self { nodes, relations, nodes_exhausted, relations_exhausted };
+        let envelope = Self {
+            nodes,
+            relations,
+            nodes_exhausted,
+            relations_exhausted,
+        };
         envelope.validate()?;
         Ok(envelope)
     }
@@ -207,7 +257,8 @@ impl ReferenceCursorEnvelope {
         ] {
             match (child, exhausted) {
                 (None, true) => {}
-                (Some(value), false) if !value.is_empty() && value.len() <= REFERENCE_SEARCH_CHILD_MAX_BYTES => {}
+                (Some(value), false)
+                    if !value.is_empty() && value.len() <= REFERENCE_SEARCH_CHILD_MAX_BYTES => {}
                 _ => return Err(invalid("indexed cursor child/exhaustion state is invalid")),
             }
         }
@@ -220,17 +271,26 @@ fn exact_keys(object: &Map<String, Value>, expected: &[&str]) -> bool {
 }
 
 fn string_array(value: &Value) -> Option<Vec<String>> {
-    value.as_array()?.iter().map(|item| item.as_str().map(str::to_owned)).collect()
+    value
+        .as_array()?
+        .iter()
+        .map(|item| item.as_str().map(str::to_owned))
+        .collect()
 }
 
 fn parse_filters(value: &Value) -> Result<(Vec<String>, Vec<String>, Vec<String>), SearchV2Error> {
-    let object = value.as_object().ok_or_else(|| invalid("indexed cursor filters are invalid"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| invalid("indexed cursor filters are invalid"))?;
     if !exact_keys(object, &["sources", "kind_ids", "predicate_ids"]) {
         return Err(invalid("indexed cursor filters are invalid"));
     }
-    let mut sources = string_array(&object["sources"]).ok_or_else(|| invalid("indexed cursor sources are invalid"))?;
-    let mut kind_ids = string_array(&object["kind_ids"]).ok_or_else(|| invalid("indexed cursor kinds are invalid"))?;
-    let mut predicate_ids = string_array(&object["predicate_ids"]).ok_or_else(|| invalid("indexed cursor predicates are invalid"))?;
+    let mut sources = string_array(&object["sources"])
+        .ok_or_else(|| invalid("indexed cursor sources are invalid"))?;
+    let mut kind_ids = string_array(&object["kind_ids"])
+        .ok_or_else(|| invalid("indexed cursor kinds are invalid"))?;
+    let mut predicate_ids = string_array(&object["predicate_ids"])
+        .ok_or_else(|| invalid("indexed cursor predicates are invalid"))?;
     for values in [&mut sources, &mut kind_ids, &mut predicate_ids] {
         let before = values.clone();
         values.sort();
@@ -247,10 +307,18 @@ pub(crate) fn decode_reference_indexed_cursor(
     binding: &ReferenceCursorBinding,
 ) -> Result<ReferenceCursorEnvelope, SearchV2Error> {
     let value = decode_reference_cursor_payload(token, REFERENCE_INDEXED_CURSOR_MAX_BYTES)?;
-    let object = value.as_object().ok_or_else(|| invalid("indexed cursor envelope is invalid"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| invalid("indexed cursor envelope is invalid"))?;
     const KEYS: &[&str] = &[
-        "filters", "nodes", "nodes_exhausted", "query", "relations",
-        "relations_exhausted", "schema", "source_revision",
+        "filters",
+        "nodes",
+        "nodes_exhausted",
+        "query",
+        "relations",
+        "relations_exhausted",
+        "schema",
+        "source_revision",
     ];
     if !exact_keys(object, KEYS) || object["schema"].as_str() != Some(OUTER_SCHEMA) {
         return Err(invalid("indexed cursor envelope is invalid"));
@@ -271,14 +339,20 @@ pub(crate) fn decode_reference_indexed_cursor(
     {
         return Err(stale_query());
     }
-    let nodes_exhausted = object["nodes_exhausted"].as_bool()
+    let nodes_exhausted = object["nodes_exhausted"]
+        .as_bool()
         .ok_or_else(|| invalid("indexed cursor node exhaustion flag is invalid"))?;
-    let relations_exhausted = object["relations_exhausted"].as_bool()
+    let relations_exhausted = object["relations_exhausted"]
+        .as_bool()
         .ok_or_else(|| invalid("indexed cursor relation exhaustion flag is invalid"))?;
     let child = |value: &Value| -> Result<Option<String>, SearchV2Error> {
         match value {
             Value::Null => Ok(None),
-            Value::String(value) if !value.is_empty() && value.len() <= REFERENCE_SEARCH_CHILD_MAX_BYTES => Ok(Some(value.clone())),
+            Value::String(value)
+                if !value.is_empty() && value.len() <= REFERENCE_SEARCH_CHILD_MAX_BYTES =>
+            {
+                Ok(Some(value.clone()))
+            }
             _ => Err(invalid("indexed cursor child is invalid")),
         }
     };
@@ -326,10 +400,16 @@ fn rank_from_number(value: u64) -> Result<SearchRank, SearchV2Error> {
     }
 }
 fn kind_name(kind: SearchKind) -> &'static str {
-    match kind { SearchKind::Nodes => "nodes", SearchKind::Relations => "relations" }
+    match kind {
+        SearchKind::Nodes => "nodes",
+        SearchKind::Relations => "relations",
+    }
 }
 fn kind_slot(kind: SearchKind) -> usize {
-    match kind { SearchKind::Nodes => 0, SearchKind::Relations => 1 }
+    match kind {
+        SearchKind::Nodes => 0,
+        SearchKind::Relations => 1,
+    }
 }
 
 fn parse_read_model_child(
@@ -339,15 +419,31 @@ fn parse_read_model_child(
     filters_digest: &str,
 ) -> Result<(SearchOrderKey, String), SearchV2Error> {
     let value = decode_reference_cursor_payload(token, REFERENCE_SEARCH_CHILD_MAX_BYTES)?;
-    let object = value.as_object().ok_or_else(|| invalid("indexed search child cursor is invalid"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| invalid("indexed search child cursor is invalid"))?;
     const KEYS: &[&str] = &[
-        "schema", "source_revision", "kind", "query", "n", "gram", "position",
-        "filters_digest", "issued_at", "expires_at", "ordering", "rank", "id",
+        "schema",
+        "source_revision",
+        "kind",
+        "query",
+        "n",
+        "gram",
+        "position",
+        "filters_digest",
+        "issued_at",
+        "expires_at",
+        "ordering",
+        "rank",
+        "id",
     ];
     if !exact_keys(object, KEYS) || object["schema"].as_str() != Some(CHILD_SCHEMA) {
         return Err(invalid("indexed search child cursor is invalid"));
     }
-    let source_revision = binding.source_revision.as_deref().ok_or_else(stale_source)?;
+    let source_revision = binding
+        .source_revision
+        .as_deref()
+        .ok_or_else(stale_source)?;
     if object["source_revision"].as_str() != Some(source_revision) {
         return Err(stale_source());
     }
@@ -357,22 +453,35 @@ fn parse_read_model_child(
     {
         return Err(stale_query());
     }
-    let integer = |key: &str| object[key].as_u64().ok_or_else(|| invalid("indexed search child cursor integer is invalid"));
+    let integer = |key: &str| {
+        object[key]
+            .as_u64()
+            .ok_or_else(|| invalid("indexed search child cursor integer is invalid"))
+    };
     if integer("n")? != u64::from(tos_query::search_index::INDEXED_SEARCH_GRAM_CODEPOINTS_V1)
         || object["ordering"].as_str() != Some("rank-id-position")
     {
         return Err(invalid("indexed search child cursor ordering is invalid"));
     }
-    let gram = object["gram"].as_str().filter(|value| !value.is_empty())
-        .ok_or_else(|| invalid("indexed search child cursor gram is invalid"))?.to_owned();
+    let gram = object["gram"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| invalid("indexed search child cursor gram is invalid"))?
+        .to_owned();
     let expires = integer("expires_at")?;
     let _issued = integer("issued_at")?;
     if expires < reference_cursor_now_seconds()? {
-        return Err(error(SearchV2ErrorCode::CursorExpired, "indexed cursor expired; restart"));
+        return Err(error(
+            SearchV2ErrorCode::CursorExpired,
+            "indexed cursor expired; restart",
+        ));
     }
     let rank = rank_from_number(integer("rank")?)?;
-    let id = object["id"].as_str().filter(|value| !value.is_empty() && *value == value.to_lowercase())
-        .ok_or_else(|| invalid("indexed search child cursor id is invalid"))?.to_owned();
+    let id = object["id"]
+        .as_str()
+        .filter(|value| !value.is_empty() && *value == value.to_lowercase())
+        .ok_or_else(|| invalid("indexed search child cursor id is invalid"))?
+        .to_owned();
     let position = integer("position")?;
     let key = SearchOrderKey::new(rank, id, position)?;
     Ok((key, gram))
@@ -433,28 +542,47 @@ impl NativeReferenceIndexedCursorCodec {
             request.predicate_ids().to_vec(),
         )?;
         let filters_digest = binding.filters_digest()?;
-        Ok(Self { initial, binding, filters_digest, decoded_grams: [None, None], selected_grams: [None, None] })
+        Ok(Self {
+            initial,
+            binding,
+            filters_digest,
+            decoded_grams: [None, None],
+            selected_grams: [None, None],
+        })
     }
 }
 
 impl IndexedWireCursorCodec for NativeReferenceIndexedCursorCodec {
     fn decode(&mut self, token: &str) -> Result<SearchContinuationState, SearchV2Error> {
         let envelope = decode_reference_indexed_cursor(token, &self.binding)?;
-        let mut parse_child = |child: Option<String>, exhausted: bool, kind: SearchKind|
-            -> Result<SearchContinuationProgress, SearchV2Error> {
-            if exhausted { return Ok(SearchContinuationProgress::Exhausted); }
+        let mut parse_child = |child: Option<String>,
+                               exhausted: bool,
+                               kind: SearchKind|
+         -> Result<SearchContinuationProgress, SearchV2Error> {
+            if exhausted {
+                return Ok(SearchContinuationProgress::Exhausted);
+            }
             let child = child.ok_or_else(|| invalid("indexed cursor child is absent"))?;
-            let (key, gram) = parse_read_model_child(&child, kind, &self.binding, &self.filters_digest)?;
+            let (key, gram) =
+                parse_read_model_child(&child, kind, &self.binding, &self.filters_digest)?;
             self.decoded_grams[kind_slot(kind)] = Some(gram);
             Ok(SearchContinuationProgress::After(key))
         };
         let nodes = parse_child(envelope.nodes, envelope.nodes_exhausted, SearchKind::Nodes)?;
-        let relations = parse_child(envelope.relations, envelope.relations_exhausted, SearchKind::Relations)?;
+        let relations = parse_child(
+            envelope.relations,
+            envelope.relations_exhausted,
+            SearchKind::Relations,
+        )?;
         drop(parse_child);
         self.initial.from_untrusted_progress(nodes, relations)
     }
 
-    fn observe_page_gram(&mut self, kind: SearchKind, selected_gram: Option<&str>) -> Result<(), SearchV2Error> {
+    fn observe_page_gram(
+        &mut self,
+        kind: SearchKind,
+        selected_gram: Option<&str>,
+    ) -> Result<(), SearchV2Error> {
         let slot = kind_slot(kind);
         if let Some(decoded) = self.decoded_grams[slot].as_deref() {
             if selected_gram != Some(decoded) {
@@ -470,20 +598,35 @@ impl IndexedWireCursorCodec for NativeReferenceIndexedCursorCodec {
             return Err(stale_query());
         }
         let issued_at = reference_cursor_now_seconds()?;
-        let child = |kind: SearchKind, progress: SearchContinuationProgress|
-            -> Result<Option<String>, SearchV2Error> {
+        let child = |kind: SearchKind,
+                     progress: SearchContinuationProgress|
+         -> Result<Option<String>, SearchV2Error> {
             match progress {
                 SearchContinuationProgress::Exhausted => Ok(None),
                 SearchContinuationProgress::After(key) => {
-                    let gram = self.selected_grams[kind_slot(kind)].as_deref()
+                    let gram = self.selected_grams[kind_slot(kind)]
+                        .as_deref()
                         .ok_or_else(|| invalid("indexed cursor selected gram is absent"))?;
-                    encode_read_model_child(kind, &key, gram, &self.binding, &self.filters_digest, issued_at).map(Some)
+                    encode_read_model_child(
+                        kind,
+                        &key,
+                        gram,
+                        &self.binding,
+                        &self.filters_digest,
+                        issued_at,
+                    )
+                    .map(Some)
                 }
-                SearchContinuationProgress::Fresh => Err(invalid("indexed cursor has no continuation progress")),
+                SearchContinuationProgress::Fresh => {
+                    Err(invalid("indexed cursor has no continuation progress"))
+                }
             }
         };
         let nodes = child(SearchKind::Nodes, state.wire_progress(SearchKind::Nodes))?;
-        let relations = child(SearchKind::Relations, state.wire_progress(SearchKind::Relations))?;
+        let relations = child(
+            SearchKind::Relations,
+            state.wire_progress(SearchKind::Relations),
+        )?;
         drop(child);
         let envelope = ReferenceCursorEnvelope::new(
             nodes,

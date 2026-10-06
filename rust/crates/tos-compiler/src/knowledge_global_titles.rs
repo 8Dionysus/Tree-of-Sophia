@@ -107,11 +107,13 @@ fn page(
     if let Some(state) = owned {
         for row in &mut batch {
             let payload = &mut row.payload;
-            stage.with_node_payload_owned(&row.id, limits.max_node_bytes, |_, logical| {
-                state.charge_work(logical.len())?;
-                *payload = logical.to_vec();
-                Ok(())
-            })?.ok_or(Error::Invalid("global title node disappeared"))?;
+            stage
+                .with_node_payload_owned(&row.id, limits.max_node_bytes, |_, logical| {
+                    state.charge_work(logical.len())?;
+                    *payload = logical.to_vec();
+                    Ok(())
+                })?
+                .ok_or(Error::Invalid("global title node disappeared"))?;
         }
     }
     Ok(batch)
@@ -163,7 +165,9 @@ fn build_inner(
     );
     loop {
         let _page_hold = stage.hold_normalized_page(
-            limits.max_page_rows, limits.max_node_bytes, limits.max_title_bytes,
+            limits.max_page_rows,
+            limits.max_node_bytes,
+            limits.max_title_bytes,
         )?;
         let batch = page(stage, after, limits)?;
         if batch.is_empty() {

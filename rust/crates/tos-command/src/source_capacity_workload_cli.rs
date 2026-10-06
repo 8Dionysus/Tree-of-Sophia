@@ -909,17 +909,16 @@ fn write_receipt(
     protected_operation_elapsed_ms: u64,
 ) -> io::Result<()> {
     let forecast = &receipt.forecast;
-    let generated_source_bytes =
-        receipt
-            .class_source_bytes
-            .iter()
-            .try_fold(0u64, |total, bytes| {
-                total
-                    .checked_add(*bytes)
-                    .ok_or_else(|| invalid("capacity fixture generated source total overflow"))
-            })?
-            .checked_add(receipt.generated_support_source_bytes)
-            .ok_or_else(|| invalid("capacity fixture generated support total overflow"))?;
+    let generated_source_bytes = receipt
+        .class_source_bytes
+        .iter()
+        .try_fold(0u64, |total, bytes| {
+            total
+                .checked_add(*bytes)
+                .ok_or_else(|| invalid("capacity fixture generated source total overflow"))
+        })?
+        .checked_add(receipt.generated_support_source_bytes)
+        .ok_or_else(|| invalid("capacity fixture generated support total overflow"))?;
     let (
         measured_source_at_1b,
         measured_source_ten_copies_at_1b,

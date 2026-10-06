@@ -1,5 +1,7 @@
 //! Actual Linux cgroup-v2 RAM custody for the selected native cold opener.
 //! Stage tickets and nominal process limits do not replace these kernel facts.
+use crate::native_snapshot::NativeColdOpenResourceHold;
+use crate::{ColdOpenLimits, Error, NativeProcessLimits, Result};
 use std::{
     fs::File,
     io::Read,
@@ -10,8 +12,6 @@ use std::{
     },
     time::Instant,
 };
-use crate::native_snapshot::NativeColdOpenResourceHold;
-use crate::{ColdOpenLimits, Error, NativeProcessLimits, Result};
 
 const PATH_BYTES: usize = 8193;
 const COPY_BUFFER_BYTES: u64 = 64 * 1024;
@@ -48,19 +48,28 @@ impl LinuxCgroupColdOpenResourceHold {
     /// envelope without treating its RAM ticket as the total kernel ceiling.
     /// This never installs or raises a limit.
     pub fn acquire_original_stage(
-        working_ram_bytes: u64, tmpfs_quota_bytes: u64, deadline: Instant,
+        working_ram_bytes: u64,
+        tmpfs_quota_bytes: u64,
+        deadline: Instant,
         cancelled: Arc<AtomicBool>,
     ) -> Result<Self> {
-        if tmpfs_quota_bytes == 0 { return Err(Error::Budget("native Original tmpfs envelope")); }
-        let composed = working_ram_bytes.checked_add(tmpfs_quota_bytes)
+        if tmpfs_quota_bytes == 0 {
+            return Err(Error::Budget("native Original tmpfs envelope"));
+        }
+        let composed = working_ram_bytes
+            .checked_add(tmpfs_quota_bytes)
             .ok_or(Error::Budget("native Original composed stage envelope"))?;
         Self::acquire_held(working_ram_bytes, Some(composed), deadline, cancelled)
     }
 
-    pub fn original_kernel_memory_max(&self) -> u64 { self.memory_max }
+    pub fn original_kernel_memory_max(&self) -> u64 {
+        self.memory_max
+    }
 
     fn acquire_held(
-        working_ram_bytes: u64, composed_stage_bytes: Option<u64>, deadline: Instant,
+        working_ram_bytes: u64,
+        composed_stage_bytes: Option<u64>,
+        deadline: Instant,
         cancelled: Arc<AtomicBool>,
     ) -> Result<Self> {
         active(deadline, cancelled.as_ref())?;

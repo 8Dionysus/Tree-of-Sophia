@@ -66,21 +66,46 @@ impl PackedObjectLocationV2 {
     pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
         if raw.len() != EXTENT_VALUE_BYTES
             || &raw[..8] != EXTENT_MAGIC
-            || u16::from_le_bytes(raw[8..10].try_into().map_err(|_| invalid("extent version width differs"))?)
-                != EXTENT_VERSION
+            || u16::from_le_bytes(
+                raw[8..10]
+                    .try_into()
+                    .map_err(|_| invalid("extent version width differs"))?,
+            ) != EXTENT_VERSION
             || raw[10..12] != [0, 0]
         {
             return Err(invalid("packed object extent wire differs"));
         }
         let result = Self {
-            size: u64::from_be_bytes(raw[12..20].try_into().map_err(|_| invalid("extent size width differs"))?),
-            segment_digest: Digest256::from_bytes(
-                raw[20..52].try_into().map_err(|_| invalid("extent digest width differs"))?,
+            size: u64::from_be_bytes(
+                raw[12..20]
+                    .try_into()
+                    .map_err(|_| invalid("extent size width differs"))?,
             ),
-            segment_size: u64::from_be_bytes(raw[52..60].try_into().map_err(|_| invalid("extent segment size width differs"))?),
-            frame_index: u32::from_be_bytes(raw[60..64].try_into().map_err(|_| invalid("extent frame index width differs"))?),
-            frame_count: u32::from_be_bytes(raw[64..68].try_into().map_err(|_| invalid("extent frame count width differs"))?),
-            header_offset: u64::from_be_bytes(raw[68..76].try_into().map_err(|_| invalid("extent offset width differs"))?),
+            segment_digest: Digest256::from_bytes(
+                raw[20..52]
+                    .try_into()
+                    .map_err(|_| invalid("extent digest width differs"))?,
+            ),
+            segment_size: u64::from_be_bytes(
+                raw[52..60]
+                    .try_into()
+                    .map_err(|_| invalid("extent segment size width differs"))?,
+            ),
+            frame_index: u32::from_be_bytes(
+                raw[60..64]
+                    .try_into()
+                    .map_err(|_| invalid("extent frame index width differs"))?,
+            ),
+            frame_count: u32::from_be_bytes(
+                raw[64..68]
+                    .try_into()
+                    .map_err(|_| invalid("extent frame count width differs"))?,
+            ),
+            header_offset: u64::from_be_bytes(
+                raw[68..76]
+                    .try_into()
+                    .map_err(|_| invalid("extent offset width differs"))?,
+            ),
         };
         result.validate()?;
         Ok(result)
@@ -155,12 +180,7 @@ impl PackedObjectSourceV2 {
         }
     }
 
-    pub(crate) fn from_slice(
-        digest: Digest256,
-        size: u64,
-        file: Arc<File>,
-        offset: u64,
-    ) -> Self {
+    pub(crate) fn from_slice(digest: Digest256, size: u64, file: Arc<File>, offset: u64) -> Self {
         Self {
             digest,
             size,
@@ -237,7 +257,9 @@ pub(crate) struct PackedObjectLimitsV2 {
 
 impl PackedObjectLimitsV2 {
     fn validate(self) -> io::Result<Self> {
-        self.segment_limits.validate().map_err(|_| invalid("packed object segment limits differ"))?;
+        self.segment_limits
+            .validate()
+            .map_err(|_| invalid("packed object segment limits differ"))?;
         if self.max_working_state_bytes == 0
             || self.max_working_state_bytes == usize::MAX
             || self.caller_live_state_bytes >= self.max_working_state_bytes
@@ -285,7 +307,9 @@ impl PackedObjectWriterV2 {
     {
         let limits = limits.validate()?;
         if limits.max_pack_frames > limits.segment_limits.max_frames {
-            return Err(invalid("packed object pack-frame cap exceeds segment limits"));
+            return Err(invalid(
+                "packed object pack-frame cap exceeds segment limits",
+            ));
         }
         let batch_cap = frame_batch_cap(limits.segment_limits, limits)?;
         let batch_state = batch_state_bytes(batch_cap)?;
@@ -357,7 +381,9 @@ impl PackedObjectWriterV2 {
     {
         let limits = limits.validate()?;
         if limits.max_pack_frames > limits.segment_limits.max_frames {
-            return Err(invalid("packed object pack-frame cap exceeds segment limits"));
+            return Err(invalid(
+                "packed object pack-frame cap exceeds segment limits",
+            ));
         }
         if old.kind.as_slice() != OBJECT_EXTENTS_KIND {
             return Err(invalid("packed object delta root kind differs"));
@@ -441,7 +467,9 @@ fn frame_batch_cap(
         .map_err(|_| invalid("packed segment frame count exceeds address space"))?
         .min(available / per_frame);
     if count == 0 {
-        return Err(invalid("selected state cannot hold one packed object frame"));
+        return Err(invalid(
+            "selected state cannot hold one packed object frame",
+        ));
     }
     Ok(count)
 }
@@ -535,7 +563,9 @@ where
     fn accept_order(&mut self, source: &PackedObjectSourceV2) -> io::Result<()> {
         let key = *source.digest.as_bytes();
         if self.last.is_some_and(|prior| prior >= key) {
-            return Err(invalid("packed object rows are not strictly digest ordered"));
+            return Err(invalid(
+                "packed object rows are not strictly digest ordered",
+            ));
         }
         self.seen_rows = self
             .seen_rows
@@ -546,9 +576,7 @@ where
             return Err(invalid("packed object row has ambiguous source"));
         }
         if let Some(location) = source.existing {
-            if location.size != source.size
-                || location.frame_count > self.limits.max_pack_frames
-            {
+            if location.size != source.size || location.frame_count > self.limits.max_pack_frames {
                 return Err(invalid("retained packed object size differs"));
             }
         } else if source.size > self.limits.segment_limits.max_frame_bytes {
@@ -658,7 +686,11 @@ where
                 header_offset: receipt.coordinate().header_offset,
             };
             Self::push_extent_row(
-                &mut self.ready, self.batch_cap, self.work, source.digest, location,
+                &mut self.ready,
+                self.batch_cap,
+                self.work,
+                source.digest,
+                location,
             )?;
             self.work.payload_bytes = self
                 .work
@@ -692,7 +724,8 @@ where
         if ready.len() > batch_cap {
             return Err(invalid("packed extent row buffer exceeds selected state"));
         }
-        work.object_rows = work.object_rows
+        work.object_rows = work
+            .object_rows
             .checked_add(1)
             .ok_or_else(|| invalid("packed object row count overflow"))?;
         Ok(())
@@ -808,7 +841,9 @@ where
             let key = *change.digest.as_bytes();
             if !was_checked {
                 if self.last.is_some_and(|prior| prior >= key) {
-                    return Err(invalid("packed object delta rows are not strictly digest ordered"));
+                    return Err(invalid(
+                        "packed object delta rows are not strictly digest ordered",
+                    ));
                 }
                 self.last = Some(key);
                 self.seen_rows = self
@@ -993,7 +1028,9 @@ fn seal_operation_limits(
         .checked_add(batch_state)
         .ok_or_else(|| invalid("packed segment caller state overflow"))?;
     if caller_live_state_bytes >= limits.max_working_state_bytes {
-        return Err(invalid("packed segment caller state exceeds selected slice"));
+        return Err(invalid(
+            "packed segment caller state exceeds selected slice",
+        ));
     }
     let max_work_bytes = segment
         .max_segment_bytes
@@ -1013,7 +1050,11 @@ fn seal_operation_limits(
         .and_then(|bytes| bytes.checked_mul(8))
         .ok_or_else(|| invalid("packed segment work-unit bound overflow"))?;
     let operation_work_units = chunks
-        .checked_add(u64::from(segment.max_frames).checked_mul(16).ok_or_else(|| invalid("packed frame work bound overflow"))?)
+        .checked_add(
+            u64::from(segment.max_frames)
+                .checked_mul(16)
+                .ok_or_else(|| invalid("packed frame work bound overflow"))?,
+        )
         .and_then(|units| units.checked_add(128))
         .filter(|units| *units > 0 && *units < u64::MAX)
         .ok_or_else(|| invalid("packed segment work-unit bound overflow"))?;
@@ -1048,13 +1089,34 @@ fn add_segment_work(
     into: &mut SegmentOperationWorkV1,
     next: SegmentOperationWorkV1,
 ) -> io::Result<()> {
-    into.read_bytes = into.read_bytes.checked_add(next.read_bytes).ok_or_else(|| invalid("packed segment read count overflow"))?;
-    into.read_upper_bound_bytes = into.read_upper_bound_bytes.checked_add(next.read_upper_bound_bytes).ok_or_else(|| invalid("packed segment read-guard count overflow"))?;
-    into.write_bytes = into.write_bytes.checked_add(next.write_bytes).ok_or_else(|| invalid("packed segment write count overflow"))?;
-    into.allocation_reserved_bytes = into.allocation_reserved_bytes.checked_add(next.allocation_reserved_bytes).ok_or_else(|| invalid("packed segment allocation reservation overflow"))?;
-    into.allocated_bytes = into.allocated_bytes.checked_add(next.allocated_bytes).ok_or_else(|| invalid("packed segment allocation overflow"))?;
-    into.work_units = into.work_units.checked_add(next.work_units).ok_or_else(|| invalid("packed segment work count overflow"))?;
-    into.work_bytes = into.work_bytes.checked_add(next.work_bytes).ok_or_else(|| invalid("packed segment work bytes overflow"))?;
+    into.read_bytes = into
+        .read_bytes
+        .checked_add(next.read_bytes)
+        .ok_or_else(|| invalid("packed segment read count overflow"))?;
+    into.read_upper_bound_bytes = into
+        .read_upper_bound_bytes
+        .checked_add(next.read_upper_bound_bytes)
+        .ok_or_else(|| invalid("packed segment read-guard count overflow"))?;
+    into.write_bytes = into
+        .write_bytes
+        .checked_add(next.write_bytes)
+        .ok_or_else(|| invalid("packed segment write count overflow"))?;
+    into.allocation_reserved_bytes = into
+        .allocation_reserved_bytes
+        .checked_add(next.allocation_reserved_bytes)
+        .ok_or_else(|| invalid("packed segment allocation reservation overflow"))?;
+    into.allocated_bytes = into
+        .allocated_bytes
+        .checked_add(next.allocated_bytes)
+        .ok_or_else(|| invalid("packed segment allocation overflow"))?;
+    into.work_units = into
+        .work_units
+        .checked_add(next.work_units)
+        .ok_or_else(|| invalid("packed segment work count overflow"))?;
+    into.work_bytes = into
+        .work_bytes
+        .checked_add(next.work_bytes)
+        .ok_or_else(|| invalid("packed segment work bytes overflow"))?;
     Ok(())
 }
 
@@ -1137,7 +1199,8 @@ impl<'a> PackedObjectReaderV2<'a> {
         digest: Digest256,
         expected_size: Option<u64>,
     ) -> io::Result<Option<PackedObjectLocationV2>> {
-        self.lookup_with_work(digest, expected_size).map(|(location, _)| location)
+        self.lookup_with_work(digest, expected_size)
+            .map(|(location, _)| location)
     }
 
     pub(crate) fn lookup_with_work(
@@ -1291,10 +1354,25 @@ fn add_tree_work(
     mut current: AuthenticatedTreeWorkV1,
     next: AuthenticatedTreeWorkV1,
 ) -> io::Result<AuthenticatedTreeWorkV1> {
-    current.read_nodes = current.read_nodes.checked_add(next.read_nodes).ok_or_else(|| invalid("packed object tree node overflow"))?;
-    current.written_nodes = current.written_nodes.checked_add(next.written_nodes).ok_or_else(|| invalid("packed object tree node overflow"))?;
-    current.read_bytes = current.read_bytes.checked_add(next.read_bytes).ok_or_else(|| invalid("packed object tree byte overflow"))?;
-    current.written_bytes = current.written_bytes.checked_add(next.written_bytes).ok_or_else(|| invalid("packed object tree byte overflow"))?;
-    current.allocated_bytes = current.allocated_bytes.checked_add(next.allocated_bytes).ok_or_else(|| invalid("packed object tree allocation overflow"))?;
+    current.read_nodes = current
+        .read_nodes
+        .checked_add(next.read_nodes)
+        .ok_or_else(|| invalid("packed object tree node overflow"))?;
+    current.written_nodes = current
+        .written_nodes
+        .checked_add(next.written_nodes)
+        .ok_or_else(|| invalid("packed object tree node overflow"))?;
+    current.read_bytes = current
+        .read_bytes
+        .checked_add(next.read_bytes)
+        .ok_or_else(|| invalid("packed object tree byte overflow"))?;
+    current.written_bytes = current
+        .written_bytes
+        .checked_add(next.written_bytes)
+        .ok_or_else(|| invalid("packed object tree byte overflow"))?;
+    current.allocated_bytes = current
+        .allocated_bytes
+        .checked_add(next.allocated_bytes)
+        .ok_or_else(|| invalid("packed object tree allocation overflow"))?;
     Ok(current)
 }

@@ -22,9 +22,7 @@ use crate::{
         CandidateReadBudget, CandidateReadCharge, SearchCandidateModel, SelectedSearchCandidate,
     },
     search_execute::SearchKindBudget,
-    search_index::{
-        GramSeekCharge, GramStat, PostingPage, SearchGramModel, SearchPostingModel,
-    },
+    search_index::{GramSeekCharge, GramStat, PostingPage, SearchGramModel, SearchPostingModel},
     search_v2::{
         IndexedSearchV2Request, SearchContinuationState, SearchKind, SearchV2Error,
         SearchV2ErrorCode,
@@ -206,10 +204,7 @@ trait ControlledSearchSource {
         &mut self,
         vocabulary: &QueryVocabulary,
         descriptor: &[u8],
-        operation: impl for<'value> FnOnce(
-            &mut Self,
-            &'value JsonValue,
-        ) -> tos_compiler::Result<()>,
+        operation: impl for<'value> FnOnce(&mut Self, &'value JsonValue) -> tos_compiler::Result<()>,
     ) -> tos_compiler::Result<()>;
 }
 
@@ -408,9 +403,12 @@ impl<M: ControlledSearchSource> SearchCandidateModel for ControlledSearchAdapter
 
 impl<M: ControlledSearchSource> IndexedSearchModel for ControlledSearchAdapter<'_, M> {
     fn check_bound(&self, bound: &BoundCmpKnowledge<'_>) -> Result<(), SearchV2Error> {
-        self.source
-            .source_check_pin()
-            .map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected controlled knowledge pin changed"))?;
+        self.source.source_check_pin().map_err(|_| {
+            error(
+                SearchV2ErrorCode::StaleSelection,
+                "selected controlled knowledge pin changed",
+            )
+        })?;
         bound.check_controlled_source_parts(
             self.source.selected_expectation(),
             self.source.source_basis(),
@@ -432,10 +430,8 @@ fn with_controlled_binding<M: ControlledSearchSource>(
     consume: impl FnOnce(&mut M, &BoundCmpKnowledge<'_>) -> tos_compiler::Result<()>,
 ) -> tos_compiler::Result<()> {
     let mut callback_result = None;
-    let workspace_result = model.with_binding_workspace(
-        vocabulary,
-        authored_descriptor,
-        |model, descriptor| {
+    let workspace_result =
+        model.with_binding_workspace(vocabulary, authored_descriptor, |model, descriptor| {
             callback_result = Some((|| {
                 model.source_check_pin()?;
                 let bound = bind_controlled_knowledge_from_parts(
@@ -453,8 +449,7 @@ fn with_controlled_binding<M: ControlledSearchSource>(
                 Ok(())
             })());
             Ok(())
-        },
-    );
+        });
     let pin_result = model.source_check_pin();
     workspace_result?;
     pin_result?;
@@ -496,58 +491,115 @@ pub fn with_controlled_sidecar_knowledge_binding(
 /// Body and lease stay inside synchronous delivery under the compiler state hold.
 pub fn execute_controlled_knowledge_header_response<'hold, A>(
     model: &mut ControlledKnowledgeModel<'_, '_, '_>,
-    bound: &BoundCmpKnowledge<'_>, authority: &mut A,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
     budget: crate::InspectBudget,
     deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
 ) -> Result<(), SearchV2Error>
-where A: crate::InspectCurrentAuthority<'hold> + ?Sized {
+where
+    A: crate::InspectCurrentAuthority<'hold> + ?Sized,
+{
     if budget.max_rows == 0 || budget.max_response_bytes == 0 {
-        return Err(error(SearchV2ErrorCode::BudgetExceeded, "controlled header budget"));
+        return Err(error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "controlled header budget",
+        ));
     }
-    model.check_query_open_vm_admission(budget.max_open_vm_steps).map_err(compiler_query_error)?;
+    model
+        .check_query_open_vm_admission(budget.max_open_vm_steps)
+        .map_err(compiler_query_error)?;
     bound.check_controlled_model(model)?;
     let forecast = authority.disclosure_metadata_state_upper_bound()?;
     let mut outcome = Ok(());
     let frame = std::mem::size_of_val(&deliver)
         .checked_add(std::mem::size_of::<crate::search_v2::CurrentPolicyBinding>())
         .and_then(|n| n.checked_add(std::mem::size_of::<crate::IndexedDisclosureScope>()))
-        .and_then(|n| n.checked_add(std::mem::size_of::<Option<std::sync::Arc<dyn crate::AbortProbe>>>()
-            + std::mem::size_of::<Result<(), SearchV2Error>>() * 3))
-        .ok_or_else(|| error(SearchV2ErrorCode::BudgetExceeded, "controlled header frame state"))?;
-    model.with_owned_query_workspace(forecast.checked_add(frame)
-        .ok_or(CompilerError::Budget("controlled header policy workspace")).map_err(compiler_query_error)?, |model| {
-        let policy = authority.policy_binding();
-        let scope = authority.disclosure_scope();
-        let actual = policy.retained_state_bytes().map_err(|_| CompilerError::Budget("controlled header policy state"))?
-            .checked_add(crate::knowledge_inspect::scope_owned_state(&scope)
-                .map_err(|_| CompilerError::Budget("controlled header scope state"))?)
-            .ok_or(CompilerError::Budget("controlled header metadata state"))?;
-        if actual > forecast { return Err(CompilerError::Budget("controlled header metadata forecast")); }
-        outcome = (|| {
-            scope.validate_for(bound, &policy, "tos_knowledge_header", "read_only_public_knowledge_header_v1")?;
-            authority.check_selected()?;
-            if let Some(proof) = bound.source_basis().managed_source() { authority.authorize_managed_source_current(proof)?; }
-            if let Some(proof) = bound.source_basis().managed_source_v2() { authority.authorize_managed_source_v2_current(proof)?; }
-            let mut delivered = Ok(());
-            model.with_controlled_header(budget.max_payload_bytes.min(budget.max_response_bytes),
-                budget.max_decoded_bytes, budget.max_read_vm_steps, budget.json, |body| {
-                    delivered = (|| {
-                        if let Some(reason) = authority.abort_probe().and_then(|probe| probe.reason()) {
-                            return Err(error(match reason { crate::AbortReason::Cancelled => SearchV2ErrorCode::Cancelled,
-                                crate::AbortReason::DeadlineExceeded => SearchV2ErrorCode::DeadlineExceeded }, "controlled header aborted"));
-                        }
-                        authority.check_selected()?;
-                        let mut lease = authority.acquire_disclosure(&scope, &[])?;
-                        lease.recheck()?;
-                        deliver(body)?;
-                        lease.recheck()
-                    })();
-                    Ok(())
-                }).map_err(compiler_query_error)?;
-            delivered
-        })();
-        Ok(())
-    }).map_err(compiler_query_error)?;
+        .and_then(|n| {
+            n.checked_add(
+                std::mem::size_of::<Option<std::sync::Arc<dyn crate::AbortProbe>>>()
+                    + std::mem::size_of::<Result<(), SearchV2Error>>() * 3,
+            )
+        })
+        .ok_or_else(|| {
+            error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "controlled header frame state",
+            )
+        })?;
+    model
+        .with_owned_query_workspace(
+            forecast
+                .checked_add(frame)
+                .ok_or(CompilerError::Budget("controlled header policy workspace"))
+                .map_err(compiler_query_error)?,
+            |model| {
+                let policy = authority.policy_binding();
+                let scope = authority.disclosure_scope();
+                let actual = policy
+                    .retained_state_bytes()
+                    .map_err(|_| CompilerError::Budget("controlled header policy state"))?
+                    .checked_add(
+                        crate::knowledge_inspect::scope_owned_state(&scope)
+                            .map_err(|_| CompilerError::Budget("controlled header scope state"))?,
+                    )
+                    .ok_or(CompilerError::Budget("controlled header metadata state"))?;
+                if actual > forecast {
+                    return Err(CompilerError::Budget("controlled header metadata forecast"));
+                }
+                outcome = (|| {
+                    scope.validate_for(
+                        bound,
+                        &policy,
+                        "tos_knowledge_header",
+                        "read_only_public_knowledge_header_v1",
+                    )?;
+                    authority.check_selected()?;
+                    if let Some(proof) = bound.source_basis().managed_source() {
+                        authority.authorize_managed_source_current(proof)?;
+                    }
+                    if let Some(proof) = bound.source_basis().managed_source_v2() {
+                        authority.authorize_managed_source_v2_current(proof)?;
+                    }
+                    let mut delivered = Ok(());
+                    model
+                        .with_controlled_header(
+                            budget.max_payload_bytes.min(budget.max_response_bytes),
+                            budget.max_decoded_bytes,
+                            budget.max_read_vm_steps,
+                            budget.json,
+                            |body| {
+                                delivered = (|| {
+                                    if let Some(reason) =
+                                        authority.abort_probe().and_then(|probe| probe.reason())
+                                    {
+                                        return Err(error(
+                                            match reason {
+                                                crate::AbortReason::Cancelled => {
+                                                    SearchV2ErrorCode::Cancelled
+                                                }
+                                                crate::AbortReason::DeadlineExceeded => {
+                                                    SearchV2ErrorCode::DeadlineExceeded
+                                                }
+                                            },
+                                            "controlled header aborted",
+                                        ));
+                                    }
+                                    authority.check_selected()?;
+                                    let mut lease = authority.acquire_disclosure(&scope, &[])?;
+                                    lease.recheck()?;
+                                    deliver(body)?;
+                                    lease.recheck()
+                                })();
+                                Ok(())
+                            },
+                        )
+                        .map_err(compiler_query_error)?;
+                    delivered
+                })();
+                Ok(())
+            },
+        )
+        .map_err(compiler_query_error)?;
     outcome
 }
 
@@ -556,73 +608,126 @@ where A: crate::InspectCurrentAuthority<'hold> + ?Sized {
 /// forecast; no policy/scope clone is allocated before that admission.
 pub fn execute_controlled_catalog_response<'hold, A>(
     model: &mut ControlledKnowledgeModel<'_, '_, '_>,
-    bound: &BoundCmpKnowledge<'_>, authority: &mut A,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
     budget: crate::CatalogBudget,
     deliver: impl FnOnce(&[u8]) -> Result<(), crate::CatalogError>,
 ) -> Result<(), crate::CatalogError>
-where A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<'hold> {
-    execute_controlled_catalog_payload_response(model, bound, authority, budget,
-        |raw, _| deliver(raw))
+where
+    A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<'hold>,
+{
+    execute_controlled_catalog_payload_response(model, bound, authority, budget, |raw, _| {
+        deliver(raw)
+    })
 }
 
 pub(crate) fn execute_controlled_catalog_payload_response<'hold, A>(
     model: &mut ControlledKnowledgeModel<'_, '_, '_>,
-    bound: &BoundCmpKnowledge<'_>, authority: &mut A,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
     budget: crate::CatalogBudget,
     deliver: impl FnOnce(&[u8], &JsonValue) -> Result<(), crate::CatalogError>,
 ) -> Result<(), crate::CatalogError>
-where A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<'hold> {
-    use crate::{CatalogCurrentAuthority as C, InspectCurrentAuthority as I};
+where
+    A: crate::CatalogCurrentAuthority<'hold> + crate::InspectCurrentAuthority<'hold>,
+{
     use crate::knowledge_catalog::{CatalogError, CatalogErrorCode};
-    let refused = || CatalogError { code: CatalogErrorCode::BudgetExceeded,
-        message: "controlled catalog owner refused" };
-    let compiler_error = |e| CatalogError { code: match e {
-        CompilerError::Budget(_) | CompilerError::SqliteVmBudget { .. } => CatalogErrorCode::BudgetExceeded,
-        CompilerError::Invalid(_) => CatalogErrorCode::CorruptSelectedCarrier,
-        _ => CatalogErrorCode::PolicyBindingUnavailable,
-    }, message: "controlled catalog owner refused" };
-    model.check_query_open_vm_admission(budget.max_open_vm_steps).map_err(compiler_error)?;
-    bound.check_controlled_model(model).map_err(|_| CatalogError {
-        code: CatalogErrorCode::StaleSelection, message: "controlled catalog binding differs" })?;
+    use crate::{CatalogCurrentAuthority as C, InspectCurrentAuthority as I};
+    let refused = || CatalogError {
+        code: CatalogErrorCode::BudgetExceeded,
+        message: "controlled catalog owner refused",
+    };
+    let compiler_error = |e| CatalogError {
+        code: match e {
+            CompilerError::Budget(_) | CompilerError::SqliteVmBudget { .. } => {
+                CatalogErrorCode::BudgetExceeded
+            }
+            CompilerError::Invalid(_) => CatalogErrorCode::CorruptSelectedCarrier,
+            _ => CatalogErrorCode::PolicyBindingUnavailable,
+        },
+        message: "controlled catalog owner refused",
+    };
+    model
+        .check_query_open_vm_admission(budget.max_open_vm_steps)
+        .map_err(compiler_error)?;
+    bound
+        .check_controlled_model(model)
+        .map_err(|_| CatalogError {
+            code: CatalogErrorCode::StaleSelection,
+            message: "controlled catalog binding differs",
+        })?;
     let forecast = I::disclosure_metadata_state_upper_bound(authority)
         .map_err(|_| refused())?
         .checked_add(std::mem::size_of::<crate::CatalogDisclosureScope>())
         .and_then(|n| n.checked_add(std::mem::size_of_val(&deliver)))
         .ok_or_else(refused)?;
     let mut outcome = Ok(());
-    model.with_owned_query_workspace(forecast, |model| {
-        let policy = C::policy_binding(authority);
-        let scope = C::disclosure_scope(authority);
-        outcome = (|| {
-            scope.validate(bound, &policy)?;
-            C::check_selected(authority)?;
-            if let Some(proof) = bound.source_basis().managed_source() { C::authorize_managed_source_current(authority, proof)?; }
-            if let Some(proof) = bound.source_basis().managed_source_v2() { C::authorize_managed_source_v2_current(authority, proof)?; }
-            let mut delivered = Ok(());
-            model.with_controlled_catalog(budget.max_packet_bytes, budget.max_decoded_bytes,
-                budget.max_read_vm_steps, budget.json, |body, catalog| {
-                    delivered = (|| {
-                        bound.validate_catalog_identity(catalog, budget.json).map_err(|_| CatalogError {
-                            code: CatalogErrorCode::CorruptSelectedCarrier, message: "controlled catalog identity differs" })?;
-                        C::authorize_current(authority, bound.selection().catalog_packet_sha256)?;
-                        C::check_selected(authority)?;
-                        if let Some(reason) = C::abort_probe(authority).and_then(|probe| probe.reason()) {
-                            return Err(CatalogError { code: match reason {
-                                crate::AbortReason::Cancelled => CatalogErrorCode::Cancelled,
-                                crate::AbortReason::DeadlineExceeded => CatalogErrorCode::DeadlineExceeded,
-                            }, message: "controlled catalog aborted" });
-                        }
-                        let mut lease = C::acquire_disclosure(authority, &scope, bound.selection().catalog_packet_sha256)?;
-                        lease.recheck()?;
-                        deliver(body, catalog)?;
-                        lease.recheck()
-                    })();
-                    Ok(())
-                }).map_err(compiler_error)?;
-            delivered
-        })();
-        Ok(())
-    }).map_err(compiler_error)?;
+    model
+        .with_owned_query_workspace(forecast, |model| {
+            let policy = C::policy_binding(authority);
+            let scope = C::disclosure_scope(authority);
+            outcome = (|| {
+                scope.validate(bound, &policy)?;
+                C::check_selected(authority)?;
+                if let Some(proof) = bound.source_basis().managed_source() {
+                    C::authorize_managed_source_current(authority, proof)?;
+                }
+                if let Some(proof) = bound.source_basis().managed_source_v2() {
+                    C::authorize_managed_source_v2_current(authority, proof)?;
+                }
+                let mut delivered = Ok(());
+                model
+                    .with_controlled_catalog(
+                        budget.max_packet_bytes,
+                        budget.max_decoded_bytes,
+                        budget.max_read_vm_steps,
+                        budget.json,
+                        |body, catalog| {
+                            delivered = (|| {
+                                bound
+                                    .validate_catalog_identity(catalog, budget.json)
+                                    .map_err(|_| CatalogError {
+                                        code: CatalogErrorCode::CorruptSelectedCarrier,
+                                        message: "controlled catalog identity differs",
+                                    })?;
+                                C::authorize_current(
+                                    authority,
+                                    bound.selection().catalog_packet_sha256,
+                                )?;
+                                C::check_selected(authority)?;
+                                if let Some(reason) =
+                                    C::abort_probe(authority).and_then(|probe| probe.reason())
+                                {
+                                    return Err(CatalogError {
+                                        code: match reason {
+                                            crate::AbortReason::Cancelled => {
+                                                CatalogErrorCode::Cancelled
+                                            }
+                                            crate::AbortReason::DeadlineExceeded => {
+                                                CatalogErrorCode::DeadlineExceeded
+                                            }
+                                        },
+                                        message: "controlled catalog aborted",
+                                    });
+                                }
+                                let mut lease = C::acquire_disclosure(
+                                    authority,
+                                    &scope,
+                                    bound.selection().catalog_packet_sha256,
+                                )?;
+                                lease.recheck()?;
+                                deliver(body, catalog)?;
+                                lease.recheck()
+                            })();
+                            Ok(())
+                        },
+                    )
+                    .map_err(compiler_error)?;
+                delivered
+            })();
+            Ok(())
+        })
+        .map_err(compiler_error)?;
     outcome
 }
 
@@ -631,31 +736,51 @@ fn request_strings(
     total_bytes: &mut usize,
     allow_empty: bool,
 ) -> Result<Vec<String>, SearchV2Error> {
-    let Some(value) = value else { return Ok(Vec::new()) };
+    let Some(value) = value else {
+        return Ok(Vec::new());
+    };
     if value.is_null() {
         return Ok(Vec::new());
     }
     let Some(values) = value.as_array() else {
-        return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed filter must be an array"));
+        return Err(error(
+            SearchV2ErrorCode::InvalidRequest,
+            "indexed filter must be an array",
+        ));
     };
     if values.len() > MAX_CONTROLLED_FILTERS {
-        return Err(error(SearchV2ErrorCode::BudgetExceeded, "indexed filter count exceeds cap"));
+        return Err(error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "indexed filter count exceeds cap",
+        ));
     }
     let mut owned = Vec::with_capacity(values.len());
     for value in values {
         let Some(text) = value.as_str() else {
-            return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed filter entry must be a string"));
+            return Err(error(
+                SearchV2ErrorCode::InvalidRequest,
+                "indexed filter entry must be a string",
+            ));
         };
         if (!allow_empty && text.is_empty())
             || text.chars().count() > MAX_CONTROLLED_FILTER_CODE_POINTS
         {
-            return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed filter value is empty or overlong"));
+            return Err(error(
+                SearchV2ErrorCode::InvalidRequest,
+                "indexed filter value is empty or overlong",
+            ));
         }
         *total_bytes = total_bytes.checked_add(text.len()).ok_or_else(|| {
-            error(SearchV2ErrorCode::BudgetExceeded, "indexed request field size overflow")
+            error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "indexed request field size overflow",
+            )
         })?;
         if *total_bytes > MAX_CONTROLLED_FIELDS_BYTES {
-            return Err(error(SearchV2ErrorCode::BudgetExceeded, "indexed request fields exceed cap"));
+            return Err(error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "indexed request fields exceed cap",
+            ));
         }
         owned.push(text.to_owned());
     }
@@ -668,7 +793,10 @@ fn parse_request<'a>(
     max_cursor_bytes: usize,
 ) -> Result<(IndexedSearchV2Request, Option<&'a str>), SearchV2Error> {
     let Some(fields) = value.as_object() else {
-        return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed arguments must be an object"));
+        return Err(error(
+            SearchV2ErrorCode::InvalidRequest,
+            "indexed arguments must be an object",
+        ));
     };
     let mut seen = 0u8;
     for (key, _) in fields {
@@ -682,55 +810,94 @@ fn parse_request<'a>(
             _ => (0, false),
         };
         if !known {
-            return Err(error(SearchV2ErrorCode::InvalidRequest, "unknown indexed search field"));
+            return Err(error(
+                SearchV2ErrorCode::InvalidRequest,
+                "unknown indexed search field",
+            ));
         }
         if seen & bit != 0 {
-            return Err(error(SearchV2ErrorCode::InvalidRequest, "duplicate indexed search field"));
+            return Err(error(
+                SearchV2ErrorCode::InvalidRequest,
+                "duplicate indexed search field",
+            ));
         }
         seen |= bit;
     }
     let query = match value.object_get("query") {
         None => String::new(),
-        Some(raw) => raw.as_str().ok_or_else(|| {
-            error(SearchV2ErrorCode::InvalidRequest, "indexed query must be a string")
-        })?.to_owned(),
+        Some(raw) => raw
+            .as_str()
+            .ok_or_else(|| {
+                error(
+                    SearchV2ErrorCode::InvalidRequest,
+                    "indexed query must be a string",
+                )
+            })?
+            .to_owned(),
     };
     let mut field_bytes = query.len();
     let sources = request_strings(value.object_get("sources"), &mut field_bytes, false)?;
     let kind_ids = request_strings(value.object_get("kind_ids"), &mut field_bytes, true)?;
     let predicate_ids = request_strings(value.object_get("predicate_ids"), &mut field_bytes, true)?;
     if field_bytes > MAX_CONTROLLED_FIELDS_BYTES {
-        return Err(error(SearchV2ErrorCode::BudgetExceeded, "indexed request fields exceed cap"));
+        return Err(error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "indexed request fields exceed cap",
+        ));
     }
     let limit = indexed_limit_from_foundation(value.object_get("limit"));
     let cursor = match value.object_get("cursor") {
         None | Some(JsonValue::Null) => None,
         Some(raw) => {
             let cursor = raw.as_str().ok_or_else(|| {
-                error(SearchV2ErrorCode::InvalidRequest, "indexed cursor must be a string or null")
+                error(
+                    SearchV2ErrorCode::InvalidRequest,
+                    "indexed cursor must be a string or null",
+                )
             })?;
             if cursor.is_empty() || cursor.len() > max_cursor_bytes {
-                return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed cursor is empty or overlong"));
+                return Err(error(
+                    SearchV2ErrorCode::InvalidRequest,
+                    "indexed cursor is empty or overlong",
+                ));
             }
             Some(cursor)
         }
     };
     if cursor != supplied_cursor {
-        return Err(error(SearchV2ErrorCode::InvalidRequest, "indexed cursor argument differs from original request"));
+        return Err(error(
+            SearchV2ErrorCode::InvalidRequest,
+            "indexed cursor argument differs from original request",
+        ));
     }
-    Ok((IndexedSearchV2Request { query, sources, kind_ids, predicate_ids, limit }, cursor))
+    Ok((
+        IndexedSearchV2Request {
+            query,
+            sources,
+            kind_ids,
+            predicate_ids,
+            limit,
+        },
+        cursor,
+    ))
 }
 
 fn add(total: &mut usize, value: usize) -> Result<(), SearchV2Error> {
     *total = total.checked_add(value).ok_or_else(|| {
-        error(SearchV2ErrorCode::BudgetExceeded, "controlled QRY workspace overflow")
+        error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "controlled QRY workspace overflow",
+        )
     })?;
     Ok(())
 }
 
 fn mul(value: usize, count: usize) -> Result<usize, SearchV2Error> {
     value.checked_mul(count).ok_or_else(|| {
-        error(SearchV2ErrorCode::BudgetExceeded, "controlled QRY workspace overflow")
+        error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "controlled QRY workspace overflow",
+        )
     })
 }
 
@@ -739,31 +906,76 @@ fn kind_workspace(budget: SearchKindBudget) -> Result<usize, SearchV2Error> {
     // `max_observed_bytes` is logical UTF-8. Reserve a factor of two for
     // retained String capacity plus the exact vector slots for every admitted
     // observed row, including filtered and false-positive candidates.
-    add(&mut bytes, mul(usize::try_from(budget.max_observed_bytes).map_err(|_| {
-        error(SearchV2ErrorCode::BudgetExceeded, "observed-byte cap exceeds address space")
-    })?, 2)?)?;
-    add(&mut bytes, mul(
-        budget.max_observed_candidates,
-        std::mem::size_of::<crate::search_execute::ObservedSearchCandidate>(),
-    )?)?;
+    add(
+        &mut bytes,
+        mul(
+            usize::try_from(budget.max_observed_bytes).map_err(|_| {
+                error(
+                    SearchV2ErrorCode::BudgetExceeded,
+                    "observed-byte cap exceeds address space",
+                )
+            })?,
+            2,
+        )?,
+    )?;
+    add(
+        &mut bytes,
+        mul(
+            budget.max_observed_candidates,
+            std::mem::size_of::<crate::search_execute::ObservedSearchCandidate>(),
+        )?,
+    )?;
     // Page-backed postings and their decoded/returned positions.
-    add(&mut bytes, usize::try_from(budget.postings.max_decoded_bytes).map_err(|_| {
-        error(SearchV2ErrorCode::BudgetExceeded, "posting cap exceeds address space")
-    })?)?;
-    add(&mut bytes, mul(budget.postings.page_rows, std::mem::size_of::<u64>())?)?;
+    add(
+        &mut bytes,
+        usize::try_from(budget.postings.max_decoded_bytes).map_err(|_| {
+            error(
+                SearchV2ErrorCode::BudgetExceeded,
+                "posting cap exceeds address space",
+            )
+        })?,
+    )?;
+    add(
+        &mut bytes,
+        mul(budget.postings.page_rows, std::mem::size_of::<u64>())?,
+    )?;
     // Candidate fields/payload can overlap the verifier's parsed document and
     // the retained top-(limit+1) result set.
-    add(&mut bytes, mul(usize::try_from(budget.candidate.max_decoded_bytes).map_err(|_| {
-        error(SearchV2ErrorCode::BudgetExceeded, "candidate cap exceeds address space")
-    })?, 2)?)?;
+    add(
+        &mut bytes,
+        mul(
+            usize::try_from(budget.candidate.max_decoded_bytes).map_err(|_| {
+                error(
+                    SearchV2ErrorCode::BudgetExceeded,
+                    "candidate cap exceeds address space",
+                )
+            })?,
+            2,
+        )?,
+    )?;
     add(&mut bytes, mul(budget.candidate.max_payload_bytes, 2)?)?;
     add(&mut bytes, mul(budget.candidate.max_field_bytes, 8)?)?;
-    add(&mut bytes, mul(budget.verify.document.max_document_bytes, 2)?)?;
+    add(
+        &mut bytes,
+        mul(budget.verify.document.max_document_bytes, 2)?,
+    )?;
     add(&mut bytes, mul(budget.verify.document.json.max_bytes, 2)?)?;
-    add(&mut bytes, mul(budget.verify.max_rank_values, budget.verify.max_rank_field_bytes)?)?;
+    add(
+        &mut bytes,
+        mul(
+            budget.verify.max_rank_values,
+            budget.verify.max_rank_field_bytes,
+        )?,
+    )?;
     add(&mut bytes, budget.max_selected_result_bytes)?;
     // Heap slots and order keys for at most the protocol's fixed limit+1 hits.
-    add(&mut bytes, mul(101, std::mem::size_of::<crate::search_candidate::VerifiedSearchCandidate>())?)?;
+    add(
+        &mut bytes,
+        mul(
+            101,
+            std::mem::size_of::<crate::search_candidate::VerifiedSearchCandidate>(),
+        )?,
+    )?;
     Ok(bytes)
 }
 
@@ -774,16 +986,25 @@ fn query_workspace_upper_bound(
 ) -> Result<usize, SearchV2Error> {
     use tos_foundation::OwnedState;
     let request_bytes = request.owned_heap_bytes().map_err(|_| {
-        error(SearchV2ErrorCode::BudgetExceeded, "indexed request geometry unavailable")
+        error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "indexed request geometry unavailable",
+        )
     })?;
     if request_bytes > MAX_CONTROLLED_REQUEST_HEAP
         || budget.max_response_bytes == 0
         || budget.max_cursor_bytes == 0
     {
-        return Err(error(SearchV2ErrorCode::BudgetExceeded, "controlled QRY admission unavailable"));
+        return Err(error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "controlled QRY admission unavailable",
+        ));
     }
     let selection = bound.selection().owned_heap_bytes().map_err(|_| {
-        error(SearchV2ErrorCode::BudgetExceeded, "indexed selection geometry unavailable")
+        error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "indexed selection geometry unavailable",
+        )
     })?;
     let mut bytes = std::mem::size_of::<(
         &JsonValue,
@@ -804,9 +1025,15 @@ fn query_workspace_upper_bound(
     // The response JSON tree, canonical serialization buffer, selected payload
     // trees and final borrowed-delivery body overlap until transport returns.
     add(&mut bytes, mul(budget.max_response_bytes, 3)?)?;
-    add(&mut bytes, mul(budget.json.max_bytes.min(budget.max_response_bytes), 2)?)?;
+    add(
+        &mut bytes,
+        mul(budget.json.max_bytes.min(budget.max_response_bytes), 2)?,
+    )?;
     if bytes == 0 {
-        return Err(error(SearchV2ErrorCode::BudgetExceeded, "controlled QRY workspace is empty"));
+        return Err(error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "controlled QRY workspace is empty",
+        ));
     }
     Ok(bytes)
 }
@@ -888,19 +1115,21 @@ where
 {
     let forecast = query_workspace_upper_bound(request_value, bound, budget)?;
     let request_heap = request_value.owned_heap_bytes().map_err(|_| {
-        error(SearchV2ErrorCode::BudgetExceeded, "indexed request work geometry unavailable")
+        error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "indexed request work geometry unavailable",
+        )
     })?;
     model.source_check_pin().map_err(compiler_query_error)?;
     let mut query_result = None;
     model
         .with_query_workspace(forecast, |model| {
             query_result = Some((|| {
-                model.source_charge_query_work(request_heap).map_err(compiler_query_error)?;
-                let (request, cursor_in) = parse_request(
-                    request_value,
-                    supplied_cursor,
-                    budget.max_cursor_bytes,
-                )?;
+                model
+                    .source_charge_query_work(request_heap)
+                    .map_err(compiler_query_error)?;
+                let (request, cursor_in) =
+                    parse_request(request_value, supplied_cursor, budget.max_cursor_bytes)?;
                 let normalized = request.clone().normalize(bound.selection(), bound)?;
                 let policy = authority.policy_binding();
                 let initial = SearchContinuationState::new(
@@ -929,7 +1158,9 @@ where
                         "controlled QRY work exceeds address space",
                     )
                 })?;
-                model.source_charge_query_work(work).map_err(compiler_query_error)?;
+                model
+                    .source_charge_query_work(work)
+                    .map_err(compiler_query_error)?;
                 let (body, mut lease) = packet.into_parts();
                 lease.recheck()?;
                 deliver(&body)?;

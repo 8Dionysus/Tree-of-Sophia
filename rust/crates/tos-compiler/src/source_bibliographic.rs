@@ -1561,8 +1561,11 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
             ] {
                 for mut value in rows {
                     if collection == "nodes" && !node_display_supported {
-                        value.as_object_mut()
-                            .ok_or(Error::Invalid("bibliographic emitted node is not an object"))?
+                        value
+                            .as_object_mut()
+                            .ok_or(Error::Invalid(
+                                "bibliographic emitted node is not an object",
+                            ))?
                             .remove("display");
                     }
                     catalog::check_catalog_schema(

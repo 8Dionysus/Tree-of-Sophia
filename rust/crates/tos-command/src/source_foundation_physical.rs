@@ -3262,19 +3262,31 @@ fn route_error(
                 let check = match value {
                     "route lookup operation bound exceeded" => "physical-route-lookup-operations",
                     "route discovery entry bound exceeded" => "physical-route-discovery-entries",
-                    "operand aggregate byte accounting exceeded" => "physical-route-total-read-bytes",
+                    "operand aggregate byte accounting exceeded" => {
+                        "physical-route-total-read-bytes"
+                    }
                     "operand input byte bound exceeded" => "physical-route-member-read-bytes",
-                    "operand aggregate byte accounting overflow" => "physical-route-read-counter-overflow",
-                    "shared physical returned byte accounting overflow" => "physical-route-shared-return-overflow",
+                    "operand aggregate byte accounting overflow" => {
+                        "physical-route-read-counter-overflow"
+                    }
+                    "shared physical returned byte accounting overflow" => {
+                        "physical-route-shared-return-overflow"
+                    }
                     "foundation Git output bound" => "physical-git-output-bytes",
                     "foundation Git FD census bound" => "physical-git-fd-census",
                     _ => "physical-git-status",
                 };
-                return ItemRefusal::BudgetCheck { check, used: None, limit: None };
+                return ItemRefusal::BudgetCheck {
+                    check,
+                    used: None,
+                    limit: None,
+                };
             }
             value if value.starts_with("shared physical read budget refused:") => {
                 return ItemRefusal::BudgetCheck {
-                    check: "physical-route-shared-read-budget", used: None, limit: None,
+                    check: "physical-route-shared-read-budget",
+                    used: None,
+                    limit: None,
                 };
             }
             "foundation Git deadline" | "route operation deadline exceeded" => {

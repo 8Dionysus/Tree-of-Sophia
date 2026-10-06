@@ -545,9 +545,11 @@ impl QueryVocabulary {
         use tos_foundation::{OwnedState, checked_state_add};
         let mut bytes = 0usize;
         for policy in [&self.identity_policy, &self.overview_policy] {
-            bytes = checked_state_add(bytes,
-                crate::knowledge_normalization::serde_retained_heap_upper(policy, 0)?)
-                .map_err(|_| Error::Budget("query vocabulary retained policy state"))?;
+            bytes = checked_state_add(
+                bytes,
+                crate::knowledge_normalization::serde_retained_heap_upper(policy, 0)?,
+            )
+            .map_err(|_| Error::Budget("query vocabulary retained policy state"))?;
         }
         macro_rules! charge { ($($field:ident),*) => { $(
             bytes = checked_state_add(bytes, self.$field.owned_heap_bytes()

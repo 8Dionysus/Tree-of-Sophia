@@ -39,9 +39,7 @@ pub(crate) fn candidate_schema_binding_additional_state_bytes(
 ) -> Result<usize, ItemRefusal> {
     worker
         .source_resource_metadata_state_bytes()
-        .and_then(|bytes| {
-            bytes.checked_add(binding_retained_state_upper_bound_bytes())
-        })
+        .and_then(|bytes| bytes.checked_add(binding_retained_state_upper_bound_bytes()))
         .ok_or(ItemRefusal::Budget)
 }
 

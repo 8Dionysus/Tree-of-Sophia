@@ -28,8 +28,11 @@ pub(crate) trait OriginalLensBudget {
     fn check(&self) -> Result<(), SearchV2Error>;
     fn charge_work(&self, units: usize) -> Result<(), SearchV2Error>;
     fn admit_workspace(&self, bytes: usize) -> Result<(), SearchV2Error>;
-    fn canonicalize(&self, value: &JsonValue, limits: tos_foundation::JsonLimits)
-        -> Result<Vec<u8>, SearchV2Error>;
+    fn canonicalize(
+        &self,
+        value: &JsonValue,
+        limits: tos_foundation::JsonLimits,
+    ) -> Result<Vec<u8>, SearchV2Error>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1724,9 +1727,12 @@ impl Execution<'_> {
                             let compact = if let Some(original) = self.original {
                                 original.canonicalize(&node, self.budget.inspect.json)?
                             } else {
-                                canonical_bytes_v1(&node,
+                                canonical_bytes_v1(
+                                    &node,
                                     CanonicalProfile::SourceRecordDigestV1,
-                                    self.budget.inspect.json).map_err(|_| budget())?
+                                    self.budget.inspect.json,
+                                )
+                                .map_err(|_| budget())?
                             };
                             let searchable = String::from_utf8(compact)
                                 .map_err(|_| corrupt("lens searchable JSON invalid"))?;
@@ -2264,13 +2270,27 @@ impl<'original> LensPlan<'original> {
         original: &'original dyn OriginalLensBudget,
         workspace_bytes: usize,
     ) -> Result<Self, SearchV2Error> {
-        if workspace_bytes == 0 { return Err(budget_error()); }
+        if workspace_bytes == 0 {
+            return Err(budget_error());
+        }
         original.check()?;
         original.admit_workspace(workspace_bytes)?;
         original.charge_work(workspace_bytes)?;
         let spec = bind_plan_properties(&public, &vocabulary)?;
-        Self::create(public, spec, vocabulary, revision, authority,
-            Some(publication), budget, None, available, None, probe, Some(original))
+        Self::create(
+            public,
+            spec,
+            vocabulary,
+            revision,
+            authority,
+            Some(publication),
+            budget,
+            None,
+            available,
+            None,
+            probe,
+            Some(original),
+        )
     }
 
     fn create(

@@ -81,7 +81,9 @@ impl PublicRepositoryRoot {
         }
         if let Some(state) = stage.owned_creation_state() {
             state.retain(source_cut.len() + 128 + std::mem::size_of::<Self>())?;
-            state.charge_work(PUBLIC_ROOT_PRODUCER.len() + source_cut.len() + 2 * PUBLIC_ROOT_ROW.len())?;
+            state.charge_work(
+                PUBLIC_ROOT_PRODUCER.len() + source_cut.len() + 2 * PUBLIC_ROOT_ROW.len(),
+            )?;
         }
         let mut software = Digest256Hasher::new();
         software.update(PUBLIC_ROOT_PRODUCER.as_bytes());
@@ -888,9 +890,15 @@ pub(crate) fn exact_receipt_owned(
     source_revision: &str,
     state: &CreationState<'_>,
 ) -> Result<ExactInputReceipt> {
-    let (collections, membership, corpus_root) = captured_input_roots_owned(capture, vocabulary, state)?;
-    state.retain("tos-public-projection-snapshot-v1".len() + "public-projection:".len()
-        + source_revision.len() + 3 * "public-d1-v9".len() + 64)?;
+    let (collections, membership, corpus_root) =
+        captured_input_roots_owned(capture, vocabulary, state)?;
+    state.retain(
+        "tos-public-projection-snapshot-v1".len()
+            + "public-projection:".len()
+            + source_revision.len()
+            + 3 * "public-d1-v9".len()
+            + 64,
+    )?;
     Ok(ExactInputReceipt {
         binding: SourceBinding {
             owner_profile: "tos-public-projection-snapshot-v1".into(),

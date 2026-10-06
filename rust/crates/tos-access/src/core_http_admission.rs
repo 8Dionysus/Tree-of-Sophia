@@ -605,8 +605,8 @@ impl HttpAdmission {
             "checkpoint_max_entries": 128,
             "checkpoint_max_encoded_bytes": 16 * 1024 * 1024
         });
-        let profile: Self = serde_json::from_value(raw)
-            .map_err(|_| "Core ordinary native HTTP profile shape")?;
+        let profile: Self =
+            serde_json::from_value(raw).map_err(|_| "Core ordinary native HTTP profile shape")?;
         profile.profile()?;
         profile.selected.native()?;
         profile.legacy.native()?;

@@ -130,13 +130,9 @@ impl<'state, 'budget> RuntimeKnowledgeReadContext<'state, 'budget> {
             return Err(Error::Budget("owned query canonical visits"));
         }
         let available = self.remaining_after_retained(0)?;
-        let (bytes, visits) = canonical_bytes_v1_with_state_budget_and_visits(
-            value,
-            profile,
-            limits,
-            available,
-        )
-        .map_err(|_| Error::Budget("owned query canonical state"))?;
+        let (bytes, visits) =
+            canonical_bytes_v1_with_state_budget_and_visits(value, profile, limits, available)
+                .map_err(|_| Error::Budget("owned query canonical state"))?;
         self.debit_json_visits(visits)?;
         self.charge_work(bytes.len())?;
         self.check()?;
@@ -237,9 +233,7 @@ pub(crate) fn with_query_vm_window<T>(
     );
     let result = operation();
     let after = counter.load(Ordering::Acquire);
-    let used = after
-        .saturating_sub(current)
-        .saturating_sub(1); // exclude this query window's prepaid first slot
+    let used = after.saturating_sub(current).saturating_sub(1); // exclude this query window's prepaid first slot
     let active = context.check();
     // Restore the original owner endpoint even when SQL refuses. If the owner
     // has exhausted its aggregate allowance, this replacement also fails
@@ -337,9 +331,7 @@ pub(crate) fn with_snapshot_owned_knowledge_read_context<'owner, 'budget>(
     consume: impl FnOnce(&RuntimeKnowledgeReadContext<'owner, 'budget>) -> Result<()>,
 ) -> Result<()> {
     let state = loan.owned_state();
-    if operation_deadline > loan.operation_deadline()
-        || operation_deadline <= Instant::now()
-    {
+    if operation_deadline > loan.operation_deadline() || operation_deadline <= Instant::now() {
         return Err(Error::Budget("snapshot cold-read operation deadline"));
     }
     let fixed = std::mem::size_of::<(

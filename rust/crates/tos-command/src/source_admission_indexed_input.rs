@@ -701,14 +701,8 @@ impl DescriptorFile {
         if named_stamp != self.stamp || held_stamp != self.stamp {
             return Err(invalid("indexed-input evidence name or stamp changed"));
         }
-        let digest = hash_bounded_file(
-            &self.file,
-            max_bytes,
-            io_budget,
-            deadline,
-            cancelled,
-            work,
-        )?;
+        let digest =
+            hash_bounded_file(&self.file, max_bytes, io_budget, deadline, cancelled, work)?;
         if digest != self.expected_sha256 {
             return Err(invalid("indexed-input evidence bytes changed"));
         }
@@ -2838,12 +2832,18 @@ impl IndexedInputReaderV1 {
     ) -> io::Result<()> {
         if self.metadata_inventory_complete
             || self.generated_declaration.is_none()
-            || self.failed || self.eof || self.after.is_some()
+            || self.failed
+            || self.eof
+            || self.after.is_some()
             || self.pending_payload.is_some()
-            || self.member_count != 0 || self.source_bytes != 0
-            || self.cost.payload_members != 0 || self.cost.payload_bytes != 0
+            || self.member_count != 0
+            || self.source_bytes != 0
+            || self.cost.payload_members != 0
+            || self.cost.payload_bytes != 0
         {
-            return Err(invalid("indexed-input metadata inventory requires a fresh composed source"));
+            return Err(invalid(
+                "indexed-input metadata inventory requires a fresh composed source",
+            ));
         }
         let result = (|| {
             // The initial-cut census/SQL workspace is already included in
@@ -3031,9 +3031,15 @@ impl IndexedInputReaderV1 {
         self.member_count = next_count;
         self.source_bytes = next_bytes;
         self.pending_payload = Some((digest, size_bytes));
-        self.cost.member_rows = self.cost.member_rows.checked_add(1)
+        self.cost.member_rows = self
+            .cost
+            .member_rows
+            .checked_add(1)
             .ok_or_else(|| invalid("indexed-input metadata row cost overflow"))?;
-        self.cost.source_bytes = self.cost.source_bytes.checked_add(size_bytes)
+        self.cost.source_bytes = self
+            .cost
+            .source_bytes
+            .checked_add(size_bytes)
             .ok_or_else(|| invalid("indexed-input metadata byte cost overflow"))?;
         Ok(Some(IndexedInputMemberV1 {
             path,

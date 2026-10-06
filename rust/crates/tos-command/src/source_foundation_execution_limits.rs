@@ -1731,8 +1731,8 @@ impl FoundationExecutionLimits {
         // Diagnostic reports are worker responses; the same cumulative wire
         // reservation already covers request and response transport together.
         // Final CLI output keeps its separate, unchanged output reservation.
-        let max_total_report_bytes = report_byte_capacity
-            .min(total_wire.min(usize::MAX as u64) as usize);
+        let max_total_report_bytes =
+            report_byte_capacity.min(total_wire.min(usize::MAX as u64) as usize);
         let max_total_issues = reservation.issue_count.min(receipt_issue_capacity);
         if max_total_report_bytes == 0 || max_total_issues == 0 {
             return Err(Error::Unsupported(
@@ -1884,7 +1884,8 @@ impl FoundationExecutionLimits {
             || max_total_issues == 0
             || max_total_issues > work.issue_count
             || max_total_report_bytes == 0
-            || u64::try_from(max_total_report_bytes).map_or(true, |bytes| bytes > work.worker_wire_bytes)
+            || u64::try_from(max_total_report_bytes)
+                .map_or(true, |bytes| bytes > work.worker_wire_bytes)
             || per_batch_raw == 0
         {
             return Err(Error::Unsupported(

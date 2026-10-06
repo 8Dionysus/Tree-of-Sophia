@@ -1751,7 +1751,11 @@ impl CutWorkerSchemaExecutor {
         self.prepared
             .set_operation_budget(budget)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })
     }
 
@@ -2182,9 +2186,9 @@ impl CutWorkerSchemaExecutor {
             path_bytes,
             root_uri_bytes,
             raw_bytes,
-            self.prepared
-                .worker_image_bytes()
-                .map_err(|reason| operation_failure(reason, concat!(module_path!(), ":", line!())))?,
+            self.prepared.worker_image_bytes().map_err(|reason| {
+                operation_failure(reason, concat!(module_path!(), ":", line!()))
+            })?,
             limits,
         )
         .map_err(|reason| operation_failure(reason, concat!(module_path!(), ":", line!())))?;
@@ -2241,7 +2245,11 @@ impl CutWorkerSchemaExecutor {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         let selected_contract = self.selected_contract_for_schema_raw(schema_raw)?;
         self.admit_diagnostics_v2_controller_state(raw.len(), path.len(), selected_contract)?;
@@ -2601,7 +2609,11 @@ impl CutWorkerSchemaExecutor {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         let limits = self
             .diagnostics_v2
@@ -2934,7 +2946,11 @@ impl CutWorkerSchemaExecutor {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         let diagnostic = SchemaDiagnosticResult {
             path: retained_path,
@@ -2979,7 +2995,11 @@ impl CutWorkerSchemaExecutor {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         if self.diagnostics_v2.is_some() {
             return self.check(path, raw, contract, deadline, cancelled);
@@ -3013,7 +3033,11 @@ impl CutWorkerSchemaExecutor {
             self.prepared
                 .preflight(deadline, cancelled)
                 .map_err(|reason| {
-                    operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                    operation_failure_with_context(
+                        reason,
+                        self.prepared.exchange_failure(),
+                        concat!(module_path!(), ":", line!()),
+                    )
                 })?;
             return Ok(valid);
         }
@@ -3080,7 +3104,11 @@ impl CutWorkerSchemaExecutor {
         self.prepared
             .release_child(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })
     }
 
@@ -3207,7 +3235,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 unit.raw_instance.len(),
             )
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         let receipt = path
             .len()
@@ -3247,7 +3279,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         self.prepared
             .finish(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         self.finished = true;
         Ok(())
@@ -3274,7 +3310,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         if budget.max_units == 0
             || budget.max_units > BatchBudget::MAX_UNITS
@@ -3298,7 +3338,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             self.prepared
                 .preflight(deadline, cancelled)
                 .map_err(|reason| {
-                    operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                    operation_failure_with_context(
+                        reason,
+                        self.prepared.exchange_failure(),
+                        concat!(module_path!(), ":", line!()),
+                    )
                 })?;
             next_bytes = input
                 .path
@@ -3338,7 +3382,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             self.prepared
                 .preflight(deadline, cancelled)
                 .map_err(|reason| {
-                    operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                    operation_failure_with_context(
+                        reason,
+                        self.prepared.exchange_failure(),
+                        concat!(module_path!(), ":", line!()),
+                    )
                 })?;
         }
         let (receipts, checkpoint) = match outcome {
@@ -3420,7 +3468,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         self.receipt_bytes = next_bytes;
         self.scalar_check_count = self
@@ -3466,7 +3518,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         self.prepared
             .preflight(deadline, cancelled)
             .map_err(|reason| {
-                operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                operation_failure_with_context(
+                    reason,
+                    self.prepared.exchange_failure(),
+                    concat!(module_path!(), ":", line!()),
+                )
             })?;
         let next_check_count = self
             .scalar_check_count
@@ -3518,7 +3574,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             self.prepared
                 .preflight(deadline, cancelled)
                 .map_err(|reason| {
-                    operation_failure_with_context(reason, self.prepared.exchange_failure(), concat!(module_path!(), ":", line!()))
+                    operation_failure_with_context(
+                        reason,
+                        self.prepared.exchange_failure(),
+                        concat!(module_path!(), ":", line!()),
+                    )
                 })?;
         }
         let (execution, valid) = match result {

@@ -212,28 +212,35 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
     ) -> Result<(), ItemRefusal> {
         let result = (|| {
             self.check(deadline, cancelled)?;
-            let allowance = self.max_owned_state_bytes.get()
+            let allowance = self
+                .max_owned_state_bytes
+                .get()
                 .checked_sub(self.callback_retained_state_bytes.get())
                 .ok_or(tos_validation::item_budget_origin!())?;
             let mut callback_error = None;
-            let walked = self.candidate.for_each_verified_member_metadata(
-                allowance,
-                &mut |meta| {
+            let walked = self
+                .candidate
+                .for_each_verified_member_metadata(allowance, &mut |meta| {
                     visit(SourceCutMemberMeta {
                         path: meta.path.as_str(),
                         size_bytes: meta.size_bytes,
-                    }).map_err(|error| {
+                    })
+                    .map_err(|error| {
                         callback_error = Some(error);
                         io::Error::other("native Records metadata callback refused")
                     })
-                },
-            );
-            if let Some(error) = callback_error { return Err(error); }
-            walked.map_err(|error| ItemRefusal::Source(
-                crate::source_command::public_io_reason(&error)))?;
+                });
+            if let Some(error) = callback_error {
+                return Err(error);
+            }
+            walked.map_err(|error| {
+                ItemRefusal::Source(crate::source_command::public_io_reason(&error))
+            })?;
             self.check(deadline, cancelled)
         })();
-        if result.is_err() { self.candidate.abandon(); }
+        if result.is_err() {
+            self.candidate.abandon();
+        }
         result
     }
 

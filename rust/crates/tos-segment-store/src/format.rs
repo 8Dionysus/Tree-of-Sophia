@@ -85,7 +85,14 @@ pub(crate) fn verify_whole(
     domain_digest: Digest256,
     limits: SegmentLimits,
 ) -> Result<Vec<FrameCoordinate>> {
-    verify_whole_inner(file, expected_segment, expected_size, domain_digest, limits, None)
+    verify_whole_inner(
+        file,
+        expected_segment,
+        expected_size,
+        domain_digest,
+        limits,
+        None,
+    )
 }
 
 pub(crate) fn verify_whole_accounted(
@@ -150,15 +157,17 @@ fn verify_whole_inner(
     let coordinate_state = (count as usize)
         .checked_mul(size_of::<FrameCoordinate>())
         .and_then(|bytes| bytes.checked_add(BLOCK_BYTES))
-        .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "segment verifier state overflow"))?;
+        .ok_or_else(|| {
+            SegmentError::new(Code::BudgetExceeded, "segment verifier state overflow")
+        })?;
     if let Some(observer) = observer.as_deref_mut() {
         observer.reserve_state(coordinate_state)?;
     }
     let mut offset = HEADER_BYTES;
     let mut frames = Vec::new();
-    frames
-        .try_reserve_exact(count as usize)
-        .map_err(|_| SegmentError::new(Code::BudgetExceeded, "segment coordinate allocation failed"))?;
+    frames.try_reserve_exact(count as usize).map_err(|_| {
+        SegmentError::new(Code::BudgetExceeded, "segment coordinate allocation failed")
+    })?;
     let mut block = [0u8; BLOCK_BYTES];
     for _ in 0..count {
         let mut envelope = [0u8; FRAME_HEADER_BYTES as usize];
@@ -350,8 +359,9 @@ pub(crate) fn read_selected_accounted(
             "packed frame exceeds selected read limits",
         ));
     }
-    let capacity = usize::try_from(payload_size)
-        .map_err(|_| SegmentError::new(Code::BudgetExceeded, "packed frame exceeds address space"))?;
+    let capacity = usize::try_from(payload_size).map_err(|_| {
+        SegmentError::new(Code::BudgetExceeded, "packed frame exceeds address space")
+    })?;
     let state_bytes = capacity
         .checked_add(PACKED_READ_FIXED_STATE_BYTES)
         .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "packed frame state overflow"))?;

@@ -172,8 +172,14 @@ impl NativeKnowledgeSnapshot {
             Ok(())
         }
         let mut bytes = std::mem::size_of::<Self>();
-        add(&mut bytes, crate::knowledge_normalization::serde_retained_heap_upper(&self.graph, 0)?)?;
-        add(&mut bytes, crate::knowledge_normalization::serde_retained_heap_upper(&self.catalog, 0)?)?;
+        add(
+            &mut bytes,
+            crate::knowledge_normalization::serde_retained_heap_upper(&self.graph, 0)?,
+        )?;
+        add(
+            &mut bytes,
+            crate::knowledge_normalization::serde_retained_heap_upper(&self.catalog, 0)?,
+        )?;
         if let Some(inputs) = &self.catalog_inputs {
             for value in [
                 &inputs.header,
@@ -2838,7 +2844,9 @@ impl CompletedNativeSnapshot {
             || cold.max_work_bytes == 0
             || cold.max_vm_steps == 0
         {
-            return Err(Error::Invalid("native controlled selected cold-open admission"));
+            return Err(Error::Invalid(
+                "native controlled selected cold-open admission",
+            ));
         }
         crate::knowledge_selected::validate(&self.expectation, cold)?;
         check_snapshot_active(capture.cancellation(), operation_deadline)?;
@@ -2854,11 +2862,7 @@ impl CompletedNativeSnapshot {
             || {
                 self.with_capture_carriers(capture, |view| {
                     view.verify_current()?;
-                    self.verify_stage_model(
-                        isolation,
-                        operation_deadline,
-                        capture.cancellation(),
-                    )?;
+                    self.verify_stage_model(isolation, operation_deadline, capture.cancellation())?;
                     resource_hold.verify_cold_open(
                         cold,
                         process,
@@ -2895,8 +2899,8 @@ impl CompletedNativeSnapshot {
                         cancelled: capture.cancellation(),
                     };
                     let mut pinned = model_copy.try_clone()?;
-                    let operation = crate::knowledge_payload_read::
-                        with_snapshot_owned_knowledge_read_context(
+                    let operation =
+                        crate::knowledge_payload_read::with_snapshot_owned_knowledge_read_context(
                             loan,
                             operation_deadline,
                             |context| {
@@ -2951,40 +2955,77 @@ impl CompletedNativeSnapshot {
     /// the copy; the compiler still checks the full digest/schema/root closure.
     #[allow(clippy::too_many_arguments)]
     pub fn with_controlled_copied_knowledge_model<'completed, 'owner, 'budget>(
-        &'completed self, loan: &NativeSnapshotOwnedReadLoan<'owner, 'budget>,
-        isolation: &dyn StageIsolation, pinned: &mut File,
-        custody: &dyn crate::ImmutableKnowledgeCustody, cold: crate::ColdOpenLimits,
-        process: crate::NativeProcessLimits, working_ram_bytes: u64,
-        resource_hold: &dyn NativeColdOpenResourceHold, operation_deadline: Instant,
-        consume: impl for<'model> FnOnce(&mut crate::ControlledKnowledgeModel<'model, 'owner, 'budget>) -> Result<()>,
-    ) -> Result<()> where 'owner: 'completed {
+        &'completed self,
+        loan: &NativeSnapshotOwnedReadLoan<'owner, 'budget>,
+        isolation: &dyn StageIsolation,
+        pinned: &mut File,
+        custody: &dyn crate::ImmutableKnowledgeCustody,
+        cold: crate::ColdOpenLimits,
+        process: crate::NativeProcessLimits,
+        working_ram_bytes: u64,
+        resource_hold: &dyn NativeColdOpenResourceHold,
+        operation_deadline: Instant,
+        consume: impl for<'model> FnOnce(
+            &mut crate::ControlledKnowledgeModel<'model, 'owner, 'budget>,
+        ) -> Result<()>,
+    ) -> Result<()>
+    where
+        'owner: 'completed,
+    {
         let capture = loan.capture();
-        if operation_deadline > loan.operation_deadline() || operation_deadline <= Instant::now()
-            || working_ram_bytes == 0 || process.address_space_bytes == 0
+        if operation_deadline > loan.operation_deadline()
+            || operation_deadline <= Instant::now()
+            || working_ram_bytes == 0
+            || process.address_space_bytes == 0
             || process.address_space_bytes > working_ram_bytes
             || process.file_size_bytes < self.expectation.model_size_bytes
-            || cold.max_file_bytes < self.expectation.model_size_bytes {
+            || cold.max_file_bytes < self.expectation.model_size_bytes
+        {
             return Err(Error::Invalid("Original copied cold admission envelope"));
         }
         crate::native_knowledge_selection::verify_native_process_limits(process)?;
         self.check_capture_binding(capture)?;
         self.verify_stage_model(isolation, operation_deadline, capture.cancellation())?;
-        let verify = || resource_hold.verify_cold_open(cold, process, working_ram_bytes,
-            self.stage_model_identity.size, self.expectation.model_size_bytes, 0, 0,
-            operation_deadline, capture.cancellation());
+        let verify = || {
+            resource_hold.verify_cold_open(
+                cold,
+                process,
+                working_ram_bytes,
+                self.stage_model_identity.size,
+                self.expectation.model_size_bytes,
+                0,
+                0,
+                operation_deadline,
+                capture.cancellation(),
+            )
+        };
         verify()?;
-        capture.with_owned_operation_deadline_and_limits(operation_deadline,
-            Some((cold.max_work_bytes, cold.max_vm_steps)), || {
-                let result = crate::knowledge_payload_read::with_snapshot_owned_knowledge_read_context(
-                    loan, operation_deadline, |context| {
-                        crate::controlled_cold_model::with_controlled_selected_knowledge_model(
-                            pinned, &self.expectation, custody, cold, loan, context, consume)
-                    });
+        capture.with_owned_operation_deadline_and_limits(
+            operation_deadline,
+            Some((cold.max_work_bytes, cold.max_vm_steps)),
+            || {
+                let result =
+                    crate::knowledge_payload_read::with_snapshot_owned_knowledge_read_context(
+                        loan,
+                        operation_deadline,
+                        |context| {
+                            crate::controlled_cold_model::with_controlled_selected_knowledge_model(
+                                pinned,
+                                &self.expectation,
+                                custody,
+                                cold,
+                                loan,
+                                context,
+                                consume,
+                            )
+                        },
+                    );
                 verify()?;
                 self.check_capture_binding(capture)?;
                 self.verify_stage_model(isolation, operation_deadline, capture.cancellation())?;
                 result
-            })
+            },
+        )
     }
 
     /// Lend the exact finished Evidence Lens output only when its independent
@@ -3514,18 +3555,29 @@ impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
     /// Checked Evidence delivery borrowing the Whole writer's authentic state.
     /// Neither the projection nor a state/counter reference escapes this call.
     pub fn with_owned_evidence_delivery(
-        &self, completed: &CompletedNativeSnapshot, staging: &Path,
-        limits: PublicCaptureLimits, max_output_bytes: usize, json: JsonLimits,
+        &self,
+        completed: &CompletedNativeSnapshot,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        max_output_bytes: usize,
+        json: JsonLimits,
         consume: impl FnOnce(&[u8]) -> Result<()>,
     ) -> Result<()> {
         self.state.active()?;
         completed.check_capture_binding(self.capture)?;
         let frame = std::mem::size_of_val(&consume)
-            .checked_add(std::mem::size_of::<crate::epistemic_evidence::CompletedEvidenceProjection>())
+            .checked_add(std::mem::size_of::<
+                crate::epistemic_evidence::CompletedEvidenceProjection,
+            >())
             .ok_or(Error::Budget("owned Evidence delivery frame"))?;
         let _frame = self.state.hold(frame)?;
         let evidence = crate::epistemic_evidence::check_completed_owned(
-            self.capture, staging, limits, self.capture.deadline(), self.state)?;
+            self.capture,
+            staging,
+            limits,
+            self.capture.deadline(),
+            self.state,
+        )?;
         evidence.verify_binding(self.capture, completed.source_revision())?;
         let result = evidence.with_current(|view| {
             let raw = view.raw();
@@ -3534,13 +3586,17 @@ impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
             }
             // Parse on the same aggregate JSON/heap/work owner and lend the
             // exact checked carrier bytes; no independently budgeted Vec/tree.
-            self.state.with_foundation_owned_with_limits(raw, json, |value| {
-                if value.object_get("schema_version").and_then(tos_foundation::JsonValue::as_str)
-                    != Some("tos_epistemic_evidence_projection_v1") {
-                    return Err(Error::Invalid("owned Evidence schema"));
-                }
-                consume(raw)
-            })
+            self.state
+                .with_foundation_owned_with_limits(raw, json, |value| {
+                    if value
+                        .object_get("schema_version")
+                        .and_then(tos_foundation::JsonValue::as_str)
+                        != Some("tos_epistemic_evidence_projection_v1")
+                    {
+                        return Err(Error::Invalid("owned Evidence schema"));
+                    }
+                    consume(raw)
+                })
         });
         self.state.active()?;
         completed.check_capture_binding(self.capture)?;
@@ -3563,36 +3619,75 @@ impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
 /// copied-model cold admission and final metadata receipt.
 #[allow(clippy::too_many_arguments)]
 pub fn with_native_original_snapshot_from_capture_with_owned_budget_and_layout<'budget, F>(
-    capture: &'budget PublicCapture, candidate: &Path, declaration_raw: &[u8],
-    isolation: &dyn StageIsolation, limits: NativeSnapshotLimits,
-    owner_deadline: Instant, cancelled: &AtomicBool,
-    budget: NativeSnapshotOwnedBudget<'budget>, usage: &mut NativeSnapshotCreationUsage,
-    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout, consume: F,
+    capture: &'budget PublicCapture,
+    candidate: &Path,
+    declaration_raw: &[u8],
+    isolation: &dyn StageIsolation,
+    limits: NativeSnapshotLimits,
+    owner_deadline: Instant,
+    cancelled: &AtomicBool,
+    budget: NativeSnapshotOwnedBudget<'budget>,
+    usage: &mut NativeSnapshotCreationUsage,
+    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    consume: F,
 ) -> Result<()>
-where F: for<'scope> FnOnce(&'scope CompletedNativeSnapshot,
-    NativeSnapshotOwnedReadLoan<'scope, 'budget>) -> Result<()>,
+where
+    F: for<'scope> FnOnce(
+        &'scope CompletedNativeSnapshot,
+        NativeSnapshotOwnedReadLoan<'scope, 'budget>,
+    ) -> Result<()>,
 {
     *usage = NativeSnapshotCreationUsage::default();
     if owner_deadline != capture.deadline() || !std::ptr::eq(cancelled, capture.cancellation()) {
-        return Err(Error::Invalid("owned Original snapshot admission context changed"));
+        return Err(Error::Invalid(
+            "owned Original snapshot admission context changed",
+        ));
     }
-    let state = capture.model_creation_state(budget.remaining_after_retained,
-        budget.original_sqlite_heap, budget.max_creation_json_visits, budget.creation_deadline)?;
+    let state = capture.model_creation_state(
+        budget.remaining_after_retained,
+        budget.original_sqlite_heap,
+        budget.max_creation_json_visits,
+        budget.creation_deadline,
+    )?;
     let operation = || {
-        let build = || build_native_snapshot_from_capture_inner(capture, candidate,
-            declaration_raw, isolation, limits, None, owner_deadline, cancelled,
-            Some(&state), payload_layout);
-        let frame = std::mem::size_of_val(&build).checked_add(std::mem::size_of_val(&consume))
+        let build = || {
+            build_native_snapshot_from_capture_inner(
+                capture,
+                candidate,
+                declaration_raw,
+                isolation,
+                limits,
+                None,
+                owner_deadline,
+                cancelled,
+                Some(&state),
+                payload_layout,
+            )
+        };
+        let frame = std::mem::size_of_val(&build)
+            .checked_add(std::mem::size_of_val(&consume))
             .and_then(|n| n.checked_add(std::mem::size_of::<NativeSnapshotOwnedReadLoan<'_, '_>>()))
-            .and_then(|n| n.checked_add(std::mem::size_of::<Result<(CompletedNativeSnapshot,
-                Option<NativeKnowledgeSnapshot>)>>()))
+            .and_then(|n| {
+                n.checked_add(std::mem::size_of::<
+                    Result<(CompletedNativeSnapshot, Option<NativeKnowledgeSnapshot>)>,
+                >())
+            })
             .ok_or(Error::Budget("owned Original scoped consumer frame"))?;
         let _frame = state.hold(frame)?;
-        let (completed, whole) = capture.with_owned_operation_deadline(budget.creation_deadline, build)?;
-        if whole.is_some() { return Err(Error::Invalid("Original produced unrelated Whole export")); }
+        let (completed, whole) =
+            capture.with_owned_operation_deadline(budget.creation_deadline, build)?;
+        if whole.is_some() {
+            return Err(Error::Invalid("Original produced unrelated Whole export"));
+        }
         state.active()?;
         completed.check_capture_binding(capture)?;
-        let result = consume(&completed, NativeSnapshotOwnedReadLoan { capture, state: &state });
+        let result = consume(
+            &completed,
+            NativeSnapshotOwnedReadLoan {
+                capture,
+                state: &state,
+            },
+        );
         state.active()?;
         completed.check_capture_binding(capture)?;
         result

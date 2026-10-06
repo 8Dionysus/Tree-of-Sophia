@@ -203,11 +203,8 @@ pub(crate) fn with_ordinary_search_cache(
         charge_work(verify_cost.read_bytes as usize)?;
         io.charge_read_upper_bound(verify_cost.read_bytes)
             .map_err(store)?;
-        let parent = isolation.search_cache_custody(
-            selected.path,
-            issued_build_bytes,
-            issued_temp_bytes,
-        )?;
+        let parent =
+            isolation.search_cache_custody(selected.path, issued_build_bytes, issued_temp_bytes)?;
         source
             .charge_query_work(leaf.as_bytes().len() + std::mem::size_of::<std::fs::Metadata>())?;
         let name = CString::new(leaf.as_bytes())
@@ -222,11 +219,7 @@ pub(crate) fn with_ordinary_search_cache(
                 verify_cost.read_bytes + 2 * std::mem::size_of::<std::fs::Metadata>() as u64,
             )
             .map_err(store)?;
-            isolation.search_cache_custody(
-                selected.path,
-                issued_build_bytes,
-                issued_temp_bytes,
-            )?;
+            isolation.search_cache_custody(selected.path, issued_build_bytes, issued_temp_bytes)?;
             Ok(())
         };
         // The immutable opener has no file-size/build quota check. A healthy

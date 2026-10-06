@@ -41,11 +41,19 @@ fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?
     consulted: &mut Vec<ObservedInspectCarrier>,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
 ) -> Result<Vec<JsonValue>, SearchV2Error> {
-    collect_with_sizes(model, authority, sources, kind, selected, caps,
-        charges, consulted, heap).map(|rows| rows.into_iter().map(|(value, _)| value).collect())
+    collect_with_sizes(
+        model, authority, sources, kind, selected, caps, charges, consulted, heap,
+    )
+    .map(|rows| rows.into_iter().map(|(value, _)| value).collect())
 }
 
-pub(crate) fn collect_with_sizes<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?Sized>(
+pub(crate) fn collect_with_sizes<
+    'hold,
+    'model,
+    'state,
+    'budget,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+>(
     model: &mut ControlledKnowledgeModel<'model, 'state, 'budget>,
     authority: &mut A,
     sources: &[String],

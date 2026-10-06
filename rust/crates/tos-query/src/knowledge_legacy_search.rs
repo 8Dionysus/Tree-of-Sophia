@@ -25,7 +25,6 @@ pub const SEARCH_CAPABILITIES_OPERATION: &str = "tos.knowledge.search.capabiliti
 pub const SEARCH_CAPABILITIES_INTENDED_USE: &str =
     "read_only_public_knowledge_search_capabilities_v1";
 
-
 /// Input classes adapted from Foundation or serde JSON by the owning transport.
 /// Legacy Search deliberately rejects bool while preserving Python-like integer
 /// conversion for integer strings and finite floats.
@@ -97,7 +96,9 @@ pub fn normalize_legacy_search_integer(
 ) -> Result<usize, SearchV2Error> {
     let parsed = match value {
         LegacySearchIntegerInput::Missing | LegacySearchIntegerInput::Null => return Ok(default),
-        LegacySearchIntegerInput::Boolean | LegacySearchIntegerInput::Other => return Err(invalid()),
+        LegacySearchIntegerInput::Boolean | LegacySearchIntegerInput::Other => {
+            return Err(invalid());
+        }
         LegacySearchIntegerInput::Integer(value) | LegacySearchIntegerInput::String(value) => {
             python_integer_text(value).ok_or_else(invalid)?
         }
@@ -617,10 +618,7 @@ fn controlled_compiler_error(reason: CompilerError) -> SearchV2Error {
 fn controlled_abort<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     authority: &A,
 ) -> Result<(), SearchV2Error> {
-    match authority
-        .abort_probe()
-        .and_then(|probe| probe.reason())
-    {
+    match authority.abort_probe().and_then(|probe| probe.reason()) {
         Some(crate::AbortReason::Cancelled) => Err(error(
             SearchV2ErrorCode::Cancelled,
             "selected knowledge query cancelled",
@@ -656,15 +654,12 @@ fn controlled_scope_state(
         policy.policy_epoch.capacity(),
         policy.withdrawal_generation.capacity(),
     ];
-    scope_fields
-        .into_iter()
-        .chain(policy_fields)
-        .try_fold(
-            std::mem::size_of_val(scope)
-                .checked_add(std::mem::size_of_val(policy))
-                .ok_or_else(budget)?,
-            |sum, size| sum.checked_add(size).ok_or_else(budget),
-        )
+    scope_fields.into_iter().chain(policy_fields).try_fold(
+        std::mem::size_of_val(scope)
+            .checked_add(std::mem::size_of_val(policy))
+            .ok_or_else(budget)?,
+        |sum, size| sum.checked_add(size).ok_or_else(budget),
+    )
 }
 
 fn controlled_workspace_bytes(
@@ -676,7 +671,10 @@ fn controlled_workspace_bytes(
     registered_sources: usize,
     metadata_bytes: usize,
 ) -> Result<usize, SearchV2Error> {
-    let keep = request.offset.checked_add(request.limit).ok_or_else(budget)?;
+    let keep = request
+        .offset
+        .checked_add(request.limit)
+        .ok_or_else(budget)?;
     let fields = caps.inspect.max_field_bytes;
     let document = usize::try_from(
         caps.max_document_bytes
@@ -713,10 +711,7 @@ fn controlled_workspace_bytes(
         .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<Vec<JsonValue>>()))
         .ok_or_else(budget)?;
     let response_envelope = 32usize
-        .checked_mul(
-            std::mem::size_of::<(String, JsonValue)>()
-                + 5 * std::mem::size_of::<usize>(),
-        )
+        .checked_mul(std::mem::size_of::<(String, JsonValue)>() + 5 * std::mem::size_of::<usize>())
         .and_then(|bytes| bytes.checked_add(512))
         .ok_or_else(budget)?;
     let ranking_fields = fields.checked_mul(4).ok_or_else(budget)?;
@@ -744,7 +739,9 @@ fn controlled_workspace_bytes(
         metadata_bytes,
     ]
     .into_iter()
-    .try_fold(0usize, |sum, value| sum.checked_add(value).ok_or_else(budget))
+    .try_fold(0usize, |sum, value| {
+        sum.checked_add(value).ok_or_else(budget)
+    })
 }
 
 fn scan_controlled<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?Sized>(
@@ -762,13 +759,18 @@ fn scan_controlled<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'h
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
 ) -> Result<(usize, Vec<ControlledHit>), SearchV2Error> {
     let remaining_candidates = caps.max_candidates.saturating_sub(work.candidates);
-    let remaining_rows = caps
+    let remaining_rows = caps.inspect.max_rows.saturating_sub(work.candidates as u64);
+    let max_rows = remaining_candidates
+        .min(usize::try_from(remaining_rows).unwrap_or(usize::MAX) as usize)
+        as u64;
+    let max_decoded = caps
         .inspect
-        .max_rows
-        .saturating_sub(work.candidates as u64);
-    let max_rows = remaining_candidates.min(usize::try_from(remaining_rows).unwrap_or(usize::MAX) as usize) as u64;
-    let max_decoded = caps.inspect.max_decoded_bytes.saturating_sub(work.decoded_bytes);
-    let max_vm = caps.inspect.max_read_vm_steps.saturating_sub(work.read_vm_steps);
+        .max_decoded_bytes
+        .saturating_sub(work.decoded_bytes);
+    let max_vm = caps
+        .inspect
+        .max_read_vm_steps
+        .saturating_sub(work.read_vm_steps);
     let mut matching = 0usize;
     let mut top: Vec<ControlledHit> = Vec::with_capacity(request.offset + request.limit);
     let mut retained = 0usize;
@@ -807,14 +809,15 @@ fn scan_controlled<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'h
                         .and_then(|n| n.checked_add(std::mem::size_of::<crate::InspectedCarrier>()))
                         .ok_or_else(budget)?,
                     || {
-                    authorized = Some(authority.authorize_current_borrowed(
-                        kind,
-                        id,
-                        position,
-                        payload_sha256,
-                        item,
-                    ));
-                })
+                        authorized = Some(authority.authorize_current_borrowed(
+                            kind,
+                            id,
+                            position,
+                            payload_sha256,
+                            item,
+                        ));
+                    },
+                )
                 .map_err(controlled_compiler_error)?;
                 authorized.ok_or_else(budget)??;
 
@@ -829,7 +832,8 @@ fn scan_controlled<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'h
                         })
                     })
                     .ok_or_else(budget)?;
-                heap.retain(observation_hold).map_err(controlled_compiler_error)?;
+                heap.retain(observation_hold)
+                    .map_err(controlled_compiler_error)?;
                 if grows_observed {
                     consulted.try_reserve_exact(1).map_err(|_| budget())?;
                 }
@@ -844,23 +848,20 @@ fn scan_controlled<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'h
                     position,
                     payload_sha256,
                 });
-                charge(
-                    id_bytes
-                        .checked_add(source_bytes)
-                        .ok_or_else(budget)?,
-                )
-                .map_err(controlled_compiler_error)?;
+                charge(id_bytes.checked_add(source_bytes).ok_or_else(budget)?)
+                    .map_err(controlled_compiler_error)?;
 
                 if !filter.is_empty()
                     && !filter.iter().any(|value| {
-                        value == string(get(
-                            item,
-                            if kind == SearchKind::Nodes {
-                                "kind_id"
-                            } else {
-                                "predicate_id"
-                            },
-                        ))
+                        value
+                            == string(get(
+                                item,
+                                if kind == SearchKind::Nodes {
+                                    "kind_id"
+                                } else {
+                                    "predicate_id"
+                                },
+                            ))
                     })
                 {
                     return Ok(());
@@ -922,7 +923,9 @@ fn scan_controlled<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'h
                     .map_err(controlled_compiler_error)?;
                 let bytes = canonical_item.len();
                 if top.len() == keep {
-                    retained = retained.checked_sub(top.pop().unwrap().bytes).ok_or_else(budget)?;
+                    retained = retained
+                        .checked_sub(top.pop().unwrap().bytes)
+                        .ok_or_else(budget)?;
                 }
                 retained = retained.checked_add(bytes).ok_or_else(budget)?;
                 if retained > caps.max_retained_bytes.saturating_sub(work.retained_bytes) {
@@ -993,9 +996,7 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
     if request.query.len() > caps.inspect.max_field_bytes {
         return Err(budget());
     }
-    if request.offset > 100_000
-        || !(1..=100).contains(&request.limit)
-    {
+    if request.offset > 100_000 || !(1..=100).contains(&request.limit) {
         return Err(invalid());
     }
     if caps.inspect.max_open_vm_steps == 0
@@ -1045,9 +1046,9 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
         registered_sources.len(),
         metadata_forecast,
     )?;
-    model.charge_query_work(
-        usize::try_from(input_bytes).map_err(|_| budget())?,
-    ).map_err(controlled_compiler_error)?;
+    model
+        .charge_query_work(usize::try_from(input_bytes).map_err(|_| budget())?)
+        .map_err(controlled_compiler_error)?;
 
     let mut output = None;
     let mut query_error = None;
@@ -1103,17 +1104,39 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
             let mut consulted = Vec::new();
             let mut heap = model.new_owned_query_heap();
             let (node_count, node_hits) = scan_controlled(
-                model, bound, authority, SearchKind::Nodes, &sources, &kinds, &needle,
-                request, caps, &mut work, &mut consulted, &mut heap,
+                model,
+                bound,
+                authority,
+                SearchKind::Nodes,
+                &sources,
+                &kinds,
+                &needle,
+                request,
+                caps,
+                &mut work,
+                &mut consulted,
+                &mut heap,
             )?;
             let (relation_count, relation_hits) = scan_controlled(
-                model, bound, authority, SearchKind::Relations, &sources, &predicates, &needle,
-                request, caps, &mut work, &mut consulted, &mut heap,
+                model,
+                bound,
+                authority,
+                SearchKind::Relations,
+                &sources,
+                &predicates,
+                &needle,
+                request,
+                caps,
+                &mut work,
+                &mut consulted,
+                &mut heap,
             )?;
 
             let mut nodes = Vec::with_capacity(node_hits.len());
             for hit in node_hits {
-                model.charge_query_work(hit.bytes).map_err(controlled_compiler_error)?;
+                model
+                    .charge_query_work(hit.bytes)
+                    .map_err(controlled_compiler_error)?;
                 let value = model
                     .with_owned_query_json(&hit.canonical_item, caps.inspect.json, |value| {
                         let retained = value
@@ -1127,7 +1150,9 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
             }
             let mut relations = Vec::with_capacity(relation_hits.len());
             for hit in relation_hits {
-                model.charge_query_work(hit.bytes).map_err(controlled_compiler_error)?;
+                model
+                    .charge_query_work(hit.bytes)
+                    .map_err(controlled_compiler_error)?;
                 let value = model
                     .with_owned_query_json(&hit.canonical_item, caps.inspect.json, |value| {
                         let retained = value
@@ -1144,9 +1169,9 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
                     model.selection().authority_boundary.as_bytes(),
                     caps.inspect.json,
                     |value| {
-                        let retained = value
-                            .retained_storage_bytes()
-                            .map_err(|_| CompilerError::Budget("controlled query output boundary"))?;
+                        let retained = value.retained_storage_bytes().map_err(|_| {
+                            CompilerError::Budget("controlled query output boundary")
+                        })?;
                         heap.retain(retained)?;
                         Ok(value.clone())
                     },
@@ -1221,10 +1246,12 @@ pub fn execute_controlled_legacy_search<'hold, A: InspectCurrentAuthority<'hold>
         return Err(reason);
     }
     admission.map_err(controlled_compiler_error)?;
-    output.ok_or_else(|| error(
-        SearchV2ErrorCode::Unavailable,
-        "controlled legacy search produced no packet",
-    ))
+    output.ok_or_else(|| {
+        error(
+            SearchV2ErrorCode::Unavailable,
+            "controlled legacy search produced no packet",
+        )
+    })
 }
 /// Describes this exact selected engine, under a distinct current held grant.
 /// It neither probes ambient publications nor advertises public activation.

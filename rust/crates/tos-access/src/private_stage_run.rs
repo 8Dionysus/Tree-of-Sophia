@@ -1659,9 +1659,7 @@ fn outer(o: &Options) -> Result<i32, String> {
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
         selected.verify(held, &root)?;
     }
-    let mut retained_reply = o.retained_fds[0]
-        .map(RetainedReplyRelay::new)
-        .transpose()?;
+    let mut retained_reply = o.retained_fds[0].map(RetainedReplyRelay::new).transpose()?;
     let child_retained_fds = [
         retained_reply.as_ref().map(RetainedReplyRelay::sender_fd),
         o.retained_fds[1],
@@ -1774,8 +1772,14 @@ fn outer(o: &Options) -> Result<i32, String> {
             if argument.parse::<i32>().ok() != o.retained_fds[0] {
                 return Err("private stage retained reply argument differs".into());
             }
-            command.arg(child_retained_fds[0].ok_or("retained relay sender absent")?.to_string());
-        } else { command.arg(argument); }
+            command.arg(
+                child_retained_fds[0]
+                    .ok_or("retained relay sender absent")?
+                    .to_string(),
+            );
+        } else {
+            command.arg(argument);
+        }
     }
     let spawned = Leader::spawn(
         command,

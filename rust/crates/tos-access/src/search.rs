@@ -20,20 +20,17 @@ fn legacy_number(
         Some(JsonValue::Number(number)) if number.kind == tos_foundation::JsonNumberKind::Int => {
             LegacySearchIntegerInput::Integer(&number.lexeme)
         }
-        Some(JsonValue::Number(number)) => LegacySearchIntegerInput::Float(
-            number.as_python_float().unwrap_or(f64::NAN),
-        ),
-        Some(JsonValue::String(value)) => LegacySearchIntegerInput::String(
-            value.as_str().unwrap_or(""),
-        ),
+        Some(JsonValue::Number(number)) => {
+            LegacySearchIntegerInput::Float(number.as_python_float().unwrap_or(f64::NAN))
+        }
+        Some(JsonValue::String(value)) => {
+            LegacySearchIntegerInput::String(value.as_str().unwrap_or(""))
+        }
         Some(_) => LegacySearchIntegerInput::Other,
     };
-    normalize_legacy_search_integer(input, default, minimum, maximum).map_err(|_| {
-        AccessError::new(AccessErrorCode::InvalidRequest, "invalid search arguments")
-    })
+    normalize_legacy_search_integer(input, default, minimum, maximum)
+        .map_err(|_| AccessError::new(AccessErrorCode::InvalidRequest, "invalid search arguments"))
 }
-
-
 
 pub enum SearchRequest {
     Legacy(LegacySearchRequest),

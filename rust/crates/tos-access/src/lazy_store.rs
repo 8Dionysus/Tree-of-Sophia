@@ -2,14 +2,12 @@
 //! CorpusHeader uses the existing selected Store metadata owner; generic query
 //! kernels remain outside this connected metadata scope.
 use super::*;
-use tos_query::source_diagnostic::{LegacyStore, OriginalStoreBudget, StoreUsage};
-use tos_query::search_v2::SearchV2ErrorCode;
-use tos_query::source_diagnostic::{
-    QueryStoreIndexedContinuation, QueryStoreIndexedSearchRequest,
-};
-use tos_foundation::JsonValue as FoundationValue;
 use serde_json::Value;
 use std::io::Write;
+use tos_foundation::JsonValue as FoundationValue;
+use tos_query::search_v2::SearchV2ErrorCode;
+use tos_query::source_diagnostic::{LegacyStore, OriginalStoreBudget, StoreUsage};
+use tos_query::source_diagnostic::{QueryStoreIndexedContinuation, QueryStoreIndexedSearchRequest};
 
 pub(super) struct Store {
     pub owner: LegacyStore,
@@ -54,8 +52,12 @@ fn foundation_falsey(value: &FoundationValue) -> bool {
         FoundationValue::Null => true,
         FoundationValue::Bool(value) => !value,
         FoundationValue::Number(number) => match number.kind {
-            tos_foundation::JsonNumberKind::Int => number.lexeme.parse::<i128>().map_or(false, |n| n == 0),
-            tos_foundation::JsonNumberKind::Float => number.as_python_float().map_or(false, |n| n == 0.0),
+            tos_foundation::JsonNumberKind::Int => {
+                number.lexeme.parse::<i128>().map_or(false, |n| n == 0)
+            }
+            tos_foundation::JsonNumberKind::Float => {
+                number.as_python_float().map_or(false, |n| n == 0.0)
+            }
         },
         FoundationValue::String(value) => value.units().is_empty(),
         FoundationValue::Array(values) => values.is_empty(),
@@ -76,7 +78,9 @@ fn copied_filter_values(
                 if items.len() > 100 {
                     return Err("Core indexed filter count");
                 }
-                values.try_reserve_exact(items.len()).map_err(|_| "Core indexed filter allocation")?;
+                values
+                    .try_reserve_exact(items.len())
+                    .map_err(|_| "Core indexed filter allocation")?;
                 if values.capacity() != items.len() {
                     return Err("Core indexed filter capacity");
                 }
@@ -96,7 +100,9 @@ fn copied_filter_values(
                 if count > 100 {
                     return Err("Core indexed filter count");
                 }
-                values.try_reserve_exact(count).map_err(|_| "Core indexed filter allocation")?;
+                values
+                    .try_reserve_exact(count)
+                    .map_err(|_| "Core indexed filter allocation")?;
                 if values.capacity() != count {
                     return Err("Core indexed filter capacity");
                 }
@@ -110,14 +116,20 @@ fn copied_filter_values(
                 if fields.len() > 100 {
                     return Err("Core indexed filter count");
                 }
-                values.try_reserve_exact(fields.len()).map_err(|_| "Core indexed filter allocation")?;
+                values
+                    .try_reserve_exact(fields.len())
+                    .map_err(|_| "Core indexed filter allocation")?;
                 if values.capacity() != fields.len() {
                     return Err("Core indexed filter capacity");
                 }
                 for (key, _) in fields {
                     active(deadline)?;
                     ledger.charge_work(key.units().len() as u64)?;
-                    values.push(key.as_str().ok_or("Core indexed filter Unicode")?.to_owned());
+                    values.push(
+                        key.as_str()
+                            .ok_or("Core indexed filter Unicode")?
+                            .to_owned(),
+                    );
                 }
             }
             _ => return Err("Core indexed filter iterable type"),
@@ -125,7 +137,9 @@ fn copied_filter_values(
     }
     if values.is_empty() && default_sources {
         let defaults = tos_query::source_diagnostic::query_store_indexed_default_sources();
-        values.try_reserve_exact(defaults.len()).map_err(|_| "Core indexed default source allocation")?;
+        values
+            .try_reserve_exact(defaults.len())
+            .map_err(|_| "Core indexed default source allocation")?;
         if values.capacity() != defaults.len() {
             return Err("Core indexed default source capacity");
         }
@@ -138,7 +152,10 @@ fn copied_filter_values(
     if values.len() > 100 || values.iter().any(|value| value.chars().count() > 256) {
         return Err("Core indexed filter bound");
     }
-    let bytes = values.iter().try_fold(0usize, |sum, value| sum.checked_add(value.len()).ok_or("Core indexed filter bytes"))?;
+    let bytes = values.iter().try_fold(0usize, |sum, value| {
+        sum.checked_add(value.len())
+            .ok_or("Core indexed filter bytes")
+    })?;
     if bytes > 6 * 1024 {
         return Err("Core indexed filter bytes");
     }
@@ -147,7 +164,9 @@ fn copied_filter_values(
 
 fn cursor_error(error: tos_query::search_v2::SearchV2Error) -> &'static str {
     match error.code {
-        SearchV2ErrorCode::InvalidRequest | SearchV2ErrorCode::QueryTooLong | SearchV2ErrorCode::QueryTooShort => "Core indexed cursor or query invalid",
+        SearchV2ErrorCode::InvalidRequest
+        | SearchV2ErrorCode::QueryTooLong
+        | SearchV2ErrorCode::QueryTooShort => "Core indexed cursor or query invalid",
         SearchV2ErrorCode::StaleSelection => "Core indexed cursor selected Store changed",
         SearchV2ErrorCode::StaleContinuation => "Core indexed cursor query or filters changed",
         SearchV2ErrorCode::CursorExpired => "Core indexed cursor expired",
@@ -166,7 +185,8 @@ fn query_error(error: tos_query::source_diagnostic::DiagnosticError) -> &'static
         "Core indexed cursor query or filters changed"
     } else if message.contains("budget") || message.contains("remaining") {
         "Core indexed QueryStore budget exceeded"
-    } else if message.contains("query") || message.contains("filter") || message.contains("cursor") {
+    } else if message.contains("query") || message.contains("filter") || message.contains("cursor")
+    {
         "Core indexed request invalid"
     } else {
         "Core selected Store indexed search refused"
@@ -229,14 +249,20 @@ struct CountWriter<'a> {
 impl Write for CountWriter<'_> {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
         active(self.deadline).map_err(|_| std::io::Error::other("indexed output deadline"))?;
-        let next = self.bytes.checked_add(bytes.len()).filter(|next| *next <= self.cap)
+        let next = self
+            .bytes
+            .checked_add(bytes.len())
+            .filter(|next| *next <= self.cap)
             .ok_or_else(|| std::io::Error::other("indexed output cap"))?;
-        self.ledger.charge_work(bytes.len() as u64)
+        self.ledger
+            .charge_work(bytes.len() as u64)
             .map_err(|_| std::io::Error::other("indexed output work cap"))?;
         self.bytes = next;
         Ok(bytes.len())
     }
-    fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 struct OutputWriter<'a> {
@@ -248,9 +274,14 @@ struct OutputWriter<'a> {
 impl Write for OutputWriter<'_> {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
         active(self.deadline).map_err(|_| std::io::Error::other("indexed output deadline"))?;
-        let next = self.bytes.len().checked_add(bytes.len()).filter(|next| *next <= self.cap)
+        let next = self
+            .bytes
+            .len()
+            .checked_add(bytes.len())
+            .filter(|next| *next <= self.cap)
             .ok_or_else(|| std::io::Error::other("indexed output cap"))?;
-        self.ledger.charge_work(bytes.len() as u64)
+        self.ledger
+            .charge_work(bytes.len() as u64)
             .map_err(|_| std::io::Error::other("indexed output work cap"))?;
         if next > self.bytes.capacity() {
             return Err(std::io::Error::other("indexed output reservation exceeded"));
@@ -258,7 +289,9 @@ impl Write for OutputWriter<'_> {
         self.bytes.extend_from_slice(bytes);
         Ok(bytes.len())
     }
-    fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 fn encode_revision(text: &str, ledger: &Ledger, deadline: Instant) -> Result<Vec<u8>> {
     // Geometry only; existing Core serde string writer owns JSON escaping.
@@ -558,7 +591,9 @@ impl Store {
         if !self.supports_indexed_fts5() {
             return Err("Core selected QueryStore indexed FTS5 admission absent");
         }
-        let limits = request.query_store_limits.as_ref()
+        let limits = request
+            .query_store_limits
+            .as_ref()
             .ok_or("Core lazy Store limits absent")?;
         let max_verify_chars = match request.search_read_model.as_ref() {
             Some(selection) => {
@@ -569,7 +604,8 @@ impl Store {
         };
         let already = self.owner_retained;
         let remaining = |total: usize| {
-            let extra = total.checked_sub(already)
+            let extra = total
+                .checked_sub(already)
                 .ok_or_else(|| error("Core Store alias census"))?;
             ledger.remaining(extra).map_err(error)
         };
@@ -601,7 +637,9 @@ impl Store {
         let query_value = super::checked_field(arguments, "query", ledger, deadline)?;
         let query = match query_value {
             None => "",
-            Some(value) => value.as_str().ok_or("Core indexed query must be a string")?,
+            Some(value) => value
+                .as_str()
+                .ok_or("Core indexed query must be a string")?,
         };
         let mut query_points = 0usize;
         for _ in query.chars() {
@@ -612,7 +650,8 @@ impl Store {
                 return Err("Core indexed query exceeds 256 characters");
             }
         }
-        let normalize_reservation = query_points.checked_mul(6)
+        let normalize_reservation = query_points
+            .checked_mul(6)
             .and_then(|bytes| bytes.checked_add(1024 + std::mem::size_of::<String>()))
             .ok_or("Core indexed query normalization state")?;
         let _normalize = ledger.reserve(normalize_reservation)?;
@@ -628,11 +667,19 @@ impl Store {
         let sources = copied_filter_values(sources_value, true, ledger, deadline)?;
         let kind_ids = copied_filter_values(kind_value, false, ledger, deadline)?;
         let predicate_ids = copied_filter_values(predicate_value, false, ledger, deadline)?;
-        let filter_count = sources.len().checked_add(kind_ids.len())
+        let filter_count = sources
+            .len()
+            .checked_add(kind_ids.len())
             .and_then(|count| count.checked_add(predicate_ids.len()))
             .ok_or("Core indexed filter count")?;
-        let filter_bytes = sources.iter().chain(&kind_ids).chain(&predicate_ids)
-            .try_fold(0usize, |sum, value| sum.checked_add(value.len()).ok_or("Core indexed filter bytes"))?;
+        let filter_bytes = sources
+            .iter()
+            .chain(&kind_ids)
+            .chain(&predicate_ids)
+            .try_fold(0usize, |sum, value| {
+                sum.checked_add(value.len())
+                    .ok_or("Core indexed filter bytes")
+            })?;
         if filter_count > 100 || filter_bytes > 6 * 1024 {
             return Err("Core indexed filter bound");
         }
@@ -641,15 +688,26 @@ impl Store {
         let cursor_value = super::checked_field(arguments, "cursor", ledger, deadline)?;
         let cursor = match cursor_value {
             None | Some(FoundationValue::Null) => None,
-            Some(value) => Some(value.as_str().ok_or("Core indexed cursor must be a string or null")?),
+            Some(value) => Some(
+                value
+                    .as_str()
+                    .ok_or("Core indexed cursor must be a string or null")?,
+            ),
         };
-        if cursor.is_some_and(|token| token.is_empty() || token.len() > crate::reference_cursor::REFERENCE_INDEXED_CURSOR_MAX_BYTES) {
+        if cursor.is_some_and(|token| {
+            token.is_empty()
+                || token.len() > crate::reference_cursor::REFERENCE_INDEXED_CURSOR_MAX_BYTES
+        }) {
             return Err("Core indexed cursor length invalid");
         }
         let cursor_source_revision = if cursor.is_some() {
-            let revision = self.owner.indexed_graph_source_revision()
+            let revision = self
+                .owner
+                .indexed_graph_source_revision()
                 .map_err(|_| "Core selected Store graph source revision absent")?;
-            if revision.is_some_and(|value| value.len() > crate::reference_cursor::REFERENCE_INDEXED_CURSOR_MAX_BYTES) {
+            if revision.is_some_and(|value| {
+                value.len() > crate::reference_cursor::REFERENCE_INDEXED_CURSOR_MAX_BYTES
+            }) {
                 return Err("Core indexed cursor source binding exceeds envelope");
             }
             revision.map(str::to_owned)
@@ -657,13 +715,16 @@ impl Store {
             None
         };
         let mut binding = if cursor.is_some() {
-            Some(crate::reference_cursor::ReferenceCursorBinding::new_for_query_store(
-                cursor_source_revision,
-                normalized.clone(),
-                sources.clone(),
-                kind_ids.clone(),
-                predicate_ids.clone(),
-            ).map_err(cursor_error)?)
+            Some(
+                crate::reference_cursor::ReferenceCursorBinding::new_for_query_store(
+                    cursor_source_revision,
+                    normalized.clone(),
+                    sources.clone(),
+                    kind_ids.clone(),
+                    predicate_ids.clone(),
+                )
+                .map_err(cursor_error)?,
+            )
         } else {
             None
         };
@@ -675,8 +736,10 @@ impl Store {
                     + 1024,
             )?;
             ledger.charge_work(token.len() as u64)?;
-            decoded = Some(crate::reference_cursor::decode_reference_indexed_cursor(token, binding)
-                .map_err(cursor_error)?);
+            decoded = Some(
+                crate::reference_cursor::decode_reference_indexed_cursor(token, binding)
+                    .map_err(cursor_error)?,
+            );
         }
         let envelope = decoded.as_ref();
         let query_request = QueryStoreIndexedSearchRequest {
@@ -710,7 +773,9 @@ impl Store {
         );
         ledger.debit_store_usage(&usage)?;
         let mut page = result.map_err(query_error)?;
-        let graph_revision = self.owner.indexed_graph_source_revision()
+        let graph_revision = self
+            .owner
+            .indexed_graph_source_revision()
             .map_err(|_| "Core selected Store graph source revision absent")?;
         if page.store_revision != self.owner.revision
             || page.source_revision.as_deref() != graph_revision
@@ -722,26 +787,32 @@ impl Store {
         {
             return Err("Core indexed QueryStore page binding changed");
         }
-        let now = self.owner.retained_state_upper_bound()
+        let now = self
+            .owner
+            .retained_state_upper_bound()
             .map_err(|_| "Core Store final retained census")?;
         if now != self.owner_retained {
             return Err("Core Store retained association changed");
         }
         let _page_state = ledger.reserve(page.retained_bytes)?;
         if page.has_more && binding.is_none() {
-            let _cursor_state = ledger.reserve(
-                crate::reference_cursor::REFERENCE_INDEXED_CURSOR_MAX_BYTES * 4 + 4096,
-            )?;
-            binding = Some(crate::reference_cursor::ReferenceCursorBinding::new_for_query_store(
-                page.source_revision.clone(),
-                page.normalized_query.clone(),
-                page.filters.sources.clone(),
-                page.filters.kind_ids.clone(),
-                page.filters.predicate_ids.clone(),
-            ).map_err(cursor_error)?);
+            let _cursor_state = ledger
+                .reserve(crate::reference_cursor::REFERENCE_INDEXED_CURSOR_MAX_BYTES * 4 + 4096)?;
+            binding = Some(
+                crate::reference_cursor::ReferenceCursorBinding::new_for_query_store(
+                    page.source_revision.clone(),
+                    page.normalized_query.clone(),
+                    page.filters.sources.clone(),
+                    page.filters.kind_ids.clone(),
+                    page.filters.predicate_ids.clone(),
+                )
+                .map_err(cursor_error)?,
+            );
         }
         let next_cursor = if page.has_more {
-            let binding = binding.as_ref().ok_or("Core indexed cursor binding absent")?;
+            let binding = binding
+                .as_ref()
+                .ok_or("Core indexed cursor binding absent")?;
             let nodes = page.nodes.next_cursor.take();
             let relations = page.relations.next_cursor.take();
             let nodes_exhausted = nodes.is_none();
@@ -751,16 +822,22 @@ impl Store {
                 relations,
                 nodes_exhausted,
                 relations_exhausted,
-            ).map_err(cursor_error)?;
-            let token = crate::reference_cursor::encode_reference_indexed_cursor(binding, &envelope)
-                .map_err(cursor_error)?;
+            )
+            .map_err(cursor_error)?;
+            let token =
+                crate::reference_cursor::encode_reference_indexed_cursor(binding, &envelope)
+                    .map_err(cursor_error)?;
             ledger.charge_work(token.len() as u64)?;
             Some(token)
         } else {
             None
         };
         let empty_boundary = Value::Object(Default::default());
-        let authority_boundary = self.owner.graph_header.get("authority_boundary").unwrap_or(&empty_boundary);
+        let authority_boundary = self
+            .owner
+            .graph_header
+            .get("authority_boundary")
+            .unwrap_or(&empty_boundary);
         let first_page = cursor.is_none();
         let packet = IndexedStorePacket {
             schema: "tos_knowledge_search_indexed_v2",
@@ -779,8 +856,10 @@ impl Store {
                 has_more: next_cursor.is_some(),
             },
             counts: IndexedCountsPacket {
-                matching_nodes: (first_page && !page.nodes.has_more).then_some(page.nodes.rows.len()),
-                matching_relations: (first_page && !page.relations.has_more).then_some(page.relations.rows.len()),
+                matching_nodes: (first_page && !page.nodes.has_more)
+                    .then_some(page.nodes.rows.len()),
+                matching_relations: (first_page && !page.relations.has_more)
+                    .then_some(page.relations.rows.len()),
                 returned_nodes: page.nodes.rows.len(),
                 returned_relations: page.relations.rows.len(),
                 scope: "exact-if-kind-exhausted-without-continuation",
@@ -802,20 +881,35 @@ impl Store {
             },
         };
         let output_cap = max_output.min(limits.max_json_bytes);
-        let mut counter = CountWriter { bytes: 0, cap: output_cap, ledger, deadline };
+        let mut counter = CountWriter {
+            bytes: 0,
+            cap: output_cap,
+            ledger,
+            deadline,
+        };
         serde_json::to_writer(&mut counter, &packet)
             .map_err(|_| "Core indexed response output count refused")?;
         let output_bytes = counter.bytes;
         let _output_state = ledger.reserve(
-            output_bytes.checked_add(std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<OutputWriter<'_>>())
+            output_bytes
+                .checked_add(
+                    std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<OutputWriter<'_>>(),
+                )
                 .ok_or("Core indexed output state")?,
         )?;
         let mut bytes = Vec::new();
-        bytes.try_reserve_exact(output_bytes).map_err(|_| "Core indexed response allocation")?;
+        bytes
+            .try_reserve_exact(output_bytes)
+            .map_err(|_| "Core indexed response allocation")?;
         if bytes.capacity() != output_bytes {
             return Err("Core indexed response capacity");
         }
-        let mut writer = OutputWriter { bytes, cap: output_bytes, ledger, deadline };
+        let mut writer = OutputWriter {
+            bytes,
+            cap: output_bytes,
+            ledger,
+            deadline,
+        };
         serde_json::to_writer(&mut writer, &packet)
             .map_err(|_| "Core indexed response serialization refused")?;
         if writer.bytes.len() != output_bytes {

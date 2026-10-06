@@ -696,6 +696,18 @@ fn candidate_owner_refusal(stage: &'static str, error: ItemRefusal) -> ItemRefus
             used: None,
             limit: None,
         },
+        ItemRefusal::Source(reason)
+            if !crate::source_admission_spooled_index::is_bounded_source_cause(&reason) =>
+        {
+            // The stage is a code-owned static label; parser text and paths
+            // remain hashed. Preserve already bounded owner sites unchanged.
+            let site = stage.replace(' ', "-");
+            ItemRefusal::Source(crate::source_admission_spooled_index::bounded_source_cause(
+                "receiver-source",
+                &site,
+                &reason,
+            ))
+        }
         other => other,
     }
 }

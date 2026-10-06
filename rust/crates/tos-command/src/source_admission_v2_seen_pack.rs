@@ -2,8 +2,9 @@
 //! V2 cold closure. The selected rootset and exact auxiliary SQLite scope are
 //! fixed at construction; the segment-store callback alone can complete rows.
 
-use super::source_admission_segment_v2::{SourceRevisionRootsV2, decode_workspace_upper_bound};
+use super::source_admission::AdmissionWorkBudget;
 use super::source_admission_packed_objects::PackedObjectLocationV2;
+use super::source_admission_segment_v2::{SourceRevisionRootsV2, decode_workspace_upper_bound};
 use rusqlite::{OptionalExtension, params, types::ValueRef};
 use std::{
     cell::{Cell, RefCell},
@@ -25,7 +26,6 @@ use tos_source_store::{
     PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
     PinnedSqliteSpaceBudget,
 };
-use super::source_admission::AdmissionWorkBudget;
 
 const DIGEST_BYTES: usize = 32;
 
@@ -887,7 +887,9 @@ impl V2SeenPackSpill {
                     .map_err(sql_invalid)?
                     .is_some();
             if expected != expected_count || actual != expected_count || mismatch {
-                return Err(invalid("V2 inverse identity root differs from identity root"));
+                return Err(invalid(
+                    "V2 inverse identity root differs from identity root",
+                ));
             }
             self.check_context()
                 .map_err(|_| invalid("V2 identity inverse context is unavailable"))
@@ -1136,7 +1138,9 @@ impl V2SeenPackSpill {
                 .map_err(sql_invalid)?
                 .is_some();
             if missing_or_size_mismatch || orphan {
-                return Err(invalid("V2 packed extent root differs from revision object closure"));
+                return Err(invalid(
+                    "V2 packed extent root differs from revision object closure",
+                ));
             }
             let next = self
                 .packed_revision_count
@@ -1166,7 +1170,9 @@ impl V2SeenPackSpill {
         cancelled: &AtomicBool,
     ) -> std::io::Result<()> {
         let result = (|| {
-            segment_limits.validate().map_err(|_| invalid("V2 packed segment limits differ"))?;
+            segment_limits
+                .validate()
+                .map_err(|_| invalid("V2 packed segment limits differ"))?;
             self.check_context()
                 .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
             if self.packed_phase.get() != PackedObjectPhase::Loading
@@ -1301,7 +1307,11 @@ impl V2SeenPackSpill {
                     .query_row(
                         "SELECT 1 FROM v2_cold_payload_frame WHERE segment_digest=?1 \
                          AND (segment_size!=?2 OR frame_count!=?3) LIMIT 1",
-                        params![digest.as_slice(), u64_bytes(segment_size).as_slice(), u32_bytes(frame_count).as_slice()],
+                        params![
+                            digest.as_slice(),
+                            u64_bytes(segment_size).as_slice(),
+                            u32_bytes(frame_count).as_slice()
+                        ],
                         |_| Ok(()),
                     )
                     .optional()
@@ -1721,11 +1731,18 @@ fn sql_invalid(error: rusqlite::Error) -> std::io::Error {
     match error {
         rusqlite::Error::SqliteFailure(code, _) => std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            format!("V2 pack spill SQLite operation refused: code {}", code.extended_code),
+            format!(
+                "V2 pack spill SQLite operation refused: code {}",
+                code.extended_code
+            ),
         ),
         rusqlite::Error::QueryReturnedNoRows => invalid("V2 pack spill SQLite scalar missing"),
-        rusqlite::Error::InvalidColumnType(..) => invalid("V2 pack spill SQLite column type refused"),
-        rusqlite::Error::ExecuteReturnedResults => invalid("V2 pack spill SQLite unexpected result rows"),
+        rusqlite::Error::InvalidColumnType(..) => {
+            invalid("V2 pack spill SQLite column type refused")
+        }
+        rusqlite::Error::ExecuteReturnedResults => {
+            invalid("V2 pack spill SQLite unexpected result rows")
+        }
         _ => invalid("V2 pack spill SQLite operation refused"),
     }
 }
