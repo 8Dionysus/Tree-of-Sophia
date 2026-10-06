@@ -3505,7 +3505,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             0,
         ),
     )?;
-    native_schemas.finish(deadline, cancelled).map_err(owner)?;
+    // build_candidate_native_index owns the successful worker close.
     if !native_schemas.is_finished() {
         return Err(incomplete(
             "candidate native-index worker EOF is incomplete",
