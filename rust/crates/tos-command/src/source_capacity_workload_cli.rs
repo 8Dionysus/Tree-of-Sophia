@@ -1,16 +1,22 @@
-//! Maintained two-root weighted capacity-fixture producer entry.
+//! Maintained weighted capacity-fixture producer entry.
 //!
-//! The producer emits a raw census root and a packed indexed root from one
-//! typed cursor under the selected Native invocation. Its receipt is
-//! measurement only; `corpus-admit` still reopens and validates both roots.
+//! The declared recipe selects packed-only output from the authenticated typed
+//! cursor; the legacy route also retains a standalone raw mirror. Its receipt
+//! records mechanical production only. Native admission validates the selected
+//! indexed input independently.
 
 use crate::source_admission::AdmissionWorkBudget;
 use crate::source_admission_packed_objects::{MAX_PACKED_OBJECT_FRAMES_V2, PackedObjectLimitsV2};
 use crate::source_capacity_workload::{
     PackedScaleInputReceiptV1, WeightedScaleAuthoredAuxMemberV1,
     WeightedScaleAuthoredAuxSelectionV1, WeightedScaleProducerRequestV1, WeightedScaleProfileV1,
-    produce_weighted_scale_input_v1, produce_weighted_scale_input_with_authored_aux_v1,
-    weighted_scale_composed_producer_envelope_v1, weighted_scale_producer_envelope_v1,
+    WeightedScaleRepresentationV1, load_declared_fixture_templates_accounted,
+    produce_weighted_scale_input_v1,
+    produce_weighted_scale_input_with_authored_aux_and_templates_v1,
+    produce_weighted_scale_input_with_authored_aux_v1,
+    weighted_scale_composed_producer_envelope_v1,
+    weighted_scale_composed_producer_envelope_with_templates_v2,
+    weighted_scale_producer_envelope_v1,
 };
 use crate::source_command::{SourceCommandError, public_io_reason};
 use crate::source_current_cut::{
@@ -30,7 +36,7 @@ use std::sync::{
 use std::time::Instant;
 use tos_foundation::Digest256;
 
-pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N [--target-records N] [--record-selection-manifest ABS] -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate deterministic private raw and packed scale-input roots for the declared weighted record count (default 100000) under the protected artifact root. The five-class 5/40/5/15/35 distribution is priced against the exact selected Native limits before writing. Then run corpus-admit with the printed --input-root and --indexed-input-root. This fixture does not grant source, review, rights, canon, or admission authority.\n";
+pub const HELP: &str = "usage: tos-native-owner-command capacity-fixture --store PATH --seed-sha256 LOWERHEX64 --work-units N [--target-records N] [--record-selection-manifest ABS] [--fixture-recipe ABS --fixture-recipe-sha256 LOWERHEX64] -- --repo-root ABS --invocation ABS [native validator selections]\n\nCreate deterministic private scale input for the declared weighted record count (default 100000) under the protected artifact root. A declared recipe with authored selection produces packed-only input; the legacy route also emits a standalone raw mirror. The five-class 5/40/5/15/35 distribution is priced against the exact selected Native limits before writing. Then run corpus-admit with the explicit validation profile and printed indexed input. Recipe selection does not itself validate semantics. This fixture does not grant source, review, rights, canon, or admission authority.\n";
 
 fn invalid(reason: &'static str) -> io::Error {
     io::Error::new(
@@ -46,6 +52,8 @@ struct Arguments {
     target_records: u64,
     repository_root: PathBuf,
     record_selection_manifest: Option<PathBuf>,
+    fixture_recipe: Option<PathBuf>,
+    fixture_recipe_sha256: Option<Digest256>,
     validator: Vec<OsString>,
 }
 
@@ -87,6 +95,8 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
     let mut work_units = None;
     let mut target_records = None;
     let mut record_selection_manifest = None;
+    let mut fixture_recipe = None;
+    let mut fixture_recipe_sha256 = None;
     let mut validator = None;
     let mut at = 0;
     while at < args.len() {
@@ -144,6 +154,23 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
                     "capacity fixture record selection manifest",
                 )?);
             }
+            "--fixture-recipe" if fixture_recipe.is_none() => {
+                fixture_recipe = Some(parse_path(value, "capacity fixture recipe path")?);
+            }
+            "--fixture-recipe-sha256" if fixture_recipe_sha256.is_none() => {
+                let text = value
+                    .to_str()
+                    .ok_or_else(|| invalid("capacity fixture recipe digest encoding"))?;
+                if text.len() != 64 || text.bytes().any(|byte| byte.is_ascii_uppercase()) {
+                    return Err(invalid(
+                        "capacity fixture recipe digest must be lowercase SHA-256",
+                    ));
+                }
+                fixture_recipe_sha256 = Some(
+                    Digest256::from_hex(text)
+                        .map_err(|_| invalid("capacity fixture recipe digest refused"))?,
+                );
+            }
             "--target-records" if target_records.is_none() => {
                 let text = value
                     .to_str()
@@ -193,12 +220,24 @@ fn parse(args: &[OsString]) -> io::Result<Option<Arguments>> {
     if !invocation {
         return Err(invalid("capacity fixture invocation path absent"));
     }
+    if fixture_recipe.is_some() != fixture_recipe_sha256.is_some() {
+        return Err(invalid(
+            "capacity fixture recipe path and digest must be selected together",
+        ));
+    }
+    if fixture_recipe.is_some() && record_selection_manifest.is_none() {
+        return Err(invalid(
+            "declared capacity fixture recipe requires authored record selection",
+        ));
+    }
     Ok(Some(Arguments {
         store: store.ok_or_else(|| invalid("capacity fixture store absent"))?,
         seed: seed.ok_or_else(|| invalid("capacity fixture seed absent"))?,
         work_units: work_units.ok_or_else(|| invalid("capacity fixture work units absent"))?,
         target_records: target_records.unwrap_or(100_000),
         record_selection_manifest,
+        fixture_recipe,
+        fixture_recipe_sha256,
         repository_root: repository_root
             .ok_or_else(|| invalid("capacity fixture repository root absent"))?,
         validator,
@@ -327,9 +366,8 @@ fn run_selected(
             "selected Native V2 case has no finite capacity-fixture limits",
         ));
     }
-    let profile = WeightedScaleProfileV1::weighted_for_records(args.seed, args.target_records)?;
+    let mut profile = WeightedScaleProfileV1::weighted_for_records(args.seed, args.target_records)?;
     let target_records = profile.target_records;
-    let class_counts = profile.classes.map(|row| row.count);
 
     let total_store_bytes = case
         .source_store_bytes
@@ -375,6 +413,13 @@ fn run_selected(
             )
         })
         .and_then(|bytes| {
+            bytes.checked_add(
+                args.fixture_recipe
+                    .as_ref()
+                    .map_or(0, |path| path.as_os_str().len()),
+            )
+        })
+        .and_then(|bytes| {
             args.validator
                 .iter()
                 .try_fold(bytes, |total, arg| total.checked_add(arg.len()))
@@ -412,7 +457,58 @@ fn run_selected(
             .checked_add(selection.retained_state_bytes)
             .ok_or_else(|| invalid("capacity fixture authored caller state overflow"))?;
     }
-    let (forecast, envelope) = if let Some(selection) = &authored {
+    let templates = if let Some(recipe) = &args.fixture_recipe {
+        let relative_recipe = recipe
+            .strip_prefix(&args.repository_root)
+            .ok()
+            .and_then(Path::to_str)
+            .ok_or_else(|| {
+                invalid("capacity fixture recipe must belong to selected source root")
+            })?;
+        let templates = load_declared_fixture_templates_accounted(
+            &args.repository_root,
+            relative_recipe,
+            args.fixture_recipe_sha256
+                .ok_or_else(|| invalid("capacity fixture recipe digest absent"))?,
+            &profile,
+            &v2_profile.io,
+            validator_deadline,
+            cancelled.as_ref(),
+            &work,
+            v2_profile.max_working_state_bytes,
+            caller_live_state_bytes,
+        )?;
+        profile = templates.profile_with_selected_dimensions(profile)?;
+        Some(templates)
+    } else {
+        None
+    };
+    let representation = if templates.is_some() {
+        WeightedScaleRepresentationV1::PackedOnlyV2
+    } else {
+        WeightedScaleRepresentationV1::RawAndPackedV1
+    };
+    let selected_raw_root = if templates.is_some() {
+        None
+    } else {
+        Some(raw_root.as_path())
+    };
+    let (forecast, envelope) = if let Some(templates) = &templates {
+        let selection = authored
+            .as_ref()
+            .ok_or_else(|| invalid("declared capacity fixture authored selection absent"))?;
+        let price = weighted_scale_composed_producer_envelope_with_templates_v2(
+            &profile,
+            templates,
+            &selection.auxiliary,
+            representation,
+            tree_io.selected_allocation_unit_bytes(),
+            selected_raw_root,
+            v2_profile.max_working_state_bytes,
+            caller_live_state_bytes,
+        )?;
+        (price.forecast, price.envelope)
+    } else if let Some(selection) = &authored {
         let price = weighted_scale_composed_producer_envelope_v1(
             &profile,
             &selection.auxiliary,
@@ -451,7 +547,8 @@ fn run_selected(
     };
     let producer_request = WeightedScaleProducerRequestV1 {
         repository_root: &args.repository_root,
-        raw_input_root: &raw_root,
+        representation,
+        raw_input_root: selected_raw_root,
         output_root: &packed_root,
         profile,
         segment_limits: resources
@@ -490,7 +587,18 @@ fn run_selected(
         space: v2_profile.allocation_space.clone(),
         tree_io: Arc::clone(&tree_io),
     };
-    let generated = if let Some(selection) = &authored {
+    let class_counts = producer_request.profile.classes.map(|row| row.count);
+    let generated = if let Some(templates) = templates {
+        let selection = authored
+            .as_ref()
+            .ok_or_else(|| invalid("declared capacity fixture authored selection absent"))?;
+        produce_weighted_scale_input_with_authored_aux_and_templates_v1(
+            producer_request,
+            &selection.auxiliary,
+            templates,
+            &mut finalize,
+        )
+    } else if let Some(selection) = &authored {
         produce_weighted_scale_input_with_authored_aux_v1(
             producer_request,
             &selection.auxiliary,
@@ -915,10 +1023,13 @@ fn write_receipt(
         "review_authority": false,
         "canon_authority": false,
         "selected_profile": selected_profile,
-        "raw_input_root": receipt.raw_input_root.to_string_lossy(),
         "indexed_input_root": receipt.named_root.to_string_lossy(),
         "seed_sha256": args.seed.to_hex(),
-        "template_source_commit": crate::source_capacity_workload::SCALE_TEMPLATE_SOURCE_COMMIT_V1,
+        "input_representation": match receipt.representation {
+            WeightedScaleRepresentationV1::RawAndPackedV1 => "raw_and_packed_v1",
+            WeightedScaleRepresentationV1::PackedOnlyV2 => "packed_only_v2",
+        },
+        "standalone_raw_mirror": receipt.raw_input.is_some(),
         "member_count": receipt.member_count,
         "source_bytes": receipt.source_bytes,
         "deduplicated_payload_bytes": receipt.source_bytes.saturating_sub(receipt.unique_payload_bytes),
@@ -928,17 +1039,54 @@ fn write_receipt(
             "evidence_packet": receipt.class_source_bytes[2],
             "text_unit": receipt.class_source_bytes[3],
             "work": receipt.class_source_bytes[4]
-        },
-        "raw_file_count": receipt.raw_input_file_count,
-        "raw_directory_count": receipt.raw_input_directory_count,
-        "raw_inode_count": receipt.raw_input_inode_count,
-        "raw_source_bytes": receipt.raw_input_source_bytes,
-        "raw_allocated_bytes": receipt.raw_input_allocated_bytes
+        }
     }) else {
         return Err(invalid(
             "capacity fixture identity receipt must be an object",
         ));
     };
+    if let Some(raw) = &receipt.raw_input {
+        report_fields.insert(
+            "raw_input_root".into(),
+            serde_json::json!(raw.raw_input_root.to_string_lossy()),
+        );
+        report_fields.insert(
+            "raw_file_count".into(),
+            serde_json::json!(raw.raw_input_file_count),
+        );
+        report_fields.insert(
+            "raw_directory_count".into(),
+            serde_json::json!(raw.raw_input_directory_count),
+        );
+        report_fields.insert(
+            "raw_inode_count".into(),
+            serde_json::json!(raw.raw_input_inode_count),
+        );
+        report_fields.insert(
+            "raw_source_bytes".into(),
+            serde_json::json!(raw.raw_input_source_bytes),
+        );
+        report_fields.insert(
+            "raw_allocated_bytes".into(),
+            serde_json::json!(raw.raw_input_allocated_bytes),
+        );
+    }
+    if let Some(recipe) = receipt.source_recipe() {
+        report_fields.insert(
+            "fixture_recipe_source".into(),
+            serde_json::json!({
+                "source_path": recipe.source_path(),
+                "source_sha256": recipe.source_sha256().to_hex(),
+                "source_bytes": recipe.source_bytes(),
+                "binding": "authenticated_selected_input_copy",
+            }),
+        );
+    } else {
+        report_fields.insert(
+            "template_source_commit".into(),
+            serde_json::json!(crate::source_capacity_workload::SCALE_TEMPLATE_SOURCE_COMMIT_V1),
+        );
+    }
     if let Some(composition) = &receipt.composition {
         report_fields.insert("authored_aux_composition".into(), serde_json::json!({
             "coverage": "authenticated_byte_composition_pending_semantic_admission",

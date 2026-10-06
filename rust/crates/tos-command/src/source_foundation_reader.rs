@@ -687,6 +687,24 @@ fn contract_name(path: &str) -> bool {
 }
 
 impl LayerFamilySource for FoundationRuleSource<'_, '_> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<tos_validation::source_record_selection::SourceRecordSelection>>
+    {
+        match &self.input {
+            FoundationRuleInput::Candidate(input) => input.record_selection(),
+            FoundationRuleInput::Cut(_) => None,
+        }
+    }
+    fn generated_selection(
+        &self,
+    ) -> Option<std::sync::Arc<dyn tos_validation::record_biblio_cut::GeneratedSourceSelection>>
+    {
+        match &self.input {
+            FoundationRuleInput::Candidate(input) => input.generated_selection(),
+            FoundationRuleInput::Cut(_) => None,
+        }
+    }
     fn current(
         &mut self,
         path: &str,
@@ -695,12 +713,21 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
     ) -> Result<Option<Vec<u8>>, ItemRefusal> {
         self.checkpoint(deadline)?;
         allowed(path)?;
+        if !self.selects_required_member(path)? {
+            return Ok(None);
+        }
         if self
             .history
             .as_deref()
             .is_some_and(|history| history.selected(path))
         {
-            return self.historical_read(path, None, requested, deadline);
+            let raw = self.historical_read(path, None, requested, deadline)?;
+            if let (Some(selection), Some(bytes)) = (self.record_selection(), raw.as_ref()) {
+                if selection.contains_member(path) {
+                    selection.verify_metadata_member(path, bytes)?;
+                }
+            }
+            return Ok(raw);
         }
         if is_authored_source_path_v1(path) {
             let relative = RelativePath::parse(path)
@@ -746,6 +773,11 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
                                 return Err(ItemRefusal::Source(
                                     "foundation candidate member custody".into(),
                                 ));
+                            }
+                            if let Some(selection) = input.record_selection() {
+                                if selection.contains_member(path) {
+                                    selection.verify_metadata_member(path, bytes)?;
+                                }
                             }
                             let mut raw = Vec::new();
                             raw.try_reserve_exact(bytes.len())
@@ -793,6 +825,9 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
         deadline: Instant,
     ) -> Result<Option<Vec<u8>>, ItemRefusal> {
         allowed(path)?;
+        if !self.selects_required_member(path)? {
+            return Ok(None);
+        }
         let Ok(expected) = Digest256::from_hex(digest) else {
             return Ok(None);
         };
@@ -865,6 +900,9 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
     fn exists(&mut self, path: &str, _: usize, deadline: Instant) -> Result<bool, ItemRefusal> {
         self.checkpoint(deadline)?;
         allowed(path)?;
+        if !self.selects_required_member(path)? {
+            return Ok(false);
+        }
         let remaining_read = self
             .limits
             .max_read_bytes

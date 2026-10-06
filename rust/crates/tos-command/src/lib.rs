@@ -11,6 +11,7 @@ mod source_admission_candidate;
 mod source_admission_candidate_records;
 mod source_admission_candidate_schema;
 pub(crate) mod source_admission_fresh_revision;
+mod source_admission_generated_selection;
 mod source_admission_index;
 mod source_admission_indexed_input;
 mod source_admission_initial_cut;

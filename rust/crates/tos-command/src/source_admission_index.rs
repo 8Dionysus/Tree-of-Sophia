@@ -753,6 +753,13 @@ pub(crate) trait FreshIndexRowsWriter {
     fn push_record(&mut self, id: &str, source_ref: &str) -> io::Result<()>;
     fn push_claim(&mut self, id: &str, source_ref: &str) -> io::Result<()>;
     fn push_native_semantic(&mut self, id: &str, path: &str) -> io::Result<()>;
+    /// Only the real pinned index sink exposes its SAME SQLite main/IO/space
+    /// custody. Resident transports retain the original finite planner.
+    fn catalog_planning_storage(
+        &self,
+    ) -> io::Result<Option<(std::rc::Rc<tos_source_store::PinnedSqliteConnection>, u64)>> {
+        Ok(None)
+    }
 }
 
 impl FreshIndexRows for FreshRows {
@@ -1435,6 +1442,39 @@ fn document(
         Err(e) if e.code == FoundationErrorCode::BudgetExceeded => Err(invalid(e)),
         Err(_) => Ok(None),
     }
+}
+/// The existing multi-path anchor law is restricted to actual maintained
+/// annotation entity definitions. Filenames and generated declarations do not
+/// establish this exception for Packet, unit, Artifact or record identities.
+fn native_annotation_defines_identity(
+    input: &mut dyn CandidateIndexInput,
+    path: &str,
+    id: &str,
+) -> io::Result<bool> {
+    let limits = input.json_limits();
+    let raw = input.bytes(path, limits.max_bytes)?;
+    let Some(value) = document(
+        &raw,
+        JsonMode::LegacyPythonObserved,
+        limits,
+        input.json_state_bytes(),
+    )?
+    else {
+        return Ok(false);
+    };
+    if value
+        .object_get("schema_version")
+        .and_then(JsonValue::as_str)
+        != Some("tos_semantic_annotation_packet_v2")
+    {
+        return Ok(false);
+    }
+    let Some(JsonValue::Array(entities)) = value.object_get("entities") else {
+        return Ok(false);
+    };
+    Ok(entities
+        .iter()
+        .any(|entity| entity.object_get("entity_id").and_then(JsonValue::as_str) == Some(id)))
 }
 fn strict_object(raw: &[u8], limits: JsonLimits) -> io::Result<Value> {
     let decoded = json_encoding(raw, limits.max_bytes)?;
@@ -2756,6 +2796,34 @@ pub(crate) fn build_index_into(
                     previous_path,
                 });
             } else if let Some(group) = current_group.as_mut() {
+                if path != group.minimum_path {
+                    let group_bytes = semantic_group_state_upper_bound(
+                        &group.id,
+                        &group.minimum_path,
+                        group.previous_path.as_ref(),
+                    )?;
+                    let inspection_bytes = input
+                        .json_limits()
+                        .max_bytes
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(input.json_state_bytes()))
+                        .and_then(|n| n.checked_add(provider_row_bytes))
+                        .ok_or_else(|| invalid("native identity classifier state overflow"))?;
+                    // The existing parser workspace is a selected per-row
+                    // input allowance, separate from retained index rows.
+                    input.check_row_state(
+                        group_bytes
+                            .checked_add(inspection_bytes)
+                            .and_then(|n| n.checked_add(cursor_bytes))
+                            .ok_or_else(|| invalid("native identity classifier peak overflow"))?,
+                    )?;
+                    if !native_annotation_defines_identity(input, &group.minimum_path, id)?
+                        || !native_annotation_defines_identity(input, path, id)?
+                    {
+                        return Err(invalid("duplicate native source identity"));
+                    }
+                }
+
                 if group
                     .previous_path
                     .as_ref()
@@ -3317,8 +3385,8 @@ mod tests {
         let b = "ToS/source-witnesses/b.json";
         let c = "ToS/source-witnesses/c.json";
         let raw=BTreeMap::from([
-            (a.to_owned(),r#"{"tos.b":"unused","nested":["tos.b","ToS/source-witnesses/c.json:١٢#anchor","ToS/source-witnesses/b.json#\ud800"],"x":"tos.b","x":"unused"}"#.as_bytes().to_vec()),
-            (b.to_owned(),b"{}".to_vec()),(c.to_owned(),b"{}".to_vec()),
+            (a.to_owned(),r#"{"schema_version":"tos_semantic_annotation_packet_v2","entities":[{"entity_id":"tos.native"}],"tos.b":"unused","nested":["tos.b","ToS/source-witnesses/c.json:١٢#anchor","ToS/source-witnesses/b.json#\ud800"],"x":"tos.b","x":"unused"}"#.as_bytes().to_vec()),
+            (b.to_owned(),b"{}".to_vec()),(c.to_owned(),br#"{"schema_version":"tos_semantic_annotation_packet_v2","entities":[{"entity_id":"tos.native"}]}"#.to_vec()),
             ("ToS/source-witnesses/note.md".to_owned(),b"tos.b".to_vec()),
             ("ToS/contracts/test.json".to_owned(),br#"{"value":"tos.b"}"#.to_vec()),
         ]);
@@ -3363,6 +3431,23 @@ mod tests {
         })
         .unwrap_err();
         assert!(exhausted.to_string().contains("JSON parser state budget"));
+        let mut packet_conflict = raw.clone();
+        packet_conflict.insert(
+            c.to_owned(),
+            br#"{"schema_version":"tos_source_text_unit_packet_v1","packet_id":"tos.native"}"#
+                .to_vec(),
+        );
+        let rejected = with_input(&packet_conflict, |input| {
+            build_index(input, &fresh, Some(&base), limits, &mut |_, _, _| {
+                panic!("no retirement schema read")
+            })
+        })
+        .unwrap_err();
+        assert!(
+            rejected
+                .to_string()
+                .contains("duplicate native source identity")
+        );
         let conflict = FreshRows {
             records: vec![
                 json!({"record_id":"tos.b","source_record_ref":a}),

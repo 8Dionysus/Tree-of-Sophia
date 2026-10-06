@@ -1017,6 +1017,24 @@ impl AdmissionBatch {
             .ok_or_else(|| invalid("admission batch has no selected shared work meter"))
     }
 
+    /// Borrow the protected declaration after this batch's source stream EOF.
+    /// Issuance remains with the retained indexed reader; this is not admission.
+    pub(crate) fn selected_generated_declaration_v1(
+        &self,
+    ) -> io::Result<Option<&crate::source_admission_indexed_input::SelectedGeneratedDeclarationV1>>
+    {
+        let Some(reader) = self.indexed_input.as_ref() else {
+            return Ok(None);
+        };
+        let declaration = reader.selected_generated_declaration_v1()?;
+        if declaration.is_some() && (self.source_stream_failed || !self.source_stream_finished) {
+            return Err(invalid(
+                "generated declaration requires completed source stream",
+            ));
+        }
+        Ok(declaration)
+    }
+
     /// Additional heap retained by the initial census-backed source. The
     /// owned cursor and batch share one Rc-carried update source so the caller
     /// can stream each row without borrowing the batch. The source carrier and

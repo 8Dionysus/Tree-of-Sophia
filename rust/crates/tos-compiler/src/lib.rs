@@ -262,13 +262,14 @@ pub use source_bibliographic_source::{
     CandidateSourceCatalogInputPlan, ColdSourceCatalogInputPlan, ColdSourceCatalogInputSpool,
     ColdSourceCatalogSpoolIsolation, ColdSourceCatalogSpoolLimits, ColdSourceCatalogSpoolPhase,
     SourceBibliographicCandidate, SourceCatalogInputLimits, SourceCatalogInputPlan,
-    SourceCatalogRenderWorkV1, plan_candidate_source_catalog_inputs_with_workspace,
-    plan_cold_source_catalog_inputs, plan_cold_source_catalog_inputs_with_workspace,
-    plan_source_catalog_inputs, plan_streamed_cold_source_catalog_inputs,
-    prepare_candidate_source_catalog_plan_observed, prepare_cold_source_catalog_plan,
-    prepare_cold_source_catalog_plan_observed, prepare_source_catalog_plan,
-    prepare_streamed_cold_source_catalog_spool, render_source_bibliographic_plan,
-    render_source_bibliographic_plan_with_work, render_streamed_source_bibliographic_spool,
+    SourceCatalogRenderWorkV1, plan_candidate_source_catalog_inputs_spooled,
+    plan_candidate_source_catalog_inputs_with_workspace, plan_cold_source_catalog_inputs,
+    plan_cold_source_catalog_inputs_with_workspace, plan_source_catalog_inputs,
+    plan_streamed_cold_source_catalog_inputs, prepare_candidate_source_catalog_plan_observed,
+    prepare_cold_source_catalog_plan, prepare_cold_source_catalog_plan_observed,
+    prepare_source_catalog_plan, prepare_streamed_cold_source_catalog_spool,
+    render_source_bibliographic_plan, render_source_bibliographic_plan_with_work,
+    render_streamed_source_bibliographic_spool,
 };
 pub use source_bibliographic_versions::StreamedBibliographicReadLedger;
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};

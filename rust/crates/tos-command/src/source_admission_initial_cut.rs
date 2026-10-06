@@ -1066,7 +1066,17 @@ pub(crate) fn prepare_initial_cut<'a>(
         ));
     }
     invocation.reserve_spooled_external_state(profile.max_state_slice_bytes, &spool_io)?;
-    let mut work = InitialCutWork::new(profile.max_work_units)?;
+    let mut work = match indexed_input
+        .as_ref()
+        .and_then(|request| request.held_declaration.as_ref())
+    {
+        Some(declaration) => {
+            let work = declaration.work_budget_v1();
+            work.lower_maximum(profile.max_work_units)?;
+            work
+        }
+        None => InitialCutWork::new(profile.max_work_units)?,
+    };
     work.charge_many(root_path_component_count(root_name)?.saturating_add(1))?;
     let (root, root_identity, root_stamp) =
         open_selected_root(root_name, &spool_io, deadline, cancel)?;
@@ -1107,17 +1117,34 @@ pub(crate) fn prepare_initial_cut<'a>(
     };
     drop(callback);
     let indexed_reader = if let Some(request) = indexed_input {
-        let selection = crate::source_admission_indexed_input::open_selection_from_manifest_v1(
-            &request.named_root,
-            request.segment_limits,
-            request.reader_limits.max_descriptor_bytes,
-            request.max_profile_bytes,
-            request.max_dependency_closure_bytes,
-            &spool_io,
-            deadline,
-            cancel,
-            &work,
-        )?;
+        let selection = match request.held_declaration {
+            Some(declaration) => {
+                if declaration.named_root_v1() != request.named_root {
+                    return Err(invalid(
+                        "early generated input root differs from late request",
+                    ));
+                }
+                crate::source_admission_indexed_input::open_selection_from_held_declaration_v1(
+                    declaration,
+                    request.segment_limits,
+                    request.max_dependency_closure_bytes,
+                    &spool_io,
+                    deadline,
+                    cancel,
+                )?
+            }
+            None => crate::source_admission_indexed_input::open_selection_from_manifest_v1(
+                &request.named_root,
+                request.segment_limits,
+                request.reader_limits.max_descriptor_bytes,
+                request.max_profile_bytes,
+                request.max_dependency_closure_bytes,
+                &spool_io,
+                deadline,
+                cancel,
+                &work,
+            )?,
+        };
         if selection.member_count != proposal.member_count
             || selection.source_bytes != proposal.source_bytes
         {

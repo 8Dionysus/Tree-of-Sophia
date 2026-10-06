@@ -562,7 +562,6 @@ fn candidate_owner_refusal(stage: &'static str, error: ItemRefusal) -> ItemRefus
     }
 }
 
-
 fn owner(error: ItemRefusal) -> FoundationOrchestratorError {
     FoundationOrchestratorError::Owner(error)
 }
@@ -2271,6 +2270,100 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         .usage()
                         .map_err(|_| ItemRefusal::Budget)?;
                     let reader_io_before = view.original_io.snapshot();
+                    if let Some(selection) = input.record_selection() {
+                        let mut checked_claims = 0usize;
+                        for member in selection.members().filter(|member|
+                            selection.file_slots(&member.source_ref).iter().any(|slot| slot.kind == "claim"))
+                        {
+                            input.with_current_member(&member.source_ref, reader_member_bytes, deadline, cancelled,
+                                &mut |meta, raw| {
+                                    if meta.path != member.source_ref || meta.size_bytes != raw.len() as u64 {
+                                        return Err(ItemRefusal::Source("selected Claim member custody differs".into()));
+                                    }
+                                    let verification_state = selection.file_slots(&member.source_ref).iter()
+                                        .try_fold(0usize, |peak, slot| Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?)))?;
+                                    let held = reader_retained_state.checked_add(raw.len())
+                                        .and_then(|state| state.checked_add(verification_state))
+                                        .ok_or(tos_validation::item_budget_origin!())?;
+                                    let local_state = callback_state_bytes.checked_sub(held)
+                                        .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
+                                    input.require_callback_state(callback_state_bytes, original_operation_state)?;
+                                    let local_limits = tos_validation::item_rules::ItemLimits {
+                                        max_member_bytes: reader_member_bytes.min(local_state),
+                                        max_total_bytes: after_replay_headroom,
+                                        max_state_bytes: local_state,
+                                        max_issues: biblio_limits.max_issues,
+                                        deadline,
+                                    };
+                                    let verified = selection.verify_file(&member.source_ref, raw, deadline, cancelled)?;
+                                    let mut rows = verified.row_cursor();
+                                    while let Some(row) = rows.next_checked(deadline, cancelled) {
+                                        let (_, bytes, slot) = row?;
+                                        if slot.kind != "claim" { continue; }
+                                        let mut worker = schema_worker.borrow_mut();
+                                        let report = tos_validation::record_rules::validate_source_claim_from_input(
+                                            input, records, bytes, &mut **worker, local_limits, cancelled)?;
+                                        if report.input_identity != fence || report.current_membership != fence.membership
+                                            || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
+                                        {
+                                            return Err(ItemRefusal::Source("selected Claim owner local forms are invalid or unbound".into()));
+                                        }
+                                        drop(report);
+                                        checked_claims = checked_claims.checked_add(1)
+                                            .ok_or(tos_validation::item_budget_origin!())?;
+                                    }
+                                    Ok(())
+                                })?;
+                        }
+                        if checked_claims != selection.slots().filter(|slot| slot.kind == "claim").count() {
+                            return Err(ItemRefusal::Source("selected Claim local owner coverage did not reach EOF".into()));
+                        }
+                    }
+                    if let Some(generated) = input.generated_selection() {
+                        // Every physical member reaches the existing provider traversal EOF;
+                        // only exact Claim geometry enters the maintained local Claim owner.
+                        let generated_coverage = input.for_each_current_member(deadline, cancelled,
+                            &mut |meta, raw| {
+                                if !generated.selects_claim_row(meta.path, 1)? { return Ok(()); }
+                                let held = reader_retained_state.checked_add(raw.len())
+                                    .ok_or(tos_validation::item_budget_origin!())?;
+                                let local_state = callback_state_bytes.checked_sub(held)
+                                    .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
+                                input.require_callback_state(callback_state_bytes, original_operation_state)?;
+                                let local_limits = tos_validation::item_rules::ItemLimits {
+                                    max_member_bytes: reader_member_bytes.min(local_state),
+                                    max_total_bytes: after_replay_headroom,
+                                    max_state_bytes: local_state,
+                                    max_issues: biblio_limits.max_issues,
+                                    deadline,
+                                };
+                                let mut checked_rows = 0u64;
+                                for (line, bytes) in tos_validation::source_record_selection::source_rows(raw) {
+                                    if !generated.selects_claim_row(meta.path, line)? { continue; }
+                                    let mut worker = schema_worker.borrow_mut();
+                                    let report = tos_validation::record_rules::validate_source_claim_from_input(
+                                        input, records, bytes, &mut **worker, local_limits, cancelled)?;
+                                    if report.input_identity != fence || report.current_membership != fence.membership
+                                        || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
+                                    {
+                                        return Err(ItemRefusal::Source("generated Claim owner local forms are invalid or unbound".into()));
+                                    }
+                                    drop(report);
+                                    checked_rows = checked_rows.checked_add(1)
+                                        .ok_or(tos_validation::item_budget_origin!())?;
+                                }
+                                if checked_rows != 1 {
+                                    return Err(ItemRefusal::Source("generated Claim local owner row coverage differs".into()));
+                                }
+                                Ok(())
+                            })?;
+                        if generated_coverage.membership() != fence.membership
+                            || generated_coverage.member_count() != fence.membership.count
+                            || generated_coverage.source_bytes_read() != fence.source_bytes
+                        {
+                            return Err(ItemRefusal::Source("generated Claim physical owner traversal is incomplete".into()));
+                        }
+                    }
                     let mut schema_executor =
                         CandidateArtifactSchemaExecutor::new(&schema_worker);
                     let mut rule_source = FoundationRuleSource::from_candidate(

@@ -4792,6 +4792,16 @@ impl<'host> SpoolCandidate<'host> {
         })();
         self.finish_read(result)
     }
+    /// Borrow the indexed reader's issued declaration from this live candidate.
+    /// Whole generated-byte coverage and final admission are checked separately.
+    pub(crate) fn selected_generated_declaration_v1(
+        &self,
+    ) -> io::Result<Option<&crate::source_admission_indexed_input::SelectedGeneratedDeclarationV1>>
+    {
+        self.fence()?;
+        self.batch.selected_generated_declaration_v1()
+    }
+
     pub(crate) fn fence(&self) -> io::Result<CandidateFence> {
         self.tick()?;
         let (retirement_count, retirement_digest) = self.retirement_fence()?;

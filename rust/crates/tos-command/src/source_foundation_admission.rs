@@ -343,11 +343,26 @@ pub(crate) struct PreparedV2ArtifactRoot {
     pub(crate) identity: (u64, u64),
 }
 
+// The existing IO control envelope is charged before either the early issuer
+// or ordinary spooled factory allocates its original shared control blocks.
+const SPOOLED_IO_CONTROL_STATE_BYTES: usize = 4096;
+
+struct GeneratedInputPrelude {
+    declaration: Option<crate::source_admission_indexed_input::HeldIndexedInputDeclarationV1>,
+    io: PinnedSqliteIoBudget,
+    aggregate_write: PinnedSqliteIoBudget,
+    identity_binding: Option<String>,
+}
+
 pub(crate) struct NativeSourceValidator<'c> {
     prepared: Option<Prepared<'c>>,
     evaluated: Option<FoundationBootstrapInputs<'c>>,
     grammar: GrammarIdentity,
     validation_profile: ValidationProfile,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
+    record_selection_held: Option<crate::source_text_owner::HeldOwnerFile>,
+    record_selection_binding: Option<Value>,
+    generated_input: Option<GeneratedInputPrelude>,
     history: Option<HistoryEvidence>,
     history_usage: (u64, usize),
     identity: Digest256,
@@ -518,6 +533,205 @@ impl<'c> NativeSourceValidator<'c> {
         debit(&mut ledger, "admission-entry", entry_read, 0)?;
         let selected = invocation.selected_roots(&launch).map_err(command)?;
         let mut sources = RouteSources::new_until(Path::new(&selected.repo_root), deadline)?;
+        let (record_selection, record_selection_held, record_selection_binding) =
+            if let Some(path) = &launch.arguments.record_selection_manifest {
+                use std::os::unix::ffi::OsStrExt;
+                use tos_validation::source_record_selection::{
+                    SelectionLimits, SourceRecordSelection, selection_state_upper_bound,
+                };
+                let remaining = ledger.remaining().map_err(command)?;
+                let custody_bound = path
+                    .as_os_str()
+                    .as_bytes()
+                    .len()
+                    .checked_mul(3)
+                    .and_then(|n| {
+                        n.checked_add(size_of::<crate::source_text_owner::HeldOwnerFile>())
+                            .and_then(|n| {
+                                n.checked_add(
+                                    size_of::<Arc<SourceRecordSelection>>()
+                                        + 2 * size_of::<usize>(),
+                                )
+                            })
+                    })
+                    .ok_or_else(|| invalid("record selection custody state overflow"))?;
+                let model_state = remaining
+                    .state_bytes
+                    .checked_sub(custody_bound)
+                    .ok_or_else(|| invalid("record selection custody state bound"))?;
+                let mut low = 0usize;
+                let mut high = count(invocation.budgets.max_member_bytes)?
+                    .min(count(remaining.source_read_bytes / 2)?);
+                // Invert the model owner's existing simultaneous state bound;
+                // no copied parser ratio or physical-file/row count assumption.
+                while low < high {
+                    let middle = low + (high - low).div_ceil(2);
+                    if selection_state_upper_bound(middle).is_ok_and(|state| state < model_state) {
+                        low = middle;
+                    } else {
+                        high = middle - 1;
+                    }
+                }
+                if low == 0 {
+                    return Err(invalid("record selection manifest budget"));
+                }
+                let ticket = ledger
+                    .begin_window(
+                        "record-selection-manifest-read",
+                        FoundationPhaseReservation::default(),
+                    )
+                    .map_err(command)?;
+                ledger
+                    .complete_window(
+                        ticket,
+                        FoundationPhaseUse {
+                            source_read_bytes: FoundationCharge::admitted_upper_bound(
+                                (low as u64)
+                                    .checked_mul(2)
+                                    .ok_or_else(|| invalid("record selection read overflow"))?,
+                            ),
+                            ..FoundationPhaseUse::default()
+                        },
+                    )
+                    .map_err(command)?;
+                let (held, raw) = crate::source_text_owner::select_held_file(
+                    path,
+                    unsafe { libc::geteuid() },
+                    false,
+                    low,
+                    deadline,
+                    cancel,
+                )
+                .map_err(command)?;
+                let retained = selection_state_upper_bound(raw.len())
+                    .map_err(|_| invalid("record selection model state"))?;
+                let verify_state = model_state
+                    .checked_sub(retained)
+                    .filter(|n| *n > 0)
+                    .ok_or_else(|| invalid("record selection verification state"))?;
+                let selection = SourceRecordSelection::parse(
+                    &raw,
+                    SelectionLimits {
+                        max_manifest_bytes: low,
+                        max_records: raw.len(),
+                        max_slots: raw.len(),
+                        max_roots: raw.len(),
+                        max_owned_state_bytes: model_state,
+                        max_row_bytes: count(invocation.budgets.max_member_bytes)?,
+                        max_verify_state_bytes: verify_state,
+                    },
+                )
+                .map_err(|error| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        NativeValidationRefusal(
+                            crate::source_admission_spooled_index::receiver_refusal(error)
+                                .to_string(),
+                        ),
+                    )
+                })?;
+                let binding = selection.binding().map_err(|error| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        NativeValidationRefusal(
+                            crate::source_admission_spooled_index::receiver_refusal(error)
+                                .to_string(),
+                        ),
+                    )
+                })?;
+                let state = selection
+                    .charged_state_bytes()
+                    .checked_add(
+                        held.retained_state_bytes()
+                            .ok_or_else(|| invalid("record selection custody state overflow"))?,
+                    )
+                    .and_then(|n| {
+                        n.checked_add(
+                            size_of::<Arc<SourceRecordSelection>>() + 2 * size_of::<usize>(),
+                        )
+                    })
+                    .ok_or_else(|| invalid("record selection state overflow"))?;
+                drop(raw);
+                debit(&mut ledger, "record-selection-retained-state", 0, state)?;
+                (Some(Arc::new(selection)), Some(held), Some(binding))
+            } else {
+                (None, None, None)
+            };
+        let mut generated_input = if let Some(root) = &launch.arguments.indexed_input_root {
+            if !matches!(
+                invocation.admission_representation(),
+                foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2
+            ) {
+                return Err(invalid(
+                    "generated record closure requires native-v4-segment-v2",
+                ));
+            }
+            let selection = record_selection
+                .as_ref()
+                .ok_or_else(|| invalid("generated input requires finite authored selection"))?;
+            let meter_state = SPOOLED_IO_CONTROL_STATE_BYTES.checked_add(crate::source_admission::AdmissionWorkBudget::retained_allocation_upper_bound_bytes())
+                .ok_or_else(|| invalid("generated input original meter state overflow"))?;
+            debit(
+                &mut ledger,
+                "generated-input-original-meters",
+                0,
+                meter_state,
+            )?;
+            let remaining = ledger.remaining().map_err(command)?;
+            let aggregate_write = PinnedSqliteIoBudget::new(remaining.source_read_bytes, write_cap)
+                .map_err(invalid)?;
+            let io = PinnedSqliteIoBudget::new_with_shared_write_authority(
+                remaining.source_read_bytes,
+                write_cap,
+                aggregate_write.clone(),
+            )
+            .map_err(invalid)?;
+            // The maintained initial-cut selector uses the original read ceiling
+            // as its work authority. Its later phase selection only narrows this
+            // same owner; every early descriptor/aux row remains in the prefix.
+            let work =
+                crate::source_admission::AdmissionWorkBudget::new(remaining.source_read_bytes)?;
+            let declaration =
+                crate::source_admission_indexed_input::open_indexed_input_declaration_v1(
+                    root,
+                    count(invocation.budgets.max_member_bytes)?
+                        .min(crate::source_admission_indexed_input::DESCRIPTOR_MAX_BYTES),
+                    count(invocation.budgets.max_member_bytes)?
+                        .min(crate::source_admission_indexed_input::PROFILE_SIDECAR_MAX_BYTES_V1),
+                    &io,
+                    deadline,
+                    cancel,
+                    &work,
+                    selection,
+                    remaining.state_bytes,
+                );
+            let usage = io.snapshot();
+            let measured = usage
+                .read_attempted_bytes
+                .checked_sub(usage.read_upper_bound_attempted_bytes)
+                .ok_or_else(|| invalid("generated input attempted read classification"))?;
+            ledger
+                .record_terminal_source_read_suffix(
+                    measured,
+                    usage.read_upper_bound_attempted_bytes,
+                )
+                .map_err(command)?;
+            let declaration = declaration?;
+            debit(
+                &mut ledger,
+                "generated-input-held-declaration",
+                0,
+                declaration.retained_state_bytes_v1()?,
+            )?;
+            Some(GeneratedInputPrelude {
+                declaration: Some(declaration),
+                io,
+                aggregate_write,
+                identity_binding: None,
+            })
+        } else {
+            None
+        };
         let remaining = ledger.remaining().map_err(command)?;
         let limits = IdentityLimits {
             max_read_bytes: remaining.source_read_bytes,
@@ -527,11 +741,11 @@ impl<'c> NativeSourceValidator<'c> {
             max_state_bytes: remaining.state_bytes,
         };
         let validation_profile = launch.arguments.validation_profile;
-        if validation_profile.scope == tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure
+        if validation_profile.scope != tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit
             && !matches!(invocation.admission_representation(), foundation_entry::FoundationAdmissionRepresentation::NativeV4 | foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2) {
             return Err(invalid("selected-source validation requires native-v4 admission"));
         }
-        let grammar = GrammarIdentity::select(
+        let mut grammar = GrammarIdentity::select(
             &mut sources,
             invocation.executable_sha256(),
             invocation.schema_worker.sha256,
@@ -546,6 +760,31 @@ impl<'c> NativeSourceValidator<'c> {
             grammar.read_bytes(),
             grammar.retained_state_bytes(),
         )?;
+        if let Some(binding) = &record_selection_binding {
+            grammar.bind_record_selection(
+                binding,
+                ledger.remaining().map_err(command)?.state_bytes,
+                cancel,
+            )?;
+        }
+        if let Some(early) = &mut generated_input {
+            let binding = grammar.bind_generated_input(
+                early.declaration.as_ref().expect("generated issuer held"),
+                ledger.remaining().map_err(command)?.state_bytes,
+                cancel,
+            )?;
+            let binding = String::from_utf8(binding).map_err(invalid)?;
+            debit(
+                &mut ledger,
+                "generated-input-identity-binding",
+                0,
+                binding
+                    .capacity()
+                    .checked_add(size_of::<String>())
+                    .ok_or_else(|| invalid("generated binding retained state overflow"))?,
+            )?;
+            early.identity_binding = Some(binding);
+        }
         let history = if captures.is_empty() {
             None
         } else {
@@ -615,6 +854,9 @@ impl<'c> NativeSourceValidator<'c> {
             evaluated: None,
             grammar,
             validation_profile,
+            record_selection,
+            record_selection_held,
+            record_selection_binding,
             history,
             history_usage,
             identity,
@@ -622,7 +864,13 @@ impl<'c> NativeSourceValidator<'c> {
             cancel,
             git_signal,
             write_cap,
-            candidate_io: (0, 0),
+            candidate_io: generated_input
+                .as_ref()
+                .map(|early| {
+                    let usage = early.io.snapshot();
+                    (usage.read_attempted_bytes, usage.write_attempted_bytes)
+                })
+                .unwrap_or((0, 0)),
             candidate_state: 0,
             batch_charged: false,
             store_authority: None,
@@ -635,7 +883,11 @@ impl<'c> NativeSourceValidator<'c> {
             segment_v2_profile: None,
             segment_v2_io_accounted: (0, 0),
             segment_v2_read_upper_accounted: 0,
-            spooled_read_upper_accounted: 0,
+            spooled_read_upper_accounted: generated_input
+                .as_ref()
+                .map(|early| early.io.snapshot().read_upper_bound_attempted_bytes)
+                .unwrap_or(0),
+            generated_input,
             spooled_write_cap: None,
         })
     }
@@ -1019,7 +1271,7 @@ impl<'c> NativeSourceValidator<'c> {
             // Conservative fixed control-state envelope includes the shared
             // write root, both local IoState blocks and their Arc headers;
             // size_of::<PinnedSqliteIoBudget>() above counts only its handle.
-            .and_then(|n| n.checked_add(4096))
+            .and_then(|n| n.checked_add(SPOOLED_IO_CONTROL_STATE_BYTES))
             .ok_or_else(|| invalid("V2 case clone state overflow"))?;
         if case_clone_preflight > remaining.state_bytes {
             return Err(invalid("V2 case clone exceeds remaining state"));
@@ -1447,14 +1699,27 @@ impl<'c> NativeSourceValidator<'c> {
             .store_authority
             .as_ref()
             .ok_or_else(|| invalid("private stage authority disappeared"))?;
-        let aggregate_write =
-            PinnedSqliteIoBudget::new(original_io_read_cap, write_remaining).map_err(invalid)?;
-        let io_budget = PinnedSqliteIoBudget::new_with_shared_write_authority(
-            original_io_read_cap,
-            candidate_limits.max_write_bytes,
-            aggregate_write.clone(),
-        )
-        .map_err(invalid)?;
+        let aggregate_write = match &self.generated_input {
+            Some(early) => {
+                early
+                    .aggregate_write
+                    .restrict_remaining_io(original_io_read_cap, write_remaining)
+                    .map_err(invalid)?;
+                early.aggregate_write.clone()
+            }
+            None => {
+                PinnedSqliteIoBudget::new(original_io_read_cap, write_remaining).map_err(invalid)?
+            }
+        };
+        let io_budget = match &self.generated_input {
+            Some(early) => early.io.clone(),
+            None => PinnedSqliteIoBudget::new_with_shared_write_authority(
+                original_io_read_cap,
+                candidate_limits.max_write_bytes,
+                aggregate_write.clone(),
+            )
+            .map_err(invalid)?,
+        };
         io_budget
             .restrict_remaining_io(
                 candidate_limits.max_read_bytes,
@@ -2325,16 +2590,16 @@ impl<'c> NativeSourceValidator<'c> {
         drop(after);
         self.account_spooled_candidate(candidate)?;
         let remaining = self.ledger()?.remaining().map_err(command)?;
-        let operation_state = remaining.state_bytes;
+        let mut operation_state = remaining.state_bytes;
         // The input's simultaneous raw callback allowance has its own selected
         // row ceiling; the whole worker/default/catalog operation retains the
         // actual invocation remainder independently.
-        let input_state = operation_state.min(selected_index.max_row_state_bytes);
+        let mut input_state = operation_state.min(selected_index.max_row_state_bytes);
         let raw_state = observed_max
             .checked_mul(4)
             .and_then(|n| n.checked_add(16384))
             .ok_or_else(|| invalid("candidate raw callback state overflow"))?;
-        let callback_state = input_state
+        let mut callback_state = input_state
             .checked_sub(raw_state)
             .ok_or_else(|| invalid("candidate raw callback exceeds selected state"))?;
         let held_declared = candidate
@@ -2350,9 +2615,77 @@ impl<'c> NativeSourceValidator<'c> {
         }
         // Opaque SQLite heap/pins and process fit retain the original external
         // Host/controller prerequisite; nominal cache is not an RSS bound.
+        self.verify_record_selection()?;
+        // A local shared owner keeps the immutable model alive while mutable
+        // validator accounting advances; this clones no manifest rows.
+        let record_selection = self.record_selection.clone();
+        let generated_selection = if self.generated_input.is_some() {
+            use crate::source_admission_generated_selection::GeneratedCandidateSelectionV1;
+            use crate::source_capacity_workload::{
+                WeightedScaleGeneratedAllV1, WeightedScaleTemplateSetV1,
+            };
+            use tos_validation::record_biblio_cut::GeneratedSourceSelection;
+            let issued = candidate
+                .selected_generated_declaration_v1()?
+                .ok_or_else(|| invalid("generated candidate issued declaration absent"))?;
+            let finite = record_selection
+                .as_ref()
+                .ok_or_else(|| invalid("generated candidate finite selection absent"))?;
+            let root = self
+                .prepared
+                .as_ref()
+                .and_then(|prepared| prepared.launch.arguments.repo_root.as_deref())
+                .ok_or_else(|| invalid("generated template source root absent"))?;
+            let work = candidate.admission_work_budget()?;
+            // This is the unallocated callback remainder, not total process RAM.
+            // The finite model and Native baseline were already debited above.
+            let templates = WeightedScaleTemplateSetV1::load_from_selected_declaration_accounted(
+                root,
+                issued,
+                &original_io,
+                self.deadline,
+                self.cancel,
+                &work,
+                input_state,
+                0,
+            )?;
+            let fence = candidate.fence()?;
+            let provider = WeightedScaleGeneratedAllV1::from_selected_declaration(
+                issued,
+                templates,
+                finite.clone(),
+                fence,
+                input_state,
+                0,
+                work,
+                self.deadline,
+                self.cancel,
+            )?;
+            let wrapper = GeneratedCandidateSelectionV1::new(provider, fence)?;
+            let owned = wrapper
+                .retained_state_bytes()
+                .checked_add(2 * size_of::<usize>())
+                .ok_or_else(|| invalid("generated selection Arc state overflow"))?;
+            debit(
+                self.ledger_mut()?,
+                "generated-candidate-retained-state",
+                0,
+                owned,
+            )?;
+            operation_state = self.ledger()?.remaining().map_err(command)?.state_bytes;
+            input_state = operation_state.min(selected_index.max_row_state_bytes);
+            callback_state = input_state
+                .checked_sub(raw_state)
+                .ok_or_else(|| invalid("generated callback exceeds remaining selected state"))?;
+            Some(Arc::new(wrapper))
+        } else {
+            None
+        };
         let input =
             CandidateRecordsInput::new(candidate, observed_max, input_state, callback_state)
-                .map_err(|_| invalid("candidate callback source profile refused"))?;
+                .map_err(|_| invalid("candidate callback source profile refused"))?
+                .with_record_selection(record_selection)
+                .with_generated_selection(generated_selection);
         if let Some(history) = &mut self.history {
             history.bind_candidate_io_budget(&input, &original_io)?;
         }
@@ -2476,6 +2809,10 @@ impl<'c> NativeSourceValidator<'c> {
             invocation: inputs.invocation,
             ledger: inputs.remaining_budget,
             sources: inputs.sources,
+        });
+        let result = result.and_then(|earned| {
+            self.verify_record_selection()?;
+            Ok(earned)
         });
         // Attempted suffixes remain visible even if any final fence failed.
         let terminal = self.account_spooled_terminal_io(candidate);
@@ -2695,8 +3032,69 @@ impl<'c> NativeSourceValidator<'c> {
         self.account_candidate(candidate)?;
         Ok(ValidatedCandidate(index))
     }
+    pub(crate) fn take_indexed_input_declaration_v1(
+        &mut self,
+    ) -> io::Result<Option<crate::source_admission_indexed_input::HeldIndexedInputDeclarationV1>>
+    {
+        let Some(early) = &mut self.generated_input else {
+            return Ok(None);
+        };
+        early
+            .declaration
+            .as_ref()
+            .ok_or_else(|| invalid("generated input declaration already consumed"))?
+            .verify_v1(&early.io, self.deadline, self.cancel)?;
+        early
+            .declaration
+            .take()
+            .map(Some)
+            .ok_or_else(|| invalid("generated input declaration already consumed"))
+    }
     pub(crate) fn remaining_output_bytes(&self) -> io::Result<usize> {
         Ok(self.ledger()?.remaining().map_err(command)?.output_bytes)
+    }
+    fn verify_record_selection(&mut self) -> io::Result<()> {
+        let Some(held) = &self.record_selection_held else {
+            return Ok(());
+        };
+        let read = u64::try_from(held.size_bytes())
+            .ok()
+            .and_then(|n| n.checked_mul(2))
+            .ok_or_else(|| invalid("record selection verification read overflow"))?;
+        let verify_state = usize::try_from(read)
+            .ok()
+            .and_then(|n| n.checked_add(size_of::<crate::source_text_owner::HeldOwnerFile>()))
+            .ok_or_else(|| invalid("record selection custody verification state overflow"))?;
+        if verify_state > self.ledger()?.remaining().map_err(command)?.state_bytes {
+            return Err(invalid("record selection custody verification state bound"));
+        }
+        let ticket = self
+            .ledger_mut()?
+            .begin_window(
+                "record-selection-custody",
+                FoundationPhaseReservation::default(),
+            )
+            .map_err(command)?;
+        self.ledger_mut()?
+            .complete_window(
+                ticket,
+                FoundationPhaseUse {
+                    source_read_bytes: FoundationCharge::admitted_upper_bound(read),
+                    ..FoundationPhaseUse::default()
+                },
+            )
+            .map_err(command)?;
+        let held = self
+            .record_selection_held
+            .as_ref()
+            .expect("selection custody held");
+        crate::source_text_owner::verify_held_file(
+            held,
+            unsafe { libc::geteuid() },
+            self.deadline,
+            self.cancel,
+        )
+        .map_err(command)
     }
     pub(crate) fn write_receipt(
         &mut self,
@@ -2704,12 +3102,16 @@ impl<'c> NativeSourceValidator<'c> {
         writer: &mut dyn Write,
     ) -> io::Result<()> {
         active(self.deadline, self.cancel)?;
+        self.verify_record_selection()?;
         let object = value
             .as_object()
             .ok_or_else(|| invalid("admission receipt must be an object"))?;
         if object.contains_key("validation_profile_id")
             || object.contains_key("validation_profile_declaration_sha256")
             || object.contains_key("validation_input_scope")
+            || object.contains_key("record_selection")
+            || object.contains_key("generated_input_identity_binding_json")
+            || object.contains_key("generated_input_identity_binding_sha256")
         {
             return Err(invalid(
                 "admission receipt cannot override validator profile",
@@ -2721,22 +3123,40 @@ impl<'c> NativeSourceValidator<'c> {
             receipt: &'a Value,
             validation_profile_id: &'a str,
             validation_input_scope: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            record_selection: Option<&'a Value>,
+            // Exact owner-serialized canonical binding, retained once and
+            // borrowed here. It includes the issued tuple, not physical EOF.
+            #[serde(skip_serializing_if = "Option::is_none")]
+            generated_input_identity_binding_json: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            generated_input_identity_binding_sha256: Option<String>,
             validation_profile_declaration_sha256: String,
         }
-        let value = ProfileReceipt {
-            receipt: value,
-            validation_profile_id: self.validation_profile.id,
-            validation_input_scope: self.validation_profile.input_scope,
-            validation_profile_declaration_sha256: self
-                .validation_profile
-                .declaration_sha256
-                .to_hex(),
-        };
         let ticket = self
             .ledger_mut()?
             .begin_window("admission-receipt", FoundationPhaseReservation::default())
             .map_err(command)?;
         let cap = ticket.remaining().output_bytes;
+        let value = ProfileReceipt {
+            receipt: value,
+            validation_profile_id: self.validation_profile.id,
+            validation_input_scope: self.validation_profile.input_scope,
+            record_selection: self.record_selection_binding.as_ref(),
+            generated_input_identity_binding_json: self
+                .generated_input
+                .as_ref()
+                .and_then(|early| early.identity_binding.as_deref()),
+            generated_input_identity_binding_sha256: self
+                .generated_input
+                .as_ref()
+                .and_then(|early| early.identity_binding.as_ref())
+                .map(|binding| Digest256::of_bytes(binding.as_bytes()).to_hex()),
+            validation_profile_declaration_sha256: self
+                .validation_profile
+                .declaration_sha256
+                .to_hex(),
+        };
         // Same serializer counts before emitting; no unbounded intermediate Vec.
         let mut count = ReceiptWriter {
             inner: None,

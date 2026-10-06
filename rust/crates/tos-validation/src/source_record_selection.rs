@@ -430,6 +430,10 @@ impl SourceRecordSelection {
             raw,
         })
     }
+    /// The same owner parser profile used for canonical selected-row binding.
+    pub fn row_json_limits(&self) -> Result<JsonLimits, ItemRefusal> {
+        json_limits(self.limits.max_row_bytes)
+    }
     pub fn digest(&self) -> Digest256 {
         self.digest
     }

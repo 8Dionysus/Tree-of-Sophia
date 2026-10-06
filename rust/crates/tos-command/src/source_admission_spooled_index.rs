@@ -985,7 +985,7 @@ pub(crate) struct IndexSink<'candidate> {
     record_schema_diagnostic_count: u64,
     native_index_built: bool,
     selected_profile: SpoolIndexLimits,
-    db: PinnedSqliteConnection,
+    db: std::rc::Rc<PinnedSqliteConnection>,
     _scope: PinnedSqliteAuxScope,
 }
 
@@ -1014,6 +1014,11 @@ impl<'candidate> IndexSink<'candidate> {
         candidate.check_state(sink_identity_state)?;
         let sink_identity = Arc::new(());
         let mut scope = candidate.open_index_scope(limits.sqlite)?;
+        candidate.check_state(
+            std::mem::size_of::<PinnedSqliteConnection>()
+                .checked_add(2 * std::mem::size_of::<usize>())
+                .ok_or_else(|| invalid("native shared connection state overflow"))?,
+        )?;
         let db = scope
             .open_connection()
             .map_err(|_| invalid("native source index shared-budget SQLite open refused"))?;
@@ -1053,7 +1058,7 @@ impl<'candidate> IndexSink<'candidate> {
             record_observation_count: 0,
             record_schema_diagnostic_count: 0,
             native_index_built: false,
-            db,
+            db: std::rc::Rc::new(db),
             _scope: scope,
         })
     }
@@ -1338,6 +1343,11 @@ impl<'candidate> IndexSink<'candidate> {
 
     fn validate_fresh_tables(&self) -> io::Result<()> {
         self.candidate.tick()?;
+        if std::rc::Rc::strong_count(&self.db) != 1 {
+            return Err(invalid(
+                "native catalog planning connection remains live at seal",
+            ));
+        }
         let records = row_count(&self.db, "SELECT COUNT(*) FROM fresh_record_rows")?;
         let claims = row_count(&self.db, "SELECT COUNT(*) FROM fresh_claim_rows")?;
         let semantic = row_count(&self.db, "SELECT COUNT(*) FROM fresh_semantic_rows")?;
@@ -1538,6 +1548,11 @@ impl<'candidate> IndexSink<'candidate> {
             complete.deadline(),
             complete.cancelled(),
         )?;
+        if std::rc::Rc::strong_count(&self.db) != 1 {
+            return Err(invalid(
+                "native catalog planning connection remains live at completion",
+            ));
+        }
         let records = complete.records();
         if records.fence != self.fence
             || records.membership != self.fence.membership
@@ -1593,6 +1608,22 @@ impl FreshIndexRowsWriter for IndexSink<'_> {
 
     fn push_native_semantic(&mut self, id: &str, path: &str) -> io::Result<()> {
         self.push_fresh_pair(FreshPairTable::Semantic, id, path)
+    }
+    fn catalog_planning_storage(
+        &self,
+    ) -> io::Result<Option<(std::rc::Rc<PinnedSqliteConnection>, u64)>> {
+        self.candidate.tick()?;
+        if self.fresh_sealed || self.native_index_built {
+            return Err(invalid("native catalog planning custody already sealed"));
+        }
+        self.candidate.check_state(
+            std::mem::size_of::<std::rc::Rc<PinnedSqliteConnection>>()
+                + 2 * std::mem::size_of::<usize>(),
+        )?;
+        Ok(Some((
+            std::rc::Rc::clone(&self.db),
+            self.selected_profile.sqlite.main_logical_bytes,
+        )))
     }
 }
 
@@ -1838,7 +1869,7 @@ pub(crate) struct IndexView<'candidate> {
     dependency_source_count: u64,
     dependency_count: u64,
     row_limit: usize,
-    db: PinnedSqliteConnection,
+    db: std::rc::Rc<PinnedSqliteConnection>,
     _scope: PinnedSqliteAuxScope,
 }
 
@@ -1881,7 +1912,9 @@ impl IndexView<'_> {
     /// memory prerequisite.
     pub(crate) fn declared_retained_state_bytes(&self) -> io::Result<usize> {
         std::mem::size_of::<Self>()
-            .checked_add(self.complete.index_profile().cache_bytes)
+            .checked_add(std::mem::size_of::<PinnedSqliteConnection>())
+            .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
+            .and_then(|bytes| bytes.checked_add(self.complete.index_profile().cache_bytes))
             .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
             .ok_or_else(|| invalid("native index retained state overflow"))
     }

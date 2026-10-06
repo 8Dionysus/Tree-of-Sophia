@@ -1247,6 +1247,40 @@ impl WeightedScaleProfileV1 {
         Ok(profile)
     }
 
+    /// Smallest maintained weighted point that reaches the entire selected
+    /// quantile period in every class; it is a cohort input, not an admission.
+    pub(crate) fn minimum_all_quantile_variant_profile_v1(
+        seed: Digest256,
+    ) -> std::io::Result<Self> {
+        let reference = Self::fixed_100k(seed);
+        let minimum = reference
+            .classes
+            .iter()
+            .map(|row| row.count)
+            .min()
+            .filter(|count| *count != 0)
+            .ok_or_else(|| io_invalid("weighted class minimum absent"))?;
+        let total = reference
+            .classes
+            .iter()
+            .try_fold(0u64, |n, row| n.checked_add(row.count))
+            .ok_or_else(|| io_invalid("weighted class total overflow"))?;
+        let target = total
+            .checked_mul(SCALE_SELECTED_QUANTILE_PERIOD_V1)
+            .and_then(|n| n.checked_add(minimum - 1))
+            .map(|n| n / minimum)
+            .ok_or_else(|| io_invalid("representative quantile point overflow"))?;
+        let profile = Self::weighted_for_records(seed, target)?;
+        if profile
+            .classes
+            .iter()
+            .any(|row| row.count < SCALE_SELECTED_QUANTILE_PERIOD_V1)
+        {
+            return Err(io_invalid("representative quantile coverage differs"));
+        }
+        Ok(profile)
+    }
+
     pub fn validate(&self) -> std::io::Result<()> {
         if self.target_records < 20
             || raw_fixture_directory_count_v1(self).is_err()
@@ -1609,14 +1643,1192 @@ pub(crate) fn weighted_scale_producer_envelope_v1(
     })
 }
 
+/// Explicit template transformation route; absence in historical profiles keeps
+/// their technical-only input law unchanged.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WeightedScaleClaimTemplateRouteV1 {
+    LegacyTechnicalV1,
+    WorkAuthorshipFixtureV1,
+}
+
+/// Finite caller-declared source rows; these are inputs, not an issuer token.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WeightedScaleClaimTemplateRowV1 {
+    pub(crate) source_path: String,
+    pub(crate) source_sha256: Digest256,
+    pub(crate) source_line: u64,
+    pub(crate) template_sha256: Digest256,
+    pub(crate) template_bytes: u64,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WeightedScaleGeneratorAgentSelectionV1 {
+    pub(crate) source_path: String,
+    pub(crate) source_sha256: Digest256,
+    pub(crate) record_id: String,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WeightedScaleClaimTemplateSelectionV1 {
+    pub(crate) relation_registry_sha256: Digest256,
+    pub(crate) generator_agent: WeightedScaleGeneratorAgentSelectionV1,
+    pub(crate) templates: [WeightedScaleClaimTemplateRowV1; 3],
+}
+impl WeightedScaleClaimTemplateSelectionV1 {
+    fn profile_value(&self) -> serde_json::Value {
+        serde_json::json!({
+            "route": "work_authorship_fixture_v1",
+            "relation_registry_sha256": self.relation_registry_sha256.to_hex(),
+            "relation_type_id": "tos.relation.authored-by",
+            "subject_class": "Work",
+            "generator_agent": {"source_path": self.generator_agent.source_path, "source_sha256": self.generator_agent.source_sha256.to_hex(), "record_id": self.generator_agent.record_id},
+            "templates": self.templates.iter().map(|row| serde_json::json!({
+                "source_path": row.source_path, "source_sha256": row.source_sha256.to_hex(),
+                "source_line": row.source_line, "template_sha256": row.template_sha256.to_hex(),
+                "template_bytes": row.template_bytes,
+            })).collect::<Vec<_>>()
+        })
+    }
+    fn retained_state_bytes(&self) -> std::io::Result<usize> {
+        self.templates.iter().try_fold(
+            size_of::<Self>()
+                .checked_add(self.generator_agent.source_path.capacity())
+                .and_then(|n| n.checked_add(self.generator_agent.record_id.capacity()))
+                .ok_or_else(|| io_invalid("generator Agent declaration state overflow"))?,
+            |bytes, row| {
+                bytes
+                    .checked_add(row.source_path.capacity())
+                    .ok_or_else(|| io_invalid("selected Claim declaration state overflow"))
+            },
+        )
+    }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FixtureRecipeWireV2 {
+    schema: String,
+    claim_template_selection: ClaimSelectionWireV2,
+    artifact_template_selection: ArtifactSelectionWireV2,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ClaimSelectionWireV2 {
+    route: String,
+    relation_registry_sha256: String,
+    relation_type_id: String,
+    subject_class: String,
+    generator_agent: GeneratorAgentWireV2,
+    templates: [ClaimTemplateWireV2; 3],
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GeneratorAgentWireV2 {
+    source_path: String,
+    source_sha256: String,
+    record_id: String,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ClaimTemplateWireV2 {
+    source_path: String,
+    source_sha256: String,
+    source_line: u64,
+    template_sha256: String,
+    template_bytes: u64,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ArtifactSelectionWireV2 {
+    route: String,
+    templates: [ArtifactTemplateWireV2; 3],
+    rights_template: ArtifactSourceWireV2,
+    discovery_template: ArtifactSourceWireV2,
+    source_policy: ArtifactSourceWireV2,
+    research: ArtifactSourceWireV2,
+    resource_templates: [ArtifactSourceWireV2; 3],
+    generated_at: String,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ArtifactTemplateWireV2 {
+    source_path: String,
+    source_sha256: String,
+    template_sha256: String,
+    template_bytes: u64,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ArtifactSourceWireV2 {
+    source_path: String,
+    source_sha256: String,
+    source_bytes: u64,
+}
+fn recipe_digest_v2(raw: &str) -> std::io::Result<Digest256> {
+    Digest256::from_hex(raw).map_err(|_| io_invalid("fixture recipe SHA invalid"))
+}
+impl ArtifactSourceWireV2 {
+    fn into_owner(self) -> std::io::Result<WeightedScaleArtifactPinnedSourceV1> {
+        Ok(WeightedScaleArtifactPinnedSourceV1 {
+            source_path: self.source_path,
+            source_sha256: recipe_digest_v2(&self.source_sha256)?,
+            source_bytes: self.source_bytes,
+        })
+    }
+}
+impl FixtureRecipeWireV2 {
+    fn into_owner(
+        self,
+    ) -> std::io::Result<(
+        WeightedScaleClaimTemplateSelectionV1,
+        WeightedScaleArtifactTemplateSelectionV1,
+    )> {
+        if self.schema != "tos_weighted_capacity_fixture_recipe_v2"
+            || self.claim_template_selection.route != "work_authorship_fixture_v1"
+            || self.claim_template_selection.relation_type_id != "tos.relation.authored-by"
+            || self.claim_template_selection.subject_class != "Work"
+            || self.artifact_template_selection.route != "synthetic_repository_resource_v1"
+        {
+            return Err(io_invalid("fixture recipe declared owner route differs"));
+        }
+        let claim = self.claim_template_selection;
+        let agent = claim.generator_agent;
+        let claim_row =
+            |row: ClaimTemplateWireV2| -> std::io::Result<WeightedScaleClaimTemplateRowV1> {
+                if row.source_line == 0 || row.template_bytes == 0 {
+                    return Err(io_invalid("fixture Claim template row invalid"));
+                }
+                Ok(WeightedScaleClaimTemplateRowV1 {
+                    source_path: row.source_path,
+                    source_sha256: recipe_digest_v2(&row.source_sha256)?,
+                    source_line: row.source_line,
+                    template_sha256: recipe_digest_v2(&row.template_sha256)?,
+                    template_bytes: row.template_bytes,
+                })
+            };
+        let [a, b, c] = claim.templates;
+        let claim = WeightedScaleClaimTemplateSelectionV1 {
+            relation_registry_sha256: recipe_digest_v2(&claim.relation_registry_sha256)?,
+            generator_agent: WeightedScaleGeneratorAgentSelectionV1 {
+                source_path: agent.source_path,
+                source_sha256: recipe_digest_v2(&agent.source_sha256)?,
+                record_id: agent.record_id,
+            },
+            templates: [claim_row(a)?, claim_row(b)?, claim_row(c)?],
+        };
+        let artifact = self.artifact_template_selection;
+        let artifact_row =
+            |row: ArtifactTemplateWireV2| -> std::io::Result<WeightedScaleArtifactTemplateRowV1> {
+                Ok(WeightedScaleArtifactTemplateRowV1 {
+                    source_path: row.source_path,
+                    source_sha256: recipe_digest_v2(&row.source_sha256)?,
+                    template_sha256: recipe_digest_v2(&row.template_sha256)?,
+                    template_bytes: row.template_bytes,
+                })
+            };
+        let [a, b, c] = artifact.templates;
+        let [r0, r1, r2] = artifact.resource_templates;
+        let artifact = WeightedScaleArtifactTemplateSelectionV1 {
+            templates: [artifact_row(a)?, artifact_row(b)?, artifact_row(c)?],
+            rights_template: artifact.rights_template.into_owner()?,
+            discovery_template: artifact.discovery_template.into_owner()?,
+            source_policy: artifact.source_policy.into_owner()?,
+            research: artifact.research.into_owner()?,
+            resource_templates: [r0.into_owner()?, r1.into_owner()?, r2.into_owner()?],
+            generated_at: artifact.generated_at,
+        };
+        artifact.validate()?;
+        Ok((claim, artifact))
+    }
+}
+
+/// Read one explicitly pinned authored recipe through the original meters.
+/// The fixed arrays contain declarations, never generated record IDs.
+pub(crate) fn load_declared_fixture_templates_accounted(
+    root: &Path,
+    relative_recipe: &str,
+    expected_sha: Digest256,
+    profile: &WeightedScaleProfileV1,
+    io: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    work: &AdmissionWorkBudget,
+    max_state: usize,
+    caller_state: usize,
+) -> std::io::Result<WeightedScaleTemplateSetV1> {
+    scale_active(deadline, cancelled)?;
+    let relative = RelativePath::parse(relative_recipe)
+        .map_err(|_| io_invalid("fixture recipe relative path invalid"))?;
+    if !relative.as_str().starts_with("ToS/") {
+        return Err(io_invalid("fixture recipe must be an authored ToS input"));
+    }
+    let path_state = root
+        .as_os_str()
+        .len()
+        .checked_add(relative_recipe.len())
+        .and_then(|n| n.checked_add(1 + size_of::<PathBuf>()))
+        .and_then(|n| n.checked_add(relative_recipe.len() + size_of::<RelativePath>()))
+        .ok_or_else(|| io_invalid("fixture recipe path state overflow"))?;
+    let frame = max_state
+        .checked_sub(caller_state)
+        .and_then(|n| n.checked_sub(path_state))
+        .and_then(|n| n.checked_sub(size_of::<[u8; 64 * 1024]>()))
+        .ok_or_else(|| io_invalid("fixture recipe read state exhausted"))?;
+    let path = root.join(relative.as_str());
+    let raw = read_source_file_accounted_v1(&path, frame, io, deadline, cancelled, work)?;
+    if Digest256::of_bytes(&raw) != expected_sha {
+        return Err(io_invalid("fixture recipe source SHA differs"));
+    }
+    let source_bytes = raw.len() as u64;
+    let decode_frame = max_state
+        .checked_sub(caller_state)
+        .and_then(|n| n.checked_sub(path_state))
+        .and_then(|n| n.checked_sub(raw.capacity()))
+        .and_then(|n| n.checked_sub(size_of::<FixtureRecipeWireV2>()))
+        .and_then(|n| n.checked_sub(size_of::<WeightedScaleClaimTemplateSelectionV1>()))
+        .and_then(|n| n.checked_sub(size_of::<WeightedScaleArtifactTemplateSelectionV1>()))
+        .ok_or_else(|| io_invalid("fixture recipe decode state exhausted"))?;
+    let (value, _) = tos_validation::record_biblio_cut::bounded_decoded_state(
+        &raw,
+        JsonLimits::default(),
+        decode_frame,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| io_invalid("fixture recipe bounded decode refused"))?;
+    // Consume the one bounded decoded value into fixed typed fields. Owned
+    // strings transfer; there is no second freeform JSON tree or N-sized Vec.
+    let wire: FixtureRecipeWireV2 = serde_json::from_value(value)
+        .map_err(|_| io_invalid("fixture recipe exact declared fields differ"))?;
+    let (claim, artifact) = wire.into_owner()?;
+    drop(raw);
+    drop(path);
+    drop(relative);
+    let source_state = size_of::<WeightedScaleFixtureRecipeSourceV2>()
+        .checked_add(relative_recipe.len())
+        .ok_or_else(|| io_invalid("fixture source state overflow"))?;
+    let mut result = WeightedScaleTemplateSetV1::load_with_all5_selection_accounted(
+        root,
+        profile,
+        claim,
+        artifact,
+        io,
+        deadline,
+        cancelled,
+        work,
+        max_state,
+        caller_state
+            .checked_add(source_state)
+            .ok_or_else(|| io_invalid("fixture source caller state overflow"))?,
+    )?;
+    result.fixture_recipe_source = Some(WeightedScaleFixtureRecipeSourceV2 {
+        source_path: relative_recipe.to_owned(),
+        source_sha256: expected_sha,
+        source_bytes,
+    });
+    if weighted_producer_state_upper_v1(&result, 0)?
+        .checked_add(caller_state)
+        .is_none_or(|n| n > max_state)
+    {
+        return Err(io_invalid("fixture recipe retained templates exceed state"));
+    }
+    Ok(result)
+}
+
+/// Authenticated selected recipe copy, not a lasting pathname/FD claim.
+pub(crate) struct WeightedScaleFixtureRecipeSourceV2 {
+    source_path: String,
+    source_sha256: Digest256,
+    source_bytes: u64,
+}
+impl WeightedScaleFixtureRecipeSourceV2 {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+    pub(crate) fn source_sha256(&self) -> Digest256 {
+        self.source_sha256
+    }
+    pub(crate) fn source_bytes(&self) -> u64 {
+        self.source_bytes
+    }
+}
+
+/// Caller-declared finite sources for the explicit synthetic Artifact recipe.
+/// These data do not issue a semantic verdict or a native creation receipt.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WeightedScaleArtifactPinnedSourceV1 {
+    pub(crate) source_path: String,
+    pub(crate) source_sha256: Digest256,
+    pub(crate) source_bytes: u64,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WeightedScaleArtifactTemplateRowV1 {
+    pub(crate) source_path: String,
+    pub(crate) source_sha256: Digest256,
+    pub(crate) template_sha256: Digest256,
+    pub(crate) template_bytes: u64,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WeightedScaleArtifactTemplateSelectionV1 {
+    pub(crate) templates: [WeightedScaleArtifactTemplateRowV1; 3],
+    pub(crate) rights_template: WeightedScaleArtifactPinnedSourceV1,
+    pub(crate) discovery_template: WeightedScaleArtifactPinnedSourceV1,
+    pub(crate) source_policy: WeightedScaleArtifactPinnedSourceV1,
+    pub(crate) research: WeightedScaleArtifactPinnedSourceV1,
+    pub(crate) resource_templates: [WeightedScaleArtifactPinnedSourceV1; 3],
+    /// Configured fixture date. Actual output observations are separate.
+    pub(crate) generated_at: String,
+}
+impl WeightedScaleArtifactTemplateSelectionV1 {
+    fn profile_value(&self) -> serde_json::Value {
+        let source = |s: &WeightedScaleArtifactPinnedSourceV1| {
+            serde_json::json!({
+            "source_path":s.source_path,"source_sha256":s.source_sha256.to_hex(),"source_bytes":s.source_bytes})
+        };
+        serde_json::json!({"route":"synthetic_repository_resource_v1",
+            "templates":self.templates.iter().map(|s| serde_json::json!({"source_path":s.source_path,
+                "source_sha256":s.source_sha256.to_hex(),"template_sha256":s.template_sha256.to_hex(),
+                "template_bytes":s.template_bytes})).collect::<Vec<_>>(),
+            "rights_template":source(&self.rights_template),"discovery_template":source(&self.discovery_template),
+            "source_policy":source(&self.source_policy),"research":source(&self.research),
+            "resource_templates":self.resource_templates.iter().map(source).collect::<Vec<_>>(),
+            "generated_at":self.generated_at})
+    }
+    fn immutable_digest(&self) -> std::io::Result<Digest256> {
+        Ok(Digest256::of_bytes(&canonical_value_bytes_v1(
+            &self.profile_value(),
+        )?))
+    }
+    fn from_issued(
+        issued: &super::source_admission_indexed_input::SelectedArtifactTemplateSelectionV1,
+        max_state: usize,
+        caller_state: usize,
+    ) -> std::io::Result<Self> {
+        if issued.route() != "synthetic_repository_resource_v1" {
+            return Err(io_invalid("issued Artifact recipe route differs"));
+        }
+        let strings = issued
+            .templates()
+            .iter()
+            .map(|r| r.source_path().len())
+            .chain(
+                issued
+                    .resource_templates()
+                    .iter()
+                    .map(|r| r.source_path().len()),
+            )
+            .chain([
+                issued.rights_template().source_path().len(),
+                issued.discovery_template().source_path().len(),
+                issued.source_policy().source_path().len(),
+                issued.research().source_path().len(),
+                issued.generated_at().len(),
+            ])
+            .try_fold(size_of::<Self>(), |n, bytes| n.checked_add(bytes))
+            .and_then(|n| n.checked_add(caller_state))
+            .ok_or_else(|| io_invalid("issued Artifact recipe copy state overflow"))?;
+        if strings > max_state {
+            return Err(io_invalid("issued Artifact recipe copy exceeds state"));
+        }
+        let source =
+            |row: &super::source_admission_indexed_input::SelectedArtifactPinnedSourceV1| {
+                WeightedScaleArtifactPinnedSourceV1 {
+                    source_path: row.source_path().to_owned(),
+                    source_sha256: row.source_sha256(),
+                    source_bytes: row.source_bytes(),
+                }
+            };
+        let result = Self {
+            templates: std::array::from_fn(|i| {
+                let row = &issued.templates()[i];
+                WeightedScaleArtifactTemplateRowV1 {
+                    source_path: row.source_path().to_owned(),
+                    source_sha256: row.source_sha256(),
+                    template_sha256: row.template_sha256(),
+                    template_bytes: row.template_bytes(),
+                }
+            }),
+            rights_template: source(issued.rights_template()),
+            discovery_template: source(issued.discovery_template()),
+            source_policy: source(issued.source_policy()),
+            research: source(issued.research()),
+            resource_templates: std::array::from_fn(|i| source(&issued.resource_templates()[i])),
+            generated_at: issued.generated_at().to_owned(),
+        };
+        result.validate()?;
+        if result
+            .retained_state_bytes()?
+            .checked_add(caller_state)
+            .is_none_or(|n| n > max_state)
+        {
+            return Err(io_invalid(
+                "issued Artifact recipe retained copy exceeds state",
+            ));
+        }
+        Ok(result)
+    }
+    fn validate(&self) -> std::io::Result<()> {
+        for row in &self.templates {
+            RelativePath::parse(&row.source_path)
+                .map_err(|_| io_invalid("selected Artifact template path invalid"))?;
+            if !row.source_path.starts_with("ToS/") || row.template_bytes == 0 {
+                return Err(io_invalid("selected Artifact template declaration invalid"));
+            }
+        }
+        for source in self.resource_templates.iter().chain([
+            &self.rights_template,
+            &self.discovery_template,
+            &self.source_policy,
+            &self.research,
+        ]) {
+            RelativePath::parse(&source.source_path)
+                .map_err(|_| io_invalid("selected Artifact source path invalid"))?;
+            if !source.source_path.starts_with("ToS/") || source.source_bytes == 0 {
+                return Err(io_invalid("selected Artifact source declaration invalid"));
+            }
+        }
+        if self.generated_at.is_empty() {
+            return Err(io_invalid("selected Artifact configured date absent"));
+        }
+        Ok(())
+    }
+    fn retained_state_bytes(&self) -> std::io::Result<usize> {
+        self.templates
+            .iter()
+            .map(|r| r.source_path.capacity())
+            .chain(
+                self.resource_templates
+                    .iter()
+                    .map(|r| r.source_path.capacity()),
+            )
+            .chain([
+                self.rights_template.source_path.capacity(),
+                self.discovery_template.source_path.capacity(),
+                self.source_policy.source_path.capacity(),
+                self.research.source_path.capacity(),
+                self.generated_at.capacity(),
+            ])
+            .try_fold(size_of::<Self>(), |n, bytes| {
+                n.checked_add(bytes)
+                    .ok_or_else(|| io_invalid("selected Artifact recipe state overflow"))
+            })
+    }
+}
+
+/// Finite authenticated recipe bytes. This holder proves selected input bytes;
+/// its bodies are not admitted Artifact/support facts before actual rendering
+/// and the maintained semantic consumers run.
+struct WeightedScaleLoadedArtifactRecipeV1 {
+    selection: WeightedScaleArtifactTemplateSelectionV1,
+    templates: [Vec<u8>; 3],
+    resources: [Vec<u8>; 3],
+    rights: Vec<u8>,
+    discovery: Vec<u8>,
+}
+impl WeightedScaleLoadedArtifactRecipeV1 {
+    fn retained_state_bytes(&self) -> std::io::Result<usize> {
+        let declaration_heap = self
+            .selection
+            .retained_state_bytes()?
+            .checked_sub(size_of::<WeightedScaleArtifactTemplateSelectionV1>())
+            .ok_or_else(|| io_invalid("Artifact recipe header accounting differs"))?;
+        self.templates
+            .iter()
+            .chain(self.resources.iter())
+            .chain([&self.rights, &self.discovery])
+            .try_fold(
+                size_of::<Self>()
+                    .checked_add(declaration_heap)
+                    .ok_or_else(|| io_invalid("Artifact recipe state overflow"))?,
+                |n, raw| {
+                    n.checked_add(raw.capacity())
+                        .ok_or_else(|| io_invalid("Artifact recipe body state overflow"))
+                },
+            )
+    }
+    fn load_accounted(
+        root: &Path,
+        selection: WeightedScaleArtifactTemplateSelectionV1,
+        io: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &AdmissionWorkBudget,
+        max_state: usize,
+        caller_state: usize,
+    ) -> std::io::Result<Self> {
+        selection.validate()?;
+        let mut result = Self {
+            selection,
+            templates: std::array::from_fn(|_| Vec::new()),
+            resources: std::array::from_fn(|_| Vec::new()),
+            rights: Vec::new(),
+            discovery: Vec::new(),
+        };
+        // At most ten source descriptors and eight bodies are retained. Policy
+        // and research are read/hash-checked then dropped, never a cohort Vec.
+        for index in 0..10 {
+            scale_active(deadline, cancelled)?;
+            let (relative, sha, length, schema) = match index {
+                0..=2 => {
+                    let row = &result.selection.templates[index];
+                    if row.source_sha256 != row.template_sha256 {
+                        return Err(io_invalid("Artifact whole-source template digest differs"));
+                    }
+                    (
+                        row.source_path.as_str(),
+                        row.source_sha256,
+                        row.template_bytes,
+                        Some("tos_artifact_source_witness_v1"),
+                    )
+                }
+                3..=5 => {
+                    let row = &result.selection.resource_templates[index - 3];
+                    (
+                        row.source_path.as_str(),
+                        row.source_sha256,
+                        row.source_bytes,
+                        None,
+                    )
+                }
+                6 => {
+                    let row = &result.selection.rights_template;
+                    (
+                        row.source_path.as_str(),
+                        row.source_sha256,
+                        row.source_bytes,
+                        Some("tos_rights_record_v1"),
+                    )
+                }
+                7 => {
+                    let row = &result.selection.discovery_template;
+                    (
+                        row.source_path.as_str(),
+                        row.source_sha256,
+                        row.source_bytes,
+                        Some("tos_material_discovery_record_v1"),
+                    )
+                }
+                8 => {
+                    let row = &result.selection.source_policy;
+                    (
+                        row.source_path.as_str(),
+                        row.source_sha256,
+                        row.source_bytes,
+                        None,
+                    )
+                }
+                _ => {
+                    let row = &result.selection.research;
+                    (
+                        row.source_path.as_str(),
+                        row.source_sha256,
+                        row.source_bytes,
+                        None,
+                    )
+                }
+            };
+            let declared_length = usize::try_from(length)
+                .map_err(|_| io_invalid("Artifact source length exceeds usize"))?;
+            let held = result
+                .retained_state_bytes()?
+                .checked_add(caller_state)
+                .ok_or_else(|| io_invalid("Artifact recipe caller state overflow"))?;
+            let path_upper = root
+                .as_os_str()
+                .len()
+                .checked_add(relative.len())
+                .and_then(|n| n.checked_add(1))
+                .and_then(|n| n.checked_add(size_of::<PathBuf>()))
+                .ok_or_else(|| io_invalid("Artifact recipe source path state overflow"))?;
+            let available = max_state
+                .checked_sub(held)
+                .and_then(|n| n.checked_sub(path_upper))
+                .and_then(|n| n.checked_sub(size_of::<[u8; 64 * 1024]>()))
+                .ok_or_else(|| io_invalid("Artifact recipe read workspace exceeds state"))?;
+            if declared_length > available {
+                return Err(io_invalid("Artifact selected source exceeds read state"));
+            }
+            let path = root.join(relative);
+            let raw = read_source_file_accounted_v1(
+                &path,
+                declared_length,
+                io,
+                deadline,
+                cancelled,
+                work,
+            )?;
+            if raw.len() != declared_length || Digest256::of_bytes(&raw) != sha {
+                return Err(io_invalid("Artifact selected source byte identity differs"));
+            }
+            if let Some(schema) = schema {
+                let decoded_available = max_state
+                    .checked_sub(held)
+                    .and_then(|n| n.checked_sub(path_upper))
+                    .and_then(|n| n.checked_sub(raw.capacity()))
+                    .ok_or_else(|| {
+                        io_invalid("Artifact selected JSON decode state exceeds frame")
+                    })?;
+                let (value, _) = tos_validation::record_biblio_cut::bounded_decoded_state(
+                    &raw,
+                    JsonLimits::default(),
+                    decoded_available,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| io_invalid("Artifact selected JSON decode refused"))?;
+                if value
+                    .get("schema_version")
+                    .and_then(serde_json::Value::as_str)
+                    != Some(schema)
+                {
+                    return Err(io_invalid(
+                        "Artifact selected template schema route differs",
+                    ));
+                }
+                if index <= 2
+                    && (value
+                        .get("path_identity")
+                        .and_then(|v| v.get("basis"))
+                        .and_then(serde_json::Value::as_str)
+                        != Some("repository_identity")
+                        || value
+                            .get("artifact_kind")
+                            .and_then(serde_json::Value::as_str)
+                            != Some("other"))
+                {
+                    return Err(io_invalid(
+                        "Artifact selected template referent posture differs",
+                    ));
+                }
+                // The decoded value is dropped before transferring this body's
+                // raw custody; only selected bytes remain resident.
+            }
+            match index {
+                0..=2 => result.templates[index] = raw,
+                3..=5 => result.resources[index - 3] = raw,
+                6 => result.rights = raw,
+                7 => result.discovery = raw,
+                _ => drop(raw),
+            }
+            if result
+                .retained_state_bytes()?
+                .checked_add(caller_state)
+                .is_none_or(|n| n > max_state)
+            {
+                return Err(io_invalid("Artifact retained recipe exceeds caller state"));
+            }
+        }
+        Ok(result)
+    }
+}
+
+/// One completed output phase, not a per-ordinal clock measurement. Only the
+/// producer's post-write fold constructs this private observation.
+#[derive(Clone)]
+struct WeightedScaleArtifactOutputObservationV1 {
+    started_at: String,
+    ended_at: String,
+    member_count: u64,
+    source_bytes: u64,
+    ordered_output_sha256: Digest256,
+}
+struct WeightedScaleArtifactOutputPhaseV1 {
+    started_at: String,
+    member_count: u64,
+    source_bytes: u64,
+    ordered: Digest256Hasher,
+    previous_path: String,
+    failed: bool,
+}
+impl WeightedScaleArtifactOutputPhaseV1 {
+    fn begin(immutable_recipe: Digest256, seed: Digest256) -> std::io::Result<Self> {
+        let started_at = super::source_serialization::instant()
+            .map_err(|_| io_invalid("Artifact output phase clock unavailable"))?;
+        let mut ordered = Digest256Hasher::new();
+        ordered.update(b"tos_scale_artifact_completed_output_phase_v1\0");
+        ordered.update(immutable_recipe.as_bytes());
+        ordered.update(seed.as_bytes());
+        Ok(Self {
+            started_at,
+            member_count: 0,
+            source_bytes: 0,
+            ordered,
+            previous_path: String::new(),
+            failed: false,
+        })
+    }
+    fn observe_written(
+        &mut self,
+        path: &str,
+        sha: Digest256,
+        bytes: u64,
+        available_phase_state: usize,
+    ) -> std::io::Result<()> {
+        if self.failed {
+            return Err(io_invalid("Artifact output phase already refused"));
+        }
+        self.failed = true;
+        if !self.previous_path.is_empty() && self.previous_path.as_str() >= path {
+            return Err(io_invalid("Artifact completed output phase order differs"));
+        }
+        RelativePath::parse(path)
+            .map_err(|_| io_invalid("Artifact completed output phase path invalid"))?;
+        self.member_count = self
+            .member_count
+            .checked_add(1)
+            .ok_or_else(|| io_invalid("Artifact output phase count overflow"))?;
+        self.source_bytes = self
+            .source_bytes
+            .checked_add(bytes)
+            .ok_or_else(|| io_invalid("Artifact output phase bytes overflow"))?;
+        self.ordered.update(&(path.len() as u64).to_be_bytes());
+        self.ordered.update(path.as_bytes());
+        self.ordered.update(sha.as_bytes());
+        self.ordered.update(&bytes.to_be_bytes());
+        let retained = size_of::<Self>()
+            .checked_add(self.started_at.capacity())
+            .and_then(|n| n.checked_add(self.previous_path.capacity().max(path.len())))
+            .ok_or_else(|| io_invalid("Artifact output phase retained state overflow"))?;
+        if retained > available_phase_state {
+            return Err(io_invalid(
+                "Artifact output phase path exceeds selected state",
+            ));
+        }
+        self.previous_path.clear();
+        if self.previous_path.capacity() < path.len() {
+            self.previous_path
+                .try_reserve_exact(path.len())
+                .map_err(|_| io_invalid("Artifact output phase path allocation failed"))?;
+        }
+        self.previous_path.push_str(path);
+        self.failed = false;
+        Ok(())
+    }
+    fn finish(
+        self,
+        expected_count: u64,
+    ) -> std::io::Result<WeightedScaleArtifactOutputObservationV1> {
+        if self.failed || self.member_count != expected_count {
+            return Err(io_invalid(
+                "Artifact completed output phase EOF count differs",
+            ));
+        }
+        let ended_at = super::source_serialization::instant()
+            .map_err(|_| io_invalid("Artifact output phase clock unavailable"))?;
+        Ok(WeightedScaleArtifactOutputObservationV1 {
+            started_at: self.started_at,
+            ended_at,
+            member_count: self.member_count,
+            source_bytes: self.source_bytes,
+            ordered_output_sha256: self.ordered.finalize(),
+        })
+    }
+}
+
+fn artifact_recipe_seed_v1(seed: Digest256, recipe: Digest256) -> Digest256 {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos_scale_synthetic_repository_artifact_identity_v1\0");
+    hash.update(seed.as_bytes());
+    hash.update(recipe.as_bytes());
+    hash.finalize()
+}
+fn artifact_support_identity_v1(
+    seed: Digest256,
+    recipe: Digest256,
+    ordinal: u64,
+    kind: &str,
+) -> String {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos_scale_synthetic_repository_artifact_support_identity_v1\0");
+    hash.update(seed.as_bytes());
+    hash.update(recipe.as_bytes());
+    hash.update(kind.as_bytes());
+    hash.update(&ordinal.to_be_bytes());
+    format!(
+        "tos.{kind}.scale-fixture.{ordinal:020}.{}",
+        hash.finalize().to_hex()
+    )
+}
+struct GeneratedDigestWriterV1 {
+    digest: Digest256Hasher,
+    bytes: u64,
+}
+impl IoWrite for GeneratedDigestWriterV1 {
+    fn write(&mut self, raw: &[u8]) -> std::io::Result<usize> {
+        self.bytes = self
+            .bytes
+            .checked_add(raw.len() as u64)
+            .ok_or_else(|| io_invalid("generated byte price overflow"))?;
+        self.digest.update(raw);
+        Ok(raw.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+impl WeightedScaleLoadedArtifactRecipeV1 {
+    fn resource_binding(
+        &self,
+        seed: Digest256,
+        recipe: Digest256,
+        ordinal: u64,
+    ) -> std::io::Result<(u64, Digest256)> {
+        let index = selected_quantile_index_v1(ordinal % SCALE_SELECTED_QUANTILE_PERIOD_V1);
+        let id = scale_identity(
+            artifact_recipe_seed_v1(seed, recipe),
+            WeightedScaleClassV1::Artifact,
+            ordinal,
+        );
+        let mut writer = GeneratedDigestWriterV1 {
+            digest: Digest256Hasher::new(),
+            bytes: 0,
+        };
+        write_artifact_resource_v1(
+            &mut writer,
+            seed,
+            recipe,
+            ordinal,
+            &id,
+            self.selection.resource_templates[index].source_sha256,
+            &self.resources[index],
+        )?;
+        Ok((writer.bytes, writer.digest.finalize()))
+    }
+    fn artifact_value(
+        &self,
+        seed: Digest256,
+        recipe: Digest256,
+        ordinal: u64,
+        template_raw: &[u8],
+    ) -> std::io::Result<serde_json::Value> {
+        let mut value: serde_json::Value = serde_json::from_slice(template_raw)
+            .map_err(|_| io_invalid("selected Artifact template JSON differs"))?;
+        let original_uri = value
+            .pointer("/digital_catalog_record/record_url")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| io_invalid("Artifact template resource URI absent"))?
+            .to_owned();
+        let resource_uri = format!(
+            "urn:tos:capacity-fixture:resource:{}:{ordinal:020}",
+            artifact_recipe_seed_v1(seed, recipe).to_hex()
+        );
+        fn replace_uri(value: &mut serde_json::Value, old: &str, new: &str) {
+            match value {
+                serde_json::Value::String(s) if s == old => {
+                    s.clear();
+                    s.push_str(new);
+                }
+                serde_json::Value::Array(rows) => {
+                    for row in rows {
+                        replace_uri(row, old, new);
+                    }
+                }
+                serde_json::Value::Object(fields) => {
+                    for row in fields.values_mut() {
+                        replace_uri(row, old, new);
+                    }
+                }
+                _ => {}
+            }
+        }
+        replace_uri(&mut value, &original_uri, &resource_uri);
+        let id = scale_identity(
+            artifact_recipe_seed_v1(seed, recipe),
+            WeightedScaleClassV1::Artifact,
+            ordinal,
+        );
+        let (resource_bytes, resource_sha) = self.resource_binding(seed, recipe, ordinal)?;
+        let object = value
+            .as_object_mut()
+            .ok_or_else(|| io_invalid("Artifact template object absent"))?;
+        set_string(object, "artifact_id", id.clone())?;
+        set_string(
+            object,
+            "rights_ref",
+            WeightedScaleArtifactSupportRoleV1::Rights.path(ordinal),
+        )?;
+        set_string(
+            object,
+            "discovery_ref",
+            WeightedScaleArtifactSupportRoleV1::Discovery.path(ordinal),
+        )?;
+        set_string(
+            object,
+            "provenance_event_ref",
+            artifact_support_identity_v1(seed, recipe, ordinal, "event"),
+        )?;
+        set_string(
+            object,
+            "research_ref",
+            self.selection.research.source_path.clone(),
+        )?;
+        object.insert(
+            "philosophy_planting_refs".to_owned(),
+            serde_json::json!([self.selection.source_policy.source_path]),
+        );
+        set_string(object, "created_at", self.selection.generated_at.clone())?;
+        object.insert("maker".to_owned(), serde_json::json!({"maker_type":"software", "agent_ref":SCALE_GENERATOR_AGENT_REF_V1, "human_review_performed":false}));
+        let catalog = object
+            .get_mut("digital_catalog_record")
+            .and_then(serde_json::Value::as_object_mut)
+            .ok_or_else(|| io_invalid("Artifact template catalog absent"))?;
+        set_string(catalog, "record_id", id)?;
+        set_string(catalog, "checked_at", self.selection.generated_at.clone())?;
+        catalog.insert("response_fingerprints".to_owned(), serde_json::json!([
+            {"surface":resource_uri, "byte_size":resource_bytes, "sha256":resource_sha.to_hex(), "captured":false}
+        ]));
+        let custody = object
+            .get_mut("custody")
+            .and_then(serde_json::Value::as_object_mut)
+            .ok_or_else(|| io_invalid("Artifact template custody absent"))?;
+        custody.insert(
+            "inventory_numbers".to_owned(),
+            serde_json::json!([
+                resource_uri,
+                WeightedScaleArtifactSupportRoleV1::Resource.path(ordinal)
+            ]),
+        );
+        Ok(value)
+    }
+    fn encoded_binding(value: &serde_json::Value) -> std::io::Result<(u64, Digest256)> {
+        let mut writer = GeneratedDigestWriterV1 {
+            digest: Digest256Hasher::new(),
+            bytes: 0,
+        };
+        write_fixture_record_value_v1(&mut writer, value, WeightedScaleClassV1::Artifact)?;
+        Ok((writer.bytes, writer.digest.finalize()))
+    }
+    fn event_value(
+        &self,
+        seed: Digest256,
+        recipe: Digest256,
+        ordinal: u64,
+        observation: &WeightedScaleArtifactOutputObservationV1,
+        generator_agent: &WeightedScaleGeneratorAgentSelectionV1,
+        artifact_raw: &[u8],
+    ) -> std::io::Result<serde_json::Value> {
+        let index = selected_quantile_index_v1(ordinal % SCALE_SELECTED_QUANTILE_PERIOD_V1);
+        let (_, artifact_sha) =
+            Self::encoded_binding(&self.artifact_value(seed, recipe, ordinal, artifact_raw)?)?;
+        let (_, rights_sha) = Self::encoded_binding(&self.rights_value(seed, recipe, ordinal)?)?;
+        let (_, discovery_sha) =
+            Self::encoded_binding(&self.discovery_value(seed, recipe, ordinal)?)?;
+        let (_, resource_sha) = self.resource_binding(seed, recipe, ordinal)?;
+        Ok(serde_json::json!({
+            "schema_version":"tos_provenance_event_v1",
+            "event_id":artifact_support_identity_v1(seed, recipe, ordinal, "event"),
+            "event_type":"render", "started_at":observation.started_at,
+            "ended_at":observation.ended_at, "agent_refs":[generator_agent.record_id],
+            "inputs":[
+                {"ref":generator_agent.source_path, "role":"selected provisional software responsibility bearer", "sha256":generator_agent.source_sha256.to_hex()},
+                {"ref":self.selection.templates[index].source_path, "role":"selected synthetic Artifact template", "sha256":self.selection.templates[index].source_sha256.to_hex()},
+                {"ref":self.selection.resource_templates[index].source_path, "role":"selected resource byte template", "sha256":self.selection.resource_templates[index].source_sha256.to_hex()},
+                {"ref":self.selection.rights_template.source_path, "role":"authored metadata-only rights policy template", "sha256":self.selection.rights_template.source_sha256.to_hex()},
+                {"ref":self.selection.discovery_template.source_path, "role":"authored planned discovery template", "sha256":self.selection.discovery_template.source_sha256.to_hex()}
+            ],
+            "outputs":[
+                {"ref":path_for(WeightedScaleClassV1::Artifact, ordinal), "role":"synthetic Artifact witness", "sha256":artifact_sha.to_hex()},
+                {"ref":WeightedScaleArtifactSupportRoleV1::Resource.path(ordinal), "role":"distinct repository byte resource", "sha256":resource_sha.to_hex()},
+                {"ref":WeightedScaleArtifactSupportRoleV1::Rights.path(ordinal), "role":"instantiated metadata-only scope", "sha256":rights_sha.to_hex()},
+                {"ref":WeightedScaleArtifactSupportRoleV1::Discovery.path(ordinal), "role":"instantiated planned resource selection", "sha256":discovery_sha.to_hex()},
+                {"ref":self.selection.research.source_path, "role":"retained authored research boundary", "sha256":self.selection.research.source_sha256.to_hex()},
+                {"ref":self.selection.source_policy.source_path, "role":"retained authored philosophical planting and rights boundary", "sha256":self.selection.source_policy.source_sha256.to_hex()}
+            ],
+            "method":{"maker_type":"software", "name":"tos weighted capacity fixture renderer", "version":"2",
+                "configuration":{"seed_sha256":seed.to_hex(), "immutable_recipe_sha256":recipe.to_hex(),
+                    "ordinal":ordinal, "logical_generated_at":self.selection.generated_at,
+                    "completed_batch_member_count":observation.member_count,
+                    "completed_batch_source_bytes":observation.source_bytes,
+                    "completed_batch_ordered_output_sha256":observation.ordered_output_sha256.to_hex(),
+                    "timing_scope":"shared completed output batch; no per-ordinal timing or clock trust"}},
+            "status":"completed_with_warnings", "event_version":1,
+            "warnings":["Synthetic repository byte referent, not an archaeological object or copied native creation package.",
+                "Configured fixture dates and planned discovery fields do not claim an observed query, acquisition or per-ordinal timing.",
+                "Rights metadata applies the authored model policy only; no legal, payload publication, human review or canon grant is asserted."],
+            "receipt_refs":[]
+        }))
+    }
+    fn rights_value(
+        &self,
+        seed: Digest256,
+        recipe: Digest256,
+        ordinal: u64,
+    ) -> std::io::Result<serde_json::Value> {
+        let mut value: serde_json::Value = serde_json::from_slice(&self.rights)
+            .map_err(|_| io_invalid("selected rights template JSON differs"))?;
+        let object = value
+            .as_object_mut()
+            .ok_or_else(|| io_invalid("selected rights object absent"))?;
+        set_string(
+            object,
+            "rights_id",
+            artifact_support_identity_v1(seed, recipe, ordinal, "rights"),
+        )?;
+        object.insert(
+            "scope_refs".to_owned(),
+            serde_json::json!([scale_identity(
+                artifact_recipe_seed_v1(seed, recipe),
+                WeightedScaleClassV1::Artifact,
+                ordinal
+            )]),
+        );
+        object.insert(
+            "source_refs".to_owned(),
+            serde_json::json!([self.selection.source_policy.source_path]),
+        );
+        // Assessment identity/posture remain the actual authored model policy;
+        // generated scope does not assert a legal or publication grant.
+        Ok(value)
+    }
+    fn discovery_value(
+        &self,
+        seed: Digest256,
+        recipe: Digest256,
+        ordinal: u64,
+    ) -> std::io::Result<serde_json::Value> {
+        let mut value: serde_json::Value = serde_json::from_slice(&self.discovery)
+            .map_err(|_| io_invalid("selected discovery template JSON differs"))?;
+        let object = value
+            .as_object_mut()
+            .ok_or_else(|| io_invalid("selected discovery object absent"))?;
+        if object.get("status").and_then(serde_json::Value::as_str) != Some("planned") {
+            return Err(io_invalid(
+                "synthetic discovery must retain planned posture",
+            ));
+        }
+        set_string(
+            object,
+            "discovery_id",
+            artifact_support_identity_v1(seed, recipe, ordinal, "discovery"),
+        )?;
+        object.insert(
+            "provenance_event_refs".to_owned(),
+            serde_json::json!([artifact_support_identity_v1(seed, recipe, ordinal, "event")]),
+        );
+        let target = object
+            .get_mut("target")
+            .and_then(serde_json::Value::as_object_mut)
+            .ok_or_else(|| io_invalid("selected discovery target absent"))?;
+        set_string(target, "target_kind", "artifact".to_owned())?;
+        target.insert(
+            "known_tos_refs".to_owned(),
+            serde_json::json!([scale_identity(
+                artifact_recipe_seed_v1(seed, recipe),
+                WeightedScaleClassV1::Artifact,
+                ordinal
+            )]),
+        );
+        let channels = object
+            .get_mut("channels")
+            .and_then(serde_json::Value::as_array_mut)
+            .ok_or_else(|| io_invalid("selected discovery channels absent"))?;
+        for channel in channels {
+            let channel = channel
+                .as_object_mut()
+                .ok_or_else(|| io_invalid("selected discovery channel object absent"))?;
+            set_string(
+                channel,
+                "endpoint_url",
+                format!(
+                    "urn:tos:capacity-fixture:resource:{}:{ordinal:020}",
+                    artifact_recipe_seed_v1(seed, recipe).to_hex()
+                ),
+            )?;
+            // queried_at/zero elapsed fields are authored planning placeholders;
+            // no query, download or per-ordinal performance event is fabricated.
+        }
+        Ok(value)
+    }
+}
+
+/// Same encoder is used for prewrite pricing, actual output and CompareWriter
+/// verification. The selected prototype body is preserved as actual bytes.
+fn write_artifact_resource_v1(
+    writer: &mut impl IoWrite,
+    seed: Digest256,
+    immutable_recipe: Digest256,
+    ordinal: u64,
+    artifact_id: &str,
+    source_sha: Digest256,
+    body: &[u8],
+) -> std::io::Result<()> {
+    writeln!(writer, "tos_synthetic_repository_resource_v1")?;
+    writeln!(writer, "seed_sha256={}", seed.to_hex())?;
+    writeln!(
+        writer,
+        "immutable_recipe_sha256={}",
+        immutable_recipe.to_hex()
+    )?;
+    writeln!(writer, "ordinal={ordinal:020}")?;
+    writeln!(writer, "artifact_id={artifact_id}")?;
+    writeln!(writer, "source_resource_sha256={}", source_sha.to_hex())?;
+    writer.write_all(b"\n")?;
+    writer.write_all(body)
+}
+
+/// Fixed generated support roles; physical support is distinct from the five
+/// meaningful workload classes. A resource is custody-only, not an owner fact.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WeightedScaleArtifactSupportRoleV1 {
+    Resource,
+    Rights,
+    Discovery,
+    Event,
+}
+impl WeightedScaleArtifactSupportRoleV1 {
+    pub(crate) const ALL: [Self; 4] = [Self::Resource, Self::Rights, Self::Discovery, Self::Event];
+    pub(crate) fn path(self, ordinal: u64) -> String {
+        match self {
+            Self::Resource => format!(
+                "ToS/source-witnesses/artifacts/scale-fixtures/v1/{ordinal:020}/source-resource.txt"
+            ),
+            Self::Rights => {
+                format!("ToS/source-witnesses/rights/scale-fixtures/v1/{ordinal:020}/rights.json")
+            }
+            Self::Discovery => format!(
+                "ToS/source-witnesses/discovery/runs/scale-fixtures/v1/{ordinal:020}/discovery.json"
+            ),
+            Self::Event => format!(
+                "ToS/source-witnesses/discovery/events/scale-fixtures/v1/{ordinal:020}/provenance.jsonl"
+            ),
+        }
+    }
+    pub(crate) fn is_semantic(self) -> bool {
+        self != Self::Resource
+    }
+    pub(crate) fn is_phase_one(self) -> bool {
+        self != Self::Event
+    }
+}
+fn artifact_support_member_count_v1(artifact_count: u64) -> std::io::Result<u64> {
+    artifact_count
+        .checked_mul(WeightedScaleArtifactSupportRoleV1::ALL.len() as u64)
+        .ok_or_else(|| io_invalid("generated Artifact support count overflow"))
+}
+fn artifact_phase_one_member_count_v1(
+    meaningful_count: u64,
+    artifact_count: u64,
+    auxiliary_count: u64,
+) -> std::io::Result<u64> {
+    let phase_roles = WeightedScaleArtifactSupportRoleV1::ALL
+        .iter()
+        .filter(|role| role.is_phase_one())
+        .count() as u64;
+    artifact_count
+        .checked_mul(phase_roles)
+        .and_then(|n| n.checked_add(meaningful_count))
+        .and_then(|n| n.checked_add(auxiliary_count))
+        .ok_or_else(|| io_invalid("generated Artifact phase count overflow"))
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WeightedScaleTemplateV1 {
     pub class: WeightedScaleClassV1,
-    pub source_path: &'static str,
+    pub source_path: std::borrow::Cow<'static, str>,
     pub source_sha256: Digest256,
     pub template_sha256: Digest256,
     pub bytes: Vec<u8>,
-    external_reference_edges: BTreeSet<ScaleReferenceEdgeV1>,
+    external_reference_edges: Vec<ScaleReferenceEdgeV1>,
+    claim_route: WeightedScaleClaimTemplateRouteV1,
+    generated_author: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -1632,11 +2844,131 @@ pub struct WeightedScaleTemplateSetV1 {
     pub manifest_sha256: Digest256,
     pub resident_template_bytes: u64,
     pub resident_reference_state_bytes: u64,
+    claim_selection: Option<WeightedScaleClaimTemplateSelectionV1>,
+    artifact_recipe: Option<WeightedScaleLoadedArtifactRecipeV1>,
+    fixture_recipe_source: Option<WeightedScaleFixtureRecipeSourceV2>,
+    output_observation: Option<WeightedScaleArtifactOutputObservationV1>,
 }
 
 impl WeightedScaleTemplateSetV1 {
+    pub(crate) fn load_with_all5_selection_accounted(
+        root: &Path,
+        profile: &WeightedScaleProfileV1,
+        claim: WeightedScaleClaimTemplateSelectionV1,
+        artifact: WeightedScaleArtifactTemplateSelectionV1,
+        io: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &AdmissionWorkBudget,
+        max_state: usize,
+        caller_state: usize,
+    ) -> std::io::Result<Self> {
+        let artifact_state = artifact.retained_state_bytes()?;
+        let mut result = Self::load_with_claim_selection_accounted(
+            root,
+            profile,
+            claim,
+            io,
+            deadline,
+            cancelled,
+            work,
+            max_state,
+            caller_state
+                .checked_add(artifact_state)
+                .ok_or_else(|| io_invalid("ALL5 selection state overflow"))?,
+        )?;
+        // Historical V2 Artifact shapes remain untouched on the legacy route;
+        // the explicit new route replaces its own finite three selected bodies.
+        result.templates[WeightedScaleClassV1::Artifact as usize].clear();
+        let prior = weighted_producer_state_upper_v1(&result, 0)?;
+        let mut loaded = WeightedScaleLoadedArtifactRecipeV1::load_accounted(
+            root,
+            artifact,
+            io,
+            deadline,
+            cancelled,
+            work,
+            max_state,
+            caller_state
+                .checked_add(prior)
+                .ok_or_else(|| io_invalid("ALL5 prior state overflow"))?,
+        )?;
+        for index in 0..3 {
+            scale_active(deadline, cancelled)?;
+            work.charge_many(1)?;
+            let raw = std::mem::take(&mut loaded.templates[index]);
+            let row = &loaded.selection.templates[index];
+            let live = weighted_producer_state_upper_v1(&result, 0)?
+                .checked_add(loaded.retained_state_bytes()?)
+                .and_then(|n| n.checked_add(raw.capacity()))
+                .and_then(|n| n.checked_add(caller_state))
+                .ok_or_else(|| io_invalid("ALL5 template live state overflow"))?;
+            let available = max_state
+                .checked_sub(live)
+                .ok_or_else(|| io_invalid("ALL5 template decode state exhausted"))?;
+            let (value, decoded) = tos_validation::record_biblio_cut::bounded_decoded_state(
+                &raw,
+                JsonLimits::default(),
+                available,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| io_invalid("ALL5 Artifact selected decode refused"))?;
+            let (_, _, edge_upper) = reference_collection_state_upper_v1(&value)?;
+            let path_upper = row.source_path.len();
+            if live
+                .checked_add(decoded)
+                .and_then(|n| n.checked_add(edge_upper))
+                .and_then(|n| n.checked_add(path_upper))
+                .is_none_or(|n| n > max_state)
+            {
+                return Err(io_invalid("ALL5 Artifact selected edges exceed state"));
+            }
+            let edges = collect_reference_edges_v1(&value)?;
+            result.templates[WeightedScaleClassV1::Artifact as usize].push(
+                WeightedScaleTemplateV1 {
+                    class: WeightedScaleClassV1::Artifact,
+                    source_path: std::borrow::Cow::Owned(row.source_path.clone()),
+                    source_sha256: row.source_sha256,
+                    template_sha256: row.template_sha256,
+                    bytes: raw,
+                    external_reference_edges: edges,
+                    claim_route: WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1,
+                    generated_author: None,
+                },
+            );
+        }
+        result.artifact_recipe = Some(loaded);
+        result.manifest_sha256 = template_manifest_digest_v1(&result.templates)?;
+        result.resident_template_bytes = result
+            .templates
+            .iter()
+            .flatten()
+            .try_fold(0u64, |n, t| n.checked_add(t.bytes.len() as u64))
+            .ok_or_else(|| io_invalid("ALL5 template bytes overflow"))?;
+        result.resident_reference_state_bytes = result
+            .templates
+            .iter()
+            .flatten()
+            .flat_map(|t| &t.external_reference_edges)
+            .try_fold(0u64, |n, e| {
+                n.checked_add((e.pointer.len() + e.reference.len()) as u64)
+            })
+            .ok_or_else(|| io_invalid("ALL5 template references overflow"))?;
+        if weighted_producer_state_upper_v1(&result, 0)?
+            .checked_add(caller_state)
+            .is_none_or(|n| n > max_state)
+        {
+            return Err(io_invalid("ALL5 retained state exceeds frame"));
+        }
+        Ok(result)
+    }
+    pub(crate) fn source_recipe(&self) -> Option<&WeightedScaleFixtureRecipeSourceV2> {
+        self.fixture_recipe_source.as_ref()
+    }
+
     pub fn load(repository_root: &Path) -> std::io::Result<Self> {
-        Self::load_inner(repository_root, None)
+        Self::load_inner(repository_root, None, false, None)
     }
 
     pub(crate) fn load_accounted(
@@ -1646,7 +2978,12 @@ impl WeightedScaleTemplateSetV1 {
         cancelled: &AtomicBool,
         work: &AdmissionWorkBudget,
     ) -> std::io::Result<Self> {
-        Self::load_inner(repository_root, Some((io, deadline, cancelled, work)))
+        Self::load_inner(
+            repository_root,
+            Some((io, deadline, cancelled, work)),
+            false,
+            None,
+        )
     }
 
     fn load_inner(
@@ -1657,11 +2994,31 @@ impl WeightedScaleTemplateSetV1 {
             &AtomicBool,
             &AdmissionWorkBudget,
         )>,
+        omit_legacy_claims: bool,
+        state_limit: Option<usize>,
     ) -> std::io::Result<Self> {
         let pins = scale_template_pins_v1();
         let mut templates: [Vec<WeightedScaleTemplateV1>; 5] = std::array::from_fn(|_| Vec::new());
         let mut resident = 0u64;
         for pin in pins {
+            if omit_legacy_claims && pin.class == WeightedScaleClassV1::Claim {
+                continue;
+            }
+            let retained = template_array_retained_state_v1(&templates)?;
+            let path_upper = repository_root
+                .as_os_str()
+                .len()
+                .checked_add(pin.path.len())
+                .and_then(|n| n.checked_add(1 + size_of::<PathBuf>()))
+                .ok_or_else(|| io_invalid("template source path state overflow"))?;
+            let available = state_limit
+                .map(|limit| {
+                    limit
+                        .checked_sub(retained)
+                        .and_then(|n| n.checked_sub(path_upper))
+                        .ok_or_else(|| io_invalid("template loading exceeds remaining state"))
+                })
+                .transpose()?;
             let path = repository_root.join(pin.path);
             if let Some((io, deadline, cancelled, work)) = accounting {
                 scale_active(deadline, cancelled)?;
@@ -1673,6 +3030,9 @@ impl WeightedScaleTemplateSetV1 {
                 if metadata.len() > SCALE_MAX_TEMPLATE_BYTES_V1 as u64 {
                     return Err(io_invalid("pinned scale template exceeds selected bound"));
                 }
+                if available.is_some_and(|limit| metadata.len() > limit as u64) {
+                    return Err(io_invalid("template file exceeds remaining state"));
+                }
                 // These bytes are read into the template payload below. The
                 // guard-only upper-bound permit cannot authorize returned bytes.
                 io.charge_read(metadata.len())
@@ -1683,16 +3043,22 @@ impl WeightedScaleTemplateSetV1 {
                 if file_bytes.len() as u64 != metadata.len() {
                     return Err(io_invalid("pinned template changed while reading"));
                 }
-                Self::push_template(&mut templates, &mut resident, pin, file_bytes)?;
+                Self::push_template(
+                    &mut templates,
+                    &mut resident,
+                    pin,
+                    file_bytes,
+                    available.map(|limit| (limit, deadline, cancelled)),
+                )?;
             } else {
                 let file_bytes = fs::read(&path)?;
-                Self::push_template(&mut templates, &mut resident, pin, file_bytes)?;
+                Self::push_template(&mut templates, &mut resident, pin, file_bytes, None)?;
             }
         }
         let mut reference_state = 0u64;
         for rows in &mut templates {
             rows.sort_by_key(|template| template.bytes.len());
-            if rows.len() != 3 {
+            if rows.len() != 3 && !(omit_legacy_claims && rows.is_empty()) {
                 return Err(io_invalid("scale class template count differs"));
             }
             for template in rows {
@@ -1709,7 +3075,587 @@ impl WeightedScaleTemplateSetV1 {
             manifest_sha256,
             resident_template_bytes: resident,
             resident_reference_state_bytes: reference_state,
+            claim_selection: None,
+            artifact_recipe: None,
+            fixture_recipe_source: None,
+            output_observation: None,
         })
+    }
+
+    pub(crate) fn load_with_claim_selection_accounted(
+        repository_root: &Path,
+        profile: &WeightedScaleProfileV1,
+        selection: WeightedScaleClaimTemplateSelectionV1,
+        io: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &AdmissionWorkBudget,
+        max_state_bytes: usize,
+        caller_live_state_bytes: usize,
+    ) -> std::io::Result<Self> {
+        scale_active(deadline, cancelled)?;
+        let selection_state = selection.retained_state_bytes()?;
+        let available = max_state_bytes
+            .checked_sub(caller_live_state_bytes)
+            .and_then(|bytes| bytes.checked_sub(selection_state))
+            .ok_or_else(|| io_invalid("selected Claim declaration exceeds state"))?;
+        profile.validate()?;
+        let expected =
+            WeightedScaleProfileV1::weighted_for_records(profile.seed, profile.target_records)?;
+        if profile
+            .classes
+            .iter()
+            .zip(expected.classes.iter())
+            .any(|(selected, expected)| {
+                selected.class != expected.class || selected.count != expected.count
+            })
+        {
+            return Err(io_invalid(
+                "selected class counts differ from maintained declaration",
+            ));
+        }
+        let agent_path_state = selection
+            .generator_agent
+            .source_path
+            .len()
+            .checked_add(size_of::<RelativePath>())
+            .and_then(|n| n.checked_add(repository_root.as_os_str().len()))
+            .and_then(|n| n.checked_add(selection.generator_agent.source_path.len()))
+            .and_then(|n| n.checked_add(1 + size_of::<PathBuf>()))
+            .ok_or_else(|| io_invalid("generator Agent path state overflow"))?;
+        let agent_available = available
+            .checked_sub(agent_path_state)
+            .ok_or_else(|| io_invalid("generator Agent path exceeds state"))?;
+        let agent_path = RelativePath::parse(&selection.generator_agent.source_path)
+            .map_err(|_| io_invalid("generator Agent source path invalid"))?;
+        if !agent_path
+            .as_str()
+            .starts_with("ToS/source-witnesses/agents/")
+            || !agent_path.as_str().ends_with("/agent.json")
+            || !selection
+                .generator_agent
+                .record_id
+                .starts_with("tos.agent.")
+        {
+            return Err(io_invalid("generator Agent declared owner differs"));
+        }
+        let agent_raw = read_source_file_accounted_v1(
+            &repository_root.join(agent_path.as_str()),
+            agent_available,
+            io,
+            deadline,
+            cancelled,
+            work,
+        )?;
+        if Digest256::of_bytes(&agent_raw) != selection.generator_agent.source_sha256 {
+            return Err(io_invalid("generator Agent raw source digest differs"));
+        }
+        let (agent, _) = tos_validation::record_biblio_cut::bounded_decoded_state(
+            &agent_raw,
+            JsonLimits::default(),
+            agent_available
+                .checked_sub(agent_raw.capacity())
+                .ok_or_else(|| io_invalid("generator Agent raw state exceeds bound"))?,
+            deadline,
+            cancelled,
+        )
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("generator Agent bounded decoding: {e:?}"),
+            )
+        })?;
+        if agent["schema_version"] != "tos_corpus_record_v1"
+            || agent["record_type"] != "agent"
+            || agent["record_id"].as_str() != Some(selection.generator_agent.record_id.as_str())
+            || agent["identity_status"] != "provisional"
+            || agent["same_as_posture"] != "no_equivalence_claim"
+            || !agent["source_refs"]
+                .as_array()
+                .is_some_and(|refs| !refs.is_empty())
+        {
+            return Err(io_invalid("generator Agent source record differs"));
+        }
+        // This verifies selected source bytes and identity only. Responsibility
+        // qualification, schema verdict and semantic acceptance stay with their
+        // authored assessment and actual maintained downstream owners.
+        drop(agent);
+        drop(agent_raw);
+        drop(agent_path);
+        let registry_raw = read_source_file_accounted_v1(
+            &repository_root.join("ToS/doctrine/semantic-interchange/relation-types.v1.json"),
+            available,
+            io,
+            deadline,
+            cancelled,
+            work,
+        )?;
+        if Digest256::of_bytes(&registry_raw) != selection.relation_registry_sha256 {
+            return Err(io_invalid(
+                "selected Claim relation registry identity differs",
+            ));
+        }
+        let (registry, registry_state) = tos_validation::record_biblio_cut::bounded_decoded_state(
+            &registry_raw,
+            JsonLimits::default(),
+            available
+                .checked_sub(registry_raw.len())
+                .ok_or_else(|| io_invalid("selected Claim registry state exceeds bound"))?,
+            deadline,
+            cancelled,
+        )
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("selected Claim registry decoding: {e:?}"),
+            )
+        })?;
+        let relation = registry["relations"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|row| row["relation_type_id"].as_str() == Some("tos.relation.authored-by"))
+            .ok_or_else(|| io_invalid("selected Work authorship relation absent"))?;
+        let claim_profile = &relation["source_claim_profile"];
+        let mapping = relation["source_mappings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|row| row["source_graph"] == "source-claims" && row["scope"] == "claim-predicate")
+            .ok_or_else(|| io_invalid("selected Work authorship mapping absent"))?;
+        let predicate = mapping["source_predicate_id"]
+            .as_str()
+            .ok_or_else(|| io_invalid("selected Work authorship predicate absent"))?;
+        if !relation["domain_type_ids"]
+            .as_array()
+            .is_some_and(|a| a.iter().any(|v| v == "tos.entity.work"))
+            || !relation["range_type_ids"]
+                .as_array()
+                .is_some_and(|a| a.len() == 1 && a[0] == "tos.entity.agent")
+            || claim_profile["reader"] != "identity-relation-v1"
+            || relation["abstract"] != false
+            || relation["assertion_mode"] != "reified-claim"
+            || relation["evidence_required"] != true
+        {
+            return Err(io_invalid("selected Work authorship owner profile differs"));
+        }
+        let selected_headers = selection
+            .templates
+            .len()
+            .checked_mul(size_of::<WeightedScaleTemplateV1>())
+            .ok_or_else(|| io_invalid("selected template headers overflow"))?;
+        if registry_raw
+            .len()
+            .checked_add(registry_state)
+            .and_then(|n| n.checked_add(selected_headers))
+            .is_none_or(|n| n > available)
+        {
+            return Err(io_invalid("selected template headers exceed state"));
+        }
+        let mut selected = Vec::with_capacity(selection.templates.len());
+        let mut resident = selected_headers;
+        for (row_index, row) in selection.templates.iter().enumerate() {
+            scale_active(deadline, cancelled)?;
+            work.charge_many(1)?;
+            let source_path_state = row
+                .source_path
+                .len()
+                .checked_add(size_of::<RelativePath>())
+                .and_then(|n| n.checked_add(repository_root.as_os_str().len()))
+                .and_then(|n| n.checked_add(row.source_path.len()))
+                .and_then(|n| n.checked_add(1 + size_of::<PathBuf>()))
+                .ok_or_else(|| io_invalid("selected source path state overflow"))?;
+            if registry_raw
+                .len()
+                .checked_add(registry_state)
+                .and_then(|n| n.checked_add(resident))
+                .and_then(|n| n.checked_add(source_path_state))
+                .is_none_or(|n| n > available)
+            {
+                return Err(io_invalid("selected source path exceeds state"));
+            }
+            let path = RelativePath::parse(&row.source_path)
+                .map_err(|_| io_invalid("selected Claim path is not relative"))?;
+            if !tos_source_store::is_authored_source_path_v1(path.as_str())
+                || !path.as_str().starts_with("ToS/source-witnesses/")
+                || path.as_str().rsplit('/').next() != Some("source-claims.jsonl")
+                || row.source_line == 0
+                || row.template_bytes == 0
+                || row.template_bytes > SCALE_MAX_TEMPLATE_BYTES_V1 as u64
+                || selection.templates[..row_index].iter().any(|previous| {
+                    previous.source_path == row.source_path
+                        && previous.source_line == row.source_line
+                })
+            {
+                return Err(io_invalid("selected Claim source row declaration differs"));
+            }
+            let file_available = available
+                .checked_sub(registry_raw.len())
+                .and_then(|n| n.checked_sub(registry_state))
+                .and_then(|n| n.checked_sub(resident))
+                .and_then(|n| n.checked_sub(source_path_state))
+                .ok_or_else(|| io_invalid("selected Claim loading state exceeds bound"))?;
+            let file = read_source_file_accounted_v1(
+                &repository_root.join(path.as_str()),
+                file_available,
+                io,
+                deadline,
+                cancelled,
+                work,
+            )?;
+            if Digest256::of_bytes(&file) != row.source_sha256 {
+                return Err(io_invalid("selected Claim source file digest differs"));
+            }
+            let mut offset = 0usize;
+            let mut selected_raw = None;
+            for (physical_line, bytes) in
+                tos_validation::source_record_selection::source_rows(&file)
+            {
+                scale_active(deadline, cancelled)?;
+                work.charge_many(1)?;
+                let start = offset;
+                offset = offset
+                    .checked_add(bytes.len())
+                    .ok_or_else(|| io_invalid("selected Claim row offset overflow"))?;
+                if let Some(delimiter) = file
+                    .get(offset)
+                    .copied()
+                    .filter(|byte| matches!(byte, b'\r' | b'\n'))
+                {
+                    offset += 1;
+                    if delimiter == b'\r' && file.get(offset) == Some(&b'\n') {
+                        offset += 1;
+                    }
+                }
+                if physical_line == row.source_line {
+                    selected_raw = Some(&file[start..offset]);
+                    break;
+                }
+            }
+            let raw = selected_raw.ok_or_else(|| io_invalid("selected Claim row absent"))?;
+            if raw.len() as u64 != row.template_bytes
+                || Digest256::of_bytes(raw) != row.template_sha256
+            {
+                return Err(io_invalid("selected Claim row digest or size differs"));
+            }
+            let (value, value_state) = tos_validation::record_biblio_cut::bounded_decoded_state(
+                raw,
+                JsonLimits::default(),
+                file_available
+                    .checked_sub(file.len())
+                    .ok_or_else(|| io_invalid("selected Claim row state exceeds bound"))?,
+                deadline,
+                cancelled,
+            )
+            .map_err(|e| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("selected Claim row decoding: {e:?}"),
+                )
+            })?;
+            let version = value["schema_version"].as_str();
+            if value["predicate"].as_str() != Some(predicate)
+                || !claim_profile["schemas"].as_array().is_some_and(|a| {
+                    a.iter().any(|route| {
+                        route["schema_version"].as_str() == version
+                            && route["schema_ref"]
+                                == "ToS/contracts/source-relation-claim.schema.json"
+                    })
+                })
+                || value["claim_type"] != "relation"
+                || !value["subject_ref"]
+                    .as_str()
+                    .is_some_and(|s| s.starts_with("tos.work."))
+                || !value["object"]
+                    .as_str()
+                    .is_some_and(|s| s.starts_with("tos.agent."))
+                || !claim_profile["assertion_layers"]
+                    .as_array()
+                    .is_some_and(|a| a.contains(&value["assertion_layer"]))
+            {
+                return Err(io_invalid(
+                    "selected Claim row does not match Work authorship profile",
+                ));
+            }
+            let (_, _, edges_upper) = reference_collection_state_upper_v1(&value)?;
+            let additional = raw
+                .len()
+                .checked_add(row.source_path.len())
+                .and_then(|n| n.checked_add(edges_upper))
+                .and_then(|n| {
+                    n.checked_add(selection.generator_agent.record_id.len().checked_mul(2)?)
+                })
+                .ok_or_else(|| io_invalid("selected template allocation overflow"))?;
+            if file
+                .len()
+                .checked_add(value_state)
+                .and_then(|n| n.checked_add(additional))
+                .is_none_or(|n| n > file_available)
+            {
+                return Err(io_invalid("selected template allocation exceeds state"));
+            }
+            let mut external_reference_edges = collect_reference_edges_v1(&value)?;
+            for edge in &mut external_reference_edges {
+                if edge.pointer == "/object" {
+                    edge.reference = selection.generator_agent.record_id.clone();
+                }
+            }
+            external_reference_edges.sort_unstable();
+            let template = WeightedScaleTemplateV1 {
+                class: WeightedScaleClassV1::Claim,
+                source_path: std::borrow::Cow::Owned(row.source_path.clone()),
+                source_sha256: row.source_sha256,
+                template_sha256: row.template_sha256,
+                bytes: raw.to_vec(),
+                external_reference_edges,
+                claim_route: WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1,
+                generated_author: Some(selection.generator_agent.record_id.clone()),
+            };
+            resident = selected_headers
+                .checked_add(template_rows_retained_state_v1(&selected)?)
+                .and_then(|n| {
+                    template_rows_retained_state_v1(std::slice::from_ref(&template))
+                        .ok()
+                        .and_then(|m| n.checked_add(m))
+                })
+                .ok_or_else(|| io_invalid("selected template retained state overflow"))?;
+            selected.push(template);
+        }
+        drop(registry);
+        drop(registry_raw);
+        let mut result = Self::load_inner(
+            repository_root,
+            Some((io, deadline, cancelled, work)),
+            true,
+            Some(
+                available
+                    .checked_sub(resident)
+                    .ok_or_else(|| io_invalid("selected rows exceed loading state"))?,
+            ),
+        )?;
+        result.templates[WeightedScaleClassV1::Claim as usize] = selected;
+        // The explicit opt-in route also repairs cross-family generated refs.
+        // Legacy load/rendering keeps its original technical-only route.
+        for template in result.templates.iter_mut().flatten() {
+            template.claim_route = WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1;
+        }
+        // Reuse the existing producer's complete template/scratch state law
+        // before rendering prices, while all selected templates remain live.
+        if weighted_producer_state_upper_v1(&result, 0)? > available {
+            return Err(io_invalid("selected template pricing exceeds state"));
+        }
+        let mut prices = Vec::with_capacity(selection.templates.len());
+        for template in &result.templates[WeightedScaleClassV1::Claim as usize] {
+            let value = fixture_record_value_v1(profile, template, WeightedScaleClassV1::Claim, 0)?;
+            prices.push(fixture_record_encoded_length_v1(
+                &value,
+                WeightedScaleClassV1::Claim,
+            )?);
+        }
+        let rows = &mut result.templates[WeightedScaleClassV1::Claim as usize];
+        // Stable fixed-three ordering follows real transformed payload prices.
+        let mut order = [0usize, 1, 2];
+        order.sort_by_key(|index| (prices[*index], *index));
+        let owned = std::mem::take(rows);
+        let mut owned: [Option<WeightedScaleTemplateV1>; 3] = owned
+            .into_iter()
+            .map(Some)
+            .collect::<Vec<_>>()
+            .try_into()
+            .map_err(|_| io_invalid("selected Claim row count differs"))?;
+        for index in order {
+            rows.push(
+                owned[index]
+                    .take()
+                    .ok_or_else(|| io_invalid("selected Claim ordering differs"))?,
+            );
+        }
+        let mut selection = selection;
+        let mut declared = selection.templates.map(Some);
+        selection.templates = order.map(|index| {
+            declared[index]
+                .take()
+                .expect("fixed distinct three-way permutation")
+        });
+        result.claim_selection = Some(selection);
+        result.resident_template_bytes = result
+            .templates
+            .iter()
+            .flatten()
+            .map(|t| t.bytes.len() as u64)
+            .sum();
+        result.resident_reference_state_bytes = result
+            .templates
+            .iter()
+            .flatten()
+            .flat_map(|t| &t.external_reference_edges)
+            .try_fold(0u64, |n, e| {
+                n.checked_add((e.pointer.len() + e.reference.len()) as u64)
+            })
+            .ok_or_else(|| io_invalid("selected Claim reference state overflow"))?;
+        result.manifest_sha256 = template_manifest_digest_v1(&result.templates)?;
+        Ok(result)
+    }
+
+    pub(crate) fn profile_with_selected_dimensions(
+        &self,
+        mut profile: WeightedScaleProfileV1,
+    ) -> std::io::Result<WeightedScaleProfileV1> {
+        if self.claim_selection.is_some() {
+            for class_index in 0..self.templates.len() {
+                let mut sizes = [0u64; 3];
+                for (index, template) in self.templates[class_index].iter().enumerate() {
+                    // Ordinal zero has the maximum modulo-assigned Claim fanout
+                    // for a Work. Dimensions are conservative selected shape
+                    // bounds; actual member/byte census remains measured.
+                    let value = if template.class == WeightedScaleClassV1::Artifact {
+                        if let Some(recipe) = self.artifact_recipe.as_ref() {
+                            let ordinal =
+                                SCALE_SELECTED_QUANTILE_BUCKETS_V1.iter().take(index).sum();
+                            recipe.artifact_value(
+                                profile.seed,
+                                recipe.selection.immutable_digest()?,
+                                ordinal,
+                                &template.bytes,
+                            )?
+                        } else {
+                            fixture_record_value_v1(&profile, template, template.class, 0)?
+                        }
+                    } else {
+                        fixture_record_value_v1(&profile, template, template.class, 0)?
+                    };
+                    sizes[index] =
+                        u64::try_from(fixture_record_encoded_length_v1(&value, template.class)?)
+                            .map_err(|_| io_invalid("selected dimension exceeds u64"))?;
+                }
+                let row = &mut profile.classes[class_index];
+                [row.p50_bytes, row.p95_bytes, row.max_bytes] = sizes;
+            }
+        }
+        profile.validate()?;
+        Ok(profile)
+    }
+
+    /// Reuse the reader-issued immutable route; no second profile parse or
+    /// caller-authored tuple can substitute for that issued declaration.
+    pub(crate) fn load_from_selected_declaration_accounted(
+        repository_root: &Path,
+        declaration: &super::source_admission_indexed_input::SelectedGeneratedDeclarationV1,
+        io: &PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &AdmissionWorkBudget,
+        max_state_bytes: usize,
+        caller_live_state_bytes: usize,
+    ) -> std::io::Result<Self> {
+        let profile = WeightedScaleProfileV1::weighted_for_records(
+            declaration.seed_sha256(),
+            declaration.generated_record_count(),
+        )?;
+        match declaration.claim_template_selection() {
+            None => Self::load_accounted(repository_root, io, deadline, cancelled, work),
+            Some(issued) => {
+                if issued.route() != WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1
+                    || issued.relation_type_id() != "tos.relation.authored-by"
+                    || issued.subject_class() != "Work"
+                {
+                    return Err(io_invalid("issued Claim selection route differs"));
+                }
+                let input_state = issued
+                    .templates()
+                    .iter()
+                    .try_fold(
+                        size_of::<WeightedScaleClaimTemplateSelectionV1>()
+                            .checked_add(issued.generator_agent().source_path().len())
+                            .and_then(|n| n.checked_add(issued.generator_agent().record_id().len()))
+                            .ok_or_else(|| io_invalid("issued generator Agent state overflow"))?,
+                        |n, row| n.checked_add(row.source_path().len()),
+                    )
+                    .ok_or_else(|| io_invalid("issued Claim input state overflow"))?;
+                if input_state
+                    .checked_add(caller_live_state_bytes)
+                    .is_none_or(|n| n > max_state_bytes)
+                {
+                    return Err(io_invalid("issued Claim selection exceeds caller state"));
+                }
+                let selection = WeightedScaleClaimTemplateSelectionV1 {
+                    relation_registry_sha256: issued.relation_registry_sha256(),
+                    generator_agent: WeightedScaleGeneratorAgentSelectionV1 {
+                        source_path: issued.generator_agent().source_path().to_owned(),
+                        source_sha256: issued.generator_agent().source_sha256(),
+                        record_id: issued.generator_agent().record_id().to_owned(),
+                    },
+                    templates: std::array::from_fn(|index| {
+                        let row = &issued.templates()[index];
+                        WeightedScaleClaimTemplateRowV1 {
+                            source_path: row.source_path().to_owned(),
+                            source_sha256: row.source_sha256(),
+                            source_line: row.source_line(),
+                            template_sha256: row.template_sha256(),
+                            template_bytes: row.template_bytes(),
+                        }
+                    }),
+                };
+                let templates = if let Some(artifact) = declaration.artifact_template_selection() {
+                    let artifact = WeightedScaleArtifactTemplateSelectionV1::from_issued(
+                        artifact,
+                        max_state_bytes,
+                        caller_live_state_bytes
+                            .checked_add(selection.retained_state_bytes()?)
+                            .ok_or_else(|| io_invalid("issued ALL5 selection state overflow"))?,
+                    )?;
+                    Self::load_with_all5_selection_accounted(
+                        repository_root,
+                        &profile,
+                        selection,
+                        artifact,
+                        io,
+                        deadline,
+                        cancelled,
+                        work,
+                        max_state_bytes,
+                        caller_live_state_bytes,
+                    )?
+                } else {
+                    Self::load_with_claim_selection_accounted(
+                        repository_root,
+                        &profile,
+                        selection,
+                        io,
+                        deadline,
+                        cancelled,
+                        work,
+                        max_state_bytes,
+                        caller_live_state_bytes,
+                    )?
+                };
+                let mut templates = templates;
+                if let Some(issued) = declaration.artifact_template_selection() {
+                    let observed = issued.output_observation();
+                    templates.output_observation = Some(WeightedScaleArtifactOutputObservationV1 {
+                        started_at: observed.started_at().to_owned(),
+                        ended_at: observed.ended_at().to_owned(),
+                        member_count: observed.member_count(),
+                        source_bytes: observed.source_bytes(),
+                        ordered_output_sha256: observed.ordered_output_sha256(),
+                    });
+                }
+                let selected_profile = templates.profile_with_selected_dimensions(profile)?;
+                let row = selected_profile.classes[WeightedScaleClassV1::Claim as usize];
+                if [row.p50_bytes, row.p95_bytes, row.max_bytes] != issued.claim_dimensions()
+                    || selected_profile
+                        .classes
+                        .map(|row| [row.p50_bytes, row.p95_bytes, row.max_bytes])
+                        != declaration.class_dimensions()
+                    || templates.manifest_sha256 != declaration.template_manifest_sha256()
+                {
+                    return Err(io_invalid(
+                        "issued Claim rendered dimensions or template manifest differs",
+                    ));
+                }
+                Ok(templates)
+            }
+        }
     }
 
     fn push_template(
@@ -1717,6 +3663,7 @@ impl WeightedScaleTemplateSetV1 {
         resident: &mut u64,
         pin: ScaleTemplatePinV1,
         file_bytes: Vec<u8>,
+        bounded: Option<(usize, Instant, &AtomicBool)>,
     ) -> std::io::Result<()> {
         if file_bytes.len() > SCALE_MAX_TEMPLATE_BYTES_V1
             || Digest256::of_bytes(&file_bytes).to_hex() != pin.file_sha256
@@ -1737,20 +3684,67 @@ impl WeightedScaleTemplateSetV1 {
         if template_sha256.to_hex() != pin.template_sha256 {
             return Err(io_invalid("pinned scale template digest differs"));
         }
-        let template_value: serde_json::Value = serde_json::from_slice(&template_bytes)
-            .map_err(|_| io_invalid("pinned scale template JSON is invalid"))?;
-        let external_reference_edges = collect_reference_edges_v1(&template_value);
-        let external_reference_edges = external_reference_edges.into_iter().collect();
+        let (template_value, decoded_state): (serde_json::Value, usize) =
+            if let Some((limit, deadline, cancelled)) = bounded {
+                tos_validation::record_biblio_cut::bounded_decoded_state(
+                    &template_bytes,
+                    JsonLimits::default(),
+                    limit
+                        .checked_sub(template_bytes.capacity())
+                        .ok_or_else(|| io_invalid("template raw state exceeds bound"))?,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|e| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("template bounded decoding: {e:?}"),
+                    )
+                })?
+            } else {
+                (
+                    serde_json::from_slice(&template_bytes)
+                        .map_err(|_| io_invalid("pinned scale template JSON is invalid"))?,
+                    0,
+                )
+            };
+        let (_, _, edge_upper) = reference_collection_state_upper_v1(&template_value)?;
+        // One selected class vector has a known finite three-template capacity.
+        // Precharge its initial allocation before push, keeping legacy growth unchanged.
+        let headers = if templates[pin.class_index].capacity() == 0 {
+            3usize
+                .checked_mul(size_of::<WeightedScaleTemplateV1>())
+                .ok_or_else(|| io_invalid("template headers overflow"))?
+        } else {
+            0
+        };
+        if let Some((limit, _, _)) = bounded {
+            if template_bytes
+                .capacity()
+                .checked_add(decoded_state)
+                .and_then(|n| n.checked_add(edge_upper))
+                .and_then(|n| n.checked_add(headers))
+                .is_none_or(|n| n > limit)
+            {
+                return Err(io_invalid("template references exceed loading state"));
+            }
+            if templates[pin.class_index].capacity() == 0 {
+                templates[pin.class_index].reserve_exact(3);
+            }
+        }
+        let external_reference_edges = collect_reference_edges_v1(&template_value)?;
         *resident = resident
             .checked_add(template_bytes.len() as u64)
             .ok_or_else(|| io_invalid("pinned template bytes overflow"))?;
         templates[pin.class_index].push(WeightedScaleTemplateV1 {
             class: pin.class,
-            source_path: pin.path,
+            source_path: std::borrow::Cow::Borrowed(pin.path),
             source_sha256,
             template_sha256,
             bytes: template_bytes,
             external_reference_edges,
+            claim_route: WeightedScaleClaimTemplateRouteV1::LegacyTechnicalV1,
+            generated_author: None,
         });
         Ok(())
     }
@@ -1868,7 +3862,12 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
         let class_row = self.profile.classes[self.class_index];
         let ordinal = self.ordinal;
         let template = self.templates.select(class_row.class, ordinal);
-        let value = fixture_record_value_v1(self.profile, template, class_row.class, ordinal)?;
+        let value = selected_fixture_record_value_v2(
+            self.profile,
+            self.templates,
+            class_row.class,
+            ordinal,
+        )?;
         audit_fixture_references_v1(
             &value,
             template,
@@ -1881,13 +3880,8 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
         // Claim templates are selected from a JSONL source. Keep each generated
         // line a single JSON value so the raw fixture is consumable by the same
         // owner parser as its pinned source shape.
-        let mut source_bytes = if class_row.class == WeightedScaleClassV1::Claim {
-            serde_json::to_vec(&value)
-        } else {
-            serde_json::to_vec_pretty(&value)
-        }
-        .map_err(|_| io_invalid("weighted source record encoding failed"))?;
-        source_bytes.push(b'\n');
+        let mut source_bytes = Vec::new();
+        write_fixture_record_value_v1(&mut source_bytes, &value, class_row.class)?;
         let selected_template_bytes =
             match selected_quantile_index_v1(ordinal % SCALE_SELECTED_QUANTILE_PERIOD_V1) {
                 0 => class_row.p50_bytes,
@@ -1936,6 +3930,44 @@ impl<'a> WeightedScaleMemberIterV1<'a> {
     }
 }
 
+// One encoding law serves produced bytes, exact CompareWriter verification,
+// and selected dimensions. Prices never substitute compact JSON for emitted
+// pretty JSON, nor retain a second encoded payload Vec.
+fn write_fixture_record_value_v1(
+    writer: &mut impl IoWrite,
+    value: &serde_json::Value,
+    class: WeightedScaleClassV1,
+) -> std::io::Result<()> {
+    if class == WeightedScaleClassV1::Claim {
+        serde_json::to_writer(&mut *writer, value)
+    } else {
+        serde_json::to_writer_pretty(&mut *writer, value)
+    }
+    .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    writer.write_all(b"\n")
+}
+fn fixture_record_encoded_length_v1(
+    value: &serde_json::Value,
+    class: WeightedScaleClassV1,
+) -> std::io::Result<usize> {
+    struct Counter(usize);
+    impl IoWrite for Counter {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0 = self
+                .0
+                .checked_add(bytes.len())
+                .ok_or_else(|| io_invalid("fixture encoded length overflow"))?;
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut counter = Counter(0);
+    write_fixture_record_value_v1(&mut counter, value, class)?;
+    Ok(counter.0)
+}
+
 fn fixture_record_value_v1(
     profile: &WeightedScaleProfileV1,
     template: &WeightedScaleTemplateV1,
@@ -1950,8 +3982,116 @@ fn fixture_record_value_v1(
         ordinal,
         profile.seed,
         profile.classes[4].count,
+        profile.classes[WeightedScaleClassV1::Claim as usize].count,
+        template.claim_route == WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1,
     )?;
+    if class == WeightedScaleClassV1::Claim
+        && template.claim_route == WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1
+    {
+        let author = template
+            .generated_author
+            .as_deref()
+            .ok_or_else(|| io_invalid("selected generated author absent"))?;
+        value
+            .as_object_mut()
+            .ok_or_else(|| io_invalid("selected Claim object absent"))?
+            .insert(
+                "object".to_owned(),
+                serde_json::Value::String(author.to_owned()),
+            );
+        value.as_object_mut().ok_or_else(|| io_invalid("selected Claim object absent"))?.insert("qualifiers".to_owned(), serde_json::json!({
+                    "statement": "This synthetic Work fixture is generated by the declared provisional software responsibility bearer; it is not attributed to the original source author.",
+                    "statement_language": "en", "statement_script": "Latn",
+                    "scope_note": "The original pinned Claim is a structural template only. Its evidence and provenance event identify template origin; the declared generator source assessment qualifies only synthetic mechanical responsibility, not human or legal authorship. No human review was performed.",
+                    "template_sha256": template.template_sha256.to_hex(),
+                }));
+    }
+
     Ok(value)
+}
+
+fn selected_fixture_record_value_v2(
+    profile: &WeightedScaleProfileV1,
+    templates: &WeightedScaleTemplateSetV1,
+    class: WeightedScaleClassV1,
+    ordinal: u64,
+) -> std::io::Result<serde_json::Value> {
+    let template = templates.select(class, ordinal);
+    if class == WeightedScaleClassV1::Artifact {
+        if let Some(recipe) = templates.artifact_recipe.as_ref() {
+            return recipe.artifact_value(
+                profile.seed,
+                recipe.selection.immutable_digest()?,
+                ordinal,
+                &template.bytes,
+            );
+        }
+    }
+    fixture_record_value_v1(profile, template, class, ordinal)
+}
+
+/// Shared support encoder: pricing, actual packed payloads and live proof use
+/// exactly this owner path. No completed phase is invented by a point lookup.
+fn write_fixture_support_v2(
+    writer: &mut impl IoWrite,
+    profile: &WeightedScaleProfileV1,
+    templates: &WeightedScaleTemplateSetV1,
+    role: WeightedScaleArtifactSupportRoleV1,
+    ordinal: u64,
+    observation: Option<&WeightedScaleArtifactOutputObservationV1>,
+) -> std::io::Result<()> {
+    let recipe = templates
+        .artifact_recipe
+        .as_ref()
+        .ok_or_else(|| io_invalid("generated support has no issued Artifact recipe"))?;
+    let digest = recipe.selection.immutable_digest()?;
+    let index = selected_quantile_index_v1(ordinal % SCALE_SELECTED_QUANTILE_PERIOD_V1);
+    if role == WeightedScaleArtifactSupportRoleV1::Resource {
+        let identity = scale_identity(
+            artifact_recipe_seed_v1(profile.seed, digest),
+            WeightedScaleClassV1::Artifact,
+            ordinal,
+        );
+        return write_artifact_resource_v1(
+            writer,
+            profile.seed,
+            digest,
+            ordinal,
+            &identity,
+            recipe.selection.resource_templates[index].source_sha256,
+            &recipe.resources[index],
+        );
+    }
+    let value = match role {
+        WeightedScaleArtifactSupportRoleV1::Rights => {
+            recipe.rights_value(profile.seed, digest, ordinal)?
+        }
+        WeightedScaleArtifactSupportRoleV1::Discovery => {
+            recipe.discovery_value(profile.seed, digest, ordinal)?
+        }
+        WeightedScaleArtifactSupportRoleV1::Event => recipe.event_value(
+            profile.seed,
+            digest,
+            ordinal,
+            observation.ok_or_else(|| io_invalid("event needs completed output observation"))?,
+            &templates
+                .claim_selection
+                .as_ref()
+                .ok_or_else(|| io_invalid("event generator selection absent"))?
+                .generator_agent,
+            &templates
+                .select(WeightedScaleClassV1::Artifact, ordinal)
+                .bytes,
+        )?,
+        WeightedScaleArtifactSupportRoleV1::Resource => unreachable!(),
+    };
+    if role == WeightedScaleArtifactSupportRoleV1::Event {
+        serde_json::to_writer(&mut *writer, &value)
+    } else {
+        serde_json::to_writer_pretty(&mut *writer, &value)
+    }
+    .map_err(|_| io_invalid("generated support encoding failed"))?;
+    writer.write_all(b"\n")
 }
 
 /// Exact workload-owned generated member identity. Canonical record/slot
@@ -1991,9 +4131,11 @@ impl WeightedScaleGeneratedMemberV1 {
 pub(crate) struct WeightedScaleGeneratedAllV1 {
     profile: WeightedScaleProfileV1,
     templates: WeightedScaleTemplateSetV1,
-    auxiliary: Arc<WeightedScaleAuthoredAuxSelectionV1>,
+    auxiliary: Arc<tos_validation::source_record_selection::SourceRecordSelection>,
+    auxiliary_source_bytes: u64,
     fence: super::source_admission_spooled_candidate::CandidateFence,
     selection_sha256: Digest256,
+    artifact_recipe_digest: Option<Digest256>,
     retained_state_bytes: usize,
     max_owned_state_bytes: usize,
     work: AdmissionWorkBudget,
@@ -2003,11 +4145,13 @@ impl WeightedScaleGeneratedAllV1 {
     pub(crate) fn from_selected_declaration(
         declaration: &super::source_admission_indexed_input::SelectedGeneratedDeclarationV1,
         mut templates: WeightedScaleTemplateSetV1,
-        auxiliary: Arc<WeightedScaleAuthoredAuxSelectionV1>,
+        auxiliary: Arc<tos_validation::source_record_selection::SourceRecordSelection>,
         fence: super::source_admission_spooled_candidate::CandidateFence,
         max_owned_state_bytes: usize,
         caller_live_state_bytes: usize,
         work: AdmissionWorkBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
     ) -> std::io::Result<Self> {
         // The set's payload arrays are owner-private; recompute retained byte
         // observations rather than trusting mutable public summary counters.
@@ -2028,29 +4172,134 @@ impl WeightedScaleGeneratedAllV1 {
         }
         templates.resident_template_bytes = template_bytes;
         templates.resident_reference_state_bytes = reference_bytes;
-        let profile = WeightedScaleProfileV1::weighted_for_records(
-            declaration.seed_sha256(),
-            declaration.generated_record_count(),
+        let profile = templates.profile_with_selected_dimensions(
+            WeightedScaleProfileV1::weighted_for_records(
+                declaration.seed_sha256(),
+                declaration.generated_record_count(),
+            )?,
         )?;
+        match (
+            declaration.claim_template_selection(),
+            templates.claim_selection.as_ref(),
+        ) {
+            (None, None) => {}
+            (Some(issued), Some(selected)) => {
+                if issued.route() != WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1
+                    || issued.relation_registry_sha256() != selected.relation_registry_sha256
+                    || issued.relation_type_id() != "tos.relation.authored-by"
+                    || issued.subject_class() != "Work"
+                    || issued.generator_agent().source_path()
+                        != selected.generator_agent.source_path
+                    || issued.generator_agent().source_sha256()
+                        != selected.generator_agent.source_sha256
+                    || issued.generator_agent().record_id() != selected.generator_agent.record_id
+                    || declaration.class_dimensions()
+                        != profile
+                            .classes
+                            .map(|row| [row.p50_bytes, row.p95_bytes, row.max_bytes])
+                    || issued.claim_dimensions() != {
+                        let c = profile.classes[WeightedScaleClassV1::Claim as usize];
+                        [c.p50_bytes, c.p95_bytes, c.max_bytes]
+                    }
+                    || !issued
+                        .templates()
+                        .iter()
+                        .zip(&selected.templates)
+                        .all(|(a, b)| {
+                            a.source_path() == b.source_path
+                                && a.source_sha256() == b.source_sha256
+                                && a.source_line() == b.source_line
+                                && a.template_sha256() == b.template_sha256
+                                && a.template_bytes() == b.template_bytes
+                        })
+                {
+                    return Err(io_invalid(
+                        "issued selected Claim route or provenance differs",
+                    ));
+                }
+            }
+            _ => return Err(io_invalid("issued selected Claim route custody differs")),
+        }
+        if declaration.class_dimensions()
+            != profile
+                .classes
+                .map(|row| [row.p50_bytes, row.p95_bytes, row.max_bytes])
+        {
+            return Err(io_invalid(
+                "issued class dimensions differ from same maintained renderer",
+            ));
+        }
         let composition = declaration.composition();
+        verify_composition_against_source_record_selection_v1(
+            &composition,
+            &auxiliary,
+            &mut || {
+                scale_active(deadline, cancelled)?;
+                work.charge_many(1)
+            },
+        )?;
+        if let Some(selected) = templates.claim_selection.as_ref() {
+            let selected_agent = auxiliary
+                .record(&selected.generator_agent.source_path)
+                .ok_or_else(|| {
+                    io_invalid("generator Agent absent from finite semantic record selection")
+                })?;
+            if selected_agent.record_id != selected.generator_agent.record_id
+                || Digest256::from_hex(&selected_agent.source.raw_sha256)
+                    .map_err(|_| io_invalid("finite generator Agent record digest invalid"))?
+                    != selected.generator_agent.source_sha256
+            {
+                return Err(io_invalid(
+                    "finite generator Agent semantic binding differs",
+                ));
+            }
+            let mut agent_member_found = false;
+            for member in auxiliary.members() {
+                scale_active(deadline, cancelled)?;
+                work.charge_many(1)?;
+                if member.source_ref == selected.generator_agent.source_path {
+                    let digest = Digest256::from_hex(&member.raw_sha256)
+                        .map_err(|_| io_invalid("finite generator Agent digest invalid"))?;
+                    if digest != selected.generator_agent.source_sha256 {
+                        return Err(io_invalid("finite generator Agent source digest differs"));
+                    }
+                    agent_member_found = true;
+                    break;
+                }
+            }
+            if !agent_member_found {
+                return Err(io_invalid(
+                    "generator Agent absent from same finite authored closure",
+                ));
+            }
+        }
+        let auxiliary_source_bytes = composition.auxiliary_source_bytes;
+        let support_count = if templates.artifact_recipe.is_some() {
+            artifact_support_member_count_v1(
+                profile.classes[WeightedScaleClassV1::Artifact as usize].count,
+            )?
+        } else {
+            0
+        };
         let total = profile
             .target_records
-            .checked_add(auxiliary.members.len() as u64)
+            .checked_add(support_count)
+            .and_then(|n| n.checked_add(auxiliary.member_count() as u64))
             .ok_or_else(|| io_invalid("generated selection member count overflow"))?;
         if profile.classes.map(|row| row.count) != declaration.class_counts()
             || templates.manifest_sha256 != declaration.template_manifest_sha256()
             || template_manifest_digest_v1(&templates.templates)? != templates.manifest_sha256
-            || generated_declaration_digest_v1(&profile, templates.manifest_sha256)?
+            || generated_declaration_digest_selected_v2(&profile, &templates)?
                 != declaration.generated_declaration_sha256()
             || composition.generated_declaration_sha256
                 != declaration.generated_declaration_sha256()
             || composition.generated_record_count != profile.target_records
-            || composition.authored_manifest_sha256 != auxiliary.authored_manifest_sha256
-            || composition.auxiliary_members_sha256 != auxiliary_members_digest_v1(&auxiliary)
-            || composition.auxiliary_member_count != auxiliary.members.len() as u64
-            || composition.auxiliary_source_bytes != auxiliary.source_bytes
+            || composition.generated_support_member_count != support_count
+            || composition.authored_manifest_sha256 != auxiliary.digest()
+            || composition.auxiliary_member_count != auxiliary.member_count() as u64
+            || composition.auxiliary_source_bytes != auxiliary_source_bytes
             || fence.membership.count != total
-            || fence.source_bytes < auxiliary.source_bytes
+            || fence.source_bytes < auxiliary_source_bytes
             || max_owned_state_bytes == 0
             || max_owned_state_bytes == usize::MAX
         {
@@ -2059,15 +4308,24 @@ impl WeightedScaleGeneratedAllV1 {
             ));
         }
         let maximum_path = auxiliary
-            .members
-            .iter()
-            .map(|member| member.path.len())
+            .members()
+            .map(|member| member.source_ref.len())
             .max()
             .unwrap_or(0)
-            .max(max_member_path_bytes_v1(&profile));
+            .max(max_member_path_bytes_v1(&profile))
+            .max(if support_count > 0 {
+                WeightedScaleArtifactSupportRoleV1::ALL
+                    .iter()
+                    .map(|role| role.path(0).len())
+                    .max()
+                    .unwrap_or(0)
+            } else {
+                0
+            });
         let retained_state_bytes = weighted_producer_state_upper_v1(&templates, 0)?
-            .checked_add(auxiliary.state_bytes)
-            .and_then(|bytes| bytes.checked_add(size_of::<Self>()))
+            // The same finite model is already charged in the Native caller
+            // baseline. Only this provider's own header/Arc handle is added.
+            .checked_add(size_of::<Self>())
             .and_then(|bytes| bytes.checked_add(size_of::<WeightedScaleGeneratedTraversalV1>()))
             .and_then(|bytes| bytes.checked_add(maximum_path.checked_mul(2)?))
             .ok_or_else(|| io_invalid("generated selection retained state overflow"))?;
@@ -2098,16 +4356,33 @@ impl WeightedScaleGeneratedAllV1 {
         } else {
             hash.update(&[0]);
         }
+        let artifact_recipe_digest = templates
+            .artifact_recipe
+            .as_ref()
+            .map(|r| r.selection.immutable_digest())
+            .transpose()?;
         Ok(Self {
             profile,
             templates,
             auxiliary,
+            auxiliary_source_bytes,
             fence,
+            artifact_recipe_digest,
             selection_sha256: hash.finalize(),
             retained_state_bytes,
             max_owned_state_bytes,
             work,
         })
+    }
+
+    pub(crate) fn verify_candidate_fence(
+        &self,
+        actual_fence: super::source_admission_spooled_candidate::CandidateFence,
+    ) -> std::io::Result<()> {
+        if actual_fence != self.fence {
+            return Err(io_invalid("generated provider CandidateFence differs"));
+        }
+        Ok(())
     }
 
     pub(crate) fn selection_sha256(&self) -> Digest256 {
@@ -2120,10 +4395,115 @@ impl WeightedScaleGeneratedAllV1 {
         self.retained_state_bytes
     }
 
+    fn support_position(
+        &self,
+        path: &str,
+    ) -> std::io::Result<Option<(WeightedScaleArtifactSupportRoleV1, u64)>> {
+        if self.artifact_recipe_digest.is_none() {
+            return Ok(None);
+        }
+        for role in WeightedScaleArtifactSupportRoleV1::ALL {
+            let sample = role.path(0);
+            let (prefix, suffix) = sample
+                .split_once("00000000000000000000")
+                .ok_or_else(|| io_invalid("support path contract differs"))?;
+            let Some(tail) = path.strip_prefix(prefix) else {
+                continue;
+            };
+            let Some(digits) = tail.strip_suffix(suffix) else {
+                continue;
+            };
+            if digits.len() != 20 || !digits.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(io_invalid("generated support ordinal shape differs"));
+            }
+            let ordinal = digits
+                .parse::<u64>()
+                .map_err(|_| io_invalid("generated support ordinal overflow"))?;
+            if ordinal >= self.profile.classes[WeightedScaleClassV1::Artifact as usize].count
+                || role.path(ordinal) != path
+            {
+                return Err(io_invalid("generated support ordinal exceeds selection"));
+            }
+            return Ok(Some((role, ordinal)));
+        }
+        Ok(None)
+    }
+    pub(crate) fn selects_required_member(&self, path: &str) -> std::io::Result<bool> {
+        Ok(self.support_position(path)?.is_some() || self.generated_position(path)?.is_some())
+    }
+    pub(crate) fn selects_semantic_member(&self, path: &str) -> std::io::Result<bool> {
+        if let Some((role, _)) = self.support_position(path)? {
+            return Ok(role.is_semantic());
+        }
+        self.selects_record(path)
+    }
+    pub(crate) fn selects_semantic_row(&self, path: &str, line: u64) -> std::io::Result<bool> {
+        Ok(line == 1
+            && (self.selects_claim_row(path, line)?
+                || self
+                    .support_position(path)?
+                    .is_some_and(|(role, _)| role == WeightedScaleArtifactSupportRoleV1::Event)))
+    }
+    pub(crate) fn verify_selected_member(
+        &self,
+        path: &str,
+        raw: &[u8],
+        actual_fence: super::source_admission_spooled_candidate::CandidateFence,
+        caller_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<()> {
+        let Some((role, ordinal)) = self.support_position(path)? else {
+            return self
+                .verify_record(
+                    path,
+                    raw,
+                    actual_fence,
+                    caller_live_state_bytes,
+                    deadline,
+                    cancelled,
+                )
+                .map(|_| ());
+        };
+        scale_active(deadline, cancelled)?;
+        self.work.charge_many(1)?;
+        if actual_fence != self.fence
+            || raw.is_empty()
+            || self
+                .retained_state_bytes
+                .checked_add(raw.len())
+                .and_then(|n| n.checked_add(caller_live_state_bytes))
+                .is_none_or(|n| n > self.max_owned_state_bytes)
+        {
+            return Err(io_invalid("generated support fence or state differs"));
+        }
+        let mut compare = GeneratedCompareWriterV1 {
+            raw,
+            offset: 0,
+            deadline,
+            cancelled,
+        };
+        write_fixture_support_v2(
+            &mut compare,
+            &self.profile,
+            &self.templates,
+            role,
+            ordinal,
+            self.templates.output_observation.as_ref(),
+        )?;
+        if compare.offset != raw.len() {
+            return Err(io_invalid("generated support renderer EOF differs"));
+        }
+        Ok(())
+    }
+
     fn generated_position(
         &self,
         path: &str,
     ) -> std::io::Result<Option<(WeightedScaleClassV1, u64)>> {
+        if self.support_position(path)?.is_some() {
+            return Ok(None);
+        }
         for row in &self.profile.classes {
             let Some(tail) = path.strip_prefix(generated_path_prefix_v1(row.class)) else {
                 continue;
@@ -2201,20 +4581,16 @@ impl WeightedScaleGeneratedAllV1 {
             ));
         }
         let template = self.templates.select(class, ordinal);
-        let value = fixture_record_value_v1(&self.profile, template, class, ordinal)?;
+        let value =
+            selected_fixture_record_value_v2(&self.profile, &self.templates, class, ordinal)?;
         let mut compare = GeneratedCompareWriterV1 {
             raw,
             offset: 0,
             deadline,
             cancelled,
         };
-        if class == WeightedScaleClassV1::Claim {
-            serde_json::to_writer(&mut compare, &value)
-        } else {
-            serde_json::to_writer_pretty(&mut compare, &value)
-        }
-        .map_err(|_| io_invalid("generated member differs from maintained renderer"))?;
-        compare.write_all(b"\n")?;
+        write_fixture_record_value_v1(&mut compare, &value, class)
+            .map_err(|_| io_invalid("generated member differs from maintained renderer"))?;
         if compare.offset != raw.len() {
             return Err(io_invalid("generated member renderer EOF differs"));
         }
@@ -2222,7 +4598,25 @@ impl WeightedScaleGeneratedAllV1 {
         Ok(WeightedScaleGeneratedMemberV1 {
             class,
             ordinal,
-            identity: scale_identity(self.profile.seed, class, ordinal),
+            identity: if class == WeightedScaleClassV1::Artifact {
+                self.templates
+                    .artifact_recipe
+                    .as_ref()
+                    .map(|r| r.selection.immutable_digest())
+                    .transpose()?
+                    .map_or_else(
+                        || scale_identity(self.profile.seed, class, ordinal),
+                        |recipe| {
+                            scale_identity(
+                                artifact_recipe_seed_v1(self.profile.seed, recipe),
+                                class,
+                                ordinal,
+                            )
+                        },
+                    )
+            } else {
+                scale_identity(self.profile.seed, class, ordinal)
+            },
             template_sha256: template.template_sha256,
             raw_sha256: Digest256::of_bytes(raw),
             raw_bytes: raw.len() as u64,
@@ -2236,6 +4630,17 @@ impl WeightedScaleGeneratedAllV1 {
         WeightedScaleGeneratedTraversalV1 {
             selection_sha256: self.selection_sha256,
             class_ordinals: [0; 5],
+            support_ordinals: [0; 4],
+            support_bytes: 0,
+            phase_count: 0,
+            phase_bytes: 0,
+            phase_hash: self.artifact_recipe_digest.map(|recipe| {
+                let mut h = Digest256Hasher::new();
+                h.update(b"tos_scale_artifact_completed_output_phase_v1\0");
+                h.update(recipe.as_bytes());
+                h.update(self.profile.seed.as_bytes());
+                h
+            }),
             auxiliary_index: 0,
             generated_bytes: 0,
             auxiliary_bytes: 0,
@@ -2326,16 +4731,48 @@ impl WeightedScaleGeneratedAllV1 {
             let digest = binding.raw_sha256;
             let size = binding.raw_bytes;
             (Some(binding), class as u8, ordinal, digest, size)
+        } else if let Some((role, ordinal)) = self.support_position(path)? {
+            let index = WeightedScaleArtifactSupportRoleV1::ALL
+                .iter()
+                .position(|r| *r == role)
+                .ok_or_else(|| io_invalid("support role absent"))?;
+            if traversal.support_ordinals[index] != ordinal {
+                return Err(io_invalid("support ordinal gap or duplicate"));
+            }
+            self.verify_selected_member(
+                path,
+                raw,
+                actual_fence,
+                caller_live_state_bytes,
+                deadline,
+                cancelled,
+            )?;
+            traversal.support_ordinals[index] = ordinal
+                .checked_add(1)
+                .ok_or_else(|| io_invalid("support ordinal overflow"))?;
+            traversal.support_bytes = traversal
+                .support_bytes
+                .checked_add(raw.len() as u64)
+                .ok_or_else(|| io_invalid("support byte census overflow"))?;
+            (
+                None,
+                6 + index as u8,
+                ordinal,
+                Digest256::of_bytes(raw),
+                raw.len() as u64,
+            )
         } else {
             self.work.charge_many(1)?;
             let aux = self
                 .auxiliary
-                .members
-                .get(traversal.auxiliary_index)
+                .members()
+                .nth(traversal.auxiliary_index)
                 .ok_or_else(|| io_invalid("physical member outside finite auxiliary selection"))?;
-            if aux.path != path
+            let aux_digest = Digest256::from_hex(&aux.raw_sha256)
+                .map_err(|_| io_invalid("finite auxiliary raw digest differs"))?;
+            if aux.source_ref != path
                 || aux.raw_bytes != raw.len() as u64
-                || aux.raw_sha256 != Digest256::of_bytes(raw)
+                || aux_digest != Digest256::of_bytes(raw)
             {
                 return Err(io_invalid(
                     "physical member differs from finite auxiliary proof",
@@ -2350,10 +4787,29 @@ impl WeightedScaleGeneratedAllV1 {
                 None,
                 WeightedScaleClassV1::ALL.len() as u8,
                 traversal.auxiliary_index as u64 - 1,
-                aux.raw_sha256,
+                aux_digest,
                 aux.raw_bytes,
             )
         };
+        if self
+            .support_position(path)?
+            .is_none_or(|(role, _)| role.is_phase_one())
+        {
+            if let Some(hash) = traversal.phase_hash.as_mut() {
+                hash.update(&(path.len() as u64).to_be_bytes());
+                hash.update(path.as_bytes());
+                hash.update(digest.as_bytes());
+                hash.update(&size.to_be_bytes());
+                traversal.phase_count = traversal
+                    .phase_count
+                    .checked_add(1)
+                    .ok_or_else(|| io_invalid("observed phase count overflow"))?;
+                traversal.phase_bytes = traversal
+                    .phase_bytes
+                    .checked_add(size)
+                    .ok_or_else(|| io_invalid("observed phase bytes overflow"))?;
+            }
+        }
         traversal
             .hash
             .update(&traversal.observed_members.to_be_bytes());
@@ -2387,17 +4843,54 @@ impl WeightedScaleGeneratedAllV1 {
             || traversal.selection_sha256 != self.selection_sha256
             || actual_fence != self.fence
             || traversal.class_ordinals != self.profile.classes.map(|row| row.count)
-            || traversal.auxiliary_index != self.auxiliary.members.len()
-            || traversal.auxiliary_bytes != self.auxiliary.source_bytes
+            || traversal.support_ordinals
+                != [if self.artifact_recipe_digest.is_some() {
+                    self.profile.classes[WeightedScaleClassV1::Artifact as usize].count
+                } else {
+                    0
+                }; 4]
+            || traversal.auxiliary_index != self.auxiliary.member_count()
+            || traversal.auxiliary_bytes != self.auxiliary_source_bytes
             || traversal.observed_members != self.fence.membership.count
             || traversal
                 .generated_bytes
-                .checked_add(traversal.auxiliary_bytes)
+                .checked_add(traversal.support_bytes)
+                .and_then(|n| n.checked_add(traversal.auxiliary_bytes))
                 != Some(self.fence.source_bytes)
         {
             return Err(io_invalid(
                 "generated or finite auxiliary actual EOF census differs",
             ));
+        }
+        match (
+            traversal.phase_hash.take(),
+            self.templates.output_observation.as_ref(),
+        ) {
+            (Some(hash), Some(expected)) => {
+                if hash.finalize() != expected.ordered_output_sha256
+                    || traversal.phase_count != expected.member_count
+                    || traversal.phase_bytes != expected.source_bytes
+                {
+                    return Err(io_invalid(
+                        "actual output phase differs from issued event observation",
+                    ));
+                }
+            }
+            (None, None) => {}
+            _ => {
+                return Err(io_invalid(
+                    "actual output phase observation custody differs",
+                ));
+            }
+        }
+        if self.artifact_recipe_digest.is_some() {
+            traversal.hash.update(b"artifact-support-eof-v2\0");
+            for count in traversal.support_ordinals {
+                traversal.hash.update(&count.to_be_bytes());
+            }
+            traversal
+                .hash
+                .update(&traversal.support_bytes.to_be_bytes());
         }
         traversal.hash.update(b"complete-physical-eof\0");
         for count in traversal.class_ordinals {
@@ -2415,6 +4908,8 @@ impl WeightedScaleGeneratedAllV1 {
         Ok(WeightedScaleGeneratedEofV1 {
             selection_sha256: self.selection_sha256,
             generated_count: self.profile.target_records,
+            support_count: traversal.support_ordinals.iter().sum(),
+            support_bytes: traversal.support_bytes,
             generated_bytes: traversal.generated_bytes,
             auxiliary_count: traversal.auxiliary_index as u64,
             auxiliary_bytes: traversal.auxiliary_bytes,
@@ -2454,6 +4949,11 @@ impl IoWrite for GeneratedCompareWriterV1<'_> {
 pub(crate) struct WeightedScaleGeneratedTraversalV1 {
     selection_sha256: Digest256,
     class_ordinals: [u64; 5],
+    support_ordinals: [u64; 4],
+    support_bytes: u64,
+    phase_count: u64,
+    phase_bytes: u64,
+    phase_hash: Option<Digest256Hasher>,
     auxiliary_index: usize,
     generated_bytes: u64,
     auxiliary_bytes: u64,
@@ -2466,6 +4966,8 @@ pub(crate) struct WeightedScaleGeneratedTraversalV1 {
 pub(crate) struct WeightedScaleGeneratedEofV1 {
     selection_sha256: Digest256,
     generated_count: u64,
+    support_count: u64,
+    support_bytes: u64,
     generated_bytes: u64,
     auxiliary_count: u64,
     auxiliary_bytes: u64,
@@ -2475,6 +4977,12 @@ pub(crate) struct WeightedScaleGeneratedEofV1 {
 impl WeightedScaleGeneratedEofV1 {
     pub(crate) fn selection_sha256(&self) -> Digest256 {
         self.selection_sha256
+    }
+    pub(crate) fn support_count(&self) -> u64 {
+        self.support_count
+    }
+    pub(crate) fn support_bytes(&self) -> u64 {
+        self.support_bytes
     }
     pub(crate) fn generated_count(&self) -> u64 {
         self.generated_count
@@ -2575,7 +5083,73 @@ fn generated_identity_field_v1(key: &str, pointer: &str) -> bool {
     ) || (key == "anchor_ref" && pointer.starts_with("/anchors/"))
 }
 
-fn collect_reference_edges_v1(value: &serde_json::Value) -> Vec<ScaleReferenceEdgeV1> {
+// Scalar preflight deliberately includes identity strings later filtered out.
+// It owns no paths, edges or JSON copies and dominates the collector allocation.
+fn reference_collection_state_upper_v1(
+    value: &serde_json::Value,
+) -> std::io::Result<(usize, usize, usize)> {
+    fn walk(
+        value: &serde_json::Value,
+        path_len: usize,
+        count: &mut usize,
+        strings: &mut usize,
+        max_path: &mut usize,
+    ) -> std::io::Result<()> {
+        *max_path = (*max_path).max(path_len);
+        match value {
+            serde_json::Value::Object(rows) => {
+                for (name, child) in rows {
+                    let escaped = name
+                        .len()
+                        .checked_add(name.bytes().filter(|b| matches!(b, b'~' | b'/')).count())
+                        .ok_or_else(|| io_invalid("reference pointer overflow"))?;
+                    let next = path_len
+                        .checked_add(1)
+                        .and_then(|n| n.checked_add(escaped))
+                        .ok_or_else(|| io_invalid("reference pointer overflow"))?;
+                    walk(child, next, count, strings, max_path)?;
+                }
+            }
+            serde_json::Value::Array(rows) => {
+                for (index, child) in rows.iter().enumerate() {
+                    let digits = if index == 0 {
+                        1
+                    } else {
+                        index.ilog10() as usize + 1
+                    };
+                    let next = path_len
+                        .checked_add(1)
+                        .and_then(|n| n.checked_add(digits))
+                        .ok_or_else(|| io_invalid("reference pointer overflow"))?;
+                    walk(child, next, count, strings, max_path)?;
+                }
+            }
+            serde_json::Value::String(text) if looks_like_source_reference_v1(text) => {
+                *count = count
+                    .checked_add(1)
+                    .ok_or_else(|| io_invalid("reference count overflow"))?;
+                *strings = strings
+                    .checked_add(path_len)
+                    .and_then(|n| n.checked_add(text.len()))
+                    .ok_or_else(|| io_invalid("reference strings overflow"))?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+    let (mut count, mut strings, mut max_path) = (0usize, 0usize, 0usize);
+    walk(value, 0, &mut count, &mut strings, &mut max_path)?;
+    let bytes = count
+        .checked_mul(size_of::<ScaleReferenceEdgeV1>())
+        .and_then(|n| n.checked_add(strings))
+        .and_then(|n| n.checked_add(max_path))
+        .ok_or_else(|| io_invalid("reference collection state overflow"))?;
+    Ok((count, max_path, bytes))
+}
+
+fn collect_reference_edges_v1(
+    value: &serde_json::Value,
+) -> std::io::Result<Vec<ScaleReferenceEdgeV1>> {
     fn walk(
         value: &serde_json::Value,
         pointer: &mut String,
@@ -2587,7 +5161,13 @@ fn collect_reference_edges_v1(value: &serde_json::Value) -> Vec<ScaleReferenceEd
                 for (name, child) in object {
                     let old_len = pointer.len();
                     pointer.push('/');
-                    pointer.push_str(&name.replace('~', "~0").replace('/', "~1"));
+                    for ch in name.chars() {
+                        match ch {
+                            '~' => pointer.push_str("~0"),
+                            '/' => pointer.push_str("~1"),
+                            _ => pointer.push(ch),
+                        }
+                    }
                     walk(child, pointer, Some(name), output);
                     pointer.truncate(old_len);
                 }
@@ -2596,7 +5176,7 @@ fn collect_reference_edges_v1(value: &serde_json::Value) -> Vec<ScaleReferenceEd
                 for (index, child) in items.iter().enumerate() {
                     let old_len = pointer.len();
                     pointer.push('/');
-                    pointer.push_str(&index.to_string());
+                    write!(pointer, "{index}").expect("writing into String cannot fail");
                     walk(child, pointer, None, output);
                     pointer.truncate(old_len);
                 }
@@ -2608,17 +5188,75 @@ fn collect_reference_edges_v1(value: &serde_json::Value) -> Vec<ScaleReferenceEd
                 output.push(ScaleReferenceEdgeV1 {
                     pointer: pointer.clone(),
                     reference: reference.clone(),
-                });
+                })
             }
             _ => {}
         }
     }
-
-    let mut output = Vec::new();
-    walk(value, &mut String::new(), None, &mut output);
-    output.sort();
+    let (count, max_path, _) = reference_collection_state_upper_v1(value)?;
+    let mut output = Vec::with_capacity(count);
+    walk(
+        value,
+        &mut String::with_capacity(max_path),
+        None,
+        &mut output,
+    );
+    output.sort_unstable();
     output.dedup();
-    output
+    Ok(output)
+}
+
+fn template_rows_retained_state_v1(rows: &[WeightedScaleTemplateV1]) -> std::io::Result<usize> {
+    rows.iter().try_fold(0usize, |state, template| {
+        let path = match &template.source_path {
+            std::borrow::Cow::Borrowed(_) => 0,
+            std::borrow::Cow::Owned(path) => path.capacity(),
+        };
+        let edges = template.external_reference_edges.iter().try_fold(
+            template
+                .external_reference_edges
+                .capacity()
+                .checked_mul(size_of::<ScaleReferenceEdgeV1>())
+                .ok_or_else(|| io_invalid("template edges overflow"))?,
+            |state, edge| {
+                state
+                    .checked_add(edge.pointer.capacity())
+                    .and_then(|n| n.checked_add(edge.reference.capacity()))
+                    .ok_or_else(|| io_invalid("template edge strings overflow"))
+            },
+        )?;
+        state
+            .checked_add(
+                template
+                    .generated_author
+                    .as_ref()
+                    .map_or(0, String::capacity),
+            )
+            .and_then(|n| n.checked_add(template.bytes.capacity()))
+            .and_then(|n| n.checked_add(path))
+            .and_then(|n| n.checked_add(edges))
+            .ok_or_else(|| io_invalid("template retained state overflow"))
+    })
+}
+
+fn template_array_retained_state_v1(
+    rows: &[Vec<WeightedScaleTemplateV1>; 5],
+) -> std::io::Result<usize> {
+    rows.iter()
+        .try_fold(size_of::<WeightedScaleTemplateSetV1>(), |state, rows| {
+            let headers = rows
+                .capacity()
+                .checked_mul(size_of::<WeightedScaleTemplateV1>())
+                .ok_or_else(|| io_invalid("template row headers overflow"))?;
+            state
+                .checked_add(headers)
+                .and_then(|n| {
+                    template_rows_retained_state_v1(rows)
+                        .ok()
+                        .and_then(|m| n.checked_add(m))
+                })
+                .ok_or_else(|| io_invalid("template array state overflow"))
+        })
 }
 
 fn looks_like_source_reference_v1(value: &str) -> bool {
@@ -2736,7 +5374,7 @@ fn audit_fixture_references_v1(
     closure: &mut WeightedScaleClosureAccumulatorV1,
 ) -> std::io::Result<()> {
     let local_generated_ids = collect_generated_ids_v1(value);
-    for edge in collect_reference_edges_v1(value) {
+    for edge in collect_reference_edges_v1(value)? {
         if edge.reference == SCALE_GENERATOR_AGENT_REF_V1 && edge.pointer.ends_with("/agent_ref") {
             closure.generator_reference_edges = closure
                 .generator_reference_edges
@@ -2755,14 +5393,18 @@ fn audit_fixture_references_v1(
                 .ok_or_else(|| io_invalid("generated dependency edge count overflow"))?;
             continue;
         }
-        if template.external_reference_edges.contains(&edge) {
+        if template
+            .external_reference_edges
+            .binary_search(&edge)
+            .is_ok()
+        {
             closure.pinned_external_dependency_edges = closure
                 .pinned_external_dependency_edges
                 .checked_add(1)
                 .ok_or_else(|| io_invalid("external dependency edge count overflow"))?;
             let key = ScaleReferenceUsageKeyV1 {
                 class: format!("{:?}", class),
-                source_path: template.source_path.to_owned(),
+                source_path: template.source_path.to_string(),
                 template_sha256: template.template_sha256.to_hex(),
                 pointer: edge.pointer,
                 reference: edge.reference,
@@ -2811,6 +5453,8 @@ fn rewrite_fixture_record_v1(
     ordinal: u64,
     seed: Digest256,
     work_count: u64,
+    claim_count: u64,
+    selected_semantic_fixture: bool,
 ) -> std::io::Result<()> {
     if matches!(
         class,
@@ -2891,11 +5535,16 @@ fn rewrite_fixture_record_v1(
                 let work_ref = source_scope
                     .get_mut("work_ref")
                     .ok_or_else(|| io_invalid("TextUnit source work reference absent"))?;
-                *work_ref = serde_json::Value::String(scale_identity(
-                    seed,
-                    WeightedScaleClassV1::Work,
-                    ordinal % work_count,
-                ));
+                if !selected_semantic_fixture {
+                    *work_ref = serde_json::Value::String(scale_identity(
+                        seed,
+                        WeightedScaleClassV1::Work,
+                        ordinal % work_count,
+                    ));
+                }
+                // Selected semantic packets segment the original authenticated
+                // witness. Its Work/Expression/Edition/Item scope stays coherent;
+                // only packet-local identities are generated.
             }
             if let Some(method) = object
                 .get_mut("method")
@@ -2917,12 +5566,39 @@ fn rewrite_fixture_record_v1(
             set_number(object, "record_version", 1)?;
             object.insert("supersedes_ref".to_owned(), serde_json::Value::Null);
             // Source claim references in a template identify the real record.
-            // Clear them rather than leaving stale refs after this fixture's
-            // generated Work identity changes; generated Claims point back to
-            // the generated Work deterministically.
+            // The technical route clears stale source refs. The selected route
+            // declares every actual generated Claim assigned to this Work by
+            // the same maintained modulo subject algorithm.
+            let responsibility = if selected_semantic_fixture {
+                let assigned_count = if ordinal < claim_count {
+                    (claim_count - 1 - ordinal) / work_count + 1
+                } else {
+                    0
+                };
+                let count = usize::try_from(assigned_count)
+                    .map_err(|_| io_invalid("Work claim count exceeds address space"))?;
+                let mut refs = Vec::with_capacity(count);
+                let mut claim_ordinal = ordinal;
+                while claim_ordinal < claim_count {
+                    refs.push(serde_json::Value::String(scale_identity(
+                        seed,
+                        WeightedScaleClassV1::Claim,
+                        claim_ordinal,
+                    )));
+                    if claim_count - claim_ordinal <= work_count {
+                        break;
+                    }
+                    claim_ordinal = claim_ordinal
+                        .checked_add(work_count)
+                        .ok_or_else(|| io_invalid("Work claim ordinal overflow"))?;
+                }
+                refs
+            } else {
+                Vec::new()
+            };
             object.insert(
                 "responsibility_claim_refs".to_owned(),
-                serde_json::Value::Array(Vec::new()),
+                serde_json::Value::Array(responsibility),
             );
             object.insert(
                 "expression_claim_refs".to_owned(),
@@ -3404,6 +6080,7 @@ pub(crate) struct WeightedScaleCompositionBindingV1 {
     pub(crate) generated_declaration_sha256: Digest256,
     pub(crate) auxiliary_members_sha256: Digest256,
     pub(crate) generated_record_count: u64,
+    pub(crate) generated_support_member_count: u64,
     pub(crate) auxiliary_member_count: u64,
     pub(crate) auxiliary_source_bytes: u64,
     pub(crate) members_descriptor_sha256: Digest256,
@@ -3424,6 +6101,48 @@ fn generated_declaration_digest_v1(
         "class_counts": counts,
     }))?;
     Ok(Digest256::of_bytes(&bytes))
+}
+
+fn completed_artifact_selection_v2(
+    templates: &WeightedScaleTemplateSetV1,
+) -> std::io::Result<Option<serde_json::Value>> {
+    let Some(recipe) = &templates.artifact_recipe else {
+        return Ok(None);
+    };
+    let observation = templates
+        .output_observation
+        .as_ref()
+        .ok_or_else(|| io_invalid("Artifact selection has no completed output phase"))?;
+    let mut value = recipe.selection.profile_value();
+    value["immutable_recipe_sha256"] =
+        serde_json::json!(recipe.selection.immutable_digest()?.to_hex());
+    value["output_observation"] = serde_json::json!({
+        "started_at": observation.started_at, "ended_at": observation.ended_at,
+        "member_count": observation.member_count, "source_bytes": observation.source_bytes,
+        "ordered_output_sha256": observation.ordered_output_sha256.to_hex(),
+    });
+    Ok(Some(value))
+}
+fn generated_declaration_digest_selected_v2(
+    profile: &WeightedScaleProfileV1,
+    templates: &WeightedScaleTemplateSetV1,
+) -> std::io::Result<Digest256> {
+    let Some(selection) = completed_artifact_selection_v2(templates)? else {
+        return generated_declaration_digest_v1(profile, templates.manifest_sha256);
+    };
+    Ok(Digest256::of_bytes(&canonical_value_bytes_v1(
+        &serde_json::json!({
+            "domain": "tos_scale_generated_declaration_v2",
+            "artifact_recipe_sha256": Digest256::of_bytes(&canonical_value_bytes_v1(&selection)?).to_hex(),
+            "immutable_recipe_sha256": selection["immutable_recipe_sha256"],
+            "output_observation": selection["output_observation"],
+            "seed_sha256": profile.seed.to_hex(),
+            "template_manifest_sha256": templates.manifest_sha256.to_hex(),
+            "generated_record_count": profile.target_records,
+            "generated_support_member_count": artifact_support_member_count_v1(profile.classes[WeightedScaleClassV1::Artifact as usize].count)?,
+            "class_counts": profile.classes.map(|row| row.count),
+        }),
+    )?))
 }
 
 fn auxiliary_members_digest_v1(selection: &WeightedScaleAuthoredAuxSelectionV1) -> Digest256 {
@@ -3602,6 +6321,176 @@ pub(crate) fn weighted_scale_composed_producer_envelope_v1(
         max_working_state_bytes,
         caller_live_state_bytes,
     )
+}
+
+/// Packed recipe inputs have physical members without a per-member raw inode.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WeightedScaleRepresentationV1 {
+    RawAndPackedV1,
+    PackedOnlyV2,
+}
+
+pub(crate) fn weighted_scale_composed_producer_envelope_with_templates_v2(
+    profile: &WeightedScaleProfileV1,
+    templates: &WeightedScaleTemplateSetV1,
+    selection: &WeightedScaleAuthoredAuxSelectionV1,
+    representation: WeightedScaleRepresentationV1,
+    allocation_unit: u64,
+    raw_input_root: Option<&Path>,
+    max_working_state_bytes: usize,
+    caller_live_state_bytes: usize,
+) -> std::io::Result<WeightedScaleComposedEnvelopeV1> {
+    if representation != WeightedScaleRepresentationV1::PackedOnlyV2
+        || raw_input_root.is_some()
+        || templates.artifact_recipe.is_none()
+        || templates.fixture_recipe_source.is_none()
+    {
+        return Err(io_invalid(
+            "declared fixture requires packed-only recipe selection",
+        ));
+    }
+    let mut price = weighted_scale_composition_price_v1(
+        profile,
+        Some(selection),
+        allocation_unit,
+        Path::new("/"),
+        max_working_state_bytes,
+        caller_live_state_bytes,
+    )?;
+    let add = |a: u64, b: u64| {
+        a.checked_add(b)
+            .ok_or_else(|| io_invalid("recipe support price overflow"))
+    };
+    let mul = |a: u64, b: u64| {
+        a.checked_mul(b)
+            .ok_or_else(|| io_invalid("recipe support price overflow"))
+    };
+    let artifact_count = profile.classes[WeightedScaleClassV1::Artifact as usize].count;
+    // This value is private to a counting writer. Its maximal numeric widths
+    // bound a future event; it is never emitted as an output observation.
+    let price_only = WeightedScaleArtifactOutputObservationV1 {
+        started_at: "9999-12-31T23:59:59.999999999Z".to_owned(),
+        ended_at: "9999-12-31T23:59:59.999999999Z".to_owned(),
+        member_count: u64::MAX,
+        source_bytes: u64::MAX,
+        ordered_output_sha256: Digest256::of_bytes(b"price only; never an observed output"),
+    };
+    let mut support_sizes = [0u64; 3];
+    for (index, bucket) in [0u64, 90, 99].into_iter().enumerate() {
+        // Largest u64 ordinal in this quantile has the maximal numeric width.
+        let ordinal = u64::MAX - ((u64::MAX % 100 + 100 - bucket) % 100);
+        for role in WeightedScaleArtifactSupportRoleV1::ALL {
+            let mut writer = GeneratedDigestWriterV1 {
+                digest: Digest256Hasher::new(),
+                bytes: 0,
+            };
+            write_fixture_support_v2(
+                &mut writer,
+                profile,
+                templates,
+                role,
+                ordinal,
+                Some(&price_only),
+            )?;
+            support_sizes[index] = add(support_sizes[index], writer.bytes)?;
+            price.maximum_member_bytes = price.maximum_member_bytes.max(writer.bytes);
+            price.required_member_key_bytes = price
+                .required_member_key_bytes
+                .max(role.path(ordinal).len());
+        }
+    }
+    let scenario = |count| -> std::io::Result<u64> {
+        selected_quantile_counts_v1(count)?
+            .into_iter()
+            .zip(support_sizes)
+            .try_fold(0, |sum, (n, bytes)| add(sum, mul(n, bytes)?))
+    };
+    let support_bytes = scenario(artifact_count)?;
+    let support_p50 = mul(artifact_count, support_sizes[0])?;
+    let support_count = artifact_support_member_count_v1(artifact_count)?;
+    price.member_count = add(price.member_count, support_count)?;
+    price.directory_state_bytes = 0;
+    let envelope = &mut price.envelope;
+    envelope.maximum_source_bytes = add(envelope.maximum_source_bytes, support_bytes)?;
+    envelope.raw_input_allocated_bytes = 0;
+    let sort_bytes = mul(price.member_count, SCALE_SORT_ROW_BYTES_V1)?;
+    let runs = sort_run_count_v1(price.member_count)?;
+    envelope.temporary_logical_bytes = add(envelope.maximum_source_bytes, sort_bytes)?;
+    envelope.temporary_allocated_bytes =
+        scratch_allocation_upper_v1(envelope.maximum_source_bytes, runs, allocation_unit)?;
+    envelope.temporary_file_inodes = add(runs, 2)?;
+    let forecast = &mut price.forecast;
+    forecast.raw_input_file_count = 0;
+    forecast.raw_input_directory_count = 0;
+    forecast.raw_input_inode_count = 0;
+    forecast.p50_logical_source_bytes = add(forecast.p50_logical_source_bytes, support_p50)?;
+    forecast.selected_quantile_scenario_logical_source_bytes = add(
+        forecast.selected_quantile_scenario_logical_source_bytes,
+        support_bytes,
+    )?;
+    for role in WeightedScaleArtifactSupportRoleV1::ALL {
+        forecast.raw_member_leaf_input_bytes = add(
+            forecast.raw_member_leaf_input_bytes,
+            mul(
+                artifact_count,
+                (role.path(0).len() + SCALE_MEMBER_VALUE_BYTES_V1) as u64,
+            )?,
+        )?;
+    }
+    forecast.raw_object_extent_leaf_input_bytes = add(
+        forecast.raw_object_extent_leaf_input_bytes,
+        mul(support_count, 32 + 76)?,
+    )?;
+    forecast.external_sort_logical_bytes = sort_bytes;
+    forecast.temporary_payload_spool_peak_bytes =
+        forecast.selected_quantile_scenario_logical_source_bytes;
+    forecast.temporary_digest_sort_peak_bytes = sort_bytes;
+    forecast.temporary_scratch_peak_bytes =
+        add(forecast.temporary_payload_spool_peak_bytes, sort_bytes)?;
+    forecast.temporary_scratch_blocks_4k_assumption = add(
+        forecast.temporary_scratch_peak_bytes,
+        SCALE_ALLOCATION_BLOCK_ASSUMPTION_V1 - 1,
+    )? / SCALE_ALLOCATION_BLOCK_ASSUMPTION_V1;
+    forecast.temporary_sort_run_count = runs;
+    forecast.temporary_file_inode_peak = envelope.temporary_file_inodes;
+    forecast.packed_object_pack_count_upper =
+        add(price.member_count, MAX_PACKED_OBJECT_FRAMES_V2 as u64 - 1)?
+            / MAX_PACKED_OBJECT_FRAMES_V2 as u64;
+    forecast.current_snapshot_three_copy_p50_bytes = mul(forecast.p50_logical_source_bytes, 3)?;
+    forecast.three_pins_with_backup_and_restore_no_dedup_p50_bytes =
+        mul(forecast.p50_logical_source_bytes, 5)?;
+    let billion_artifacts =
+        WeightedScaleProfileV1::weighted_for_records(profile.seed, 1_000_000_000)?.classes
+            [WeightedScaleClassV1::Artifact as usize]
+            .count;
+    forecast.p50_logical_source_bytes_at_1b = add(
+        forecast.p50_logical_source_bytes_at_1b,
+        mul(billion_artifacts, support_sizes[0])?,
+    )?;
+    let billion_support = scenario(billion_artifacts)?;
+    forecast.selected_quantile_scenario_logical_source_bytes_at_1b = add(
+        forecast.selected_quantile_scenario_logical_source_bytes_at_1b,
+        billion_support,
+    )?;
+    forecast.ten_full_copy_no_dedup_scenario_bytes_at_1b = add(
+        forecast.ten_full_copy_no_dedup_scenario_bytes_at_1b,
+        mul(billion_support, 10)?,
+    )?;
+    // Conservative history envelope: every changed meaningful row may carry
+    // a complete Artifact support bundle. Sharing must be measured separately.
+    forecast.history_change_payload_scenario_bytes = add(
+        forecast.history_change_payload_scenario_bytes,
+        mul(
+            forecast.history_change_rows,
+            *support_sizes.iter().max().unwrap_or(&0),
+        )?,
+    )?;
+    forecast.writer_staging_upper_bytes_per_client = Some(envelope.temporary_allocated_bytes);
+    forecast.write_clients_staging_upper_bytes = Some(mul(
+        envelope.temporary_allocated_bytes,
+        forecast.expected_write_clients as u64,
+    )?);
+    Ok(price)
 }
 
 fn weighted_scale_composition_price_v1(
@@ -3839,7 +6728,8 @@ fn weighted_scale_composition_price_v1(
 /// values and the supplied shared ledgers before creating the private root.
 pub(crate) struct WeightedScaleProducerRequestV1<'a> {
     pub(crate) repository_root: &'a Path,
-    pub(crate) raw_input_root: &'a Path,
+    pub(crate) representation: WeightedScaleRepresentationV1,
+    pub(crate) raw_input_root: Option<&'a Path>,
     pub(crate) output_root: &'a Path,
     pub(crate) profile: WeightedScaleProfileV1,
     pub(crate) segment_limits: SegmentLimits,
@@ -3920,7 +6810,7 @@ fn weighted_prewrite_refusal_v1(
 /// A completed private packed input. The descriptors and byte hashes are
 /// mechanically derived from this held store. The receipt grants no source,
 /// review, rights, canon, or admission authority.
-pub(crate) struct PackedScaleInputReceiptV1 {
+pub(crate) struct RawScaleInputReceiptV1 {
     pub(crate) raw_input_root: PathBuf,
     pub(crate) held_raw_input_root: File,
     pub(crate) raw_input_file_count: u64,
@@ -3928,6 +6818,11 @@ pub(crate) struct PackedScaleInputReceiptV1 {
     pub(crate) raw_input_inode_count: u64,
     pub(crate) raw_input_source_bytes: u64,
     pub(crate) raw_input_allocated_bytes: u64,
+}
+pub(crate) struct PackedScaleInputReceiptV1 {
+    pub(crate) representation: WeightedScaleRepresentationV1,
+    pub(crate) raw_input: Option<RawScaleInputReceiptV1>,
+    source_recipe: Option<WeightedScaleFixtureRecipeSourceV2>,
     pub(crate) named_root: PathBuf,
     pub(crate) held_root: File,
     pub(crate) segment: SegmentStore,
@@ -3956,13 +6851,19 @@ pub(crate) struct PackedScaleInputReceiptV1 {
     pub(crate) forecast: WeightedScaleForecastInputsV1,
 }
 
+impl PackedScaleInputReceiptV1 {
+    pub(crate) fn source_recipe(&self) -> Option<&WeightedScaleFixtureRecipeSourceV2> {
+        self.source_recipe.as_ref()
+    }
+}
+
 /// Materialize one declared bounded input under the selected Native resource
 /// envelope. The manifest is written last; failures leave no selectable input.
 pub(crate) fn produce_weighted_scale_input_v1(
     request: WeightedScaleProducerRequestV1<'_>,
     before_manifest: &mut dyn FnMut() -> std::io::Result<()>,
 ) -> std::io::Result<PackedScaleInputReceiptV1> {
-    produce_weighted_scale_input_composed_v1(request, None, before_manifest)
+    produce_weighted_scale_input_composed_v1(request, None, None, before_manifest)
 }
 
 pub(crate) fn produce_weighted_scale_input_with_authored_aux_v1(
@@ -3970,39 +6871,71 @@ pub(crate) fn produce_weighted_scale_input_with_authored_aux_v1(
     selection: &WeightedScaleAuthoredAuxSelectionV1,
     before_manifest: &mut dyn FnMut() -> std::io::Result<()>,
 ) -> std::io::Result<PackedScaleInputReceiptV1> {
-    produce_weighted_scale_input_composed_v1(request, Some(selection), before_manifest)
+    produce_weighted_scale_input_composed_v1(request, Some(selection), None, before_manifest)
+}
+
+/// Opt-in composition consumes already authenticated selected templates. The
+/// caller derives the profile and whole bill from these same rendered shapes.
+pub(crate) fn produce_weighted_scale_input_with_authored_aux_and_templates_v1(
+    request: WeightedScaleProducerRequestV1<'_>,
+    selection: &WeightedScaleAuthoredAuxSelectionV1,
+    templates: WeightedScaleTemplateSetV1,
+    before_manifest: &mut dyn FnMut() -> std::io::Result<()>,
+) -> std::io::Result<PackedScaleInputReceiptV1> {
+    if templates.claim_selection.is_none()
+        || templates.profile_with_selected_dimensions(request.profile.clone())? != request.profile
+    {
+        return Err(io_invalid(
+            "selected Claim profile dimensions differ before pricing",
+        ));
+    }
+    produce_weighted_scale_input_composed_v1(
+        request,
+        Some(selection),
+        Some(templates),
+        before_manifest,
+    )
 }
 
 fn produce_weighted_scale_input_composed_v1(
     request: WeightedScaleProducerRequestV1<'_>,
     auxiliary: Option<&WeightedScaleAuthoredAuxSelectionV1>,
+    selected_templates: Option<WeightedScaleTemplateSetV1>,
     before_manifest: &mut dyn FnMut() -> std::io::Result<()>,
 ) -> std::io::Result<PackedScaleInputReceiptV1> {
     let profile = request.profile.clone();
     profile.validate()?;
-    let expected_profile =
+    let base_profile =
         WeightedScaleProfileV1::weighted_for_records(profile.seed, profile.target_records)?;
+    let expected_profile = match selected_templates.as_ref() {
+        Some(templates) => templates.profile_with_selected_dimensions(base_profile)?,
+        None => base_profile,
+    };
     if profile != expected_profile {
         return Err(io_invalid(
             "weighted producer profile differs from maintained seed/size ladder",
         ));
     }
     if request.output_root.exists()
-        || request.raw_input_root.exists()
+        || request.raw_input_root.is_some_and(Path::exists)
         || !request.output_root.is_absolute()
-        || !request.raw_input_root.is_absolute()
+        || request.raw_input_root.is_some_and(|p| !p.is_absolute())
         || request.output_root.components().any(|component| {
             matches!(
                 component,
                 std::path::Component::CurDir | std::path::Component::ParentDir
             )
         })
-        || request.raw_input_root.components().any(|component| {
-            matches!(
-                component,
-                std::path::Component::CurDir | std::path::Component::ParentDir
-            )
+        || request.raw_input_root.is_some_and(|p| {
+            p.components().any(|component| {
+                matches!(
+                    component,
+                    std::path::Component::CurDir | std::path::Component::ParentDir
+                )
+            })
         })
+        || (request.representation == WeightedScaleRepresentationV1::RawAndPackedV1)
+            != request.raw_input_root.is_some()
         || request.max_member_bytes == 0
         || request.max_member_bytes == u64::MAX
         || request.max_source_bytes == 0
@@ -4031,25 +6964,42 @@ fn produce_weighted_scale_input_composed_v1(
         return Err(io_invalid("weighted producer limits or destination differ"));
     }
     verify_output_location_outside_repository_v1(request.repository_root, request.output_root)?;
-    verify_output_location_outside_repository_v1(request.repository_root, request.raw_input_root)?;
-    if request.raw_input_root.starts_with(request.output_root)
-        || request.output_root.starts_with(request.raw_input_root)
-    {
-        return Err(io_invalid("weighted raw and packed output roots overlap"));
+    if let Some(raw_root) = request.raw_input_root {
+        verify_output_location_outside_repository_v1(request.repository_root, raw_root)?;
+        if raw_root.starts_with(request.output_root) || request.output_root.starts_with(raw_root) {
+            return Err(io_invalid("weighted raw and packed output roots overlap"));
+        }
     }
 
     let segment_limits = request
         .segment_limits
         .validate()
         .map_err(|_| io_invalid("weighted producer segment limits are invalid"))?;
-    let price = weighted_scale_composition_price_v1(
-        &profile,
-        auxiliary,
-        request.tree_io.selected_allocation_unit_bytes(),
-        request.raw_input_root,
-        request.max_working_state_bytes,
-        request.caller_live_state_bytes,
-    )?;
+    let price = if request.representation == WeightedScaleRepresentationV1::PackedOnlyV2 {
+        weighted_scale_composed_producer_envelope_with_templates_v2(
+            &profile,
+            selected_templates
+                .as_ref()
+                .ok_or_else(|| io_invalid("packed recipe templates absent"))?,
+            auxiliary.ok_or_else(|| io_invalid("packed recipe auxiliary selection absent"))?,
+            request.representation,
+            request.tree_io.selected_allocation_unit_bytes(),
+            request.raw_input_root,
+            request.max_working_state_bytes,
+            request.caller_live_state_bytes,
+        )?
+    } else {
+        weighted_scale_composition_price_v1(
+            &profile,
+            auxiliary,
+            request.tree_io.selected_allocation_unit_bytes(),
+            request
+                .raw_input_root
+                .ok_or_else(|| io_invalid("raw representation root absent"))?,
+            request.max_working_state_bytes,
+            request.caller_live_state_bytes,
+        )?
+    };
     let envelope = price.envelope;
     let mut forecast = price.forecast;
     let total_members = price.member_count;
@@ -4072,7 +7022,7 @@ fn produce_weighted_scale_input_composed_v1(
     let member_key_exceeds_cap =
         required_member_key_bytes > request.member_tree_limits.max_key_bytes;
     if maximum_source_bytes > request.max_source_bytes
-        || total_members > request.max_raw_input_files
+        || forecast.raw_input_file_count > request.max_raw_input_files
         || raw_directory_upper > request.max_raw_input_directories
         || raw_allocation_upper > request.max_raw_input_allocated_bytes
         || temporary_logical_upper > request.max_temporary_logical_bytes
@@ -4116,13 +7066,16 @@ fn produce_weighted_scale_input_composed_v1(
     if base_profile_sha256.to_hex() != SCALE_BASE_PROFILE_SHA256_V1 {
         return Err(io_invalid("base scale profile source identity differs"));
     }
-    let templates = WeightedScaleTemplateSetV1::load_accounted(
-        request.repository_root,
-        &io_budget,
-        request.deadline,
-        request.cancelled,
-        &request.work,
-    )?;
+    let mut templates = match selected_templates {
+        Some(templates) => templates,
+        None => WeightedScaleTemplateSetV1::load_accounted(
+            request.repository_root,
+            &io_budget,
+            request.deadline,
+            request.cancelled,
+            &request.work,
+        )?,
+    };
     let producer_state = weighted_producer_state_upper_v1(&templates, run_count)?
         .checked_add(auxiliary.map_or(0, |s| s.state_bytes))
         .and_then(|v| v.checked_add(directory_state.checked_mul(2)?))
@@ -4144,27 +7097,6 @@ fn produce_weighted_scale_input_composed_v1(
             "weighted producer retained state exceeds selected bound",
         ));
     }
-    let mut profile_bytes = effective_profile_bytes_v1(&profile, base_profile_sha256, &forecast)?;
-    if let Some(selection) = auxiliary {
-        let mut value: serde_json::Value = serde_json::from_slice(&profile_bytes)
-            .map_err(|_| io_invalid("composed profile decoding failed"))?;
-        value["authored_aux_selection"] = serde_json::json!({
-            "coverage": "authenticated_byte_composition_pending_semantic_admission",
-            "authored_manifest_sha256": selection.authored_manifest_sha256.to_hex(),
-            "generated_declaration_sha256": generated_declaration_digest_v1(&profile, templates.manifest_sha256)?.to_hex(),
-            "auxiliary_members_sha256": auxiliary_members_digest_v1(selection).to_hex(),
-            "generated_record_count": profile.target_records,
-            "auxiliary_member_count": auxiliary_count,
-            "auxiliary_source_bytes": auxiliary_bytes,
-        });
-        profile_bytes = canonical_value_bytes_v1(&value)?;
-    }
-    if profile_bytes.len() > SCALE_MAX_PROFILE_BYTES_V1 {
-        return Err(io_invalid(
-            "effective weighted profile exceeds sidecar bound",
-        ));
-    }
-    let profile_sha256 = Digest256::of_bytes(&profile_bytes);
 
     create_private_dir_v1(request.output_root)?;
     let held_root = open_private_dir_v1(request.output_root)?;
@@ -4192,32 +7124,132 @@ fn produce_weighted_scale_input_composed_v1(
     )?;
     let spool_path = scratch_path.join("payload.spool");
     let mut spool = open_new_private_file_v1(&spool_path)?;
-    let raw_input_reserved = request
-        .tree_io
-        .reserve_file_allocation(raw_allocation_upper)
-        .map_err(|_| io_invalid("weighted raw input allocation reservation refused"))?;
-    let mut raw_fixture = match RawScaleFixtureV1::new(
-        request.raw_input_root,
-        raw_input_reserved,
-        total_members,
-        raw_directory_upper,
-        request.max_raw_input_files,
-        request.max_raw_input_directories,
-        request.max_raw_input_allocated_bytes,
-    ) {
-        Ok(raw) => raw,
-        Err(error) => {
-            let _ = request.tree_io.release_file_allocation(raw_input_reserved);
-            return Err(error);
+    let mut raw_fixture = if let Some(raw_root) = request.raw_input_root {
+        let reserved = request
+            .tree_io
+            .reserve_file_allocation(raw_allocation_upper)
+            .map_err(|_| io_invalid("weighted raw input allocation reservation refused"))?;
+        match RawScaleFixtureV1::new(
+            raw_root,
+            reserved,
+            total_members,
+            raw_directory_upper,
+            request.max_raw_input_files,
+            request.max_raw_input_directories,
+            request.max_raw_input_allocated_bytes,
+        ) {
+            Ok(raw) => Some(raw),
+            Err(error) => {
+                let _ = request.tree_io.release_file_allocation(reserved);
+                return Err(error);
+            }
         }
+    } else {
+        None
     };
     let mut digest_runs = DigestRunWriterV1::new(SCALE_SORT_RUN_ROWS_V1)?;
+    let two_phase = templates.artifact_recipe.is_some();
+    if two_phase {
+        if raw_fixture.is_some() {
+            return Err(io_invalid(
+                "Artifact output phases require packed-only representation",
+            ));
+        }
+        let artifact_count = profile.classes[WeightedScaleClassV1::Artifact as usize].count;
+        let phase_one_count = artifact_phase_one_member_count_v1(
+            profile.target_records,
+            artifact_count,
+            auxiliary_count,
+        )?;
+        let immutable_recipe = templates
+            .artifact_recipe
+            .as_ref()
+            .ok_or_else(|| io_invalid("Artifact output recipe absent"))?
+            .selection
+            .immutable_digest()?;
+        let phase_state = request
+            .max_working_state_bytes
+            .checked_sub(request.caller_live_state_bytes)
+            .and_then(|n| n.checked_sub(producer_state))
+            .ok_or_else(|| io_invalid("Artifact output phase state exhausted"))?;
+        for phase in [ScalePhysicalPhaseV2::NonEvent, ScalePhysicalPhaseV2::Event] {
+            let observation = if phase == ScalePhysicalPhaseV2::NonEvent {
+                Some(WeightedScaleArtifactOutputPhaseV1::begin(
+                    immutable_recipe,
+                    profile.seed,
+                )?)
+            } else {
+                None
+            };
+            let mut observation = observation;
+            let baseline = scratch.spool_logical_bytes;
+            let expected = if phase == ScalePhysicalPhaseV2::NonEvent {
+                phase_one_count
+            } else {
+                artifact_count
+            };
+            {
+                let mut generated = WeightedScaleMemberIterV1::new(&profile, &templates)?;
+                let mut cursor = ComposedScaleMemberIterV1 {
+                    generated: &mut generated,
+                    auxiliary,
+                    auxiliary_index: 0,
+                    auxiliary_bytes: 0,
+                    support_ordinals: [0; 4],
+                    phase,
+                    observation: templates.output_observation.as_ref(),
+                    member_count: 0,
+                    source_bytes: 0,
+                    repository_root: request.repository_root,
+                    io: &io_budget,
+                    work: &request.work,
+                    deadline: request.deadline,
+                    cancelled: request.cancelled,
+                };
+                let mut rows = WeightedMemberTreeRowsV1 {
+                    cursor: &mut cursor,
+                    raw: None,
+                    write_payload: true,
+                    spool_baseline: baseline,
+                    output_phase: observation.as_mut(),
+                    available_phase_state: phase_state,
+                    spool: &mut spool,
+                    digest_runs: &mut digest_runs,
+                    scratch: &mut scratch,
+                    io: &io_budget,
+                    work: &request.work,
+                    deadline: request.deadline,
+                    cancelled: request.cancelled,
+                    expected_members: expected,
+                    max_member_bytes: request.max_member_bytes,
+                    max_source_bytes: request.max_source_bytes,
+                    max_raw_input_file_bytes: request.max_member_bytes,
+                    raw_io: &io_budget,
+                    raw_work: &request.work,
+                    raw_deadline: request.deadline,
+                    raw_cancelled: request.cancelled,
+                    max_key_bytes: request.member_tree_limits.max_key_bytes,
+                    max_temp_logical_bytes: request.max_temporary_logical_bytes,
+                    finished: false,
+                };
+                while rows.next_entry()?.is_some() {}
+                rows.ensure_finished()?;
+            }
+            if let Some(observation) = observation {
+                spool.sync_all()?;
+                templates.output_observation = Some(observation.finish(phase_one_count)?);
+            }
+        }
+    }
     let mut generated_cursor = WeightedScaleMemberIterV1::new(&profile, &templates)?;
     let mut member_cursor = ComposedScaleMemberIterV1 {
         generated: &mut generated_cursor,
         auxiliary,
         auxiliary_index: 0,
         auxiliary_bytes: 0,
+        support_ordinals: [0; 4],
+        phase: ScalePhysicalPhaseV2::All,
+        observation: templates.output_observation.as_ref(),
         member_count: 0,
         source_bytes: 0,
         repository_root: request.repository_root,
@@ -4228,7 +7260,11 @@ fn produce_weighted_scale_input_composed_v1(
     };
     let mut member_rows = WeightedMemberTreeRowsV1 {
         cursor: &mut member_cursor,
-        raw: &mut raw_fixture,
+        raw: raw_fixture.as_mut(),
+        write_payload: !two_phase,
+        spool_baseline: 0,
+        output_phase: None,
+        available_phase_state: 0,
         spool: &mut spool,
         digest_runs: &mut digest_runs,
         scratch: &mut scratch,
@@ -4282,8 +7318,13 @@ fn produce_weighted_scale_input_composed_v1(
     let class_source_bytes = member_rows.cursor.class_source_bytes();
     let closure = member_rows.cursor.closure().clone();
     drop(member_rows);
-    let raw_input = raw_fixture.finish(&request.tree_io)?;
-    if raw_input.file_count != member_count || raw_input.source_bytes != source_bytes {
+    let raw_input = raw_fixture
+        .map(|raw| raw.finish(&request.tree_io))
+        .transpose()?;
+    if raw_input
+        .as_ref()
+        .is_some_and(|raw| raw.file_count != member_count || raw.source_bytes != source_bytes)
+    {
         return Err(io_invalid(
             "raw source fixture differs from indexed member census",
         ));
@@ -4358,6 +7399,46 @@ fn produce_weighted_scale_input_composed_v1(
         .map_err(|_| io_invalid("object descriptor encoding failed"))?;
     let members_descriptor_sha256 = Digest256::of_bytes(&members_bytes);
     let objects_descriptor_sha256 = Digest256::of_bytes(&objects_bytes);
+    let mut profile_bytes = effective_profile_bytes_v1(&profile, base_profile_sha256, &forecast)?;
+    if let Some(selection) = &templates.claim_selection {
+        let mut value: serde_json::Value = serde_json::from_slice(&profile_bytes)
+            .map_err(|_| io_invalid("selected Claim profile decoding failed"))?;
+        value["claim_template_selection"] = selection.profile_value();
+        profile_bytes = canonical_value_bytes_v1(&value)?;
+    }
+    if let Some(selection) = completed_artifact_selection_v2(&templates)? {
+        let mut value: serde_json::Value = serde_json::from_slice(&profile_bytes)
+            .map_err(|_| io_invalid("Artifact profile decoding failed"))?;
+        value["artifact_template_selection"] = selection;
+        profile_bytes = canonical_value_bytes_v1(&value)?;
+    }
+    if let Some(selection) = auxiliary {
+        let mut value: serde_json::Value = serde_json::from_slice(&profile_bytes)
+            .map_err(|_| io_invalid("composed profile decoding failed"))?;
+        value["authored_aux_selection"] = serde_json::json!({
+            "coverage": "authenticated_byte_composition_pending_semantic_admission",
+            "authored_manifest_sha256": selection.authored_manifest_sha256.to_hex(),
+            "generated_declaration_sha256": generated_declaration_digest_selected_v2(&profile, &templates)?.to_hex(),
+            "auxiliary_members_sha256": auxiliary_members_digest_v1(selection).to_hex(),
+            "generated_record_count": profile.target_records,
+            "auxiliary_member_count": auxiliary_count,
+            "auxiliary_source_bytes": auxiliary_bytes,
+        });
+        if two_phase {
+            value["authored_aux_selection"]["generated_support_member_count"] =
+                serde_json::json!(artifact_support_member_count_v1(
+                    profile.classes[WeightedScaleClassV1::Artifact as usize].count
+                )?);
+        }
+        profile_bytes = canonical_value_bytes_v1(&value)?;
+    }
+    if profile_bytes.len() > SCALE_MAX_PROFILE_BYTES_V1 {
+        return Err(io_invalid(
+            "effective weighted profile exceeds sidecar bound",
+        ));
+    }
+    let profile_sha256 = Digest256::of_bytes(&profile_bytes);
+
     let closure_bytes = dependency_closure_bytes_v1(profile_sha256, &closure)?;
     if closure_bytes.len() > SCALE_MAX_CLOSURE_BYTES_V1 || closure.unresolved_dependency_edges != 0
     {
@@ -4405,12 +7486,18 @@ fn produce_weighted_scale_input_composed_v1(
     let composition = match auxiliary {
         Some(selection) => Some(WeightedScaleCompositionBindingV1 {
             authored_manifest_sha256: selection.authored_manifest_sha256,
-            generated_declaration_sha256: generated_declaration_digest_v1(
-                &profile,
-                templates.manifest_sha256,
+            generated_declaration_sha256: generated_declaration_digest_selected_v2(
+                &profile, &templates,
             )?,
             auxiliary_members_sha256: auxiliary_members_digest_v1(selection),
             generated_record_count: profile.target_records,
+            generated_support_member_count: if two_phase {
+                artifact_support_member_count_v1(
+                    profile.classes[WeightedScaleClassV1::Artifact as usize].count,
+                )?
+            } else {
+                0
+            },
             auxiliary_member_count: auxiliary_count,
             auxiliary_source_bytes: auxiliary_bytes,
             members_descriptor_sha256,
@@ -4444,6 +7531,10 @@ fn produce_weighted_scale_input_composed_v1(
             "auxiliary_source_bytes": binding.auxiliary_source_bytes,
             "members_descriptor_sha256": binding.members_descriptor_sha256.to_hex(),
         });
+        if two_phase {
+            value["authored_aux_composition"]["generated_support_member_count"] =
+                serde_json::json!(binding.generated_support_member_count);
+        }
         manifest_bytes = canonical_value_bytes_v1(&value)?;
     }
     if manifest_bytes.len() > SCALE_MAX_MANIFEST_BYTES_V1 {
@@ -4468,22 +7559,30 @@ fn produce_weighted_scale_input_composed_v1(
         &request.work,
     )?;
     verify_private_directory_v1(request.output_root, &held_root, root_stamp)?;
-    verify_private_directory_v1(
-        request.raw_input_root,
-        &raw_input.held_root,
-        raw_input.root_stamp,
-    )?;
+    let raw_input = if let Some(raw) = raw_input {
+        let root = request
+            .raw_input_root
+            .ok_or_else(|| io_invalid("raw receipt root absent"))?;
+        verify_private_directory_v1(root, &raw.held_root, raw.root_stamp)?;
+        Some(RawScaleInputReceiptV1 {
+            raw_input_root: root.to_path_buf(),
+            held_raw_input_root: raw.held_root,
+            raw_input_file_count: raw.file_count,
+            raw_input_directory_count: raw.directory_count,
+            raw_input_inode_count: raw
+                .file_count
+                .checked_add(raw.directory_count)
+                .ok_or_else(|| io_invalid("raw source inode count overflow"))?,
+            raw_input_source_bytes: raw.source_bytes,
+            raw_input_allocated_bytes: raw.allocated_bytes,
+        })
+    } else {
+        None
+    };
     Ok(PackedScaleInputReceiptV1 {
-        raw_input_root: request.raw_input_root.to_path_buf(),
-        held_raw_input_root: raw_input.held_root,
-        raw_input_file_count: raw_input.file_count,
-        raw_input_directory_count: raw_input.directory_count,
-        raw_input_inode_count: raw_input
-            .file_count
-            .checked_add(raw_input.directory_count)
-            .ok_or_else(|| io_invalid("raw source inode count overflow"))?,
-        raw_input_source_bytes: raw_input.source_bytes,
-        raw_input_allocated_bytes: raw_input.allocated_bytes,
+        representation: request.representation,
+        raw_input,
+        source_recipe: templates.fixture_recipe_source.take(),
         named_root: request.output_root.to_path_buf(),
         held_root,
         segment,
@@ -4895,12 +7994,31 @@ fn weighted_producer_state_upper_v1(
             }
         }
     }
-    let template_bytes = usize::try_from(templates.resident_template_bytes)
-        .map_err(|_| io_invalid("weighted template state exceeds address space"))?;
-    let reference_state = usize::try_from(templates.resident_reference_state_bytes)
-        .map_err(|_| io_invalid("weighted reference state exceeds address space"))?;
-    template_bytes
-        .checked_add(reference_state)
+    let selection_state = templates
+        .claim_selection
+        .as_ref()
+        .map_or(Ok(0), |s| s.retained_state_bytes())?;
+    let artifact_state = templates.artifact_recipe.as_ref().map_or(Ok(0), |r| {
+        r.retained_state_bytes()?
+            .checked_sub(size_of::<WeightedScaleLoadedArtifactRecipeV1>())
+            .ok_or_else(|| io_invalid("Artifact recipe inline state differs"))
+    })?;
+    let recipe_source_state = templates
+        .fixture_recipe_source
+        .as_ref()
+        .map_or(0, |r| r.source_path.capacity());
+    template_array_retained_state_v1(&templates.templates)?
+        .checked_add(selection_state)
+        .and_then(|bytes| bytes.checked_add(artifact_state))
+        .and_then(|bytes| {
+            artifact_state
+                .checked_mul(4)
+                .and_then(|n| bytes.checked_add(n))
+        })
+        .and_then(|bytes| bytes.checked_add(recipe_source_state))
+        .and_then(|bytes| {
+            bytes.checked_add(size_of::<WeightedScaleArtifactOutputObservationV1>() + 60)
+        })
         .and_then(|bytes| bytes.checked_add(closure_key_state))
         .and_then(|bytes| bytes.checked_add(run_state))
         .and_then(|bytes| bytes.checked_add(SCALE_SORT_RUN_ROWS_V1 * size_of::<DigestRunEntryV1>()))
@@ -5206,11 +8324,20 @@ struct ComposedScaleMemberV1 {
     mode: u32,
     generated: bool,
 }
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ScalePhysicalPhaseV2 {
+    All,
+    NonEvent,
+    Event,
+}
 struct ComposedScaleMemberIterV1<'a, 'profile> {
     generated: &'a mut WeightedScaleMemberIterV1<'profile>,
     auxiliary: Option<&'a WeightedScaleAuthoredAuxSelectionV1>,
     auxiliary_index: usize,
     auxiliary_bytes: u64,
+    support_ordinals: [u64; 4],
+    phase: ScalePhysicalPhaseV2,
+    observation: Option<&'a WeightedScaleArtifactOutputObservationV1>,
     member_count: u64,
     source_bytes: u64,
     repository_root: &'a Path,
@@ -5234,39 +8361,96 @@ impl ComposedScaleMemberIterV1<'_, '_> {
     }
     fn next_member(&mut self) -> std::io::Result<Option<ComposedScaleMemberV1>> {
         scale_active(self.deadline, self.cancelled)?;
-        let next_generated = self
-            .generated
-            .profile
-            .classes
-            .iter()
-            .enumerate()
-            .skip(self.generated.class_index)
-            .find(|(index, row)| {
-                let ordinal = if *index == self.generated.class_index {
-                    self.generated.ordinal
-                } else {
-                    0
-                };
-                ordinal < row.count
-            })
-            .map(|(index, row)| {
-                path_for(
-                    row.class,
-                    if index == self.generated.class_index {
+        let next_generated = if self.phase == ScalePhysicalPhaseV2::Event {
+            None
+        } else {
+            self.generated
+                .profile
+                .classes
+                .iter()
+                .enumerate()
+                .skip(self.generated.class_index)
+                .find(|(index, row)| {
+                    let ordinal = if *index == self.generated.class_index {
                         self.generated.ordinal
                     } else {
                         0
-                    },
-                )
-            });
-        let next_aux = self
-            .auxiliary
-            .and_then(|s| s.members.get(self.auxiliary_index));
+                    };
+                    ordinal < row.count
+                })
+                .map(|(index, row)| {
+                    path_for(
+                        row.class,
+                        if index == self.generated.class_index {
+                            self.generated.ordinal
+                        } else {
+                            0
+                        },
+                    )
+                })
+        };
+        let next_aux = if self.phase == ScalePhysicalPhaseV2::Event {
+            None
+        } else {
+            self.auxiliary
+                .and_then(|s| s.members.get(self.auxiliary_index))
+        };
+        let artifact_count =
+            self.generated.profile.classes[WeightedScaleClassV1::Artifact as usize].count;
+        let next_support = if self.generated.templates.artifact_recipe.is_some() {
+            WeightedScaleArtifactSupportRoleV1::ALL
+                .into_iter()
+                .enumerate()
+                .filter(|(index, role)| {
+                    self.support_ordinals[*index] < artifact_count
+                        && match self.phase {
+                            ScalePhysicalPhaseV2::All => true,
+                            ScalePhysicalPhaseV2::NonEvent => role.is_phase_one(),
+                            ScalePhysicalPhaseV2::Event => !role.is_phase_one(),
+                        }
+                })
+                .map(|(index, role)| (role.path(self.support_ordinals[index]), index, role))
+                .min_by(|a, b| a.0.cmp(&b.0))
+        } else {
+            None
+        };
+        if next_support.as_ref().is_some_and(|(path, _, _)| {
+            next_generated.as_ref() == Some(path) || next_aux.is_some_and(|a| &a.path == path)
+        }) {
+            return Err(io_invalid("generated support and selected paths collide"));
+        }
+        let take_support = next_support.as_ref().is_some_and(|(path, _, _)| {
+            next_generated.as_ref().is_none_or(|g| path < g)
+                && next_aux.is_none_or(|a| path < &a.path)
+        });
+
         if next_aux.is_some_and(|aux| next_generated.as_ref().is_some_and(|g| *g == aux.path)) {
             return Err(io_invalid("composed generated and auxiliary paths collide"));
         }
-        let member = if next_aux
-            .is_some_and(|aux| next_generated.as_ref().is_none_or(|g| aux.path < *g))
+        let member = if take_support {
+            let (path, index, role) =
+                next_support.ok_or_else(|| io_invalid("support cursor differs"))?;
+            let ordinal = self.support_ordinals[index];
+            let mut bytes = Vec::new();
+            write_fixture_support_v2(
+                &mut bytes,
+                self.generated.profile,
+                self.generated.templates,
+                role,
+                ordinal,
+                self.observation,
+            )?;
+            self.support_ordinals[index] = ordinal
+                .checked_add(1)
+                .ok_or_else(|| io_invalid("support ordinal overflow"))?;
+            ComposedScaleMemberV1 {
+                path,
+                digest: Digest256::of_bytes(&bytes),
+                source_bytes: bytes,
+                mode: 0o644,
+                generated: false,
+            }
+        } else if next_aux.is_some_and(|aux| next_generated.as_ref().is_none_or(|g| aux.path < *g))
         {
             let aux = next_aux.ok_or_else(|| io_invalid("authored auxiliary cursor differs"))?;
             let bytes = read_authored_aux_member_v1(
@@ -5289,7 +8473,11 @@ impl ComposedScaleMemberIterV1<'_, '_> {
                 mode: 0o644,
                 generated: false,
             }
-        } else if let Some(generated) = self.generated.next_member()? {
+        } else if let Some(generated) = if self.phase == ScalePhysicalPhaseV2::Event {
+            None
+        } else {
+            self.generated.next_member()?
+        } {
             ComposedScaleMemberV1 {
                 path: generated.path,
                 digest: generated.digest,
@@ -5298,11 +8486,12 @@ impl ComposedScaleMemberIterV1<'_, '_> {
                 generated: true,
             }
         } else {
-            if self.generated.member_count() != self.generated.profile.target_records
-                || self.auxiliary.is_some_and(|s| {
-                    self.auxiliary_index != s.members.len()
-                        || self.auxiliary_bytes != s.source_bytes
-                })
+            if self.phase != ScalePhysicalPhaseV2::Event
+                && (self.generated.member_count() != self.generated.profile.target_records
+                    || self.auxiliary.is_some_and(|s| {
+                        self.auxiliary_index != s.members.len()
+                            || self.auxiliary_bytes != s.source_bytes
+                    }))
             {
                 return Err(io_invalid("composed cursor EOF differs"));
             }
@@ -5414,7 +8603,11 @@ fn read_authored_aux_member_v1(
 
 struct WeightedMemberTreeRowsV1<'a, 'source, 'profile> {
     cursor: &'a mut ComposedScaleMemberIterV1<'source, 'profile>,
-    raw: &'a mut RawScaleFixtureV1,
+    raw: Option<&'a mut RawScaleFixtureV1>,
+    write_payload: bool,
+    spool_baseline: u64,
+    output_phase: Option<&'a mut WeightedScaleArtifactOutputPhaseV1>,
+    available_phase_state: usize,
     spool: &'a mut File,
     digest_runs: &'a mut DigestRunWriterV1,
     scratch: &'a mut ScaleScratchLeaseV1,
@@ -5439,7 +8632,12 @@ impl WeightedMemberTreeRowsV1<'_, '_, '_> {
     fn ensure_finished(&self) -> std::io::Result<()> {
         if !self.finished
             || self.cursor.member_count() != self.expected_members
-            || self.cursor.source_bytes() != self.scratch.spool_logical_bytes
+            || self.cursor.source_bytes()
+                != self
+                    .scratch
+                    .spool_logical_bytes
+                    .checked_sub(self.spool_baseline)
+                    .ok_or_else(|| io_invalid("weighted spool phase baseline differs"))?
         {
             return Err(io_invalid(
                 "weighted member cursor did not reach verified EOF",
@@ -5475,7 +8673,7 @@ impl WeightedMemberTreeRowsV1<'_, '_, '_> {
         let source_total = self
             .cursor
             .source_bytes()
-            .checked_add(0)
+            .checked_add(self.spool_baseline)
             .ok_or_else(|| io_invalid("weighted member total overflow"))?;
         if source_total > self.max_source_bytes {
             return Err(io_invalid("weighted source bytes exceed selected cap"));
@@ -5485,38 +8683,54 @@ impl WeightedMemberTreeRowsV1<'_, '_, '_> {
                 "weighted raw source member exceeds selected file cap",
             ));
         }
-        self.raw.write_member(
-            &member,
-            self.raw_io,
-            self.raw_work,
-            self.raw_deadline,
-            self.raw_cancelled,
-        )?;
-        self.scratch
-            .reserve_spool_bytes(size, self.max_temp_logical_bytes)?;
-        let offset = self.scratch.spool_logical_bytes;
-        write_all_accounted_v1(
-            self.spool,
-            &member.source_bytes,
-            self.io,
-            self.deadline,
-            self.cancelled,
-            self.work,
-        )?;
-        self.scratch.record_spool_write(self.spool, size)?;
-        self.digest_runs.push(
-            DigestRunEntryV1 {
-                digest: *member.digest.as_bytes(),
-                size,
-                offset,
-            },
-            self.scratch,
-            self.spool,
-            self.io,
-            self.work,
-            self.deadline,
-            self.cancelled,
-        )?;
+        if let Some(raw) = self.raw.as_deref_mut() {
+            raw.write_member(
+                &member,
+                self.raw_io,
+                self.raw_work,
+                self.raw_deadline,
+                self.raw_cancelled,
+            )?;
+        }
+        if self.write_payload {
+            self.scratch
+                .reserve_spool_bytes(size, self.max_temp_logical_bytes)?;
+            let offset = self.scratch.spool_logical_bytes;
+            write_all_accounted_v1(
+                self.spool,
+                &member.source_bytes,
+                self.io,
+                self.deadline,
+                self.cancelled,
+                self.work,
+            )?;
+            self.scratch.record_spool_write(self.spool, size)?;
+            self.digest_runs.push(
+                DigestRunEntryV1 {
+                    digest: *member.digest.as_bytes(),
+                    size,
+                    offset,
+                },
+                self.scratch,
+                self.spool,
+                self.io,
+                self.work,
+                self.deadline,
+                self.cancelled,
+            )?;
+            // Observe completed writes only. The event phase is rendered from
+            // this bounded post-write fold; it cannot issue its own outcome.
+            if let Some(phase) = self.output_phase.as_deref_mut() {
+                phase.observe_written(
+                    &member.path,
+                    member.digest,
+                    size,
+                    self.available_phase_state,
+                )?;
+            }
+        } else if self.output_phase.is_some() || self.raw.is_some() {
+            return Err(io_invalid("member-tree replay cannot issue output writes"));
+        }
         let mut value = [0u8; SCALE_MEMBER_VALUE_BYTES_V1];
         value[..32].copy_from_slice(member.digest.as_bytes());
         value[32..40].copy_from_slice(&size.to_be_bytes());
@@ -6060,36 +9274,98 @@ fn read_source_file_accounted_v1(
 ) -> std::io::Result<Vec<u8>> {
     scale_active(deadline, cancelled)?;
     work.charge_many(1)?;
-    let metadata = fs::symlink_metadata(path)?;
-    if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() > max_bytes as u64
-    {
+    let parent_path = path
+        .parent()
+        .ok_or_else(|| io_invalid("weighted source parent absent"))?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| io_invalid("weighted source filename absent"))?;
+    let parent = tos_fd_open::open_absolute_directory(parent_path).map_err(std::io::Error::other)?;
+    let parent_before = parent.metadata()?;
+    let file = tos_fd_open::open_regular_at(&parent, Path::new(name)).map_err(std::io::Error::other)?;
+    let before = file.metadata()?;
+    let expected = usize::try_from(before.len())
+        .map_err(|_| io_invalid("weighted source size exceeds usize"))?;
+    if !before.is_file() || expected > max_bytes {
         return Err(io_invalid(
             "weighted source input is not a bounded regular file",
         ));
     }
-    let file = OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK)
-        .open(path)?;
-    io.charge_read(metadata.len())
-        .map_err(|_| io_invalid("weighted source input read budget exhausted"))?;
     let mut bytes = Vec::new();
     bytes
-        .try_reserve_exact(metadata.len() as usize)
+        .try_reserve_exact(expected)
         .map_err(|_| io_invalid("weighted source input allocation failed"))?;
-    let mut reader = file;
-    let mut buffer = [0u8; 64 * 1024];
+    // A real one-byte probe at the selected length proves EOF. Never extend the
+    // owned buffer with probe bytes or file growth beyond the selected frame.
+    let mut block = [0u8; 64 * 1024];
     loop {
         scale_active(deadline, cancelled)?;
-        let read = reader.read(&mut buffer)?;
-        if read == 0 {
+        work.charge_many(1)?;
+        let remaining = expected
+            .checked_sub(bytes.len())
+            .ok_or_else(|| io_invalid("weighted source input size overflow"))?;
+        let wanted = if remaining == 0 {
+            1
+        } else {
+            remaining.min(block.len())
+        };
+        io.charge_read(wanted as u64)
+            .map_err(|_| io_invalid("weighted source input read budget exhausted"))?;
+        let returned = file.read_at(&mut block[..wanted], bytes.len() as u64);
+        // Earlier successful prefixes have already been recorded if this
+        // syscall fails; an error itself returns no bytes.
+        let count = match returned {
+            Ok(count) => count,
+            Err(error) => {
+                io.record_read_returned(0)
+                    .map_err(|_| io_invalid("weighted source input read accounting failed"))?;
+                return Err(error);
+            }
+        };
+        io.record_read_returned(count as u64)
+            .map_err(|_| io_invalid("weighted source input read accounting failed"))?;
+        if count == 0 {
             break;
         }
-        bytes.extend_from_slice(&buffer[..read]);
+        if count > remaining {
+            return Err(io_invalid(
+                "weighted source input grew beyond selected allocation",
+            ));
+        }
+        bytes.extend_from_slice(&block[..count]);
     }
-    io.record_read_returned(bytes.len() as u64)
-        .map_err(|_| io_invalid("weighted source input read accounting failed"))?;
-    if bytes.len() as u64 != metadata.len() || reader.metadata()?.len() != metadata.len() {
+    let stamp = |m: &fs::Metadata| {
+        (
+            m.dev(),
+            m.ino(),
+            m.mode(),
+            m.uid(),
+            m.len(),
+            m.mtime(),
+            m.mtime_nsec(),
+            m.ctime(),
+            m.ctime_nsec(),
+        )
+    };
+    let after = file.metadata()?;
+    let current_parent = tos_fd_open::open_absolute_directory(parent_path).map_err(std::io::Error::other)?;
+    let parent_after = current_parent.metadata()?;
+    let current = tos_fd_open::open_regular_at(&current_parent, Path::new(name)).map_err(std::io::Error::other)?;
+    if bytes.len() != expected
+        || stamp(&before) != stamp(&after)
+        || stamp(&before) != stamp(&current.metadata()?)
+        || (
+            parent_before.dev(),
+            parent_before.ino(),
+            parent_before.mode(),
+            parent_before.uid(),
+        ) != (
+            parent_after.dev(),
+            parent_after.ino(),
+            parent_after.mode(),
+            parent_after.uid(),
+        )
+    {
         return Err(io_invalid("weighted source input changed while reading"));
     }
     Ok(bytes)

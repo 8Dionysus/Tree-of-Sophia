@@ -16,7 +16,7 @@ use std::{
     fs::{self, File},
     io::{self, Read, Seek, SeekFrom, Write},
     mem::size_of,
-    os::unix::fs::MetadataExt,
+    os::unix::fs::{FileExt, MetadataExt},
     path::{Path, PathBuf},
     rc::Rc,
     sync::{Arc, atomic::AtomicBool},
@@ -89,7 +89,7 @@ pub(crate) struct IndexedInputSelectionV1 {
 
 /// Generated declaration issued only from the held manifest/profile reader.
 /// This is byte provenance, not a semantic reference-resolution verdict.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub(crate) struct SelectedGeneratedDeclarationV1 {
     seed_sha256: Digest256,
     template_manifest_sha256: Digest256,
@@ -97,6 +97,9 @@ pub(crate) struct SelectedGeneratedDeclarationV1 {
     generated_declaration_sha256: Digest256,
     generated_record_count: u64,
     class_counts: [u64; 5],
+    class_dimensions: [[u64; 3]; 5],
+    claim_template_selection: Option<SelectedClaimTemplateSelectionV1>,
+    artifact_template_selection: Option<SelectedArtifactTemplateSelectionV1>,
     composition: IndexedInputCompositionV1,
     // Private issuer field prevents a caller-created declaration from replacing
     // the one authenticated by this input reader.
@@ -125,8 +128,262 @@ impl SelectedGeneratedDeclarationV1 {
     pub(crate) fn class_counts(&self) -> [u64; 5] {
         self.class_counts
     }
+    pub(crate) fn class_dimensions(&self) -> [[u64; 3]; 5] {
+        self.class_dimensions
+    }
+    pub(crate) fn claim_template_selection(&self) -> Option<&SelectedClaimTemplateSelectionV1> {
+        self.claim_template_selection.as_ref()
+    }
+    pub(crate) fn artifact_template_selection(
+        &self,
+    ) -> Option<&SelectedArtifactTemplateSelectionV1> {
+        self.artifact_template_selection.as_ref()
+    }
     pub(crate) fn composition(&self) -> IndexedInputCompositionV1 {
         self.composition
+    }
+}
+
+/// Owned selected row provenance, issued only by the protected profile parser.
+#[derive(Debug)]
+pub(crate) struct SelectedClaimTemplateRowV1 {
+    source_path: String,
+    source_sha256: Digest256,
+    source_line: u64,
+    template_sha256: Digest256,
+    template_bytes: u64,
+}
+impl SelectedClaimTemplateRowV1 {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+    pub(crate) fn source_sha256(&self) -> Digest256 {
+        self.source_sha256
+    }
+    pub(crate) fn source_line(&self) -> u64 {
+        self.source_line
+    }
+    pub(crate) fn template_sha256(&self) -> Digest256 {
+        self.template_sha256
+    }
+    pub(crate) fn template_bytes(&self) -> u64 {
+        self.template_bytes
+    }
+}
+#[derive(Debug)]
+pub(crate) struct SelectedGeneratorAgentSelectionV1 {
+    source_path: String,
+    source_sha256: Digest256,
+    record_id: String,
+}
+impl SelectedGeneratorAgentSelectionV1 {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+    pub(crate) fn source_sha256(&self) -> Digest256 {
+        self.source_sha256
+    }
+    pub(crate) fn record_id(&self) -> &str {
+        &self.record_id
+    }
+}
+#[derive(Debug)]
+pub(crate) struct SelectedClaimTemplateSelectionV1 {
+    relation_registry_sha256: Digest256,
+    relation_type_id: String,
+    subject_class: String,
+    templates: [SelectedClaimTemplateRowV1; 3],
+    generator_agent: SelectedGeneratorAgentSelectionV1,
+    claim_dimensions: [u64; 3],
+}
+impl SelectedClaimTemplateSelectionV1 {
+    pub(crate) fn route(
+        &self,
+    ) -> super::source_capacity_workload::WeightedScaleClaimTemplateRouteV1 {
+        super::source_capacity_workload::WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1
+    }
+    pub(crate) fn relation_registry_sha256(&self) -> Digest256 {
+        self.relation_registry_sha256
+    }
+    pub(crate) fn relation_type_id(&self) -> &str {
+        &self.relation_type_id
+    }
+    pub(crate) fn subject_class(&self) -> &str {
+        &self.subject_class
+    }
+    pub(crate) fn templates(&self) -> &[SelectedClaimTemplateRowV1; 3] {
+        &self.templates
+    }
+    pub(crate) fn generator_agent(&self) -> &SelectedGeneratorAgentSelectionV1 {
+        &self.generator_agent
+    }
+    pub(crate) fn claim_dimensions(&self) -> [u64; 3] {
+        self.claim_dimensions
+    }
+    fn owned_state_bytes(&self) -> io::Result<usize> {
+        self.templates.iter().try_fold(
+            self.relation_type_id
+                .capacity()
+                .checked_add(self.subject_class.capacity())
+                .and_then(|n| n.checked_add(self.generator_agent.source_path.capacity()))
+                .and_then(|n| n.checked_add(self.generator_agent.record_id.capacity()))
+                .ok_or_else(|| invalid("selected Claim state overflow"))?,
+            |bytes, row| {
+                bytes
+                    .checked_add(row.source_path.capacity())
+                    .ok_or_else(|| invalid("selected Claim state overflow"))
+            },
+        )
+    }
+}
+fn declaration_owned_state_v1(value: Option<&SelectedGeneratedDeclarationV1>) -> io::Result<usize> {
+    let Some(value) = value else {
+        return Ok(0);
+    };
+    let claim = value
+        .claim_template_selection
+        .as_ref()
+        .map_or(Ok(0), SelectedClaimTemplateSelectionV1::owned_state_bytes)?;
+    let artifact = value.artifact_template_selection.as_ref().map_or(
+        Ok(0),
+        SelectedArtifactTemplateSelectionV1::owned_state_bytes,
+    )?;
+    claim
+        .checked_add(artifact)
+        .ok_or_else(|| invalid("selected declaration state overflow"))
+}
+
+#[derive(Debug)]
+pub(crate) struct SelectedArtifactPinnedSourceV1 {
+    source_path: String,
+    source_sha256: Digest256,
+    source_bytes: u64,
+}
+impl SelectedArtifactPinnedSourceV1 {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+    pub(crate) fn source_sha256(&self) -> Digest256 {
+        self.source_sha256
+    }
+    pub(crate) fn source_bytes(&self) -> u64 {
+        self.source_bytes
+    }
+}
+#[derive(Debug)]
+pub(crate) struct SelectedArtifactTemplateRowV1 {
+    source_path: String,
+    source_sha256: Digest256,
+    template_sha256: Digest256,
+    template_bytes: u64,
+}
+impl SelectedArtifactTemplateRowV1 {
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+    pub(crate) fn source_sha256(&self) -> Digest256 {
+        self.source_sha256
+    }
+    pub(crate) fn template_sha256(&self) -> Digest256 {
+        self.template_sha256
+    }
+    pub(crate) fn template_bytes(&self) -> u64 {
+        self.template_bytes
+    }
+}
+#[derive(Debug)]
+pub(crate) struct SelectedArtifactOutputObservationV1 {
+    started_at: String,
+    ended_at: String,
+    member_count: u64,
+    source_bytes: u64,
+    ordered_output_sha256: Digest256,
+}
+impl SelectedArtifactOutputObservationV1 {
+    pub(crate) fn started_at(&self) -> &str {
+        &self.started_at
+    }
+    pub(crate) fn ended_at(&self) -> &str {
+        &self.ended_at
+    }
+    pub(crate) fn member_count(&self) -> u64 {
+        self.member_count
+    }
+    pub(crate) fn source_bytes(&self) -> u64 {
+        self.source_bytes
+    }
+    pub(crate) fn ordered_output_sha256(&self) -> Digest256 {
+        self.ordered_output_sha256
+    }
+}
+#[derive(Debug)]
+pub(crate) struct SelectedArtifactTemplateSelectionV1 {
+    templates: [SelectedArtifactTemplateRowV1; 3],
+    rights_template: SelectedArtifactPinnedSourceV1,
+    discovery_template: SelectedArtifactPinnedSourceV1,
+    source_policy: SelectedArtifactPinnedSourceV1,
+    research: SelectedArtifactPinnedSourceV1,
+    resource_templates: [SelectedArtifactPinnedSourceV1; 3],
+    generated_at: String,
+    immutable_recipe_sha256: Digest256,
+    artifact_recipe_sha256: Digest256,
+    output_observation: SelectedArtifactOutputObservationV1,
+}
+impl SelectedArtifactTemplateSelectionV1 {
+    pub(crate) fn route(&self) -> &str {
+        "synthetic_repository_resource_v1"
+    }
+    pub(crate) fn templates(&self) -> &[SelectedArtifactTemplateRowV1; 3] {
+        &self.templates
+    }
+    pub(crate) fn rights_template(&self) -> &SelectedArtifactPinnedSourceV1 {
+        &self.rights_template
+    }
+    pub(crate) fn discovery_template(&self) -> &SelectedArtifactPinnedSourceV1 {
+        &self.discovery_template
+    }
+    pub(crate) fn source_policy(&self) -> &SelectedArtifactPinnedSourceV1 {
+        &self.source_policy
+    }
+    pub(crate) fn research(&self) -> &SelectedArtifactPinnedSourceV1 {
+        &self.research
+    }
+    pub(crate) fn resource_templates(&self) -> &[SelectedArtifactPinnedSourceV1; 3] {
+        &self.resource_templates
+    }
+    pub(crate) fn generated_at(&self) -> &str {
+        &self.generated_at
+    }
+    pub(crate) fn immutable_recipe_sha256(&self) -> Digest256 {
+        self.immutable_recipe_sha256
+    }
+    pub(crate) fn artifact_recipe_sha256(&self) -> Digest256 {
+        self.artifact_recipe_sha256
+    }
+    pub(crate) fn output_observation(&self) -> &SelectedArtifactOutputObservationV1 {
+        &self.output_observation
+    }
+    fn owned_state_bytes(&self) -> io::Result<usize> {
+        let mut bytes = self.generated_at.capacity();
+        for path in self
+            .templates
+            .iter()
+            .map(|r| &r.source_path)
+            .chain(self.resource_templates.iter().map(|r| &r.source_path))
+            .chain([
+                &self.rights_template.source_path,
+                &self.discovery_template.source_path,
+                &self.source_policy.source_path,
+                &self.research.source_path,
+                &self.output_observation.started_at,
+                &self.output_observation.ended_at,
+            ])
+        {
+            bytes = bytes
+                .checked_add(path.capacity())
+                .ok_or_else(|| invalid("selected Artifact state overflow"))?;
+        }
+        Ok(bytes)
     }
 }
 
@@ -137,12 +394,14 @@ pub(crate) struct IndexedInputCompositionV1 {
     pub(crate) generated_declaration_sha256: Digest256,
     pub(crate) auxiliary_members_sha256: Digest256,
     pub(crate) generated_record_count: u64,
+    pub(crate) generated_support_member_count: u64,
     pub(crate) auxiliary_member_count: u64,
     pub(crate) auxiliary_source_bytes: u64,
     pub(crate) members_descriptor_sha256: Digest256,
 }
 
 struct ParsedScaleInputManifestV1 {
+    generated_support_selected: bool,
     composition: Option<IndexedInputCompositionV1>,
     seed_sha256: Digest256,
     template_manifest_sha256: Digest256,
@@ -174,6 +433,7 @@ pub(crate) struct IndexedInputLimitsV1 {
 /// Optional explicit input selector for the same initial-cut operation. Its
 /// limits are selected by the caller from the existing Native V2 profile.
 pub(crate) struct IndexedInputRequestV1 {
+    pub(crate) held_declaration: Option<HeldIndexedInputDeclarationV1>,
     pub(crate) named_root: PathBuf,
     pub(crate) segment_limits: SegmentLimits,
     pub(crate) max_profile_bytes: usize,
@@ -412,7 +672,7 @@ impl DescriptorFile {
     }
 
     fn verify_stream_hashed(
-        &mut self,
+        &self,
         root: &File,
         max_bytes: usize,
         io_budget: &PinnedSqliteIoBudget,
@@ -442,7 +702,7 @@ impl DescriptorFile {
             return Err(invalid("indexed-input evidence name or stamp changed"));
         }
         let digest = hash_bounded_file(
-            &mut self.file,
+            &self.file,
             max_bytes,
             io_budget,
             deadline,
@@ -592,6 +852,146 @@ impl HeldIndexedInputDeclarationV1 {
         Ok(declaration)
     }
 
+    /// Emit only the early, reader-issued byte identity. Candidate EOF and
+    /// semantic admission remain separate and cannot be bound recursively.
+    pub(crate) fn write_identity_binding_v1(
+        &self,
+        output: &mut impl Write,
+        max_output_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> io::Result<usize> {
+        self.verify_original_owner_v1(&self.io_budget, deadline, cancelled)?;
+        if max_output_bytes == 0 || max_output_bytes == usize::MAX {
+            return Err(invalid("indexed-input identity output bound is not finite"));
+        }
+        let declaration = self.selected_generated_declaration_v1()?;
+        let composition = declaration.composition;
+        let mut output = IndexedIdentityWriterV1 {
+            output,
+            maximum: max_output_bytes,
+            written: 0,
+            work: &self.work,
+            deadline,
+            cancelled,
+        };
+        output.write_all(b"{\"composition\":{\"authored_manifest_sha256\":\"")?;
+        write_identity_digest_v1(&mut output, composition.authored_manifest_sha256)?;
+        write!(
+            output,
+            "\",\"auxiliary_member_count\":{},\"auxiliary_members_sha256\":\"",
+            composition.auxiliary_member_count
+        )?;
+        write_identity_digest_v1(&mut output, composition.auxiliary_members_sha256)?;
+        write!(
+            output,
+            "\",\"auxiliary_source_bytes\":{},\"generated_declaration_sha256\":\"",
+            composition.auxiliary_source_bytes
+        )?;
+        write_identity_digest_v1(&mut output, composition.generated_declaration_sha256)?;
+        write!(
+            output,
+            "\",\"generated_record_count\":{},\"members_descriptor_sha256\":\"",
+            composition.generated_record_count
+        )?;
+        write_identity_digest_v1(&mut output, composition.members_descriptor_sha256)?;
+        output.write_all(b"\"")?;
+        if declaration.artifact_template_selection.is_some() {
+            write!(
+                output,
+                ",\"generated_support_member_count\":{}",
+                composition.generated_support_member_count
+            )?;
+        }
+        output.write_all(b"},\"class_counts\":[")?;
+        for (index, count) in declaration.class_counts.iter().enumerate() {
+            if index != 0 {
+                output.write_all(b",")?;
+            }
+            write!(output, "{count}")?;
+        }
+        output.write_all(b"],\"class_dimensions\":[")?;
+        for (class_index, dimensions) in declaration.class_dimensions.iter().enumerate() {
+            if class_index != 0 {
+                output.write_all(b",")?;
+            }
+            output.write_all(b"[")?;
+            for (dimension_index, dimension) in dimensions.iter().enumerate() {
+                if dimension_index != 0 {
+                    output.write_all(b",")?;
+                }
+                write!(output, "{dimension}")?;
+            }
+            output.write_all(b"]")?;
+        }
+        output.write_all(b"],\"generated_declaration_sha256\":\"")?;
+        write_identity_digest_v1(&mut output, declaration.generated_declaration_sha256)?;
+        write!(
+            output,
+            "\",\"generated_record_count\":{},\"manifest_sha256\":\"",
+            declaration.generated_record_count
+        )?;
+        write_identity_digest_v1(&mut output, declaration.manifest_sha256)?;
+        output.write_all(b"\",\"profile_sha256\":\"")?;
+        write_identity_digest_v1(&mut output, declaration.profile_sha256)?;
+        output.write_all(b"\",\"seed_sha256\":\"")?;
+        write_identity_digest_v1(&mut output, declaration.seed_sha256)?;
+        output.write_all(b"\",\"template_manifest_sha256\":\"")?;
+        write_identity_digest_v1(&mut output, declaration.template_manifest_sha256)?;
+        output.write_all(b"\"")?;
+        if let Some(selected) = declaration.claim_template_selection.as_ref() {
+            output.write_all(b",\"claim_template_selection\":{\"claim_dimensions\":[")?;
+            for (index, dimension) in selected.claim_dimensions.iter().enumerate() {
+                if index != 0 {
+                    output.write_all(b",")?;
+                }
+                write!(output, "{dimension}")?;
+            }
+            output.write_all(b"],\"generator_agent\":{\"record_id\":")?;
+            serde_json::to_writer(&mut output, &selected.generator_agent.record_id)
+                .map_err(invalid)?;
+            output.write_all(b",\"source_path\":")?;
+            serde_json::to_writer(&mut output, &selected.generator_agent.source_path)
+                .map_err(invalid)?;
+            output.write_all(b",\"source_sha256\":\"")?;
+            write_identity_digest_v1(&mut output, selected.generator_agent.source_sha256)?;
+            output.write_all(b"\"},\"relation_registry_sha256\":\"")?;
+            write_identity_digest_v1(&mut output, selected.relation_registry_sha256)?;
+            output.write_all(b"\",\"relation_type_id\":")?;
+            serde_json::to_writer(&mut output, &selected.relation_type_id).map_err(invalid)?;
+            output.write_all(b",\"route\":\"work_authorship_fixture_v1\",\"subject_class\":")?;
+            serde_json::to_writer(&mut output, &selected.subject_class).map_err(invalid)?;
+            output.write_all(b",\"templates\":[")?;
+            for (index, row) in selected.templates.iter().enumerate() {
+                if index != 0 {
+                    output.write_all(b",")?;
+                }
+                write!(
+                    output,
+                    "{{\"source_line\":{},\"source_path\":",
+                    row.source_line
+                )?;
+                serde_json::to_writer(&mut output, &row.source_path).map_err(invalid)?;
+                output.write_all(b",\"source_sha256\":\"")?;
+                write_identity_digest_v1(&mut output, row.source_sha256)?;
+                write!(
+                    output,
+                    "\",\"template_bytes\":{},\"template_sha256\":\"",
+                    row.template_bytes
+                )?;
+                write_identity_digest_v1(&mut output, row.template_sha256)?;
+                output.write_all(b"\"}")?;
+            }
+            output.write_all(b"]}")?;
+        }
+        if let Some(artifact) = declaration.artifact_template_selection.as_ref() {
+            output.write_all(b",\"artifact_template_selection\":")?;
+            write_identity_artifact_v1(&mut output, artifact)?;
+        }
+        output.write_all(b"}")?;
+        Ok(output.written)
+    }
+
     pub(crate) fn manifest_stamp_v1(&self) -> (u64, u64, u32, u64, i64, i64, i64, i64) {
         let stamp = self.manifest_file.stamp;
         (
@@ -638,7 +1038,10 @@ impl HeldIndexedInputDeclarationV1 {
 
     pub(crate) fn retained_state_bytes_v1(&self) -> io::Result<usize> {
         size_of::<Self>()
-            .checked_add(self.named_root.capacity())
+            .checked_add(declaration_owned_state_v1(
+                self.generated_declaration.as_ref(),
+            )?)
+            .and_then(|bytes| bytes.checked_add(self.named_root.capacity()))
             .and_then(|bytes| bytes.checked_add(self.manifest_file.leaf.capacity()))
             .and_then(|bytes| bytes.checked_add(self.profile_file.leaf.capacity()))
             .ok_or_else(|| invalid("indexed-input held declaration state overflow"))
@@ -719,6 +1122,118 @@ impl HeldIndexedInputDeclarationV1 {
         }
         active(deadline, cancelled)
     }
+}
+
+fn write_identity_artifact_source_v1(
+    output: &mut impl Write,
+    source: &SelectedArtifactPinnedSourceV1,
+) -> io::Result<()> {
+    write!(
+        output,
+        "{{\"source_bytes\":{},\"source_path\":",
+        source.source_bytes
+    )?;
+    serde_json::to_writer(&mut *output, &source.source_path).map_err(invalid)?;
+    output.write_all(b",\"source_sha256\":\"")?;
+    write_identity_digest_v1(output, source.source_sha256)?;
+    output.write_all(b"\"}")
+}
+fn write_identity_artifact_v1(
+    output: &mut impl Write,
+    artifact: &SelectedArtifactTemplateSelectionV1,
+) -> io::Result<()> {
+    output.write_all(b"{\"artifact_recipe_sha256\":\"")?;
+    write_identity_digest_v1(output, artifact.artifact_recipe_sha256)?;
+    output.write_all(b"\",\"discovery_template\":")?;
+    write_identity_artifact_source_v1(output, &artifact.discovery_template)?;
+    output.write_all(b",\"generated_at\":")?;
+    serde_json::to_writer(&mut *output, &artifact.generated_at).map_err(invalid)?;
+    output.write_all(b",\"immutable_recipe_sha256\":\"")?;
+    write_identity_digest_v1(output, artifact.immutable_recipe_sha256)?;
+    output.write_all(b"\",\"output_observation\":{\"ended_at\":")?;
+    serde_json::to_writer(&mut *output, &artifact.output_observation.ended_at).map_err(invalid)?;
+    write!(
+        output,
+        ",\"member_count\":{},\"ordered_output_sha256\":\"",
+        artifact.output_observation.member_count
+    )?;
+    write_identity_digest_v1(output, artifact.output_observation.ordered_output_sha256)?;
+    write!(
+        output,
+        "\",\"source_bytes\":{},\"started_at\":",
+        artifact.output_observation.source_bytes
+    )?;
+    serde_json::to_writer(&mut *output, &artifact.output_observation.started_at)
+        .map_err(invalid)?;
+    output.write_all(b"},\"research\":")?;
+    write_identity_artifact_source_v1(output, &artifact.research)?;
+    output.write_all(b",\"resource_templates\":[")?;
+    for (index, source) in artifact.resource_templates.iter().enumerate() {
+        if index != 0 {
+            output.write_all(b",")?;
+        }
+        write_identity_artifact_source_v1(output, source)?;
+    }
+    output.write_all(b"],\"rights_template\":")?;
+    write_identity_artifact_source_v1(output, &artifact.rights_template)?;
+    output.write_all(b",\"route\":\"synthetic_repository_resource_v1\",\"source_policy\":")?;
+    write_identity_artifact_source_v1(output, &artifact.source_policy)?;
+    output.write_all(b",\"templates\":[")?;
+    for (index, row) in artifact.templates.iter().enumerate() {
+        if index != 0 {
+            output.write_all(b",")?;
+        }
+        output.write_all(b"{\"source_path\":")?;
+        serde_json::to_writer(&mut *output, &row.source_path).map_err(invalid)?;
+        output.write_all(b",\"source_sha256\":\"")?;
+        write_identity_digest_v1(output, row.source_sha256)?;
+        write!(
+            output,
+            "\",\"template_bytes\":{},\"template_sha256\":\"",
+            row.template_bytes
+        )?;
+        write_identity_digest_v1(output, row.template_sha256)?;
+        output.write_all(b"\"}")?;
+    }
+    output.write_all(b"]}")
+}
+
+struct IndexedIdentityWriterV1<'a, W> {
+    output: &'a mut W,
+    maximum: usize,
+    written: usize,
+    work: &'a AdmissionWorkBudget,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+
+impl<W: Write> Write for IndexedIdentityWriterV1<'_, W> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        active(self.deadline, self.cancelled)?;
+        self.work.charge(())?;
+        self.written
+            .checked_add(bytes.len())
+            .filter(|n| *n <= self.maximum)
+            .ok_or_else(|| invalid("indexed-input identity output exceeds selection"))?;
+        let written = self.output.write(bytes)?;
+        self.written += written;
+        active(self.deadline, self.cancelled)?;
+        Ok(written)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.output.flush()
+    }
+}
+
+fn write_identity_digest_v1(output: &mut impl Write, digest: Digest256) -> io::Result<()> {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = [0u8; 64];
+    for (index, byte) in digest.as_bytes().iter().enumerate() {
+        encoded[index * 2] = HEX[(byte >> 4) as usize];
+        encoded[index * 2 + 1] = HEX[(byte & 15) as usize];
+    }
+    output.write_all(&encoded)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -869,12 +1384,13 @@ fn open_held_indexed_declaration_v1(
         if digest != manifest.profile_sha256 {
             return Err(invalid("indexed-input composed profile digest differs"));
         }
-        let class_counts = verify_composition_profile_v1(
-            &raw,
-            max_profile_bytes,
-            &manifest,
-            max_composition_state_bytes,
-        )?;
+        let (class_counts, class_dimensions, claim_template_selection, artifact_template_selection) =
+            verify_composition_profile_v1(
+                &raw,
+                max_profile_bytes,
+                &manifest,
+                max_composition_state_bytes,
+            )?;
         generated_declaration = Some(SelectedGeneratedDeclarationV1 {
             seed_sha256: manifest.seed_sha256,
             template_manifest_sha256: manifest.template_manifest_sha256,
@@ -882,6 +1398,9 @@ fn open_held_indexed_declaration_v1(
             generated_declaration_sha256: composition.generated_declaration_sha256,
             generated_record_count: composition.generated_record_count,
             class_counts,
+            class_dimensions,
+            claim_template_selection,
+            artifact_template_selection,
             composition,
             manifest_sha256,
         });
@@ -1255,7 +1774,8 @@ fn parse_scale_input_manifest_selected_inner_v1(
             || actual.auxiliary_source_bytes == 0
             || actual
                 .generated_record_count
-                .checked_add(actual.auxiliary_member_count)
+                .checked_add(actual.generated_support_member_count)
+                .and_then(|n| n.checked_add(actual.auxiliary_member_count))
                 != Some(member_count)
             || actual.auxiliary_source_bytes >= source_bytes
             || actual.members_descriptor_sha256 != parse_digest("members_descriptor_sha256")?
@@ -1267,6 +1787,10 @@ fn parse_scale_input_manifest_selected_inner_v1(
         Some(actual)
     };
     Ok(ParsedScaleInputManifestV1 {
+        generated_support_selected: value
+            .object_get("authored_aux_composition")
+            .and_then(|v| v.object_get("generated_support_member_count"))
+            .is_some(),
         composition,
         seed_sha256,
         template_manifest_sha256,
@@ -1360,10 +1884,12 @@ fn parse_composition_fields_v1(
         .as_object()
         .ok_or_else(|| invalid("indexed-input composition type differs"))?;
     let keys = &KEYS[..KEYS.len() - usize::from(profile_descriptor.is_some())];
-    if fields.len() != keys.len()
-        || fields
-            .iter()
-            .any(|(k, _)| !keys.contains(&k.as_str().unwrap_or("")))
+    let support = value.object_get("generated_support_member_count");
+    if fields.len() != keys.len() + usize::from(support.is_some())
+        || fields.iter().any(|(k, _)| {
+            !keys.contains(&k.as_str().unwrap_or(""))
+                && k.as_str() != Some("generated_support_member_count")
+        })
         || value.object_get("coverage").and_then(JsonValue::as_str)
             != Some("authenticated_byte_composition_pending_semantic_admission")
     {
@@ -1388,6 +1914,14 @@ fn parse_composition_fields_v1(
         generated_declaration_sha256: digest("generated_declaration_sha256")?,
         auxiliary_members_sha256: digest("auxiliary_members_sha256")?,
         generated_record_count: number("generated_record_count")?,
+        generated_support_member_count: support
+            .map(|v| {
+                v.as_u64()
+                    .filter(|n| *n != u64::MAX)
+                    .ok_or_else(|| invalid("indexed-input finite support count differs"))
+            })
+            .transpose()?
+            .unwrap_or(0),
         auxiliary_member_count: number("auxiliary_member_count")?,
         auxiliary_source_bytes: number("auxiliary_source_bytes")?,
         members_descriptor_sha256: match profile_descriptor {
@@ -1402,9 +1936,20 @@ fn verify_composition_profile_v1(
     max_bytes: usize,
     manifest: &ParsedScaleInputManifestV1,
     state_bytes: usize,
-) -> io::Result<[u64; 5]> {
+) -> io::Result<(
+    [u64; 5],
+    [[u64; 3]; 5],
+    Option<SelectedClaimTemplateSelectionV1>,
+    Option<SelectedArtifactTemplateSelectionV1>,
+)> {
     let limits = JsonLimits::new(max_bytes, 16, 2048, 128).map_err(invalid)?;
-    let document = parse_composition_document_v1(raw, limits, state_bytes)?;
+    // The selected owned strings are disjoint decoded substrings of this
+    // one profile: their total length cannot exceed its actual raw length.
+    // Reserve this exact source-derived upper before parsing/cloning them.
+    let profile_state = state_bytes
+        .checked_sub(raw.len())
+        .ok_or_else(|| invalid("selected Claim string workspace exhausted"))?;
+    let document = parse_composition_document_v1(raw, limits, profile_state)?;
     let profile = document.root();
     let expected = manifest
         .composition
@@ -1438,6 +1983,7 @@ fn verify_composition_profile_v1(
         return Err(invalid("indexed-input composed class count differs"));
     }
     let mut counts = [0u64; 5];
+    let mut dimensions = [[0u64; 3]; 5];
     let mut total = 0u64;
     for (index, class) in classes.iter().enumerate() {
         if class.object_get("class").and_then(JsonValue::as_str) != Some(names[index]) {
@@ -1447,6 +1993,18 @@ fn verify_composition_profile_v1(
             .object_get("count")
             .and_then(JsonValue::as_u64)
             .ok_or_else(|| invalid("indexed-input composed class count differs"))?;
+        for (dimension_index, key) in ["p50_bytes", "p95_bytes", "max_bytes"].iter().enumerate() {
+            dimensions[index][dimension_index] = class
+                .object_get(key)
+                .and_then(JsonValue::as_u64)
+                .filter(|n| *n > 0 && *n != u64::MAX)
+                .ok_or_else(|| invalid("indexed-input selected class dimension differs"))?;
+        }
+        if dimensions[index].windows(2).any(|v| v[0] > v[1]) {
+            return Err(invalid(
+                "indexed-input selected class dimensions order differs",
+            ));
+        }
         total = total
             .checked_add(counts[index])
             .ok_or_else(|| invalid("indexed-input composed class overflow"))?;
@@ -1454,18 +2012,72 @@ fn verify_composition_profile_v1(
     if total != expected.generated_record_count {
         return Err(invalid("indexed-input composed class total differs"));
     }
-    // Fixed typed preimage, emitted directly to the digest: no second Value
-    // tree or encoded declaration allocation while profile parsing stays live.
+    let selected_claim = parse_selected_claim_templates_v1(profile, classes)?;
+    let selected_artifact =
+        parse_selected_artifact_templates_v1(profile, manifest, &counts, limits)?;
+    let supports = selected_artifact.is_some();
+    if supports != manifest.generated_support_selected
+        || supports
+            != selection
+                .object_get("generated_support_member_count")
+                .is_some()
+    {
+        return Err(invalid(
+            "indexed-input support field requires selected Artifact recipe",
+        ));
+    }
+    let owned = selected_claim
+        .as_ref()
+        .map_or(Ok(0), SelectedClaimTemplateSelectionV1::owned_state_bytes)?
+        .checked_add(selected_artifact.as_ref().map_or(
+            Ok(0),
+            SelectedArtifactTemplateSelectionV1::owned_state_bytes,
+        )?)
+        .ok_or_else(|| invalid("indexed-input selected recipe state overflow"))?;
+    if owned > raw.len() {
+        return Err(invalid("selected recipe strings exceed reserved raw bound"));
+    }
+    // Fixed typed declaration scalar preimage; structured recipe/observation
+    // values use the maintained Foundation canonical serializer directly.
     let mut hash = Digest256Hasher::new();
-    hash.update(b"{\"class_counts\":[");
+    if let Some(artifact) = selected_artifact.as_ref() {
+        hash.update(b"{\"artifact_recipe_sha256\":\"");
+        hash.update(artifact.artifact_recipe_sha256.to_hex().as_bytes());
+        hash.update(b"\",\"class_counts\":[");
+    } else {
+        hash.update(b"{\"class_counts\":[");
+    }
     for (index, count) in counts.iter().enumerate() {
         if index != 0 {
             hash.update(b",");
         }
         feed_composition_number_v1(&mut hash, *count);
     }
-    hash.update(b"],\"domain\":\"tos_scale_generated_declaration_v1\",\"generated_record_count\":");
+    hash.update(if supports {
+        b"],\"domain\":\"tos_scale_generated_declaration_v2\",\"generated_record_count\":"
+            .as_slice()
+    } else {
+        b"],\"domain\":\"tos_scale_generated_declaration_v1\",\"generated_record_count\":"
+            .as_slice()
+    });
     feed_composition_number_v1(&mut hash, expected.generated_record_count);
+    if let Some(artifact) = selected_artifact.as_ref() {
+        hash.update(b",\"generated_support_member_count\":");
+        feed_composition_number_v1(&mut hash, expected.generated_support_member_count);
+        hash.update(b",\"immutable_recipe_sha256\":\"");
+        hash.update(artifact.immutable_recipe_sha256.to_hex().as_bytes());
+        hash.update(b"\",\"output_observation\":");
+        let observation = profile
+            .object_get("artifact_template_selection")
+            .and_then(|v| v.object_get("output_observation"))
+            .ok_or_else(|| invalid("selected Artifact observation absent"))?;
+        hash.update(
+            &canonical_bytes_v1(observation, CanonicalProfile::SourceCommandInputV1, limits)
+                .map_err(invalid)?,
+        );
+    } else if expected.generated_support_member_count != 0 {
+        return Err(invalid("unselected Artifact support count differs"));
+    }
     hash.update(b",\"seed_sha256\":\"");
     hash.update(manifest.seed_sha256.to_hex().as_bytes());
     hash.update(b"\",\"template_manifest_sha256\":\"");
@@ -1476,7 +2088,362 @@ fn verify_composition_profile_v1(
             "indexed-input generated declaration digest differs",
         ));
     }
-    Ok(counts)
+    Ok((counts, dimensions, selected_claim, selected_artifact))
+}
+
+fn selected_recipe_exact_v1(value: &JsonValue, keys: &[&str]) -> io::Result<()> {
+    let fields = value
+        .as_object()
+        .ok_or_else(|| invalid("selected Artifact object differs"))?;
+    if fields.len() != keys.len()
+        || fields
+            .iter()
+            .any(|(k, _)| !keys.contains(&k.as_str().unwrap_or("")))
+    {
+        return Err(invalid("selected Artifact exact fields differ"));
+    }
+    Ok(())
+}
+fn selected_recipe_field_v1<'a>(value: &'a JsonValue, key: &str) -> io::Result<&'a JsonValue> {
+    value
+        .object_get(key)
+        .ok_or_else(|| invalid("selected Artifact field absent"))
+}
+fn selected_recipe_text_v1(value: &JsonValue, key: &str) -> io::Result<String> {
+    selected_recipe_field_v1(value, key)?
+        .as_str()
+        .filter(|v| !v.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| invalid("selected Artifact string differs"))
+}
+fn selected_recipe_number_v1(value: &JsonValue, key: &str) -> io::Result<u64> {
+    selected_recipe_field_v1(value, key)?
+        .as_u64()
+        .filter(|v| *v > 0 && *v != u64::MAX)
+        .ok_or_else(|| invalid("selected Artifact finite number differs"))
+}
+fn selected_recipe_path_v1(value: &JsonValue) -> io::Result<String> {
+    RelativePath::parse(
+        selected_recipe_field_v1(value, "source_path")?
+            .as_str()
+            .ok_or_else(|| invalid("selected Artifact source path differs"))?,
+    )
+    .map_err(invalid)
+    .map(RelativePath::into_string)
+}
+fn parse_selected_artifact_templates_v1(
+    profile: &JsonValue,
+    manifest: &ParsedScaleInputManifestV1,
+    counts: &[u64; 5],
+    limits: JsonLimits,
+) -> io::Result<Option<SelectedArtifactTemplateSelectionV1>> {
+    let Some(value) = profile.object_get("artifact_template_selection") else {
+        return Ok(None);
+    };
+    const BASE_KEYS: [&str; 8] = [
+        "discovery_template",
+        "generated_at",
+        "research",
+        "resource_templates",
+        "rights_template",
+        "route",
+        "source_policy",
+        "templates",
+    ];
+    selected_recipe_exact_v1(
+        value,
+        &[
+            "route",
+            "templates",
+            "rights_template",
+            "discovery_template",
+            "source_policy",
+            "research",
+            "resource_templates",
+            "generated_at",
+            "immutable_recipe_sha256",
+            "output_observation",
+        ],
+    )?;
+    if selected_recipe_field_v1(value, "route")?.as_str()
+        != Some("synthetic_repository_resource_v1")
+    {
+        return Err(invalid("selected Artifact route differs"));
+    }
+    let expected = manifest
+        .composition
+        .ok_or_else(|| invalid("Artifact composition absent"))?;
+    let support = counts[0]
+        .checked_mul(4)
+        .ok_or_else(|| invalid("Artifact support count overflow"))?;
+    if support != expected.generated_support_member_count {
+        return Err(invalid("Artifact selected support count differs"));
+    }
+    let mut immutable = Digest256Hasher::new();
+    immutable.update(b"{");
+    for (index, key) in BASE_KEYS.iter().enumerate() {
+        if index != 0 {
+            immutable.update(b",");
+        }
+        immutable.update(b"\"");
+        immutable.update(key.as_bytes());
+        immutable.update(b"\":");
+        immutable.update(
+            &canonical_bytes_v1(
+                selected_recipe_field_v1(value, key)?,
+                CanonicalProfile::SourceCommandInputV1,
+                limits,
+            )
+            .map_err(invalid)?,
+        );
+    }
+    immutable.update(b"}");
+    let immutable_recipe_sha256 =
+        composition_digest_v1(selected_recipe_field_v1(value, "immutable_recipe_sha256")?)?;
+    if immutable.finalize() != immutable_recipe_sha256 {
+        return Err(invalid("Artifact immutable recipe digest differs"));
+    }
+    let artifact_recipe_sha256 = Digest256::of_bytes(
+        &canonical_bytes_v1(value, CanonicalProfile::SourceCommandInputV1, limits)
+            .map_err(invalid)?,
+    );
+    let rows = |key: &str| -> io::Result<&[JsonValue]> {
+        selected_recipe_field_v1(value, key)?
+            .as_array()
+            .filter(|v| v.len() == 3)
+            .ok_or_else(|| invalid("Artifact recipe row count differs"))
+    };
+    let template = |v: &JsonValue| -> io::Result<SelectedArtifactTemplateRowV1> {
+        selected_recipe_exact_v1(
+            v,
+            &[
+                "source_path",
+                "source_sha256",
+                "template_sha256",
+                "template_bytes",
+            ],
+        )?;
+        Ok(SelectedArtifactTemplateRowV1 {
+            source_path: selected_recipe_path_v1(v)?,
+            source_sha256: composition_digest_v1(selected_recipe_field_v1(v, "source_sha256")?)?,
+            template_sha256: composition_digest_v1(selected_recipe_field_v1(
+                v,
+                "template_sha256",
+            )?)?,
+            template_bytes: selected_recipe_number_v1(v, "template_bytes")?,
+        })
+    };
+    let source = |v: &JsonValue| -> io::Result<SelectedArtifactPinnedSourceV1> {
+        selected_recipe_exact_v1(v, &["source_path", "source_sha256", "source_bytes"])?;
+        Ok(SelectedArtifactPinnedSourceV1 {
+            source_path: selected_recipe_path_v1(v)?,
+            source_sha256: composition_digest_v1(selected_recipe_field_v1(v, "source_sha256")?)?,
+            source_bytes: selected_recipe_number_v1(v, "source_bytes")?,
+        })
+    };
+    let templates = rows("templates")?;
+    let resources = rows("resource_templates")?;
+    let observation = selected_recipe_field_v1(value, "output_observation")?;
+    selected_recipe_exact_v1(
+        observation,
+        &[
+            "started_at",
+            "ended_at",
+            "member_count",
+            "source_bytes",
+            "ordered_output_sha256",
+        ],
+    )?;
+    let phase_count = expected
+        .generated_record_count
+        .checked_add(
+            counts[0]
+                .checked_mul(3)
+                .ok_or_else(|| invalid("Artifact phase count overflow"))?,
+        )
+        .and_then(|n| n.checked_add(expected.auxiliary_member_count))
+        .ok_or_else(|| invalid("Artifact phase count overflow"))?;
+    let output_observation = SelectedArtifactOutputObservationV1 {
+        started_at: selected_recipe_text_v1(observation, "started_at")?,
+        ended_at: selected_recipe_text_v1(observation, "ended_at")?,
+        member_count: selected_recipe_number_v1(observation, "member_count")?,
+        source_bytes: selected_recipe_number_v1(observation, "source_bytes")?,
+        ordered_output_sha256: composition_digest_v1(selected_recipe_field_v1(
+            observation,
+            "ordered_output_sha256",
+        )?)?,
+    };
+    if output_observation.member_count != phase_count
+        || output_observation.source_bytes > manifest.source_bytes
+    {
+        return Err(invalid("Artifact phase observation aggregate differs"));
+    }
+    Ok(Some(SelectedArtifactTemplateSelectionV1 {
+        templates: [
+            template(&templates[0])?,
+            template(&templates[1])?,
+            template(&templates[2])?,
+        ],
+        rights_template: source(selected_recipe_field_v1(value, "rights_template")?)?,
+        discovery_template: source(selected_recipe_field_v1(value, "discovery_template")?)?,
+        source_policy: source(selected_recipe_field_v1(value, "source_policy")?)?,
+        research: source(selected_recipe_field_v1(value, "research")?)?,
+        resource_templates: [
+            source(&resources[0])?,
+            source(&resources[1])?,
+            source(&resources[2])?,
+        ],
+        generated_at: selected_recipe_text_v1(value, "generated_at")?,
+        immutable_recipe_sha256,
+        artifact_recipe_sha256,
+        output_observation,
+    }))
+}
+
+fn parse_selected_claim_templates_v1(
+    profile: &JsonValue,
+    classes: &[JsonValue],
+) -> io::Result<Option<SelectedClaimTemplateSelectionV1>> {
+    let Some(value) = profile.object_get("claim_template_selection") else {
+        return Ok(None);
+    };
+    let exact = |value: &JsonValue, keys: &[&str]| -> io::Result<()> {
+        let fields = value
+            .as_object()
+            .ok_or_else(|| invalid("selected Claim object differs"))?;
+        if fields.len() != keys.len()
+            || fields
+                .iter()
+                .any(|(k, _)| !keys.contains(&k.as_str().unwrap_or("")))
+        {
+            return Err(invalid("selected Claim exact fields differ"));
+        }
+        Ok(())
+    };
+    exact(
+        value,
+        &[
+            "route",
+            "relation_registry_sha256",
+            "relation_type_id",
+            "subject_class",
+            "templates",
+            "generator_agent",
+        ],
+    )?;
+    let text = |value: &JsonValue, key: &str| -> io::Result<String> {
+        value
+            .object_get(key)
+            .and_then(JsonValue::as_str)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| invalid("selected Claim string differs"))
+    };
+    let number = |value: &JsonValue, key: &str| -> io::Result<u64> {
+        value
+            .object_get(key)
+            .and_then(JsonValue::as_u64)
+            .filter(|n| *n > 0 && *n != u64::MAX)
+            .ok_or_else(|| invalid("selected Claim finite number differs"))
+    };
+    if value.object_get("route").and_then(JsonValue::as_str) != Some("work_authorship_fixture_v1")
+        || value
+            .object_get("relation_type_id")
+            .and_then(JsonValue::as_str)
+            != Some("tos.relation.authored-by")
+        || value
+            .object_get("subject_class")
+            .and_then(JsonValue::as_str)
+            != Some("Work")
+    {
+        return Err(invalid("selected Claim route differs"));
+    }
+    let rows = value
+        .object_get("templates")
+        .and_then(JsonValue::as_array)
+        .filter(|rows| rows.len() == 3)
+        .ok_or_else(|| invalid("selected Claim row count differs"))?;
+    let row = |value: &JsonValue| -> io::Result<SelectedClaimTemplateRowV1> {
+        exact(
+            value,
+            &[
+                "source_path",
+                "source_sha256",
+                "source_line",
+                "template_sha256",
+                "template_bytes",
+            ],
+        )?;
+        let source_path = RelativePath::parse(
+            value
+                .object_get("source_path")
+                .and_then(JsonValue::as_str)
+                .ok_or_else(|| invalid("selected Claim path differs"))?,
+        )
+        .map_err(invalid)?
+        .into_string();
+        Ok(SelectedClaimTemplateRowV1 {
+            source_path,
+            source_sha256: composition_digest_v1(
+                value
+                    .object_get("source_sha256")
+                    .ok_or_else(|| invalid("Claim source digest absent"))?,
+            )?,
+            source_line: number(value, "source_line")?,
+            template_sha256: composition_digest_v1(
+                value
+                    .object_get("template_sha256")
+                    .ok_or_else(|| invalid("Claim template digest absent"))?,
+            )?,
+            template_bytes: number(value, "template_bytes")?,
+        })
+    };
+    let templates = [row(&rows[0])?, row(&rows[1])?, row(&rows[2])?];
+    let claim_dimensions = [
+        number(&classes[1], "p50_bytes")?,
+        number(&classes[1], "p95_bytes")?,
+        number(&classes[1], "max_bytes")?,
+    ];
+    if claim_dimensions.windows(2).any(|v| v[0] > v[1]) {
+        return Err(invalid(
+            "selected Claim rendered dimensions ordering differs",
+        ));
+    }
+    // Pinned authored row bytes and transformed generated payload dimensions
+    // are distinct domains. The maintained renderer verifies their mapping.
+    let agent = value
+        .object_get("generator_agent")
+        .ok_or_else(|| invalid("selected generator Agent absent"))?;
+    exact(agent, &["source_path", "source_sha256", "record_id"])?;
+    let agent_source_path = RelativePath::parse(
+        agent
+            .object_get("source_path")
+            .and_then(JsonValue::as_str)
+            .ok_or_else(|| invalid("selected generator Agent path differs"))?,
+    )
+    .map_err(invalid)?
+    .into_string();
+    let generator_agent = SelectedGeneratorAgentSelectionV1 {
+        source_path: agent_source_path,
+        source_sha256: composition_digest_v1(
+            agent
+                .object_get("source_sha256")
+                .ok_or_else(|| invalid("selected generator Agent digest absent"))?,
+        )?,
+        record_id: text(agent, "record_id")?,
+    };
+    Ok(Some(SelectedClaimTemplateSelectionV1 {
+        relation_registry_sha256: composition_digest_v1(
+            value
+                .object_get("relation_registry_sha256")
+                .ok_or_else(|| invalid("selected Claim registry digest absent"))?,
+        )?,
+        relation_type_id: text(value, "relation_type_id")?,
+        subject_class: text(value, "subject_class")?,
+        templates,
+        generator_agent,
+        claim_dimensions,
+    }))
 }
 
 fn feed_composition_number_v1(hash: &mut Digest256Hasher, mut value: u64) {
@@ -1639,8 +2606,11 @@ impl IndexedInputReaderV1 {
             .segment
             .retained_heap_state_bytes()
             .map_err(invalid)?;
+        let declaration_state =
+            declaration_owned_state_v1(selection.generated_declaration.as_ref())?;
         let open_base_state = size_of::<Self>()
-            .checked_add(selection.named_root.as_os_str().len())
+            .checked_add(declaration_state)
+            .and_then(|bytes| bytes.checked_add(selection.named_root.as_os_str().len()))
             .and_then(|bytes| bytes.checked_add(selection.members_descriptor_leaf.capacity()))
             .and_then(|bytes| bytes.checked_add(selection.objects_descriptor_leaf.capacity()))
             .and_then(|bytes| bytes.checked_add(selection.manifest_file.leaf.capacity()))
@@ -1782,7 +2752,8 @@ impl IndexedInputReaderV1 {
             )
             .ok_or_else(|| invalid("indexed-input segment state overflow"))?;
         let reader_state = size_of::<Self>()
-            .checked_add(selection.named_root.as_os_str().len())
+            .checked_add(declaration_state)
+            .and_then(|bytes| bytes.checked_add(selection.named_root.as_os_str().len()))
             .and_then(|bytes| bytes.checked_add(descriptor_state))
             .and_then(|bytes| bytes.checked_add(segment_state))
             .and_then(|bytes| bytes.checked_add(work_meter_state))
@@ -2545,7 +3516,10 @@ impl IndexedInputReaderV1 {
         let dependency_closure_file = self.dependency_closure_file.retained_state_bytes()?;
         let work_debit_allocation = work_debit_allocation_state_bytes()?;
         size_of::<Self>()
-            .checked_add(self.named_root.as_os_str().len())
+            .checked_add(declaration_owned_state_v1(
+                self.generated_declaration.as_ref(),
+            )?)
+            .and_then(|bytes| bytes.checked_add(self.named_root.as_os_str().len()))
             .and_then(|bytes| bytes.checked_add(segment_state))
             .and_then(|bytes| bytes.checked_add(member_descriptor))
             .and_then(|bytes| bytes.checked_add(object_descriptor))
@@ -2888,7 +3862,7 @@ fn read_bounded_descriptor(
 }
 
 fn hash_bounded_file(
-    file: &mut File,
+    file: &File,
     maximum: usize,
     io_budget: &PinnedSqliteIoBudget,
     deadline: Instant,
@@ -2904,7 +3878,6 @@ fn hash_bounded_file(
     if !work() {
         return Err(invalid("indexed-input evidence work ceiling exhausted"));
     }
-    file.seek(SeekFrom::Start(0))?;
     let mut buffer = [0u8; EVIDENCE_HASH_BUFFER_BYTES];
     let mut hasher = Digest256Hasher::new();
     let mut total = 0u64;
@@ -2922,7 +3895,7 @@ fn hash_bounded_file(
         let requested = usize::try_from(remaining.min(buffer.len() as u64))
             .map_err(|_| invalid("indexed-input evidence read request exceeds range"))?;
         io_budget.charge_read(requested as u64).map_err(invalid)?;
-        let read = match file.read(&mut buffer[..requested]) {
+        let read = match file.read_at(&mut buffer[..requested], total) {
             Ok(read) => read,
             Err(error) => {
                 let _ = io_budget.record_read_returned(0);

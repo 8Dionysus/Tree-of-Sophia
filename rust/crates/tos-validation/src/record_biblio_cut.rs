@@ -110,10 +110,101 @@ impl SourceCutPrefixCoverage {
     }
 }
 
+/// Workload-owned proof for a declared generated cohort. Selection is exact
+/// class/ordinal geometry; verification uses the same authenticated raw bytes.
+/// This proof does not turn an Artifact, TextUnit or Claim into a Corpus record.
+/// Existing family owners still classify and validate each selected payload.
+pub trait GeneratedSourceSelection {
+    fn binding_digest(&self) -> Digest256;
+    fn declared_member_count(&self) -> u64;
+    fn retained_state_bytes(&self) -> usize;
+    fn selects_member(&self, path: &str) -> Result<bool, ItemRefusal>;
+    /// Raw generated support may be required without owning a semantic fact.
+    fn selects_required_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.selects_member(path)
+    }
+    /// Catalog roots are the five declared record families, separately counted
+    /// from generated rights, discovery and provenance support facts.
+    fn selects_catalog_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.selects_member(path)
+    }
+    /// Source-claim rows have their maintained local-forms owner, distinct from events.
+    fn selects_claim_row(&self, _path: &str, _physical_line: u64) -> Result<bool, ItemRefusal> {
+        Ok(false)
+    }
+    fn selects_row(&self, path: &str, physical_line: u64) -> Result<bool, ItemRefusal>;
+    fn verify_member(
+        &self,
+        path: &str,
+        raw: &[u8],
+        caller_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+}
+
 /// Bounded current-source access used by the additive streamed Records path.
 /// The command adapter keeps raw member bytes borrowed inside each visitor and
 /// retains its own opaque input identity; this interface creates no revision.
 pub trait SourceCutInput {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        None
+    }
+    fn generated_selection(&self) -> Option<std::sync::Arc<dyn GeneratedSourceSelection>> {
+        None
+    }
+    /// Explicit semantic membership differs from full physical/raw membership.
+    fn selects_semantic_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        let finite = self.record_selection();
+        let generated = self.generated_selection();
+        if finite.is_none() && generated.is_none() {
+            return Ok(true);
+        }
+        if finite
+            .as_ref()
+            .is_some_and(|selection| selection.selects_semantic_member(path))
+        {
+            return Ok(true);
+        }
+        generated
+            .as_ref()
+            .map_or(Ok(false), |selection| selection.selects_member(path))
+    }
+    /// Required raw evidence remains available without becoming a semantic root.
+    fn selects_required_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        let finite = self.record_selection();
+        let generated = self.generated_selection();
+        if finite.is_none() && generated.is_none() {
+            return Ok(true);
+        }
+        if finite
+            .as_ref()
+            .is_some_and(|selection| selection.contains_member(path))
+        {
+            return Ok(true);
+        }
+        generated.as_ref().map_or(Ok(false), |selection| {
+            selection.selects_required_member(path)
+        })
+    }
+    fn selects_source_row(&self, path: &str, physical_line: u64) -> Result<bool, ItemRefusal> {
+        let finite = self.record_selection();
+        let generated = self.generated_selection();
+        if finite.is_none() && generated.is_none() {
+            return Ok(true);
+        }
+        if finite
+            .as_ref()
+            .is_some_and(|selection| selection.selected_row(path, physical_line))
+        {
+            return Ok(true);
+        }
+        generated.as_ref().map_or(Ok(false), |selection| {
+            selection.selects_row(path, physical_line)
+        })
+    }
     fn for_each_current_member_meta(
         &self,
         deadline: Instant,
@@ -4687,7 +4778,7 @@ fn bounded_legacy_decoded_state_inner(
     check(deadline, cancelled)?;
     Ok((value, state))
 }
-pub(crate) fn bounded_decoded_state(
+pub fn bounded_decoded_state(
     raw: &[u8],
     limits: tos_foundation::JsonLimits,
     available: usize,

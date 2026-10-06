@@ -449,6 +449,19 @@ struct SourceFoundationCurrentMember {
 }
 
 impl SourceFoundationCurrentInput<'_> {
+    fn selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        self.input().and_then(SourceCutInput::record_selection)
+    }
+    fn semantic_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.input()
+            .map_or(Ok(true), |input| input.selects_required_member(path))
+    }
+    fn selected_record_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.input()
+            .map_or(Ok(true), |input| input.selects_semantic_member(path))
+    }
     fn cut(&self) -> Option<&CorpusCutReader> {
         match self {
             Self::Cut { cut, .. } => Some(cut),
@@ -508,6 +521,29 @@ impl SourceFoundationCurrentInput<'_> {
         cancelled: &AtomicBool,
     ) -> Result<Option<SourcePresenceV1>, ItemRefusal> {
         check_deadline(deadline, cancelled)?;
+        if let Some(selection) = self.selection() {
+            if let Some((file, line)) = path.rsplit_once(':') {
+                if file.ends_with(".jsonl") {
+                    let selected = line
+                        .parse::<u64>()
+                        .ok()
+                        .is_some_and(|line| selection.selected_row(file, line));
+                    if !selected {
+                        return Ok(None);
+                    }
+                    return self.presence(file, deadline, cancelled);
+                }
+            }
+            if !selection.contains_member(path)
+                && !selection.members().any(|m| {
+                    m.source_ref
+                        .strip_prefix(path)
+                        .is_some_and(|tail| tail.starts_with('/'))
+                })
+            {
+                return Ok(None);
+            }
+        }
         let relative = RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Unsupported("source-foundation current path".into()))?;
         let found = match self {
@@ -659,6 +695,31 @@ impl SourceFoundationCurrentInput<'_> {
                                 used: Some(overlap as u64),
                                 limit: Some(max_state_bytes as u64),
                             });
+                        }
+                        if let Some(selection) = input.record_selection() {
+                            if selection.contains_member(path) {
+                                selection.verify_metadata_member(path, bytes)?;
+                            } else if !input.selects_required_member(path)?
+                                && !path.starts_with(SCHEMA_HOME)
+                                && !path.starts_with("ToS/doctrine/semantic-interchange/")
+                            {
+                                return Err(ItemRefusal::Source(
+                                    "Records member outside selected semantic closure".into(),
+                                ));
+                            }
+                            if selection.record(path).is_some() {
+                                let scratch =
+                                    crate::source_record_selection::selection_state_upper_bound(
+                                        bytes.len(),
+                                    )?;
+                                let peak = overlap
+                                    .checked_add(scratch)
+                                    .ok_or(crate::item_budget_origin!())?;
+                                if peak > max_state_bytes {
+                                    return Err(crate::item_budget_origin!());
+                                }
+                                selection.verify_record(path, bytes, deadline, cancelled)?;
+                            }
                         }
                         let mut raw = Vec::new();
                         raw.try_reserve_exact(bytes.len())
@@ -1239,7 +1300,8 @@ fn retain_direct_schema_check_input(
         legacy_raw_instance: legacy_raw_instance.map(<[u8]>::to_vec),
         owner_issue,
     };
-    let insertion = source_jsonl_check_insertion(checks, &check.location).unwrap_or(checks.len());
+    let insertion =
+        source_jsonl_check_insertion(checks, &check.location, check.family).unwrap_or(checks.len());
     checks.insert(insertion, check);
     *state_bytes = next_state;
     Ok(())
@@ -1248,6 +1310,7 @@ fn retain_direct_schema_check_input(
 fn source_jsonl_check_insertion(
     checks: &[SourceFoundationRecordsSchemaCheck],
     location: &str,
+    family: SourceFoundationRecordsSchemaFamily,
 ) -> Option<usize> {
     let (path, ordinal) = location.rsplit_once(':')?;
     if !path.ends_with(".jsonl") {
@@ -1255,6 +1318,9 @@ fn source_jsonl_check_insertion(
     }
     let ordinal = ordinal.parse::<usize>().ok()?;
     checks.iter().position(|check| {
+        if check.family != family {
+            return false;
+        }
         check
             .location
             .rsplit_once(':')
@@ -1357,7 +1423,9 @@ fn current_source_paths_matching(
     let mut path_bytes = 0usize;
     source.for_each_member_meta(deadline, cancelled, &mut |meta| {
         let path = meta.path;
-        if !path.starts_with(prefix)
+        if !source.semantic_member(path)?
+            || basename.is_some() && !source.selected_record_member(path)?
+            || !path.starts_with(prefix)
             || excluded_prefix.is_some_and(|excluded| path.starts_with(excluded))
             || basename.is_some_and(|name| path.rsplit('/').next() != Some(name))
             || suffix.is_some_and(|ending| !path.ends_with(ending))
@@ -2003,6 +2071,110 @@ fn scan_direct_current_records<'a>(
             .checked_add(path.len())
             .filter(|used| *used <= limits.max_state_bytes)
             .ok_or(crate::item_budget_origin!())?;
+    }
+
+    // The explicit semantic selection is complete independently of Item
+    // companion traversal: every selected source slot earns a real schema
+    // request using its declared owned version and its exact physical row.
+    if let Some(selection) = source.selection() {
+        let mut previous_path = None::<&str>;
+        let mut verified_count = 0usize;
+        for slot_source in selection.slots() {
+            let path = slot_source.source.source_ref.as_str();
+            if previous_path == Some(path) {
+                continue;
+            }
+            previous_path = Some(path);
+            let size = source
+                .member_size(path, limits.deadline, cancelled)?
+                .ok_or_else(|| ItemRefusal::Source("selected slot member missing".into()))?;
+            read_bytes = read_bytes
+                .checked_add(size)
+                .filter(|n| *n <= limits.max_total_bytes)
+                .ok_or(crate::item_budget_origin!())?;
+            let prior = state_bytes
+                .checked_add(selected_state_bytes)
+                .and_then(|n| n.checked_add(issues.state_bytes))
+                .ok_or(crate::item_budget_origin!())?;
+            let member = source.read_member(
+                path,
+                limits.max_member_bytes,
+                prior
+                    .checked_add(schema_request_state_bytes)
+                    .ok_or(crate::item_budget_origin!())?,
+                limits.max_state_bytes,
+                limits.deadline,
+                cancelled,
+            )?;
+            let verified = selection.verify_file(path, &member.raw, limits.deadline, cancelled)?;
+            let mut cursor = verified.row_cursor();
+            let scratch = selection
+                .file_slots(path)
+                .iter()
+                .map(|slot| slot.verification_state_upper_bound())
+                .try_fold(0usize, |max, n| n.map(|n| max.max(n)))?;
+            loop {
+                // Verification scratch is transient but must fit alongside
+                // the authenticated whole file and already retained requests.
+                let available = limits
+                    .max_state_bytes
+                    .checked_sub(prior)
+                    .and_then(|n| n.checked_sub(member.raw.len()))
+                    .and_then(|n| n.checked_sub(schema_request_state_bytes))
+                    .ok_or(crate::item_budget_origin!())?;
+                if scratch > available {
+                    return Err(crate::item_budget_origin!());
+                }
+                let Some(row) = cursor.next_checked(limits.deadline, cancelled) else {
+                    break;
+                };
+                let (line, raw, slot) = row?;
+                let value = bounded_native_value(raw, limits, available, cancelled)?;
+                let version = value.get("schema_version").and_then(Value::as_str);
+                let contract = match (slot.kind.as_str(), version) {
+                    ("claim", Some(_)) => "ToS/contracts/source-claim-record.schema.json",
+                    ("provenance_event", Some("tos_provenance_event_v1")) => {
+                        "ToS/contracts/provenance-event.schema.json"
+                    }
+                    ("provenance_event", Some("tos_provenance_event_v2")) => {
+                        "ToS/contracts/provenance-event-v2.schema.json"
+                    }
+                    ("anchor", Some("tos_source_anchor_v1")) => {
+                        "ToS/contracts/source-anchor.schema.json"
+                    }
+                    _ => {
+                        return Err(ItemRefusal::Unsupported(
+                            "selected source slot owned schema version".into(),
+                        ));
+                    }
+                };
+                let location = format!("{path}:{line}");
+                if schema_checks.len() >= limits.max_issues {
+                    return Err(crate::item_budget_origin!());
+                }
+                retain_direct_schema_check(
+                    &mut schema_checks,
+                    &mut schema_request_state_bytes,
+                    issue_state_limit
+                        .checked_sub(issues.state_bytes)
+                        .ok_or(crate::item_budget_origin!())?,
+                    issues.rows.len(),
+                    SourceFoundationRecordsSchemaFamily::Record,
+                    &location,
+                    contract,
+                    Some(value),
+                    None,
+                )?;
+                verified_count = verified_count
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
+            }
+        }
+        if verified_count != selection.slot_count() {
+            return Err(ItemRefusal::Source(
+                "selected source slot execution census".into(),
+            ));
+        }
     }
 
     for record_id in &id_order {
@@ -5602,7 +5774,10 @@ fn inspect_source_foundation_records_with_mode(
     };
     source.for_each_member_meta(limits.items.deadline, cancelled, &mut |member| {
         let path = member.path;
-        if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
+        if source.semantic_member(path)?
+            && path.starts_with(SOURCE_HOME)
+            && path.ends_with(ITEM_MANIFEST_SUFFIX)
+        {
             check(limits.items, cancelled)?;
             item_rules.inspect_manifest(&mut item_source, path)?;
         }
@@ -6245,9 +6420,7 @@ fn candidate_schema_resource_cost<I: Eq + Clone>(
         // Its contract binding and raw bytes must agree with this exact input;
         // record-family selection remains a separate owner decision.
         let selected_contract_digest = schema_binding.contract_digest(resource.path);
-        if actual_size != resource.size_bytes
-            || selected_contract_digest != Some(resource.sha256)
-        {
+        if actual_size != resource.size_bytes || selected_contract_digest != Some(resource.sha256) {
             return Err(ItemRefusal::Source(format!(
                 "candidate schema binding differs from selected source resource: {}",
                 resource.path
@@ -6409,6 +6582,29 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
     ) -> Result<Option<SourcePresenceV1>, ItemRefusal> {
         check_deadline(deadline, self.cancelled)?;
         if let Some(input) = self.input {
+            if let Some(selection) = input.record_selection() {
+                if let Some((file, line)) = path.rsplit_once(':') {
+                    if file.ends_with(".jsonl") {
+                        if !line
+                            .parse::<u64>()
+                            .ok()
+                            .is_some_and(|line| selection.selected_row(file, line))
+                        {
+                            return Ok(None);
+                        }
+                        return self.path_presence(file, deadline);
+                    }
+                }
+                if !selection.contains_member(path)
+                    && !selection.members().any(|m| {
+                        m.source_ref
+                            .strip_prefix(path)
+                            .is_some_and(|tail| tail.starts_with('/'))
+                    })
+                {
+                    return Ok(None);
+                }
+            }
             let found = input.path_presence(path, deadline, self.cancelled)?;
             check_deadline(deadline, self.cancelled)?;
             return Ok(found);
@@ -6558,6 +6754,22 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
                             used: Some(peak as u64),
                             limit: Some(self.limits.max_state_bytes as u64),
                         });
+                    }
+                    if let Some(selection) = input.record_selection() {
+                        selection.verify_metadata_member(path, bytes)?;
+                        if selection.record(path).is_some() {
+                            let scratch =
+                                crate::source_record_selection::selection_state_upper_bound(
+                                    bytes.len(),
+                                )?;
+                            let verify_peak = peak
+                                .checked_add(scratch)
+                                .ok_or(crate::item_budget_origin!())?;
+                            if verify_peak > self.limits.max_state_bytes {
+                                return Err(crate::item_budget_origin!());
+                            }
+                            selection.verify_record(path, bytes, deadline, self.cancelled)?;
+                        }
                     }
                     let mut owned = Vec::new();
                     owned
@@ -6795,6 +7007,26 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
         raw: &[u8],
         deadline: Instant,
     ) -> Result<(), ItemRefusal> {
+        if let Some(selection) = self.input.and_then(SourceCutInput::record_selection) {
+            for slot in selection.file_slots(path) {
+                if slot.verification_state_upper_bound()?
+                    > self.available_parse_state_bytes(raw.len())?
+                {
+                    return Err(crate::item_budget_origin!());
+                }
+            }
+            let verified = selection.verify_file(path, raw, deadline, self.cancelled)?;
+            let mut cursor = verified.row_cursor();
+            while let Some(row) = cursor.next_checked(deadline, self.cancelled) {
+                let (_, _, slot) = row?;
+                if slot.kind != "provenance_event" {
+                    return Err(ItemRefusal::Source(
+                        "Item selected provenance slot kind".into(),
+                    ));
+                }
+            }
+            return Ok(());
+        }
         let Ok(text) = std::str::from_utf8(raw) else {
             self.schedule_item_root_check(
                 path,
@@ -6858,6 +7090,11 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, '_, P> {
 }
 
 impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, '_, P> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        self.input.and_then(SourceCutInput::record_selection)
+    }
     fn cancellation_flag(&self) -> &AtomicBool {
         self.cancelled
     }

@@ -26,6 +26,7 @@ use tos_validation::{
         SourceFoundationClosureBoundaryMembershipRefStoreCost, SourceFoundationClosureClaimRef,
         SourceFoundationClosureDerivationFrame, SourceFoundationClosureDerivationKeySet,
         SourceFoundationClosureDerivationStoreCost, SourceFoundationClosureEvent,
+        SourceFoundationClosureRawEvent,
         SourceFoundationClosureLink, SourceFoundationClosureLinkStore,
         SourceFoundationClosureLinkStoreCost, SourceFoundationClosureLoadedRowStoreCost,
         SourceFoundationClosureObjectLinkStoreCost, SourceFoundationClosurePublicationClaim,
@@ -10022,6 +10023,89 @@ impl SourceFoundationClosureSchemaRequestStore
             }),
             workspace,
         ))
+    }
+
+    fn sealed_event_raw(
+        &mut self,
+        id: &str,
+        max_raw_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureRawEvent>, usize), ItemRefusal> {
+        if !self.finished || id.is_empty() {
+            return Err(source_refusal());
+        }
+        let metadata_workspace = checked_add(Self::event_lookup_workspace(id.len())?, 512)?;
+        self.preflight(metadata_workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_event_scan_rows(1)?;
+        // LEFT JOIN distinguishes a missing event from a broken physical-row
+        // or loaded-document binding. No fallback source search is permitted.
+        let join = " FROM sf_closure_events e \
+            LEFT JOIN sf_closure_loaded_rows r ON r.path=e.path AND r.line=e.line \
+            LEFT JOIN sf_closure_loaded_documents d ON d.path=e.path \
+            WHERE e.event_id=?1";
+        let mut statement = self.db.prepare(&format!(
+            "SELECT length(CAST(e.path AS BLOB)),length(e.document_sha256),\
+             length(r.raw_line),e.document_sha256=r.document_sha256,\
+             e.document_sha256=d.sha256{join}"
+        )).map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let metadata = rows.next().map_err(sql_refusal)?.map(|row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?, row.get::<_, bool>(3)?, row.get::<_, bool>(4)?))
+        }).transpose().map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some((path_bytes, digest_bytes, raw_bytes, row_bound, document_bound)) = metadata else {
+            self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(metadata_workspace);
+            return Ok((None, metadata_workspace));
+        };
+        self.event_serialized_read_bytes = self.event_serialized_read_bytes
+            .checked_add(5 * size_of::<i64>() as u64).ok_or(ItemRefusal::Budget)?;
+        let path_bytes = usize::try_from(path_bytes).map_err(|_| source_refusal())?;
+        let raw_bytes = usize::try_from(raw_bytes).map_err(|_| source_refusal())?;
+        if path_bytes == 0 || path_bytes > self.max_event_path_bytes || path_bytes > 4096
+            || digest_bytes != 64 || raw_bytes == 0 || !row_bound || !document_bound {
+            return Err(source_refusal());
+        }
+        if raw_bytes > max_raw_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        let workspace = metadata_workspace.max(checked_add(
+            Self::event_read_workspace(id.len(), path_bytes, 64, raw_bytes)?,
+            size_of::<SourceFoundationClosureRawEvent>(),
+        )?);
+        self.preflight(workspace, max_state_bytes)?;
+        self.charge_event_scan_rows(1)?;
+        let mut statement = self.db.prepare(&format!(
+            "SELECT e.path,e.line,e.document_sha256,r.raw_line{join}"
+        )).map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let row = rows.next().map_err(sql_refusal)?.ok_or_else(source_refusal)?;
+        let path = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+        let line = checked_u64_blob(row_blob(row, 1).map_err(sql_refusal)?)?;
+        let document_sha256 = bounded_row_text(row, 2, workspace).map_err(sql_refusal)?;
+        let raw = row_blob(row, 3).map_err(sql_refusal)?;
+        if path.len() != path_bytes || line == 0 || raw.len() != raw_bytes
+            || !Self::valid_event_digest(&document_sha256) {
+            return Err(source_refusal());
+        }
+        let event = SourceFoundationClosureRawEvent { path, line, document_sha256, raw: raw.to_vec() };
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.event_serialized_read_bytes = self.event_serialized_read_bytes.checked_add(usize_u64(
+            checked_add(checked_add(path_bytes, raw_bytes)?, 64 + size_of::<u64>())?
+        )?).ok_or(ItemRefusal::Budget)?;
+        self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(workspace);
+        Ok((Some(event), workspace))
     }
 
     fn remember_event_path(

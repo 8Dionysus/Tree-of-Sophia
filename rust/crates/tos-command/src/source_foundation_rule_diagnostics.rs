@@ -527,7 +527,8 @@ fn candidate_request_count<I>(
 ) -> Result<usize, &'static str> {
     let scope_bound = match owner.scope {
         tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::FullAudit => owner.labs.is_some() && owner.goldsets.is_some(),
-        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure => owner.labs.is_none() && owner.goldsets.is_none(),
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedSourceClosure | tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedRecordClosure => owner.labs.is_none() && owner.goldsets.is_none() && owner.selected_layer_owners.is_none(),
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure => owner.labs.is_none() && owner.goldsets.is_none() && owner.selected_layer_owners.is_some(),
     };
     if !scope_bound {
         return Err("candidate stored default scope binding");
@@ -555,6 +556,16 @@ fn candidate_request_count<I>(
     let reported_closure_spooled_count = owner.closure.cost.candidate_schema_request_count;
     let reported_loaded_document_count = owner.closure.cost.candidate_loaded_document_count;
     let reported_event_count = owner.closure.cost.candidate_event_count;
+    let layer_cost = owner.selected_layer_owners.unwrap_or_default();
+    let expected_event_read_bytes = owner.closure.cost.candidate_event_serialized_read_bytes
+        .checked_add(layer_cost.addressed_event_read_bytes)
+        .ok_or("candidate selected event read cost overflow")?;
+    let expected_event_scan_rows = owner.closure.cost.candidate_event_scan_row_operations
+        .checked_add(layer_cost.addressed_event_scan_rows)
+        .ok_or("candidate selected event scan cost overflow")?;
+    let expected_event_workspace = owner.closure.cost.candidate_event_peak_workspace_state_bytes
+        .max(layer_cost.addressed_event_workspace_peak_bytes);
+
     let reported_claim_id_count = owner.closure.cost.candidate_claim_id_count;
     let reported_membership_claim_count = owner.closure.cost.candidate_membership_claim_count;
     let reported_responsibility_claim_count =
@@ -618,16 +629,13 @@ fn candidate_request_count<I>(
         || !closure_store_cost.loaded_rows.count_verified
         || closure_store_cost.event_rows != reported_event_count
         || closure_store_cost.event_serialized_read_bytes
-            != owner.closure.cost.candidate_event_serialized_read_bytes
+            != expected_event_read_bytes
         || closure_store_cost.event_serialized_write_bytes
             != owner.closure.cost.candidate_event_serialized_write_bytes
         || closure_store_cost.event_scan_row_operations
-            != owner.closure.cost.candidate_event_scan_row_operations
+            != expected_event_scan_rows
         || closure_store_cost.event_workspace_state_bytes
-            != owner
-                .closure
-                .cost
-                .candidate_event_peak_workspace_state_bytes
+            != expected_event_workspace
         || closure_store_cost.event_path_rows != owner.closure.cost.candidate_event_path_count
         || closure_store_cost.event_path_serialized_read_bytes
             != owner
@@ -1391,7 +1399,16 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     diagnostics.ordered.update(&[match owner_report.scope {
         SourceFoundationDefaultRuleScope::FullAudit => 0,
         SourceFoundationDefaultRuleScope::SelectedSourceClosure => 1,
+        SourceFoundationDefaultRuleScope::SelectedRecordClosure => 2,
+        SourceFoundationDefaultRuleScope::SelectedGeneratedRecordClosure => 3,
     }]);
+    if let Some(layer) = owner_report.selected_layer_owners {
+        diagnostics.ordered.update(b"selected-layer-owner-pass-v1\0");
+        for value in [layer.artifact_records, layer.text_unit_records, layer.checked_predicates,
+            layer.addressed_event_scan_rows, layer.addressed_event_read_bytes] {
+            diagnostics.ordered.update(&value.to_be_bytes());
+        }
+    }
     let phase_counts = [
         owner_report
             .labs

@@ -951,6 +951,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     }
 
     fn has_current_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        if !self.source.selects_required_member(path)? {
+            return Ok(false);
+        }
         self.paths.contains(path)
     }
 
@@ -961,6 +964,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         let paths = self.paths;
         paths.for_each_discovery_path(&mut |path| {
             self.checkpoint()?;
+            if !self.source.selects_semantic_member(path)? {
+                return Ok(());
+            }
             visit(self, path)
         })
     }
@@ -1428,8 +1434,21 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             ))
         })?;
         self.checkpoint()?;
+        if let Some(selection) = self.source.record_selection() {
+            if selection.contains_member(path) {
+                selection.verify_metadata_member(path, &raw)?;
+            } else if !self.source.selects_required_member(path)? {
+                return Err(ItemRefusal::Source(
+                    "Discovery member is outside the explicit selected closure".into(),
+                ));
+            }
+        }
         if raw.len() > self.limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "Discovery current member bytes",
+                used: u64::try_from(raw.len()).ok(),
+                limit: u64::try_from(self.limits.max_member_bytes).ok(),
+            });
         }
         if !candidate_cost_precharged {
             let raw_bytes = u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?;
@@ -1660,15 +1679,203 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(())
     }
 
+    fn declared_provenance_contract<'c>(
+        &mut self,
+        location: &str,
+        value: &Value,
+        contract: &'c str,
+        scope: SourceFoundationDefaultRuleScope,
+    ) -> Result<Option<&'c str>, ItemRefusal> {
+        if !scope.is_scoped() || contract != PROVENANCE_SCHEMA {
+            return Ok(Some(contract));
+        }
+        match string(value, "schema_version") {
+            Some("tos_provenance_event_v1") => Ok(Some(PROVENANCE_SCHEMA)),
+            Some("tos_provenance_event_v2") => Ok(Some(PROVENANCE_V2_SCHEMA)),
+            _ => {
+                self.unsupported(location, "unsupported declared provenance schema version")?;
+                Ok(None)
+            }
+        }
+    }
+
+    fn visit_selected_jsonl_row(
+        &mut self,
+        path: &str,
+        line: u64,
+        bytes: &[u8],
+        contract: &str,
+        scope: SourceFoundationDefaultRuleScope,
+        json_limits: tos_foundation::JsonLimits,
+        scratch: usize,
+        visit: &mut dyn FnMut(&mut Self, &str, Value) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        let location_bytes = path
+            .len()
+            .checked_add((u64::MAX.ilog10() as usize) + 1)
+            .and_then(|n| n.checked_add(1))
+            .ok_or(crate::item_budget_origin!())?;
+        let location_state = location_bytes
+            .checked_add(std::mem::size_of::<String>())
+            .ok_or(crate::item_budget_origin!())?;
+        let available = self
+            .remaining_state_bytes()?
+            .checked_sub(scratch)
+            .and_then(|n| n.checked_sub(location_state))
+            .ok_or(crate::item_budget_origin!())?;
+        let (value, value_state) = crate::record_biblio_cut::bounded_decoded_state(
+            bytes,
+            json_limits,
+            available,
+            self.limits.deadline,
+            self.source.cancellation(),
+        )?;
+        // Retain the original row charge and dominate actual owned decoding.
+        let row_state = bytes
+            .len()
+            .checked_mul(8)
+            .ok_or(crate::item_budget_origin!())?
+            .max(value_state);
+        self.reserve_state(
+            row_state
+                .checked_add(location_state)
+                .ok_or(crate::item_budget_origin!())?,
+        )?;
+        self.check_temporary_state(scratch)?;
+        let mut location = String::new();
+        location
+            .try_reserve_exact(location_bytes)
+            .map_err(|_| crate::item_budget_origin!())?;
+        if location.capacity() > location_bytes {
+            return Err(crate::item_budget_origin!());
+        }
+        use std::fmt::Write;
+        write!(&mut location, "{path}:{line}").map_err(|_| crate::item_budget_origin!())?;
+        let Some(declared_contract) =
+            self.declared_provenance_contract(&location, &value, contract, scope)?
+        else {
+            return Ok(());
+        };
+        self.request_schema(&location, declared_contract, &value, bytes.len())?;
+        visit(self, &location, value)
+    }
+
+    fn for_each_selected_jsonl(
+        &mut self,
+        path: &str,
+        contract: &str,
+        raw: &[u8],
+        scope: SourceFoundationDefaultRuleScope,
+        visit: &mut dyn FnMut(&mut Self, &str, Value) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        let selection = self
+            .source
+            .record_selection()
+            .ok_or(crate::item_budget_origin!())?;
+        let json_limits = selection.row_json_limits()?;
+        if selection.contains_member(path) {
+            let scratch = selection
+                .file_slots(path)
+                .iter()
+                .try_fold(0usize, |peak, slot| {
+                    Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?))
+                })?;
+            self.check_temporary_state(scratch)?;
+            let verified = selection.verify_file(
+                path,
+                raw,
+                self.limits.deadline,
+                self.source.cancellation(),
+            )?;
+            let mut selected_rows = verified.row_cursor();
+            loop {
+                self.check_temporary_state(scratch)?;
+                let Some(selected) =
+                    selected_rows.next_checked(self.limits.deadline, self.source.cancellation())
+                else {
+                    break;
+                };
+                let (line, bytes, _) = selected?;
+                self.visit_selected_jsonl_row(
+                    path,
+                    line,
+                    bytes,
+                    contract,
+                    scope,
+                    json_limits,
+                    scratch,
+                    visit,
+                )?;
+            }
+        } else {
+            let generated = self
+                .source
+                .generated_selection()
+                .ok_or(crate::item_budget_origin!())?;
+            if !generated.selects_member(path)? {
+                return Err(ItemRefusal::Source(
+                    "Discovery stream is outside the declared generated selection".into(),
+                ));
+            }
+            let caller_state = self
+                .limits
+                .max_state_bytes
+                .checked_sub(self.remaining_state_bytes()?)
+                .ok_or(crate::item_budget_origin!())?;
+            generated.verify_member(
+                path,
+                raw,
+                caller_state,
+                self.limits.deadline,
+                self.source.cancellation(),
+            )?;
+            let mut selected_count = 0u64;
+            for (line, bytes) in crate::source_record_selection::source_rows(raw) {
+                self.checkpoint()?;
+                if generated.selects_row(path, line)? {
+                    self.visit_selected_jsonl_row(
+                        path,
+                        line,
+                        bytes,
+                        contract,
+                        scope,
+                        json_limits,
+                        0,
+                        visit,
+                    )?;
+                    selected_count = selected_count
+                        .checked_add(1)
+                        .ok_or(crate::item_budget_origin!())?;
+                }
+            }
+            if selected_count == 0 {
+                return Err(ItemRefusal::Source(
+                    "Generated Discovery stream has no required selected row".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
     fn for_each_jsonl(
         &mut self,
         path: &str,
         contract: &str,
+        scope: SourceFoundationDefaultRuleScope,
         visit: &mut dyn FnMut(&mut Self, &str, &Value) -> Result<(), ItemRefusal>,
     ) -> Result<(), ItemRefusal> {
         let Some(raw) = self.current_bytes(path)? else {
             return Ok(());
         };
+        if self.source.record_selection().is_some() {
+            return self.for_each_selected_jsonl(
+                path,
+                contract,
+                &raw,
+                scope,
+                &mut |inspector, location, value| visit(inspector, location, &value),
+            );
+        }
         let text = match std::str::from_utf8(&raw) {
             Ok(text) => text,
             Err(_) => {
@@ -1711,8 +1918,17 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 continue;
             }
             let raw_size = line.len();
-            self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
-            self.request_schema(&location, contract, &value, raw_size)?;
+            self.reserve_state(
+                raw_size
+                    .checked_mul(8)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
+            let Some(declared_contract) =
+                self.declared_provenance_contract(&location, &value, contract, scope)?
+            else {
+                continue;
+            };
+            self.request_schema(&location, declared_contract, &value, raw_size)?;
             visit(self, &location, &value)?;
         }
         Ok(())
@@ -2137,6 +2353,20 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.issue(path, "missing-current-jsonl", "file is missing")?;
             return Ok(Vec::new());
         };
+        if self.source.record_selection().is_some() {
+            let mut records = Vec::new();
+            self.for_each_selected_jsonl(
+                path,
+                contract,
+                &raw,
+                SourceFoundationDefaultRuleScope::FullAudit,
+                &mut |_, _, value| {
+                    records.push(value);
+                    Ok(())
+                },
+            )?;
+            return Ok(records);
+        }
         let text = match std::str::from_utf8(&raw) {
             Ok(text) => text,
             Err(_) => {
@@ -8227,14 +8457,13 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
 
     for path in [ACCESS_EVENTS, SERVER_EVENTS] {
-        if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure
-            && !inspector.has_current_member(path)?
-        {
+        if scope.is_scoped() && !inspector.has_current_member(path)? {
             continue;
         }
         inspector.for_each_jsonl(
             path,
             PROVENANCE_SCHEMA,
+            scope,
             &mut |inspector, location, value| {
                 let info = inspector.event_info(value, location)?;
                 let Some(id) = string(value, "event_id") else {
@@ -8419,6 +8648,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         inspector.for_each_jsonl(
             DISCOVERY_EVENTS,
             PROVENANCE_SCHEMA,
+            scope,
             &mut |inspector, location, value| {
                 let info = inspector.event_info(value, location)?;
                 let Some(id) = string(value, "event_id") else {
@@ -9640,7 +9870,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     )?;
                 } else {
                     planned_manifest_coverage_drift = true;
-                    if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure {
+                    if scope.is_scoped() {
                         inspector.issue(
                             path,
                             "server-plan-manifest-membership-drift",
@@ -9778,29 +10008,28 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         Ok(())
     },
     )?;
-    let candidate_manifest_coverage_drift =
-        if scope == SourceFoundationDefaultRuleScope::SelectedSourceClosure {
-            false
-        } else if inspector.candidate_discovery_seen_ids.is_some() {
-            let mut drift = planned_manifest_coverage_drift;
-            inspector.for_each_current_path(&mut |inspector, path| {
-                if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
-                    let is_planned = discovery_id_contains(
-                        inspector,
-                        &planned_manifest_refs,
-                        DiscoverySeenIdNamespace::PlannedManifest,
-                        path,
-                    )?;
-                    if !is_planned {
-                        drift = true;
-                    }
+    let candidate_manifest_coverage_drift = if scope.is_scoped() {
+        false
+    } else if inspector.candidate_discovery_seen_ids.is_some() {
+        let mut drift = planned_manifest_coverage_drift;
+        inspector.for_each_current_path(&mut |inspector, path| {
+            if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
+                let is_planned = discovery_id_contains(
+                    inspector,
+                    &planned_manifest_refs,
+                    DiscoverySeenIdNamespace::PlannedManifest,
+                    path,
+                )?;
+                if !is_planned {
+                    drift = true;
                 }
-                Ok(())
-            })?;
-            drift
-        } else {
-            planned_manifest_refs != expected_manifest_refs
-        };
+            }
+            Ok(())
+        })?;
+        drift
+    } else {
+        planned_manifest_refs != expected_manifest_refs
+    };
     if scope == SourceFoundationDefaultRuleScope::FullAudit && candidate_manifest_coverage_drift {
         inspector.issue(
             SERVER_PLANS.trim_end_matches('/'),
