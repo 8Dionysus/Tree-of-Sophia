@@ -215,7 +215,12 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
     ) -> Result<(), ItemRefusal> {
         let result = (|| {
             self.check(deadline, cancelled)?;
-            if max_bytes == 0 || max_bytes > self.max_member_bytes {
+            // The caller supplies a ceiling, while this adapter retains the
+            // verified maximum of the candidate's actual members. Intersect
+            // both bounds before reading; a wider caller ceiling must not
+            // reject a smaller candidate or expand its allocation allowance.
+            let max_bytes = max_bytes.min(self.max_member_bytes);
+            if max_bytes == 0 {
                 return Err(ItemRefusal::Budget);
             }
             let path = self.path(path)?;
