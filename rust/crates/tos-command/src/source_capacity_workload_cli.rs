@@ -864,6 +864,9 @@ fn select_authored_aux_v1(
         .try_reserve_exact(selection.member_count())
         .map_err(|_| invalid("capacity fixture authored descriptor allocation refused"))?;
     for member in selection.members() {
+        if !super::source_foundation_capture::selected(&member.source_ref, false) {
+            continue;
+        }
         members.push(WeightedScaleAuthoredAuxMemberV1 {
             path: member.source_ref.clone(),
             raw_sha256: Digest256::from_hex(&member.raw_sha256)

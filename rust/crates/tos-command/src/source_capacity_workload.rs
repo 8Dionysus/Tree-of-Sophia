@@ -4184,6 +4184,7 @@ pub(crate) struct WeightedScaleGeneratedAllV1 {
     templates: WeightedScaleTemplateSetV1,
     auxiliary: Arc<tos_validation::source_record_selection::SourceRecordSelection>,
     auxiliary_source_bytes: u64,
+    auxiliary_member_count: usize,
     fence: super::source_admission_spooled_candidate::CandidateFence,
     selection_sha256: Digest256,
     artifact_recipe_digest: Option<Digest256>,
@@ -4325,6 +4326,8 @@ impl WeightedScaleGeneratedAllV1 {
             }
         }
         let auxiliary_source_bytes = composition.auxiliary_source_bytes;
+        let auxiliary_member_count = usize::try_from(composition.auxiliary_member_count)
+            .map_err(|_| io_invalid("generated auxiliary member count overflow"))?;
         let support_count = if templates.artifact_recipe.is_some() {
             artifact_support_member_count_v1(
                 profile.classes[WeightedScaleClassV1::Artifact as usize].count,
@@ -4335,7 +4338,7 @@ impl WeightedScaleGeneratedAllV1 {
         let total = profile
             .target_records
             .checked_add(support_count)
-            .and_then(|n| n.checked_add(auxiliary.member_count() as u64))
+            .and_then(|n| n.checked_add(composition.auxiliary_member_count))
             .ok_or_else(|| io_invalid("generated selection member count overflow"))?;
         if profile.classes.map(|row| row.count) != declaration.class_counts()
             || templates.manifest_sha256 != declaration.template_manifest_sha256()
@@ -4347,7 +4350,6 @@ impl WeightedScaleGeneratedAllV1 {
             || composition.generated_record_count != profile.target_records
             || composition.generated_support_member_count != support_count
             || composition.authored_manifest_sha256 != auxiliary.digest()
-            || composition.auxiliary_member_count != auxiliary.member_count() as u64
             || composition.auxiliary_source_bytes != auxiliary_source_bytes
             || fence.membership.count != total
             || fence.source_bytes < auxiliary_source_bytes
@@ -4417,6 +4419,7 @@ impl WeightedScaleGeneratedAllV1 {
             templates,
             auxiliary,
             auxiliary_source_bytes,
+            auxiliary_member_count,
             fence,
             artifact_recipe_digest,
             selection_sha256: hash.finalize(),
@@ -4817,6 +4820,9 @@ impl WeightedScaleGeneratedAllV1 {
             let aux = self
                 .auxiliary
                 .members()
+                .filter(|member| {
+                    super::source_foundation_capture::selected(&member.source_ref, false)
+                })
                 .nth(traversal.auxiliary_index)
                 .ok_or_else(|| io_invalid("physical member outside finite auxiliary selection"))?;
             let aux_digest = Digest256::from_hex(&aux.raw_sha256)
@@ -4900,7 +4906,7 @@ impl WeightedScaleGeneratedAllV1 {
                 } else {
                     0
                 }; 4]
-            || traversal.auxiliary_index != self.auxiliary.member_count()
+            || traversal.auxiliary_index != self.auxiliary_member_count
             || traversal.auxiliary_bytes != self.auxiliary_source_bytes
             || traversal.observed_members != self.fence.membership.count
             || traversal
@@ -6112,6 +6118,7 @@ impl WeightedScaleAuthoredAuxSelectionV1 {
             RelativePath::parse(&member.path)
                 .map_err(|_| io_invalid("authored auxiliary source path differs"))?;
             if !member.path.starts_with("ToS/")
+                || !super::source_foundation_capture::selected(&member.path, false)
                 || member.raw_bytes == 0
                 || WeightedScaleClassV1::ALL.into_iter().any(|class| {
                     member.path.starts_with(generated_path_prefix_v1(class))
@@ -6277,6 +6284,11 @@ pub(crate) fn verify_composition_against_source_record_selection_v1(
             return Err(io_invalid("composed authored members order differs"));
         }
         previous = Some(member.source_ref.as_str());
+        // Retain and charge the full physical selection; only the existing
+        // source-store projection contributes to the packed composition.
+        if !super::source_foundation_capture::selected(&member.source_ref, false) {
+            continue;
+        }
         count = count
             .checked_add(1)
             .ok_or_else(|| io_invalid("authored member count overflow"))?;
