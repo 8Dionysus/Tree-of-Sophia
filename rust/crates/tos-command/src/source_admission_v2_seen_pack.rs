@@ -1716,6 +1716,16 @@ fn invalid(detail: &'static str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, detail)
 }
 
-fn sql_invalid(_: rusqlite::Error) -> std::io::Error {
-    invalid("V2 pack spill SQLite operation refused")
+fn sql_invalid(error: rusqlite::Error) -> std::io::Error {
+    // Preserve the mechanical code without exposing SQL text or host paths.
+    match error {
+        rusqlite::Error::SqliteFailure(code, _) => std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("V2 pack spill SQLite operation refused: code {}", code.extended_code),
+        ),
+        rusqlite::Error::QueryReturnedNoRows => invalid("V2 pack spill SQLite scalar missing"),
+        rusqlite::Error::InvalidColumnType(..) => invalid("V2 pack spill SQLite column type refused"),
+        rusqlite::Error::ExecuteReturnedResults => invalid("V2 pack spill SQLite unexpected result rows"),
+        _ => invalid("V2 pack spill SQLite operation refused"),
+    }
 }
