@@ -507,7 +507,7 @@ mod tests {
         assert_eq!(p["routes"][0]["route_id"], "current-tiny-entry");
         assert_eq!(
             p["artifact_identity"]["producer"],
-            "scripts/build_root_entry_map.py from scripts/root_entry_map_common.py"
+            "tos-ops-mechanics-plan --root-entry-map-build from scripts/root_entry_map.source.json"
         );
     }
 }
