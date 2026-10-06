@@ -26,6 +26,18 @@ use tos_validation::executor::{
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
+/// Keep every schema-owner refusal typed across the compiler's IO carrier.
+/// Public consumers must use the schema owner's bounded renderer; the carrier
+/// itself never prints source instances, paths, or parser text.
+#[derive(Debug)]
+pub struct CatalogSchemaRefusal(pub tos_validation::item_rules::ItemRefusal);
+impl std::fmt::Display for CatalogSchemaRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("catalog schema execution refused")
+    }
+}
+impl std::error::Error for CatalogSchemaRefusal {}
+
 /// Decode only this owner's authored catalog stage prefixes. Foreign source
 /// details remain private; the caller fingerprints the unchanged full error.
 pub fn source_refusal_stage(reason: &str) -> Option<&'static str> {
@@ -1495,7 +1507,9 @@ impl<'a> SourceCatalogValidator<'a> {
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
         let valid = schemas.check(path, raw, &contract, self.deadline, self.cancelled)
-            .map_err(|e| Error::Source(format!("catalog schema execution incomplete: path={path}; contract={contract}; reason={e:?}")))?;
+            .map_err(|refusal| Error::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData, CatalogSchemaRefusal(refusal),
+            )))?;
         if !valid {
             return Err(Error::Invalid(
                 "source catalog exact native schema rejected",

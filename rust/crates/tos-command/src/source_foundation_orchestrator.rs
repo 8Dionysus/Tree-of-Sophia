@@ -856,8 +856,7 @@ fn schema_limits_for_ticket(
             instance_cap,
             total_instance,
             operation.issue_count,
-            operation
-                .output_bytes
+            bounded_usize(operation.worker_wire_bytes)?
                 .min(tos_validation::executor::schema_diagnostics::MAX_RESPONSE_BYTES),
             batch,
         )
@@ -1793,9 +1792,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         max_receipts: max_checks,
         max_receipt_bytes: schema_operation.state_bytes.min(1024 * 1024).max(1),
     };
+    // These are cumulative worker response bytes, already debited to the shared
+    // wire quota. They are not bytes emitted in the final CLI result. Keep the
+    // CLI output reservation independent, as in the captured catalog callback.
     let first_diagnostics = CutSchemaDiagnosticsLimits {
         max_total_issues: schema_operation.issue_count.max(1),
-        max_total_report_bytes: schema_operation.output_bytes.max(1),
+        max_total_report_bytes: bounded_usize(schema_operation.worker_wire_bytes)?.max(1),
         max_total_state_bytes: schema_operation.state_bytes.max(1),
     };
     let image_path_state = worker_identity_path_clone_bytes(worker_image.identity(), 4)?;
@@ -2001,7 +2003,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     .map_err(owner)?;
     let record_diagnostic_ceilings = BiblioSchemaDiagnosticsLimits {
         max_total_issues: records_profile.issue_count.max(1),
-        max_total_report_bytes: records_profile.output_bytes.max(1),
+        max_total_report_bytes: bounded_usize(records_profile.worker_wire_bytes)?.max(1),
         max_total_state_bytes: records_profile.state_bytes.max(1),
     };
     let record_diagnostic_limits = BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
@@ -3094,8 +3096,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     )?;
     let owner = |error| FoundationOrchestratorError::OwnerAt("candidate catalogue", error);
     let catalog_operation = catalog_ticket.operation_limits();
-    let catalog_output_bytes = u64::try_from(catalog_operation.output_bytes)
-        .map_err(|_| incomplete("candidate catalog output byte range"))?;
     let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
     let catalog_state_cap = catalog_operation
         .state_bytes
@@ -3203,11 +3203,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             catalog_limits,
             max_claim_rows,
             max_claim_bytes,
-            catalog_limits.max_rows.min(catalog_output_bytes).max(1),
-            catalog_operation
-                .tmpfs_bytes
-                .min(catalog_output_bytes)
-                .max(1),
+            catalog_operation.tmpfs_bytes,
         )
         .map_err(FoundationOrchestratorError::Command)?;
     let stage_limits = view
@@ -3250,10 +3246,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .execution_limits
         .catalog_worker_limits(catalog_worker_shape)
         .map_err(FoundationOrchestratorError::Command)?;
+    // Fresh catalog files are staged bytes read back for comparison, not the
+    // final CLI receipt. Both physical and cumulative read meters still apply.
     let max_generated_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
-            .min(catalog_output_bytes)
+            .min(catalog_operation.source_read_bytes)
             .min((usize::MAX - 1) as u64),
     )
     .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
@@ -3511,7 +3509,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     };
     let native_diagnostics = CutSchemaDiagnosticsLimits {
         max_total_issues: native_operation.issue_count.max(1),
-        max_total_report_bytes: native_operation.output_bytes.max(1),
+        max_total_report_bytes: bounded_usize(native_operation.worker_wire_bytes)?.max(1),
         max_total_state_bytes: native_operation.state_bytes.max(1),
     };
     let held_native = candidate_owned_state
@@ -4216,7 +4214,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     if record_executor
         .enable_diagnostics_v2(BiblioSchemaDiagnosticsLimits {
             max_total_issues: operation.issue_count,
-            max_total_report_bytes: operation.output_bytes,
+            max_total_report_bytes: bounded_usize(operation.worker_wire_bytes)?,
             max_total_state_bytes: operation.state_bytes,
         })
         .is_err()
@@ -4276,7 +4274,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     };
     let item_diag = CutSchemaDiagnosticsLimits {
         max_total_issues: operation.issue_count,
-        max_total_report_bytes: operation.output_bytes,
+        max_total_report_bytes: bounded_usize(operation.worker_wire_bytes)?,
         max_total_state_bytes: operation.state_bytes,
     };
     if item_schemas.enable_diagnostics_v2(item_diag).is_err()
@@ -4571,7 +4569,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
     };
     let default_diagnostic_limits = CutSchemaDiagnosticsLimits {
         max_total_issues: default_operation.issue_count.max(1),
-        max_total_report_bytes: default_operation.output_bytes.max(1),
+        max_total_report_bytes: bounded_usize(default_operation.worker_wire_bytes)?.max(1),
         max_total_state_bytes: default_operation.state_bytes.max(1),
     };
     let executor_budget = match ticket_worker_budget(
@@ -5028,14 +5026,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         catalog_limits,
         max_claim_rows,
         max_claim_bytes,
-        catalog_limits
-            .max_rows
-            .min(catalog_operation.output_bytes as u64)
-            .max(1),
-        catalog_operation
-            .tmpfs_bytes
-            .min(catalog_operation.output_bytes as u64)
-            .max(1),
+        catalog_operation.tmpfs_bytes,
     ) {
         Ok(limits) => limits,
         Err(error) => {
