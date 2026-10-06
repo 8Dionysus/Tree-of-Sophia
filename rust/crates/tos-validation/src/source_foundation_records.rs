@@ -428,6 +428,18 @@ struct SelectedItemRecord {
     selection: SourceFoundationItemRecordSelection,
 }
 
+// A retained source reference authenticates a physical member; it does not
+// select that other Item and all of its companions for semantic admission.
+fn item_manifest_in_scope(
+    selected_scope: bool,
+    records: &[SelectedItemRecord],
+    path: &str,
+) -> bool {
+    !selected_scope || records.iter().any(|record| {
+        record.selection.value.get("item_manifest_ref").and_then(Value::as_str) == Some(path)
+    })
+}
+
 struct SelectedItemRecords {
     records: Vec<SelectedItemRecord>,
     read_bytes: u64,
@@ -4791,6 +4803,7 @@ fn python_values_equal(left: &Value, right: &Value) -> bool {
 
 fn build_file_membership_index(
     source: SourceFoundationCurrentInput<'_>,
+    selected_items: &[SelectedItemRecord],
     limits: ItemLimits,
     max_read_bytes: u64,
     cancelled: &AtomicBool,
@@ -4826,6 +4839,9 @@ fn build_file_membership_index(
     for (path_owned, metadata_size_bytes) in manifest_paths {
         check(limits, cancelled)?;
         let path = path_owned.as_str();
+        if !item_manifest_in_scope(source.selection().is_some(), selected_items, path) {
+            continue;
+        }
         if metadata_size_bytes > limits.max_member_bytes as u64 {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation item manifest membership member bytes",
@@ -5699,6 +5715,7 @@ fn inspect_source_foundation_records_with_mode(
         file_membership_state_bytes,
     ) = build_file_membership_index(
         source,
+        &selected_items.records,
         limits.items,
         file_membership_read_limit_bytes,
         cancelled,
@@ -5783,6 +5800,7 @@ fn inspect_source_foundation_records_with_mode(
         if source.semantic_member(path)
             && path.starts_with(SOURCE_HOME)
             && path.ends_with(ITEM_MANIFEST_SUFFIX)
+            && item_manifest_in_scope(source.selection().is_some(), &selected_items.records, path)
         {
             check(limits.items, cancelled)?;
             item_rules.inspect_manifest(&mut item_source, path)?;
@@ -7517,4 +7535,26 @@ fn check_deadline(deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemR
 
 fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
     ItemRefusal::Source(crate::record_biblio_cut::source_store_cause(&error))
+}
+
+#[cfg(test)]
+mod item_manifest_scope_tests {
+    use super::*;
+
+    #[test]
+    fn retained_foreign_manifest_does_not_expand_selected_item_scope() {
+        let owned = "ToS/source-witnesses/selected/items/item/item.manifest.json";
+        let foreign = "ToS/source-witnesses/referenced/items/item/item.manifest.json";
+        let records = vec![SelectedItemRecord {
+            selection: SourceFoundationItemRecordSelection {
+                record_id: "selected-item".into(),
+                path: "ToS/source-witnesses/selected/items/item/item.json".into(),
+                value: serde_json::json!({"item_manifest_ref": owned}),
+            },
+        }];
+        assert!(item_manifest_in_scope(true, &records, owned));
+        assert!(!item_manifest_in_scope(true, &records, foreign));
+        assert!(!item_manifest_in_scope(true, &[], foreign));
+        assert!(item_manifest_in_scope(false, &records, foreign));
+    }
 }
