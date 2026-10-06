@@ -2767,3 +2767,63 @@ impl Write for ReceiptWriter<'_> {
         active(self.deadline, self.cancel)
     }
 }
+
+#[cfg(test)]
+mod refusal_transport_tests {
+    use super::*;
+
+    #[test]
+    fn item_histogram_survives_admission_packet_transport() {
+        let full = "ri-4-0-1d-pc77fbf954bad items=29 codes=2 invalid-json=24 missing-companion=5"
+            .to_owned();
+        let overflow = format!(
+            "ri-4-0-1d-pc77fbf954bad items=29 codes=20 hash={} invalid-json=24 omitted=19",
+            tos_foundation::Digest256::of_bytes(b"representative complete ordered histogram")
+                .to_hex(),
+        );
+        for expected in [full, overflow] {
+            assert!(expected.len() <= NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES);
+            let error =
+                foundation_orchestrator::FoundationOrchestratorError::Admission(io::Error::other(
+                    crate::source_command::SourceCommandError::DeniedWithReason(expected.clone()),
+                ));
+            let public = error.public_reason();
+            assert_eq!(public, expected);
+            let snapshot = PinnedSqliteIoSnapshot::default();
+            let refusal = NativeSpoolRefusal::retain(
+                io::Error::new(io::ErrorKind::InvalidData, NativeValidationRefusal(public)),
+                "native-v4 foundation evaluation",
+                snapshot,
+                snapshot,
+                false,
+                false,
+            );
+            let encoded = serde_json::to_vec(&refusal.packet()).unwrap();
+            let decoded: Value = serde_json::from_slice(&encoded).unwrap();
+            assert_eq!(decoded["publication_state"], "not_committed");
+            assert_eq!(decoded["primary_error_kind"], "invalid_data");
+            assert_eq!(
+                decoded["native_validation_reason"].as_str(),
+                Some(expected.as_str())
+            );
+        }
+        let overlong = "private-sentinel".repeat(NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES);
+        let snapshot = PinnedSqliteIoSnapshot::default();
+        let refusal = NativeSpoolRefusal::retain(
+            io::Error::other(NativeValidationRefusal(overlong)),
+            "native-v4 foundation evaluation",
+            snapshot,
+            snapshot,
+            false,
+            false,
+        );
+        let encoded = serde_json::to_vec(&refusal.packet()).unwrap();
+        let decoded: Value = serde_json::from_slice(&encoded).unwrap();
+        assert!(decoded["native_validation_reason"].is_null());
+        assert!(
+            !String::from_utf8(encoded)
+                .unwrap()
+                .contains("private-sentinel")
+        );
+    }
+}

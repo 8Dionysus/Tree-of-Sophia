@@ -102,10 +102,11 @@ impl FoundationOrchestratorError {
             return evidence.summary();
         }
         if let Self::Admission(error) = self {
-            if let Some(evidence) = error.get_ref().and_then(|error| {
-                error.downcast_ref::<tos_validation::item_rules::ItemExecutorRefusal>()
+            if error.get_ref().is_some_and(|cause| {
+                cause.is::<crate::source_command::SourceCommandError>()
+                    || cause.is::<tos_validation::item_rules::ItemExecutorRefusal>()
             }) {
-                return evidence.summary();
+                return crate::source_command::public_io_reason(error);
             }
             let source_cause = error.to_string();
             if crate::source_admission_spooled_index::is_bounded_source_cause(&source_cause) {
