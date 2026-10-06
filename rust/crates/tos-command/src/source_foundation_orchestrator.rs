@@ -2597,8 +2597,37 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                     let verified = selection.verify_file(&member.source_ref, raw, deadline, cancelled)?;
                                     let mut rows = verified.row_cursor();
                                     while let Some(row) = rows.next_checked(deadline, cancelled) {
-                                        let (_, bytes, slot) = row?;
+                                        let (line, bytes, slot) = row?;
                                         if slot.kind != "claim" { continue; }
+                                        // The clean, input-bound Biblio report above already
+                                        // owns legacy Claim packets. Native local forms have
+                                        // a different versioned contract; do not reinterpret
+                                        // a legacy packet through that native-only validator.
+                                        let mut legacy_observations = 0usize;
+                                        claims.for_each_claim_at(&member.source_ref,
+                                            usize::try_from(line).map_err(|_| tos_validation::item_budget_origin!())?,
+                                            &mut |_, claim| {
+                                                if !claim.native {
+                                                    if claim.path != member.source_ref
+                                                        || claim.line as u64 != line
+                                                        || claim.raw_sha256 != slot.source.file_sha256
+                                                        || claim.value.get("claim_id").and_then(serde_json::Value::as_str) != Some(slot.identity.as_str())
+                                                    {
+                                                        return Err(ItemRefusal::Source("selected legacy Claim differs from completed Biblio owner".into()));
+                                                    }
+                                                    legacy_observations = legacy_observations.checked_add(1)
+                                                        .ok_or(tos_validation::item_budget_origin!())?;
+                                                }
+                                                Ok(())
+                                            })?;
+                                        if legacy_observations == 1 {
+                                            checked_claims = checked_claims.checked_add(1)
+                                                .ok_or(tos_validation::item_budget_origin!())?;
+                                            continue;
+                                        }
+                                        if legacy_observations > 1 {
+                                            return Err(ItemRefusal::Source("selected legacy Claim owner coverage is ambiguous".into()));
+                                        }
                                         let mut worker = schema_worker.borrow_mut();
                                         let report = tos_validation::record_rules::validate_source_claim_from_input(
                                             input, records, bytes, &mut **worker, local_limits, cancelled)?;
@@ -2871,6 +2900,22 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         // existing 40-byte source-cause site bound exactly.
                         let mut site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
                         let mut cause = issue;
+                        if owner_report.labs.as_ref().is_none_or(|labs| labs.ordered_issues.is_empty())
+                            && owner_report.goldsets.as_ref().is_none_or(|goldsets| goldsets.ordered_issues.is_empty())
+                        {
+                            let finding = owner_report.discovery.issues.first()
+                                .map(|finding| ("d", finding.code, finding.location.as_str()))
+                                .or_else(|| owner_report.closure.issues.first()
+                                    .map(|(path, _)| ("c", "closure", path.as_str())));
+                            if let Some((district, code, path)) = finding {
+                                let code = Digest256::of_bytes(code.as_bytes()).to_hex();
+                                let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                                let located = format!("{site}-{district}{}-p{}", &code[..12], &path[..12]);
+                                if located.len() <= 40 {
+                                    site = located;
+                                }
+                            }
+                        }
                         if let Some(diagnostic) = evaluated.diagnostics.iter()
                             .find(|diagnostic| !diagnostic.result().is_valid())
                         {
