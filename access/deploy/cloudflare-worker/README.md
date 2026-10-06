@@ -835,8 +835,8 @@ it requires a continuously powered origin machine.
 
 The production Worker inserts one Cloudflare Web Analytics beacon into successful
 HTML responses on `treeofsophia.com`, using the public `WEB_ANALYTICS_TOKEN`
-binding. Keep the existing Web Analytics site in manual snippet mode so automatic
-injection cannot create a duplicate. EU visitors remain excluded using the
+binding. The HTML `no-transform` cache directive prevents automatic edge
+injection from duplicating this manually installed beacon. EU visitors remain excluded using the
 request's Cloudflare geography. HTML responses are private/no-store because
 their beacon presence varies by geography; static assets retain direct caching.
 

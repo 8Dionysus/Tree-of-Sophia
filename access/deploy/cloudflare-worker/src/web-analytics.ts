@@ -8,7 +8,7 @@ export function withWebAnalytics(request: Request, response: Response, token: st
   // Preserve the existing Cloudflare "exclude EU visitors" setting.
   // HTML is personalized by geography; never let downstream caches share it.
   const headers = new Headers(response.headers);
-  headers.set("Cache-Control", "private, no-store");
+  headers.set("Cache-Control", "private, no-store, no-transform");
   headers.delete("ETag");
   headers.delete("Content-Length");
   const html = new Response(response.body, { status: response.status, headers });
