@@ -896,6 +896,16 @@ fn verify_protected_ro(_o: &Options, path: &Path, held: &File) -> Result<(), Str
     }
     Ok(())
 }
+// A descriptor inherited across unshare still names the parent mount. Linux
+// rejects using that mount as a bind source in the new namespace (EINVAL).
+// Reopen before fallback masking and retain only the identical owned directory
+// on the namespace-local mount. The inherited descriptor remains the identity
+// authority; this does not admit another path or relax read-only protection.
+fn current_namespace_mount_source(path: &Path, inherited: &File) -> Result<File, String> {
+    let current = directory(path)?;
+    identical(inherited, &current)?;
+    Ok(current)
+}
 fn mount_protected_ro(
     o: &Options,
     path: &Path,
@@ -1955,7 +1965,10 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
             }
             let held = unsafe { File::from_raw_fd(duplicate) };
             stage_result("fd.verify-search-cache", selected.verify(&held, &i.root))?;
-            Some(held)
+            Some(stage_result(
+                "fd.reopen-search-cache-mount",
+                current_namespace_mount_source(selected.parent()?, &held),
+            )?)
         }
         _ => return Err("search cache descriptor/selector mismatch".into()),
     };
@@ -1977,7 +1990,10 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                 "fd.verify-protected-read-root",
                 verify_protected_ro(o, path, &held),
             )?;
-            Some(held)
+            Some(stage_result(
+                "fd.reopen-protected-read-mount",
+                current_namespace_mount_source(path, &held),
+            )?)
         }
         _ => return Err("protected read root FD role differs".into()),
     };
@@ -2011,7 +2027,10 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
                 "fd.verify-release-root",
                 verify_protected_ro(o, path, &held),
             )?;
-            Some(held)
+            Some(stage_result(
+                "fd.reopen-protected-read-mount",
+                current_namespace_mount_source(path, &held),
+            )?)
         }
         _ => return Err("Reference release read FD role differs".into()),
     };
