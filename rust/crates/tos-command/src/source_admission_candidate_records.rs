@@ -2,6 +2,7 @@
 //! This input mints neither a source revision nor a completed inventory token.
 use crate::source_admission_spooled_candidate::{CandidateFence, SpoolCandidate};
 use std::{
+    cell::Cell,
     io,
     sync::{Arc, atomic::AtomicBool},
     time::Instant,
@@ -20,8 +21,8 @@ pub(crate) struct CandidateRecordsInput<'a, 'host> {
     candidate: &'a SpoolCandidate<'host>,
     fence: CandidateFence,
     max_member_bytes: usize,
-    max_owned_state_bytes: usize,
-    callback_retained_state_bytes: usize,
+    max_owned_state_bytes: Cell<usize>,
+    callback_retained_state_bytes: Cell<usize>,
     record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
     generated_selection:
         Option<Arc<super::source_admission_generated_selection::GeneratedCandidateSelectionV1>>,
@@ -41,7 +42,7 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
         // Native debits the provider's owned state before deriving this
         // remaining callback envelope. The provider adds its own state once
         // against the original pre-debit input envelope.
-        Ok(self.callback_retained_state_bytes)
+        Ok(self.callback_retained_state_bytes.get())
     }
     pub(crate) fn with_generated_selection(
         mut self,
@@ -65,13 +66,40 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
     ) -> Result<(), ItemRefusal> {
         self.check(deadline, cancelled)
     }
+    /// Bootstrap custody consumes the same ledger after this input is lent.
+    /// Narrow the inclusive callback/raw envelope by that actual debit before
+    /// the evaluator runs, preserving the exact local row reserve. Never grow
+    /// either grant or reinterpret a whole operation as a SQL row.
+    pub(crate) fn restrict_operation_state(
+        &self,
+        selected_callback_state_bytes: usize,
+        max_operation_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        let owned = self.max_owned_state_bytes.get();
+        let callback = self.callback_retained_state_bytes.get();
+        if selected_callback_state_bytes != callback {
+            self.candidate.abandon();
+            return Err(refused());
+        }
+        let narrowed = owned.min(max_operation_state_bytes);
+        let narrowed_callback = callback
+            .checked_sub(owned - narrowed)
+            .filter(|bytes| *bytes != 0);
+        let Some(narrowed_callback) = narrowed_callback else {
+            self.candidate.abandon();
+            return Err(ItemRefusal::Budget);
+        };
+        self.max_owned_state_bytes.set(narrowed);
+        self.callback_retained_state_bytes.set(narrowed_callback);
+        Ok(narrowed_callback)
+    }
     pub(crate) fn require_callback_state(
         &self,
         required_state_bytes: usize,
         max_operation_state_bytes: usize,
     ) -> Result<(), ItemRefusal> {
-        if self.callback_retained_state_bytes < required_state_bytes
-            || self.max_owned_state_bytes > max_operation_state_bytes
+        if self.callback_retained_state_bytes.get() < required_state_bytes
+            || self.max_owned_state_bytes.get() > max_operation_state_bytes
         {
             self.candidate.abandon();
             return Err(ItemRefusal::Budget);
@@ -98,8 +126,8 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
             candidate,
             fence,
             max_member_bytes,
-            max_owned_state_bytes,
-            callback_retained_state_bytes,
+            max_owned_state_bytes: Cell::new(max_owned_state_bytes),
+            callback_retained_state_bytes: Cell::new(callback_retained_state_bytes),
             record_selection: None,
             generated_selection: None,
         })
@@ -119,9 +147,9 @@ impl<'a, 'host> CandidateRecordsInput<'a, 'host> {
         if path
             .len()
             .checked_mul(16)
-            .and_then(|n| n.checked_add(self.callback_retained_state_bytes))
+            .and_then(|n| n.checked_add(self.callback_retained_state_bytes.get()))
             .and_then(|n| n.checked_add(8192))
-            .is_none_or(|n| n > self.max_owned_state_bytes)
+            .is_none_or(|n| n > self.max_owned_state_bytes.get())
         {
             return Err(ItemRefusal::Budget);
         }
@@ -170,7 +198,8 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let directory_path = self.path(directory)?;
             let allowance = self
                 .max_owned_state_bytes
-                .checked_sub(self.callback_retained_state_bytes)
+                .get()
+                .checked_sub(self.callback_retained_state_bytes.get())
                 .ok_or(ItemRefusal::Budget)?;
             let mut previous: Option<RelativePath> = None;
             let mut count = 0u64;
@@ -226,7 +255,8 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let path = self.path(path)?;
             let allowance = self
                 .max_owned_state_bytes
-                .checked_sub(self.callback_retained_state_bytes)
+                .get()
+                .checked_sub(self.callback_retained_state_bytes.get())
                 .ok_or(ItemRefusal::Budget)?;
             let member = self
                 .candidate
@@ -275,8 +305,8 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let caller_live = self.generated_caller_state()?;
             let membership = self.candidate.for_each_verified_member(
                 self.max_member_bytes,
-                self.max_owned_state_bytes,
-                self.callback_retained_state_bytes,
+                self.max_owned_state_bytes.get(),
+                self.callback_retained_state_bytes.get(),
                 &mut |meta, raw| {
                     if let (Some(selection), Some(traversal)) =
                         (&self.generated_selection, &mut generated_traversal)
@@ -290,7 +320,9 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                             deadline,
                             cancelled,
                         ) {
-                            callback_error = Some(ItemRefusal::Source(crate::source_command::public_io_reason(&error)));
+                            callback_error = Some(ItemRefusal::Source(
+                                crate::source_command::public_io_reason(&error),
+                            ));
                             return Err(io::Error::other(
                                 "generated physical member proof refused",
                             ));
@@ -323,7 +355,9 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             {
                 selection
                     .finish_traversal(traversal, self.fence, &coverage, deadline, cancelled)
-                    .map_err(|error| ItemRefusal::Source(crate::source_command::public_io_reason(&error)))?;
+                    .map_err(|error| {
+                        ItemRefusal::Source(crate::source_command::public_io_reason(&error))
+                    })?;
             }
             Ok(coverage)
         })();
@@ -344,11 +378,12 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
             let overlap = path
                 .len()
                 .checked_mul(16)
-                .and_then(|n| n.checked_add(self.callback_retained_state_bytes))
+                .and_then(|n| n.checked_add(self.callback_retained_state_bytes.get()))
                 .and_then(|n| n.checked_add(8192))
                 .ok_or(ItemRefusal::Budget)?;
             let allowance = self
                 .max_owned_state_bytes
+                .get()
                 .checked_sub(overlap)
                 .ok_or(ItemRefusal::Budget)?;
             let presence = if self
@@ -369,6 +404,7 @@ impl SourceCutInput for CandidateRecordsInput<'_, '_> {
                         .ok_or(ItemRefusal::Budget)?;
                     let row_allowance = self
                         .max_owned_state_bytes
+                        .get()
                         .checked_sub(previous)
                         .ok_or(ItemRefusal::Budget)?;
                     let Some(next) = self
