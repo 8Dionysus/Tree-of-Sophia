@@ -26,6 +26,51 @@ use tos_validation::executor::{
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
+/// Keep every schema-owner refusal typed across the compiler's IO carrier.
+/// Public consumers must use the schema owner's bounded renderer; the carrier
+/// itself never prints source instances, paths, or parser text.
+#[derive(Debug)]
+pub struct CatalogSchemaRefusal(pub tos_validation::item_rules::ItemRefusal);
+impl std::fmt::Display for CatalogSchemaRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("catalog schema execution refused")
+    }
+}
+impl std::error::Error for CatalogSchemaRefusal {}
+
+/// Decode only this owner's authored catalog stage prefixes. Foreign source
+/// details remain private; the caller fingerprints the unchanged full error.
+pub fn source_refusal_stage(reason: &str) -> Option<&'static str> {
+    let (stage, _) = reason.split_once(':')?;
+    match stage {
+        "catalog candidate guard" => Some("guard"),
+        "catalog candidate binding" => Some("binding"),
+        "catalog execution count" => Some("execution-count"),
+        "catalog exact streamed executor" => Some("stream-executor"),
+        "catalog schema operation budget" => Some("schema-budget"),
+        "catalog spool diagnostics configuration" => Some("spool-config"),
+        "catalog spool selected raw limit" => Some("spool-raw-limit"),
+        "catalog spool shared schema quota" => Some("spool-quota"),
+        "catalog receipt spool" => Some("receipt-spool"),
+        "catalog exact cut executor" => Some("cut-executor"),
+        "catalog diagnostics drain" => Some("diagnostics-drain"),
+        "catalog candidate diagnostics drain" => Some("candidate-drain"),
+        "catalog schema operation finish" => Some("schema-finish"),
+        "catalog receipt page" => Some("receipt-page"),
+        "catalog diagnostic page" => Some("diagnostic-page"),
+        "catalog spool finish" => Some("spool-finish"),
+        "catalog spool close" => Some("spool-close"),
+        "catalog spool summary" => Some("spool-summary"),
+        "catalog selected schema inventory" => Some("schema-inventory"),
+        "catalog schema execution incomplete" => Some("schema-execution"),
+        "catalog selected verifier bound" => Some("verifier-bound"),
+        "catalog selected file binding" => Some("file-binding"),
+        "catalog selected slot binding" => Some("slot-binding"),
+        "catalog selected record binding" => Some("record-binding"),
+        _ => None,
+    }
+}
+
 pub const CATALOG_SOURCE: &str = "source-witness-catalog";
 pub const SOURCE_FILES: &str = "source-files";
 pub const CONTRACT_FILES: &str = "contracts";
@@ -1367,16 +1412,9 @@ impl<'a> SourceCatalogValidator<'a> {
             .try_borrow_mut()
             .map_err(|_| Error::Invalid("catalog executor already in use"))?;
         let valid = schemas.check(path, raw, &contract, self.deadline, self.cancelled)
-            .map_err(|e| match e {
-                // Keep bounded mechanical worker/quota evidence typed across
-                // the compiler boundary; the command already renders this
-                // owned error without exposing instance or foreign paths.
-                tos_validation::item_rules::ItemRefusal::Executor(evidence) => {
-                    Error::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, *evidence))
-                }
-                tos_validation::item_rules::ItemRefusal::Budget => Error::Budget("catalog schema execution"),
-                other => Error::Source(format!("catalog schema execution incomplete: path={path}; contract={contract}; reason={other:?}")),
-            })?;
+            .map_err(|refusal| Error::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData, CatalogSchemaRefusal(refusal),
+            )))?;
         if !valid {
             return Err(Error::Invalid(
                 "source catalog exact native schema rejected",
