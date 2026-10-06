@@ -2876,10 +2876,10 @@ impl WeightedScaleTemplateSetV1 {
             caller_state
                 .checked_add(artifact_state)
                 .ok_or_else(|| io_invalid("ALL5 selection state overflow"))?,
+            true,
         )?;
-        // Historical V2 Artifact shapes remain untouched on the legacy route;
-        // the explicit new route replaces its own finite three selected bodies.
-        result.templates[WeightedScaleClassV1::Artifact as usize].clear();
+        // The explicit Artifact route reads only its selected bodies. Legacy
+        // loading retains its own three historical Artifact templates.
         let prior = weighted_producer_state_upper_v1(&result, 0)?;
         let mut loaded = WeightedScaleLoadedArtifactRecipeV1::load_accounted(
             root,
@@ -2968,7 +2968,7 @@ impl WeightedScaleTemplateSetV1 {
     }
 
     pub fn load(repository_root: &Path) -> std::io::Result<Self> {
-        Self::load_inner(repository_root, None, false, None)
+        Self::load_inner(repository_root, None, false, false, None)
     }
 
     pub(crate) fn load_accounted(
@@ -2981,6 +2981,7 @@ impl WeightedScaleTemplateSetV1 {
         Self::load_inner(
             repository_root,
             Some((io, deadline, cancelled, work)),
+            false,
             false,
             None,
         )
@@ -2995,13 +2996,16 @@ impl WeightedScaleTemplateSetV1 {
             &AdmissionWorkBudget,
         )>,
         omit_legacy_claims: bool,
+        omit_legacy_artifacts: bool,
         state_limit: Option<usize>,
     ) -> std::io::Result<Self> {
         let pins = scale_template_pins_v1();
         let mut templates: [Vec<WeightedScaleTemplateV1>; 5] = std::array::from_fn(|_| Vec::new());
         let mut resident = 0u64;
         for pin in pins {
-            if omit_legacy_claims && pin.class == WeightedScaleClassV1::Claim {
+            if (omit_legacy_claims && pin.class == WeightedScaleClassV1::Claim)
+                || (omit_legacy_artifacts && pin.class == WeightedScaleClassV1::Artifact)
+            {
                 continue;
             }
             let retained = template_array_retained_state_v1(&templates)?;
@@ -3056,9 +3060,11 @@ impl WeightedScaleTemplateSetV1 {
             }
         }
         let mut reference_state = 0u64;
-        for rows in &mut templates {
+        for (class, rows) in templates.iter_mut().enumerate() {
             rows.sort_by_key(|template| template.bytes.len());
-            if rows.len() != 3 && !(omit_legacy_claims && rows.is_empty()) {
+            let omitted = (omit_legacy_claims && class == WeightedScaleClassV1::Claim as usize)
+                || (omit_legacy_artifacts && class == WeightedScaleClassV1::Artifact as usize);
+            if rows.len() != 3 && !(omitted && rows.is_empty()) {
                 return Err(io_invalid("scale class template count differs"));
             }
             for template in rows {
@@ -3092,6 +3098,7 @@ impl WeightedScaleTemplateSetV1 {
         work: &AdmissionWorkBudget,
         max_state_bytes: usize,
         caller_live_state_bytes: usize,
+        omit_legacy_artifacts: bool,
     ) -> std::io::Result<Self> {
         scale_active(deadline, cancelled)?;
         let selection_state = selection.retained_state_bytes()?;
@@ -3427,6 +3434,7 @@ impl WeightedScaleTemplateSetV1 {
             repository_root,
             Some((io, deadline, cancelled, work)),
             true,
+            omit_legacy_artifacts,
             Some(
                 available
                     .checked_sub(resident)
@@ -3627,6 +3635,7 @@ impl WeightedScaleTemplateSetV1 {
                         work,
                         max_state_bytes,
                         caller_live_state_bytes,
+                        false,
                     )?
                 };
                 let mut templates = templates;
