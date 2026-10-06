@@ -6914,35 +6914,31 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     }
 
     fn validate_source_refs(&mut self, location: &str, value: &Value) -> Result<(), ItemRefusal> {
-        for field in ["inputs", "outputs", "evidence_refs"] {
-            let Some(rows) = value.get(field).and_then(Value::as_array) else {
-                continue;
+        // The maintained generic repository-reference rule checks these
+        // navigation fields. Recorded input/output digests are checked by
+        // their owning operation, not reinterpreted as current byte identity.
+        let references = ["source_refs", "source_record_refs", "receipt_refs"]
+            .into_iter()
+            .filter_map(|field| value.get(field).and_then(Value::as_array))
+            .flatten()
+            .chain([
+                "rights_ref", "provenance_ref", "forensic_report_ref",
+                "resource_inventory_ref", "generated_from_manifest_ref", "item_manifest_ref",
+            ].into_iter().filter_map(|field| value.get(field)));
+        for reference in references {
+            check(self.limits.deadline, self.source.cancellation())?;
+            let exists = match reference.as_str() {
+                Some(path) if path.starts_with("ToS/") => self.current_exists(path)?,
+                Some(_) => true,
+                None => false,
             };
-            for row in rows {
-                let (reference, expected_digest) = if let Some(object) = row.as_object() {
-                    (
-                        object.get("ref").and_then(Value::as_str),
-                        object.get("sha256").and_then(Value::as_str),
-                    )
-                } else {
-                    (row.as_str(), None)
-                };
-                let Some(reference) = reference.filter(|reference| reference.starts_with("ToS/"))
-                else {
-                    continue;
-                };
-                if !self.current_exists(reference)? {
-                    self.issue(location, format!("unresolved source ref: {reference}"))?;
-                    continue;
-                }
-                if let Some(expected_digest) = expected_digest {
-                    if !self.recorded_matches(reference, expected_digest)? {
-                        self.issue(
-                            location,
-                            format!("source ref digest is unresolved: {reference}"),
-                        )?;
-                    }
-                }
+            if !exists {
+                let bytes = crate::source_foundation_records::python_value_string_len(reference)?;
+                self.reserve_temporary(bytes)?;
+                let displayed = crate::source_foundation_records::python_value_string(reference);
+                self.issue(location, format!("repository reference does not exist: {displayed}"))?;
+                drop(displayed);
+                self.release_temporary_state(bytes)?;
             }
         }
         Ok(())
