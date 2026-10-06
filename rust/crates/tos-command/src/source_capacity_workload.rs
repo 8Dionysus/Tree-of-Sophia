@@ -4821,7 +4821,7 @@ impl WeightedScaleGeneratedAllV1 {
                 .auxiliary
                 .members()
                 .filter(|member| {
-                    super::source_foundation_capture::selected(&member.source_ref, false)
+                    crate::source_current_cut::foundation_capture::selected(&member.source_ref, false)
                 })
                 .nth(traversal.auxiliary_index)
                 .ok_or_else(|| io_invalid("physical member outside finite auxiliary selection"))?;
@@ -6118,7 +6118,7 @@ impl WeightedScaleAuthoredAuxSelectionV1 {
             RelativePath::parse(&member.path)
                 .map_err(|_| io_invalid("authored auxiliary source path differs"))?;
             if !member.path.starts_with("ToS/")
-                || !super::source_foundation_capture::selected(&member.path, false)
+                || !crate::source_current_cut::foundation_capture::selected(&member.path, false)
                 || member.raw_bytes == 0
                 || WeightedScaleClassV1::ALL.into_iter().any(|class| {
                     member.path.starts_with(generated_path_prefix_v1(class))
@@ -6286,7 +6286,7 @@ pub(crate) fn verify_composition_against_source_record_selection_v1(
         previous = Some(member.source_ref.as_str());
         // Retain and charge the full physical selection; only the existing
         // source-store projection contributes to the packed composition.
-        if !super::source_foundation_capture::selected(&member.source_ref, false) {
+        if !crate::source_current_cut::foundation_capture::selected(&member.source_ref, false) {
             continue;
         }
         count = count
