@@ -2888,7 +2888,12 @@ pub(super) fn run(
         deadline,
         cancelled.as_ref(),
     )
-    .map_err(|_| "Core lazy dedicated SQLite backend admission")?;
+    .map_err(|error| match error {
+        // These owner-authored static reasons include the original ledger's
+        // refusal. Dynamic SQL, I/O and source text stay behind the boundary.
+        tos_compiler::Error::Invalid(reason) | tos_compiler::Error::Budget(reason) => reason,
+        _ => "Core lazy dedicated SQLite backend admission",
+    })?;
     state.retained.set(
         state
             .retained
