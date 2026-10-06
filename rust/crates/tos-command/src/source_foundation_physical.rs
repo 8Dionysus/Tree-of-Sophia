@@ -3237,7 +3237,7 @@ fn route_error(
     }
     if error.kind() == io::ErrorKind::InvalidData {
         match error.to_string().as_str() {
-            "route lookup operation bound exceeded"
+            value @ ("route lookup operation bound exceeded"
             | "route discovery entry bound exceeded"
             | "operand aggregate byte accounting exceeded"
             | "operand input byte bound exceeded"
@@ -3245,9 +3245,26 @@ fn route_error(
             | "shared physical returned byte accounting overflow"
             | "foundation Git output bound"
             | "foundation Git FD census bound"
-            | "foundation Git status bound" => return ItemRefusal::Budget,
+            | "foundation Git status bound") => {
+                // Preserve the fixed owner check through bootstrap/finalizers.
+                // Paths and arbitrary IO text remain outside this public code.
+                let check = match value {
+                    "route lookup operation bound exceeded" => "physical-route-lookup-operations",
+                    "route discovery entry bound exceeded" => "physical-route-discovery-entries",
+                    "operand aggregate byte accounting exceeded" => "physical-route-total-read-bytes",
+                    "operand input byte bound exceeded" => "physical-route-member-read-bytes",
+                    "operand aggregate byte accounting overflow" => "physical-route-read-counter-overflow",
+                    "shared physical returned byte accounting overflow" => "physical-route-shared-return-overflow",
+                    "foundation Git output bound" => "physical-git-output-bytes",
+                    "foundation Git FD census bound" => "physical-git-fd-census",
+                    _ => "physical-git-status",
+                };
+                return ItemRefusal::BudgetCheck { check, used: None, limit: None };
+            }
             value if value.starts_with("shared physical read budget refused:") => {
-                return ItemRefusal::Budget;
+                return ItemRefusal::BudgetCheck {
+                    check: "physical-route-shared-read-budget", used: None, limit: None,
+                };
             }
             "foundation Git deadline" | "route operation deadline exceeded" => {
                 return ItemRefusal::Deadline;
