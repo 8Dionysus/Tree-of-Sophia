@@ -87,6 +87,18 @@ impl FoundationOrchestratorError {
         if let Self::Catalog(error) = self {
             return crate::source_command::public_compiler_reason(error);
         }
+        if let Self::Command(error)
+        | Self::Bootstrap(
+            FoundationBootstrapError::Command(error)
+            | FoundationBootstrapError::Capture(error)
+            | FoundationBootstrapError::IsolatedRoot(error),
+        ) = self
+        {
+            return error.public_reason();
+        }
+        if let Self::Bootstrap(FoundationBootstrapError::RouteRoot(error)) = self {
+            return crate::source_command::public_io_reason(error);
+        }
         if let Self::Default(
             _,
             FoundationDefaultReadError::Owner(ItemRefusal::Executor(evidence)),
@@ -115,6 +127,15 @@ impl FoundationOrchestratorError {
         let owner = match self {
             Self::Owner(error) => Some(("owner", error)),
             Self::OwnerAt(stage, error) => Some((*stage, error)),
+            Self::Bootstrap(FoundationBootstrapError::Selection(error)) => {
+                Some(("bootstrap-selection", error))
+            }
+            Self::Bootstrap(FoundationBootstrapError::Payload(error)) => {
+                Some(("bootstrap-payload", error))
+            }
+            Self::Bootstrap(FoundationBootstrapError::Physical(error)) => {
+                Some(("bootstrap-physical", error))
+            }
             _ => None,
         };
         if let Some((stage, error)) = owner {
