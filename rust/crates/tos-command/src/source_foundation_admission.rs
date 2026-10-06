@@ -731,7 +731,7 @@ impl<'c> NativeSourceValidator<'c> {
                 HistoryLimits {
                     metadata: ReadLimits {
                         max_manifest_bytes: member_bytes,
-                        max_manifest_entries: count(caps.max_current_members)?,
+                        max_manifest_entries: member_bytes.min(json.max_visits),
                         max_selected_object_bytes: caps
                             .max_member_bytes
                             .min(available.source_read_bytes),
@@ -1090,7 +1090,9 @@ impl<'c> NativeSourceValidator<'c> {
             },
             reader: ReadLimits {
                 max_manifest_bytes: bytes,
-                max_manifest_entries: members,
+                // Entries include files, identities, dependency sources/edges and
+                // retirements. The file cap cannot bound their aggregate.
+                max_manifest_entries: bytes.min(json.max_visits),
                 max_selected_object_bytes: caps.max_member_bytes.min(remaining.source_read_bytes),
                 json,
             },
@@ -1525,7 +1527,10 @@ impl<'c> NativeSourceValidator<'c> {
             ));
         }
         let max_members = candidate_limits.admission.max_members;
-        let max_manifest_entries = max_members;
+        let max_manifest_entries = candidate_limits.reader.max_manifest_entries.min(
+            usize::try_from(manifest_bytes)
+                .map_err(|_| invalid("spooled manifest entry ceiling exceeds range"))?,
+        );
         let max_member_bytes = candidate_limits.admission.max_member_bytes;
         let max_total_bytes = candidate_limits.admission.max_source_bytes;
         let max_revisions = candidate_limits.max_history_revisions;
