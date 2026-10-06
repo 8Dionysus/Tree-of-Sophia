@@ -1594,15 +1594,16 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .io_usage()
         .map_err(FoundationOrchestratorError::Admission)?;
     let worker_image_max = MAX_WORKER_IMAGE_BYTES;
-    let image_read_reserve = schema_ticket
+    // Preflight the worst-case external image read before preparation. No
+    // candidate IO runs until it returns. Its shared physical ceiling only
+    // narrows, so do not permanently spend the unused maximum here; apply the
+    // verified actual image charge below before any candidate read resumes.
+    schema_ticket
         .remaining()
         .source_read_bytes
         .checked_sub(worker_image_max)
         .ok_or_else(|| incomplete("candidate worker image exceeds source-read reservation"))?;
     let remaining_write_before_schema = *view.remaining_write_bytes;
-    candidate
-        .restrict_remaining_io(image_read_reserve, remaining_write_before_schema)
-        .map_err(FoundationOrchestratorError::Admission)?;
     let image_budget =
         ticket_worker_budget(&schema_ticket, deadline, budgets.worker_address_space_bytes)?;
     let worker_image = VerifiedWorkerImageHandle::prepare(
