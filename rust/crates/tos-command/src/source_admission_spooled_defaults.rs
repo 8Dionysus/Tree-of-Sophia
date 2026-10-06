@@ -26,13 +26,13 @@ use tos_validation::{
         SourceFoundationClosureBoundaryMembershipRefStoreCost, SourceFoundationClosureClaimRef,
         SourceFoundationClosureDerivationFrame, SourceFoundationClosureDerivationKeySet,
         SourceFoundationClosureDerivationStoreCost, SourceFoundationClosureEvent,
-        SourceFoundationClosureRawEvent,
         SourceFoundationClosureLink, SourceFoundationClosureLinkStore,
         SourceFoundationClosureLinkStoreCost, SourceFoundationClosureLoadedRowStoreCost,
-        SourceFoundationClosureObjectLinkStoreCost, SourceFoundationClosurePublicationClaim,
-        SourceFoundationClosureProvisionClaim, SourceFoundationClosureSchemaRequest,
-        SourceFoundationClosureSchemaRequestStore, SourceFoundationClosureSchemaRequestStoreCost,
-        SourceFoundationClosureTopologyStoreCost, source_foundation_closure_json_state_upper_bound,
+        SourceFoundationClosureObjectLinkStoreCost, SourceFoundationClosureProvisionClaim,
+        SourceFoundationClosurePublicationClaim, SourceFoundationClosureRawEvent,
+        SourceFoundationClosureSchemaRequest, SourceFoundationClosureSchemaRequestStore,
+        SourceFoundationClosureSchemaRequestStoreCost, SourceFoundationClosureTopologyStoreCost,
+        source_foundation_closure_json_state_upper_bound,
     },
     source_foundation_default_rules::{
         SourceFoundationDefaultClaims, SourceFoundationDefaultEventLookup,
@@ -758,7 +758,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
                  subject TEXT NOT NULL COLLATE BINARY\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_membership_subject_order\
+             CREATE INDEX sf_closure_membership_subject_order \
                  ON sf_closure_membership_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_responsibility_claims(\
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
@@ -769,7 +769,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_responsibility_subject_order\
+             CREATE INDEX sf_closure_responsibility_subject_order \
                  ON sf_closure_responsibility_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_publication_claims(\
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
@@ -780,7 +780,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_publication_subject_order\
+             CREATE INDEX sf_closure_publication_subject_order \
                  ON sf_closure_publication_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_provision_claims(\
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
@@ -800,7 +800,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_topology_subject_order\
+             CREATE INDEX sf_closure_topology_subject_order \
                  ON sf_closure_topology_claims(predicate COLLATE BINARY, subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_object_link_claims(\
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
@@ -811,7 +811,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_object_link_target_order\
+             CREATE INDEX sf_closure_object_link_target_order \
                  ON sf_closure_object_link_claims(object COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_provision_event_ids(\
                  event_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY\
@@ -829,7 +829,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
                  subject TEXT NOT NULL COLLATE BINARY\
              ) WITHOUT ROWID;\
-             CREATE INDEX sf_closure_derivation_subject_order\
+             CREATE INDEX sf_closure_derivation_subject_order \
                  ON sf_closure_derivation_subjects(subject COLLATE BINARY,claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_derivation_pairs(\
                  subject TEXT NOT NULL COLLATE BINARY,\
@@ -2725,11 +2725,9 @@ impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
             .checked_add(Self::row_text_state(contract_bytes)?)
             .and_then(|state| state.checked_add(json_state_upper_bound(document_bytes).ok()?))
             .and_then(|state| {
-                state.checked_add(
-                    document_bytes
-                        .checked_mul(2)?
-                        .checked_add(size_of::<Vec<u8>>() + size_of::<DiscoverySchemaRequest>() + 1024)?,
-                )
+                state.checked_add(document_bytes.checked_mul(2)?.checked_add(
+                    size_of::<Vec<u8>>() + size_of::<DiscoverySchemaRequest>() + 1024,
+                )?)
             })
             .ok_or(ItemRefusal::Budget)
     }
@@ -10044,32 +10042,55 @@ impl SourceFoundationClosureSchemaRequestStore
             LEFT JOIN sf_closure_loaded_rows r ON r.path=e.path AND r.line=e.line \
             LEFT JOIN sf_closure_loaded_documents d ON d.path=e.path \
             WHERE e.event_id=?1";
-        let mut statement = self.db.prepare(&format!(
-            "SELECT length(CAST(e.path AS BLOB)),length(e.document_sha256),\
+        let mut statement = self
+            .db
+            .prepare(&format!(
+                "SELECT length(CAST(e.path AS BLOB)),length(e.document_sha256),\
              length(r.raw_line),e.document_sha256=r.document_sha256,\
              e.document_sha256=d.sha256{join}"
-        )).map_err(sql_refusal)?;
+            ))
+            .map_err(sql_refusal)?;
         let mut rows = statement.query([id]).map_err(sql_refusal)?;
-        let metadata = rows.next().map_err(sql_refusal)?.map(|row| {
-            Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?,
-                row.get::<_, i64>(2)?, row.get::<_, bool>(3)?, row.get::<_, bool>(4)?))
-        }).transpose().map_err(sql_refusal)?;
+        let metadata = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, bool>(3)?,
+                    row.get::<_, bool>(4)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
         if rows.next().map_err(sql_refusal)?.is_some() {
             return Err(source_refusal());
         }
         drop(rows);
         drop(statement);
         self.context.check()?;
-        let Some((path_bytes, digest_bytes, raw_bytes, row_bound, document_bound)) = metadata else {
-            self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(metadata_workspace);
+        let Some((path_bytes, digest_bytes, raw_bytes, row_bound, document_bound)) = metadata
+        else {
+            self.event_workspace_state_bytes =
+                self.event_workspace_state_bytes.max(metadata_workspace);
             return Ok((None, metadata_workspace));
         };
-        self.event_serialized_read_bytes = self.event_serialized_read_bytes
-            .checked_add(5 * size_of::<i64>() as u64).ok_or(ItemRefusal::Budget)?;
+        self.event_serialized_read_bytes = self
+            .event_serialized_read_bytes
+            .checked_add(5 * size_of::<i64>() as u64)
+            .ok_or(ItemRefusal::Budget)?;
         let path_bytes = usize::try_from(path_bytes).map_err(|_| source_refusal())?;
         let raw_bytes = usize::try_from(raw_bytes).map_err(|_| source_refusal())?;
-        if path_bytes == 0 || path_bytes > self.max_event_path_bytes || path_bytes > 4096
-            || digest_bytes != 64 || raw_bytes == 0 || !row_bound || !document_bound {
+        if path_bytes == 0
+            || path_bytes > self.max_event_path_bytes
+            || path_bytes > 4096
+            || digest_bytes != 64
+            || raw_bytes == 0
+            || !row_bound
+            || !document_bound
+        {
             return Err(source_refusal());
         }
         if raw_bytes > max_raw_bytes {
@@ -10081,29 +10102,47 @@ impl SourceFoundationClosureSchemaRequestStore
         )?);
         self.preflight(workspace, max_state_bytes)?;
         self.charge_event_scan_rows(1)?;
-        let mut statement = self.db.prepare(&format!(
-            "SELECT e.path,e.line,e.document_sha256,r.raw_line{join}"
-        )).map_err(sql_refusal)?;
+        let mut statement = self
+            .db
+            .prepare(&format!(
+                "SELECT e.path,e.line,e.document_sha256,r.raw_line{join}"
+            ))
+            .map_err(sql_refusal)?;
         let mut rows = statement.query([id]).map_err(sql_refusal)?;
-        let row = rows.next().map_err(sql_refusal)?.ok_or_else(source_refusal)?;
+        let row = rows
+            .next()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
         let path = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
         let line = checked_u64_blob(row_blob(row, 1).map_err(sql_refusal)?)?;
         let document_sha256 = bounded_row_text(row, 2, workspace).map_err(sql_refusal)?;
         let raw = row_blob(row, 3).map_err(sql_refusal)?;
-        if path.len() != path_bytes || line == 0 || raw.len() != raw_bytes
-            || !Self::valid_event_digest(&document_sha256) {
+        if path.len() != path_bytes
+            || line == 0
+            || raw.len() != raw_bytes
+            || !Self::valid_event_digest(&document_sha256)
+        {
             return Err(source_refusal());
         }
-        let event = SourceFoundationClosureRawEvent { path, line, document_sha256, raw: raw.to_vec() };
+        let event = SourceFoundationClosureRawEvent {
+            path,
+            line,
+            document_sha256,
+            raw: raw.to_vec(),
+        };
         if rows.next().map_err(sql_refusal)?.is_some() {
             return Err(source_refusal());
         }
         drop(rows);
         drop(statement);
         self.context.check()?;
-        self.event_serialized_read_bytes = self.event_serialized_read_bytes.checked_add(usize_u64(
-            checked_add(checked_add(path_bytes, raw_bytes)?, 64 + size_of::<u64>())?
-        )?).ok_or(ItemRefusal::Budget)?;
+        self.event_serialized_read_bytes = self
+            .event_serialized_read_bytes
+            .checked_add(usize_u64(checked_add(
+                checked_add(path_bytes, raw_bytes)?,
+                64 + size_of::<u64>(),
+            )?)?)
+            .ok_or(ItemRefusal::Budget)?;
         self.event_workspace_state_bytes = self.event_workspace_state_bytes.max(workspace);
         Ok((Some(event), workspace))
     }
