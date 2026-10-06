@@ -80,6 +80,15 @@ pub(crate) fn public_io_reason(error: &std::io::Error) -> String {
         return public_io_reason(&owned);
     }
     let message = error.to_string();
+    #[cfg(debug_assertions)]
+    if message.len() <= 4096
+        && std::env::var("TOS_PRIVATE_COMMAND_IO_ERROR_SHA256")
+            .ok()
+            .as_deref()
+            == Some(tos_foundation::Digest256::of_bytes(message.as_bytes()).to_hex().as_str())
+    {
+        eprintln!("private-owner-io reason={message:?}");
+    }
     if crate::source_admission_spooled_index::is_bounded_source_cause(&message) {
         return message;
     }
