@@ -2346,6 +2346,12 @@ impl<S: LayerFamilySource + ?Sized> AggregateLayerFamilySource<'_, S> {
 }
 
 impl<S: LayerFamilySource + ?Sized> LayerFamilySource for AggregateLayerFamilySource<'_, S> {
+    fn record_selection(
+        &self,
+    ) -> Option<std::sync::Arc<crate::source_record_selection::SourceRecordSelection>> {
+        self.inner.record_selection()
+    }
+
     fn current(
         &mut self,
         path: &str,
