@@ -1009,8 +1009,23 @@ pub(crate) fn prepare_candidate_schema_worker(
     let controller = worker
         .diagnostics_v2_controller_state_upper_bound(schema_limits.max_instance_bytes, 4096)
         .map_err(owner)?;
-    let controller_overlap = required
-        .checked_add(controller)
+    // from_schema_set has consumed/dropped raw constructor and parser
+    // workspace. Price the retained worker with the same bound charged by the
+    // caller, plus its next controller exchange; constructor peak is separate.
+    let retained_schema = schema_state_upper_bound(
+        worker.schema_bytes(),
+        worker.source_resource_count(),
+        worker
+            .source_resource_metadata_state_bytes()
+            .ok_or_else(|| incomplete("candidate selected schema metadata state unavailable"))?,
+    )?;
+    let controller_overlap = held_state_bytes
+        .checked_add(retained_schema)
+        .and_then(|bytes| {
+            bytes.checked_add(worker_identity_path_clone_bytes(image.identity(), 2).ok()?)
+        })
+        .and_then(|bytes| bytes.checked_add(std::mem::size_of_val(&worker)))
+        .and_then(|bytes| bytes.checked_add(controller))
         .ok_or_else(|| incomplete("candidate schema controller overlap overflow"))?;
     input
         .require_callback_state(controller_overlap, max_operation_state_bytes)
@@ -1696,16 +1711,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     // before this input received the remaining callback envelope. Keep that
     // baseline in whole-process/final held-state checks, but do not reserve it
     // again inside this remainder (including the later Records/native callbacks).
+    // IndexSink and SpoolDefaultStore (and their caches/report) do not exist
+    // until the Records phase below. They remain in callback_held there.
     let first_worker_held = base_declared_state_bytes
-        .checked_add(selected_index.cache_bytes)
-        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
-        .and_then(|state| state.checked_add(worker_image_state))
+        .checked_add(worker_image_state)
         .and_then(|state| state.checked_add(image_path_state))
         .and_then(|state| state.checked_add(payload_initial.peak_state_bytes))
         .and_then(|state| state.checked_add(physical_initial.retained_state_bytes))
-        .and_then(|state| {
-            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
-        })
         .ok_or_else(|| incomplete("candidate schema worker held-state overflow"))?;
     if first_worker_held
         .checked_add(candidate_owned_state)
