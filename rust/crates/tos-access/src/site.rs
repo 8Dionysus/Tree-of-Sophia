@@ -612,7 +612,7 @@ impl SoftwareSite {
             .manifest
             .object_get("native_access")
             .ok_or_else(|| unavailable("installed native build proof absent"))?;
-        crate::software_archive::command_proof(proof, access)
+        crate::software_archive::command_proof(proof, access, "tos-schema-worker")
             .map_err(|_| unavailable("installed schema worker cohort differs"))?;
         let declared = size(proof)?;
         if declared > max_image_bytes {

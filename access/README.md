@@ -1406,9 +1406,11 @@ JSON object must select exactly `tos-native-owner-command`, `tos-schema-worker`,
 `tos-validation-lanes`, `tos-release-check`, and `tos-software-ci`; every value
 contains only absolute `binary` and `receipt` paths. Each build-owned receipt
 uses `tos_native_software_command_build_v1`, the access receipt identity fields,
-and `features: []`. The three ops products are built with
-`--no-default-features`; command and schema-worker products use their empty
-effective feature set. All five must match the access source commit/tree, lock,
+and the effective Cargo feature list. The schema worker requires
+`features: ["default", "native"]`; the owner command requires `features: []`.
+The three ops products are built with `--no-default-features` and require
+`features: []`. Producer receipts check the Cargo messages against the selected
+package manifests; archive and installed consumers enforce each role's profile. All five must match the access source commit/tree, lock,
 toolchain and target. Their SHA/size and ELF headers are checked independently.
 The additive `native_commands` manifest closure binds these exact roles at
 `native/bin/NAME`; install creates corresponding relative `PREFIX/bin/NAME`

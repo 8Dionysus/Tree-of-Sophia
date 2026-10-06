@@ -449,13 +449,6 @@ fn proof_kind(p: &JsonValue, source_ref: &str, command: bool) -> Result<()> {
     {
         return Err("native proof profile/source differs".into());
     }
-    if command
-        && !field(p, "features")?
-            .as_array()
-            .is_some_and(|features| features.is_empty())
-    {
-        return Err("native command role requires its empty effective feature set".into());
-    }
     for key in ["sha256", "lock_sha256"] {
         Digest256::from_hex(string(p, key)?).checked()?;
     }
@@ -479,8 +472,31 @@ fn proof_kind(p: &JsonValue, source_ref: &str, command: bool) -> Result<()> {
     }
     Ok(())
 }
-pub(crate) fn command_proof(p: &JsonValue, access: &JsonValue) -> Result<()> {
+fn command_features(p: &JsonValue, role: &str) -> Result<()> {
+    let expected: &[&str] = match role {
+        "tos-schema-worker" => &["default", "native"],
+        "tos-native-owner-command"
+        | "tos-validation-lanes"
+        | "tos-release-check"
+        | "tos-software-ci" => &[],
+        _ => return Err("unknown native command role".into()),
+    };
+    let actual = field(p, "features")?
+        .as_array()
+        .ok_or("native command features must be an array")?;
+    if actual.len() != expected.len()
+        || actual
+            .iter()
+            .zip(expected)
+            .any(|(actual, expected)| actual.as_str() != Some(*expected))
+    {
+        return Err("native command effective features differ from its role".into());
+    }
+    Ok(())
+}
+pub(crate) fn command_proof(p: &JsonValue, access: &JsonValue, role: &str) -> Result<()> {
     proof_kind(p, string(access, "source_commit")?, true)?;
+    command_features(p, role)?;
     for key in ["source_tree", "lock_sha256", "toolchain", "target"] {
         if field(p, key)? != field(access, key)? {
             return Err("native commands must match the exact access source cohort".into());
@@ -506,7 +522,7 @@ fn command_closure<'a>(
         return Err("native command closure must contain exactly the five supported roles".into());
     }
     for role in COMMANDS {
-        command_proof(field(commands, role)?, access)?;
+        command_proof(field(commands, role)?, access, role)?;
     }
     Ok(Some(commands))
 }
@@ -846,7 +862,7 @@ pub fn build_with_commands(
             }
             let mut receipt = open_file(Path::new(string(selected, "receipt")?), 65_536)?;
             let proof = json(&read_small(&mut receipt, 65_536)?, 65_536)?;
-            command_proof(&proof, &p)?;
+            command_proof(&proof, &p, role)?;
             input_metadata = input_metadata
                 .checked_add(
                     encode(&proof, 65_536)?
@@ -1736,4 +1752,26 @@ pub fn run_if_requested(
             1
         }
     })
+}
+
+#[cfg(test)]
+mod feature_receipt_tests {
+    use super::*;
+    #[test]
+    fn effective_features_are_bound_to_the_installed_command_role() {
+        let native = json(br#"{"features":["default","native"]}"#, 1024).unwrap();
+        let empty = json(br#"{"features":[]}"#, 1024).unwrap();
+        assert!(command_features(&native, "tos-schema-worker").is_ok());
+        assert!(command_features(&empty, "tos-schema-worker").is_err());
+        for role in COMMANDS
+            .into_iter()
+            .filter(|role| *role != "tos-schema-worker")
+        {
+            assert!(command_features(&empty, role).is_ok());
+            assert!(command_features(&native, role).is_err());
+        }
+        assert!(command_features(&empty, "unknown").is_err());
+        let reversed = json(br#"{"features":["native","default"]}"#, 1024).unwrap();
+        assert!(command_features(&reversed, "tos-schema-worker").is_err());
+    }
 }
