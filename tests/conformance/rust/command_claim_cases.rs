@@ -735,6 +735,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         base,
     );
     context.effective_uid = u64::from(uid);
+    context.configuration_raw = config_raw.clone();
     let mut worker = claim_worker();
     let preview = checked_command(
         &context,
@@ -1924,7 +1925,8 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         "allowed_evidence_refs":claim["evidence_refs"]
     });
     let owner = isolated.path().join("order-owner.json");
-    fs::write(&owner, source_bytes(&source_value(&configuration))).unwrap();
+    let owner_raw = source_bytes(&source_value(&configuration));
+    fs::write(&owner, &owner_raw).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     let filesystem =
         CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancellation).unwrap();
@@ -1945,6 +1947,7 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         base,
     );
     context.effective_uid = u64::from(uid);
+    context.configuration_raw = owner_raw.clone();
     let archive_manifest = format!(
         "{}/manifest.json",
         history["receipts"][0]["archive_path"].as_str().unwrap()
@@ -1968,6 +1971,7 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         broken_revision,
     );
     broken_context.effective_uid = u64::from(uid);
+    broken_context.configuration_raw = owner_raw.clone();
     let mut broken_budget = ExecutorBudget::laboratory();
     broken_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!broken_budget.execution_wall.is_zero());
@@ -2178,11 +2182,8 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         "allowed_form_field_ids":["claim.statement"]
     });
     let revision_owner_path = isolated.path().join("order-revision-owner.json");
-    fs::write(
-        &revision_owner_path,
-        source_bytes(&source_value(&revision_owner)),
-    )
-    .unwrap();
+    let revision_owner_raw = source_bytes(&source_value(&revision_owner));
+    fs::write(&revision_owner_path, &revision_owner_raw).unwrap();
     fs::set_permissions(&revision_owner_path, fs::Permissions::from_mode(0o600)).unwrap();
     let revision_filesystem = CreationFilesystem::select_isolated(
         &isolated,
@@ -2208,6 +2209,7 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         current,
     );
     revision_context.effective_uid = u64::from(uid);
+    revision_context.configuration_raw = revision_owner_raw.clone();
     let mut preview_budget = ExecutorBudget::laboratory();
     preview_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!preview_budget.execution_wall.is_zero());
@@ -2369,6 +2371,7 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         corrected,
     );
     retry_context.effective_uid = u64::from(uid);
+    retry_context.configuration_raw = revision_owner_raw.clone();
     let mut retry_budget = ExecutorBudget::laboratory();
     retry_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!retry_budget.execution_wall.is_zero());

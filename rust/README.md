@@ -17,6 +17,19 @@ locally supplied Draft 2020-12 schema probe. Its observed legacy format profile
 is comparison evidence; its prospective four-format profile is not an admitted
 source rule.
 
+`tos-validation` defaults to its `native` profile. The separate `wasm` profile
+is selected with `--no-default-features --features wasm`; it retains the typed
+candidate, trace, and outcome interfaces, `SchemaResource`, `FormatProfile`,
+`SchemaBackendProbe`, and the source-agnostic rule kernels in `item_rules`,
+`layer_family_rules`, `provenance_rules`, `relation_rules`,
+`semantic_registry_rules`, `source_copy`, `source_forms`,
+`text_metadata_rules`, and `text_rules`. `assessment`, source-cut composition,
+persisted receipt spooling, the schema-worker process boundary, and rules that
+consume `tos-source-store` remain native-only. The WASM check establishes
+compilation feasibility for the portable validation/backend surface; it does
+not establish native-adapter availability, source admission, rule completeness,
+or validation execution inside a WASM runtime.
+
 OPS owns the root workspace, lockfile, toolchain, CI selection and package
 route. FND owns `tos-foundation`; STO owns `tos-source-store`; ASS owns
 conformance vectors and runner. Other owners add crates through an
@@ -28,8 +41,8 @@ Run the named `rust_workspace` lane from
 [`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
 when the pinned toolchain, rustfmt and WASM target are available. Set
 `CARGO_TARGET_DIR` to an owner-approved build-cache path outside the
-checkout. Passing this lane proves only the checked Rust contracts, WASM
-compilation, validation-backend WASM feasibility, native reader installation,
+checkout. Passing this lane proves only the checked Rust contracts, the portable
+validation-backend WASM compilation, native reader installation,
 installed mechanics executor lifecycle parity
 and generated WEB.1 codec execution in Node WebAssembly against tiny synthetic
 vectors. The WEB.1 route requires the matching `wasm-bindgen` CLI 0.2.128 and

@@ -83,9 +83,12 @@ fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
             }
             let raw = fs::read(entry.path()).unwrap();
             total = total.checked_add(raw.len()).unwrap();
-            assert!(raw.len() <= 8_388_608 && total <= 33_554_432);
+            assert!(
+                raw.len() <= cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES
+                    && total <= cmd::SELECTED_SOURCE_MAX_BYTES
+            );
             assert!(files.insert(path, raw).is_none());
-            assert!(files.len() <= 4096);
+            assert!(files.len() <= cmd::SELECTED_SOURCE_MAX_FILES);
         }
     }
     files
@@ -124,7 +127,7 @@ fn cut(
         ReadLimits {
             max_manifest_bytes: 4_194_304,
             max_manifest_entries: 2048,
-            max_selected_object_bytes: 8_388_608,
+            max_selected_object_bytes: cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES as u64,
             json: JsonLimits::default(),
         },
     )
@@ -135,8 +138,8 @@ fn cut(
             CutReadLimits {
                 max_revisions: 4,
                 max_members: 2048,
-                max_total_bytes: 33_554_432,
-                max_member_bytes: 8_388_608,
+                max_total_bytes: cmd::SELECTED_SOURCE_MAX_BYTES as u64,
+                max_member_bytes: cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES as u64,
             },
             deadline,
             cancelled,
@@ -344,6 +347,44 @@ fn current_side(root: &Path, reference: &str) -> Side {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(error) => panic!("selected Work member read: {error}"),
     }
+}
+
+fn retained_tree_snapshot(root: &Path) -> BTreeMap<String, (bool, Side)> {
+    assert!(root.symlink_metadata().unwrap().is_dir());
+    let mut pending = vec![root.to_path_buf()];
+    let mut members = BTreeMap::new();
+    let mut total_bytes = 0usize;
+    members.insert(String::new(), (true, None));
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(directory).unwrap() {
+            let entry = entry.unwrap();
+            let kind = entry.file_type().unwrap();
+            assert!(!kind.is_symlink());
+            let path = entry.path();
+            let relative = path
+                .strip_prefix(root)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned();
+            let content = if kind.is_dir() {
+                pending.push(path);
+                None
+            } else {
+                assert!(kind.is_file());
+                let raw = fs::read(path).unwrap();
+                total_bytes = total_bytes.checked_add(raw.len()).unwrap();
+                assert!(
+                    raw.len() <= cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES
+                        && total_bytes <= cmd::SELECTED_SOURCE_MAX_BYTES
+                );
+                side(Some(&raw))
+            };
+            assert!(members.insert(relative, (kind.is_dir(), content)).is_none());
+            assert!(members.len() <= cmd::SELECTED_SOURCE_MAX_FILES);
+        }
+    }
+    members
 }
 
 fn mixed_selected(root: &Path, selected: &[SelectedWitness]) -> bool {
@@ -586,7 +627,18 @@ const IMPLEMENTATIONS: &[&str] = &[
 // Count actual allocated blocks and inodes of every named owned copy.
 // Four MiB of the 512MiB ceiling remains for current anonymous CLI framing.
 fn scratch_budget(root: &Path, deadline: Instant) {
-    let mut pending = vec![root.to_path_buf()];
+    scratch_budget_roots(&[root], deadline);
+}
+
+fn scratch_budget_with_shared(root: &Path, shared: &Path, deadline: Instant) {
+    scratch_budget_roots(&[root, shared], deadline);
+}
+
+fn scratch_budget_roots(roots: &[&Path], deadline: Instant) {
+    let mut pending = roots
+        .iter()
+        .map(|root| root.to_path_buf())
+        .collect::<Vec<_>>();
     let mut blocks = 0u64;
     let mut inodes = 0u64;
     while let Some(path) = pending.pop() {
@@ -753,6 +805,23 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
         revision_cli_image(&native),
         revision_cli_image(&worker_path),
     ];
+    // The test's ten process-cold scenarios use the same repository commit and
+    // the same fourteen protected implementation paths. Capture and restore
+    // that immutable software selection once, while each scenario still builds
+    // a fresh source root, V1 cut, invocation and cold Native process.
+    let shared_software_scratch = tempfile::tempdir().unwrap();
+    let software_inputs = IMPLEMENTATIONS
+        .iter()
+        .map(|path| ((*path).to_owned(), Vec::new()))
+        .collect::<BTreeMap<_, _>>();
+    let (software, components) = software(
+        &repository,
+        &software_inputs,
+        shared_software_scratch.path(),
+        deadline,
+        &cancelled,
+    );
+    scratch_budget(shared_software_scratch.path(), deadline);
     // Seven fresh fixed schemas, selected resume and rollback, legacy exact retry.
     // All ten roots are sequential, and every cold operation retains the same
     // absolute protected root/config; no archive relocation claim is made.
@@ -799,13 +868,14 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
                 let path = isolated.path().join(reference);
                 assert!(
                     path.symlink_metadata().unwrap().is_file()
-                        && fs::metadata(&path).unwrap().len() <= 8_388_608
+                        && fs::metadata(&path).unwrap().len()
+                            <= cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES as u64
                 );
                 (reference.to_owned(), fs::read(path).unwrap())
             })
             .collect();
-        assert!(untouched.values().map(Vec::len).sum::<usize>() <= 33_554_432);
-        scratch_budget(temporary.path(), deadline);
+        assert!(untouched.values().map(Vec::len).sum::<usize>() <= cmd::SELECTED_SOURCE_MAX_BYTES);
+        scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
         let initial = authored(isolated.path());
         let mut files = initial.clone();
         for reference in IMPLEMENTATIONS {
@@ -818,9 +888,10 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             fs::write(destination, &raw).unwrap();
             assert!(files.insert((*reference).into(), raw).is_none());
         }
-        assert!(files.len() <= 2048 && files.values().map(Vec::len).sum::<usize>() <= 33_554_432);
-        let (software, components) =
-            software(&repository, &files, temporary.path(), deadline, &cancelled);
+        assert!(
+            files.len() <= 2048
+                && files.values().map(Vec::len).sum::<usize>() <= cmd::SELECTED_SOURCE_MAX_BYTES
+        );
         let store = temporary.path().join("cut");
         let (original_revision, original) = cut(&initial, &store, deadline, &cancelled);
         let selection = software.selection();
@@ -829,14 +900,14 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             "owner_config":owner,"owner_context":null,"assessment_schema_worker":null,
             "native_executable":native,"native_executable_sha256":image_guards[1].0.to_prefixed(),
             "corpus_store":store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),
-            "software_capture":temporary.path().join("capture"),"software_restored_root":temporary.path().join("restored"),
+            "software_capture":shared_software_scratch.path().join("capture"),"software_restored_root":shared_software_scratch.path().join("restored"),
             "software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},
             "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
             "schema_worker":{"absolute_path":worker_path,"sha256":image_guards[2].0.to_prefixed()},
-            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,
+            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":cmd::SELECTED_SOURCE_MAX_BYTES,"max_member_bytes":cmd::SELECTED_SOURCE_MAX_MEMBER_BYTES,
                 "max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
         freeze_invocation(&invocation_path, &invocation);
-        scratch_budget(temporary.path(), deadline);
+        scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
         let invoke = |request: &serde_json::Value| {
             let (success, result) =
                 revision_cli_observe(&repository, &owner, &invocation_path, request, deadline);
@@ -907,9 +978,37 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             let retained_pending = tx::read_pending(&filesystem, deadline, &cancelled)
                 .unwrap()
                 .unwrap();
+            if scenario == 7 {
+                let authorized_request =
+                    cmd::field(&retained_pending.plan.authorization, "request").unwrap();
+                let history_file = retained_pending
+                    .plan
+                    .files
+                    .iter()
+                    .find(|file| {
+                        file.path
+                            .as_str()
+                            .ends_with("/source-revision-history.json")
+                    })
+                    .unwrap();
+                let history = cmd::parse(history_file.after.as_deref().unwrap()).unwrap();
+                let receipts = cmd::array(&history, "receipts").unwrap();
+                let retained_request = cmd::field(receipts.last().unwrap(), "request").unwrap();
+                assert!(cmd::same(authorized_request, retained_request).unwrap());
+                assert_ne!(
+                    cmd::published(authorized_request).unwrap(),
+                    cmd::published(retained_request).unwrap(),
+                    "scenario 7 must recover a retained request with its original field order",
+                );
+            }
             let transaction = retained_pending.plan.transaction_id.clone();
-            scratch_budget(temporary.path(), deadline);
+            scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
             let control = fs::read(isolated.path().join(CONTROL)).unwrap();
+            let retained_transactions = retained_tree_snapshot(
+                &isolated
+                    .path()
+                    .join("ToS/source-witnesses/.metadata-transactions"),
+            );
             let mut unrelated = initial.clone();
             unrelated
                 .get_mut(fixture["source_path"].as_str().unwrap())
@@ -990,6 +1089,15 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
                     refusal_sides
                 );
                 assert_eq!(fs::read(isolated.path().join(CONTROL)).unwrap(), control);
+                assert_eq!(
+                    retained_tree_snapshot(
+                        &isolated
+                            .path()
+                            .join("ToS/source-witnesses/.metadata-transactions"),
+                    ),
+                    retained_transactions,
+                    "negative recovery {negative} changed retained transaction bytes",
+                );
                 if let Some((path, raw)) = restore {
                     fs::write(path, raw).unwrap();
                 }
@@ -1038,7 +1146,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             let (current_revision, _) = cut(&after, &store, deadline, &cancelled);
             invocation["source_revision"] = serde_json::json!(current_revision.0.to_prefixed());
             freeze_invocation(&invocation_path, &invocation);
-            scratch_budget(temporary.path(), deadline);
+            scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
             let replay = invoke(&request);
             assert_eq!(replay["replayed"], true);
             assert_eq!(created["receipt"], replay["receipt"]);
@@ -1097,7 +1205,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             assert_eq!(fs::read(isolated.path().join(path)).unwrap(), *raw);
         }
         assert_eq!(fs::read(&owner).unwrap(), owner_raw);
-        scratch_budget(temporary.path(), deadline);
+        scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
     }
     assert_eq!(
         [

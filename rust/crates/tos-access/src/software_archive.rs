@@ -462,6 +462,8 @@ fn proof_kind(p: &JsonValue, source_ref: &str, role: Option<&str>) -> Result<()>
     if let Some(role) = role {
         let expected: &[&str] = if role == "tos-ops-mechanics-plan" {
             &["compiler-backed-validators", "default"]
+        } else if role == "tos-schema-worker" {
+            &["default", "native"]
         } else {
             &[]
         };
@@ -1796,7 +1798,7 @@ mod role_feature_tests {
         assert!(command_proof("tos-ops-mechanics-plan", &phi, &empty).is_ok());
         assert!(command_proof("tos-ops-mechanics-plan", &empty, &empty).is_err());
         for role in COMMANDS {
-            if role != "tos-ops-mechanics-plan" {
+            if !["tos-ops-mechanics-plan", "tos-schema-worker"].contains(&role) {
                 assert!(command_proof(role, &empty, &empty).is_ok());
                 assert!(command_proof(role, &phi, &empty).is_err());
             }
@@ -1808,6 +1810,15 @@ mod role_feature_tests {
         ] {
             let wrong = proof_with_features(features);
             assert!(command_proof("tos-ops-mechanics-plan", &wrong, &empty).is_err());
+        }
+        let worker = proof_with_features(r#"["default","native"]"#);
+        assert!(command_proof("tos-schema-worker", &worker, &empty).is_ok());
+        assert!(command_proof("tos-schema-worker", &empty, &empty).is_err());
+        for role in COMMANDS
+            .into_iter()
+            .filter(|role| *role != "tos-schema-worker")
+        {
+            assert!(command_proof(role, &worker, &empty).is_err());
         }
         assert!(command_proof("unknown-role", &empty, &empty).is_err());
     }

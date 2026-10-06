@@ -414,7 +414,7 @@ impl ItemRules {
             return Ok(None);
         };
         let available = self.available()?;
-        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
+        let decoded = crate::validation_codec::bounded_legacy_item_decoded_state(
             &raw,
             item_json_limits(self.limits.max_member_bytes, available)?,
             available,
@@ -465,7 +465,7 @@ impl ItemRules {
             return Ok(None);
         };
         let available = self.available()?;
-        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
+        let decoded = crate::validation_codec::bounded_legacy_item_decoded_state(
             &raw,
             item_json_limits(self.limits.max_member_bytes, available)?,
             available,
@@ -1002,7 +1002,7 @@ impl ItemRules {
                             return self.issue(&location, "blank-jsonl-line");
                         }
                         let available = self.available()?;
-                        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
+                        let decoded = crate::validation_codec::bounded_legacy_item_decoded_state(
                             line.as_bytes(),
                             item_json_limits(self.limits.max_member_bytes, available)?,
                             available,
@@ -1258,7 +1258,7 @@ impl ItemRules {
                 .ok_or(crate::item_budget_origin!())?,
         )?;
         let available = self.available()?;
-        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
+        let decoded = crate::validation_codec::bounded_legacy_item_decoded_state(
             raw,
             item_json_limits(self.limits.max_member_bytes, available)?,
             available,

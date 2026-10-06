@@ -9,8 +9,8 @@ use serde_json::{Value, json};
 use tos_foundation::{Digest256, RelativePath};
 use unicode_normalization::UnicodeNormalization;
 
+use crate::datetime_support::{ObservedDateTimeError, observed_datetime_raw_order};
 use crate::item_rules::{ItemIssue, ItemLimits, ItemRefusal};
-use crate::retirement_rules::{ObservedDateTimeError, observed_datetime_raw_order};
 
 pub const CONTRACT: &str = "ToS/contracts/provenance-event-v2.schema.json";
 pub const LAB_MANIFEST: &str =
@@ -651,7 +651,7 @@ pub(crate) fn semantic_workspace(
             .and_then(|n| n.checked_sub(header))
             .ok_or(ItemRefusal::Budget)?;
         header
-            .checked_add(crate::record_biblio_cut::decoded_wire_size(
+            .checked_add(crate::validation_codec::decoded_wire_size(
                 &command["argv"],
                 remaining,
             )?)

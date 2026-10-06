@@ -395,6 +395,11 @@ original=tempfile.TemporaryDirectory
 try:
     tempfile.TemporaryDirectory=ExistingRoot
     fixture=maintained.OwnerLocalAssessmentFixture(unittest.TestCase(methodName='runTest'))
+    # Native assessment uses its real clock; renew only synthetic fixture grants.
+    for grant in fixture.config['authorities']+fixture.config['competencies']:
+        grant['payload']['valid_until']='2099-01-01T00:00:00Z'
+    fixture._grants()
+    fixture.save()
 finally:
     tempfile.TemporaryDirectory=original
 assert fixture.native.packet['reviews']==[]
@@ -621,6 +626,12 @@ try:
         fx=maintained.QualityJournalFixture(test,layer_fixture=layer)
     else:
         fx=maintained.QualityJournalFixture(test)
+    # Keep these synthetic native grants finite and independent of Python's fixed NOW.
+    for grant in fx.config['authorities']+fx.config['competencies']:
+        grant['payload']['valid_until']='2099-01-01T00:00:00Z'
+    for index,competency in enumerate(fx.config['competencies']):
+        fx.config['authorities'][index]['payload']['competence_refs']=[maintained.Record.from_payload(**competency).ref]
+    fx.save()
     assert fx.fx.layer['admission']['human_review_performed'] is False
     index=next(i for i,g in enumerate(fx.config['authorities']) if g['payload']['actor_id']==fx.config['principal_id'])
     def template(record,profile,name):
@@ -659,13 +670,18 @@ fn native_layer_journal_case(derived: bool) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let deadline = Instant::now() + Duration::from_secs(240);
+    let started = Instant::now();
+    let deadline = started + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
     let temporary = tempfile::Builder::new()
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
     let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline, derived);
+    eprintln!(
+        "native layer journal cost: phase=fixture elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -689,6 +705,10 @@ fn native_layer_journal_case(derived: bool) {
         )
     };
     let image_before: Vec<_> = images.iter().map(|path| custody(path)).collect();
+    eprintln!(
+        "native layer journal cost: phase=image-custody elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let preserved: BTreeMap<PathBuf, Vec<u8>> = fixture["preserved"]
         .as_array()
         .unwrap()
@@ -717,8 +737,16 @@ fn native_layer_journal_case(derived: bool) {
     assert!(captured.values().map(Vec::len).sum::<usize>() <= 33_554_432);
     let (capture, _software, components) =
         super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+    eprintln!(
+        "native layer journal cost: phase=software-capture elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let store = temporary.path().join("layer-journal-source-cut");
     let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
+    eprintln!(
+        "native layer journal cost: phase=captured elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
     let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1",
         "owner_config":owner,"owner_context":context,"native_executable":images[1],"native_executable_sha256":image_before[1].4.to_prefixed(),
         "corpus_store":store,"source_revision":selected.0.to_prefixed(),"original_source_revision":selected.0.to_prefixed(),
@@ -760,13 +788,34 @@ fn native_layer_journal_case(derived: bool) {
     );
     fs::write(&owner, configuration_raw).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    eprintln!(
+        "native layer journal cost: phase=supporting-refusal elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
+    let ordinal = std::cell::Cell::new(0usize);
     let invoke = |request: &Value| -> Value {
+        let number = ordinal.get() + 1;
+        ordinal.set(number);
+        let step_started = Instant::now();
+        eprintln!(
+            "native layer journal cost: call={number} phase=start operation={} elapsed_ms={} remaining_ms={}",
+            request["operation"].as_str().unwrap_or("<absent>"),
+            started.elapsed().as_millis(),
+            deadline.saturating_duration_since(step_started).as_millis()
+        );
         let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
             &repository,
             &owner,
             &invocation_path,
             request,
             deadline,
+        );
+        eprintln!(
+            "native layer journal cost: call={number} phase=terminal operation={} elapsed_ms={} child_ms={} success={}",
+            request["operation"].as_str().unwrap_or("<absent>"),
+            started.elapsed().as_millis(),
+            step_started.elapsed().as_millis(),
+            status.success()
         );
         assert!(
             status.success(),

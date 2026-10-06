@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use tos_foundation::{CanonicalProfile, JsonLimits, canonical_bytes_v1};
 
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::record_biblio_cut::{bounded_ordered, decoded_state, ordered_emit_state, ordered_state};
+use crate::validation_codec::{bounded_ordered, decoded_state, ordered_emit_state, ordered_state};
 
 /// Strict duplicate-key and finite JSON decoding for the four named gate
 /// members. Canonical emission reproduces Python's decoded binary64 values;

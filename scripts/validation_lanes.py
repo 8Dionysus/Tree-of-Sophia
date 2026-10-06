@@ -312,6 +312,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--check", action="store_true", help="validate the lane manifest")
     parser.add_argument("--sequence", help="print a named command sequence")
     parser.add_argument("--run", metavar="SEQUENCE", help="execute a named command sequence")
+    parser.add_argument("--lane-timeout-ms", type=int,
+                        help="override the native executor's whole-lane wall limit")
     return parser
 
 
@@ -370,6 +372,8 @@ def native_main(argv: list[str] | None = None) -> int:
         arguments.extend(["--sequence", args.sequence])
     if args.run:
         arguments.extend(["--run", args.run])
+    if args.lane_timeout_ms is not None:
+        arguments.extend(["--lane-timeout-ms", str(args.lane_timeout_ms)])
     try:
         os.execv(executable, [executable, "--repo-root", str(REPO_ROOT),
                               "--python", sys.executable, *arguments])

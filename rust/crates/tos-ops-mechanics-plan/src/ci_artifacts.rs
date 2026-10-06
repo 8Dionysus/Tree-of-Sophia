@@ -26,6 +26,13 @@ const COMMANDS: [&str; 5] = [
 // Controlled integration consumers need these images, independently of the
 // five software-package command roles above. Their receipts are not bundle membership.
 const KAG_IMAGES: [&str; 2] = ["tos-kag-release", "tos-kag-provider-controls"];
+const SOFTWARE_NO_DEFAULT_FEATURES: [&str; 5] = [
+    "tos-validation-lanes",
+    "tos-release-check",
+    "tos-software-ci",
+    "tos-kag-release",
+    "tos-kag-provider-controls",
+];
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 const TOOLCHAIN: &str = "1.98.1";
 const META: usize = 1024 * 1024;
@@ -196,6 +203,81 @@ fn identity(root: &Path, b: &Budget<'_>) -> io::Result<Value> {
         json!({"source_commit":b.git(root,"HEAD")?,"source_tree":b.git(root,"HEAD^{tree}")?,"lock_sha256":sha(&root.join("Cargo.lock"),b)?,"toolchain":TOOLCHAIN,"target":TARGET,"profile":"debug","features":[]}),
     )
 }
+/// Resolve the package-local features enabled by the exact Cargo invocation.
+/// The product groups pass `default_features` according to their maintained
+/// build commands; feature names come from the package manifest.
+fn enabled_features(
+    root: &Path,
+    package: &str,
+    default_features: bool,
+    b: &Budget<'_>,
+) -> io::Result<Vec<String>> {
+    let path = root.join(format!("rust/crates/{package}/Cargo.toml"));
+    let raw = bytes(&path, META, b)?;
+    let source = std::str::from_utf8(&raw).map_err(|_| bad("Cargo manifest is not UTF-8"))?;
+    let manifest =
+        toml::from_str::<toml::Value>(source).map_err(|_| bad("invalid Cargo feature manifest"))?;
+    if manifest
+        .get("package")
+        .and_then(|package| package.get("name"))
+        .and_then(toml::Value::as_str)
+        != Some(package)
+    {
+        return Err(bad("Cargo feature manifest package mismatch"));
+    }
+    let Some(features) = manifest.get("features").and_then(toml::Value::as_table) else {
+        return Ok(Vec::new());
+    };
+    if !default_features {
+        return Ok(Vec::new());
+    }
+    let Some(default) = features.get("default") else {
+        return Ok(Vec::new());
+    };
+    let default = default
+        .as_array()
+        .ok_or_else(|| bad("Cargo default feature set must be an array"))?;
+    let mut active = BTreeSet::from(["default".to_owned()]);
+    let mut pending = default
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| bad("Cargo feature names must be strings"))
+        })
+        .collect::<io::Result<Vec<_>>>()?;
+    while let Some(feature) = pending.pop() {
+        b.check()?;
+        if feature.starts_with("dep:") {
+            continue;
+        }
+        if feature.contains(['/', '?']) {
+            return Err(bad(
+                "unsupported Cargo feature expression in default profile",
+            ));
+        }
+        let Some(references) = features.get(&feature) else {
+            return Err(bad(
+                "Cargo default references an undeclared package feature",
+            ));
+        };
+        let references = references
+            .as_array()
+            .ok_or_else(|| bad("Cargo feature references must be an array"))?;
+        if active.insert(feature) {
+            for reference in references {
+                pending.push(
+                    reference
+                        .as_str()
+                        .map(str::to_owned)
+                        .ok_or_else(|| bad("Cargo feature references must be strings"))?,
+                );
+            }
+        }
+    }
+    Ok(active.into_iter().collect())
+}
 fn keys(value: &Value, names: &[&str]) -> io::Result<()> {
     let obj = value.as_object().ok_or_else(|| bad("CI object required"))?;
     if obj.len() != names.len() || names.iter().any(|n| !obj.contains_key(*n)) {
@@ -260,13 +342,17 @@ fn cargo_products(
     messages: &Path,
     images: &Path,
     names: &[&str],
+    no_default_features: &[&str],
     version: &Path,
     expected_debug_info: u8,
     b: &Budget<'_>,
-) -> io::Result<()> {
+) -> io::Result<BTreeMap<String, Vec<String>>> {
     absolute(images)?;
     if !images.ends_with(Path::new(TARGET).join("debug")) {
         return Err(bad("Cargo native target/profile directory mismatch"));
+    }
+    if no_default_features.iter().any(|name| !names.contains(name)) {
+        return Err(bad("Cargo feature mode names an unrequested product"));
     }
     let v = bytes(version, 8192, b)?;
     if !std::str::from_utf8(&v)
@@ -280,6 +366,7 @@ fn cargo_products(
     let mut reader = BufReader::new(f);
     let mut total = 0usize;
     let mut seen = BTreeSet::new();
+    let mut product_features = BTreeMap::new();
     let mut success = 0;
     loop {
         b.check()?;
@@ -319,11 +406,46 @@ fn cargo_products(
             "tos-schema-worker" => "tos-validation",
             _ => "tos-ops-mechanics-plan",
         };
-        if value["manifest_path"]
-            != root
-                .join(format!("rust/crates/{package}/Cargo.toml"))
-                .to_string_lossy()
-                .as_ref()
+        let expected_features =
+            enabled_features(root, package, !no_default_features.contains(&name), b)?;
+        let actual_features = value["features"]
+            .as_array()
+            .ok_or_else(|| bad("Cargo executable feature list missing"))?
+            .iter()
+            .map(|feature| {
+                feature
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| bad("Cargo executable feature must be a string"))
+            })
+            .collect::<io::Result<Vec<_>>>()?;
+        let actual_set = actual_features.iter().cloned().collect::<BTreeSet<_>>();
+        let required_features = value["target"]["required-features"]
+            .as_array()
+            .map(|features| {
+                features
+                    .iter()
+                    .map(|feature| {
+                        feature
+                            .as_str()
+                            .map(str::to_owned)
+                            .ok_or_else(|| bad("Cargo required feature must be a string"))
+                    })
+                    .collect::<io::Result<Vec<_>>>()
+            })
+            .transpose()?
+            .unwrap_or_default();
+        if actual_set.len() != actual_features.len()
+            || actual_features != actual_set.iter().cloned().collect::<Vec<_>>()
+            || actual_features != expected_features
+            || required_features
+                .iter()
+                .any(|feature| !actual_set.contains(feature))
+            || value["manifest_path"]
+                != root
+                    .join(format!("rust/crates/{package}/Cargo.toml"))
+                    .to_string_lossy()
+                    .as_ref()
             || !value["package_id"].as_str().is_some_and(|s| {
                 s.starts_with(&format!(
                     "path+file://{}#",
@@ -331,7 +453,6 @@ fn cargo_products(
                 ))
             })
             || value["target"]["kind"] != json!(["bin"])
-            || value["features"] != json!([])
             || value["profile"]["opt_level"] != "0"
             || value["profile"]["debug_assertions"] != true
             || value["profile"]["debuginfo"] != expected_debug_info
@@ -343,13 +464,14 @@ fn cargo_products(
         if !seen.insert(name.to_owned()) {
             return Err(bad("duplicate Cargo executable"));
         }
+        product_features.insert(name.to_owned(), actual_features);
     }
     unchanged(reader.get_ref(), messages, &before)?;
     b.check()?;
     if success != if names.len() == 3 { 1 } else { 4 } || seen.len() != names.len() {
         return Err(bad("Cargo stream lacks successful requested products"));
     }
-    Ok(())
+    Ok(product_features)
 }
 fn artifact_set(root: &Path, with_manifest: bool, b: &Budget<'_>) -> io::Result<()> {
     let mut names = EXECUTORS
@@ -554,6 +676,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 get("--cargo-messages"),
                 get("--image-root"),
                 &EXECUTORS,
+                &EXECUTORS,
                 get("--rustc-version"),
                 0,
                 &b,
@@ -605,11 +728,12 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             let mut names = vec!["tos-access"];
             names.extend(COMMANDS);
             names.extend(KAG_IMAGES);
-            cargo_products(
+            let product_features = cargo_products(
                 root,
                 get("--cargo-messages"),
                 images,
                 &names,
+                &SOFTWARE_NO_DEFAULT_FEATURES,
                 get("--rustc-version"),
                 0,
                 &b,
@@ -621,6 +745,13 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 let obj = proof.as_object_mut().unwrap();
                 if n == "tos-access" {
                     obj.remove("features");
+                } else {
+                    obj.insert(
+                        "features".into(),
+                        json!(product_features.get(n).ok_or_else(|| {
+                            bad("Cargo feature receipt lacks requested product")
+                        })?),
+                    );
                 }
                 obj.insert(
                     "schema_version".into(),
@@ -731,6 +862,11 @@ mod tests {
         fs::create_dir(&root).unwrap();
         root
     }
+    fn package_manifest(root: &Path, package: &str, source: &str) {
+        let path = root.join("rust/crates").join(package).join("Cargo.toml");
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, source).unwrap();
+    }
     #[test]
     fn held_images_and_exports_refuse_symlinks_overbounds_and_overwrites() {
         let root = fixture();
@@ -766,6 +902,11 @@ mod tests {
     #[test]
     fn producer_requires_successful_cargo_context_not_image_existence() {
         let root = fixture();
+        package_manifest(
+            &root,
+            "tos-ops-mechanics-plan",
+            "[package]\nname = \"tos-ops-mechanics-plan\"\n[features]\ndefault = [\"compiler-backed-validators\"]\ncompiler-backed-validators = [\"dep:tos-compiler\"]\n",
+        );
         let images = root.join(TARGET).join("debug");
         fs::create_dir_all(&images).unwrap();
         let version = root.join("rustc-version");
@@ -783,18 +924,56 @@ mod tests {
             cancel: &cancel,
         };
         fs::write(&messages, &stream).unwrap();
-        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 0, &b).is_err());
+        assert!(
+            cargo_products(
+                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 0, &b
+            )
+            .is_err()
+        );
         stream.extend_from_slice(b"{\"reason\":\"build-finished\",\"success\":true}\n");
         fs::write(&messages, &stream).unwrap();
-        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 0, &b).is_ok());
-        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 1, &b).is_err());
+        assert!(
+            cargo_products(
+                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 0, &b
+            )
+            .is_ok()
+        );
+        assert!(
+            cargo_products(
+                &root, &messages, &images, &EXECUTORS, &EXECUTORS, &version, 1, &b
+            )
+            .is_err()
+        );
         let wrong = root.join("wrong-images");
         fs::create_dir(&wrong).unwrap();
-        assert!(cargo_products(&root, &messages, &wrong, &EXECUTORS, &version, 0, &b).is_err());
+        assert!(
+            cargo_products(
+                &root, &messages, &wrong, &EXECUTORS, &EXECUTORS, &version, 0, &b
+            )
+            .is_err()
+        );
         // Software receipts require the explicitly selected reduced debug-info profile.
         let mut names = vec!["tos-access"];
         names.extend(COMMANDS);
         names.extend(KAG_IMAGES);
+        package_manifest(&root, "tos-access", "[package]\nname = \"tos-access\"\n");
+        package_manifest(
+            &root,
+            "tos-command",
+            "[package]\nname = \"tos-command\"\n[features]\npostgres-lab = []\n",
+        );
+        package_manifest(
+            &root,
+            "tos-validation",
+            "[package]\nname = \"tos-validation\"\n[features]\ndefault = [\"native\"]\nnative = [\"dep:rusqlite\"]\nwasm = []\n",
+        );
+        // The three ops executables are emitted by the same explicit no-default build.
+        // Its manifest still declares a default feature, which must not leak into receipts.
+        package_manifest(
+            &root,
+            "tos-ops-mechanics-plan",
+            "[package]\nname = \"tos-ops-mechanics-plan\"\n[features]\ndefault = [\"compiler-backed-validators\"]\ncompiler-backed-validators = [\"dep:tos-compiler\"]\n",
+        );
         let mut software_stream = Vec::new();
         for n in &names {
             let package = match *n {
@@ -803,7 +982,17 @@ mod tests {
                 "tos-schema-worker" => "tos-validation",
                 _ => "tos-ops-mechanics-plan",
             };
-            let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/{package}#0.1.0",root.display()),"manifest_path":root.join(format!("rust/crates/{package}/Cargo.toml")),"target":{"name":n,"kind":["bin"]},"features":[],"profile":{"opt_level":"0","debuginfo":0,"debug_assertions":true,"test":false},"executable":images.join(n)});
+            let features = if *n == "tos-schema-worker" {
+                json!(["default", "native"])
+            } else {
+                json!([])
+            };
+            let required_features = if *n == "tos-schema-worker" {
+                json!(["native"])
+            } else {
+                json!([])
+            };
+            let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/{package}#0.1.0",root.display()),"manifest_path":root.join(format!("rust/crates/{package}/Cargo.toml")),"target":{"name":n,"kind":["bin"],"required-features":required_features},"features":features,"profile":{"opt_level":"0","debuginfo":0,"debug_assertions":true,"test":false},"executable":images.join(n)});
             serde_json::to_writer(&mut software_stream, &event).unwrap();
             software_stream.push(b'\n');
         }
@@ -812,8 +1001,49 @@ mod tests {
                 .extend_from_slice(b"{\"reason\":\"build-finished\",\"success\":true}\n");
         }
         fs::write(&messages, &software_stream).unwrap();
-        assert!(cargo_products(&root, &messages, &images, &names, &version, 0, &b).is_ok());
-        assert!(cargo_products(&root, &messages, &images, &names, &version, 1, &b).is_err());
+        let features = cargo_products(
+            &root,
+            &messages,
+            &images,
+            &names,
+            &SOFTWARE_NO_DEFAULT_FEATURES,
+            &version,
+            0,
+            &b,
+        )
+        .unwrap();
+        assert_eq!(features["tos-schema-worker"], ["default", "native"]);
+        assert!(features["tos-validation-lanes"].is_empty());
+        assert!(
+            cargo_products(
+                &root,
+                &messages,
+                &images,
+                &names,
+                &SOFTWARE_NO_DEFAULT_FEATURES,
+                &version,
+                1,
+                &b,
+            )
+            .is_err()
+        );
+        let dishonest = String::from_utf8(software_stream)
+            .unwrap()
+            .replace("\"features\":[\"default\",\"native\"]", "\"features\":[]");
+        fs::write(&messages, dishonest).unwrap();
+        assert!(
+            cargo_products(
+                &root,
+                &messages,
+                &images,
+                &names,
+                &SOFTWARE_NO_DEFAULT_FEATURES,
+                &version,
+                0,
+                &b,
+            )
+            .is_err()
+        );
         fs::remove_dir_all(root).unwrap();
     }
 }

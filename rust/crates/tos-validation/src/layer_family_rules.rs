@@ -420,7 +420,7 @@ impl LayerFamilyRules {
             tos_foundation::JsonLimits::new(self.limits.max_member_bytes, 64, 300_000, 4_300)
                 .map_err(|_| ItemRefusal::Budget)?;
         let (value, decoded_state) =
-            match crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
+            match crate::validation_codec::bounded_legacy_decoded_state_with_limits(
                 &raw,
                 codec,
                 available,

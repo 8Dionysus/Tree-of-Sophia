@@ -210,6 +210,7 @@ pub struct SourceFile {
 
 pub(crate) const SELECTED_SOURCE_MAX_FILES: usize = 4096;
 pub(crate) const SELECTED_SOURCE_MAX_BYTES: usize = 33_554_432;
+pub(crate) const SELECTED_SOURCE_MAX_MEMBER_BYTES: usize = 8_388_608;
 
 /// The independently selected protected configuration remains outside the
 /// authored source cut. This value records observations, not account authority.
@@ -320,7 +321,7 @@ impl CommandContext {
                         .read_member(
                             self.base_revision,
                             &input.path,
-                            8_388_608,
+                            SELECTED_SOURCE_MAX_MEMBER_BYTES as u64,
                             deadline,
                             cancelled,
                         )
@@ -441,7 +442,7 @@ impl CommandContext {
             if change
                 .after
                 .as_ref()
-                .is_some_and(|raw| raw.len() > 8_388_608)
+                .is_some_and(|raw| raw.len() > SELECTED_SOURCE_MAX_MEMBER_BYTES)
             {
                 return Err(SourceCommandError::Invalid(
                     "proposed source member byte budget",
@@ -512,7 +513,13 @@ fn selected_software_input(
         ));
     }
     software
-        .read_selected_component(components, &input.path, 8_388_608, deadline, cancelled)
+        .read_selected_component(
+            components,
+            &input.path,
+            SELECTED_SOURCE_MAX_MEMBER_BYTES as u64,
+            deadline,
+            cancelled,
+        )
         .map_err(|_| {
             SourceCommandError::Unsupported("software command input custody read incomplete")
         })

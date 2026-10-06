@@ -840,7 +840,7 @@ struct TopologyState<'a> {
 impl TopologyState<'_> {
     fn reserve(&mut self, amount: usize) -> Result<(), crate::item_rules::ItemRefusal> {
         if let Some(limits) = self.limits {
-            crate::record_biblio_cut::check(limits.deadline, self.cancelled)?;
+            crate::validation_codec::check(limits.deadline, self.cancelled)?;
         }
         let next = self
             .state
@@ -964,7 +964,7 @@ impl TopologyState<'_> {
             .checked_sub(self.state)
             .and_then(|n| n.checked_sub(std::mem::size_of::<String>()))
             .ok_or(crate::item_rules::ItemRefusal::Budget)?;
-        let bytes = crate::record_biblio_cut::serialized_wire_size(remaining, |writer| {
+        let bytes = crate::validation_codec::serialized_wire_size(remaining, |writer| {
             serde_json::to_writer(writer, parts.as_slice())
         })?;
         let cost = std::mem::size_of::<String>() + bytes;

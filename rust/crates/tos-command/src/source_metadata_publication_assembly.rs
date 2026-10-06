@@ -201,7 +201,8 @@ pub(super) fn assemble(
     let entry = tos_compiler::source_witness_catalog::render_catalog_record(
         &record,
         &reference,
-        Some(schema),
+        (package.family() == crate::source_creation::CreationFamily::PublicProfile)
+            .then_some(schema),
         l.catalog.max_output_row_bytes,
     )?;
     let entities = bytes::parse(
@@ -271,7 +272,14 @@ pub(super) fn assemble(
         return Err(Error::Invalid("Metadata exact initial cold resolution"));
     }
     let address = json!({"schema_version":"tos_source_catalog_address_v2","catalog_namespace":header["catalog_namespace"],"profile_id":"tos.source-catalog.public-records.v2","record_key":id,"row_sha256":bytes::row_digest(&row,l.catalog.max_row_bytes)?,"source_ref":reference,"raw_sha256":bytes::digest(&raw),"raw_bytes":raw.len(),"record_ref":subject});
-    let provenance = json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,"catalog":address,"descriptor":descriptor,"history":view(&resolved.history,l.catalog.max_row_bytes)?});
+    // Selected record history has the maintained metadata reader's public shape;
+    // whole-package verification remains internal resolver evidence.
+    let mut selected_history = view(&resolved.history, l.catalog.max_row_bytes)?;
+    selected_history
+        .as_object_mut()
+        .ok_or(Error::Invalid("Metadata selected history object"))?
+        .remove("all_package_bytes_verified");
+    let provenance = json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,"catalog":address,"descriptor":descriptor,"history":selected_history});
     let history = json!({"status":"available","reason":"verified-record-references","record_id":id,"current_ref":subject,"refs":[subject],"provenance":provenance,"grants_current_use":false,"performs_assessment":false,"writes_to_source":false});
     let mut vp = provenance.clone();
     vp["source"] = view(&resolved.source, l.catalog.max_row_bytes)?;

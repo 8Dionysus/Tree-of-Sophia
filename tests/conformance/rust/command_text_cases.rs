@@ -336,6 +336,25 @@ fn text_worker(
     )
 }
 
+fn text_worker_with_image(
+    cut: &tos_source_store::CorpusCutReader,
+    image: &tos_validation::executor::VerifiedWorkerImageHandle,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> tos_validation::source_cut::CutWorkerSchemaExecutor {
+    let mut budget = ExecutorBudget::laboratory();
+    budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!budget.execution_wall.is_zero());
+    super::command_form_cases::schemas_for_profile_with_image(
+        cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        image,
+        budget,
+        deadline,
+        cancelled,
+    )
+}
+
 fn source_value(value: &Value) -> JsonValue {
     parse_json(
         &serde_json::to_vec(value).unwrap(),
@@ -992,7 +1011,12 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     let store = temporary.path().join("source-cut");
     let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
     let cut = super::command_form_cases::open_cut(&store, selected, deadline, &cancelled);
-    let mut preview_worker = text_worker(&cut, deadline, &cancelled);
+    let mut worker_image_budget = ExecutorBudget::laboratory();
+    worker_image_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!worker_image_budget.execution_wall.is_zero());
+    let worker_image =
+        super::command_form_cases::schema_image(worker_image_budget, deadline, &cancelled);
+    let mut preview_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let preview = prepare_initial_text_layer_from_captures(
         &context,
         &owner,
@@ -1015,7 +1039,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         "expected_source":null,
         "expected_revision":null
     }));
-    let mut create_worker = text_worker(&cut, deadline, &cancelled);
+    let mut create_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let created = execute_initial_text_layer_from_captures(
         &context,
         &owner,
@@ -1053,7 +1077,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
             (entry.file_name(), fs::read(entry.path()).unwrap())
         })
         .collect();
-    let mut replay_worker = text_worker(&cut, deadline, &cancelled);
+    let mut replay_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let replay = execute_initial_text_layer_from_captures(
         &context,
         &owner,
@@ -1095,7 +1119,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     fs::write(&unit_owner, serde_json::to_vec(&unit_config).unwrap()).unwrap();
     fs::set_permissions(&unit_owner, fs::Permissions::from_mode(0o600)).unwrap();
     let unit_proposal = fixture["unit_proposal"].clone();
-    let mut unit_preview_worker = text_worker(&cut, deadline, &cancelled);
+    let mut unit_preview_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let unit_preview = prepare_first_text_unit_from_captures(
         &context,
         &unit_owner,
@@ -1117,7 +1141,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     unit_request["expected_source"] = Value::Null;
     unit_request["expected_revision"] = Value::Null;
     let unit_request = source_value(&unit_request);
-    let mut unit_worker = text_worker(&cut, deadline, &cancelled);
+    let mut unit_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let unit_created = execute_first_text_unit_from_captures(
         &context,
         &unit_owner,
@@ -1139,7 +1163,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         .unwrap()
         .to_path_buf();
     assert!(unit_home.join("source-text-unit.v1.json").exists());
-    let mut unit_replay_worker = text_worker(&cut, deadline, &cancelled);
+    let mut unit_replay_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let unit_replay = execute_first_text_unit_from_captures(
         &context,
         &unit_owner,
@@ -1165,7 +1189,8 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     );
     let derived_owner = PathBuf::from(derived["owner"].as_str().unwrap());
     let derived_ref = derived["source_ref"].as_str().unwrap();
-    let mut derived_preview_worker = text_worker(&cut, deadline, &cancelled);
+    let mut derived_preview_worker =
+        text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let derived_preview = prepare_derived_text_layer_from_captures(
         &context,
         &derived_owner,
@@ -1188,7 +1213,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         "expected_source":null,
         "expected_revision":null
     }));
-    let mut derived_worker = text_worker(&cut, deadline, &cancelled);
+    let mut derived_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let derived_result = execute_derived_text_layer_from_captures(
         &context,
         &derived_owner,
@@ -1215,7 +1240,8 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         derived["expected_sha256"].as_str().unwrap()
     );
     assert_eq!(fs::read(package.join("content.txt")).unwrap(), retained);
-    let mut derived_replay_worker = text_worker(&cut, deadline, &cancelled);
+    let mut derived_replay_worker =
+        text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let derived_replay = execute_derived_text_layer_from_captures(
         &context,
         &derived_owner,
@@ -1250,7 +1276,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         );
         let owner_path = PathBuf::from(details["owner"].as_str().unwrap());
         let source_ref = details["source_ref"].as_str().unwrap();
-        let mut preview_worker = text_worker(&cut, deadline, &cancelled);
+        let mut preview_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
         let preview = prepare_derived_text_layer_from_captures(
             &context,
             &owner_path,
@@ -1278,7 +1304,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
             "expected_source":null,
             "expected_revision":null
         }));
-        let mut worker = text_worker(&cut, deadline, &cancelled);
+        let mut worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
         let created = execute_derived_text_layer_from_captures(
             &context,
             &owner_path,
@@ -1308,7 +1334,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
             serde_json::from_slice(&fs::read(home.join("source-text-layer.v1.json")).unwrap())
                 .unwrap();
         assert_eq!(layer["layer_role"], expected_role);
-        let mut retry_worker = text_worker(&cut, deadline, &cancelled);
+        let mut retry_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
         let retry = execute_derived_text_layer_from_captures(
             &context,
             &owner_path,

@@ -798,7 +798,7 @@ fn assert_authored_bytes_equal(
     );
 }
 
-fn agent_authored_capture(
+pub(super) fn agent_authored_capture(
     root: &Path,
     deadline: Instant,
     max_bytes: usize,

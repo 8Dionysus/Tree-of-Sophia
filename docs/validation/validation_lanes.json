@@ -484,6 +484,7 @@
       },
       {
         "label": "test isolated process-cold source revision fixture",
+        "command_timeout_ms": 1020000,
         "command": [
           "cargo",
           "test",
@@ -606,6 +607,9 @@
           "--locked",
           "-p",
           "tos-validation",
+          "--no-default-features",
+          "--features",
+          "wasm",
           "--target",
           "wasm32-unknown-unknown"
         ]

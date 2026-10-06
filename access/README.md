@@ -1576,12 +1576,13 @@ JSON object must select a nonempty subset of `tos-native-owner-command`,
 contains only absolute `binary` and `receipt` paths. Each build-owned receipt
 uses `tos_native_software_command_build_v1`, the access receipt identity fields,
 and the exact role feature set. The philosophy/planting command
-`tos-ops-mechanics-plan` requires exactly the sorted effective Cargo features
-`["compiler-backed-validators", "default"]`; its ordinary native role uses the
-compiler-backed validators. Every other command requires `features: []`.
-The three CI prerequisite ops products are built with
-`--no-default-features`; command and schema-worker products use their empty
-effective feature set. Every selected role must match the access source commit/tree, lock,
+`tos-ops-mechanics-plan` requires `["compiler-backed-validators", "default"]`;
+the schema worker requires `["default", "native"]`. The owner command and
+constructor commands require `features: []`. The three CI prerequisite ops
+products are built with `--no-default-features` and require `features: []`.
+Producer receipts check Cargo messages against the selected package manifests;
+archive and installed consumers enforce each role's profile. Every selected
+role must match the access source commit/tree, lock,
 toolchain and target. Their SHA/size and ELF headers are checked independently.
 The additive `native_commands` manifest closure binds these exact roles at
 `native/bin/NAME`; install creates corresponding relative `PREFIX/bin/NAME`

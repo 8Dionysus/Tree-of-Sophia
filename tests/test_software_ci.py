@@ -152,7 +152,8 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertTrue(command_lab[0]['env']['TOS_CMD_POSTGRES_URL'])
         self.assertIn('postgres', jobs['rust']['services'])
         native_owner = next(s for s in jobs['rust']['steps']
-                            if s.get('run') == 'python scripts/validation_lanes.py --run rust_workspace')
+                            if s.get('run', '').startswith('python scripts/validation_lanes.py --run rust_workspace'))
+        self.assertIn('--lane-timeout-ms 5400000', native_owner['run'])
         native_owner_path = '${{ runner.temp }}/cargo-target/debug/tos-native-owner-command'
         self.assertEqual(native_owner['env']['TOS_NATIVE_OWNER_COMMAND_PATH'], native_owner_path)
         self.assertEqual(native_owner['env']['TOS_NATIVE_OWNER_COMMAND_BIN'], native_owner_path)

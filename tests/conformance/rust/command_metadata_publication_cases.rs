@@ -2,8 +2,9 @@
 //! Creation, profile transition and publication use the SAME protected owner C;
 //! its committed database/binding then continue through the real access lanes.
 use super::command_claim_publication_cases::{
-    AGENT_RECORD_COMPONENTS, agent_authored, agent_catalog, agent_native_call, canonical_lf,
-    fixture_physical_bytes, read_packet, report_object_order, typed,
+    AGENT_RECORD_COMPONENTS, agent_authored, agent_authored_capture, agent_catalog,
+    agent_native_call, canonical_lf, fixture_physical_bytes, read_packet, report_object_order,
+    typed,
 };
 use super::*;
 use serde_json::json;
@@ -111,10 +112,13 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     // database double counting or second auxiliary database copy.
     assert!(baseline.checked_sub(baseline_db).unwrap() + 480 * 1024 * 1024 <= 1024 * 1024 * 1024);
     fs::set_permissions(&db_path, fs::Permissions::from_mode(0o600)).unwrap();
-    let original_files = agent_authored(&root, deadline);
+    let (original_files, original_modes) = agent_authored_capture(&root, deadline, 33_554_432);
     let original_store = workspace.path().join("original-cut");
-    let original_revision =
-        super::validation_cut_cases::write_cut_store(&original_files, &original_store);
+    let original_revision = super::validation_cut_cases::write_cut_store_with_modes(
+        &original_files,
+        &original_store,
+        &original_modes,
+    );
     let source_catalog: Value = serde_json::from_str(required(
         &packet["source_inputs"]["roots"]["source-catalog"],
         "root_json",
@@ -250,14 +254,15 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         agent_native_call(&repository, &owner, &invocation_path, &request, deadline)["result"]
             .clone();
     assert_eq!(created["replayed"], false);
-    let current_files = agent_authored(&root, deadline);
+    let (current_files, current_modes) = agent_authored_capture(&root, deadline, 33_554_432);
     // One corpus store retains the original authenticated revision while the
     // new current revision is appended; the fixed CLI opens BOTH through it.
     let current_store = original_store.clone();
-    let current_revision = super::validation_cut_cases::write_cut_store_on_base(
+    let current_revision = super::validation_cut_cases::write_cut_store_with_optional_modes(
         &current_files,
         &current_store,
         Some(original_revision),
+        Some(&current_modes),
     );
     // Genuine native creation is observed by the exact maintained full oracle
     // BEFORE any native prepared profile transition changes Python identities.
@@ -343,6 +348,30 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
             report_object_order(&report),
             report_object_order(&typed(&packet["baseline_semantic_report"]))
         );
+        // Import the maintained Python catalog through the same native bootstrap
+        // used by Claim publication. Reproduce its full catalog/header before
+        // binding the native auxiliary index; never relabel its projector.
+        for table in [
+            "catalog_heads",
+            "catalog_occurrences",
+            "catalog_contributors",
+            "catalog_totals",
+            "catalog_atoms",
+            "catalog_state",
+        ] {
+            tx.execute(&format!("DROP TABLE {table}"), []).unwrap();
+        }
+        let catalog_receipt =
+            tos_compiler::prepared_maintenance::bootstrap_prepared_catalog_transaction(
+                &tx,
+                &initial_binding,
+                &initial_catalog,
+                publication,
+                catalog_limits,
+            )
+            .unwrap();
+        assert_eq!(catalog_receipt.binding, initial_binding);
+        assert!(!catalog_receipt.publication_changed && !catalog_receipt.consumer_switched);
         tx.commit().unwrap();
     }
     connection
