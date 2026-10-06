@@ -709,7 +709,7 @@ fn ticket_worker_budget(
 ) -> Result<ExecutorBudget, FoundationOrchestratorError> {
     let operation = ticket.operation_limits();
     let wall = deadline.saturating_duration_since(Instant::now());
-    let cpu_seconds = operation.worker_cpu_seconds.min(3_600);
+    let cpu_seconds = operation.worker_cpu_seconds.min(ExecutorBudget::MAX_SCALAR_CPU_SECONDS);
     if wall.is_zero() || cpu_seconds == 0 || address_space_bytes < 64 * 1024 * 1024 {
         return Err(incomplete("source-foundation worker reservation exhausted"));
     }
@@ -729,6 +729,7 @@ fn schema_limits_for_ticket(
     total_resource_bytes: usize,
     max_checks: usize,
 ) -> Result<SourceFoundationSchemaLimits, FoundationOrchestratorError> {
+    let max_checks = max_checks.min(tos_validation::source_foundation_schema::MAX_SOURCE_FOUNDATION_CHECKS);
     let operation = ticket.operation_limits();
     let instance_cap = bounded_usize(operation.source_read_bytes)?
         .min(bounded_usize(limits.invocation_budgets.max_member_bytes)?)
@@ -769,11 +770,8 @@ fn cut_worker_shape(
     let units = units.min(operation.worker_wire_bytes).min(u64::MAX - 1);
     FoundationCutWorkerShape {
         batch,
-        max_chunks: units
-            .saturating_add(batch.max_units as u64 - 1)
-            .checked_div(batch.max_units as u64)
-            .unwrap_or(1)
-            .max(1),
+        // Each scalar DiagnosticsV2 exchange occupies one physical frame.
+        max_chunks: units.max(1),
         max_total_units: units.max(1),
         max_total_raw_bytes: operation
             .source_read_bytes
@@ -943,6 +941,14 @@ pub(crate) fn prepare_candidate_schema_worker(
     if held_state_bytes < bounded_usize(image_state)? {
         return Err(incomplete("candidate held worker image is unreserved"));
     }
+    // The operation remainder is inclusive. Reserve only the selected
+    // metadata geometry before adding worker/image/controller overlap.
+    let selected_metadata_state =
+        tos_validation::source_foundation_schema::CandidateSourceFoundationSchemaSet::<
+            crate::source_admission_spooled_candidate::CandidateFence,
+        >::source_resource_metadata_state_upper_bound(schema_limits.max_schema_resources)
+        .ok_or_else(|| incomplete("candidate selected schema metadata state overflow"))?;
+    let metadata_state_limit = metadata_state_limit.min(selected_metadata_state);
     let preparation = tos_validation::source_cut::source_foundation_candidate_schema_preparation_state_upper_bound(
         schema_limits, metadata_state_limit,
     ).map_err(owner)?;
