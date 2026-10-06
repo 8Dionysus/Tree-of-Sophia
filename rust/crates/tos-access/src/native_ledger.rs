@@ -23,7 +23,18 @@ impl Ledger {
             .checked_sub(self.retained.get())
             .and_then(|n| n.checked_sub(self.reserved.get()))
             .and_then(|n| n.checked_sub(additional))
-            .ok_or("Core lazy original simultaneous state")
+            .ok_or_else(|| {
+                // Numeric owner counters only; source data and request text
+                // never enter the private bounded child diagnostic stream.
+                eprintln!(
+                    "Core state refusal: limit={} retained={} reserved={} additional={}",
+                    self.state_limit,
+                    self.retained.get(),
+                    self.reserved.get(),
+                    additional,
+                );
+                "Core lazy original simultaneous state"
+            })
     }
     pub fn reserve(&self, bytes: usize) -> Result<Reservation<'_>> {
         if bytes > self.remaining(0)? {

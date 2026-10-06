@@ -339,7 +339,11 @@ impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
                 limit: u64::try_from(max_callback_state_bytes).ok(),
             });
         }
-        input.require_callback_state(callback_state, max_operation_state_bytes)?;
+        input.require_callback_state(
+            callback_state,
+            max_operation_state_bytes,
+            "candidate rule-reader callback state",
+        )?;
         let mut source = Self::new_inner(
             FoundationRuleInput::Candidate(input),
             physical,

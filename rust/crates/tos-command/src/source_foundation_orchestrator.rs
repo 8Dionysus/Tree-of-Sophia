@@ -1098,7 +1098,11 @@ pub(crate) fn prepare_candidate_schema_worker(
         })
         .ok_or_else(|| incomplete("candidate schema preparation overlap overflow"))?;
     input
-        .require_callback_state(required, max_operation_state_bytes)
+        .require_callback_state(
+            required,
+            max_operation_state_bytes,
+            "candidate schema constructor callback state",
+        )
         .map_err(owner)?;
     let set =
         tos_validation::source_foundation_schema::CandidateSourceFoundationSchemaSet::from_input(
@@ -1157,7 +1161,11 @@ pub(crate) fn prepare_candidate_schema_worker(
         .and_then(|bytes| bytes.checked_add(controller))
         .ok_or_else(|| incomplete("candidate schema controller overlap overflow"))?;
     input
-        .require_callback_state(controller_overlap, max_operation_state_bytes)
+        .require_callback_state(
+            controller_overlap,
+            max_operation_state_bytes,
+            "candidate schema controller callback state",
+        )
         .map_err(owner)?;
     worker
         .set_diagnostics_v2_controller_state_cap(controller)
@@ -1708,7 +1716,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         })
         .ok_or_else(|| incomplete("candidate callback inline state overflow"))?;
     input
-        .require_callback_state(minimal_callback, original_operation_state)
+        .require_callback_state(
+            minimal_callback,
+            original_operation_state,
+            "candidate runner baseline callback state",
+        )
         .map_err(owner)?;
 
     let mut schema_count = 0usize;
@@ -2027,7 +2039,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         );
     }
     input
-        .require_callback_state(callback_state_bytes, original_operation_state)
+        .require_callback_state(
+            callback_state_bytes,
+            original_operation_state,
+            "candidate Records and Claim callback state",
+        )
         .map_err(owner)?;
 
     let callback_result_state = std::mem::size_of::<(usize, u64)>();
@@ -2652,7 +2668,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                         .ok_or(tos_validation::item_budget_origin!())?;
                                     let local_state = callback_state_bytes.checked_sub(held)
                                         .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
-                                    input.require_callback_state(callback_state_bytes, original_operation_state)?;
+                                    input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
                                     let local_limits = ItemLimits {
                                         max_member_bytes: reader_member_bytes.min(local_state),
                                         max_total_bytes: after_replay_headroom,
@@ -2723,7 +2739,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                     .ok_or(tos_validation::item_budget_origin!())?;
                                 let local_state = callback_state_bytes.checked_sub(held)
                                     .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
-                                input.require_callback_state(callback_state_bytes, original_operation_state)?;
+                                input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
                                 let local_limits = tos_validation::item_rules::ItemLimits {
                                     max_member_bytes: reader_member_bytes.min(local_state),
                                     max_total_bytes: after_replay_headroom,

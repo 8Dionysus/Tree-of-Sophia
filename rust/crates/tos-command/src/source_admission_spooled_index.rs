@@ -1179,7 +1179,11 @@ impl<'candidate> IndexSink<'candidate> {
         // This is the whole dependent callback envelope, not an individual
         // SQLite row. The input owns its already selected callback grant;
         // row readers/writers continue to use the candidate's local row cap.
-        if let Err(error) = input.require_callback_state(retained, max_operation_state_bytes) {
+        if let Err(error) = input.require_callback_state(
+            retained,
+            max_operation_state_bytes,
+            "candidate record-sink callback state",
+        ) {
             input.abandon();
             return Err(receiver_refusal(error));
         }

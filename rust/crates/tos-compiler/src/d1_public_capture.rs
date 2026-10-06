@@ -1192,11 +1192,22 @@ impl<'budget> CreationState<'budget> {
         );
         Ok(())
     }
+    #[track_caller]
     pub(crate) fn hold<'owner>(
         &'owner self,
         bytes: usize,
     ) -> Result<CreationStateHold<'owner, 'budget>> {
-        self.remaining(bytes)?;
+        if let Err(error) = self.remaining(bytes) {
+            let site = std::panic::Location::caller();
+            eprintln!(
+                "Native state hold refused at {}:{}: retained={} additional={}",
+                site.file(),
+                site.line(),
+                self.retained.get(),
+                bytes,
+            );
+            return Err(error);
+        }
         let retained = self
             .retained
             .get()

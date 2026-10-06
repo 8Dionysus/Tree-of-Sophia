@@ -87,7 +87,11 @@ pub(crate) fn inspect_candidate_records_stored<'store>(
             .checked_add(limits.operation.max_state_bytes)
             .filter(|state| *state <= max_operation_state_bytes)
             .ok_or(tos_validation::item_budget_origin!())?;
-        input.require_callback_state(callback_state, max_operation_state_bytes)?;
+        input.require_callback_state(
+            callback_state,
+            max_operation_state_bytes,
+            "candidate record-schema callback state",
+        )?;
         let report = tos_validation::source_foundation_records::inspect_source_foundation_records_from_input_stored(
             input,
             &mut binding,
