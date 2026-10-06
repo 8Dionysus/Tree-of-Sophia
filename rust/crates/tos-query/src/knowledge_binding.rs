@@ -2,8 +2,7 @@
 //! This establishes query semantics, not current policy or disclosure rights.
 
 use tos_compiler::{
-    KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_MANAGED_MODEL_ABI, KNOWLEDGE_MODEL_ABI,
-    KNOWLEDGE_NAVIGATION_MODEL_ABI, KNOWLEDGE_PHILOSOPHY_MODEL_ABI, ControlledKnowledgeModel,
+    KNOWLEDGE_MANAGED_MODEL_ABI, ControlledKnowledgeModel,
     KnowledgeSelectedExpectation, KnowledgeSourceBasis, ManagedSourceProofV1, QueryVocabulary,
     VerifiedKnowledgeModel,
 };
@@ -386,11 +385,7 @@ fn bind_knowledge_from_parts<'a>(
         ));
     }
     if !selected.complete
-        || (selected.model_abi != KNOWLEDGE_MODEL_ABI
-            && selected.model_abi != KNOWLEDGE_NAVIGATION_MODEL_ABI
-            && selected.model_abi != KNOWLEDGE_PHILOSOPHY_MODEL_ABI
-            && selected.model_abi != KNOWLEDGE_CORPUS_MODEL_ABI
-            && selected.model_abi != KNOWLEDGE_MANAGED_MODEL_ABI)
+        || !tos_foundation::KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&selected.model_abi.as_str())
         || selected.semantic_primitive_profile != QUERY_PRIMITIVE_PROFILE
         || selected.semantic_primitive_profile != vocabulary.semantic_primitive_profile
         || search_index_profile != SEARCH_UNICODE_PROFILE

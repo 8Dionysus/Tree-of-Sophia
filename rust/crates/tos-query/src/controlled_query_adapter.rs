@@ -445,7 +445,7 @@ fn with_controlled_binding<M: ControlledSearchSource>(
                     vocabulary,
                     descriptor,
                 )
-                .map_err(|_| CompilerError::Invalid("controlled semantic binding refused"))?;
+                .map_err(|reason| CompilerError::Invalid(reason.message))?;
                 let result = consume(model, &bound);
                 let pin_result = model.source_check_pin();
                 result?;
