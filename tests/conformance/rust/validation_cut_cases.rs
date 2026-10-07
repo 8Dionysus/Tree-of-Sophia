@@ -258,7 +258,7 @@ fn source_foundation_schema_set_from_fixture(
             revision,
             CutReadLimits {
                 max_revisions: 4,
-                max_members: limits.max_schema_resources,
+                max_members: limits.max_schema_resources.try_into().unwrap(),
                 max_total_bytes: 2_097_152,
                 max_member_bytes: 1_048_576,
             },
@@ -2173,7 +2173,7 @@ fn actual_cut_diagnostics_bounds_residency_across_report_lifetimes() {
             revision,
             CutReadLimits {
                 max_revisions: 1,
-                max_members: files.len(),
+                max_members: files.len().try_into().unwrap(),
                 max_total_bytes: 1024 * 1024,
                 max_member_bytes: 1024 * 1024,
             },
