@@ -906,16 +906,10 @@ fn execute(request: Request) -> Result<Value> {
     let mut historical =
         manifest::census_selected_runtime_closure(&request.selected_snapshot, deadline)?;
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
-    let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
-    // The selected model's live main file and copied cold reader share the
-    // caller's file ceiling. Disposable raw-input TEMP storage has its own
-    // maintained StageLimits cap, already covered by the stage tmpfs/RAM hold;
-    // it is not part of the selected model or its persistent output allowance.
-    limits.stage.sqlite.max_output_bytes = limits
-        .stage
-        .sqlite
-        .max_output_bytes
-        .min(request.cold_open.max_file_bytes);
+    let limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
+    // The private stage's live main and TEMP databases use the maintained
+    // compiler limits covered by the tmpfs/RAM hold. The caller's cold-file
+    // ceiling applies to the finished selected model after compaction.
     let cancelled = Arc::new(AtomicBool::new(false));
     let resources = LinuxCgroupColdOpenResourceHold::acquire_original_stage(
         request.working_ram_bytes,
@@ -1079,7 +1073,10 @@ fn execute(request: Request) -> Result<Value> {
                     )?;
 
                     let model_bytes = completed.stage().sqlite_size_bytes;
-                    if model_bytes == 0 || model_bytes > manifest::NATIVE_PRODUCER_MAX_MODEL_BYTES {
+                    if model_bytes == 0
+                        || model_bytes > manifest::NATIVE_PRODUCER_MAX_MODEL_BYTES
+                        || model_bytes > request.cold_open.max_file_bytes
+                    {
                         return Err(
                             Refusal("completed native model exceeds selected ceiling").into()
                         );

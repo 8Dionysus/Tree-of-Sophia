@@ -5630,9 +5630,15 @@ fn rewrite_fixture_record_v1(
             set_string(object, "review_status", "unreviewed".to_owned())?;
             set_string(object, "visibility", "local_only".to_owned())?;
             set_number(object, "claim_version", 1)?;
-            // The source Claim schema carries separately bound assessments;
-            // an embedded legacy reviews array is not part of this record.
-            object.remove("reviews");
+            if selected_semantic_fixture {
+                // This source Claim schema carries separately bound assessments;
+                // an embedded legacy reviews array is not part of this record.
+                object.remove("reviews");
+            } else {
+                // The technical template route retains its existing packet
+                // shape, including the legacy Claim packet's required field.
+                object.insert("reviews".to_owned(), serde_json::Value::Array(Vec::new()));
+            }
             object.insert("supersedes_claim_ref".to_owned(), serde_json::Value::Null);
             if let Some(maker) = object
                 .get_mut("maker")

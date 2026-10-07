@@ -98,6 +98,25 @@ fn sql_refusal(error: rusqlite::Error) -> ItemRefusal {
     source_reason("default-sql", class)
 }
 
+#[track_caller]
+fn row_shape_refusal() -> rusqlite::Error {
+    // Preserve the owning decoder's site through rusqlite without exposing
+    // row values. InvalidQuery otherwise hides local shape/budget failures.
+    let site = format!("default-shape-{}", std::panic::Location::caller().line());
+    rusqlite::Error::FromSqlConversionFailure(
+        0,
+        rusqlite::types::Type::Null,
+        Box::new(io::Error::new(
+            io::ErrorKind::InvalidData,
+            crate::source_admission_spooled_index::bounded_source_cause(
+                "receiver-source",
+                &site,
+                "candidate default row shape refused",
+            ),
+        )),
+    )
+}
+
 fn row_refusal(error: ItemRefusal, column: usize, kind: rusqlite::types::Type) -> rusqlite::Error {
     rusqlite::Error::FromSqlConversionFailure(
         column,
@@ -258,7 +277,7 @@ fn bounded_row_text(
         {
             row.get(column)
         }
-        _ => Err(rusqlite::Error::InvalidQuery),
+        _ => Err(row_shape_refusal()),
     }
 }
 
@@ -268,15 +287,15 @@ fn row_text_state(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<us
             .len()
             .checked_mul(16)
             .and_then(|bytes| bytes.checked_add(2048))
-            .ok_or(rusqlite::Error::InvalidQuery),
-        _ => Err(rusqlite::Error::InvalidQuery),
+            .ok_or(row_shape_refusal()),
+        _ => Err(row_shape_refusal()),
     }
 }
 
 fn row_text_length(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<usize> {
     match row.get_ref(column)? {
         rusqlite::types::ValueRef::Text(raw) => Ok(raw.len()),
-        _ => Err(rusqlite::Error::InvalidQuery),
+        _ => Err(row_shape_refusal()),
     }
 }
 
@@ -709,7 +728,7 @@ fn pragma_i64(db: &PinnedSqliteConnection, pragma: &'static str) -> io::Result<i
 fn pragma_text(db: &PinnedSqliteConnection, pragma: &'static str) -> io::Result<String> {
     db.query_row(pragma, [], |row| match row.get_ref(0)? {
         rusqlite::types::ValueRef::Text(raw) if raw.len() <= 128 => row.get(0),
-        _ => Err(rusqlite::Error::InvalidQuery),
+        _ => Err(row_shape_refusal()),
     })
     .map_err(|_| storage_error("candidate defaults SQLite policy query refused"))
 }
@@ -1242,7 +1261,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
 fn row_blob<'a>(row: &'a rusqlite::Row<'_>, column: usize) -> rusqlite::Result<&'a [u8]> {
     match row.get_ref(column)? {
         rusqlite::types::ValueRef::Blob(bytes) => Ok(bytes),
-        _ => Err(rusqlite::Error::InvalidQuery),
+        _ => Err(row_shape_refusal()),
     }
 }
 
@@ -1352,7 +1371,7 @@ fn query_event_value(
             let id_text =
                 bounded_row_text_precharged(context, row, 0, context.operation_state_limit)?;
             if id_text != id {
-                return Err(rusqlite::Error::InvalidQuery);
+                return Err(row_shape_refusal());
             }
             value_from_row(
                 context,
@@ -2299,7 +2318,7 @@ impl DiscoveryRunSummaryStore for CandidateDiscoveryRunSummaries<'_, '_, '_, '_,
                 rusqlite::types::ValueRef::Blob(raw) if raw.len() == encoded_bytes => {
                     Ok(raw.to_vec())
                 }
-                _ => Err(rusqlite::Error::InvalidQuery),
+                _ => Err(row_shape_refusal()),
             })
             .transpose()
             .map_err(sql_refusal)?
@@ -2599,7 +2618,7 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
                     || location.len() != location_bytes
                     || raw.len() != value_bytes
                 {
-                    return Err(rusqlite::Error::InvalidQuery);
+                    return Err(row_shape_refusal());
                 }
                 Ok((location, raw.to_vec()))
             })
@@ -2759,7 +2778,7 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
                         || location.len() != location_bytes
                         || raw.len() != value_bytes
                     {
-                        return Err(rusqlite::Error::InvalidQuery);
+                        return Err(row_shape_refusal());
                     }
                     Ok((id, location, raw.to_vec()))
                 })
@@ -3137,13 +3156,13 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
                     rusqlite::types::ValueRef::Blob(raw) if raw.len() == document_bytes => {
                         raw.to_vec()
                     }
-                    _ => return Err(rusqlite::Error::InvalidQuery),
+                    _ => return Err(row_shape_refusal()),
                 };
                 if before_issue.len() != 8
                     || location.len() != location_bytes
                     || contract.len() != contract_bytes
                 {
-                    return Err(rusqlite::Error::InvalidQuery);
+                    return Err(row_shape_refusal());
                 }
                 Ok((before_issue, location, contract, document))
             })
@@ -4219,7 +4238,7 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                     let digest = bounded_row_text(row, 3, workspace)?;
                     let loaded_digest = match row.get_ref(4)? {
                         rusqlite::types::ValueRef::Text(bytes) => bytes,
-                        _ => return Err(rusqlite::Error::InvalidQuery),
+                        _ => return Err(row_shape_refusal()),
                     };
                     if path.is_empty()
                         || path.len() > 4096
@@ -4232,12 +4251,12 @@ impl CandidateClosureSchemaRequests<'_, '_, '_, '_, '_> {
                             .as_deref()
                             .is_some_and(|previous| previous >= id.as_str())
                     {
-                        return Err(rusqlite::Error::InvalidQuery);
+                        return Err(row_shape_refusal());
                     }
                     let line_number = checked_u64_blob(line)
                         .map_err(|error| row_refusal(error, 2, rusqlite::types::Type::Blob))?;
                     if line_number == 0 {
-                        return Err(rusqlite::Error::InvalidQuery);
+                        return Err(row_shape_refusal());
                     }
                     Ok((id, path, line.len(), digest))
                 })
@@ -6866,7 +6885,7 @@ impl SourceFoundationClosureSchemaRequestStore
                     native: match row.get::<_, i64>(6)? {
                         0 => false,
                         1 => true,
-                        _ => return Err(rusqlite::Error::InvalidQuery),
+                        _ => return Err(row_shape_refusal()),
                     },
                 };
                 Ok((stored_id, reference))
@@ -7295,7 +7314,7 @@ impl SourceFoundationClosureSchemaRequestStore
                     native: match row.get::<_, i64>(6)? {
                         0 => false,
                         1 => true,
-                        _ => return Err(rusqlite::Error::InvalidQuery),
+                        _ => return Err(row_shape_refusal()),
                     },
                 };
                 Ok((id, reference))
@@ -7575,7 +7594,7 @@ impl SourceFoundationClosureSchemaRequestStore
                     native: match row.get::<_, i64>(6)? {
                         0 => false,
                         1 => true,
-                        _ => return Err(rusqlite::Error::InvalidQuery),
+                        _ => return Err(row_shape_refusal()),
                     },
                 };
                 Ok((id, reference))
@@ -7896,7 +7915,7 @@ impl SourceFoundationClosureSchemaRequestStore
                     native: match row.get::<_, i64>(6)? {
                         0 => false,
                         1 => true,
-                        _ => return Err(rusqlite::Error::InvalidQuery),
+                        _ => return Err(row_shape_refusal()),
                     },
                 };
                 Ok((stored_id, reference))
@@ -8235,7 +8254,7 @@ impl SourceFoundationClosureSchemaRequestStore
                     native: match row.get::<_, i64>(6)? {
                         0 => false,
                         1 => true,
-                        _ => return Err(rusqlite::Error::InvalidQuery),
+                        _ => return Err(row_shape_refusal()),
                     },
                 };
                 Ok((stored_id, reference))
@@ -9854,7 +9873,7 @@ impl SourceFoundationClosureSchemaRequestStore
                     native: match row.get::<_, i64>(6)? {
                         0 => false,
                         1 => true,
-                        _ => return Err(rusqlite::Error::InvalidQuery),
+                        _ => return Err(row_shape_refusal()),
                     },
                 };
                 Ok((id, reference))
@@ -10109,13 +10128,13 @@ impl SourceFoundationClosureSchemaRequestStore
                     || digest.len() != digest_bytes
                     || raw.len() != json_bytes
                 {
-                    return Err(rusqlite::Error::InvalidQuery);
+                    return Err(row_shape_refusal());
                 }
                 let line = checked_u64_blob(line)
                     .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
-                let line = usize::try_from(line).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let line = usize::try_from(line).map_err(|_| row_shape_refusal())?;
                 let value = serde_json::from_slice::<Value>(raw)
-                    .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    .map_err(|_| row_shape_refusal())?;
                 Ok((path, line, digest, value, raw.len()))
             })
             .transpose()
@@ -11522,13 +11541,13 @@ impl SourceFoundationClosureSchemaRequestStore
                     rusqlite::types::ValueRef::Blob(raw) if raw.len() == document_bytes => {
                         raw.to_vec()
                     }
-                    _ => return Err(rusqlite::Error::InvalidQuery),
+                    _ => return Err(row_shape_refusal()),
                 };
                 if before_issue.len() != 8
                     || location.len() != location_bytes
                     || contract.len() != contract_bytes
                 {
-                    return Err(rusqlite::Error::InvalidQuery);
+                    return Err(row_shape_refusal());
                 }
                 Ok((before_issue, location, contract, document))
             })
@@ -11935,13 +11954,13 @@ impl SourceFoundationBiblioEventSink for BiblioEventsProvider<'_, '_, '_, '_> {
                         |row| {
                             let slot: [u8; 8] = row_blob(row, 0)?
                                 .try_into()
-                                .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                                .map_err(|_| row_shape_refusal())?;
                             let count: [u8; 8] = row_blob(row, 1)?
                                 .try_into()
-                                .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                                .map_err(|_| row_shape_refusal())?;
                             let value_bytes: i64 = row.get(2)?;
                             let value_bytes = usize::try_from(value_bytes)
-                                .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                                .map_err(|_| row_shape_refusal())?;
                             Ok((slot, count, value_bytes))
                         },
                     )
@@ -12012,7 +12031,7 @@ impl SourceFoundationBiblioEventSink for BiblioEventsProvider<'_, '_, '_, '_> {
                 |row| {
                     row_blob(row, 0)?
                         .try_into()
-                        .map_err(|_| rusqlite::Error::InvalidQuery)
+                        .map_err(|_| row_shape_refusal())
                 },
             )
             .optional()
@@ -12844,7 +12863,7 @@ impl tos_validation::biblio_rules::SourceFoundationBiblioManifestSink
                     |row| {
                         row_blob(row, 0)?
                             .try_into()
-                            .map_err(|_| rusqlite::Error::InvalidQuery)
+                            .map_err(|_| row_shape_refusal())
                     },
                 )
                 .optional()
@@ -12901,10 +12920,10 @@ impl tos_validation::biblio_rules::SourceFoundationBiblioManifestSink
                     |row| {
                         let slot: [u8; 8] = row_blob(row, 0)?
                             .try_into()
-                            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                            .map_err(|_| row_shape_refusal())?;
                         let strings_state = row_text_state(row, 1)?
                             .checked_add(row_text_state(row, 2)?)
-                            .ok_or(rusqlite::Error::InvalidQuery)?;
+                            .ok_or(row_shape_refusal())?;
                         self.context
                             .active_state(strings_state)
                             .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Text))?;
