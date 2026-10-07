@@ -5,9 +5,7 @@
 use crate::knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_philosophy_prepare::dependency_root;
-use crate::knowledge_stage::{
-    KnowledgePayloadLayout, KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase,
-};
+use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase};
 use crate::{Error, KnowledgeRegistry, PhilosophyPrepareReceipt, QueryVocabulary, Result};
 use rusqlite::OptionalExtension;
 use serde_json::Value;
@@ -344,25 +342,11 @@ where
         .map_err(Error::from)
     })?;
     loop {
-        let (write_rows, write_bytes) = stage.write_page_limits();
-        // Carrier layout can add one exact source packet beside each logical
-        // row. Price those physical writes before selecting the input page.
-        let carrier = stage.payload_layout() == KnowledgePayloadLayout::CarrierOnceV1;
-        let rows_per_input = if carrier { 2 } else { 1 };
-        let bytes_per_input = normalizer
-            .limits
-            .max_output_bytes
-            .checked_add(if carrier {
-                normalizer.limits.max_raw_bytes
-            } else {
-                0
-            })
-            .ok_or(Error::Budget("philosophy carrier page bytes"))?;
-        let page_rows = normalizer
-            .limits
-            .max_page_rows
-            .min(write_rows / rows_per_input)
-            .min(write_bytes as usize / bytes_per_input);
+        let (page_rows, physical_rows, physical_bytes) = stage.exact_source_write_page_limits(
+            normalizer.limits.max_page_rows,
+            normalizer.limits.max_output_bytes,
+            normalizer.limits.max_raw_bytes,
+        )?;
         let page = stage.scan_input(
             &normalizer.source_graph,
             if relation { "edges" } else { "nodes" },
@@ -371,8 +355,8 @@ where
         )?;
         stage.with_write_page(
             WritePhase::Normalized,
-            page_rows * rows_per_input,
-            (page_rows * bytes_per_input) as u64,
+            physical_rows,
+            physical_bytes,
             |stage| {
                 for raw in page.rows {
                     let base = if relation {

@@ -2230,6 +2230,33 @@ impl<'a> KnowledgeStage<'a> {
     pub(crate) fn write_page_limits(&self) -> (usize, u64) {
         (MAX_STAGE_PAGE_ROWS, MAX_STAGE_PAGE_BYTES)
     }
+    /// Price a logical row and its optional exact source packet before seeking
+    /// the input page. Reused packets consume less than this physical bound.
+    pub(crate) fn exact_source_write_page_limits(
+        &self,
+        requested_rows: usize,
+        max_payload_bytes: usize,
+        max_source_bytes: usize,
+    ) -> Result<(usize, usize, u64)> {
+        let carrier = self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1;
+        let rows_per_input = if carrier { 2 } else { 1 };
+        let bytes_per_input = max_payload_bytes
+            .checked_add(if carrier { max_source_bytes } else { 0 })
+            .filter(|bytes| *bytes > 0)
+            .ok_or(Error::Budget("exact source physical row bytes"))?;
+        let (write_rows, write_bytes) = self.write_page_limits();
+        let byte_cap = usize::try_from(write_bytes)
+            .map_err(|_| Error::Budget("exact source page byte conversion"))?;
+        let rows = requested_rows
+            .min(write_rows / rows_per_input)
+            .min(byte_cap / bytes_per_input);
+        if rows == 0 {
+            return Err(Error::Budget(
+                "exact source physical page cannot hold one row",
+            ));
+        }
+        Ok((rows, rows * rows_per_input, (rows * bytes_per_input) as u64))
+    }
     /// Atomic finite input chunk using the existing seek row/byte ceilings.
     /// Borrowed original rows are not copied or granted new source custody.
     /// Failure poisons the private stage and rolls back the current chunk.
@@ -2994,8 +3021,17 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
 
+    #[track_caller]
     pub fn insert_node(&mut self, row: NodeRow<'_>) -> Result<()> {
         let result = self.insert_node_inner(row);
+        if result.is_err() {
+            let caller = std::panic::Location::caller();
+            eprintln!(
+                "Native stage inline node caller: {}:{}",
+                caller.file(),
+                caller.line()
+            );
+        }
         self.poisoned |= result.is_err();
         result
     }
@@ -3124,8 +3160,17 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
 
+    #[track_caller]
     pub fn insert_relation(&mut self, row: RelationRow<'_>) -> Result<()> {
         let result = self.insert_relation_inner(row);
+        if result.is_err() {
+            let caller = std::panic::Location::caller();
+            eprintln!(
+                "Native stage inline relation caller: {}:{}",
+                caller.file(),
+                caller.line()
+            );
+        }
         self.poisoned |= result.is_err();
         result
     }

@@ -530,12 +530,11 @@ where
     let mut work = 0u64;
     let mut after = None;
     loop {
-        let (write_rows, write_bytes) = stage.write_page_limits();
-        let page_rows = normalizer
-            .limits
-            .max_page_rows
-            .min(write_rows)
-            .min(write_bytes as usize / normalizer.limits.max_output_bytes);
+        let (page_rows, physical_rows, physical_bytes) = stage.exact_source_write_page_limits(
+            normalizer.limits.max_page_rows,
+            normalizer.limits.max_output_bytes,
+            normalizer.limits.max_raw_bytes,
+        )?;
         let batch = if relation {
             scan_canon_relations(
                 stage,
@@ -564,8 +563,8 @@ where
         }
         stage.with_write_page(
             WritePhase::Normalized,
-            page_rows,
-            (page_rows * normalizer.limits.max_output_bytes) as u64,
+            physical_rows,
+            physical_bytes,
             |stage| {
                 for row in batch {
                     let value = if relation {
@@ -597,28 +596,34 @@ where
                         return Err(Error::Budget("canon materialize work/bytes"));
                     }
                     if relation {
-                        stage.insert_relation(RelationRow {
-                            id: required(&value, "id")?,
-                            source_graph: &prepared.source_graph,
-                            native_id: Some(&row.native_id),
-                            from_id: required(&value, "from_id")?,
-                            to_id: required(&value, "to_id")?,
-                            predicate_id: required(&value, "predicate_id")?,
-                            relation_type_id: required(&value, "relation_type_id")?,
-                            source_order: order,
-                            payload: &bytes,
-                        })?;
+                        stage.insert_relation_with_exact_source(
+                            RelationRow {
+                                id: required(&value, "id")?,
+                                source_graph: &prepared.source_graph,
+                                native_id: Some(&row.native_id),
+                                from_id: required(&value, "from_id")?,
+                                to_id: required(&value, "to_id")?,
+                                predicate_id: required(&value, "predicate_id")?,
+                                relation_type_id: required(&value, "relation_type_id")?,
+                                source_order: order,
+                                payload: &bytes,
+                            },
+                            &row.material,
+                        )?;
                     } else {
-                        stage.insert_node(NodeRow {
-                            id: required(&value, "id")?,
-                            source_graph: &prepared.source_graph,
-                            native_id: Some(&row.native_id),
-                            entity_id: Some(required(&value, "entity_id")?),
-                            kind_id: required(&value, "kind_id")?,
-                            type_id: required(&value, "type_id")?,
-                            source_order: order,
-                            payload: &bytes,
-                        })?;
+                        stage.insert_node_with_exact_source(
+                            NodeRow {
+                                id: required(&value, "id")?,
+                                source_graph: &prepared.source_graph,
+                                native_id: Some(&row.native_id),
+                                entity_id: Some(required(&value, "entity_id")?),
+                                kind_id: required(&value, "kind_id")?,
+                                type_id: required(&value, "type_id")?,
+                                source_order: order,
+                                payload: &bytes,
+                            },
+                            &row.material,
+                        )?;
                     }
                     order = order
                         .checked_add(1)

@@ -162,6 +162,7 @@ fn preflight_input(
 fn append_node(
     stage: &mut KnowledgeStage<'_>,
     value: &Value,
+    exact_source: Option<&[u8]>,
     order: &mut i64,
     limits: NavigationMaterializeLimits,
     work: &mut u64,
@@ -172,7 +173,7 @@ fn append_node(
         return Err(Error::Budget("navigation node output bytes"));
     }
     charge(work, payload.len(), limits)?;
-    stage.insert_node(NodeRow {
+    let row = NodeRow {
         id: required(value, "id")?,
         source_graph: required(value, "source_graph")?,
         native_id: Some(required(value, "native_id")?),
@@ -181,7 +182,12 @@ fn append_node(
         type_id: required(value, "type_id")?,
         source_order: *order,
         payload: &payload,
-    })?;
+    };
+    if let Some(source) = exact_source {
+        stage.insert_node_with_exact_source(row, source)?;
+    } else {
+        stage.insert_node(row)?;
+    }
     *order = order
         .checked_add(1)
         .ok_or(Error::Budget("navigation source order"))?;
@@ -245,11 +251,11 @@ pub fn materialize_navigation_nodes(
         let mut walk = Walk::new();
         let mut output = Digest256Hasher::new();
         loop {
-            let (write_rows, write_bytes) = stage.write_page_limits();
-            let page_rows = limits
-                .max_page_rows
-                .min(write_rows)
-                .min((write_bytes as usize / limits.max_output_bytes).max(1));
+            let (page_rows, physical_rows, physical_bytes) = stage.exact_source_write_page_limits(
+                limits.max_page_rows,
+                limits.max_output_bytes,
+                limits.max_raw_bytes,
+            )?;
             let page = stage.scan_input(
                 &prepared.source_graph,
                 "nodes",
@@ -258,14 +264,20 @@ pub fn materialize_navigation_nodes(
             )?;
             stage.with_write_page(
                 WritePhase::Normalized,
-                page_rows,
-                (page_rows * limits.max_output_bytes) as u64,
+                physical_rows,
+                physical_bytes,
                 |stage| {
                     for raw in &page.rows {
                         walk.add(raw, limits.max_nodes, limits)?;
                         let base = normalizer.normalize_base(raw, prepared)?;
-                        let sha =
-                            append_node(stage, base.value(), &mut order, limits, &mut walk.work)?;
+                        let sha = append_node(
+                            stage,
+                            base.value(),
+                            Some(base.ordered_context_raw()),
+                            &mut order,
+                            limits,
+                            &mut walk.work,
+                        )?;
                         root_item(&mut output, required(base.value(), "id")?, &sha)?;
                     }
                     Ok(())
@@ -392,6 +404,7 @@ pub fn materialize_navigation_placeholders(
                             let sha = append_node(
                                 stage,
                                 base.value(),
+                                None,
                                 &mut order,
                                 limits,
                                 &mut walk.work,
@@ -465,11 +478,11 @@ where
         let mut walk = Walk::new();
         let mut output = Digest256Hasher::new();
         loop {
-            let (write_rows, write_bytes) = stage.write_page_limits();
-            let page_rows = limits
-                .max_page_rows
-                .min(write_rows)
-                .min((write_bytes as usize / limits.max_output_bytes).max(1));
+            let (page_rows, physical_rows, physical_bytes) = stage.exact_source_write_page_limits(
+                limits.max_page_rows,
+                limits.max_output_bytes,
+                limits.max_raw_bytes,
+            )?;
             let page = stage.scan_input(
                 &prepared.source_graph,
                 "edges",
@@ -478,8 +491,8 @@ where
             )?;
             stage.with_write_page(
                 WritePhase::Normalized,
-                page_rows,
-                (page_rows * limits.max_output_bytes) as u64,
+                physical_rows,
+                physical_bytes,
                 |stage| {
                     for raw in &page.rows {
                         walk.add(raw, limits.max_edges, limits)?;
@@ -525,17 +538,20 @@ where
                             return Err(Error::Budget("navigation relation output bytes"));
                         }
                         charge(&mut walk.work, payload.len(), limits)?;
-                        stage.insert_relation(RelationRow {
-                            id: required(value, "id")?,
-                            source_graph: required(value, "source_graph")?,
-                            native_id: Some(required(value, "native_id")?),
-                            from_id: required(value, "from_id")?,
-                            to_id: required(value, "to_id")?,
-                            predicate_id: required(value, "predicate_id")?,
-                            relation_type_id: required(value, "relation_type_id")?,
-                            source_order: order,
-                            payload: &payload,
-                        })?;
+                        stage.insert_relation_with_exact_source(
+                            RelationRow {
+                                id: required(value, "id")?,
+                                source_graph: required(value, "source_graph")?,
+                                native_id: Some(required(value, "native_id")?),
+                                from_id: required(value, "from_id")?,
+                                to_id: required(value, "to_id")?,
+                                predicate_id: required(value, "predicate_id")?,
+                                relation_type_id: required(value, "relation_type_id")?,
+                                source_order: order,
+                                payload: &payload,
+                            },
+                            &raw.payload,
+                        )?;
                         order = order
                             .checked_add(1)
                             .ok_or(Error::Budget("navigation source order"))?;

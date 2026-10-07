@@ -438,6 +438,15 @@ impl<'a> ClaimNormalizer<'a> {
         predicate: Option<&str>,
         dossier: Option<&str>,
     ) -> Result<Value> {
+        self.normalize_supplied_node_with_source(raw, predicate, dossier)
+            .map(|(value, _)| value)
+    }
+    fn normalize_supplied_node_with_source(
+        &self,
+        raw: &SeekRow,
+        predicate: Option<&str>,
+        dossier: Option<&str>,
+    ) -> Result<(Value, Vec<u8>)> {
         self.verify_supplied(raw)?;
         if dossier.is_some_and(|id| id.is_empty() || id.len() > 4096) {
             return Err(Error::Invalid("Claim supplied dossier identifier"));
@@ -584,7 +593,7 @@ impl<'a> ClaimNormalizer<'a> {
             output["source_dossier_ref"] = json!(dossier);
         }
         stamp_content_revision(&mut output, self.limits.max_output_bytes)?;
-        Ok(output)
+        Ok((output, material))
     }
     pub fn finalize_claim(
         &self,
@@ -1173,15 +1182,14 @@ pub fn materialize_source_claim_nodes(
             )?)
         })?;
         loop {
-            let (write_rows, write_bytes) = stage.write_page_limits();
-            let page_rows = normalizer
-                .limits
-                .max_page_rows
-                .min(write_rows)
-                .min(write_bytes as usize / normalizer.limits.max_output_bytes);
+            let (page_rows, physical_rows, physical_bytes) = stage.exact_source_write_page_limits(
+                normalizer.limits.max_page_rows,
+                normalizer.limits.max_output_bytes,
+                normalizer.limits.max_raw_bytes,
+            )?;
             let page =
                 stage.scan_input(&prepared.source_graph, "nodes", after.as_deref(), page_rows)?;
-            stage.with_write_page(WritePhase::Normalized, page_rows, (page_rows * normalizer.limits.max_output_bytes) as u64, |stage| {
+            stage.with_write_page(WritePhase::Normalized, physical_rows, physical_bytes, |stage| {
             for raw in page.rows {
                 charge(
                     &mut work,
@@ -1196,15 +1204,20 @@ pub fn materialize_source_claim_nodes(
                 let predicate:Option<String>=stage.with_connection(WritePhase::Sort,|db|Ok(db.query_row("SELECT predicate_id FROM knowledge_claim_dependencies WHERE object_node_id=?1 ORDER BY claim_ref DESC LIMIT 1",[&raw.id],|r|r.get(0)).optional()?))?;
                 let source = SourceRow::parse(&raw.payload, normalizer.limits.max_raw_bytes)?;
                 let dossier = dossier(stage, source.value(), normalizer)?;
-                let output = normalizer.normalize_base_node(
+                normalizer.verify(&raw, prepared)?;
+                let material_reservation = normalizer.limits.max_raw_bytes.checked_mul(2)
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<u8>>()))
+                    .ok_or(Error::Budget("Claim retained source material state"))?;
+                let _material_hold = stage.owned_creation_state()
+                    .map(|state| state.hold(material_reservation)).transpose()?;
+                let (output, material) = normalizer.normalize_supplied_node_with_source(
                     &raw,
-                    prepared,
                     predicate.as_deref(),
                     dossier.as_deref(),
                 )?;
                 let bytes = encode(&output, normalizer.limits.max_output_bytes)?;
                 charge(&mut work, bytes.len(), normalizer.limits.max_work_bytes)?;
-                stage.insert_node(NodeRow {
+                stage.insert_node_with_exact_source(NodeRow {
                     id: required(&output, "id")?,
                     source_graph: &prepared.source_graph,
                     native_id: Some(&raw.id),
@@ -1213,7 +1226,7 @@ pub fn materialize_source_claim_nodes(
                     type_id: required(&output, "type_id")?,
                     source_order: order,
                     payload: &bytes,
-                })?;
+                }, &material)?;
                 count += 1;
                 order = order
                     .checked_add(1)
@@ -1516,15 +1529,14 @@ pub fn materialize_source_claim_relations(
             )?)
         })?;
         loop {
-            let (write_rows, write_bytes) = stage.write_page_limits();
-            let page_rows = normalizer
-                .limits
-                .max_page_rows
-                .min(write_rows)
-                .min(write_bytes as usize / normalizer.limits.max_output_bytes);
+            let (page_rows, physical_rows, physical_bytes) = stage.exact_source_write_page_limits(
+                normalizer.limits.max_page_rows,
+                normalizer.limits.max_output_bytes,
+                normalizer.limits.max_raw_bytes,
+            )?;
             let page =
                 stage.scan_input(&prepared.source_graph, "edges", after.as_deref(), page_rows)?;
-            stage.with_write_page(WritePhase::Normalized, page_rows, (page_rows * normalizer.limits.max_output_bytes) as u64, |stage| {
+            stage.with_write_page(WritePhase::Normalized, physical_rows, physical_bytes, |stage| {
             for raw in page.rows {
                 charge(
                     &mut work,
@@ -1593,7 +1605,7 @@ pub fn materialize_source_claim_relations(
                 )?;
                 charge(&mut work, material.len(), normalizer.limits.max_work_bytes)?;
                 stage.with_connection(WritePhase::Sort,|db|{db.execute("INSERT INTO knowledge_claim_relation_material VALUES (?1,?2,?3,?4,?5,?6,?7)",params![prepared.source_graph,required(&output,"id")?,raw.id,&Digest256::of_bytes(&raw.payload).as_bytes()[..],material.len() as i64,&Digest256::of_bytes(&material).as_bytes()[..],material])?;Ok(())})?;
-                stage.insert_relation(RelationRow {
+                stage.insert_relation_with_exact_source(RelationRow {
                     id: required(&output, "id")?,
                     source_graph: &prepared.source_graph,
                     native_id: Some(&raw.id),
@@ -1603,7 +1615,7 @@ pub fn materialize_source_claim_relations(
                     relation_type_id: required(&output, "relation_type_id")?,
                     source_order: order,
                     payload: &bytes,
-                })?;
+                }, &material)?;
                 count += 1;
                 order = order
                     .checked_add(1)
