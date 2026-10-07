@@ -365,13 +365,19 @@ fn profile_open(path: &Path, cap: u64, prepared: bool) -> Result<File> {
     }
 }
 
+#[track_caller]
 fn checked_add(work: &AtomicU64, bytes: usize, limit: u64) -> Result<()> {
     let mut current = work.load(std::sync::atomic::Ordering::Acquire);
     loop {
-        let next = current
+        let Some(next) = current
             .checked_add(bytes as u64)
             .filter(|value| *value <= limit)
-            .ok_or(Error::Budget("public D1 capture work"))?;
+        else {
+            let caller = std::panic::Location::caller();
+            eprintln!("Native capture work refused at {}:{}: used={} requested={} limit={}",
+                caller.file(), caller.line(), current, bytes, limit);
+            return Err(Error::Budget("public D1 capture work"));
+        };
         match work.compare_exchange_weak(
             current,
             next,
@@ -838,13 +844,7 @@ impl<'budget> CreationState<'budget> {
                 .active_work_limit()
                 .map(|limit| limit.min(self.work_limit))
         })?;
-        let result = checked_add(&self.work, bytes, limit);
-        if result.is_err() {
-            let caller = std::panic::Location::caller();
-            eprintln!("Native creation work refused at {}:{}: used={} requested={} limit={}",
-                caller.file(), caller.line(), self.work.load(Ordering::Acquire), bytes, limit);
-        }
-        result
+        checked_add(&self.work, bytes, limit)
     }
     pub(crate) fn encode_json<T: serde::Serialize + ?Sized>(
         &self,
