@@ -698,7 +698,7 @@ fn fail_candidate_window_with_classified_io<T>(
     ticket: FoundationBudgetTicket,
     original_io: &tos_source_store::PinnedSqliteIoBudget,
     io_before: tos_source_store::PinnedSqliteIoSnapshot,
-    external_reads: Option<u64>,
+    external_reads: u64,
     adopted: &mut (u64, u64, u64),
     remaining_write_bytes: &mut u64,
     error: FoundationOrchestratorError,
@@ -722,16 +722,6 @@ fn fail_candidate_window_with_classified_io<T>(
         let _ = remaining_budget.fail_window(ticket, worst);
         return Err(error);
     };
-    // A failed catalog may not return its external readback receipt. Retain
-    // measured shared IO and classify the unobserved remainder conservatively
-    // as an admitted upper bound, never as measured work.
-    let (external_reads, external_upper) = match external_reads {
-        Some(reads) => (reads, 0),
-        None => {
-            let upper = ticket.remaining().source_read_bytes.saturating_sub(shared_read);
-            (upper, upper)
-        }
-    };
     let Some(actual_read) = shared_read.checked_add(external_reads) else {
         let worst = failure_use(&ticket);
         let _ = execution_limits.clear_window(&ticket);
@@ -742,7 +732,6 @@ fn fail_candidate_window_with_classified_io<T>(
         .read_upper_bound_attempted_bytes
         .checked_sub(io_before.read_upper_bound_attempted_bytes)
         .filter(|upper| *upper <= shared_read)
-        .and_then(|upper| upper.checked_add(external_upper))
     else {
         let worst = failure_use(&ticket);
         let _ = execution_limits.clear_window(&ticket);
@@ -1661,7 +1650,7 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
                 ticket,
                 original_io,
                 io_before,
-                Some(known_external_reads),
+                known_external_reads,
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 error,
@@ -2050,7 +2039,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 schema_ticket,
                 view.original_io,
                 io_before_schema,
-                Some(worker_image_read),
+                worker_image_read,
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 error,
@@ -3269,7 +3258,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 records_ticket,
                 view.original_io,
                 io_before_records,
-                Some(callback_external_reads.get()),
+                callback_external_reads.get(),
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 FoundationOrchestratorError::Admission(error),
@@ -3362,6 +3351,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     // The physical census below already reads the original candidate ledger.
     // Include it in this phase's observed prefix, before any source traversal.
     let io_before_catalog = view.original_io.snapshot();
+    // The fresh tree and route reader retain their returned-byte counts on
+    // both success and refusal; no unknown whole-invocation allowance is spent.
+    let catalog_external_reads = std::cell::Cell::new(0);
     let catalog_attempt = (|| {
         let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
         let catalog_state_cap = catalog_operation
@@ -3562,6 +3554,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             tree_limits,
             &mut index,
             cancelled,
+            &catalog_external_reads,
         )
         .map_err(FoundationOrchestratorError::Catalog)?;
         let complete_catalog = match &catalog_result.outcome {
@@ -3646,6 +3639,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             u64::try_from(complete_catalog.generated_read_bytes)
                 .map_err(|_| incomplete("candidate catalog generated read range"))?,
         )?;
+        if catalog_external_reads.get() != catalog_read {
+            return Err(incomplete("candidate catalog external read observation differs"));
+        }
         let io_after_catalog = candidate
             .io_usage()
             .map_err(FoundationOrchestratorError::Admission)?;
@@ -3708,7 +3704,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 catalog_ticket,
                 view.original_io,
                 io_before_catalog,
-                None,
+                catalog_external_reads.get(),
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 error,
@@ -3812,7 +3808,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 native_ticket,
                 view.original_io,
                 io_before_native,
-                Some(0),
+                0,
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 error,

@@ -1659,6 +1659,10 @@ impl<'a> DisposableCatalogTree<'a> {
         Ok(())
     }
 
+    pub(crate) fn readback_bytes(&self) -> usize {
+        self.readback_bytes
+    }
+
     fn verify_file_readback(
         &mut self,
         leaf: &str,
@@ -1699,6 +1703,11 @@ impl<'a> DisposableCatalogTree<'a> {
             let read = file
                 .read(&mut buffer)
                 .map_err(|_| SourceCommandError::Invalid("catalog candidate readback"))?;
+            // Preserve returned bytes even when a subsequent custody, digest,
+            // deadline or byte-bound check refuses this partial readback.
+            self.readback_bytes = self.readback_bytes.checked_add(read).ok_or(
+                SourceCommandError::Unsupported("catalog candidate readback count overflow"),
+            )?;
             if read == 0 {
                 break;
             }
@@ -1719,12 +1728,6 @@ impl<'a> DisposableCatalogTree<'a> {
                 "catalog candidate readback content changed",
             ));
         }
-        self.readback_bytes =
-            self.readback_bytes
-                .checked_add(total)
-                .ok_or(SourceCommandError::Unsupported(
-                    "catalog candidate readback count overflow",
-                ))?;
         Ok(())
     }
 

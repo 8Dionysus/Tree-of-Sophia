@@ -355,14 +355,16 @@ impl<'root, 'manifest, 'cancel, 'rows> FreshCatalogSink<'root, 'manifest, 'cance
         Ok(())
     }
 
-    pub(crate) fn finish(mut self) -> Result<FreshCatalogCandidate<'root>> {
+    pub(crate) fn finish(
+        mut self,
+        read_bytes: &std::cell::Cell<usize>,
+    ) -> Result<FreshCatalogCandidate<'root>> {
         if !self.manifest_seen {
             return Err(Error::Invalid("fresh catalog renderer manifest absent"));
         }
-        let tree_cost = self
-            .tree
-            .finish(self.deadline, self.cancelled)
-            .map_err(map_source_error)?;
+        let finish = self.tree.finish(self.deadline, self.cancelled);
+        read_bytes.set(self.tree.readback_bytes());
+        let tree_cost = finish.map_err(map_source_error)?;
         if !self.tree.eof_verified() {
             return Err(Error::PreparedUnsupported(
                 "fresh catalog output EOF custody incomplete",

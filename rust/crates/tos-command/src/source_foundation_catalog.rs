@@ -507,6 +507,7 @@ fn observe_fresh_catalog_outputs<B>(
     max_state_bytes: usize,
     deadline: Instant,
     cancelled: &AtomicBool,
+    returned_read_bytes: &std::cell::Cell<usize>,
 ) -> Result<GeneratedCatalogObservation> {
     if catalog.file_sha256.contains_key(MANIFEST) {
         return Err(Error::Invalid(
@@ -542,13 +543,15 @@ fn observe_fresh_catalog_outputs<B>(
     let mut observe_expected =
         |path: &str, expected_digest: Option<&str>, expected_bytes: Option<&[u8]>| -> Result<()> {
             observation.checkpoint(deadline, cancelled)?;
-            let (selection, raw) = observe_generated(
+            let observed = observe_generated(
                 sources,
                 path,
                 max_file_bytes,
                 &mut observation.read_bytes,
                 max_total_bytes,
-            )?;
+            );
+            returned_read_bytes.set(observation.read_bytes);
+            let (selection, raw) = observed?;
             let raw = raw.ok_or(Error::Invalid(
                 "fresh catalog output missing after sink finish",
             ))?;
@@ -1724,6 +1727,7 @@ fn compare_kernel<'candidate>(
         || owner.source_recheck_read_bytes.get(),
         |stage| stage.finish_cold().map(|_| ()),
         || validator.take_schema_diagnostic_rejection(),
+        &std::cell::Cell::new(0),
     )
 }
 
@@ -1793,6 +1797,7 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
     source_recheck_read_bytes: impl Fn() -> usize,
     finish_stage: impl FnOnce(KnowledgeStage<'stage>) -> Result<()>,
     take_rejection: impl Fn() -> Result<Option<D>>,
+    external_reads: &std::cell::Cell<u64>,
 ) -> Result<CatalogKernelOutput<'candidate, B, D>> {
     let mut profiles = FoundationCatalogProfiles {
         files: Vec::new(),
@@ -1850,7 +1855,10 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
                 )?
             };
             render(&mut stage, &catalog, &mut CatalogSinkRef(&mut sink))?;
-            let candidate = sink.finish()?;
+            let readback_bytes = std::cell::Cell::new(0);
+            let finished = sink.finish(&readback_bytes);
+            external_reads.set(readback_bytes.get() as u64);
+            let candidate = finished?;
             if !candidate.eof_verified() {
                 return Err(Error::Invalid(
                     "fresh catalog output EOF custody incomplete",
@@ -1864,6 +1872,7 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
             )
             .map_err(|_| Error::Invalid("fresh catalog selected route custody"))?;
             drop(primary_sources);
+            let observed_bytes = std::cell::Cell::new(0);
             let observation = observe_fresh_catalog_outputs(
                 &mut fresh_sources,
                 &catalog,
@@ -1874,7 +1883,12 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
                 available_generated_state,
                 limits.deadline,
                 cancelled,
-            )?;
+                &observed_bytes,
+            );
+            external_reads.set((readback_bytes.get() as u64)
+                .checked_add(observed_bytes.get() as u64)
+                .ok_or(Error::Budget("catalog external read count overflow"))?);
+            let observation = observation?;
             generated_read_bytes = observation.read_bytes();
             generated_inputs = Some(observation);
             candidate_output = Some(CatalogCandidateArtifact {
@@ -1909,7 +1923,13 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
             .take()
             .ok_or(Error::Invalid("catalog observation absent"))?;
         if let Some(candidate) = candidate_output.as_mut() {
-            selected_generated.recheck(&mut candidate.fresh_sources, limits.deadline, cancelled)?;
+            let rechecked = selected_generated.recheck(
+                &mut candidate.fresh_sources, limits.deadline, cancelled,
+            );
+            external_reads.set((candidate.candidate.cost().readback_bytes as u64)
+                .checked_add(selected_generated.read_bytes() as u64)
+                .ok_or(Error::Budget("catalog external read count overflow"))?);
+            rechecked?;
         } else {
             selected_generated.recheck(&mut sources.borrow_mut(), limits.deadline, cancelled)?;
         }
@@ -1945,7 +1965,13 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
             recheck()?;
             if let Some(selected) = generated_inputs.as_mut() {
                 if let Some(candidate) = candidate_output.as_mut() {
-                    selected.recheck(&mut candidate.fresh_sources, limits.deadline, cancelled)?;
+                    let rechecked = selected.recheck(
+                        &mut candidate.fresh_sources, limits.deadline, cancelled,
+                    );
+                    external_reads.set((candidate.candidate.cost().readback_bytes as u64)
+                        .checked_add(selected.read_bytes() as u64)
+                        .ok_or(Error::Budget("catalog external read count overflow"))?);
+                    rechecked?;
                 } else {
                     selected.recheck(&mut sources.borrow_mut(), limits.deadline, cancelled)?;
                 }
@@ -2209,6 +2235,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
     tree_limits: DisposableCatalogTreeLimits,
     index_rows: &mut dyn FreshIndexRowsWriter,
     cancelled: &AtomicBool,
+    external_reads: &std::cell::Cell<u64>,
 ) -> Result<
     FoundationCatalogCandidateOutcome<
         'candidate,
@@ -2371,6 +2398,7 @@ pub(crate) fn compare_spooled_candidate<'candidate>(
             Ok(())
         },
         || validator.take_candidate_schema_diagnostic_rejection::<CandidateFence>(),
+        external_reads,
     )?;
     if let (FoundationCatalogOutcome::Complete(result), Some(candidate)) =
         (&mut output.outcome, output.candidate.as_mut())
