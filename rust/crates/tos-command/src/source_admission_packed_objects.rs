@@ -259,7 +259,7 @@ impl PackedObjectLimitsV2 {
     fn validate(self) -> io::Result<Self> {
         self.segment_limits
             .validate()
-            .map_err(|_| invalid("packed object segment limits differ"))?;
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         if self.max_working_state_bytes == 0
             || self.max_working_state_bytes == usize::MAX
             || self.caller_live_state_bytes >= self.max_working_state_bytes
@@ -357,7 +357,7 @@ impl PackedObjectWriterV2 {
                 cancelled,
                 &mut tree_debit,
             )
-            .map_err(|_| invalid("packed object extent tree build failed"))?;
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         work.tree_work = tree_work;
         if descriptor.entries > limits.max_objects {
             return Err(invalid("packed object extent count exceeds selected cap"));
@@ -435,7 +435,7 @@ impl PackedObjectWriterV2 {
                 cancelled,
                 &mut tree_debit,
             )
-            .map_err(|_| invalid("packed object extent COW failed"))?;
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         work.tree_work = tree_work;
         if descriptor.entries > limits.max_objects {
             return Err(invalid("packed object extent count exceeds selected cap"));
@@ -591,7 +591,7 @@ where
             return Ok(());
         }
         loop {
-            let Some((mut source, was_checked)) = self.next_source()? else {
+            let Some((source, was_checked)) = self.next_source()? else {
                 self.done = true;
                 if self.batch.is_empty() {
                     return Ok(());
@@ -602,7 +602,7 @@ where
             if !was_checked {
                 self.accept_order(&source)?;
             }
-            if let Some(location) = source.existing.take() {
+            if let Some(location) = source.existing {
                 if !self.batch.is_empty() {
                     self.pending = Some(source);
                     self.seal_batch()?;
@@ -665,7 +665,7 @@ where
                 self.debit_work,
                 &mut segment_work,
             )
-            .map_err(|_| invalid("packed object segment seal failed"))?;
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         add_segment_work(&mut self.work.segment_work, segment_work)?;
         if self.work.segment_work.work_units > self.limits.max_work_units {
             return Err(invalid("packed object writer work-unit cap exceeded"));
@@ -743,9 +743,9 @@ where
             return Some(Ok(row));
         }
         match self.fill() {
-            Err(_) => Some(Err(tos_segment_store::SegmentError::new(
-                tos_segment_store::SegmentErrorCode::InvalidFormat,
+            Err(error) => Some(Err(tos_segment_store::SegmentError::io(
                 "packed object extent source failed",
+                error,
             ))),
             Ok(()) => self.ready.pop_front().map(Ok),
         }
@@ -937,7 +937,7 @@ where
                 self.debit_work,
                 &mut segment_work,
             )
-            .map_err(|_| invalid("packed object delta segment seal failed"))?;
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         add_segment_work(&mut self.work.segment_work, segment_work)?;
         if self.work.segment_work.work_units > self.limits.max_work_units {
             return Err(invalid("packed object delta work-unit cap exceeded"));
@@ -987,9 +987,9 @@ where
             return Some(Ok(row));
         }
         match self.fill() {
-            Err(_) => Some(Err(tos_segment_store::SegmentError::new(
-                tos_segment_store::SegmentErrorCode::InvalidFormat,
+            Err(error) => Some(Err(tos_segment_store::SegmentError::io(
                 "packed object delta source failed",
+                error,
             ))),
             Ok(()) => self.ready.pop_front().map(Ok),
         }
@@ -1255,7 +1255,7 @@ impl<'a> PackedObjectReaderV2<'a> {
                 self.cancelled,
                 self.debit_work,
             )
-            .map_err(|_| invalid("packed object extent lookup failed"))?;
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         let location = value
             .as_deref()
             .map(PackedObjectLocationV2::decode)
@@ -1341,7 +1341,7 @@ impl<'a> PackedObjectReaderV2<'a> {
                 &mut work,
                 sink,
             )
-            .map_err(|_| invalid("packed object frame verification failed"))?;
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
         add_segment_work(&mut self.segment_work, work)?;
         if self.segment_work.work_units > self.limits.max_work_units {
             return Err(invalid("packed object shared work-unit budget exceeded"));
@@ -1375,4 +1375,204 @@ fn add_tree_work(
         .checked_add(next.allocated_bytes)
         .ok_or_else(|| invalid("packed object tree allocation overflow"))?;
     Ok(current)
+}
+
+#[cfg(test)]
+mod publication_tests {
+    use super::*;
+    use std::os::unix::fs::DirBuilderExt;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    struct Fixture(std::path::PathBuf);
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.0).expect("remove owned packed fixture");
+        }
+    }
+    #[derive(Default)]
+    struct Ledger(AtomicU64);
+    impl Ledger {
+        fn charge(&self, bytes: u64) -> bool {
+            self.0
+                .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |used| {
+                    used.checked_add(bytes)
+                        .filter(|next| *next <= 64 * 1024 * 1024)
+                })
+                .is_ok()
+        }
+    }
+    impl AuthenticatedTreeIoLedgerV1 for Ledger {
+        fn charge_read(&self, bytes: u64) -> bool {
+            self.charge(bytes)
+        }
+        fn record_read_returned(&self, _: u64) -> bool {
+            true
+        }
+        fn charge_write(&self, bytes: u64) -> bool {
+            self.charge(bytes)
+        }
+        fn record_write_returned(&self, _: u64) -> bool {
+            true
+        }
+    }
+
+    #[test]
+    fn mixed_new_and_retained_extents_survive_cold_read_and_keep_budget_cause() {
+        let root = Fixture(std::env::temp_dir().join(format!("tos-packed-mixed-{}-{}",
+            std::process::id(), SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos())));
+        std::fs::DirBuilder::new()
+            .mode(0o700)
+            .create(&root.0)
+            .unwrap();
+        let store_path = root.0.join("store");
+        std::fs::DirBuilder::new()
+            .mode(0o700)
+            .create(&store_path)
+            .unwrap();
+        let segment_limits = tos_segment_store::SegmentLimits {
+            max_segment_bytes: 1024 * 1024,
+            max_frame_bytes: 4096,
+            max_frames: 8,
+            max_journal_bytes: 64 * 1024,
+        };
+        let store =
+            SegmentStore::initialize_empty(&store_path, b"packed-mixed-test", segment_limits)
+                .unwrap();
+        let limits = PackedObjectLimitsV2 {
+            segment_limits,
+            tree_limits: AuthenticatedTreeLimitsV1 {
+                max_key_bytes: 32,
+                max_value_bytes: 76,
+                max_kind_bytes: 64,
+                max_node_bytes: 4096,
+                max_children: 16,
+                max_nodes: 128,
+                max_total_bytes: 16 * 1024 * 1024,
+                max_rows: 3,
+            },
+            max_working_state_bytes: 32 * 1024 * 1024,
+            caller_live_state_bytes: 4096,
+            max_work_units: 100_000,
+            max_objects: 2,
+            max_delta_rows: 2,
+            max_pack_frames: 8,
+        };
+        let io: Arc<dyn AuthenticatedTreeIoLedgerV1> = Arc::new(Ledger::default());
+        let deadline = Instant::now() + Duration::from_secs(20);
+        let cancelled = AtomicBool::new(false);
+        let mut debit = || true;
+        let mut entries = [b"first payload".as_slice(), b"second payload".as_slice()]
+            .map(|bytes| (Digest256::of_bytes(bytes), bytes));
+        entries.sort_by_key(|(digest, _)| *digest.as_bytes());
+        let file = root.0.join("payload");
+        std::fs::write(&file, entries[1].1).unwrap();
+        let (base, _) = PackedObjectWriterV2::build(
+            &store,
+            [Ok(PackedObjectSourceV2::from_file(
+                entries[1].0,
+                entries[1].1.len() as u64,
+                File::open(&file).unwrap(),
+            ))],
+            limits,
+            io.clone(),
+            deadline,
+            &cancelled,
+            &mut debit,
+        )
+        .unwrap();
+        let location = {
+            let mut reader = PackedObjectReaderV2::new(
+                &store,
+                &base,
+                limits,
+                io.clone(),
+                deadline,
+                &cancelled,
+                0,
+                &mut debit,
+            )
+            .unwrap();
+            reader
+                .lookup(entries[1].0, Some(entries[1].1.len() as u64))
+                .unwrap()
+                .unwrap()
+        };
+        std::fs::write(&file, entries[0].1).unwrap();
+        // The retained row follows a pending new batch. It must keep its
+        // authenticated location while that batch is sealed.
+        let (mixed, work) = PackedObjectWriterV2::build(
+            &store,
+            [
+                Ok(PackedObjectSourceV2::from_file(
+                    entries[0].0,
+                    entries[0].1.len() as u64,
+                    File::open(&file).unwrap(),
+                )),
+                Ok(PackedObjectSourceV2::retain_existing(
+                    entries[1].0,
+                    entries[1].1.len() as u64,
+                    location,
+                )),
+            ],
+            limits,
+            io.clone(),
+            deadline,
+            &cancelled,
+            &mut debit,
+        )
+        .unwrap();
+        assert_eq!(mixed.entries, 2);
+        assert_eq!(work.object_rows, 2);
+        assert_eq!(work.payload_bytes, entries[0].1.len() as u64);
+        drop(store);
+        let cold = SegmentStore::open_existing(&store_path, segment_limits).unwrap();
+        for (digest, bytes) in entries {
+            let mut reader = PackedObjectReaderV2::new(
+                &cold,
+                &mixed,
+                limits,
+                io.clone(),
+                deadline,
+                &cancelled,
+                0,
+                &mut debit,
+            )
+            .unwrap();
+            let location = reader
+                .lookup(digest, Some(bytes.len() as u64))
+                .unwrap()
+                .unwrap();
+            let mut returned = Vec::new();
+            reader
+                .read_exact(&location, digest, bytes.len() as u64, &mut returned)
+                .unwrap();
+            assert_eq!(returned, bytes);
+        }
+        let mut insufficient = limits;
+        insufficient.tree_limits.max_nodes = 1;
+        let error = PackedObjectWriterV2::build(
+            &cold,
+            [Ok(PackedObjectSourceV2::retain_existing(
+                entries[1].0,
+                entries[1].1.len() as u64,
+                location,
+            ))],
+            insufficient,
+            io,
+            deadline,
+            &cancelled,
+            &mut debit,
+        )
+        .unwrap_err();
+        let cause = error
+            .get_ref()
+            .unwrap()
+            .downcast_ref::<tos_segment_store::SegmentError>()
+            .unwrap();
+        assert_eq!(
+            cause.code,
+            tos_segment_store::SegmentErrorCode::BudgetExceeded
+        );
+    }
 }

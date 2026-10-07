@@ -2345,7 +2345,7 @@ fn run_spooled_inner(
     };
     phase.set("native-v4 corpus publication");
     let publication = if let Some(prepared) = initial_prepared.as_mut() {
-        phase.set("native-v4 initial source terminal fence");
+        phase.set("native-v4 initial source fence and publication");
         let accountant = resources
             .v2_allocation_accountant
             .as_ref()
@@ -2368,7 +2368,7 @@ fn run_spooled_inner(
             &mut fence,
         )?
     } else if let Some(prepared) = transition_prepared.as_mut() {
-        phase.set("native-v4 source transition terminal fence");
+        phase.set("native-v4 source transition fence and publication");
         let base = base_v2
             .as_ref()
             .ok_or_else(|| invalid("source transition original V2 session absent"))?;
@@ -2404,7 +2404,7 @@ fn run_spooled_inner(
         )?
     } else {
         if let Some(prepared) = fresh_prepared.as_mut() {
-            phase.set("native-v4 fresh source terminal fence");
+            phase.set("native-v4 fresh source fence and publication");
             let base = base_v2
                 .as_ref()
                 .ok_or_else(|| invalid("fresh terminal original V2 session absent"))?;
