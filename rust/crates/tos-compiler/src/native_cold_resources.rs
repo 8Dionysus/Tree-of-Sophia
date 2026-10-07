@@ -109,7 +109,9 @@ impl LinuxCgroupColdOpenResourceHold {
     }
 
     pub fn check_current(&self, deadline: Instant, cancelled: &AtomicBool) -> Result<u64> {
-        if deadline != self.deadline || !std::ptr::eq(cancelled, self.cancelled.as_ref()) {
+        // A request may narrow the original hold's deadline, including when
+        // converting the same absolute monotonic cutoff again. Never renew it.
+        if deadline > self.deadline || !std::ptr::eq(cancelled, self.cancelled.as_ref()) {
             return Err(Error::Invalid("native cold original request"));
         }
         active(deadline, cancelled)?;

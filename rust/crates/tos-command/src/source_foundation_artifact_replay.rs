@@ -1002,6 +1002,12 @@ impl<'provider, 'store, 'worker, I: Copy + Eq> CandidateArtifactEvidenceProvider
             .checked_add(NATIVE_ARTIFACT_COMPANIONS.len())
             .ok_or(ItemRefusal::Budget)?;
         let present_count = companions.iter().filter(|present| **present).count();
+        // No creation companions selects Discovery's maintained legacy route.
+        // Only partial native capture is incomplete replay evidence.
+        if present_count == 0 {
+            clear_active(self);
+            return Ok(CandidateArtifactEvidenceResponse::new(None, None));
+        }
         if present_count != 4 {
             self.retain_skip(remaining_state_bytes)?;
             clear_active(self);
