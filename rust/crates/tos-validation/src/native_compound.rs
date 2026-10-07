@@ -1081,6 +1081,84 @@ fn selected_record_history_with_reader<I: Copy>(
     })
 }
 
+/// Exact historical input evidence reconstructed by the maintained archive
+/// and lineage owner. This does not mint a revision or accept source meaning.
+pub(crate) struct NativeRetainedInputObservation {
+    pub resolved: bool,
+    pub reads: Vec<PredicateRead>,
+    pub bytes_read: u64,
+    pub returned_state_bytes: usize,
+}
+
+pub(crate) fn resolve_retained_record_input(
+    input: &dyn SourceCutInput,
+    path: &str,
+    expected: Digest256,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeRetainedInputObservation, ItemRefusal> {
+    let mut reader = NativeCompoundReader::new_from_input(input, limits, cancelled)?;
+    let scope = reader.temporary_state;
+    let package = reader.selected(path)?;
+    let name = path
+        .rsplit('/')
+        .next()
+        .ok_or_else(|| bad("recorded input basename"))?;
+    let raw = package
+        .get(name)
+        .ok_or_else(|| bad("recorded input current record"))?;
+    let record = reader.decoded(raw)?;
+    let (identity_field, _, _) = native_record_history_discriminator(path, &record)?;
+    let id = text(&record, identity_field)?;
+    // The same owner checks current revision, archive locator/package digest,
+    // exact blob bytes, predecessor identities and continuous receipt prefixes.
+    let history = reader.history_typed(path, &package, identity_field)?;
+    let mut resolved = false;
+    for receipt in array(&history, "receipts")? {
+        check(limits.deadline, cancelled)?;
+        let before = reader.temporary_state;
+        let archived = reader.archive_typed(path, id, receipt, identity_field)?;
+        let archived_raw = archived
+            .get(name)
+            .ok_or_else(|| bad("recorded input archive record"))?;
+        if Digest256::of_bytes(archived_raw) == expected {
+            resolved = true;
+        }
+        drop(archived);
+        reader.release_temporary_since(before);
+        if resolved {
+            break;
+        }
+    }
+    drop(history);
+    drop(record);
+    drop(package);
+    reader.release_temporary_since(scope);
+    reader.release_raw_cache();
+    let returned_state_bytes = reader
+        .reads
+        .iter()
+        .try_fold(
+            std::mem::size_of::<NativeRetainedInputObservation>(),
+            |sum, read| sum.checked_add(crate::record_biblio_cut::predicate_state(read).ok()?),
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    if reader
+        .retained_state_bytes()
+        .checked_add(std::mem::size_of::<NativeRetainedInputObservation>())
+        .is_none_or(|bytes| bytes > limits.max_state_bytes)
+        || returned_state_bytes > limits.max_state_bytes
+    {
+        return Err(ItemRefusal::Budget);
+    }
+    Ok(NativeRetainedInputObservation {
+        resolved,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+        returned_state_bytes,
+    })
+}
+
 fn native_record_history_discriminator(
     record_path: &str,
     record: &Value,

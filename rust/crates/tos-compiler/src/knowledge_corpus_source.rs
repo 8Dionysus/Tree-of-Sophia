@@ -34,7 +34,20 @@ struct Source<'a> {
     members: BTreeMap<String, CorpusOriginalMember>,
     owned: Option<&'a crate::d1_public_capture::CreationState<'a>>,
 }
-impl Source<'_> {
+// Raw parts and decoded input trees belong to the current read/walk scope.
+// Output packet owners are admitted independently by the sink. Drop the value
+// before releasing its state reservation, including on early return.
+struct ScopedCorpusInput<'a, T> {
+    value: T,
+    _state: Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
+}
+impl<T> std::ops::Deref for ScopedCorpusInput<'_, T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+impl<'a> Source<'a> {
     fn check(&self) -> Result<()> {
         if let Some(state) = self.owned {
             state.remaining(0)?;
@@ -61,13 +74,14 @@ impl Source<'_> {
             .ok_or(Error::Budget("corpus capture work"))?;
         Ok(())
     }
-    fn read(&mut self, path: &RelativePath, cap: usize) -> Result<Vec<u8>> {
+    fn read(&mut self, path: &RelativePath, cap: usize) -> Result<ScopedCorpusInput<'a, Vec<u8>>> {
         self.check()?;
         if !self.members.contains_key(path.as_str())
             && self.members.len() >= self.limits.max_members
         {
             return Err(Error::Budget("corpus capture member count"));
         }
+        let mut raw_state = None;
         if let Some(state) = self.owned {
             let CaptureReader::Public(reader) = &self.reader else {
                 return Err(Error::Invalid("owned corpus native capture required"));
@@ -78,12 +92,15 @@ impl Source<'_> {
             }
             let node = 11 * std::mem::size_of::<(String, CorpusOriginalMember)>()
                 + 16 * std::mem::size_of::<usize>();
+            // Member path/digest metadata survives in the receipt. The raw
+            // input Vec survives only until this particular caller drops it.
             state.retain(
-                len.checked_add(64)
-                    .and_then(|n| n.checked_add(2 * path.as_str().len()))
+                64usize
+                    .checked_add(2 * path.as_str().len())
                     .and_then(|n| n.checked_add(node))
                     .ok_or(Error::Budget("owned corpus read state"))?,
             )?;
+            raw_state = Some(state.hold(len)?);
         }
         let (raw, size_bytes, sha256) = match &self.reader {
             CaptureReader::Software(reader) => {
@@ -126,12 +143,26 @@ impl Source<'_> {
                 sha256,
             },
         );
-        Ok(raw)
+        Ok(ScopedCorpusInput {
+            value: raw,
+            _state: raw_state,
+        })
     }
-    fn json(&self, raw: &[u8], cap: usize) -> Result<Value> {
+    fn json(&self, raw: &[u8], cap: usize) -> Result<ScopedCorpusInput<'a, Value>> {
         match self.owned {
-            Some(state) => state.serde_owned(raw, cap),
-            None => json(raw, cap),
+            Some(state) => {
+                let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
+                    .map_err(|_| Error::Budget("corpus original JSON limits"))?;
+                let (value, hold) = state.serde_scoped_with_limits(raw, limits)?;
+                Ok(ScopedCorpusInput {
+                    value,
+                    _state: Some(hold),
+                })
+            }
+            None => Ok(ScopedCorpusInput {
+                value: json(raw, cap)?,
+                _state: None,
+            }),
         }
     }
     fn encode(&self, value: &Value, cap: usize) -> Result<Vec<u8>> {
@@ -140,7 +171,7 @@ impl Source<'_> {
             None => encode(value, cap),
         }
     }
-    fn part(&mut self, d: &Value, prefix: &str) -> Result<Vec<u8>> {
+    fn part(&mut self, d: &Value, prefix: &str) -> Result<ScopedCorpusInput<'a, Vec<u8>>> {
         keys(
             d,
             &[
@@ -185,16 +216,19 @@ impl Source<'_> {
         } else {
             ".index.json"
         };
-        if let Some(state) = self.owned {
-            state.retain(
-                self.root
-                    .as_str()
-                    .len()
-                    .checked_add(256)
-                    .and_then(|n| n.checked_mul(4))
-                    .ok_or(Error::Budget("owned corpus part paths"))?,
-            )?;
-        }
+        let _path_state = self
+            .owned
+            .map(|state| {
+                state.hold(
+                    self.root
+                        .as_str()
+                        .len()
+                        .checked_add(256)
+                        .and_then(|n| n.checked_mul(4))
+                        .ok_or(Error::Budget("owned corpus part paths"))?,
+                )
+            })
+            .transpose()?;
         let relative = format!("{stem}.parts/{}/{}{suffix}", &sha[..2], sha);
         if string(d, "path")? != relative {
             return Err(Error::Invalid("corpus exact partition namespace"));
@@ -213,16 +247,21 @@ impl Source<'_> {
         }
         let stored = self.read(&path, size as usize)?;
         self.charge(decoded)?;
-        if let Some(state) = self.owned {
-            let decoder = crate::legacy::partition_decoder_workspace_upper(kind)?;
-            let output = usize::try_from(decoded)
-                .map_err(|_| Error::Budget("owned corpus decoded width"))?
-                .checked_add(1)
-                .and_then(|n| n.max(32).checked_mul(3))
-                .and_then(|n| n.checked_add(decoder))
-                .ok_or(Error::Budget("owned corpus decoder state"))?;
-            state.retain(output)?;
-        }
+        let _decoder_state = self
+            .owned
+            .map(|state| state.hold(crate::legacy::partition_decoder_workspace_upper(kind)?))
+            .transpose()?;
+        let output_state = self
+            .owned
+            .map(|state| {
+                let output = usize::try_from(decoded)
+                    .map_err(|_| Error::Budget("owned corpus decoded width"))?
+                    .checked_add(1)
+                    .and_then(|n| n.max(32).checked_mul(3))
+                    .ok_or(Error::Budget("owned corpus decoder state"))?;
+                state.hold(output)
+            })
+            .transpose()?;
         let raw = crate::legacy::decode_partition_part(
             &stored,
             kind,
@@ -231,7 +270,10 @@ impl Source<'_> {
             sha,
             decoded_sha,
         )?;
-        Ok(raw)
+        Ok(ScopedCorpusInput {
+            value: raw,
+            _state: output_state,
+        })
     }
     fn walk(
         &mut self,
@@ -239,7 +281,7 @@ impl Source<'_> {
         prefix: &str,
         key: &Value,
         root_count: u64,
-        sink: &mut dyn FnMut(&mut Source<'_>, &str, Value) -> Result<()>,
+        sink: &mut dyn FnMut(&mut Source<'_>, &str, &Value) -> Result<()>,
     ) -> Result<u64> {
         let raw = self.part(d, prefix)?;
         let wanted = number(d, "count")?;
@@ -258,14 +300,17 @@ impl Source<'_> {
                 .ok_or(Error::Invalid("corpus partition children"))?;
             let mut n = 0u64;
             for (digit, child) in children {
-                if let Some(state) = self.owned {
-                    state.retain(
-                        prefix
-                            .len()
-                            .checked_add(digit.len())
-                            .ok_or(Error::Budget("owned corpus prefix"))?,
-                    )?;
-                }
+                let _prefix_state = self
+                    .owned
+                    .map(|state| {
+                        state.hold(
+                            prefix
+                                .len()
+                                .checked_add(digit.len())
+                                .ok_or(Error::Budget("owned corpus prefix"))?,
+                        )
+                    })
+                    .transpose()?;
                 if digit.len() != 1
                     || !digit
                         .bytes()
@@ -292,9 +337,7 @@ impl Source<'_> {
             return Err(Error::Invalid("corpus part row newline"));
         }
         let mut n = 0u64;
-        if let Some(state) = self.owned {
-            state.retain(4096 + 64)?;
-        }
+        let _previous_state = self.owned.map(|state| state.hold(4096 + 64)).transpose()?;
         let mut previous = None::<String>;
         let body = if raw.is_empty() {
             raw.as_slice()
@@ -329,15 +372,18 @@ impl Source<'_> {
                             .is_ok_and(|position| position < root_count)
                 }
                 Value::Array(fields) => {
-                    if let Some(state) = self.owned {
-                        state.retain(
-                            fields
-                                .len()
-                                .checked_mul(std::mem::size_of::<&str>() + 6 * 4096)
-                                .and_then(|n| n.checked_add(32))
-                                .ok_or(Error::Budget("owned corpus composite key"))?,
-                        )?;
-                    }
+                    let _key_state = self
+                        .owned
+                        .map(|state| {
+                            state.hold(
+                                fields
+                                    .len()
+                                    .checked_mul(std::mem::size_of::<&str>() + 6 * 4096)
+                                    .and_then(|n| n.checked_add(32))
+                                    .ok_or(Error::Budget("owned corpus composite key"))?,
+                            )
+                        })
+                        .transpose()?;
                     let parts = fields
                         .iter()
                         .map(|f| {
@@ -356,10 +402,8 @@ impl Source<'_> {
             if !valid {
                 return Err(Error::Invalid("corpus partition key identity"));
             }
-            let value = match self.owned {
-                Some(state) => state.clone_value(value)?,
-                None => value.clone(),
-            };
+            // The row remains alive through the callback; the sink owns and
+            // accounts any encoded output it retains. No intermediate clone.
             sink(self, id, value)?;
             previous = Some(id.into());
             n = n.checked_add(1).ok_or(Error::Budget("corpus leaf count"))?;
@@ -568,20 +612,25 @@ fn visit_captured_rows(
                 .iter()
                 .copied()
                 .find(|c| c.as_str() == name);
-            let mut sink = |source: &mut Source<'_>, _: &str, v: Value| -> Result<()> {
+            let mut sink = |source: &mut Source<'_>, _: &str, v: &Value| -> Result<()> {
                 if !keep {
                     return Ok(());
                 }
-                if let Some(state) = source.owned {
-                    let bytes = order.iter().try_fold(
-                        order.len() * std::mem::size_of::<String>(),
-                        |n, field| {
-                            n.checked_add(v.get(*field).and_then(Value::as_str).map_or(0, str::len))
+                let _sort_state = source
+                    .owned
+                    .map(|state| {
+                        let bytes = order.iter().try_fold(
+                            order.len() * std::mem::size_of::<String>(),
+                            |n, field| {
+                                n.checked_add(
+                                    v.get(*field).and_then(Value::as_str).map_or(0, str::len),
+                                )
                                 .ok_or(Error::Budget("owned corpus ordering strings"))
-                        },
-                    )?;
-                    state.retain(bytes)?;
-                }
+                            },
+                        )?;
+                        state.hold(bytes)
+                    })
+                    .transpose()?;
                 let sort = order
                     .iter()
                     .map(|f| match v.get(*f) {
@@ -596,7 +645,7 @@ fn visit_captured_rows(
                     source,
                     collection.ok_or(Error::Invalid("corpus original collection"))?,
                     &sort,
-                    &v,
+                    v,
                 )
             };
             // Unique hashed keys plus the complete root count and positional

@@ -339,8 +339,71 @@ impl BiblioSourceAccess for CutBiblioSource<'_> {
             rules.state -= raw_state + identity_state;
             return Ok(RecordedInputResolution::Resolved);
         }
-        Ok(RecordedInputResolution::Missing)
+        resolve_retained_schema_input(self, path, expected, rules)
     }
+}
+
+fn resolve_retained_schema_input(
+    source: &dyn BiblioSourceAccess,
+    path: &str,
+    expected: Digest256,
+    rules: &mut Rules<'_>,
+) -> Result<RecordedInputResolution, ItemRefusal> {
+    let Some(name) = path
+        .strip_prefix("ToS/contracts/")
+        .and_then(|name| name.strip_suffix(".schema.json"))
+    else {
+        return Ok(RecordedInputResolution::Missing);
+    };
+    if !name.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+        || !name
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        || !source.path_presence(path, rules)?
+    {
+        return Ok(RecordedInputResolution::Missing);
+    }
+    let archive = format!("ToS/contracts/history/{}.json", expected.to_hex());
+    if !source.path_presence(&archive, rules)? {
+        return Ok(RecordedInputResolution::Missing);
+    }
+    // Admit the bounded raw allocation before asking either carrier to read.
+    let raw_cap = rules.limits.max_member_bytes.min(1_048_576);
+    let temporary = raw_cap
+        .checked_add(std::mem::size_of::<Vec<u8>>() + archive.len())
+        .ok_or(ItemRefusal::Budget)?;
+    reserve(&mut rules.state, temporary, rules.limits.max_state_bytes)?;
+    let previous_cap = rules.limits.max_member_bytes;
+    rules.limits.max_member_bytes = raw_cap;
+    let raw_result = source.read_current(&archive, rules);
+    rules.limits.max_member_bytes = previous_cap;
+    let raw = raw_result?;
+    if Digest256::of_bytes(&raw) != expected {
+        drop(raw);
+        rules.state -= temporary;
+        return Ok(RecordedInputResolution::Missing);
+    }
+    let (value, value_state) = strict_decoded(&raw, rules)?;
+    reserve(&mut rules.state, value_state, rules.limits.max_state_bytes)?;
+    let valid = s(&value, "$id")
+        .is_some_and(|uri| uri.strip_prefix("https://tree-of-sophia.local/") == Some(path));
+    if valid {
+        rules.read(archive.len() + 71, || PredicateRead::ExactBytes {
+            locator: archive.clone(),
+            digest: expected.to_prefixed(),
+        })?;
+    }
+    drop(value);
+    drop(raw);
+    rules.state -= temporary + value_state;
+    if valid {
+        rules.remember_recorded_input(path, expected)?;
+    }
+    Ok(if valid {
+        RecordedInputResolution::Resolved
+    } else {
+        RecordedInputResolution::Missing
+    })
 }
 
 struct CandidateBiblioSource<'a> {
@@ -390,6 +453,14 @@ impl BiblioSourceAccess for CandidateBiblioSource<'_> {
         rules: &mut Rules<'_>,
         _location: &str,
     ) -> Result<RecordedInputResolution, ItemRefusal> {
+        check(rules.limits.deadline, rules.cancelled)?;
+        if rules
+            .recorded_inputs
+            .get(path)
+            .is_some_and(|digests| digests.contains(&expected))
+        {
+            return Ok(RecordedInputResolution::Resolved);
+        }
         let mut result = None;
         self.input.with_current_member(
             path,
@@ -433,11 +504,58 @@ impl BiblioSourceAccess for CandidateBiblioSource<'_> {
                 Ok(())
             },
         )?;
-        Ok(result.unwrap_or(if owned(path) && path.ends_with(".json") {
-            RecordedInputResolution::RetainedHistoryUnavailable
+        // Historical evidence cannot substitute for an absent current source.
+        let resolution = result.unwrap_or(RecordedInputResolution::Missing);
+        if resolution != RecordedInputResolution::RetainedHistoryUnavailable {
+            if resolution == RecordedInputResolution::Resolved {
+                rules.remember_recorded_input(path, expected)?;
+            }
+            return if resolution == RecordedInputResolution::Missing {
+                resolve_retained_schema_input(self, path, expected, rules)
+            } else {
+                Ok(resolution)
+            };
+        }
+        let mut limits = rules.limits;
+        limits.max_state_bytes = limits
+            .max_state_bytes
+            .checked_sub(rules.state)
+            .ok_or(ItemRefusal::Budget)?;
+        limits.max_total_bytes = limits
+            .max_total_bytes
+            .checked_sub(rules.bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let historical = crate::native_compound::resolve_retained_record_input(
+            self.input,
+            path,
+            expected,
+            limits,
+            rules.cancelled,
+        )?;
+        let retained = historical.returned_state_bytes;
+        reserve(&mut rules.state, retained, rules.limits.max_state_bytes)?;
+        rules.bytes = rules
+            .bytes
+            .checked_add(historical.bytes_read)
+            .filter(|bytes| *bytes <= rules.limits.max_total_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        for read in &historical.reads {
+            let bytes = crate::record_biblio_cut::predicate_state(read)?;
+            reserve(&mut rules.state, bytes, rules.limits.max_state_bytes)?;
+            rules.shadow.reads.push(read.clone());
+        }
+        let resolved = historical.resolved;
+        drop(historical);
+        rules.state = rules
+            .state
+            .checked_sub(retained)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(if resolved {
+            rules.remember_recorded_input(path, expected)?;
+            RecordedInputResolution::Resolved
         } else {
             RecordedInputResolution::Missing
-        }))
+        })
     }
 }
 
@@ -583,9 +701,44 @@ struct Rules<'a> {
     anchors: BTreeSet<String>,
     reserved: BTreeSet<String>,
     schema_seen: BTreeSet<String>,
+    recorded_inputs: BTreeMap<String, BTreeSet<Digest256>>,
     shadow: RelationShadow,
 }
 impl Rules<'_> {
+    // One invocation has one immutable source fence. Repeated Claims may cite
+    // the same event inputs; retain successful observations instead of reading
+    // and reconstructing their complete archive chain for every Claim.
+    fn remember_recorded_input(
+        &mut self,
+        path: &str,
+        digest: Digest256,
+    ) -> Result<(), ItemRefusal> {
+        if self
+            .recorded_inputs
+            .get(path)
+            .is_some_and(|digests| digests.contains(&digest))
+        {
+            return Ok(());
+        }
+        let mut bytes = std::mem::size_of::<Digest256>() * 16;
+        if !self.recorded_inputs.contains_key(path) {
+            bytes = bytes
+                .checked_add(path.len())
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<(String, BTreeSet<Digest256>)>() * 16)
+                })
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        reserve(&mut self.state, bytes, self.limits.max_state_bytes)?;
+        if let Some(digests) = self.recorded_inputs.get_mut(path) {
+            digests.insert(digest);
+        } else {
+            let mut digests = BTreeSet::new();
+            digests.insert(digest);
+            self.recorded_inputs.insert(path.to_owned(), digests);
+        }
+        Ok(())
+    }
     fn issue(&mut self, code: &'static str, location: &str) -> Result<(), ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         if self.shadow.issues.len() >= self.limits.max_issues {
@@ -883,6 +1036,7 @@ pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRang
         anchors: BTreeSet::new(),
         reserved: BTreeSet::new(),
         schema_seen: BTreeSet::new(),
+        recorded_inputs: BTreeMap::new(),
         shadow: RelationShadow::default(),
     };
     reserve(
@@ -1482,6 +1636,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
         anchors: BTreeSet::new(),
         reserved: BTreeSet::new(),
         schema_seen: BTreeSet::new(),
+        recorded_inputs: BTreeMap::new(),
         shadow: RelationShadow::default(),
     };
     reserve(
@@ -4079,6 +4234,7 @@ mod tests {
             anchors: BTreeSet::new(),
             reserved: BTreeSet::new(),
             schema_seen: BTreeSet::new(),
+            recorded_inputs: BTreeMap::new(),
             shadow: RelationShadow::default(),
         }
     }
@@ -5314,6 +5470,7 @@ pub fn inspect_bibliographic_delta(
         anchors: BTreeSet::new(),
         reserved: BTreeSet::new(),
         schema_seen: BTreeSet::new(),
+        recorded_inputs: BTreeMap::new(),
         shadow: RelationShadow::default(),
     };
     for raw in [
