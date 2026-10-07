@@ -1762,9 +1762,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                     // Records already verified exact selected row/file bindings.
                     // Do not admit unrelated rows merely because their complete
                     // physical JSONL companion was preserved for restoration.
-                    if source.input.record_selection().is_some_and(|selection| {
-                        !selection.selected_row(path, (index + 1) as u64)
-                    }) {
+                    if !source.input.selects_source_row(path, (index + 1) as u64)? {
                         continue;
                     }
                     let (value, value_state) = if path.ends_with("/source-claims.jsonl") {
@@ -1981,7 +1979,9 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                                     .checked_sub(rules.bytes)
                                     .ok_or(ItemRefusal::Budget)?;
                                 let local_claim =
-                                    crate::record_rules::validate_source_claim_from_input(
+                                    // This candidate entry is corpus admission. Public
+                                    // forms retain their separate visibility gate.
+                                    crate::record_rules::validate_stored_source_claim_from_input(
                                         input,
                                         records,
                                         line,

@@ -70,6 +70,46 @@ pub(crate) enum FoundationOrchestratorError {
 
 const MAX_PUBLIC_BUDGET_REASON_BYTES: usize = 192;
 
+// Reuse the completed, same-input Biblio owner result. Selected and generated
+// coverage still binds the exact file, physical line and optional declared ID;
+// neither route reruns schema work or synthesizes a missing Claim observation.
+fn require_completed_biblio_claim(
+    claims: &dyn tos_validation::source_foundation_default_rules::SourceFoundationDefaultClaims,
+    path: &str,
+    line: usize,
+    file_sha256: Digest256,
+    identity: Option<&str>,
+) -> Result<(), ItemRefusal> {
+    let mut observations = 0usize;
+    claims.for_each_claim_at(path, line, &mut |_, claim| {
+        if claim.path != path
+            || claim.line != line
+            || Digest256::from_hex(&claim.raw_sha256).ok() != Some(file_sha256)
+            || identity.is_some_and(|id| {
+                claim
+                    .value
+                    .get("claim_id")
+                    .and_then(serde_json::Value::as_str)
+                    != Some(id)
+            })
+        {
+            return Err(ItemRefusal::Source(
+                "Claim differs from completed Biblio owner".into(),
+            ));
+        }
+        observations = observations
+            .checked_add(1)
+            .ok_or(tos_validation::item_budget_origin!())?;
+        Ok(())
+    })?;
+    if observations != 1 {
+        return Err(ItemRefusal::Source(
+            "completed Biblio Claim coverage is missing or ambiguous".into(),
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Copy)]
 pub(crate) enum FoundationDefaultStage {
     CapturedCurrentPaths,
@@ -2760,59 +2800,21 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                     let held = reader_retained_state.checked_add(raw.len())
                                         .and_then(|state| state.checked_add(verification_state))
                                         .ok_or(tos_validation::item_budget_origin!())?;
-                                    let local_state = callback_state_bytes.checked_sub(held)
+                                    callback_state_bytes.checked_sub(held)
                                         .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
                                     input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
-                                    let local_limits = ItemLimits {
-                                        max_member_bytes: reader_member_bytes.min(local_state),
-                                        max_total_bytes: after_replay_headroom,
-                                        max_state_bytes: local_state,
-                                        max_issues: biblio_limits.max_issues,
-                                        deadline,
-                                    };
                                     let verified = selection.verify_file(&member.source_ref, raw, deadline, cancelled)?;
                                     let mut rows = verified.row_cursor();
                                     while let Some(row) = rows.next_checked(deadline, cancelled) {
-                                        let (line, bytes, slot) = row?;
+                                        let (line, _bytes, slot) = row?;
                                         if slot.kind != "claim" { continue; }
-                                        // The clean, input-bound Biblio report above already
-                                        // owns legacy Claim packets. Native local forms have
-                                        // a different versioned contract; do not reinterpret
-                                        // a legacy packet through that native-only validator.
-                                        let mut legacy_observations = 0usize;
-                                        claims.for_each_claim_at(&member.source_ref,
+                                        require_completed_biblio_claim(
+                                            claims, &member.source_ref,
                                             usize::try_from(line).map_err(|_| tos_validation::item_budget_origin!())?,
-                                            &mut |_, claim| {
-                                                if !claim.native {
-                                                    if claim.path != member.source_ref
-                                                        || claim.line as u64 != line
-                                                        || claim.raw_sha256 != slot.source.file_sha256
-                                                        || claim.value.get("claim_id").and_then(serde_json::Value::as_str) != Some(slot.identity.as_str())
-                                                    {
-                                                        return Err(ItemRefusal::Source("selected legacy Claim differs from completed Biblio owner".into()));
-                                                    }
-                                                    legacy_observations = legacy_observations.checked_add(1)
-                                                        .ok_or(tos_validation::item_budget_origin!())?;
-                                                }
-                                                Ok(())
-                                            })?;
-                                        if legacy_observations == 1 {
-                                            checked_claims = checked_claims.checked_add(1)
-                                                .ok_or(tos_validation::item_budget_origin!())?;
-                                            continue;
-                                        }
-                                        if legacy_observations > 1 {
-                                            return Err(ItemRefusal::Source("selected legacy Claim owner coverage is ambiguous".into()));
-                                        }
-                                        let mut worker = schema_worker.borrow_mut();
-                                        let report = tos_validation::record_rules::validate_stored_source_claim_from_input(
-                                            input, records, bytes, &mut **worker, local_limits, cancelled)?;
-                                        if report.input_identity != fence || report.current_membership != fence.membership
-                                            || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
-                                        {
-                                            return Err(ItemRefusal::Source("selected Claim owner local forms are invalid or unbound".into()));
-                                        }
-                                        drop(report);
+                                            Digest256::from_hex(&slot.source.file_sha256)
+                                                .map_err(|_| ItemRefusal::Source("selected Claim file digest invalid".into()))?,
+                                            Some(slot.identity.as_str()),
+                                        )?;
                                         checked_claims = checked_claims.checked_add(1)
                                             .ok_or(tos_validation::item_budget_origin!())?;
                                     }
@@ -2824,47 +2826,25 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         }
                     }
                     if let Some(generated) = input.generated_selection() {
-                        // Every physical member reaches the existing provider traversal EOF;
-                        // only exact Claim geometry enters the maintained local Claim owner.
+                        // Verify generated geometry against the completed Biblio index,
+                        // retaining physical traversal EOF and exact file/line binding.
                         let generated_coverage = input.for_each_current_member(deadline, cancelled,
                             &mut |meta, raw| {
                                 if !generated.selects_claim_row(meta.path, 1)? { return Ok(()); }
                                 let held = reader_retained_state.checked_add(raw.len())
                                     .ok_or(tos_validation::item_budget_origin!())?;
-                                let local_state = callback_state_bytes.checked_sub(held)
+                                callback_state_bytes.checked_sub(held)
                                     .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
                                 input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
-                                let local_limits = tos_validation::item_rules::ItemLimits {
-                                    max_member_bytes: reader_member_bytes.min(local_state),
-                                    max_total_bytes: after_replay_headroom,
-                                    max_state_bytes: local_state,
-                                    max_issues: biblio_limits.max_issues,
-                                    deadline,
-                                };
+                                let file_sha256 = Digest256::of_bytes(raw);
                                 let mut checked_rows = 0u64;
-                                for (line, bytes) in tos_validation::source_record_selection::source_rows(raw) {
+                                for (line, _bytes) in tos_validation::source_record_selection::source_rows(raw) {
                                     if !generated.selects_claim_row(meta.path, line)? { continue; }
-                                    let mut worker = schema_worker.borrow_mut();
-                                    let report = tos_validation::record_rules::validate_stored_source_claim_from_input(
-                                        input, records, bytes, &mut **worker, local_limits, cancelled)?;
-                                    if report.input_identity != fence || report.current_membership != fence.membership
-                                        || report.source_input_sha256 != Digest256::of_bytes(bytes)
-                                    {
-                                        return Err(ItemRefusal::Source("generated Claim owner source binding differs".into()));
-                                    }
-                                    if !report.is_valid() {
-                                        let issue = report.issues.first().ok_or_else(||
-                                            ItemRefusal::Source("generated Claim invalid report has no issue".into()))?;
-                                        let code = Digest256::of_bytes(issue.code.as_bytes()).to_hex();
-                                        let path = Digest256::of_bytes(meta.path.as_bytes()).to_hex();
-                                        let site = format!("gc-{:x}-c{}-p{}", report.issues.len(), &code[..10], &path[..10]);
-                                        return Err(ItemRefusal::Source(
-                                            crate::source_admission_spooled_index::bounded_source_cause(
-                                                "receiver-source", &site, &issue.location,
-                                            ),
-                                        ));
-                                    }
-                                    drop(report);
+                                    require_completed_biblio_claim(
+                                        claims, meta.path,
+                                        usize::try_from(line).map_err(|_| tos_validation::item_budget_origin!())?,
+                                        file_sha256, None,
+                                    )?;
                                     checked_rows = checked_rows.checked_add(1)
                                         .ok_or(tos_validation::item_budget_origin!())?;
                                 }

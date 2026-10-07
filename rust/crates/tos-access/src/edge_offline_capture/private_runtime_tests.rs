@@ -522,8 +522,16 @@ impl Fixture {
         )
         .unwrap();
     }
-    fn build_d1(&mut self, available: bool) {
+    fn serving_connection(&self) -> Connection {
         let db = Connection::open(&self.d1).unwrap();
+        // Disposable fixtures exercise logical publish/reverse boundaries, not
+        // power-loss durability. Keep commits visible to capture connections
+        // without syncing the file for every statement in a D1 SQL batch.
+        db.execute_batch("PRAGMA synchronous=OFF").unwrap();
+        db
+    }
+    fn build_d1(&mut self, available: bool) {
+        let db = self.serving_connection();
         db.execute_batch("PRAGMA temp_store=MEMORY; BEGIN IMMEDIATE")
             .unwrap();
         // Reuse the maintained table declarations; fixture owns rows only.
@@ -855,7 +863,7 @@ fn budget_refused(request: &Value) {
 fn prepared_delta_add_update_delete_order_opaque_replay_reverse_and_auxiliary() {
     let mut f = Fixture::new(true, false, false);
     f.advance(false, true);
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     let original = serving(&db);
     let initial_epoch = epoch(&db);
     let request = f.request("prepared-delta", "delta");
@@ -942,7 +950,7 @@ fn delta_incomplete_staging_and_intervening_auxiliary_invalidation_are_atomic() 
     let (stage, publish) = forward
         .split_once("INSERT INTO tos_delta_publications SELECT")
         .unwrap();
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     let original = serving(&db);
     db.execute_batch(stage).unwrap();
     assert_eq!(serving(&db), original);
@@ -991,10 +999,14 @@ fn delta_stale_rows_and_independent_capture_budgets_refuse_before_outputs() {
     }
     let mut f = Fixture::new(true, false, false);
     f.advance(false, true);
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     db.execute("UPDATE knowledge_nodes SET json='{}' WHERE id='a'", [])
         .unwrap();
-    assert!(refused(&f.request("prepared-delta", "stale")).contains("stale"));
+    let error = refused(&f.request("prepared-delta", "stale"));
+    assert!(
+        error.contains("D1 predecessor projected row differs"),
+        "unexpected stale-row refusal: {error}"
+    );
 }
 
 #[test]
@@ -1003,7 +1015,7 @@ fn catchup_reconciles_multiple_prepared_steps_and_replays_exact_reverse() {
     f.advance(false, true);
     f.advance(false, false);
     let request = f.request("prepared-catchup", "catchup");
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     let original = serving(&db);
     capture(&request).unwrap();
     db.execute_batch(&sql(&request, "forward_sql")).unwrap();
@@ -1045,7 +1057,7 @@ fn prepared_pair_and_catchup_without_navigation_keep_complete_stable_source_inve
             assert_eq!(successor["dependencies"], initial["dependencies"]);
             assert_eq!(f.rights.root_bytes(), rights_bytes.as_slice());
             let request = f.request(operation, "no-navigation");
-            let db = Connection::open(&f.d1).unwrap();
+            let db = f.serving_connection();
             let original = serving(&db);
             let receipt = capture(&request).unwrap();
             assert_eq!(receipt["d1_applied"], false);
@@ -1109,7 +1121,7 @@ fn catchup_incomplete_malformed_orphan_manifests_and_source_mismatch_refuse() {
     ] {
         let mut f = Fixture::new(true, false, false);
         f.advance(false, true);
-        let db = Connection::open(&f.d1).unwrap();
+        let db = f.serving_connection();
         db.execute_batch(mutation).unwrap();
         refused_category(&f.request("prepared-catchup", "manifest"), &["manifest"]);
     }
@@ -1176,7 +1188,7 @@ fn catchup_source_order_only_case_tie_changes_without_digest_changes() {
     assert_eq!(metadata(&db, "knowledge_node_digest:a"), old_digest);
     let request = f.request("prepared-catchup", "order-only");
     capture(&request).unwrap();
-    let d1 = Connection::open(&f.d1).unwrap();
+    let d1 = f.serving_connection();
     let original = serving(&d1);
     d1.execute_batch(&sql(&request, "forward_sql")).unwrap();
     let ranking:Vec<String>=d1.prepare("SELECT id FROM knowledge_search_documents WHERE kind='nodes' ORDER BY id_lower,position").unwrap().query_map([],|r|r.get(0)).unwrap().map(Result::unwrap).collect();
@@ -1191,7 +1203,7 @@ fn navigation_delta_joint_inventory_payload_rights_and_exact_reverse() {
     let mut f = Fixture::new(true, false, true);
     f.advance(true, true);
     let request = f.request("source-navigation-delta", "navigation");
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     let original = serving(&db);
     assert!(
         db.query_row(
@@ -1246,7 +1258,7 @@ fn navigation_delta_unavailable_remains_empty_and_payload_tamper_refuses() {
     f.advance(true, true);
     let request = f.request("source-navigation-delta", "unavailable");
     capture(&request).unwrap();
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     db.execute_batch(&sql(&request, "forward_sql")).unwrap();
     assert_eq!(metadata(&db, "source_navigation_top"), "{}");
     assert_eq!(
@@ -1257,7 +1269,7 @@ fn navigation_delta_unavailable_remains_empty_and_payload_tamper_refuses() {
     );
     let mut f = Fixture::new(true, false, true);
     f.advance(true, true);
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     db.execute(
         "DELETE FROM source_navigation_node_payload WHERE part=0",
         [],
@@ -1281,7 +1293,7 @@ fn navigation_delta_header_digest_inventory_and_budget_guards_refuse() {
     ] {
         let mut f = Fixture::new(true, false, false);
         f.advance(true, true);
-        let db = Connection::open(&f.d1).unwrap();
+        let db = f.serving_connection();
         db.execute_batch(mutation).unwrap();
         assert_eq!(
             db.changes(),
@@ -1311,7 +1323,7 @@ fn navigation_delta_header_digest_inventory_and_budget_guards_refuse() {
 fn bootstrap_native_product_replay_reverse_and_subsequent_delta() {
     let mut f = Fixture::new(false, true, true);
     let request = f.request("source-navigation-bootstrap", "bootstrap");
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     let original = serving(&db);
     capture(&request).unwrap();
     db.execute_batch(&sql(&request, "forward_sql")).unwrap();
@@ -1363,7 +1375,7 @@ fn bootstrap_occupied_intervening_rights_tamper_and_projection_budgets_refuse() 
     let f = Fixture::new(false, true, false);
     let request = f.request("source-navigation-bootstrap", "intervening");
     capture(&request).unwrap();
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     db.execute("INSERT INTO source_navigation_nodes VALUES('intruder',0,'agent','','','provisional','{}','{}')",[]).unwrap();
     let prior = serving(&db);
     assert!(db.execute_batch(&sql(&request, "forward_sql")).is_err());
@@ -1395,7 +1407,7 @@ fn bootstrap_tampered_rights_part_and_complete_product_row_budget_refuse() {
 #[test]
 fn navigation_integrity_header_only_migration_and_row_inventory_refusal() {
     let f = Fixture::new(true, true, true);
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     db.execute(
         "DELETE FROM edge_meta WHERE key='source_navigation_header_digest'",
         [],
@@ -1428,7 +1440,7 @@ fn navigation_integrity_header_only_migration_and_row_inventory_refusal() {
 #[test]
 fn navigation_full_integrity_inventory_migration_then_delta_and_forged_header_refusal() {
     let mut f = Fixture::new(true, true, false);
-    let db = Connection::open(&f.d1).unwrap();
+    let db = f.serving_connection();
     db.execute("DELETE FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*' OR key='source_navigation_header_digest'",[]).unwrap();
     let original = serving(&db);
     let mut request = json!({"schema":REQUEST_SCHEMA,"operation":"source-navigation-integrity","d1_database":f.d1,"expected_d1_revision":REVISION,"expected_source_revision":"a".repeat(64),"navigation_root":root_request(&f.nav),"rights_root":root_request(&f.rights),"header_only":false,"forward_sql":f.directory.0.join("full-integrity.sql"),"rollback_sql":f.directory.0.join("full-integrity.reverse.sql"),"manifest_json":f.directory.0.join("full-integrity.json"),"limits":f.request("prepared-delta","unused")["limits"]});
@@ -1483,7 +1495,7 @@ fn navigation_full_integrity_inventory_migration_then_delta_and_forged_header_re
 fn navigation_integrity_persisted_rights_drift_and_read_budget_refuse() {
     for small_budget in [false, true] {
         let f = Fixture::new(true, true, false);
-        let db = Connection::open(&f.d1).unwrap();
+        let db = f.serving_connection();
         // Integrity migration starts at the pre-companion product. Existing
         // companions correctly refuse blind refresh before checking row drift.
         db.execute("DELETE FROM edge_meta WHERE key GLOB 'source_navigation_row_digest:*' OR key='source_navigation_header_digest'", []).unwrap();
@@ -1745,7 +1757,7 @@ fn wal_two_held_transactions_same_file_feed_distinct_typed_frames() {
         descriptor["parent_data_revision"],
         f.before_binding["data_revision"]
     );
-    let d1 = Connection::open(&f.d1).unwrap();
+    let d1 = f.serving_connection();
     d1.execute_batch("BEGIN").unwrap();
     let original = serving(&d1);
     let before_frame = f.directory.0.join("before.frame");

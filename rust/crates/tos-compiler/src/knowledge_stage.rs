@@ -797,12 +797,11 @@ impl<'a> KnowledgeStage<'a> {
                 ));
             }
             self.check(WritePhase::Schema)?;
+            let state = self.owned_creation_state().ok_or(Error::Invalid(
+                "carrier layout requires same owned creation state",
+            ))?;
+            stage_batch_owned(self.db(), CARRIER_NORMALIZED_SCHEMA_C, state)?;
             self.charge_public_work(SOURCE_CARRIER_DDL.len() as u64)?;
-            if self.owned_creation_state().is_none() {
-                return Err(Error::Invalid(
-                    "carrier layout requires same owned creation state",
-                ));
-            }
             self.db().execute_batch(SOURCE_CARRIER_DDL)?;
             self.charge_public_work(CARRIER_NORMALIZED_COLUMNS_DDL.len() as u64)?;
             self.db().execute_batch(CARRIER_NORMALIZED_COLUMNS_DDL)?;
@@ -5962,11 +5961,10 @@ fn verify_seek_row(row: SeekRow, max_row_bytes: usize) -> Result<SeekRow> {
     Ok(row)
 }
 
-// One authored schema literal owns both compatibility text and bounded C SQL.
-macro_rules! stage_schema_literal { ($raw_location:literal, $id_null:literal, $normalized_storage:literal) => { concat!("\nCREATE ", $raw_location, r#"TABLE raw_records(
- source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,
- payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,
- PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID;
+// One normalized schema literal preserves exact SQL for both physical layouts.
+// Native construction starts with the established Inline ABI. Only the explicit
+// pristine CarrierOnce transition replaces these empty tables with rowid storage.
+macro_rules! normalized_schema_literal { ($id_null:literal, $normalized_storage:literal) => { concat!(r#"
 CREATE TABLE knowledge_nodes(
  id TEXT PRIMARY KEY"#, $id_null, r#",source_graph TEXT NOT NULL,native_id TEXT,entity_id TEXT,
  kind_id TEXT NOT NULL,type_id TEXT NOT NULL,source_order INTEGER NOT NULL UNIQUE,
@@ -5989,23 +5987,46 @@ CREATE INDEX knowledge_relations_from_id ON knowledge_relations(from_id,id);
 CREATE INDEX knowledge_relations_to_id ON knowledge_relations(to_id,id);
 CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order);
 "#) }; }
-const SCHEMA: &str = stage_schema_literal!("", "", " WITHOUT ROWID");
+macro_rules! stage_schema_literal {
+    ($raw_location:literal) => {
+        concat!(
+            "\nCREATE ",
+            $raw_location,
+            r#"TABLE raw_records(
+ source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,
+ payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,
+ PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID;
+"#,
+            normalized_schema_literal!("", " WITHOUT ROWID")
+        )
+    };
+}
+const SCHEMA: &str = stage_schema_literal!("");
 const SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!("", "", " WITHOUT ROWID"), "\0").as_bytes(),
+    concat!(stage_schema_literal!(""), "\0").as_bytes(),
 ) {
     Ok(value) => value,
     Err(_) => panic!("stage static schema contains interior NUL"),
 };
 
-// Native payloads use table leaf storage with narrow primary indexes.
-// Logical columns/indexes are shared; explicit NOT NULL keeps the old key law.
-// Disposable Native raw inputs retain their TEMP/WITHOUT ROWID layout.
-const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ", " NOT NULL", "");
+// Raw Native inputs are disposable, independently of the normalized payload ABI.
+const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ");
 const NATIVE_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!("TEMP ", " NOT NULL", ""), "\0").as_bytes(),
+    concat!(stage_schema_literal!("TEMP "), "\0").as_bytes(),
 ) {
     Ok(value) => value,
     Err(_) => panic!("native stage static schema contains interior NUL"),
+};
+const CARRIER_NORMALIZED_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
+    concat!(
+        "DROP TABLE knowledge_relations; DROP TABLE knowledge_nodes;",
+        normalized_schema_literal!(" NOT NULL", ""),
+        "\0"
+    )
+    .as_bytes(),
+) {
+    Ok(value) => value,
+    Err(_) => panic!("carrier normalized schema contains interior NUL"),
 };
 
 #[cfg(test)]

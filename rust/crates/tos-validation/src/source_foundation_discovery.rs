@@ -8897,7 +8897,10 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 return Ok(());
             }
         };
-        if let Some(records) = inspector.records_lookup {
+        // Only the native Artifact schema is a Records member. Legacy witness
+        // metadata retains its separate Discovery identity and provenance route.
+        let v2 = string(&value, "$schema") == Some(V2_ARTIFACT_SCHEMA);
+        if let Some(records) = inspector.records_lookup.filter(|_| v2) {
             let (record, charged_state_bytes) = records.record_by_path_with_state_budget(
                 path,
                 inspector.remaining_state_bytes()?,
@@ -8930,7 +8933,6 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 )?;
             }
         }
-        let v2 = string(&value, "$schema") == Some(V2_ARTIFACT_SCHEMA);
         inspector.request_schema(
             path,
             if v2 {
