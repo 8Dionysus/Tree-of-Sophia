@@ -1321,3 +1321,20 @@ independent reference helper. No Python oracle retirement, accepted API cutover,
 owner-selected D1 pair, global currentness or publication authority is claimed
 by this source candidate. Review the complete six-mode differential and real
 returning callers before changing that disposition.
+
+## Web Analytics
+
+The production Worker inserts one Cloudflare Web Analytics beacon into successful
+HTML responses on `treeofsophia.com`, using the public `WEB_ANALYTICS_TOKEN`
+binding. Its beacon configuration uses Cloudflare’s proxied-site ingestion
+endpoint (`/cdn-cgi/rum`), verified with HTTP 204 from a real browser. The HTML `no-transform` cache directive prevents automatic edge
+injection from duplicating this manually installed beacon. EU visitors remain excluded using the
+request's Cloudflare geography. HTML responses are private/no-store because
+their beacon presence varies by geography; static assets retain direct caching.
+
+Worker and generated asset headers narrowly allow the beacon script and ingestion
+endpoint. `strict-origin-when-cross-origin` lets analytics requests identify this
+site without sending its full URL to external origins. Local/off-domain previews
+do not insert the production beacon. Verify script loading, a successful beacon
+POST, and a controlled external referrer in Web Analytics after deployment.
+Enabling collection cannot reconstruct previously uncollected referral history.

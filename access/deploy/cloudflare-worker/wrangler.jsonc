@@ -7,7 +7,10 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/health"]
+    "run_worker_first": ["/*", "!/static/*", "!/__edge/*"]
+  },
+  "vars": {
+    "WEB_ANALYTICS_TOKEN": "027ff879dffc42dd9fdc7e6ce520cfd9"
   },
   "d1_databases": [
     {

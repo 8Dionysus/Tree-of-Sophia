@@ -33,6 +33,7 @@ import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./expl
 import {nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
+import { withWebAnalytics } from "./web-analytics";
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
 import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
 import {initSync, KnowledgeSceneSession, TemporalReplaySession, validate_temporal_request_wasm_v1,
@@ -502,6 +503,6 @@ export default {
         return jsonResponse({ error: "Cloudflare edge request failed" }, 500, request.method);
       }
     }
-    return withSecurity(await env.ASSETS.fetch(request));
+    return withWebAnalytics(request, withSecurity(await env.ASSETS.fetch(request)), env.WEB_ANALYTICS_TOKEN);
   },
 } satisfies ExportedHandler<Env>;
