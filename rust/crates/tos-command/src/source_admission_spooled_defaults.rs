@@ -262,6 +262,19 @@ fn encoded_json<T: serde::Serialize + ?Sized>(
     Ok(bytes)
 }
 
+// For decoders that have already preflighted their complete row workspace,
+// the bound here is encoded TEXT bytes, not an independent state allocation.
+fn bounded_row_text_bytes(
+    row: &rusqlite::Row<'_>,
+    column: usize,
+    max_bytes: usize,
+) -> rusqlite::Result<String> {
+    match row.get_ref(column)? {
+        rusqlite::types::ValueRef::Text(raw) if raw.len() <= max_bytes => row.get(column),
+        _ => Err(row_shape_refusal()),
+    }
+}
+
 fn bounded_row_text(
     row: &rusqlite::Row<'_>,
     column: usize,
@@ -2562,7 +2575,7 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
         self.context.check()?;
         self.charge_scan_rows(1)?;
         let mut statement = self.db.prepare(
-            "SELECT ordinal,length(location),length(value) FROM sf_discovery_event_summaries WHERE namespace=?1 AND id=?2 ORDER BY ordinal DESC LIMIT 1",
+            "SELECT ordinal,length(CAST(location AS BLOB)),length(value) FROM sf_discovery_event_summaries WHERE namespace=?1 AND id=?2 ORDER BY ordinal DESC LIMIT 1",
         ).map_err(sql_refusal)?;
         let mut rows = statement
             .query(params![namespace.storage_key(), id])
@@ -2609,9 +2622,9 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
             .next()
             .map_err(sql_refusal)?
             .map(|row| {
-                let stored_namespace = bounded_row_text(row, 0, 32)?;
-                let stored_id = bounded_row_text(row, 1, id.len())?;
-                let location = bounded_row_text(row, 2, location_bytes)?;
+                let stored_namespace = bounded_row_text_bytes(row, 0, 32)?;
+                let stored_id = bounded_row_text_bytes(row, 1, id.len())?;
+                let location = bounded_row_text_bytes(row, 2, location_bytes)?;
                 let raw = row_blob(row, 3)?;
                 if stored_namespace != namespace.storage_key()
                     || stored_id != id
@@ -2719,9 +2732,9 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
             self.context.check()?;
             self.charge_scan_rows(1)?;
             let sql = if after.is_some() {
-                "SELECT ordinal,length(id),length(location),length(value) FROM sf_discovery_event_summaries WHERE owner_insert=1 AND ordinal>?1 ORDER BY ordinal LIMIT 1"
+                "SELECT ordinal,length(CAST(id AS BLOB)),length(CAST(location AS BLOB)),length(value) FROM sf_discovery_event_summaries WHERE owner_insert=1 AND ordinal>?1 ORDER BY ordinal LIMIT 1"
             } else {
-                "SELECT ordinal,length(id),length(location),length(value) FROM sf_discovery_event_summaries WHERE owner_insert=1 ORDER BY ordinal LIMIT 1"
+                "SELECT ordinal,length(CAST(id AS BLOB)),length(CAST(location AS BLOB)),length(value) FROM sf_discovery_event_summaries WHERE owner_insert=1 ORDER BY ordinal LIMIT 1"
             };
             let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
             let mut rows = if let Some(ordinal) = after.as_deref() {
@@ -2771,8 +2784,8 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
                 .next()
                 .map_err(sql_refusal)?
                 .map(|row| {
-                    let id = bounded_row_text(row, 0, id_bytes)?;
-                    let location = bounded_row_text(row, 1, location_bytes)?;
+                    let id = bounded_row_text_bytes(row, 0, id_bytes)?;
+                    let location = bounded_row_text_bytes(row, 1, location_bytes)?;
                     let raw = row_blob(row, 2)?;
                     if id.len() != id_bytes
                         || location.len() != location_bytes
@@ -13420,5 +13433,33 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             },
             other => other,
         })
+    }
+}
+
+#[cfg(test)]
+mod discovery_text_budget_tests {
+    use super::*;
+
+    #[test]
+    fn preflighted_discovery_text_uses_utf8_bytes_without_reinterpreting_state() {
+        let db = rusqlite::Connection::open_in_memory().unwrap();
+        let text = "путь/α";
+        db.query_row(
+            "SELECT ?1,length(CAST(?1 AS BLOB)),CAST(?1 AS BLOB)",
+            [text],
+            |row| {
+                let bytes: usize = row.get(1)?;
+                assert_eq!(bytes, text.len());
+                assert_eq!(bounded_row_text_bytes(row, 0, bytes)?, text);
+                assert!(bounded_row_text_bytes(row, 0, bytes - 1).is_err());
+                assert!(bounded_row_text_bytes(row, 2, bytes).is_err());
+                // The separate state-bounded reader still rejects a byte-only
+                // allowance and accepts its independently computed state cap.
+                assert!(bounded_row_text(row, 0, bytes).is_err());
+                assert_eq!(bounded_row_text(row, 0, row_text_state(row, 0)?)?, text);
+                Ok(())
+            },
+        )
+        .unwrap();
     }
 }
