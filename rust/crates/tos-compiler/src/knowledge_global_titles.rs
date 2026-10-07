@@ -142,15 +142,10 @@ fn build_inner(
     if roots.nodes != sealed.node_count || roots.node_sha256 != sealed.node_root_sha256 {
         return Err(Error::Invalid("global title complete base root"));
     }
-    stage.with_connection(WritePhase::Schema, |db| {
-        db.execute_batch(
-            "CREATE TABLE knowledge_global_titles(
+    stage.create_preparation_tables("CREATE TABLE knowledge_global_titles(
              node_id TEXT PRIMARY KEY,title_len INTEGER NOT NULL,
              title_sha256 BLOB NOT NULL CHECK(length(title_sha256)=32),
-             title_json BLOB NOT NULL) WITHOUT ROWID",
-        )?;
-        Ok(())
-    })?;
+             title_json BLOB NOT NULL) WITHOUT ROWID")?;
     let mut after = -1i64;
     let mut count = 0u64;
     let mut work = 0u64;
@@ -596,10 +591,11 @@ pub fn order_native_graph_rows(
                 return Err(Error::Budget("native graph order work"));
             }
             stage.charge_materialized(count, bytes)?;
+            let location = if stage.payload_layout().uses_carriers() { "TEMP " } else { "" };
             stage.with_connection(WritePhase::Sort, |db| {
                 let tx = db.transaction()?;
                 tx.execute_batch(&format!(
-                    "CREATE TABLE knowledge_native_order(id TEXT PRIMARY KEY,position INTEGER NOT NULL UNIQUE) WITHOUT ROWID;
+                    "CREATE {location}TABLE knowledge_native_order(id TEXT PRIMARY KEY,position INTEGER NOT NULL UNIQUE) WITHOUT ROWID;
                      INSERT INTO knowledge_native_order SELECT id,row_number() OVER(ORDER BY source_graph,id)-1 FROM {table};
                      UPDATE {table} SET source_order=-source_order-1;
                      UPDATE {table} SET source_order=(SELECT position FROM knowledge_native_order o WHERE o.id={table}.id);

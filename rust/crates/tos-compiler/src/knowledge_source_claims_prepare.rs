@@ -210,9 +210,7 @@ impl InputWalk {
 }
 
 fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.with_connection(WritePhase::Schema, |db| {
-        db.execute_batch(
-            r#"
+    stage.create_preparation_tables(r#"
 CREATE TABLE knowledge_claim_dependencies(
  claim_ref TEXT PRIMARY KEY, claim_node_id TEXT NOT NULL, subject_node_id TEXT NOT NULL,
  object_node_id TEXT NOT NULL, predicate_id TEXT NOT NULL,
@@ -225,10 +223,7 @@ CREATE TABLE knowledge_claim_edge_bindings(
  listed_by_trace INTEGER NOT NULL DEFAULT 0 CHECK(listed_by_trace IN (0,1)),
  FOREIGN KEY(claim_ref) REFERENCES knowledge_claim_dependencies(claim_ref));
 CREATE INDEX knowledge_claim_edges_claim ON knowledge_claim_edge_bindings(claim_ref,edge_id);
-"#,
-        )?;
-        Ok(())
-    })
+"#)
 }
 
 fn walk_nodes(

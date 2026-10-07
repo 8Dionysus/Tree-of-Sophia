@@ -754,8 +754,7 @@ fn prepare_inner(
         relations: 0,
         dependency_root_sha256: String::new(),
     };
-    stage.with_connection(WritePhase::Schema,|db| {
-        db.execute_batch("CREATE TABLE knowledge_repository_material(
+    stage.create_preparation_tables("CREATE TABLE knowledge_repository_material(
             relation INTEGER NOT NULL CHECK(relation IN (0,1)),native TEXT NOT NULL,
             identity TEXT NOT NULL,kind TEXT NOT NULL,source_order INTEGER NOT NULL,
             material_len INTEGER NOT NULL,material_sha256 BLOB NOT NULL,material BLOB NOT NULL,
@@ -763,8 +762,7 @@ fn prepare_inner(
             CREATE TABLE knowledge_repository_order(collection TEXT NOT NULL,ordinal INTEGER NOT NULL,
             raw_id TEXT NOT NULL,PRIMARY KEY(collection,ordinal),UNIQUE(collection,raw_id)) WITHOUT ROWID;
             CREATE TABLE knowledge_repository_branches(path TEXT PRIMARY KEY,branch_id TEXT NOT NULL,
-            ordinal INTEGER NOT NULL) WITHOUT ROWID;")?; Ok(())
-    })?;
+            ordinal INTEGER NOT NULL) WITHOUT ROWID;")?;
     let root_row = SourceRow::parse_scoped_with_optional_owned_state(
         root.material,
         limits.max_row_bytes,

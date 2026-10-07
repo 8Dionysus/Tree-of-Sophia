@@ -841,7 +841,7 @@ where
     if manifest.count > l.max_manifest_members {
         return Err(Error::Budget("canon source manifest members"));
     }
-    stage.with_connection(WritePhase::Schema,|db|{db.execute_batch("CREATE TABLE knowledge_canon_source_rows(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,payload BLOB NOT NULL,payload_sha256 BLOB NOT NULL CHECK(length(payload_sha256)=32),PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID;")?;Ok(())})?;
+    stage.create_preparation_tables("CREATE TABLE knowledge_canon_source_rows(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,payload BLOB NOT NULL,payload_sha256 BLOB NOT NULL CHECK(length(payload_sha256)=32),PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID;")?;
     let mut work = Work {
         bytes: initial_work_bytes,
         selected: 0,

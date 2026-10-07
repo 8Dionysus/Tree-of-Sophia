@@ -360,7 +360,7 @@ pub fn prepare_semantic_joins(
         let navigation = optional_source(vocab, "source-navigation-node-edge-v1")?;
         let claims = optional_source(vocab, "reified-bibliographic-claims-v1")?;
         let canon = optional_source(vocab, "canon-node-relation-v1")?;
-        stage.with_connection(WritePhase::Schema,|db| {db.execute_batch("CREATE TABLE knowledge_semantic_material(id TEXT PRIMARY KEY,material_len INTEGER NOT NULL,material_sha256 BLOB NOT NULL,material BLOB NOT NULL) WITHOUT ROWID; CREATE TABLE knowledge_semantic_canon_path(path TEXT PRIMARY KEY,node_id TEXT NOT NULL) WITHOUT ROWID;")?;Ok(())})?;
+        stage.create_preparation_tables("CREATE TABLE knowledge_semantic_material(id TEXT PRIMARY KEY,material_len INTEGER NOT NULL,material_sha256 BLOB NOT NULL,material BLOB NOT NULL) WITHOUT ROWID; CREATE TABLE knowledge_semantic_canon_path(path TEXT PRIMARY KEY,node_id TEXT NOT NULL) WITHOUT ROWID;")?;
         let mut count = 0;
         let mut work = 0;
         if let (Some(claims), Some(nav)) = (&claims, &navigation) {

@@ -92,7 +92,7 @@ fn encode_into(
     output[..8].copy_from_slice(MAGIC);
     output[8] = 1;
     output[9..HEADER].copy_from_slice(&(raw.len() as u64).to_le_bytes());
-    let mut encoder = Compress::new(Compression::fast(), true);
+    let mut encoder = Compress::new(Compression::default(), true);
     let mut input_at = 0usize;
     let mut output_at = HEADER;
     loop {

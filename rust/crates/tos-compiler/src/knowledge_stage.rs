@@ -875,6 +875,58 @@ impl<'a> KnowledgeStage<'a> {
         self.payload_layout
     }
 
+    fn native_projection_inputs(&self) -> bool {
+        matches!(&self.receipt, StageInputReceipt::Projection(receipt)
+            if receipt.binding.owner_profile == "tos-native-projection-snapshot-v1")
+    }
+
+    /// Native preparation tables are disposable and share the existing TEMP
+    /// byte cap. Only selected tables contribute to the published main file.
+    /// Legacy stages keep their established placement and page geometry.
+    pub(crate) fn create_preparation_tables(&mut self, sql: &'static str) -> Result<()> {
+        let result = (|| {
+            if sql.len() > 64 * 1024 || sql.is_empty() {
+                return Err(Error::Budget("preparation schema bytes"));
+            }
+            if !self.native_projection_inputs() {
+                return self.with_connection(WritePhase::Schema, |db| {
+                    db.execute_batch(sql)?;
+                    Ok(())
+                });
+            }
+            let length = sql.matches("CREATE TABLE ").count()
+                .checked_mul(5)
+                .and_then(|extra| sql.len().checked_add(extra))
+                .ok_or(Error::Budget("preparation schema expansion"))?;
+            let state = self.owned_creation_state();
+            let _hold = state.map(|state| state.hold(length + std::mem::size_of::<String>()))
+                .transpose()?;
+            if let Some(state) = state {
+                state.charge_work(sql.len() + length)?;
+            } else {
+                self.charge_public_work((sql.len() + length) as u64)?;
+            }
+            let mut temporary = String::new();
+            temporary.try_reserve_exact(length)
+                .map_err(|_| Error::Budget("preparation schema allocation"))?;
+            if temporary.capacity() != length {
+                return Err(Error::Budget("preparation schema allocation capacity"));
+            }
+            let mut parts = sql.split("CREATE TABLE ");
+            temporary.push_str(parts.next().unwrap_or_default());
+            for part in parts {
+                temporary.push_str("CREATE TEMP TABLE ");
+                temporary.push_str(part);
+            }
+            self.with_connection(WritePhase::Schema, |db| {
+                db.execute_batch(&temporary)?;
+                Ok(())
+            })
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+
     /// Only the native full producer may opt in, before the first row. Other
     /// factories and existing callers retain their original inline layout.
     pub(crate) fn enable_carrier_once_layout(&mut self) -> Result<()> {
@@ -1678,6 +1730,23 @@ impl<'a> KnowledgeStage<'a> {
             );
         }
         stage.db = Some(db);
+        // Set geometry before the first page and before deriving the page cap
+        // from the unchanged byte limit. Larger pages avoid the measured large
+        // unused tails of compressed native normalized rows on 4 KiB pages.
+        if stage.native_projection_inputs() {
+            if let Some(state) = stage.owned_creation_state() {
+                stage_batch_owned(stage.db(), c"PRAGMA main.page_size=16384", state)?;
+                if stage_integer_owned(stage.db(), c"PRAGMA main.page_size", state)? != 16384 {
+                    return Err(Error::Invalid("native stage page size"));
+                }
+            } else {
+                stage.db().execute_batch("PRAGMA main.page_size=16384")?;
+                let applied: i64 = stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0))?;
+                if applied != 16384 {
+                    return Err(Error::Invalid("native stage page size"));
+                }
+            }
+        }
         stage.vm_used = Some(if let Some(used) = shared_vm_used {
             if stage.controlled.is_some() {
                 sqlite_budget::configure_prepaid_limits_with_owned_state(
@@ -1711,9 +1780,7 @@ impl<'a> KnowledgeStage<'a> {
         }
         // Native full output drops authenticated raw inputs before selection.
         // Generic stages retain their established main-table representation.
-        let disposable_native_inputs = matches!(&stage.receipt,
-            StageInputReceipt::Projection(receipt)
-                if receipt.binding.owner_profile == "tos-native-projection-snapshot-v1");
+        let disposable_native_inputs = stage.native_projection_inputs();
         if stage.public_build || disposable_native_inputs {
             if let Some(state) = stage.owned_creation_state() {
                 configure_stage_temp_cap_owned(stage.db(), limits.max_temp_bytes, state)?;
@@ -6339,6 +6406,52 @@ mod tests {
                     expected_root_sha256: EMPTY_ROOT.into(),
                 },
             ],
+        }
+    }
+
+    #[test]
+    fn native_preparation_keeps_main_byte_cap_and_refuses_temp_overflow() {
+        let owner = Owner { checks: AtomicUsize::new(0) };
+        let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
+        for native in [false, true] {
+            let candidate = stage_path("preparation-geometry");
+            let mut receipt = exact_receipt(RAW_ROOT);
+            if native {
+                receipt.binding.owner_profile = "tos-native-projection-snapshot-v1".into();
+            }
+            let mut selected = limits();
+            selected.sqlite.max_output_bytes = 1024 * 1024;
+            selected.max_temp_bytes = 64 * 1024;
+            let mut stage = KnowledgeStage::create(&candidate, selected, receipt, &owner, &quota)
+                .unwrap();
+            stage.create_preparation_tables(
+                "CREATE TABLE preparation_fixture(id INTEGER PRIMARY KEY,payload BLOB NOT NULL);
+                 CREATE INDEX preparation_fixture_payload ON preparation_fixture(payload)",
+            ).unwrap();
+            let page_size: u64 = stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0)).unwrap();
+            let pages: u64 = stage.db().query_row("PRAGMA main.max_page_count", [], |r| r.get(0)).unwrap();
+            assert_eq!(page_size, if native { 16384 } else { 4096 });
+            assert_eq!(page_size * pages, selected.sqlite.max_output_bytes);
+            for (schema, expected) in [("main", !native), ("temp", native)] {
+                let count: u64 = stage.db().query_row(
+                    &format!("SELECT count(*) FROM {schema}.sqlite_schema WHERE name IN ('preparation_fixture','preparation_fixture_payload')"),
+                    [], |r| r.get(0),
+                ).unwrap();
+                assert_eq!(count, if expected { 2 } else { 0 });
+            }
+            if native {
+                let error = stage.with_connection(WritePhase::Normalized, |db| {
+                    db.execute("INSERT INTO preparation_fixture VALUES(1,zeroblob(131072))", [])?;
+                    Ok(())
+                }).unwrap_err();
+                assert!(matches!(error, Error::SqlitePhase {
+                    error: rusqlite::Error::SqliteFailure(code, _), ..
+                } if code.code == rusqlite::ErrorCode::DiskFull));
+                assert!(stage.poisoned);
+            }
+            drop(stage);
+            assert!(!candidate.exists());
+            fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
         }
     }
 

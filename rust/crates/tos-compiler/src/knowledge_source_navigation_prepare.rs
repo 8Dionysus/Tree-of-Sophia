@@ -264,9 +264,7 @@ impl Walk {
     }
 }
 fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.with_connection(WritePhase::Schema, |db| {
-        db.execute_batch(
-            r#"
+    stage.create_preparation_tables(r#"
 CREATE TABLE knowledge_navigation_nodes(
  node_id TEXT PRIMARY KEY, node_kind TEXT NOT NULL, label TEXT NOT NULL,
  source_ref TEXT NOT NULL, identity_status TEXT NOT NULL,
@@ -282,10 +280,7 @@ CREATE TABLE knowledge_navigation_endpoints(
  PRIMARY KEY(edge_id,endpoint_role));
 CREATE INDEX knowledge_navigation_endpoints_seek
  ON knowledge_navigation_endpoints(source_graph,native_id,edge_id);
-"#,
-        )?;
-        Ok(())
-    })
+"#)
 }
 
 struct NodeIndex {

@@ -239,9 +239,7 @@ impl Walk {
 }
 
 fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.with_connection(WritePhase::Schema, |db| {
-        db.execute_batch(
-            r#"
+    stage.create_preparation_tables(r#"
 CREATE TABLE knowledge_philosophy_nodes(
  node_id TEXT PRIMARY KEY, node_type TEXT NOT NULL, semantic_kind TEXT NOT NULL,
  source_ref TEXT NOT NULL, raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32));
@@ -262,10 +260,7 @@ CREATE TABLE knowledge_philosophy_unresolved_endpoints(
  PRIMARY KEY(edge_id,endpoint_role));
 CREATE INDEX knowledge_philosophy_unresolved_source
  ON knowledge_philosophy_unresolved_endpoints(source_graph,native_id,edge_id);
-"#,
-        )?;
-        Ok(())
-    })
+"#)
 }
 
 struct NodeIndex {
