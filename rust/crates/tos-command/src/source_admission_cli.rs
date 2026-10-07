@@ -2356,6 +2356,7 @@ fn run_spooled_inner(
                 &store,
                 limits.candidate.reader,
                 accountant,
+                &candidate,
             )?;
             validator.account_spooled_external_io()
         };

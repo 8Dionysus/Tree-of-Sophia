@@ -12,6 +12,7 @@ use super::source_admission_source_census::{
     census_selected_to_scratch, summarize_indexed_proposal_rows, working_state_upper_bound,
 };
 use super::source_admission_store::AdmissionStore;
+use super::source_admission_spooled_candidate::SpoolCandidate;
 use super::source_admission_v2_seen_pack::configure_db;
 use super::source_foundation_admission::NativeSourceValidator;
 use rusqlite::params;
@@ -211,6 +212,7 @@ impl InitialCutPrepared<'_> {
         store: &AdmissionStore,
         limits: ReadLimits,
         accountant: &Arc<NativeV2TreeIo>,
+        candidate: &SpoolCandidate<'_>,
     ) -> io::Result<()> {
         if self.batch.is_some() {
             return Err(invalid(
@@ -218,7 +220,7 @@ impl InitialCutPrepared<'_> {
             ));
         }
         self.fence
-            .verify_before_publish(invocation, store, limits, accountant)
+            .verify_before_publish(invocation, store, limits, accountant, candidate)
     }
 }
 
@@ -1023,9 +1025,114 @@ fn object_verify_read_work_units(size: u64) -> io::Result<u64> {
         .ok_or_else(|| invalid("initial V2 object read work overflow"))
 }
 
+fn verify_packed_staging(
+    candidate: &SpoolCandidate<'_>,
+    staging: &File,
+    io: &PinnedSqliteIoBudget,
+    work: &mut InitialCutWork,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<()> {
+    let mut buffer = [MaybeUninit::uninit(); 8192];
+    let scan = tos_fd_open::reopen_directory(staging).map_err(invalid)?;
+    let mut entries = RawDir::new(scan, &mut buffer);
+    let mut seen = false;
+    loop {
+        active(deadline, cancel)?;
+        if entries.is_buffer_empty() {
+            charge_read_upper(io, 8192)?;
+        }
+        work.charge_many(1)?;
+        let entry = match entries.next() {
+            None => break,
+            Some(Err(error)) => return Err(error.into()),
+            Some(Ok(entry)) => entry,
+        };
+        let name = entry.file_name().to_str()
+            .map_err(|_| invalid("initial packed staging name is not UTF-8"))?;
+        if name == "." || name == ".." {
+            continue;
+        }
+        if std::mem::replace(&mut seen, true) {
+            return Err(invalid("initial packed staging contains an unrelated entry"));
+        }
+        charge_name_guard(io, name)?;
+        candidate.verify_initial_packed_staging_entry(staging, name)?;
+    }
+    if !seen {
+        return Err(invalid("initial packed staging lost its held payload"));
+    }
+    Ok(())
+}
+
+/// Compare the complete digest/length closure with the original proposal,
+/// then rehash every exact slice through the candidate's existing IO owner.
+/// No loose-object copy or second payload allocation is needed.
+fn verify_packed_object_inventory(
+    candidate: &SpoolCandidate<'_>,
+    db: &PinnedSqliteConnection,
+    profile: InitialCutProfile,
+    proposal: SourceCensusSummary,
+    proposal_scan: SourceCensusScan,
+    work: &mut InitialCutWork,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<()> {
+    work.charge_many(4)?;
+    work.charge_many(proposal.member_count)?;
+    let mut expected = db.prepare(
+        "SELECT sha256,MIN(size),MAX(size) FROM source_member_census \
+         WHERE scan_label=?1 GROUP BY sha256 ORDER BY sha256",
+    ).map_err(|_| invalid("initial packed expected-object cursor refused"))?;
+    let mut expected_rows = expected.query(params![proposal_scan.label()])
+        .map_err(|_| invalid("initial packed expected-object rows refused"))?;
+    let mut actual = candidate.packed_object_sources();
+    let mut compared = 0u64;
+    loop {
+        active(deadline, cancel)?;
+        work.charge_many(2)?;
+        let expected = expected_rows.next()
+            .map_err(|_| invalid("initial packed expected-object row refused"))?;
+        let actual = actual.next().transpose()?;
+        match (expected, actual) {
+            (None, None) => break,
+            (Some(expected), Some(actual)) => {
+                compared = compared.checked_add(1)
+                    .filter(|count| *count <= profile.census.max_files)
+                    .ok_or_else(|| invalid("initial packed comparison count overflow"))?;
+                let digest: Vec<u8> = expected.get(0)
+                    .map_err(|_| invalid("initial packed expected digest refused"))?;
+                let min_size: i64 = expected.get(1)
+                    .map_err(|_| invalid("initial packed expected size refused"))?;
+                let max_size: i64 = expected.get(2)
+                    .map_err(|_| invalid("initial packed expected size refused"))?;
+                if digest.as_slice() != actual.digest.as_bytes()
+                    || min_size != max_size
+                    || u64::try_from(min_size).ok() != Some(actual.size)
+                    || actual.existing.is_some()
+                    || actual.size > profile.census.max_member_bytes
+                    || actual.size > profile.admission.max_member_bytes
+                {
+                    return Err(invalid("initial packed payload closure differs from proposal"));
+                }
+                let (digest, size) = (actual.digest, actual.size);
+                drop(actual);
+                work.charge_many(object_verify_read_work_units(size)?)?;
+                candidate.verify_initial_packed_object(digest, size)?;
+            }
+            _ => return Err(invalid("initial packed payload closure is incomplete or has an orphan")),
+        }
+    }
+    if compared == 0 {
+        return Err(invalid("initial packed payload closure is empty"));
+    }
+    Ok(())
+}
+
 fn verify_terminal_store_namespaces(
     store: &AdmissionStore,
     workspace_root: &File,
+    candidate: &SpoolCandidate<'_>,
     db: &PinnedSqliteConnection,
     namespace_io: &PinnedSqliteIoBudget,
     payload_io: &PinnedSqliteIoBudget,
@@ -1046,6 +1153,15 @@ fn verify_terminal_store_namespaces(
         cancel,
         "initial V2 revision namespace gained retained state",
     )?;
+    if candidate.has_initial_packed_sources() {
+        require_empty_directory(
+            &objects, namespace_io, work, deadline, cancel,
+            "initial packed cut contains unrelated loose objects",
+        )?;
+        verify_packed_staging(candidate, &staging, namespace_io, work, deadline, cancel)?;
+        return verify_packed_object_inventory(candidate, db, profile, proposal,
+            proposal_scan, work, deadline, cancel);
+    }
     require_empty_directory(
         &staging,
         namespace_io,
@@ -1470,6 +1586,7 @@ impl InitialCutFence<'_> {
         store: &AdmissionStore,
         limits: ReadLimits,
         accountant: &Arc<NativeV2TreeIo>,
+        candidate: &SpoolCandidate<'_>,
     ) -> io::Result<()> {
         active(self.deadline, &self.cancel)?;
         if !self.miss_baseline_verified {
@@ -1522,6 +1639,7 @@ impl InitialCutFence<'_> {
             verify_terminal_store_namespaces(
                 store,
                 &self.workspace_root,
+                candidate,
                 &db_guard,
                 &self.v2_io,
                 &self.spool_io,

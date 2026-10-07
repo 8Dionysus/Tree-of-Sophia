@@ -362,6 +362,22 @@ pub(crate) struct CandidatePayloadPackV2 {
 }
 
 impl CandidatePayloadPackV2 {
+    /// An initial-cut fence may admit only this exact held, sealed staging
+    /// inode. A matching temporary filename alone supplies no custody.
+    pub(crate) fn verify_initial_staging_entry(
+        &self,
+        directory: &File,
+        name: &str,
+    ) -> io::Result<()> {
+        if self.actual_allocated.is_none()
+            || name != self.name
+            || identity(directory)? != identity(&self.directory)?
+        {
+            return Err(invalid("initial candidate payload staging entry differs"));
+        }
+        self.verify_named()
+    }
+
     pub(crate) fn file_for_sealed_slice(&self, offset: u64, size: u64) -> io::Result<Arc<File>> {
         self.verify_named()?;
         if self.actual_allocated.is_none()

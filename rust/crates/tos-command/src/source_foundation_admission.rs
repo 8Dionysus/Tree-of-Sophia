@@ -105,6 +105,8 @@ pub(crate) struct NativeSpoolRefusalPacket<'a> {
     phase: &'static str,
     primary_error_kind: &'static str,
     primary_error_sha256: Option<String>,
+    primary_cause_sha256: [Option<String>; 8],
+    primary_causes_truncated: bool,
     native_validation_reason: Option<&'a str>,
     primary_io: NativeSpoolIoPacket,
     terminal_io: NativeSpoolIoPacket,
@@ -189,7 +191,7 @@ impl From<NativeInvocationIoSnapshot> for NativeSpoolIoPacket {
 }
 // Correlate an opaque IO cause without exporting private paths or text.
 // Formatting is bounded and incomplete output never produces a fingerprint.
-fn bounded_error_sha256(error: &io::Error) -> Option<String> {
+fn bounded_error_sha256(error: &(impl std::fmt::Display + ?Sized)) -> Option<String> {
     struct Fingerprint {
         hash: tos_foundation::Digest256Hasher,
         remaining: usize,
@@ -268,6 +270,17 @@ impl NativeSpoolRefusal {
         self
     }
     pub(crate) fn packet(&self) -> NativeSpoolRefusalPacket<'_> {
+        // A publication wrapper deliberately hides its private cause text.
+        // Keep bounded cause fingerprints so that wrapper does not erase the
+        // diagnostic identity of the actual failure.
+        let mut primary_cause_sha256 = std::array::from_fn(|_| None);
+        let mut cause = self.primary.get_ref().and_then(|error| error.source());
+        for slot in &mut primary_cause_sha256 {
+            let Some(error) = cause else { break };
+            *slot = bounded_error_sha256(error);
+            cause = error.source();
+        }
+        let primary_causes_truncated = cause.is_some();
         let reason = self
             .primary
             .get_ref()
@@ -289,6 +302,8 @@ impl NativeSpoolRefusal {
                 _ => "other",
             },
             primary_error_sha256: bounded_error_sha256(&self.primary),
+            primary_cause_sha256,
+            primary_causes_truncated,
             native_validation_reason: reason,
             primary_io: self.primary_io.into(),
             terminal_io: self.terminal_io.into(),
@@ -3441,6 +3456,34 @@ impl Write for ReceiptWriter<'_> {
 #[cfg(test)]
 mod refusal_transport_tests {
     use super::*;
+
+    #[test]
+    fn publication_wrapper_keeps_opaque_cause_fingerprint() {
+        #[derive(Debug)]
+        struct Wrapped(io::Error);
+        impl std::fmt::Display for Wrapped {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("publication wrapper")
+            }
+        }
+        impl std::error::Error for Wrapped {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+        let private = "/private/publication-cause";
+        let snapshot = NativeInvocationIoSnapshot::default();
+        let refusal = NativeSpoolRefusal::retain(
+            io::Error::other(Wrapped(io::Error::other(private))),
+            "native-v4 corpus publication", snapshot, snapshot, false, false,
+        );
+        let encoded = serde_json::to_string(&refusal.packet()).unwrap();
+        assert!(!encoded.contains(private));
+        let packet: Value = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(packet["primary_error_sha256"], Digest256::of_bytes(b"publication wrapper").to_hex());
+        assert_eq!(packet["primary_cause_sha256"][0], Digest256::of_bytes(private.as_bytes()).to_hex());
+        assert_eq!(packet["primary_causes_truncated"], false);
+    }
 
     #[test]
     fn opaque_error_fingerprint_is_bounded_and_does_not_export_text() {

@@ -1444,6 +1444,25 @@ impl<'host> SpoolCandidate<'host> {
             };
             Ok(receipt)
         })();
+        // The selector is now durably committed and every packed writer has
+        // dropped its source slices. Retire the temporary pack through its
+        // existing custody owner. A failed cleanup is a committed refusal,
+        // never a rollback or a silently retained success artifact.
+        let result = result.and_then(|receipt| {
+            self.cleanup_packed_sources_after_seal().map_err(|cause| {
+                io::Error::new(cause.kind(), SpooledPublicationCommittedRefusal {
+                    revision: receipt.revision,
+                    manifest_sha256: receipt.manifest_sha256,
+                    source_artifact: receipt.source_artifact.clone(),
+                    rootset_sha256: receipt.rootset_sha256,
+                    batch_sha256: receipt.fence.batch_sha256,
+                    validator_sha256: receipt.fence.validator_sha256,
+                    persistent_manifest_custody: Some(Arc::clone(&receipt.persistent_manifest_custody)),
+                    cause,
+                })
+            })?;
+            Ok(receipt)
+        });
         self.abandon();
         result
     }
@@ -3006,6 +3025,43 @@ impl<'host> SpoolCandidate<'host> {
         }
     }
 
+    pub(crate) fn has_initial_packed_sources(&self) -> bool {
+        self.batch.base_revision.is_none() && self.payload_pack.borrow().is_some()
+    }
+
+    pub(crate) fn verify_initial_packed_staging_entry(
+        &self,
+        directory: &File,
+        name: &str,
+    ) -> io::Result<()> {
+        self.tick()?;
+        if self.batch.base_revision.is_some() {
+            return Err(invalid("initial packed fence has a predecessor"));
+        }
+        self.payload_pack
+            .borrow()
+            .as_ref()
+            .ok_or_else(|| invalid("initial candidate payload pack is absent"))?
+            .verify_initial_staging_entry(directory, name)
+    }
+
+    pub(crate) fn verify_initial_packed_object(
+        &self,
+        digest: Digest256,
+        size: u64,
+    ) -> io::Result<()> {
+        self.tick()?;
+        let result = (|| {
+            if self.batch.base_revision.is_some()
+                || self.candidate_payload(digest)?.map(|row| row.0) != Some(size)
+            {
+                return Err(invalid("initial object is not in the selected candidate pack"));
+            }
+            self.verify_object_source_accounted(digest, size)
+        })();
+        self.finish_read(result)
+    }
+
     pub(crate) fn packed_object_changes(&self) -> PackedObjectChanges<'_, 'host> {
         PackedObjectChanges {
             candidate: self,
@@ -3030,10 +3086,10 @@ impl<'host> SpoolCandidate<'host> {
         self.finish_read(result)
     }
 
-    pub(crate) fn cleanup_packed_sources_after_seal(&mut self) -> io::Result<()> {
+    pub(crate) fn cleanup_packed_sources_after_seal(&self) -> io::Result<()> {
         self.tick()?;
         let result = (|| {
-            let pack = self.payload_pack.take();
+            let pack = self.payload_pack.borrow_mut().take();
             if let Some(pack) = pack {
                 pack.cleanup_after_seal(self.deadline, &self.cancelled)?;
                 self.db
