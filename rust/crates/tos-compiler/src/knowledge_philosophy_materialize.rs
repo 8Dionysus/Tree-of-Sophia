@@ -5,7 +5,9 @@
 use crate::knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_philosophy_prepare::dependency_root;
-use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase};
+use crate::knowledge_stage::{
+    KnowledgePayloadLayout, KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase,
+};
 use crate::{Error, KnowledgeRegistry, PhilosophyPrepareReceipt, QueryVocabulary, Result};
 use rusqlite::OptionalExtension;
 use serde_json::Value;
@@ -343,11 +345,24 @@ where
     })?;
     loop {
         let (write_rows, write_bytes) = stage.write_page_limits();
+        // Carrier layout can add one exact source packet beside each logical
+        // row. Price those physical writes before selecting the input page.
+        let carrier = stage.payload_layout() == KnowledgePayloadLayout::CarrierOnceV1;
+        let rows_per_input = if carrier { 2 } else { 1 };
+        let bytes_per_input = normalizer
+            .limits
+            .max_output_bytes
+            .checked_add(if carrier {
+                normalizer.limits.max_raw_bytes
+            } else {
+                0
+            })
+            .ok_or(Error::Budget("philosophy carrier page bytes"))?;
         let page_rows = normalizer
             .limits
             .max_page_rows
-            .min(write_rows)
-            .min(write_bytes as usize / normalizer.limits.max_output_bytes);
+            .min(write_rows / rows_per_input)
+            .min(write_bytes as usize / bytes_per_input);
         let page = stage.scan_input(
             &normalizer.source_graph,
             if relation { "edges" } else { "nodes" },
@@ -356,8 +371,8 @@ where
         )?;
         stage.with_write_page(
             WritePhase::Normalized,
-            page_rows,
-            (page_rows * normalizer.limits.max_output_bytes) as u64,
+            page_rows * rows_per_input,
+            (page_rows * bytes_per_input) as u64,
             |stage| {
                 for raw in page.rows {
                     let base = if relation {
@@ -393,28 +408,34 @@ where
                         return Err(Error::Budget("philosophy materialization work/rows"));
                     }
                     if relation {
-                        stage.insert_relation(RelationRow {
-                            id: required(value, "id")?,
-                            source_graph: &normalizer.source_graph,
-                            native_id: Some(&raw.id),
-                            from_id: required(value, "from_id")?,
-                            to_id: required(value, "to_id")?,
-                            predicate_id: required(value, "predicate_id")?,
-                            relation_type_id: required(value, "relation_type_id")?,
-                            source_order: order,
-                            payload: &bytes,
-                        })?;
+                        stage.insert_relation_with_exact_source(
+                            RelationRow {
+                                id: required(value, "id")?,
+                                source_graph: &normalizer.source_graph,
+                                native_id: Some(&raw.id),
+                                from_id: required(value, "from_id")?,
+                                to_id: required(value, "to_id")?,
+                                predicate_id: required(value, "predicate_id")?,
+                                relation_type_id: required(value, "relation_type_id")?,
+                                source_order: order,
+                                payload: &bytes,
+                            },
+                            base.ordered_source_raw(),
+                        )?;
                     } else {
-                        stage.insert_node(NodeRow {
-                            id: required(value, "id")?,
-                            source_graph: &normalizer.source_graph,
-                            native_id: Some(&raw.id),
-                            entity_id: Some(required(value, "entity_id")?),
-                            kind_id: required(value, "kind_id")?,
-                            type_id: required(value, "type_id")?,
-                            source_order: order,
-                            payload: &bytes,
-                        })?;
+                        stage.insert_node_with_exact_source(
+                            NodeRow {
+                                id: required(value, "id")?,
+                                source_graph: &normalizer.source_graph,
+                                native_id: Some(&raw.id),
+                                entity_id: Some(required(value, "entity_id")?),
+                                kind_id: required(value, "kind_id")?,
+                                type_id: required(value, "type_id")?,
+                                source_order: order,
+                                payload: &bytes,
+                            },
+                            base.ordered_source_raw(),
+                        )?;
                     }
                     order = order
                         .checked_add(1)

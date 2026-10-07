@@ -67,7 +67,7 @@ pub fn source_foundation_closure_json_state_upper_bound(
     raw_bytes
         .checked_mul(128)
         .and_then(|bytes| bytes.checked_add(8192))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn estimate_fixed_json_object_storage(
@@ -82,21 +82,21 @@ fn estimate_fixed_json_object_storage(
                 .checked_mul(std::mem::size_of::<(&str, Option<&str>)>())
                 .and_then(|descriptors| bytes.checked_add(descriptors))
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let mut storage = std::mem::size_of::<Value>()
         .checked_add(node_storage)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     for (key, string_value) in fields {
         let value_storage = std::mem::size_of::<Value>()
             .checked_add(match string_value {
                 Some(value) => estimate_string_storage(value)?,
                 None => 32,
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         storage = storage
             .checked_add(estimate_string_storage(key)?)
             .and_then(|bytes| bytes.checked_add(value_storage))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     Ok(storage)
 }
@@ -1645,7 +1645,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
         let finished = rules
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish(
                 expected_schema_rows,
                 expected_loaded_documents,
@@ -1706,7 +1706,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
                         .max(finished.derivation.peak_workspace_state_bytes),
                 )
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if combined > rules.limits.max_state_bytes
             || finished.observation_rows != expected_schema_rows
             || finished.claim_id_rows != expected_claim_id_rows
@@ -2074,7 +2074,7 @@ fn push_bounded_issue(
         .len()
         .checked_add(message.len())
         .and_then(|n| n.checked_add(2 * std::mem::size_of::<String>()))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let retained = retained_state_bytes
         .checked_add(amount)
         .filter(|used| {
@@ -2153,7 +2153,7 @@ fn bounded_string_capacity_state(bytes: usize) -> Result<usize, ItemRefusal> {
     bytes
         .checked_mul(2)
         .and_then(|state| state.checked_add(std::mem::size_of::<String>() + 32))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn bounded_string_vec_state(strings: &[String], capacity: usize) -> Result<usize, ItemRefusal> {
@@ -2162,13 +2162,13 @@ fn bounded_string_vec_state(strings: &[String], capacity: usize) -> Result<usize
             .checked_add(
                 capacity
                     .checked_mul(std::mem::size_of::<String>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         |state, value| {
             state
                 .checked_add(estimate_string_storage(value)?)
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())
         },
     )
 }
@@ -2181,10 +2181,10 @@ fn refresh_candidate_findings_state(
     let updated = bounded_string_vec_state(findings, findings.capacity())?;
     let without_findings = temporary_state_bytes
         .checked_sub(*findings_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     *temporary_state_bytes = without_findings
         .checked_add(updated)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     *findings_state_bytes = updated;
     Ok(())
 }
@@ -2196,41 +2196,43 @@ fn python_string_list_workspace(
     let repr_bytes = source_bytes
         .checked_mul(6)
         .and_then(|bytes| bytes.checked_add(count.checked_mul(2)?))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let repr_state = source_bytes
-        .checked_add(count.checked_mul(2).ok_or(ItemRefusal::Budget)?)
+        .checked_add(count.checked_mul(2).ok_or(crate::item_budget_origin!())?)
         .and_then(|initial_capacity| {
             bounded_string_capacity_state(repr_bytes)
                 .ok()?
                 .checked_add(initial_capacity)
         })
         .and_then(|state| state.checked_add(count.checked_mul(std::mem::size_of::<String>())?))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let repr_vector_state = std::mem::size_of::<Vec<String>>()
         .checked_add(
             count
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let joined_bytes = repr_bytes
         .checked_add(
             count
                 .saturating_sub(1)
                 .checked_mul(2)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let joined_state = bounded_string_capacity_state(joined_bytes)?;
-    let list_bytes = joined_bytes.checked_add(2).ok_or(ItemRefusal::Budget)?;
+    let list_bytes = joined_bytes
+        .checked_add(2)
+        .ok_or(crate::item_budget_origin!())?;
     let list_state = bounded_string_capacity_state(list_bytes)?;
     let render_vector_peak = repr_vector_state
         .checked_add(repr_state)
         .and_then(|state| state.checked_add(joined_state))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let render_wrapped_peak = joined_state
         .checked_add(list_state)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     Ok((
         render_vector_peak.max(render_wrapped_peak),
         list_bytes,
@@ -2262,38 +2264,40 @@ fn exact_backref_messages_additional_state(
             check(deadline, cancelled)?;
         }
         if let Some(reference) = value.as_str() {
-            ref_count = ref_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            ref_count = ref_count
+                .checked_add(1)
+                .ok_or(crate::item_budget_origin!())?;
             ref_text_bytes = ref_text_bytes
                 .checked_add(reference.len())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             ref_storage_bytes = ref_storage_bytes
                 .checked_add(estimate_string_storage(reference)?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
     }
     let refs_vector_state = std::mem::size_of::<Vec<String>>()
         .checked_add(
             refs.len()
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
         .and_then(|state| state.checked_add(ref_storage_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let actual_set_state = ref_storage_bytes
         .checked_add(
             ref_count
                 .checked_mul(std::mem::size_of::<String>() + 8 * std::mem::size_of::<usize>() + 96)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let missing_vector_state = std::mem::size_of::<Vec<String>>()
         .checked_add(
             ref_count
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
         .and_then(|state| state.checked_add(ref_storage_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let misbound_vector_state = missing_vector_state;
 
     let mut subject_claim_count = 0usize;
@@ -2306,13 +2310,13 @@ fn exact_backref_messages_additional_state(
         if claim.subject == record_id {
             subject_claim_count = subject_claim_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             subject_claim_text_bytes = subject_claim_text_bytes
                 .checked_add(claim_id.len())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             subject_claim_storage_bytes = subject_claim_storage_bytes
                 .checked_add(estimate_string_storage(claim_id)?)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
     }
     let unreferenced_vector_state = std::mem::size_of::<Vec<String>>()
@@ -2320,10 +2324,10 @@ fn exact_backref_messages_additional_state(
             claims
                 .len()
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
         .and_then(|state| state.checked_add(subject_claim_storage_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
 
     let (missing_list_peak, missing_list_bytes, missing_list_state) =
         python_string_list_workspace(ref_count, ref_text_bytes)?;
@@ -2336,22 +2340,22 @@ fn exact_backref_messages_additional_state(
         .checked_add(label.len())
         .and_then(|bytes| bytes.checked_add(b" claims: ".len()))
         .and_then(|bytes| bytes.checked_add(missing_list_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let misbound_message_bytes = label
         .len()
         .checked_add(b" claims belong to another subject: ".len())
         .and_then(|bytes| bytes.checked_add(misbound_list_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let unreferenced_message_bytes = b"subject "
         .len()
         .checked_add(label.len())
         .and_then(|bytes| bytes.checked_add(b" claims are not referenced: ".len()))
         .and_then(|bytes| bytes.checked_add(unreferenced_list_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let duplicate_message_bytes = field
         .len()
         .checked_add(b" contains duplicate claim references".len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let message_state = [
         missing_message_bytes,
         misbound_message_bytes,
@@ -2362,15 +2366,15 @@ fn exact_backref_messages_additional_state(
     .try_fold(0usize, |state, bytes| {
         state
             .checked_add(bounded_string_capacity_state(bytes)?)
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     })?;
     let result_vector_state = std::mem::size_of::<Vec<String>>()
         .checked_add(
             8usize
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     let missing_message_state = bounded_string_capacity_state(missing_message_bytes)?;
     let misbound_message_state = bounded_string_capacity_state(misbound_message_bytes)?;
     let unreferenced_message_state = bounded_string_capacity_state(unreferenced_message_bytes)?;
@@ -2391,20 +2395,22 @@ fn exact_backref_messages_additional_state(
                     .max(unreferenced_list_state.checked_add(unreferenced_message_state)?),
             )
         })
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
 
     let worst_append_len = prior_findings_len
         .checked_add(4)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if worst_append_len > prior_findings_capacity {
-        let replacement_capacity = worst_append_len.checked_mul(2).ok_or(ItemRefusal::Budget)?;
+        let replacement_capacity = worst_append_len
+            .checked_mul(2)
+            .ok_or(crate::item_budget_origin!())?;
         state = state
             .checked_add(
                 replacement_capacity
                     .checked_mul(std::mem::size_of::<String>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     Ok(state)
 }
@@ -2440,7 +2446,7 @@ fn append_candidate_backref_messages(
         .checked_add(*temporary_state_bytes)
         .and_then(|state| state.checked_add(additional_live_state_bytes))
         .and_then(|state| state.checked_add(scratch))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if preflight > limits.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "source-foundation closure backlink message workspace",
@@ -2455,15 +2461,15 @@ fn append_candidate_backref_messages(
     let updated_findings_state = bounded_string_vec_state(findings, findings.capacity())?;
     let temporary_without_findings = temporary_state_bytes
         .checked_sub(*findings_state_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     *temporary_state_bytes = temporary_without_findings
         .checked_add(updated_findings_state)
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     *findings_state_bytes = updated_findings_state;
     let retained_total = retained_state_bytes
         .checked_add(*temporary_state_bytes)
         .and_then(|state| state.checked_add(additional_live_state_bytes))
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     if retained_total > limits.max_state_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "source-foundation closure backlink findings state",
@@ -2484,14 +2490,14 @@ fn claim_reference_index_state(
         .and_then(|n| {
             n.checked_add(std::mem::size_of::<String>() + 8 * std::mem::size_of::<usize>())
         })
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn claim_reference_map_entry_state(id: &str) -> Result<usize, ItemRefusal> {
     id.len()
         .checked_add(std::mem::size_of::<(String, SourceFoundationClosureClaimRef)>())
         .and_then(|state| state.checked_add(8 * std::mem::size_of::<usize>()))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn claim_reference_payload_state(
@@ -2505,7 +2511,7 @@ fn claim_reference_payload_state(
         .and_then(|n| n.checked_add(reference.object.len()))
         .and_then(|n| n.checked_add(reference.event.len()))
         .and_then(|n| n.checked_add(std::mem::size_of::<SourceFoundationClosureClaimRef>()))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn claim_refs_vec_clone_state(
@@ -2520,7 +2526,7 @@ fn claim_refs_vec_clone_state(
                 .and_then(|n| {
                     n.checked_add(std::mem::size_of::<(String, SourceFoundationClosureClaimRef)>())
                 })
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())
         },
     )
 }
@@ -2738,7 +2744,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             self.reserve_temporary(amount)?;
             *loaded_state_bytes = loaded_state_bytes
                 .checked_add(amount)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         } else {
             self.reserve(amount)?;
         }
@@ -2757,7 +2763,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             self.temporary_state_bytes = self
                 .temporary_state_bytes
                 .checked_sub(released)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             *loaded_state_bytes = desired;
         }
         Ok(())
@@ -2768,7 +2774,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .retained_state_bytes
             .checked_add(self.temporary_state_bytes)
             .and_then(|state| state.checked_add(workspace))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if total > self.limits.max_state_bytes {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation closure state and loaded-document store workspace",
@@ -2785,7 +2791,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (digest, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .loaded_document_digest(path, remaining)?;
         self.include_store_workspace(workspace)?;
         Ok(digest)
@@ -2802,7 +2808,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_loaded_row(path, line, digest, raw_line, remaining)?;
         self.include_store_workspace(workspace)?;
         if !inserted {
@@ -2815,7 +2821,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .candidate_loaded_row_store
             .inserted_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
@@ -2829,7 +2835,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let workspace = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish_loaded_document_rows(path, digest, expected_rows, remaining)?;
         self.include_store_workspace(workspace)
     }
@@ -2843,7 +2849,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (count, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .loaded_document_row_count(path, digest, remaining)?;
         self.include_store_workspace(workspace)?;
         count.ok_or_else(|| {
@@ -2863,7 +2869,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (raw_line, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .loaded_row(path, line, digest, remaining)?;
         self.include_store_workspace(workspace)?;
         self.cost.candidate_loaded_row_store.point_lookup_operations = self
@@ -2871,14 +2877,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .candidate_loaded_row_store
             .point_lookup_operations
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if raw_line.is_some() {
             self.cost.candidate_loaded_row_store.point_read_rows = self
                 .cost
                 .candidate_loaded_row_store
                 .point_read_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(raw_line)
     }
@@ -2893,7 +2899,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (row, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .next_loaded_row(path, digest, after_line, remaining)?;
         self.include_store_workspace(workspace)?;
         if row.is_some() {
@@ -2902,14 +2908,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .candidate_loaded_row_store
                 .streamed_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         } else {
             self.cost.candidate_loaded_row_store.stream_eof_count = self
                 .cost
                 .candidate_loaded_row_store
                 .stream_eof_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(row)
     }
@@ -2923,7 +2929,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (first, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .observe_loaded_document(path, digest, remaining)?;
         self.include_store_workspace(workspace)?;
         if first {
@@ -2931,7 +2937,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .candidate_loaded_document_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(first)
     }
@@ -2941,7 +2947,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             self.temporary_state_bytes = self
                 .temporary_state_bytes
                 .checked_sub(loaded_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -2965,7 +2971,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .records
             .current_record_with_state_budget(id, remaining)?;
         if workspace > remaining {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.reserve_temporary(workspace)?;
         Ok((record, workspace))
@@ -2990,7 +2996,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         };
         let path_workspace = estimate_string_storage(&record.path)?
             .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.reserve_temporary(path_workspace)?;
         let path = record.path.clone();
         drop(record);
@@ -3017,11 +3023,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let owner_path_len = parent
             .len()
             .checked_add(EDITION_SUFFIX.len())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let owner_path_state = owner_path_len
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 32))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.reserve_temporary(owner_path_state)?;
         let mut path = String::with_capacity(owner_path_len);
         path.push_str(parent);
@@ -3032,7 +3038,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .records
             .record_by_path_with_state_budget(&path, remaining)?;
         if workspace > remaining {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.reserve_temporary(workspace)?;
         let matches = record
@@ -3050,7 +3056,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         self.temporary_state_bytes = self
             .temporary_state_bytes
             .checked_sub(amount)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
@@ -3060,9 +3066,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .checked_sub(
                 self.retained_state_bytes
                     .checked_add(self.temporary_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )
-            .ok_or(ItemRefusal::Budget)
+            .ok_or(crate::item_budget_origin!())
     }
 
     fn include_link_workspace(&mut self, workspace: usize) -> Result<(), ItemRefusal> {
@@ -3070,9 +3076,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .retained_state_bytes
             .checked_add(self.temporary_state_bytes)
             .and_then(|state| state.checked_add(workspace))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if total > self.limits.max_state_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.cost.reserved_state_bytes = self.cost.reserved_state_bytes.max(total);
         Ok(())
@@ -3096,7 +3102,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (candidate_event, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .event_value(id, remaining)?;
             self.include_store_workspace(workspace)?;
             if let Some(event) = candidate_event {
@@ -3105,12 +3111,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .checked_add(
                         std::mem::size_of::<SourceFoundationClosureEvent>()
                             .checked_sub(std::mem::size_of::<Value>())
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
                     .and_then(|state| state.checked_add(event.id.len()))
                     .and_then(|state| state.checked_add(event.path.len()))
                     .and_then(|state| state.checked_add(event.document_sha256.len()))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 // The point-read workspace ends when the store returns, but
                 // this owned DTO remains live during the path and loaded-digest
                 // lookups below. Keep its decoded value and strings in the
@@ -3151,7 +3157,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 self.release_loaded_rows(
                     event_state
                         .checked_sub(value_state)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
                 return Ok((Some(Cow::Owned(value)), value_state));
             }
@@ -3168,7 +3174,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (found, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .contains_event(id, remaining)?;
             self.include_store_workspace(workspace)?;
             found
@@ -3190,7 +3196,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .retained_state_bytes
             .checked_add(self.temporary_state_bytes)
             .and_then(|used| used.checked_add(std::mem::size_of::<BTreeSet<String>>()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let mut used = 0usize;
         let mut found = BTreeSet::new();
         let source = &*self.source;
@@ -3203,9 +3209,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .len()
                 .checked_add(std::mem::size_of::<String>())
                 .and_then(|n| n.checked_add(4 * std::mem::size_of::<usize>()))
-                .ok_or(ItemRefusal::Budget)?;
-            used = used.checked_add(row_bytes).ok_or(ItemRefusal::Budget)?;
-            let total = base.checked_add(used).ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
+            used = used
+                .checked_add(row_bytes)
+                .ok_or(crate::item_budget_origin!())?;
+            let total = base.checked_add(used).ok_or(crate::item_budget_origin!())?;
             if total > self.limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: check_name,
@@ -3218,7 +3226,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         })?;
         self.reserve(
             used.checked_add(std::mem::size_of::<BTreeSet<String>>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         Ok(found)
     }
@@ -3273,11 +3281,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .cost
             .current_read_operations
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let raw = self.source.current(path, max_bytes, self.limits.deadline)?;
         if let Some(bytes) = &raw {
             if bytes.len() > self.limits.max_member_bytes {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             self.cost.current_bytes_read = self
                 .cost
@@ -3293,7 +3301,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .files_read
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if self.cache_digests {
                 let digest = Digest256::of_bytes(bytes).to_hex();
                 self.reserve(
@@ -3304,7 +3312,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
                             )
                         })
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
                 self.digests.insert(path.to_owned(), digest);
             }
@@ -3317,7 +3325,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .limits
             .max_total_bytes
             .checked_sub(self.cost.current_bytes_read)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(self
             .limits
             .max_member_bytes
@@ -3331,28 +3339,29 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     ) -> Result<LoadedRows, ItemRefusal> {
         let loaded_header_state = estimate_string_storage(&digest)?
             .checked_add(std::mem::size_of::<LoadedRows>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let mut loaded_state_bytes = loaded_header_state;
         self.reserve_temporary(loaded_state_bytes)?;
         let expected_rows = self.candidate_loaded_document_row_count(path, &digest)?;
-        let row_capacity = usize::try_from(expected_rows).map_err(|_| ItemRefusal::Budget)?;
+        let row_capacity =
+            usize::try_from(expected_rows).map_err(|_| crate::item_budget_origin!())?;
         let row_slots_state = row_capacity
             .checked_mul(std::mem::size_of::<(usize, Value)>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let requested_loaded_state = loaded_header_state
             .checked_add(row_slots_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.adjust_loaded_state(&mut loaded_state_bytes, requested_loaded_state)?;
         let mut rows = Vec::new();
         rows.try_reserve_exact(row_capacity)
-            .map_err(|_| ItemRefusal::Budget)?;
+            .map_err(|_| crate::item_budget_origin!())?;
         let actual_row_slots_state = rows
             .capacity()
             .checked_mul(std::mem::size_of::<(usize, Value)>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let actual_loaded_header_state = loaded_header_state
             .checked_add(actual_row_slots_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.adjust_loaded_state(&mut loaded_state_bytes, actual_loaded_header_state)?;
         let mut after_line = None;
         let mut drained_rows = 0u64;
@@ -3378,27 +3387,29 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let raw_line_state = raw_line
                 .len()
                 .checked_add(decoded_upper)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.reserve_temporary(raw_line_state)?;
             let value = serde_json::from_slice::<Value>(&raw_line).map_err(|_| {
                 ItemRefusal::Source("source-foundation loaded physical row no longer parses".into())
             })?;
             let value_state = crate::record_biblio_cut::decoded_state(&value)?;
             if value_state > decoded_upper {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             rows.push((line, value));
             drop(raw_line);
             let next_loaded_state_bytes = loaded_state_bytes
                 .checked_add(value_state)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let released_parse_state = raw_line_state
                 .checked_sub(value_state)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.release_temporary_state(released_parse_state)?;
             loaded_state_bytes = next_loaded_state_bytes;
             after_line = Some(line);
-            drained_rows = drained_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained_rows = drained_rows
+                .checked_add(1)
+                .ok_or(crate::item_budget_origin!())?;
         }
         if drained_rows != expected_rows {
             return Err(ItemRefusal::Source(
@@ -3410,7 +3421,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .cost
             .decoded_rows
             .checked_add(drained_rows)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let mut loaded = LoadedRows {
             digest,
             rows,
@@ -3432,17 +3443,17 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         json_limits: tos_foundation::JsonLimits,
         rows: &mut Vec<(usize, Value)>,
     ) -> Result<(), ItemRefusal> {
-        let line = usize::try_from(line).map_err(|_| ItemRefusal::Budget)?;
+        let line = usize::try_from(line).map_err(|_| crate::item_budget_origin!())?;
         let header_workspace = rows
             .len()
             .checked_add(1)
             .and_then(|n| n.checked_mul(std::mem::size_of::<(usize, Value)>()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.include_store_workspace(header_workspace)?;
         let available = self
             .remaining_state()?
             .checked_sub(header_workspace)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let (value, value_state) = crate::record_biblio_cut::bounded_decoded_state(
             bytes,
             json_limits,
@@ -3453,11 +3464,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         self.reserve_loaded_state(
             value_state
                 .checked_add(std::mem::size_of::<(usize, Value)>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
             loaded_state_bytes,
         )?;
         self.include_store_workspace(header_workspace)?;
-        rows.try_reserve_exact(1).map_err(|_| ItemRefusal::Budget)?;
+        rows.try_reserve_exact(1)
+            .map_err(|_| crate::item_budget_origin!())?;
         if let Some(schema) = schema {
             self.request_schema(&format!("{path}:{line}"), schema, &value)?;
         }
@@ -3476,7 +3488,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         loaded_state_bytes: &mut usize,
         cache_digest: Option<&str>,
     ) -> Result<Vec<(usize, Value)>, ItemRefusal> {
-        let selection = self.source.record_selection().ok_or(ItemRefusal::Budget)?;
+        let selection = self
+            .source
+            .record_selection()
+            .ok_or(crate::item_budget_origin!())?;
         let json_limits = selection.row_json_limits()?;
         let mut rows = Vec::new();
         if selection.contains_member(path) {
@@ -3518,7 +3533,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let generated = self
                 .source
                 .generated_selection()
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if !generated.selects_member(path)? {
                 return Err(ItemRefusal::Source(
                     "Closure stream is outside the declared generated selection".into(),
@@ -3527,7 +3542,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let caller_state = self
                 .retained_state_bytes
                 .checked_add(self.temporary_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             generated.verify_member(
                 path,
                 raw,
@@ -3623,7 +3638,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         };
         let digest = Digest256::of_bytes(&raw).to_hex();
         let first_load = if candidate_cached {
-            let raw_workspace = raw.len().checked_mul(6).ok_or(ItemRefusal::Budget)?;
+            let raw_workspace = raw
+                .len()
+                .checked_mul(6)
+                .ok_or(crate::item_budget_origin!())?;
             self.adjust_loaded_state(&mut loaded_state_bytes, raw_workspace)?;
             self.observe_candidate_loaded_digest(path, &digest)?
         } else {
@@ -3631,7 +3649,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         };
         let mut rows = Vec::new();
         let jsonl = path.ends_with(".jsonl");
-        let state_cost = raw.len().checked_mul(6).ok_or(ItemRefusal::Budget)?;
+        let state_cost = raw
+            .len()
+            .checked_mul(6)
+            .ok_or(crate::item_budget_origin!())?;
         if !candidate_cached {
             self.reserve_loaded_state(state_cost, &mut loaded_state_bytes)?;
         }
@@ -3702,7 +3723,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .cost
             .decoded_rows
             .checked_add(rows.len() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if candidate_cached && first_load {
             self.finish_candidate_loaded_document_rows(path, &digest, rows.len() as u64)?;
         }
@@ -3778,7 +3799,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         };
         let digest = Digest256::of_bytes(&raw).to_hex();
         let first_load = if candidate_cached {
-            let raw_workspace = raw.len().checked_mul(6).ok_or(ItemRefusal::Budget)?;
+            let raw_workspace = raw
+                .len()
+                .checked_mul(6)
+                .ok_or(crate::item_budget_origin!())?;
             self.adjust_loaded_state(&mut loaded_state_bytes, raw_workspace)?;
             self.observe_candidate_loaded_digest(path, &digest)?
         } else {
@@ -3786,7 +3810,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         };
         if !candidate_cached {
             self.reserve_loaded_state(
-                raw.len().checked_mul(6).ok_or(ItemRefusal::Budget)?,
+                raw.len()
+                    .checked_mul(6)
+                    .ok_or(crate::item_budget_origin!())?,
                 &mut loaded_state_bytes,
             )?;
         }
@@ -3839,7 +3865,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .cost
             .decoded_rows
             .checked_add(rows.len() as u64)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if candidate_cached && first_load {
             self.finish_candidate_loaded_document_rows(path, &digest, rows.len() as u64)?;
         }
@@ -3891,7 +3917,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .len()
             .checked_mul(6)
             .and_then(|state| state.checked_add(std::mem::size_of::<Value>()))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.reserve_temporary(reservation)?;
         let value = serde_json::from_slice::<Value>(&raw_line).map_err(|_| {
             ItemRefusal::Source("source-foundation loaded physical row no longer parses".into())
@@ -3903,14 +3929,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             self.temporary_state_bytes = self
                 .temporary_state_bytes
                 .checked_sub(reservation - value_state)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         drop(raw_line);
         self.cost.decoded_rows = self
             .cost
             .decoded_rows
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok((Some(value), value_state))
     }
 
@@ -3988,7 +4014,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         self.reserve_temporary(
             raw.len()
                 .checked_add(std::mem::size_of::<Vec<u8>>() + 64)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         let digest = Digest256::of_bytes(&raw).to_hex();
         drop(raw);
@@ -4013,7 +4039,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         std::mem::size_of::<SourceFoundationClosureSchemaRequest>() + 256,
                     )?)
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.reserve_temporary(request_state)?;
             let request = SourceFoundationClosureSchemaRequest {
                 before_issue: self.issues.len(),
@@ -4026,7 +4052,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let store = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let workspace =
                     store.record_request(&request, self.limits.max_member_bytes, remaining)?;
                 (workspace, store.cost())
@@ -4048,11 +4074,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .schema_requests
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             return Ok(());
         }
         let retained = serde_json::to_vec(document)
-            .map_err(|_| ItemRefusal::Budget)?
+            .map_err(|_| crate::item_budget_origin!())?
             .len()
             .checked_mul(8)
             .and_then(|bytes| {
@@ -4063,7 +4089,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         + 96,
                 )
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.reserve(retained)?;
         self.schema_requests
             .push(SourceFoundationClosureSchemaRequest {
@@ -4076,7 +4102,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .cost
             .schema_requests
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         Ok(())
     }
 
@@ -4097,21 +4123,21 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 path.len()
                     .checked_add(digest.len())
                     .and_then(|bytes| bytes.checked_add(96))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
         } else {
             self.reserve_temporary(
                 self.limits
                     .max_member_bytes
                     .checked_add(std::mem::size_of::<Vec<u8>>() + 64)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
         }
         self.cost.recorded_read_operations = self
             .cost
             .recorded_read_operations
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let raw = self.source.recorded(
             path,
             digest,
@@ -4133,12 +4159,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .files_read
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.cost.recorded_files_read = self
                 .cost
                 .recorded_files_read
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         let matches = raw.is_some_and(|bytes| Digest256::of_bytes(&bytes).to_hex() == digest);
         if let Some(key) = key {
@@ -4173,7 +4199,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_claim_id(id, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
@@ -4181,14 +4207,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .cost
                     .candidate_claim_id_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             !inserted
         } else {
             self.reserve(
                 id.len()
                     .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             !self.claim_ids.insert(id.to_owned())
         };
@@ -4213,7 +4239,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (found, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .contains_claim_id(id, remaining)?;
         self.include_store_workspace(workspace)?;
         Ok(found)
@@ -4224,7 +4250,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_membership_claim(id, subject, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -4232,7 +4258,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .candidate_membership_claim_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -4245,7 +4271,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (found, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .contains_membership_claim(id, remaining)?;
         self.include_store_workspace(workspace)?;
         Ok(found)
@@ -4260,19 +4286,19 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_responsibility_claim(id, reference, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
             self.responsibility_claim_count = self
                 .responsibility_claim_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.cost.candidate_responsibility_claim_count = self
                 .cost
                 .candidate_responsibility_claim_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -4286,7 +4312,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_publication_claim(id, reference, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -4294,7 +4320,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .candidate_publication_claim_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -4308,7 +4334,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_topology_claim(id, reference, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -4317,7 +4343,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .candidate_topology_store
                 .claim_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -4331,7 +4357,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_object_link_claim(id, reference, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -4340,7 +4366,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .candidate_object_link_store
                 .claim_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -4354,7 +4380,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_provision_claim(id, reference, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -4362,7 +4388,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .candidate_provision_claim_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -4372,7 +4398,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_provision_event_id(id, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -4380,7 +4406,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .cost
                 .candidate_provision_event_id_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -4395,7 +4421,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_provision_used_event(id, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
@@ -4403,7 +4429,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .cost
                     .candidate_provision_used_event_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             Ok(inserted)
         } else if compatibility_ids.contains(id) {
@@ -4412,7 +4438,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             self.reserve_temporary(
                 id.len()
                     .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             compatibility_ids.insert(id.to_owned());
             Ok(true)
@@ -4429,7 +4455,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_provision_validated_event(id, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
@@ -4437,7 +4463,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .cost
                     .candidate_provision_validated_event_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             Ok(inserted)
         } else if compatibility_ids.contains(id) {
@@ -4446,7 +4472,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             self.reserve_temporary(
                 id.len()
                     .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             compatibility_ids.insert(id.to_owned());
             Ok(true)
@@ -4458,7 +4484,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (found, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .contains_provision_used_event(id, remaining)?;
         self.include_store_workspace(workspace)?;
         Ok(found)
@@ -4474,7 +4500,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_responsibility_validated_event(event_id, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
@@ -4482,7 +4508,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .cost
                     .candidate_responsibility_validated_event_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             Ok(inserted)
         } else if compatibility_ids.contains(event_id) {
@@ -4493,7 +4519,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .len()
                     .checked_add(std::mem::size_of::<String>())
                     .and_then(|bytes| bytes.checked_add(4 * std::mem::size_of::<usize>()))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             compatibility_ids.insert(event_id.to_owned());
             Ok(true)
@@ -4510,7 +4536,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_publication_validated_event(event_id, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
@@ -4518,7 +4544,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .cost
                     .candidate_publication_validated_event_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
             Ok(inserted)
         } else if compatibility_ids.contains(event_id) {
@@ -4529,7 +4555,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .len()
                     .checked_add(std::mem::size_of::<String>())
                     .and_then(|bytes| bytes.checked_add(4 * std::mem::size_of::<usize>()))
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             compatibility_ids.insert(event_id.to_owned());
             Ok(true)
@@ -4546,7 +4572,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_boundary_responsibility_ref(reference, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
@@ -4554,7 +4580,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .cost
                     .candidate_boundary_responsibility_ref_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
         } else {
             if reserve_compatibility {
@@ -4564,7 +4590,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         .checked_add(
                             std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
                         )
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
             }
             self.boundary_responsibility_refs
@@ -4579,7 +4605,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_boundary_membership_ref(reference, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
@@ -4588,7 +4614,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .candidate_boundary_membership_refs
                     .rows
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
             }
         } else {
             self.boundary_membership_refs.insert(reference.to_owned());
@@ -4601,7 +4627,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_anchor_id(id, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -4610,7 +4636,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .candidate_anchor_store
                 .id_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(inserted)
     }
@@ -4623,19 +4649,19 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (found, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .contains_anchor_id(id, remaining)?;
         self.include_store_workspace(workspace)?;
         let cost = &mut self.cost.candidate_anchor_store;
         cost.scan_row_operations = cost
             .scan_row_operations
             .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if found {
             cost.serialized_read_bytes = cost
                 .serialized_read_bytes
-                .checked_add(u64::try_from(id.len()).map_err(|_| ItemRefusal::Budget)?)
-                .ok_or(ItemRefusal::Budget)?;
+                .checked_add(u64::try_from(id.len()).map_err(|_| crate::item_budget_origin!())?)
+                .ok_or(crate::item_budget_origin!())?;
         }
         cost.peak_workspace_state_bytes = cost.peak_workspace_state_bytes.max(workspace);
         Ok(found)
@@ -4645,7 +4671,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let expected_rows = self.cost.candidate_anchor_store.id_rows;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_anchor_ids(expected_rows)?;
         let mut cursor_state_bytes = 0usize;
         let mut drained_rows = 0u64;
@@ -4654,13 +4680,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (id, workspace, row_state_bytes, retained_cursor_state_bytes) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_anchor_id(remaining)?;
             self.include_store_workspace(workspace)?;
             self.release_temporary_state(cursor_state_bytes)?;
             let Some(id) = id else {
                 if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 break;
             };
@@ -4671,12 +4697,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             }
             let active_state = row_state_bytes
                 .checked_add(retained_cursor_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.reserve_temporary(active_state)?;
             cursor_state_bytes = retained_cursor_state_bytes;
             drop(id);
             self.release_temporary_state(row_state_bytes)?;
-            drained_rows = drained_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained_rows = drained_rows
+                .checked_add(1)
+                .ok_or(crate::item_budget_origin!())?;
         }
         if drained_rows != expected_rows {
             return Err(ItemRefusal::Source(
@@ -4688,7 +4716,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let cost = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish_anchor_ids(expected_rows, remaining)?;
         self.include_store_workspace(cost.peak_workspace_state_bytes)?;
         if cost.id_rows != expected_rows
@@ -4732,19 +4760,29 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             }
             if record.path.ends_with("/link.json") {
                 if let Some(store) = link_store.as_deref_mut() {
-                    let used = retained.checked_add(temporary).ok_or(ItemRefusal::Budget)?;
-                    let remaining = max_state.checked_sub(used).ok_or(ItemRefusal::Budget)?;
+                    let used = retained
+                        .checked_add(temporary)
+                        .ok_or(crate::item_budget_origin!())?;
+                    let remaining = max_state
+                        .checked_sub(used)
+                        .ok_or(crate::item_budget_origin!())?;
                     let workspace =
                         store.insert_link(id, &record.path, &record.value, remaining)?;
-                    if used.checked_add(workspace).ok_or(ItemRefusal::Budget)? > max_state {
-                        return Err(ItemRefusal::Budget);
+                    if used
+                        .checked_add(workspace)
+                        .ok_or(crate::item_budget_origin!())?
+                        > max_state
+                    {
+                        return Err(crate::item_budget_origin!());
                     }
-                    link_count = link_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                    link_count = link_count
+                        .checked_add(1)
+                        .ok_or(crate::item_budget_origin!())?;
                     link_workspace_peak = link_workspace_peak.max(workspace);
                     return Ok(());
                 }
                 let bytes = crate::record_biblio_cut::decoded_state(&record.value)
-                    .map_err(|_| ItemRefusal::Budget)?;
+                    .map_err(|_| crate::item_budget_origin!())?;
                 let clone_state = id
                     .len()
                     .checked_add(record.path.len())
@@ -4752,7 +4790,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .and_then(|n| {
                         n.checked_add(std::mem::size_of::<(String, (String, Value))>() + 64)
                     })
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 retained = retained
                     .checked_add(clone_state)
                     .filter(|used| {
@@ -4773,9 +4811,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let link_state_peak = retained
             .checked_add(temporary)
             .and_then(|state| state.checked_add(link_workspace_peak))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if link_state_peak > max_state {
-            return Err(ItemRefusal::Budget);
+            return Err(crate::item_budget_origin!());
         }
         self.cost.reserved_state_bytes = self.cost.reserved_state_bytes.max(link_state_peak);
         Ok(())
@@ -4832,7 +4870,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             })?;
             self.schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .seal_event_paths(event_path_rows)?;
             let mut after_path: Option<String> = None;
             let mut cursor_state_bytes = 0usize;
@@ -4841,12 +4879,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (next_path, workspace, retained_cursor_state_bytes) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .next_event_path(after_path.as_deref(), remaining)?;
                 self.include_store_workspace(workspace)?;
                 let Some(path) = next_path else {
                     if retained_cursor_state_bytes != 0 {
-                        return Err(ItemRefusal::Budget);
+                        return Err(crate::item_budget_origin!());
                     }
                     break;
                 };
@@ -4858,21 +4896,21 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
                         )
                     })
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let next_cursor_state_bytes = next_local_cursor_state_bytes
                     .checked_add(retained_cursor_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 self.reserve_temporary(next_cursor_state_bytes)?;
                 drop(after_path.take());
                 self.release_loaded_rows(cursor_state_bytes)?;
                 after_path = Some(path);
                 cursor_state_bytes = next_cursor_state_bytes;
-                let event_path = after_path.as_deref().ok_or(ItemRefusal::Budget)?;
+                let event_path = after_path.as_deref().ok_or(crate::item_budget_origin!())?;
                 let path_lookup_state = event_path
                     .len()
                     .checked_mul(32)
                     .and_then(|state| state.checked_add(10_240))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 self.reserve_temporary(path_lookup_state)?;
                 let exists = self.path_exists(event_path);
                 let release = self.release_loaded_rows(path_lookup_state);
@@ -4886,7 +4924,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             self.release_loaded_rows(cursor_state_bytes)?;
             self.schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .finish_event_paths(event_path_rows)?;
         } else {
             self.reserve(
@@ -4925,18 +4963,20 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .and_then(|state| {
                 state.checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
             })
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.reserve_temporary(path_state_bytes)?;
         let result = (|| {
             let remaining = self.remaining_state()?;
             let (inserted, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_event_path(path, remaining)?;
             self.include_store_workspace(workspace)?;
             if inserted {
-                *event_path_rows = event_path_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                *event_path_rows = event_path_rows
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
                 self.cost.candidate_event_path_count = *event_path_rows;
             }
             Ok(())
@@ -4986,7 +5026,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                     + std::mem::size_of::<Value>(),
                             )
                         })
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
             }
             let source_has_id = self.source_events.event_contains(&id)?;
@@ -5032,7 +5072,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (inserted, workspace) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .remember_event(&id, path, line, &loaded.digest, &event, remaining)?;
                 self.include_store_workspace(workspace)?;
                 if inserted {
@@ -5040,7 +5080,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         .cost
                         .candidate_event_count
                         .checked_add(1)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
                 !inserted
             } else {
@@ -5236,7 +5276,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let expected_rows = self.cost.candidate_boundary_membership_refs.rows;
             self.schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .begin_boundary_membership_refs(expected_rows)?;
             let mut cursor_state_bytes = 0usize;
             let mut drained_rows = 0u64;
@@ -5245,7 +5285,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (reference, workspace, row_state_bytes, retained_cursor_state_bytes) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .next_boundary_membership_ref(remaining)?;
                 self.include_store_workspace(workspace)?;
                 self.release_temporary_state(cursor_state_bytes)?;
@@ -5265,9 +5305,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 };
                 let active_state_bytes = row_state_bytes
                     .checked_add(retained_cursor_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if active_state_bytes > self.remaining_state()? {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 self.reserve_temporary(active_state_bytes)?;
                 cursor_state_bytes = retained_cursor_state_bytes;
@@ -5281,7 +5321,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 }
                 drop(reference);
                 self.release_temporary_state(row_state_bytes)?;
-                drained_rows = drained_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                drained_rows = drained_rows
+                    .checked_add(1)
+                    .ok_or(crate::item_budget_origin!())?;
             }
         } else {
             let membership_refs = std::mem::take(&mut self.boundary_membership_refs);
@@ -5300,7 +5342,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let expected_rows = self.cost.candidate_boundary_responsibility_ref_count;
             self.schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .begin_boundary_responsibility_refs(expected_rows)?;
             let mut cursor_state_bytes = 0usize;
             loop {
@@ -5308,21 +5350,21 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (reference, workspace, row_state_bytes, retained_cursor_state_bytes) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .next_boundary_responsibility_ref(remaining)?;
                 self.include_store_workspace(workspace)?;
                 self.release_temporary_state(cursor_state_bytes)?;
                 let Some(reference) = reference else {
                     if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
-                        return Err(ItemRefusal::Budget);
+                        return Err(crate::item_budget_origin!());
                     }
                     break;
                 };
                 let active_state_bytes = row_state_bytes
                     .checked_add(retained_cursor_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if active_state_bytes > self.remaining_state()? {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 self.reserve_temporary(active_state_bytes)?;
                 cursor_state_bytes = retained_cursor_state_bytes;
@@ -5330,7 +5372,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (found, lookup_workspace) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .contains_responsibility_claim(&reference, remaining)?;
                 self.include_store_workspace(lookup_workspace)?;
                 if !found {
@@ -5539,7 +5581,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         .checked_add(crate::source_foundation_records::python_value_string_len(
                             object_value,
                         )?)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 self.reserve(endpoint_state)?;
                 let subject_key =
                     crate::source_foundation_records::python_value_string(subject_value);
@@ -5558,7 +5600,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         } else {
                             expected_evidence_state = expected_evidence_state
                                 .checked_add(path_workspace)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             expected_evidence.insert(record_path);
                         }
                     }
@@ -5575,11 +5617,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             .checked_add(
                                 std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
                             )
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         self.reserve_temporary(path_state)?;
                         expected_evidence_state = expected_evidence_state
                             .checked_add(path_state)
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         expected_evidence.insert(manifest_ref.to_owned());
                     }
                     drop(object_record);
@@ -5631,7 +5673,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         let (reference, workspace) = self
                             .schema_request_store
                             .as_deref_mut()
-                            .ok_or(ItemRefusal::Budget)?
+                            .ok_or(crate::item_budget_origin!())?
                             .topology_claim_by_id(claim_id, remaining)?;
                         self.include_store_workspace(workspace)?;
                         let differs = reference.as_ref().is_some_and(|reference| {
@@ -5738,9 +5780,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                                 + 8 * std::mem::size_of::<usize>(),
                                         )
                                     })
-                                    .ok_or(ItemRefusal::Budget)?,
+                                    .ok_or(crate::item_budget_origin!())?,
                             )
-                            .ok_or(ItemRefusal::Budget)
+                            .ok_or(crate::item_budget_origin!())
                     },
                 )?;
             self.reserve(index_state)?;
@@ -5774,11 +5816,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let workspace = crate::record_biblio_cut::decoded_state(&record.value)?
                 .checked_mul(2)
                 .and_then(|n| n.checked_add(256))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let temporary = temporary
                 .checked_add(workspace)
-                .ok_or(ItemRefusal::Budget)?;
-            let used = retained.checked_add(temporary).ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
+            let used = retained
+                .checked_add(temporary)
+                .ok_or(crate::item_budget_origin!())?;
             if used > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "source-foundation closure topology backlink workspace",
@@ -5798,12 +5842,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let remaining = limits
                     .max_state_bytes
                     .checked_sub(used)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let mut actual_ids = actual.iter();
                 let mut ordered_match = true;
                 let mut visited = 0u64;
                 let mut visit = |expected_id: &str, _workspace: usize| {
-                    visited = visited.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                    visited = visited.checked_add(1).ok_or(crate::item_budget_origin!())?;
                     if actual_ids.next().map(String::as_str) != Some(expected_id) {
                         ordered_match = false;
                     }
@@ -5811,7 +5855,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 };
                 let (drained, store_workspace) = schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .for_each_topology_claim_for_subject(id, predicate, remaining, &mut visit)?;
                 drop(visit);
                 if actual_ids.next().is_some() {
@@ -5819,11 +5863,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 }
                 drop(actual_ids);
                 if visited != drained {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 let total = used
                     .checked_add(store_workspace)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if total > limits.max_state_bytes {
                     return Err(ItemRefusal::BudgetCheck {
                         check: "source-foundation closure topology stream workspace",
@@ -5861,24 +5905,26 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             SourceFoundationClosureDerivationKeySet::ClaimIds => self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_derivation_id(key, remaining)?,
             SourceFoundationClosureDerivationKeySet::Endpoints => self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_derivation_endpoint(key, remaining)?,
             SourceFoundationClosureDerivationKeySet::EvidencePaths => self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_derivation_evidence_path(key, remaining)?,
             SourceFoundationClosureDerivationKeySet::ExpectedInputs => self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .remember_derivation_expected_input(key, remaining)?,
-            SourceFoundationClosureDerivationKeySet::Roots => return Err(ItemRefusal::Budget),
+            SourceFoundationClosureDerivationKeySet::Roots => {
+                return Err(crate::item_budget_origin!());
+            }
         };
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -5906,7 +5952,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 }
                 SourceFoundationClosureDerivationKeySet::Roots => unreachable!(),
             };
-            *count = count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            *count = count.checked_add(1).ok_or(crate::item_budget_origin!())?;
         }
         Ok(inserted)
     }
@@ -5920,7 +5966,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_derivation_subject(id, subject, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -5929,7 +5975,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .candidate_derivation_store
                 .derivation_subject_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(())
     }
@@ -5943,7 +5989,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (inserted, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .remember_derivation_pair(subject, object, remaining)?;
         self.include_store_workspace(workspace)?;
         if inserted {
@@ -5952,7 +5998,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .candidate_derivation_store
                 .derivation_pair_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         } else {
             self.cost
                 .candidate_derivation_store
@@ -5961,7 +6007,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .candidate_derivation_store
                 .derivation_duplicate_pair_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         Ok(inserted)
     }
@@ -5971,7 +6017,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (color, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .derivation_color(node, remaining)?;
         self.include_store_workspace(workspace)?;
         Ok(color)
@@ -5982,7 +6028,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let workspace = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .set_derivation_color(node, color, remaining)?;
         self.include_store_workspace(workspace)
     }
@@ -5994,7 +6040,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     ) -> Result<(), ItemRefusal> {
         let frame_state = estimate_string_storage(node)?
             .checked_add(std::mem::size_of::<SourceFoundationClosureDerivationFrame>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let baseline = self.temporary_state_bytes;
         self.reserve_temporary(frame_state)?;
         let result = (|| {
@@ -6006,7 +6052,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let workspace = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .push_derivation_frame(&frame, remaining)?;
             self.include_store_workspace(workspace)
         })();
@@ -6021,7 +6067,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (frame, workspace, row_state) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .pop_derivation_frame(remaining)?;
         self.include_store_workspace(workspace)?;
         if let Some(frame) = frame {
@@ -6039,7 +6085,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     ) -> Result<(), ItemRefusal> {
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_derivation_keyset(set, expected_rows)?;
         let mut after: Option<String> = None;
         let mut after_state = 0usize;
@@ -6048,7 +6094,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (next, workspace, cursor_state) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_derivation_key(set, after.as_deref(), remaining)?;
             self.include_store_workspace(workspace)?;
             let Some(next) = next else {
@@ -6075,7 +6121,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .derivation_evidence_path_rows;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_derivation_keyset(
                 SourceFoundationClosureDerivationKeySet::EvidencePaths,
                 evidence_rows,
@@ -6087,7 +6133,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (evidence, workspace, cursor_state) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_derivation_key(
                     SourceFoundationClosureDerivationKeySet::EvidencePaths,
                     after_evidence.as_deref(),
@@ -6109,7 +6155,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             after_evidence_state = cursor_state;
             self.remember_candidate_derivation_key(
                 SourceFoundationClosureDerivationKeySet::ExpectedInputs,
-                after_evidence.as_deref().ok_or(ItemRefusal::Budget)?,
+                after_evidence
+                    .as_deref()
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
         }
 
@@ -6119,7 +6167,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .derivation_endpoint_rows;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_derivation_keyset(
                 SourceFoundationClosureDerivationKeySet::Endpoints,
                 endpoint_rows,
@@ -6131,7 +6179,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (endpoint, workspace, cursor_state) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_derivation_key(
                     SourceFoundationClosureDerivationKeySet::Endpoints,
                     after_endpoint.as_deref(),
@@ -6151,7 +6199,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 self.release_temporary_state(after_endpoint_state)?;
             }
             after_endpoint_state = cursor_state;
-            let endpoint = after_endpoint.as_deref().ok_or(ItemRefusal::Budget)?;
+            let endpoint = after_endpoint
+                .as_deref()
+                .ok_or(crate::item_budget_origin!())?;
             let (record_path, path_workspace) =
                 self.current_record_path_with_state_budget(endpoint)?;
             if let Some(record_path) = record_path {
@@ -6181,7 +6231,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let mut store = self
             .schema_request_store
             .take()
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let records = self.records;
         let deadline = self.limits.deadline;
         let cancelled = self.source.cancellation();
@@ -6196,11 +6246,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             if record.kind != "expression" {
                 return Ok(());
             }
-            expression_rows = expression_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            expression_rows = expression_rows
+                .checked_add(1)
+                .ok_or(crate::item_budget_origin!())?;
             let record_workspace = crate::record_biblio_cut::decoded_state(&record.value)?
                 .checked_mul(2)
                 .and_then(|bytes| bytes.checked_add(256))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let references = record
                 .value
                 .get("derivation_claim_refs")
@@ -6214,17 +6266,17 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let tree_state = reference_count
                 .checked_mul(std::mem::size_of::<String>() + 8 * std::mem::size_of::<usize>())
                 .and_then(|bytes| bytes.checked_add(std::mem::size_of::<BTreeSet<String>>()))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let actual_state = value_strings_workspace(&record.value, "derivation_claim_refs")?
                 .checked_add(tree_state)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let active_temporary = temporary
                 .checked_add(record_workspace)
                 .and_then(|bytes| bytes.checked_add(actual_state))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let used = retained
                 .checked_add(active_temporary)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if used > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "source-foundation closure derivation backlink workspace",
@@ -6241,7 +6293,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let max_store_state = limits
                 .max_state_bytes
                 .checked_sub(used)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let (expected_count, store_workspace) = store.for_each_derivation_subject_claim(
                 record_id,
                 max_store_state,
@@ -6254,7 +6306,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             )?;
             let store_used = used
                 .checked_add(store_workspace)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if store_used > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "source-foundation closure derivation backlink workspace",
@@ -6265,7 +6317,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             cost.reserved_state_bytes = cost.reserved_state_bytes.max(store_used);
             let matches = same
                 && expected_count
-                    == u64::try_from(actual.len()).map_err(|_| ItemRefusal::Budget)?
+                    == u64::try_from(actual.len()).map_err(|_| crate::item_budget_origin!())?
                 && expected_actual.next().is_none();
             if !matches {
                 push_bounded_issue(
@@ -6305,13 +6357,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (root_rows, root_workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .derivation_root_count(remaining)?;
         self.include_store_workspace(root_workspace)?;
         self.cost.candidate_derivation_store.derivation_root_rows = root_rows;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_derivation_keyset(SourceFoundationClosureDerivationKeySet::Roots, root_rows)?;
         let mut after_root: Option<String> = None;
         let mut after_root_state = 0usize;
@@ -6321,7 +6373,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (root, workspace, cursor_state) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_derivation_key(
                     SourceFoundationClosureDerivationKeySet::Roots,
                     after_root.as_deref(),
@@ -6341,7 +6393,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 self.release_temporary_state(after_root_state)?;
             }
             after_root_state = cursor_state;
-            let node = after_root.as_deref().ok_or(ItemRefusal::Budget)?;
+            let node = after_root.as_deref().ok_or(crate::item_budget_origin!())?;
             if self.candidate_derivation_color(node)?.is_some() {
                 continue;
             }
@@ -6352,7 +6404,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 };
                 let frame_state = estimate_string_storage(&frame.node)?
                     .checked_add(std::mem::size_of::<SourceFoundationClosureDerivationFrame>())
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let frame_result: Result<(), ItemRefusal> = (|| {
                     if frame.leaving {
                         self.set_candidate_derivation_color(&frame.node, 2)?;
@@ -6365,7 +6417,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         }
                         Some(2) => return Ok(()),
                         None => {}
-                        _ => return Err(ItemRefusal::Budget),
+                        _ => return Err(crate::item_budget_origin!()),
                     }
                     self.set_candidate_derivation_color(&frame.node, 1)?;
                     self.push_candidate_derivation_frame(&frame.node, true)?;
@@ -6376,7 +6428,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         let (child, workspace, cursor_state) = self
                             .schema_request_store
                             .as_deref_mut()
-                            .ok_or(ItemRefusal::Budget)?
+                            .ok_or(crate::item_budget_origin!())?
                             .next_derivation_child(
                                 &frame.node,
                                 after_child.as_deref(),
@@ -6395,7 +6447,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             Some(1) => cycle = true,
                             Some(2) => {}
                             None => self.push_candidate_derivation_frame(&child, false)?,
-                            _ => return Err(ItemRefusal::Budget),
+                            _ => return Err(crate::item_budget_origin!()),
                         }
                         if let Some(previous) = after_child.replace(child) {
                             drop(previous);
@@ -6447,7 +6499,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (root_rows, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .derivation_root_count(remaining)?;
             self.include_store_workspace(workspace)?;
             self.cost.candidate_derivation_store.derivation_root_rows = root_rows;
@@ -6459,7 +6511,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let finished = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .finish_derivation(0, remaining)?;
             self.include_store_workspace(finished.peak_workspace_state_bytes)?;
             self.cost.candidate_derivation_store = finished;
@@ -6479,9 +6531,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .checked_add(
                     2usize
                         .checked_mul(1 + usize::MAX.ilog10() as usize + 1)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.reserve_temporary(location_state)?;
             let location = format!("{claim_path}:{line}");
             let Some(claim_id) = text(claim, "claim_id") else {
@@ -6495,7 +6547,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (in_derivation, workspace) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .contains_derivation_id(claim_id, remaining)?;
                 self.include_store_workspace(workspace)?;
                 if !in_derivation {
@@ -6532,11 +6584,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let mut subject_scalar_workspace = std::mem::size_of::<Option<String>>()
                     .checked_add(2 * std::mem::size_of::<usize>())
                     .and_then(|bytes| bytes.checked_add(std::mem::size_of::<bool>()))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if let Some(work_ref) = subject_work_ref_value {
                     subject_scalar_workspace = subject_scalar_workspace
                         .checked_add(estimate_string_storage(work_ref)?)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
                 self.reserve_temporary(subject_scalar_workspace)?;
                 let subject_work_ref = subject_work_ref_value.map(str::to_owned);
@@ -6761,13 +6813,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             .checked_mul(
                                 std::mem::size_of::<String>() + 8 * std::mem::size_of::<usize>(),
                             )
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 for reference in inputs.iter().filter_map(|entry| text(entry, "ref")) {
                     actual_input_state = actual_input_state
                         .checked_add(estimate_string_storage(reference)?)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
                 self.reserve_temporary(actual_input_state)?;
                 let actual_inputs: BTreeSet<String> = inputs
@@ -6780,7 +6832,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .derivation_expected_input_rows;
                 self.schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .begin_derivation_keyset(
                         SourceFoundationClosureDerivationKeySet::ExpectedInputs,
                         expected_input_rows,
@@ -6794,7 +6846,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     let (expected_input, workspace, cursor_state) = self
                         .schema_request_store
                         .as_deref_mut()
-                        .ok_or(ItemRefusal::Budget)?
+                        .ok_or(crate::item_budget_origin!())?
                         .next_derivation_key(
                             SourceFoundationClosureDerivationKeySet::ExpectedInputs,
                             after_input.as_deref(),
@@ -6821,7 +6873,8 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let inputs_equal = input_sets_match
                     && actual_input_iter.next().is_none()
                     && input_count
-                        == usize::try_from(expected_input_rows).map_err(|_| ItemRefusal::Budget)?;
+                        == usize::try_from(expected_input_rows)
+                            .map_err(|_| crate::item_budget_origin!())?;
                 drop(actual_input_iter);
                 drop(actual_inputs);
                 self.release_temporary_state(actual_input_state)?;
@@ -6936,7 +6989,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let finished = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish_derivation(expected_subject_streams, remaining)?;
         self.include_store_workspace(finished.peak_workspace_state_bytes)?;
         self.cost.candidate_derivation_store = finished;
@@ -7008,11 +7061,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let mut subject_scalar_workspace = std::mem::size_of::<Option<String>>()
                     .checked_add(2 * std::mem::size_of::<usize>())
                     .and_then(|bytes| bytes.checked_add(std::mem::size_of::<bool>()))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if let Some(work_ref) = subject_work_ref_value {
                     subject_scalar_workspace = subject_scalar_workspace
                         .checked_add(estimate_string_storage(work_ref)?)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
                 self.reserve_temporary(subject_scalar_workspace)?;
                 let subject_work_ref = subject_work_ref_value.map(str::to_owned);
@@ -7054,7 +7107,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             6 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>(),
                         )
                     })
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
             if !pairs.insert((subject_ref.to_owned(), object_ref.to_owned())) {
                 self.issue(&location, "duplicate Expression-derivation endpoint pair")?;
@@ -7167,7 +7220,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 + 12 * std::mem::size_of::<usize>(),
                         )
                     })
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let object_state = objects.iter().try_fold(0usize, |used, object| {
                     used.checked_add(
                         object
@@ -7177,14 +7230,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                     + std::mem::size_of::<(String, bool)>()
                                     + 8 * std::mem::size_of::<usize>(),
                             )
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
                 })?;
                 state
                     .checked_add(subject_state)
                     .and_then(|n| n.checked_add(object_state))
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             },
         )?;
         self.reserve(graph_workspace)?;
@@ -7208,9 +7261,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                         + 8 * std::mem::size_of::<usize>(),
                                 )
                             })
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             },
         )?;
         self.reserve(inverse_state)?;
@@ -7237,11 +7290,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let workspace = crate::record_biblio_cut::decoded_state(&record.value)?
                 .checked_mul(2)
                 .and_then(|n| n.checked_add(256))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let temporary = temporary
                 .checked_add(workspace)
-                .ok_or(ItemRefusal::Budget)?;
-            let used = retained.checked_add(temporary).ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
+            let used = retained
+                .checked_add(temporary)
+                .ok_or(crate::item_budget_origin!())?;
             if used > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "source-foundation closure derivation backlink workspace",
@@ -7334,7 +7389,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         } else {
                             endpoint_path_state = endpoint_path_state
                                 .checked_add(path_workspace)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             expected_inputs.insert(record_path);
                         }
                     }
@@ -7418,7 +7473,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let expected_rows = self.responsibility_claim_count;
             self.schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .begin_responsibility_claims(expected_rows)?;
             let mut cursor_state_bytes = 0usize;
             loop {
@@ -7426,21 +7481,21 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (claim, workspace, row_state_bytes, retained_cursor_state_bytes) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .next_responsibility_claim(remaining)?;
                 self.include_store_workspace(workspace)?;
                 self.release_loaded_rows(cursor_state_bytes)?;
                 let Some(claim) = claim else {
                     if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
-                        return Err(ItemRefusal::Budget);
+                        return Err(crate::item_budget_origin!());
                     }
                     break;
                 };
                 let active_state_bytes = row_state_bytes
                     .checked_add(retained_cursor_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if active_state_bytes > remaining {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 self.reserve_temporary(active_state_bytes)?;
                 cursor_state_bytes = retained_cursor_state_bytes;
@@ -7576,7 +7631,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let expected_rows = self.cost.candidate_publication_claim_count;
             self.schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .begin_publication_claims(expected_rows)?;
             let mut cursor_state_bytes = 0usize;
             loop {
@@ -7584,21 +7639,21 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let (claim, workspace, row_state_bytes, retained_cursor_state_bytes) = self
                     .schema_request_store
                     .as_deref_mut()
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .next_publication_claim(remaining)?;
                 self.include_store_workspace(workspace)?;
                 self.release_loaded_rows(cursor_state_bytes)?;
                 let Some(claim) = claim else {
                     if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
-                        return Err(ItemRefusal::Budget);
+                        return Err(crate::item_budget_origin!());
                     }
                     break;
                 };
                 let active_state_bytes = row_state_bytes
                     .checked_add(retained_cursor_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if active_state_bytes > remaining {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 self.reserve_temporary(active_state_bytes)?;
                 cursor_state_bytes = retained_cursor_state_bytes;
@@ -7726,7 +7781,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let temporary_baseline = self.temporary_state_bytes;
         let compatibility_headers = 2usize
             .checked_mul(std::mem::size_of::<BTreeSet<String>>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.reserve_temporary(compatibility_headers)?;
         let mut validated_events = BTreeSet::new();
         let mut used_events = BTreeSet::new();
@@ -7734,7 +7789,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let expected_claim_rows = self.cost.candidate_provision_claim_count;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_provision_claims(expected_claim_rows)?;
         let mut cursor_state_bytes = 0usize;
         loop {
@@ -7743,19 +7798,19 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (claim, workspace, row_state_bytes, retained_cursor_state_bytes) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_provision_claim(remaining)?;
             self.release_loaded_rows(cursor_state_bytes)?;
             let Some(claim) = claim else {
                 if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 self.include_store_workspace(workspace)?;
                 break;
             };
             let active_state_bytes = row_state_bytes
                 .checked_add(retained_cursor_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.reserve_temporary(active_state_bytes)?;
             cursor_state_bytes = retained_cursor_state_bytes;
             self.include_store_workspace(workspace)?;
@@ -7816,7 +7871,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let expected_event_rows = self.cost.candidate_provision_event_id_count;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_provision_event_ids(expected_event_rows)?;
         let mut event_cursor_state_bytes = 0usize;
         let mut unused_event_count = 0u64;
@@ -7830,19 +7885,19 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (event_id, workspace, row_state_bytes, retained_cursor_state_bytes) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_provision_event_id(remaining)?;
             self.release_loaded_rows(event_cursor_state_bytes)?;
             let Some(event_id) = event_id else {
                 if row_state_bytes != 0 || retained_cursor_state_bytes != 0 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 self.include_store_workspace(workspace)?;
                 break;
             };
             let active_state_bytes = row_state_bytes
                 .checked_add(retained_cursor_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.reserve_temporary(active_state_bytes)?;
             event_cursor_state_bytes = retained_cursor_state_bytes;
             self.include_store_workspace(workspace)?;
@@ -7851,19 +7906,19 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             if !is_used {
                 unused_event_count = unused_event_count
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 unused_event_source_bytes = unused_event_source_bytes
                     .checked_add(event_id.len())
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 self.cost.candidate_provision_unused_event_count = unused_event_count;
-                let unused_event_count =
-                    usize::try_from(unused_event_count).map_err(|_| ItemRefusal::Budget)?;
+                let unused_event_count = usize::try_from(unused_event_count)
+                    .map_err(|_| crate::item_budget_origin!())?;
                 let (_, list_bytes, _) =
                     python_string_list_workspace(unused_event_count, unused_event_source_bytes)?;
                 let capacity = issue_prefix
                     .len()
                     .checked_add(list_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let next_message_state_bytes = bounded_string_capacity_state(capacity)?;
                 if next_message_state_bytes > unused_message_state_bytes {
                     self.reserve_temporary(next_message_state_bytes - unused_message_state_bytes)?;
@@ -7890,7 +7945,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let remaining = self.remaining_state()?;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .finish_provision(
                 expected_claim_rows,
                 expected_event_rows,
@@ -7902,7 +7957,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let store_cost = self
             .schema_request_store
             .as_deref()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .cost();
         if store_cost.provision_claim_rows != expected_claim_rows
             || store_cost.provision_claim_drained_rows != expected_claim_rows
@@ -7986,7 +8041,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             + 8 * std::mem::size_of::<usize>(),
                     )
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         let temporary_baseline = self.temporary_state_bytes;
         self.reserve_temporary(clone_state)?;
@@ -8480,13 +8535,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let row_state = id
                     .len()
                     .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 current_work_state = current_work_state
                     .checked_add(row_state)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let used = retained_base
                     .checked_add(current_work_state)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if used > max_state {
                     return Err(ItemRefusal::BudgetCheck {
                         check: "source-foundation closure chronology work index",
@@ -8509,9 +8564,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             .checked_add(
                                 std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
                             )
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             },
         )?;
         self.reserve(chronology_work_state)?;
@@ -8616,9 +8671,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                         + 4 * std::mem::size_of::<usize>()),
                                 )
                             })
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             })?;
         let links_state = if self.link_store.is_some() {
             0
@@ -8638,16 +8693,16 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 .and_then(|n| {
                                     n.checked_add(std::mem::size_of::<(String, String, Value)>())
                                 })
-                                .ok_or(ItemRefusal::Budget)?,
+                                .ok_or(crate::item_budget_origin!())?,
                         )
-                        .ok_or(ItemRefusal::Budget)
+                        .ok_or(crate::item_budget_origin!())
                 })?
         };
         self.reserve_temporary(
             claims_state
                 .checked_add(targets_state)
                 .and_then(|n| n.checked_add(links_state))
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         let claims: Vec<(String, SourceFoundationClosureClaimRef)> = self
             .object_links
@@ -8740,7 +8795,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let expected_rows = self.cost.candidate_object_link_store.claim_rows;
         self.schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .begin_object_link_claims(expected_rows)?;
         loop {
             check(self.limits.deadline, self.source.cancellation())?;
@@ -8748,7 +8803,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let (claim, workspace, row_state, next_cursor_state) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .next_object_link_claim(remaining)?;
             self.include_store_workspace(workspace)?;
             let Some((claim_id, claim)) = claim else {
@@ -8764,16 +8819,16 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             };
             let row_and_cursor = row_state
                 .checked_add(next_cursor_state)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let next_temporary = temporary_baseline
                 .checked_add(row_and_cursor)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if self
                 .retained_state_bytes
                 .checked_add(next_temporary)
                 .is_none_or(|used| used > self.limits.max_state_bytes)
             {
-                return Err(ItemRefusal::Budget);
+                return Err(crate::item_budget_origin!());
             }
             self.temporary_state_bytes = next_temporary;
             self.cost.reserved_state_bytes = self
@@ -8843,13 +8898,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             drop(claim_id);
             self.temporary_state_bytes = temporary_baseline
                 .checked_add(next_cursor_state)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.cost.candidate_object_link_store.drained_rows = self
                 .cost
                 .candidate_object_link_store
                 .drained_rows
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
         if self.link_store.is_some() {
             self.check_stored_links(None, None, temporary_baseline)?;
@@ -8875,9 +8930,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                         )>(
                                         ))
                                     })
-                                    .ok_or(ItemRefusal::Budget)?,
+                                    .ok_or(crate::item_budget_origin!())?,
                             )
-                            .ok_or(ItemRefusal::Budget)
+                            .ok_or(crate::item_budget_origin!())
                     })?;
             self.reserve_temporary(links_state)?;
             let links: Vec<(String, String, Value)> = self
@@ -8899,7 +8954,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         events: Option<&BTreeMap<String, String>>,
         temporary_baseline: usize,
     ) -> Result<(), ItemRefusal> {
-        let mut store = self.link_store.take().ok_or(ItemRefusal::Budget)?;
+        let mut store = self.link_store.take().ok_or(crate::item_budget_origin!())?;
         let mut after_id: Option<String> = None;
         let mut cursor_state = 0usize;
         let mut drained = 0u64;
@@ -8910,7 +8965,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let Some(link) = link else {
                 self.temporary_state_bytes = temporary_baseline
                     .checked_add(cursor_state)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let remaining = self.remaining_state()?;
                 let finished = store.finish_links(self.link_count, remaining)?;
                 self.reserve_temporary(finished.workspace_state_bytes)?;
@@ -8948,7 +9003,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let scratch = match (targets, events) {
                 (Some(targets), Some(_)) => link_validation_workspace(&link.value, targets)?,
                 (None, None) => link_validation_candidate_workspace(&link.value)?,
-                _ => return Err(ItemRefusal::Budget),
+                _ => return Err(crate::item_budget_origin!()),
             };
             match (targets, events) {
                 (Some(targets), Some(events)) => {
@@ -8958,7 +9013,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 (None, None) => {
                     self.check_link_row_candidate(&link.id, &link.path, &link.value)?;
                 }
-                _ => return Err(ItemRefusal::Budget),
+                _ => return Err(crate::item_budget_origin!()),
             }
             let next_cursor_state = estimate_string_storage(&link.id)?;
             self.reserve_temporary(next_cursor_state)?;
@@ -8966,13 +9021,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             drop(link);
             self.temporary_state_bytes = temporary_baseline
                 .checked_add(next_cursor_state)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if let Some(previous_cursor) = after_id.take() {
                 drop(previous_cursor);
             }
             after_id = Some(next_after);
             cursor_state = next_cursor_state;
-            drained = drained.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            drained = drained.checked_add(1).ok_or(crate::item_budget_origin!())?;
         }
         self.temporary_state_bytes = temporary_baseline;
         self.link_store = Some(store);
@@ -9075,12 +9130,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             check(self.limits.deadline, self.source.cancellation())?;
             association_bytes = association_bytes
                 .checked_add(id.len())
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let remaining = self.remaining_state()?;
             let (exists, targets_link, matches_event, workspace) = self
                 .schema_request_store
                 .as_deref_mut()
-                .ok_or(ItemRefusal::Budget)?
+                .ok_or(crate::item_budget_origin!())?
                 .object_link_relation(id, link_id, event_ref, remaining)?;
             self.include_store_workspace(workspace)?;
             if !exists {
@@ -9126,7 +9181,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let (streamed, workspace) = self
             .schema_request_store
             .as_deref_mut()
-            .ok_or(ItemRefusal::Budget)?
+            .ok_or(crate::item_budget_origin!())?
             .for_each_object_link_target(link_id, remaining, &mut |id, provider_workspace| {
                 if ref_set.contains(id) {
                     return Ok(());
@@ -9134,30 +9189,30 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 let next_count = unreferenced
                     .len()
                     .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let next_string_state = unreferenced_string_state
                     .checked_add(estimate_string_storage(id)?)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let next_state = next_count
                     .checked_mul(2)
-                    .ok_or(ItemRefusal::Budget)?
+                    .ok_or(crate::item_budget_origin!())?
                     .checked_mul(std::mem::size_of::<String>())
                     .and_then(|state| state.checked_add(next_string_state))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 if provider_workspace
                     .checked_add(next_state)
                     .is_none_or(|used| used > remaining)
                 {
-                    return Err(ItemRefusal::Budget);
+                    return Err(crate::item_budget_origin!());
                 }
                 target_stream_combined_peak = target_stream_combined_peak.max(
                     provider_workspace
                         .checked_add(next_state)
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 );
                 unreferenced
                     .try_reserve_exact(1)
-                    .map_err(|_| ItemRefusal::Budget)?;
+                    .map_err(|_| crate::item_budget_origin!())?;
                 unreferenced.push(id.to_owned());
                 unreferenced_string_state = next_string_state;
                 unreferenced_state = next_state;
@@ -9169,7 +9224,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             .retained_state_bytes
             .checked_add(self.temporary_state_bytes)
             .and_then(|state| state.checked_add(target_stream_combined_peak))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.cost.reserved_state_bytes = self.cost.reserved_state_bytes.max(combined_peak);
         if !unreferenced.is_empty() {
             self.reserve_temporary(unreferenced_state)?;
@@ -9178,7 +9233,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 "object-Link claims are not referenced by Link: ",
                 &unreferenced,
                 unreferenced.iter().try_fold(0usize, |bytes, id| {
-                    bytes.checked_add(id.len()).ok_or(ItemRefusal::Budget)
+                    bytes
+                        .checked_add(id.len())
+                        .ok_or(crate::item_budget_origin!())
                 })?,
             )?;
             drop(unreferenced);
@@ -9205,12 +9262,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             prefix
                 .len()
                 .checked_add(list_bytes)
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )?;
         let format_workspace = render_peak
             .checked_add(list_state)
             .and_then(|state| state.checked_add(message_state))
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         self.reserve_temporary(format_workspace)?;
         let rendered = python_string_list(ids);
         let message = format!("{prefix}{rendered}");
@@ -9252,7 +9309,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let workspace = crate::record_biblio_cut::decoded_state(&record.value)?
                 .checked_mul(3)
                 .and_then(|n| n.checked_add(512))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let mut findings = Vec::<String>::new();
             let mut findings_state_bytes = if candidate_mode {
                 bounded_string_vec_state(&findings, findings.capacity())?
@@ -9262,10 +9319,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             let mut temporary = temporary_base
                 .checked_add(workspace)
                 .and_then(|state| state.checked_add(findings_state_bytes))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             let used = retained
                 .checked_add(temporary)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if used > limits.max_state_bytes {
                 return Err(ItemRefusal::BudgetCheck {
                     check: "source-foundation closure record-backlink workspace",
@@ -9298,15 +9355,15 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 if refs.get(next_ref).map(String::as_str) != Some(claim_id) {
                                     mismatched = true;
                                 }
-                                next_ref = next_ref.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                                next_ref = next_ref.checked_add(1).ok_or(crate::item_budget_origin!())?;
                                 Ok(())
                             },
                         )?;
                     let with_store = used
                         .checked_add(store_workspace)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     if with_store > limits.max_state_bytes {
-                        return Err(ItemRefusal::Budget);
+                        return Err(crate::item_budget_origin!());
                     }
                     cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
                     mismatched |= usize::try_from(drained).ok() != Some(refs.len());
@@ -9348,15 +9405,15 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             }
                             let query_node_state = std::mem::size_of::<&str>()
                                 .checked_add(8 * std::mem::size_of::<usize>())
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             let before_query = retained
                                 .checked_add(temporary)
                                 .and_then(|state| state.checked_add(candidate_responsibility_state))
                                 .and_then(|state| state.checked_add(queried_ids_state))
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             let after_query_set = before_query
                                 .checked_add(query_node_state)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             if after_query_set > limits.max_state_bytes {
                                 return Err(ItemRefusal::BudgetCheck {
                                     check: "source-foundation closure responsibility reference workspace",
@@ -9367,14 +9424,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             queried_ids.insert(claim_id);
                             queried_ids_state = queried_ids_state
                                 .checked_add(query_node_state)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             cost.reserved_state_bytes =
                                 cost.reserved_state_bytes.max(after_query_set);
                             let used = retained
                                 .checked_add(temporary)
                                 .and_then(|state| state.checked_add(candidate_responsibility_state))
                                 .and_then(|state| state.checked_add(queried_ids_state))
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
                                 ItemRefusal::BudgetCheck {
                                     check: "source-foundation closure responsibility point lookup",
@@ -9386,9 +9443,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 store.responsibility_claim_by_id(claim_id, remaining)?;
                             let with_store = used
                                 .checked_add(store_workspace)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             if with_store > limits.max_state_bytes {
-                                return Err(ItemRefusal::Budget);
+                                return Err(crate::item_budget_origin!());
                             }
                             cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
                             if let Some(reference) = candidate {
@@ -9396,7 +9453,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 let row_state = claim_reference_index_state(claim_id, &reference)?;
                                 let with_map_row = with_store
                                     .checked_add(insert_state)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 if with_map_row > limits.max_state_bytes {
                                     return Err(ItemRefusal::BudgetCheck {
                                         check: "source-foundation closure responsibility point result",
@@ -9409,7 +9466,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 candidate_responsibility.insert(claim_id.to_owned(), reference);
                                 candidate_responsibility_state = candidate_responsibility_state
                                     .checked_add(row_state)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                             }
                         }
                     }
@@ -9417,7 +9474,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     let used = retained
                         .checked_add(temporary)
                         .and_then(|state| state.checked_add(candidate_responsibility_state))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
                         ItemRefusal::BudgetCheck {
                             check: "source-foundation closure responsibility subject stream",
@@ -9435,10 +9492,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                     .and_then(|state| {
                                         state.checked_add(candidate_responsibility_state)
                                     })
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 let provider_live = base
                                     .checked_add(row_workspace)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 if provider_live > limits.max_state_bytes {
                                     return Err(ItemRefusal::BudgetCheck {
                                         check: "source-foundation closure responsibility subject row",
@@ -9454,7 +9511,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 let row_state = claim_reference_index_state(claim_id, reference)?;
                                 let with_map_row = provider_live
                                     .checked_add(row_state)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 if with_map_row > limits.max_state_bytes {
                                     return Err(ItemRefusal::BudgetCheck {
                                         check: "source-foundation closure responsibility subject result",
@@ -9468,15 +9525,15 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                     .insert(claim_id.to_owned(), reference.clone());
                                 candidate_responsibility_state = candidate_responsibility_state
                                     .checked_add(row_state)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 Ok(())
                             },
                         )?;
                     let with_store = used
                         .checked_add(store_workspace)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     if with_store > limits.max_state_bytes {
-                        return Err(ItemRefusal::Budget);
+                        return Err(crate::item_budget_origin!());
                     }
                     cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
                     let subject_rows = candidate_responsibility
@@ -9497,7 +9554,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 if candidate_mode {
                     let maps_state = candidate_responsibility_state
                         .checked_add(candidate_publication_state)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     append_candidate_backref_messages(
                         &mut findings,
                         &mut findings_state_bytes,
@@ -9567,7 +9624,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         let used = retained
                             .checked_add(temporary)
                             .and_then(|state| state.checked_add(candidate_publication_state))
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
                             ItemRefusal::BudgetCheck {
                                 check: "source-foundation closure publication reference point lookup",
@@ -9579,9 +9636,9 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             store.publication_claim_by_id(claim_id, remaining)?;
                         let with_store = used
                             .checked_add(store_workspace)
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                         if with_store > limits.max_state_bytes {
-                            return Err(ItemRefusal::Budget);
+                            return Err(crate::item_budget_origin!());
                         }
                         cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
                         if let Some(reference) = candidate {
@@ -9589,7 +9646,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             let row_state = claim_reference_index_state(claim_id, &reference)?;
                             let with_map_row = with_store
                                 .checked_add(insert_state)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                             if with_map_row > limits.max_state_bytes {
                                 return Err(ItemRefusal::BudgetCheck {
                                     check: "source-foundation closure publication point result",
@@ -9601,14 +9658,14 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             candidate_publication.insert(claim_id.clone(), reference);
                             candidate_publication_state = candidate_publication_state
                                 .checked_add(row_state)
-                                .ok_or(ItemRefusal::Budget)?;
+                                .ok_or(crate::item_budget_origin!())?;
                         }
                     }
                     drop(references);
                     let used = retained
                         .checked_add(temporary)
                         .and_then(|state| state.checked_add(candidate_publication_state))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
                         ItemRefusal::BudgetCheck {
                             check: "source-foundation closure publication subject stream",
@@ -9626,10 +9683,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                     .and_then(|state| {
                                         state.checked_add(candidate_publication_state)
                                     })
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 let provider_live = base
                                     .checked_add(row_workspace)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 if provider_live > limits.max_state_bytes {
                                     return Err(ItemRefusal::BudgetCheck {
                                         check: "source-foundation closure publication subject row",
@@ -9645,7 +9702,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                 let row_state = claim_reference_index_state(claim_id, reference)?;
                                 let with_map_row = provider_live
                                     .checked_add(row_state)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 if with_map_row > limits.max_state_bytes {
                                     return Err(ItemRefusal::BudgetCheck {
                                         check: "source-foundation closure publication subject result",
@@ -9659,15 +9716,15 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                                     .insert(claim_id.to_owned(), reference.clone());
                                 candidate_publication_state = candidate_publication_state
                                     .checked_add(row_state)
-                                    .ok_or(ItemRefusal::Budget)?;
+                                    .ok_or(crate::item_budget_origin!())?;
                                 Ok(())
                             },
                         )?;
                     let with_store = used
                         .checked_add(store_workspace)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     if with_store > limits.max_state_bytes {
-                        return Err(ItemRefusal::Budget);
+                        return Err(crate::item_budget_origin!());
                     }
                     cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
                     let subject_rows = candidate_publication
@@ -9688,7 +9745,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 if candidate_mode {
                     let maps_state = candidate_responsibility_state
                         .checked_add(candidate_publication_state)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     append_candidate_backref_messages(
                         &mut findings,
                         &mut findings_state_bytes,
@@ -9765,16 +9822,16 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 )?;
                 let temporary_without_findings = temporary
                     .checked_sub(findings_state_bytes)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let map_state = candidate_responsibility_state
                     .checked_add(candidate_publication_state)
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let mut pending_message_state = findings.iter().try_fold(
                     0usize,
                     |state, message| {
                         state
                             .checked_add(estimate_string_storage(message)?)
-                            .ok_or(ItemRefusal::Budget)
+                            .ok_or(crate::item_budget_origin!())
                     },
                 )?;
                 let findings_capacity_state = std::mem::size_of::<std::vec::IntoIter<String>>()
@@ -9782,35 +9839,35 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         findings
                             .capacity()
                             .checked_mul(std::mem::size_of::<String>())
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 let location_state = estimate_string_storage(location)?;
                 let mut pending = findings.into_iter();
                 while let Some(message) = pending.next() {
                     let message_state = estimate_string_storage(&message)?;
                     pending_message_state = pending_message_state
                         .checked_sub(message_state)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     let message_extra = message_state
                         .checked_sub(message.len())
                         .and_then(|state| {
                             state.checked_sub(std::mem::size_of::<String>())
                         })
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     let location_extra = location_state
                         .checked_sub(location.len())
                         .and_then(|state| {
                             state.checked_sub(std::mem::size_of::<String>())
                         })
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     let pending_state = temporary_without_findings
                         .checked_add(map_state)
                         .and_then(|state| state.checked_add(findings_capacity_state))
                         .and_then(|state| state.checked_add(pending_message_state))
                         .and_then(|state| state.checked_add(message_extra))
                         .and_then(|state| state.checked_add(location_extra))
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                     push_bounded_issue(
                         issues,
                         cost,
@@ -9831,7 +9888,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         temporary
                             .checked_add(candidate_responsibility_state)
                             .and_then(|state| state.checked_add(candidate_publication_state))
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                         limits,
                         cancelled,
                         location,
@@ -9947,13 +10004,13 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         values
                             .len()
                             .checked_mul(std::mem::size_of::<String>())
-                            .ok_or(ItemRefusal::Budget)?,
+                            .ok_or(crate::item_budget_origin!())?,
                     )
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 for expression_ref in values.iter().filter_map(Value::as_str) {
                     expression_refs_state = expression_refs_state
                         .checked_add(estimate_string_storage(expression_ref)?)
-                        .ok_or(ItemRefusal::Budget)?;
+                        .ok_or(crate::item_budget_origin!())?;
                 }
             }
             self.reserve_temporary(expression_refs_state)?;
@@ -10138,7 +10195,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .and_then(|bytes| bytes.checked_add(event.len()))
                 .and_then(|bytes| bytes.checked_add(location.len()))
                 .and_then(|bytes| bytes.checked_add(128))
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if self.schema_request_store.is_some() {
                 candidate_claim_fields_state_bytes = claim_fields_state_bytes;
                 self.reserve_temporary(candidate_claim_fields_state_bytes)?;
@@ -10157,7 +10214,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     .and_then(|bytes| {
                         bytes.checked_add(std::mem::size_of::<SourceFoundationClosureClaimRef>())
                     })
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 self.reserve_temporary(candidate_membership_state_bytes)?;
             }
             let subject = subject.to_owned();
@@ -10274,7 +10331,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     let (inserted, workspace) = self
                         .schema_request_store
                         .as_deref_mut()
-                        .ok_or(ItemRefusal::Budget)?
+                        .ok_or(crate::item_budget_origin!())?
                         .remember_derivation_id(&id, remaining)?;
                     self.include_store_workspace(workspace)?;
                     if inserted {
@@ -10283,7 +10340,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             .candidate_derivation_store
                             .derivation_id_rows
                             .checked_add(1)
-                            .ok_or(ItemRefusal::Budget)?;
+                            .ok_or(crate::item_budget_origin!())?;
                     }
                 } else {
                     self.reserve(claim_reference_index_state(&id, &reference)?)?;
@@ -10410,21 +10467,21 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         parent
                             .len()
                             .checked_add("/anchors.jsonl".len())
-                            .ok_or(ItemRefusal::Budget)
+                            .ok_or(crate::item_budget_origin!())
                     })
                     .transpose()?
                     .unwrap_or("anchors.jsonl".len());
                 let anchor_path_state = anchor_path_bytes
                     .checked_mul(2)
                     .and_then(|bytes| bytes.checked_add(std::mem::size_of::<String>() + 32))
-                    .ok_or(ItemRefusal::Budget)?;
+                    .ok_or(crate::item_budget_origin!())?;
                 self.reserve_temporary(
                     anchor_path_state
                         .checked_add(std::mem::size_of::<BTreeSet<String>>())
                         .and_then(|bytes| {
                             bytes.checked_add(std::mem::size_of::<BTreeMap<String, u64>>())
                         })
-                        .ok_or(ItemRefusal::Budget)?,
+                        .ok_or(crate::item_budget_origin!())?,
                 )?;
             }
             let anchor_path = map_path
@@ -10711,7 +10768,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let per_id_state = id
             .len()
             .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let candidate_local_indexes = self.schema_request_store.is_some();
         let page_selectors = anchor
             .get("selectors")
@@ -10724,7 +10781,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         for selector in page_selectors {
             page_selector_count = page_selector_count
                 .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             if page_selector_count == 1 {
                 page = selector.get("page").and_then(Value::as_u64);
             }
@@ -10734,14 +10791,18 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let page_key_exists = page_by_id.contains_key(id);
         let page_entry_state = per_id_state
             .checked_add(std::mem::size_of::<u64>())
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         let candidate_precharge = per_id_state
             .checked_add(page_entry_state)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
         if candidate_local_indexes {
             self.reserve_temporary(candidate_precharge)?;
         } else {
-            self.reserve(per_id_state.checked_mul(3).ok_or(ItemRefusal::Budget)?)?;
+            self.reserve(
+                per_id_state
+                    .checked_mul(3)
+                    .ok_or(crate::item_budget_origin!())?,
+            )?;
         }
         let duplicate = if self.schema_request_store.is_some() {
             !self.remember_candidate_anchor_id(id)?
@@ -10753,7 +10814,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         }
         local_ids.insert(id.to_owned());
         if page_is_inserted {
-            page_by_id.insert(id.to_owned(), page.ok_or(ItemRefusal::Budget)?);
+            page_by_id.insert(id.to_owned(), page.ok_or(crate::item_budget_origin!())?);
         }
         if page_selector_count != 1 {
             self.issue(
@@ -10768,11 +10829,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 } else {
                     0
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
             self.release_temporary_state(
                 candidate_precharge
                     .checked_sub(retained_state)
-                    .ok_or(ItemRefusal::Budget)?,
+                    .ok_or(crate::item_budget_origin!())?,
             )?;
         }
         Ok(())
@@ -10953,7 +11014,7 @@ fn loaded_clone_cost(rows: &LoadedRows) -> Result<usize, ItemRefusal> {
         rows.digest
             .len()
             .checked_add(std::mem::size_of::<LoadedRows>())
-            .ok_or(ItemRefusal::Budget)?,
+            .ok_or(crate::item_budget_origin!())?,
         |used, (line, value)| {
             used.checked_add(std::mem::size_of::<(usize, Value)>())
                 .and_then(|bytes| bytes.checked_add(std::mem::size_of_val(line)))
@@ -10962,21 +11023,21 @@ fn loaded_clone_cost(rows: &LoadedRows) -> Result<usize, ItemRefusal> {
                         .ok()
                         .and_then(|size| bytes.checked_add(size))
                 })
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(crate::item_budget_origin!())
         },
     )?;
     let spare_rows = rows
         .rows
         .capacity()
         .checked_sub(rows.rows.len())
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     state
         .checked_add(
             spare_rows
                 .checked_mul(std::mem::size_of::<(usize, Value)>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn check(deadline: Instant, cancelled: &std::sync::atomic::AtomicBool) -> Result<(), ItemRefusal> {
@@ -10994,12 +11055,12 @@ fn check(deadline: Instant, cancelled: &std::sync::atomic::AtomicBool) -> Result
 fn assessment_refusal(error: crate::assessment::AssessmentRefusal) -> ItemRefusal {
     use crate::assessment::AssessmentRefusal;
     match error {
-        AssessmentRefusal::Budget => ItemRefusal::Budget,
+        AssessmentRefusal::Budget => crate::item_budget_origin!(),
         AssessmentRefusal::Deadline => ItemRefusal::Deadline,
         AssessmentRefusal::Cancelled => {
             ItemRefusal::Source("source-foundation closure cancelled during Python equality".into())
         }
-        AssessmentRefusal::Schema(ItemRefusal::Budget) => ItemRefusal::Budget,
+        AssessmentRefusal::Schema(ItemRefusal::Budget) => crate::item_budget_origin!(),
         AssessmentRefusal::Schema(ItemRefusal::BudgetCheck { check, used, limit }) => {
             ItemRefusal::BudgetCheck { check, used, limit }
         }
@@ -11044,13 +11105,13 @@ fn value_strings_workspace(value: &Value, key: &str) -> Result<usize, ItemRefusa
             references
                 .len()
                 .checked_mul(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?,
+                .ok_or(crate::item_budget_origin!())?,
         )
-        .ok_or(ItemRefusal::Budget)?;
+        .ok_or(crate::item_budget_origin!())?;
     for reference in references.iter().filter_map(Value::as_str) {
         state = state
             .checked_add(estimate_string_storage(reference)?)
-            .ok_or(ItemRefusal::Budget)?;
+            .ok_or(crate::item_budget_origin!())?;
     }
     Ok(state)
 }
@@ -11072,7 +11133,7 @@ fn link_validation_workspace(
                         std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>() + 96,
                     )
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
     }
     let target_bytes =
@@ -11086,13 +11147,13 @@ fn link_validation_workspace(
                             std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>() + 96,
                         )
                     })
-                    .ok_or(ItemRefusal::Budget)
+                    .ok_or(crate::item_budget_origin!())
             })?;
     reference_bytes
         .checked_mul(5)
         .and_then(|bytes| bytes.checked_add(target_bytes.checked_mul(3)?))
         .and_then(|bytes| bytes.checked_add(512))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn link_validation_candidate_workspace(value: &Value) -> Result<usize, ItemRefusal> {
@@ -11109,13 +11170,13 @@ fn link_validation_candidate_workspace(value: &Value) -> Result<usize, ItemRefus
                         std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>() + 96,
                     )
                 })
-                .ok_or(ItemRefusal::Budget)?;
+                .ok_or(crate::item_budget_origin!())?;
         }
     }
     reference_bytes
         .checked_mul(5)
         .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<String>>() + 512))
-        .ok_or(ItemRefusal::Budget)
+        .ok_or(crate::item_budget_origin!())
 }
 
 fn python_string_list(values: &[String]) -> String {

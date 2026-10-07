@@ -2999,38 +2999,7 @@ impl<'a> KnowledgeStage<'a> {
         self.poisoned |= result.is_err();
         result
     }
-    // The normalized row already owns this source value. Preserve its exact
-    // logical payload through the existing round-trip codec, while storing the
-    // embedded value only once. Original source packets retain their separate
-    // byte receipts; this serialization does not replace those packets.
-    fn with_embedded_source_bytes<T>(
-        &mut self,
-        payload: &[u8],
-        consume: impl FnOnce(&mut Self, Option<&[u8]>) -> Result<T>,
-    ) -> Result<T> {
-        let state = self
-            .owned_creation_state()
-            .ok_or(Error::Invalid("carrier embedded source state absent"))?;
-        let cap = usize::try_from(self.limits.sqlite.max_row_bytes)
-            .map_err(|_| Error::Budget("carrier embedded source row cap"))?;
-        let limits = crate::knowledge_normalization::SourceRow::json_limits(cap)?;
-        state.with_serde_owned_with_limits(payload, limits, |value| {
-            let Some(source) = value.pointer("/source_record/payload") else {
-                // Non-normalized opaque rows retain their existing storage.
-                return consume(self, None);
-            };
-            let encoded = state.encode_json(source, cap)?;
-            consume(self, Some(&encoded))
-        })
-    }
-
     fn insert_node_inner(&mut self, row: NodeRow<'_>) -> Result<()> {
-        if self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1 {
-            return self.with_embedded_source_bytes(row.payload, |stage, source| match source {
-                Some(source) => stage.insert_node_with_exact_source(row, source),
-                None => stage.insert_node_storage_inner(row, None),
-            });
-        }
         self.insert_node_storage_inner(row, None)
     }
     fn insert_node_storage_inner(
@@ -3161,12 +3130,6 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn insert_relation_inner(&mut self, row: RelationRow<'_>) -> Result<()> {
-        if self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1 {
-            return self.with_embedded_source_bytes(row.payload, |stage, source| match source {
-                Some(source) => stage.insert_relation_with_exact_source(row, source),
-                None => stage.insert_relation_storage_inner(row, None),
-            });
-        }
         self.insert_relation_storage_inner(row, None)
     }
     fn insert_relation_storage_inner(
