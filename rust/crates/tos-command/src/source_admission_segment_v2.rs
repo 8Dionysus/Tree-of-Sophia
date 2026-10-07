@@ -185,17 +185,99 @@ fn append_storage_descriptors(
         .ok_or_else(|| invalid("storage tuple is not an array"))?;
     if let Some(objects) = objects {
         fields.push(
-            serde_json::from_slice(&tree_bytes(objects)?)
+            serde_json::to_value(tree_bytes(objects)?)
                 .map_err(|_| invalid("object tree descriptor JSON differs"))?,
         );
     }
     if let Some(identity_paths) = identity_paths {
         fields.push(
-            serde_json::from_slice(&tree_bytes(identity_paths)?)
+            serde_json::to_value(tree_bytes(identity_paths)?)
                 .map_err(|_| invalid("identity tree descriptor JSON differs"))?,
         );
     }
     Ok(value)
+}
+
+#[cfg(test)]
+mod rootset_descriptor_tests {
+    use super::*;
+    use std::sync::atomic::AtomicBool;
+    use std::time::Duration;
+
+    #[test]
+    fn optional_storage_descriptors_preserve_packed_and_empty_wire_bytes() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = SegmentStore::initialize_empty(
+            directory.path(),
+            b"rootset-descriptor-test",
+            SegmentLimits {
+                max_segment_bytes: 1024 * 1024,
+                max_frame_bytes: 4096,
+                max_frames: 8,
+                max_journal_bytes: 64 * 1024,
+            },
+        )
+        .unwrap();
+        let limits = AuthenticatedTreeLimitsV1 {
+            max_key_bytes: 32,
+            max_value_bytes: 76,
+            max_kind_bytes: 64,
+            max_node_bytes: 4096,
+            max_children: 16,
+            max_nodes: 128,
+            max_total_bytes: 16 * 1024 * 1024,
+            max_rows: 3,
+        };
+        let deadline = Instant::now() + Duration::from_secs(20);
+        let cancelled = AtomicBool::new(false);
+        let objects = store
+            .build_authenticated_tree_v2(
+                OBJECT_EXTENTS_KIND,
+                [Ok(AuthenticatedTreeEntryV1 {
+                    key: b"object".to_vec(),
+                    value: b"extent".to_vec(),
+                })],
+                limits,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        let identities = store
+            .build_authenticated_tree_v2(
+                IDENTITY_PATHS_KIND,
+                std::iter::empty(),
+                limits,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        for (object, identity) in [
+            (None, None),
+            (Some(&objects), None),
+            (None, Some(&identities)),
+            (Some(&objects), Some(&identities)),
+        ] {
+            let value = append_storage_descriptors(serde_json::json!(["prefix"]), object, identity)
+                .unwrap();
+            let wire = serde_json::to_vec(&value).unwrap();
+            let (document, _) = parse_bounded_json(
+                &wire,
+                ROOTSET_MAX_BYTES,
+                decode_workspace_upper_bound(wire.len()).unwrap(),
+            )
+            .unwrap();
+            let fields = document.root().as_array().unwrap();
+            let expected: Vec<_> = object.into_iter().chain(identity).collect();
+            assert_eq!(fields.len(), 1 + expected.len());
+            for (index, (field, descriptor)) in fields[1..].iter().zip(expected).enumerate() {
+                assert_eq!(tree(field).unwrap(), *descriptor);
+                assert_eq!(
+                    serde_json::from_value::<Vec<u8>>(value[index + 1].clone()).unwrap(),
+                    tree_bytes(descriptor).unwrap(),
+                );
+            }
+        }
+    }
 }
 
 fn invalid(message: &'static str) -> io::Error {

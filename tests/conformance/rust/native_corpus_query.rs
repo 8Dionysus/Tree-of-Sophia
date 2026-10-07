@@ -2,11 +2,11 @@
 // This is finite selected projection mechanics, not a production rights issuer.
 
 const NATIVE_CORPUS_QUERY_ORACLE: &str = r#"
-from tos_access.core import ToSAccessCore
+from tos_access.core import ReferenceToSAccessCore
 index_path=root/sys.argv[4]
 index_path.parent.mkdir(parents=True,exist_ok=True)
 index_path.write_text(owner.render_payload(payload),encoding='utf-8')
-core=ToSAccessCore.discover(tos_root=root)
+core=ReferenceToSAccessCore.discover(tos_root=root)
 def first(collection,key):
  return next(item for item in payload[collection] if isinstance(item,dict) and isinstance(item.get(key),str))
 node=first('nodes','node_id');pack=first('relation_packs','pack_id')
