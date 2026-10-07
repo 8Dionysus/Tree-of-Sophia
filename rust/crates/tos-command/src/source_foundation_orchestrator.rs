@@ -1361,9 +1361,9 @@ pub(crate) fn build_candidate_native_index(
     Ok(retained)
 }
 
-/// Post-catalog custody for the borrowed candidate route. The catalog must
-/// already have stopped the same Item worker; the record worker is stopped
-/// here before either physical provider rereads its observations. This helper
+/// Post-native-index custody for the borrowed candidate route. The final schema
+/// worker must already have stopped on the same candidate; the record worker is
+/// stopped here before either physical provider rereads its observations. This helper
 /// returns payload evidence only, never native admission completion. Authored,
 /// catalog, historical and full candidate raw EOF custody remain caller duties.
 pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
@@ -1372,7 +1372,7 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
     input: &crate::source_admission_candidate_records::CandidateRecordsInput<'candidate, 'host>,
     original_io: &tos_source_store::PinnedSqliteIoBudget,
     mut payloads: FoundationPayloadSources<'_>,
-    item_schemas: &tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+    terminal_schemas: &tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
         crate::source_admission_spooled_candidate::CandidateFence,
     >,
     record_executor: &mut BiblioRecordExecutor,
@@ -1388,14 +1388,14 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
     let input_identity: &dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<
         crate::source_admission_spooled_candidate::CandidateFence,
     > = input;
-    if item_schemas.input_identity() != view.input.input_identity()
+    if terminal_schemas.input_identity() != view.input.input_identity()
         || !std::ptr::addr_eq(view.input, input_identity)
         || !candidate.shares_io_budget(original_io)
         || !input.shares_io_budget(original_io)
         || !view.original_io.shares_with(original_io)
         || !view.physical.shared_io_budget_matches(original_io)
         || !view.physical.forwards_physical_reads_to_shared_io()
-        || !item_schemas.is_finished()
+        || !terminal_schemas.is_finished()
         || !candidate.matches_invocation(deadline, cancelled)
         || payloads.deadline() != deadline
         || view.physical.deadline() != deadline
@@ -3688,7 +3688,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         drop(validator);
         // The catalog owner already closes the borrowed executor before returning
         // complete output. Verify its terminal state; a second finish is refused.
-        if !item_schemas.is_finished() {
+        if !item_schemas.is_finished()
+            || item_schemas.input_identity() != input.input_identity()
+        {
             return Err(incomplete(
                 "candidate catalog schema worker EOF is incomplete",
             ));
@@ -3722,6 +3724,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         view.remaining_write_bytes,
         remaining_write,
     )?;
+    // Catalog EOF and its candidate binding were verified above. Release the
+    // completed schema closure before preparing the next worker; its controller
+    // workspace must not overlap the native constructor. The cumulative ledger
+    // retains the earlier charge, and final custody checks the native worker's
+    // own candidate binding and successful EOF.
+    drop(item_schemas);
     let remaining = view
         .remaining_budget
         .remaining()
@@ -3770,7 +3778,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
-        .and_then(|state| state.checked_add(schema_state))
         .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
         .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
         .and_then(|state| {
@@ -3912,7 +3919,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .and_then(|state| state.checked_add(default_event_retained_state))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
-        .and_then(|state| state.checked_add(schema_state))
         .and_then(|state| state.checked_add(native_schema_state))
         .and_then(|state| state.checked_add(native_index_state))
         .and_then(|state| state.checked_add(records_cost_state))
@@ -3952,7 +3958,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         input,
         original_io,
         payloads,
-        &item_schemas,
+        &native_schemas,
         &mut record_executor,
         &worker_quota,
         final_held,
