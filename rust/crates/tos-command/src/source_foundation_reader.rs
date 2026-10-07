@@ -970,6 +970,22 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
                 .map(|facts| facts.is_some_and(|facts| facts.exists))
                 .map_err(custody);
         }
+        // Presence follows the same authored/private boundary as current().
+        // An immutable candidate member need not exist in the auxiliary tree.
+        if crate::source_current_cut::foundation_capture::selected(path, false) {
+            let present = match &self.input {
+                FoundationRuleInput::Cut(cut) => {
+                    let relative = RelativePath::parse(path)
+                        .map_err(|_| ItemRefusal::Source("foundation current input path".into()))?;
+                    cut.presence(cut.current().revision(), &relative).is_some()
+                }
+                FoundationRuleInput::Candidate(input) => input
+                    .path_presence(path, deadline.min(self.limits.deadline), self.cancelled)?
+                    .is_some(),
+            };
+            self.checkpoint(deadline)?;
+            return Ok(present);
+        }
         self.physical.exists(path).map_err(custody)
     }
     fn payload(
