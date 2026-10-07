@@ -2403,7 +2403,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     use tos_validation::source_foundation_records::{
                         SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
                     };
-                    let cap = crate::source_foundation_admission::NativeValidationRefusal::MAX_PUBLIC_REASON_BYTES;
+                    let cap = 192usize; // Original Item histogram envelope; collections have their own bound.
                     let expected = usize::try_from(verified.item_issue_count())
                         .map_err(|_| io::Error::other("Item issue count does not fit"))?;
                     if expected > item_limits.max_issues {
@@ -3150,11 +3150,50 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 cause = result.path();
                             }
                         }
-                        return Err(ItemRefusal::Source(
-                            crate::source_admission_spooled_index::bounded_source_cause(
-                                "receiver-source", &site, cause,
-                            ),
-                        ));
+                        // Return the bounded set from this same evaluation, not
+                        // just its first finding. Fingerprints preserve source
+                        // privacy while allowing the owner to correlate every
+                        // path and reason against the selected local inputs.
+                        use crate::source_admission_spooled_index::{
+                            MAX_SOURCE_CAUSE_BYTES, MAX_SOURCE_CAUSES, bounded_source_cause,
+                        };
+                        let summary = bounded_source_cause("receiver-source", &site, cause);
+                        let diagnostic_cap = MAX_SOURCE_CAUSE_BYTES.min(biblio_operation.output_bytes);
+                        let diagnostic_state = evaluated.cost.peak_additional_state_upper_bound_bytes
+                            .checked_add(diagnostic_cap + 1024)
+                            .ok_or(tos_validation::item_budget_origin!())?;
+                        if diagnostic_state > diagnostic_state_cap
+                            || summary.len() + "source-causes:".len() > diagnostic_cap {
+                            return Err(ItemRefusal::Source(summary));
+                        }
+                        let mut causes = String::with_capacity(diagnostic_cap);
+                        causes.push_str("source-causes:");
+                        causes.push_str(&summary);
+                        let findings = owner_report.labs.iter()
+                            .flat_map(|labs| labs.ordered_issues.iter().map(|(path, issue)| ("l", path.as_str(), issue.as_str())))
+                            .chain(owner_report.goldsets.iter()
+                                .flat_map(|goldsets| goldsets.ordered_issues.iter().map(|(path, issue)| ("g", path.as_str(), issue.as_str()))))
+                            .chain(owner_report.discovery.issues.iter()
+                                .map(|issue| ("d", issue.location.as_str(), issue.detail.as_str())))
+                            .chain(owner_report.closure.issues.iter()
+                                .map(|(path, issue)| ("c", path.as_str(), issue.as_str())));
+                        for (district, path, issue) in findings.take(MAX_SOURCE_CAUSES - 1) {
+                            let prefix = issue.split_once(':').map_or(issue, |(prefix, _)| prefix);
+                            let prefix = Digest256::of_bytes(prefix.as_bytes()).to_hex();
+                            let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                            let site = format!("df-{district}-{}-p{}", &prefix[..12], &path[..12]);
+                            let token = bounded_source_cause("receiver-source", &site, issue);
+                            if causes.len().checked_add(1 + token.len())
+                                .is_none_or(|bytes| bytes > diagnostic_cap) {
+                                break;
+                            }
+                            causes.push('|');
+                            causes.push_str(&token);
+                        }
+                        if causes.len() > diagnostic_cap {
+                            return Err(tos_validation::item_budget_origin!());
+                        }
+                        return Err(ItemRefusal::Source(causes));
                     }
                     let _ordered_rule_observations = evaluated.ordered_observation_sha256();
                     let after_defaults = view.original_io.snapshot();

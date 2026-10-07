@@ -294,7 +294,28 @@ pub(crate) fn bounded_source_cause(module: &str, site: &str, reason: &str) -> St
         Digest256::of_bytes(reason.as_bytes()).to_hex()
     )
 }
+/// A bounded collection of independently redacted owner diagnostics. The first
+/// entry remains the original predicate summary; later entries locate findings.
+/// The grammar admits only existing source-cause tokens, never source prose.
+pub(crate) const MAX_SOURCE_CAUSE_BYTES: usize = 4096;
+pub(crate) const MAX_SOURCE_CAUSES: usize = 17;
 pub(crate) fn is_bounded_source_cause(reason: &str) -> bool {
+    if let Some(causes) = reason.strip_prefix("source-causes:") {
+        if reason.len() > MAX_SOURCE_CAUSE_BYTES {
+            return false;
+        }
+        let mut count = 0usize;
+        for cause in causes.split('|') {
+            count += 1;
+            if count > MAX_SOURCE_CAUSES || !is_single_source_cause(cause) {
+                return false;
+            }
+        }
+        return count > 0;
+    }
+    is_single_source_cause(reason)
+}
+fn is_single_source_cause(reason: &str) -> bool {
     let mut parts = reason.split(':');
     let schema = parts.next();
     let module = parts.next();
@@ -2264,6 +2285,24 @@ mod executor_refusal_tests {
         ChildTermination, ExchangeFailureContext, ExecutorFailure, SharedSchemaWorkerQuotaUsage,
     };
     use tos_validation::item_rules::ItemExecutorRefusal;
+
+    #[test]
+    fn multiple_source_causes_preserve_only_bounded_redacted_tokens() {
+        let first = bounded_source_cause("receiver-source", "df-c-0123456789ab", "private input A");
+        let second = bounded_source_cause("receiver-source", "df-c-fedcba987654", "private input B");
+        let reason = format!("source-causes:{first}|{second}");
+        assert!(is_bounded_source_cause(&reason));
+        assert_eq!(receiver_refusal(ItemRefusal::Source(reason.clone())).to_string(), reason);
+        for bad in [
+            "source-causes:".to_owned(),
+            format!("source-causes:{first}|private input B"),
+            format!("source-causes:{first}|source-causes:{second}"),
+            format!("source-causes:{}", vec![first; MAX_SOURCE_CAUSES + 1].join("|")),
+        ] {
+            assert!(!is_bounded_source_cause(&bad));
+        }
+        assert!(!reason.contains("private"));
+    }
 
     #[test]
     fn unsupported_shape_fingerprint_preserves_digest_without_private_text() {

@@ -55,7 +55,8 @@ use tos_source_store::{
 #[derive(Debug)]
 pub(crate) struct NativeValidationRefusal(pub(crate) String);
 impl NativeValidationRefusal {
-    pub(crate) const MAX_PUBLIC_REASON_BYTES: usize = 192;
+    pub(crate) const MAX_PUBLIC_REASON_BYTES: usize =
+        crate::source_admission_spooled_index::MAX_SOURCE_CAUSE_BYTES;
 }
 impl std::fmt::Display for NativeValidationRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
