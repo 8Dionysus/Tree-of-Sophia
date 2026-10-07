@@ -596,6 +596,31 @@ impl PlanningCut<'_> {
             _ => Ok(true),
         }
     }
+    fn file_present(
+        &self,
+        revision: Option<SourceRevision>,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool> {
+        check(deadline, cancelled)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| Error::Invalid("catalog dependency relative path"))?;
+        match self {
+            Self::Candidate(input) => input
+                .path_presence(path, deadline, cancelled)
+                .map(|presence| presence == Some(tos_source_store::SourcePresenceV1::File))
+                .map_err(|error| candidate_input_refusal(error)),
+            Self::Resident(cut) => Ok(cut.current().member(&relative).is_some()),
+            Self::Streamed(cut) => cut
+                .member(
+                    revision.ok_or(Error::Invalid("streamed plan revision missing"))?,
+                    &relative,
+                )
+                .map(|member| member.is_some())
+                .map_err(|error| Error::Source(error.to_string())),
+        }
+    }
     fn member(
         &self,
         revision: Option<SourceRevision>,
@@ -899,6 +924,17 @@ impl Planning<'_, '_> {
         // Only actual positive public metadata members join the raw recipe.
         // Payload/corpus bytes and generated catalog carriers remain outside.
         if public_path(path) {
+            // The renderer also probes optional companions and directory
+            // references. A strict generated-record selector only accepts real
+            // member paths; absence must be decided by the held input first.
+            if !self.cut.file_present(
+                self.revision,
+                path,
+                self.graph_limits.deadline,
+                self.cancelled,
+            )? {
+                return Ok(());
+            }
             if !self.cut.selects_required_member(path)? {
                 // Optional producer companions do not enlarge the
                 // declared closure. Required-reference validity remains
