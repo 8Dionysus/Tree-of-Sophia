@@ -4820,6 +4820,20 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
     }
 
     fn collect_events(&mut self) -> Result<(), ItemRefusal> {
+        let selection = self.source.record_selection();
+        let scoped = self.scope.is_scoped();
+        let matches_event_path = |path: &str| {
+            path.ends_with(PROVISION_EVENT_BASENAME)
+                || scoped
+                    && (selection.as_ref().is_some_and(|selection| {
+                        selection
+                            .file_slots(path)
+                            .iter()
+                            .any(|slot| slot.kind == "provenance_event")
+                    }) || path.starts_with(SOURCE_HOME)
+                        && (path.ends_with("/provenance.jsonl")
+                            || path.contains("/provenance.") && path.ends_with(".jsonl")))
+        };
         let mut event_key_mismatch = false;
         let deadline = self.limits.deadline;
         let cancelled = self.source.cancellation();
@@ -4858,12 +4872,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 if !self.source.selects_semantic_member(path)? {
                     return Ok(());
                 }
-                if path.ends_with(PROVISION_EVENT_BASENAME)
-                    || self.scope.is_scoped()
-                        && path.starts_with(SOURCE_HOME)
-                        && (path.ends_with("/provenance.jsonl")
-                            || path.contains("/provenance.") && path.ends_with(".jsonl"))
-                {
+                if matches_event_path(path) {
                     self.remember_candidate_event_path(path, &mut event_path_rows)?;
                 }
                 Ok(())
@@ -4940,7 +4949,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 CHRONOLOGY_PROVENANCE.to_owned(),
             ]);
             event_paths.extend(self.collect_current_paths(
-                |path| path.ends_with(PROVISION_EVENT_BASENAME),
+                matches_event_path,
                 "source-foundation closure event-path index",
             )?);
             for path in event_paths {
