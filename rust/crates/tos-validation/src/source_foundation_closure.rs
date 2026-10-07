@@ -743,6 +743,25 @@ pub trait SourceFoundationClosureSchemaRequestStore {
         ) -> Result<(), ItemRefusal>,
     ) -> Result<(u64, usize), ItemRefusal>;
 
+    /// Exact-key lookup for current-record backlink checks.
+    fn provision_claim_by_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize), ItemRefusal>;
+
+    /// Stream one edition's Provision claims in exact binary ID order.
+    fn for_each_provision_claim_for_subject(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(
+            &str,
+            &SourceFoundationClosureClaimRef,
+            usize,
+        ) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal>;
+
     /// Upsert one plain Provision ClaimRef by exact ID with the BTreeMap's
     /// replacement behavior, then seal and drain unique rows in binary ID order.
     fn remember_provision_claim(
@@ -2097,6 +2116,143 @@ fn push_bounded_issue(
     issues.push((location, message));
     cost.emitted_issues = issues.len();
     Ok(())
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BackrefClaimFamily {
+    Responsibility,
+    Publication,
+    Provision,
+}
+
+/// Materialize only this record's exact references and subject range from the
+/// completed claim store. The same join retains wrong-subject references and
+/// unreferenced subject claims for all three backlink families.
+fn candidate_backref_claims(
+    store: &mut dyn SourceFoundationClosureSchemaRequestStore,
+    family: BackrefClaimFamily,
+    record: &Value,
+    field: &str,
+    subject: &str,
+    available: usize,
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<
+    (
+        BTreeMap<String, SourceFoundationClosureClaimRef>,
+        usize,
+        usize,
+    ),
+    ItemRefusal,
+> {
+    fn admit(
+        used: usize,
+        extra: usize,
+        limit: usize,
+        peak: &mut usize,
+    ) -> Result<usize, ItemRefusal> {
+        let total = used
+            .checked_add(extra)
+            .ok_or(crate::item_budget_origin!())?;
+        if total > limit {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation closure candidate backlink join",
+                used: Some(total as u64),
+                limit: Some(limit as u64),
+            });
+        }
+        *peak = (*peak).max(total);
+        Ok(total)
+    }
+    check(deadline, cancelled)?;
+    let mut claims = BTreeMap::new();
+    let mut state = std::mem::size_of::<BTreeMap<String, SourceFoundationClosureClaimRef>>();
+    let mut queried = BTreeSet::new();
+    let mut query_state = std::mem::size_of::<BTreeSet<&str>>();
+    let mut peak = 0;
+    admit(state, query_state, available, &mut peak)?;
+    if let Some(references) = record.get(field).and_then(Value::as_array) {
+        for id in references.iter().filter_map(Value::as_str) {
+            check(deadline, cancelled)?;
+            if queried.contains(id) {
+                continue;
+            }
+            let entry = std::mem::size_of::<&str>() + 8 * std::mem::size_of::<usize>();
+            query_state = query_state
+                .checked_add(entry)
+                .ok_or(crate::item_budget_origin!())?;
+            let used = admit(state, query_state, available, &mut peak)?;
+            queried.insert(id);
+            let room = available
+                .checked_sub(used)
+                .ok_or(crate::item_budget_origin!())?;
+            let (candidate, workspace) = match family {
+                BackrefClaimFamily::Responsibility => store.responsibility_claim_by_id(id, room)?,
+                BackrefClaimFamily::Publication => store.publication_claim_by_id(id, room)?,
+                BackrefClaimFamily::Provision => store.provision_claim_by_id(id, room)?,
+            };
+            let live = admit(used, workspace, available, &mut peak)?;
+            if let Some(reference) = candidate {
+                let row_state = claim_reference_index_state(id, &reference)?;
+                // The provider owns the returned row until it is moved into
+                // this map. Only the map node and key are newly allocated.
+                admit(
+                    live,
+                    claim_reference_map_entry_state(id)?,
+                    available,
+                    &mut peak,
+                )?;
+                let next = state
+                    .checked_add(row_state)
+                    .ok_or(crate::item_budget_origin!())?;
+                admit(next, query_state, available, &mut peak)?;
+                claims.insert(id.to_owned(), reference);
+                state = next;
+            }
+        }
+    }
+    drop(queried);
+    let room = available
+        .checked_sub(state)
+        .ok_or(crate::item_budget_origin!())?;
+    let state_before_stream = state;
+    let mut visit = |id: &str, reference: &SourceFoundationClosureClaimRef, workspace: usize| {
+        check(deadline, cancelled)?;
+        let live = admit(state, workspace, available, &mut peak)?;
+        if !claims.contains_key(id) {
+            let row_state = claim_reference_index_state(id, reference)?;
+            admit(live, row_state, available, &mut peak)?;
+            let next = state
+                .checked_add(row_state)
+                .ok_or(crate::item_budget_origin!())?;
+            claims.insert(id.to_owned(), reference.clone());
+            state = next;
+        }
+        Ok(())
+    };
+    let (drained, workspace) = match family {
+        BackrefClaimFamily::Responsibility => {
+            store.for_each_responsibility_claim_for_subject(subject, room, &mut visit)?
+        }
+        BackrefClaimFamily::Publication => {
+            store.for_each_publication_claim_for_subject(subject, room, &mut visit)?
+        }
+        BackrefClaimFamily::Provision => {
+            store.for_each_provision_claim_for_subject(subject, room, &mut visit)?
+        }
+    };
+    admit(state_before_stream, workspace, available, &mut peak)?;
+    let subject_rows = claims
+        .values()
+        .filter(|claim| claim.subject == subject)
+        .count();
+    if usize::try_from(drained).ok() != Some(subject_rows) {
+        return Err(ItemRefusal::Source(
+            "source-foundation Closure backlink subject count differs".into(),
+        ));
+    }
+    check(deadline, cancelled)?;
+    Ok((claims, state, peak))
 }
 
 fn exact_backref_messages(
@@ -9494,201 +9650,40 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     }
                 }
             }
-            let mut candidate_responsibility = BTreeMap::new();
-            let mut candidate_responsibility_state = 0usize;
-            let mut candidate_publication = BTreeMap::new();
-            let mut candidate_publication_state = 0usize;
-            if matches!(record.kind.as_str(), "work" | "expression" | "edition") {
-                if let Some(store) = closure_store.as_deref_mut() {
-                    let mut queried_ids = BTreeSet::new();
-                    let mut queried_ids_state = 0usize;
-                    if let Some(references) = record
-                        .value
-                        .get("responsibility_claim_refs")
-                        .and_then(Value::as_array)
-                    {
-                        for claim_id in references.iter().filter_map(Value::as_str) {
-                            if queried_ids.contains(claim_id) {
-                                continue;
-                            }
-                            let query_node_state = std::mem::size_of::<&str>()
-                                .checked_add(8 * std::mem::size_of::<usize>())
-                                .ok_or(crate::item_budget_origin!())?;
-                            let before_query = retained
-                                .checked_add(temporary)
-                                .and_then(|state| state.checked_add(candidate_responsibility_state))
-                                .and_then(|state| state.checked_add(queried_ids_state))
-                                .ok_or(crate::item_budget_origin!())?;
-                            let after_query_set = before_query
-                                .checked_add(query_node_state)
-                                .ok_or(crate::item_budget_origin!())?;
-                            if after_query_set > limits.max_state_bytes {
-                                return Err(ItemRefusal::BudgetCheck {
-                                    check: "source-foundation closure responsibility reference workspace",
-                                    used: Some(after_query_set as u64),
-                                    limit: Some(limits.max_state_bytes as u64),
-                                });
-                            }
-                            queried_ids.insert(claim_id);
-                            queried_ids_state = queried_ids_state
-                                .checked_add(query_node_state)
-                                .ok_or(crate::item_budget_origin!())?;
-                            cost.reserved_state_bytes =
-                                cost.reserved_state_bytes.max(after_query_set);
-                            let used = retained
-                                .checked_add(temporary)
-                                .and_then(|state| state.checked_add(candidate_responsibility_state))
-                                .and_then(|state| state.checked_add(queried_ids_state))
-                                .ok_or(crate::item_budget_origin!())?;
-                            let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
-                                ItemRefusal::BudgetCheck {
-                                    check: "source-foundation closure responsibility point lookup",
-                                    used: Some(used as u64),
-                                    limit: Some(limits.max_state_bytes as u64),
-                                },
-                            )?;
-                            let (candidate, store_workspace) =
-                                store.responsibility_claim_by_id(claim_id, remaining)?;
-                            let with_store = used
-                                .checked_add(store_workspace)
-                                .ok_or(crate::item_budget_origin!())?;
-                            if with_store > limits.max_state_bytes {
-                                return Err(crate::item_budget_origin!());
-                            }
-                            cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
-                            if let Some(reference) = candidate {
-                                let insert_state = claim_reference_map_entry_state(claim_id)?;
-                                let row_state = claim_reference_index_state(claim_id, &reference)?;
-                                let with_map_row = with_store
-                                    .checked_add(insert_state)
-                                    .ok_or(crate::item_budget_origin!())?;
-                                if with_map_row > limits.max_state_bytes {
-                                    return Err(ItemRefusal::BudgetCheck {
-                                        check: "source-foundation closure responsibility point result",
-                                        used: Some(with_map_row as u64),
-                                        limit: Some(limits.max_state_bytes as u64),
-                                    });
-                                }
-                                cost.reserved_state_bytes =
-                                    cost.reserved_state_bytes.max(with_map_row);
-                                candidate_responsibility.insert(claim_id.to_owned(), reference);
-                                candidate_responsibility_state = candidate_responsibility_state
-                                    .checked_add(row_state)
-                                    .ok_or(crate::item_budget_origin!())?;
-                            }
-                        }
-                    }
-                    drop(queried_ids);
-                    let used = retained
-                        .checked_add(temporary)
-                        .and_then(|state| state.checked_add(candidate_responsibility_state))
-                        .ok_or(crate::item_budget_origin!())?;
-                    let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
-                        ItemRefusal::BudgetCheck {
-                            check: "source-foundation closure responsibility subject stream",
-                            used: Some(used as u64),
-                            limit: Some(limits.max_state_bytes as u64),
-                        },
-                    )?;
-                    let (drained, store_workspace) = store
-                        .for_each_responsibility_claim_for_subject(
-                            id,
-                            remaining,
-                            &mut |claim_id, reference, row_workspace| {
-                                let base = retained
-                                    .checked_add(temporary)
-                                    .and_then(|state| {
-                                        state.checked_add(candidate_responsibility_state)
-                                    })
-                                    .ok_or(crate::item_budget_origin!())?;
-                                let provider_live = base
-                                    .checked_add(row_workspace)
-                                    .ok_or(crate::item_budget_origin!())?;
-                                if provider_live > limits.max_state_bytes {
-                                    return Err(ItemRefusal::BudgetCheck {
-                                        check: "source-foundation closure responsibility subject row",
-                                        used: Some(provider_live as u64),
-                                        limit: Some(limits.max_state_bytes as u64),
-                                    });
-                                }
-                                cost.reserved_state_bytes =
-                                    cost.reserved_state_bytes.max(provider_live);
-                                if candidate_responsibility.contains_key(claim_id) {
-                                    return Ok(());
-                                }
-                                let row_state = claim_reference_index_state(claim_id, reference)?;
-                                let with_map_row = provider_live
-                                    .checked_add(row_state)
-                                    .ok_or(crate::item_budget_origin!())?;
-                                if with_map_row > limits.max_state_bytes {
-                                    return Err(ItemRefusal::BudgetCheck {
-                                        check: "source-foundation closure responsibility subject result",
-                                        used: Some(with_map_row as u64),
-                                        limit: Some(limits.max_state_bytes as u64),
-                                    });
-                                }
-                                cost.reserved_state_bytes =
-                                    cost.reserved_state_bytes.max(with_map_row);
-                                candidate_responsibility
-                                    .insert(claim_id.to_owned(), reference.clone());
-                                candidate_responsibility_state = candidate_responsibility_state
-                                    .checked_add(row_state)
-                                    .ok_or(crate::item_budget_origin!())?;
-                                Ok(())
-                            },
-                        )?;
-                    let with_store = used
-                        .checked_add(store_workspace)
-                        .ok_or(crate::item_budget_origin!())?;
-                    if with_store > limits.max_state_bytes {
-                        return Err(crate::item_budget_origin!());
-                    }
-                    cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
-                    let subject_rows = candidate_responsibility
-                        .values()
-                        .filter(|claim| claim.subject == id)
-                        .count();
-                    if usize::try_from(drained).ok() != Some(subject_rows) {
-                        return Err(ItemRefusal::Source(
-                            "source-foundation Closure responsibility subject count differs".into(),
-                        ));
-                    }
+            // Release each family map before querying the next. All families
+            // use the same completed-store join and the same backlink predicate.
+            for (family, field, label, finite) in [
+                (BackrefClaimFamily::Responsibility, "responsibility_claim_refs", "responsibility", responsibility),
+                (BackrefClaimFamily::Publication, "publication_claim_refs", "publication", publication),
+                (BackrefClaimFamily::Provision, "provision_activity_claim_refs", "provision-activity", provision),
+            ] {
+                if record.kind == "collection" || (family != BackrefClaimFamily::Responsibility && record.kind != "edition") {
+                    continue;
                 }
-                let responsibility_for_record = if closure_store.is_some() {
-                    &candidate_responsibility
+                let (candidate, map_state) = if let Some(store) = closure_store.as_deref_mut() {
+                    let base = retained.checked_add(temporary).ok_or(crate::item_budget_origin!())?;
+                    let remaining = limits.max_state_bytes.checked_sub(base).ok_or(crate::item_budget_origin!())?;
+                    let (claims, state, peak) = candidate_backref_claims(
+                        store, family, &record.value, field, id, remaining, deadline, cancelled,
+                    )?;
+                    let combined = base.checked_add(peak).ok_or(crate::item_budget_origin!())?;
+                    if combined > limits.max_state_bytes { return Err(crate::item_budget_origin!()); }
+                    cost.reserved_state_bytes = cost.reserved_state_bytes.max(combined);
+                    (Some(claims), state)
                 } else {
-                    responsibility
+                    (None, 0)
                 };
+                let claims_for_record = candidate.as_ref().unwrap_or(finite);
                 if candidate_mode {
-                    let maps_state = candidate_responsibility_state
-                        .checked_add(candidate_publication_state)
-                        .ok_or(crate::item_budget_origin!())?;
                     append_candidate_backref_messages(
-                        &mut findings,
-                        &mut findings_state_bytes,
-                        &mut temporary,
-                        *retained,
-                        maps_state,
-                        limits,
-                        cost,
-                        &record.value,
-                        "responsibility_claim_refs",
-                        id,
-                        "responsibility",
-                        responsibility_for_record,
-                        deadline,
-                        cancelled,
+                        &mut findings, &mut findings_state_bytes, &mut temporary,
+                        *retained, map_state, limits, cost, &record.value, field,
+                        id, label, claims_for_record, deadline, cancelled,
                     )?;
                 } else {
-                    findings.extend(exact_backref_messages(
-                        &record.value,
-                        "responsibility_claim_refs",
-                        id,
-                        "responsibility",
-                        responsibility_for_record,
-                    ));
+                    findings.extend(exact_backref_messages(&record.value, field, id, label, claims_for_record));
                 }
-                if is_era_work {
+                if is_era_work && family == BackrefClaimFamily::Responsibility {
                     let actual: BTreeSet<String> =
                         value_strings(&record.value, "responsibility_claim_refs")
                             .into_iter()
@@ -9696,7 +9691,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     let authored: Vec<String> = actual
                         .iter()
                         .filter(|claim_id| {
-                            responsibility_for_record
+                            claims_for_record
                                 .get(*claim_id)
                                 .is_some_and(|claim| claim.predicate == "authored_by")
                         })
@@ -9707,7 +9702,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                             "current Nietzsche Work must reference exactly one authored_by claim; found {}",
                             python_string_list(&authored)
                         ));
-                    } else if responsibility_for_record
+                    } else if claims_for_record
                         .get(&authored[0])
                         .map(|claim| claim.object.as_str())
                         != Some("tos.agent.friedrich-nietzsche")
@@ -9716,192 +9711,12 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     }
                 }
                 if candidate_mode {
-                    refresh_candidate_findings_state(
-                        &findings,
-                        &mut findings_state_bytes,
-                        &mut temporary,
-                    )?;
+                    refresh_candidate_findings_state(&findings, &mut findings_state_bytes, &mut temporary)?;
+                    let live = retained.checked_add(temporary).and_then(|bytes| bytes.checked_add(map_state)).ok_or(crate::item_budget_origin!())?;
+                    if live > limits.max_state_bytes { return Err(crate::item_budget_origin!()); }
+                    cost.reserved_state_bytes = cost.reserved_state_bytes.max(live);
                 }
-            }
-            if record.kind == "edition" {
-                if let Some(store) = closure_store.as_deref_mut() {
-                    let mut references = value_strings(&record.value, "publication_claim_refs");
-                    references.sort();
-                    references.dedup();
-                    for claim_id in &references {
-                        let used = retained
-                            .checked_add(temporary)
-                            .and_then(|state| state.checked_add(candidate_publication_state))
-                            .ok_or(crate::item_budget_origin!())?;
-                        let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
-                            ItemRefusal::BudgetCheck {
-                                check: "source-foundation closure publication reference point lookup",
-                                used: Some(used as u64),
-                                limit: Some(limits.max_state_bytes as u64),
-                            },
-                        )?;
-                        let (candidate, store_workspace) =
-                            store.publication_claim_by_id(claim_id, remaining)?;
-                        let with_store = used
-                            .checked_add(store_workspace)
-                            .ok_or(crate::item_budget_origin!())?;
-                        if with_store > limits.max_state_bytes {
-                            return Err(crate::item_budget_origin!());
-                        }
-                        cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
-                        if let Some(reference) = candidate {
-                            let insert_state = claim_reference_map_entry_state(claim_id)?;
-                            let row_state = claim_reference_index_state(claim_id, &reference)?;
-                            let with_map_row = with_store
-                                .checked_add(insert_state)
-                                .ok_or(crate::item_budget_origin!())?;
-                            if with_map_row > limits.max_state_bytes {
-                                return Err(ItemRefusal::BudgetCheck {
-                                    check: "source-foundation closure publication point result",
-                                    used: Some(with_map_row as u64),
-                                    limit: Some(limits.max_state_bytes as u64),
-                                });
-                            }
-                            cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_map_row);
-                            candidate_publication.insert(claim_id.clone(), reference);
-                            candidate_publication_state = candidate_publication_state
-                                .checked_add(row_state)
-                                .ok_or(crate::item_budget_origin!())?;
-                        }
-                    }
-                    drop(references);
-                    let used = retained
-                        .checked_add(temporary)
-                        .and_then(|state| state.checked_add(candidate_publication_state))
-                        .ok_or(crate::item_budget_origin!())?;
-                    let remaining = limits.max_state_bytes.checked_sub(used).ok_or(
-                        ItemRefusal::BudgetCheck {
-                            check: "source-foundation closure publication subject stream",
-                            used: Some(used as u64),
-                            limit: Some(limits.max_state_bytes as u64),
-                        },
-                    )?;
-                    let (drained, store_workspace) = store
-                        .for_each_publication_claim_for_subject(
-                            id,
-                            remaining,
-                            &mut |claim_id, reference, row_workspace| {
-                                let base = retained
-                                    .checked_add(temporary)
-                                    .and_then(|state| {
-                                        state.checked_add(candidate_publication_state)
-                                    })
-                                    .ok_or(crate::item_budget_origin!())?;
-                                let provider_live = base
-                                    .checked_add(row_workspace)
-                                    .ok_or(crate::item_budget_origin!())?;
-                                if provider_live > limits.max_state_bytes {
-                                    return Err(ItemRefusal::BudgetCheck {
-                                        check: "source-foundation closure publication subject row",
-                                        used: Some(provider_live as u64),
-                                        limit: Some(limits.max_state_bytes as u64),
-                                    });
-                                }
-                                cost.reserved_state_bytes =
-                                    cost.reserved_state_bytes.max(provider_live);
-                                if candidate_publication.contains_key(claim_id) {
-                                    return Ok(());
-                                }
-                                let row_state = claim_reference_index_state(claim_id, reference)?;
-                                let with_map_row = provider_live
-                                    .checked_add(row_state)
-                                    .ok_or(crate::item_budget_origin!())?;
-                                if with_map_row > limits.max_state_bytes {
-                                    return Err(ItemRefusal::BudgetCheck {
-                                        check: "source-foundation closure publication subject result",
-                                        used: Some(with_map_row as u64),
-                                        limit: Some(limits.max_state_bytes as u64),
-                                    });
-                                }
-                                cost.reserved_state_bytes =
-                                    cost.reserved_state_bytes.max(with_map_row);
-                                candidate_publication
-                                    .insert(claim_id.to_owned(), reference.clone());
-                                candidate_publication_state = candidate_publication_state
-                                    .checked_add(row_state)
-                                    .ok_or(crate::item_budget_origin!())?;
-                                Ok(())
-                            },
-                        )?;
-                    let with_store = used
-                        .checked_add(store_workspace)
-                        .ok_or(crate::item_budget_origin!())?;
-                    if with_store > limits.max_state_bytes {
-                        return Err(crate::item_budget_origin!());
-                    }
-                    cost.reserved_state_bytes = cost.reserved_state_bytes.max(with_store);
-                    let subject_rows = candidate_publication
-                        .values()
-                        .filter(|claim| claim.subject == id)
-                        .count();
-                    if usize::try_from(drained).ok() != Some(subject_rows) {
-                        return Err(ItemRefusal::Source(
-                            "source-foundation Closure publication subject count differs".into(),
-                        ));
-                    }
-                }
-                let publication_for_record = if closure_store.is_some() {
-                    &candidate_publication
-                } else {
-                    publication
-                };
-                if candidate_mode {
-                    let maps_state = candidate_responsibility_state
-                        .checked_add(candidate_publication_state)
-                        .ok_or(crate::item_budget_origin!())?;
-                    append_candidate_backref_messages(
-                        &mut findings,
-                        &mut findings_state_bytes,
-                        &mut temporary,
-                        *retained,
-                        maps_state,
-                        limits,
-                        cost,
-                        &record.value,
-                        "publication_claim_refs",
-                        id,
-                        "publication",
-                        publication_for_record,
-                        deadline,
-                        cancelled,
-                    )?;
-                    append_candidate_backref_messages(
-                        &mut findings,
-                        &mut findings_state_bytes,
-                        &mut temporary,
-                        *retained,
-                        maps_state,
-                        limits,
-                        cost,
-                        &record.value,
-                        "provision_activity_claim_refs",
-                        id,
-                        "provision-activity",
-                        provision,
-                        deadline,
-                        cancelled,
-                    )?;
-                } else {
-                    findings.extend(exact_backref_messages(
-                        &record.value,
-                        "publication_claim_refs",
-                        id,
-                        "publication",
-                        publication_for_record,
-                    ));
-                    findings.extend(exact_backref_messages(
-                        &record.value,
-                        "provision_activity_claim_refs",
-                        id,
-                        "provision-activity",
-                        provision,
-                    ));
-                }
+                drop(candidate);
             }
             if is_era_work {
                 let expected: BTreeSet<String> = chronology
@@ -9930,9 +9745,6 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 )?;
                 let temporary_without_findings = temporary
                     .checked_sub(findings_state_bytes)
-                    .ok_or(crate::item_budget_origin!())?;
-                let map_state = candidate_responsibility_state
-                    .checked_add(candidate_publication_state)
                     .ok_or(crate::item_budget_origin!())?;
                 let mut pending_message_state = findings.iter().try_fold(
                     0usize,
@@ -9970,8 +9782,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         })
                         .ok_or(crate::item_budget_origin!())?;
                     let pending_state = temporary_without_findings
-                        .checked_add(map_state)
-                        .and_then(|state| state.checked_add(findings_capacity_state))
+                        .checked_add(findings_capacity_state)
                         .and_then(|state| state.checked_add(pending_message_state))
                         .and_then(|state| state.checked_add(message_extra))
                         .and_then(|state| state.checked_add(location_extra))
@@ -9993,10 +9804,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                         issues,
                         cost,
                         retained,
-                        temporary
-                            .checked_add(candidate_responsibility_state)
-                            .and_then(|state| state.checked_add(candidate_publication_state))
-                            .ok_or(crate::item_budget_origin!())?,
+                        temporary,
                         limits,
                         cancelled,
                         location,

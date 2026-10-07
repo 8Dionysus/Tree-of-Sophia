@@ -903,6 +903,8 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  event TEXT NOT NULL COLLATE BINARY,\
                  native INTEGER NOT NULL CHECK(native IN (0,1))\
              ) WITHOUT ROWID;\
+             CREATE INDEX sf_closure_provision_subject_order \
+                 ON sf_closure_provision_claims(subject COLLATE BINARY, claim_id COLLATE BINARY);\
              CREATE TABLE sf_closure_topology_claims(\
                  claim_id TEXT NOT NULL COLLATE BINARY PRIMARY KEY,\
                  location TEXT NOT NULL COLLATE BINARY,\
@@ -8104,6 +8106,221 @@ impl SourceFoundationClosureSchemaRequestStore
         Ok((drained, workspace_peak))
     }
 
+    fn provision_claim_by_id(
+        &mut self,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SourceFoundationClosureClaimRef>, usize), ItemRefusal> {
+        if self.finished
+            || !self.provision_claims_sealed
+            || !self.provision_claim_eof_seen
+            || self.provision_claim_drained_rows != self.provision_claim_rows
+        {
+            return Err(source_refusal());
+        }
+        let mut field_bytes = self.max_provision_claim_bytes;
+        field_bytes[0] = id.len();
+        let workspace = Self::responsibility_claim_workspace(field_bytes, 3)?;
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_provision_claim_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id,location,subject,predicate,object,event,native \
+                 FROM sf_closure_provision_claims WHERE claim_id=?1",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([id]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let stored_id = bounded_row_text(row, 0, workspace)?;
+                let reference = SourceFoundationClosureClaimRef {
+                    location: bounded_row_text(row, 1, workspace)?,
+                    subject: bounded_row_text(row, 2, workspace)?,
+                    predicate: bounded_row_text(row, 3, workspace)?,
+                    object: bounded_row_text(row, 4, workspace)?,
+                    event: bounded_row_text(row, 5, workspace)?,
+                    native: match row.get::<_, i64>(6)? {
+                        0 => false,
+                        1 => true,
+                        _ => return Err(row_shape_refusal()),
+                    },
+                };
+                Ok((stored_id, reference))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || stored
+                .as_ref()
+                .is_some_and(|(stored_id, _)| stored_id != id)
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if let Some((_, reference)) = &stored {
+            self.provision_claim_serialized_read_bytes = self
+                .provision_claim_serialized_read_bytes
+                .checked_add(usize_u64(
+                    id.len()
+                        .checked_add(reference.location.len())
+                        .and_then(|bytes| bytes.checked_add(reference.subject.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.predicate.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.object.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.event.len()))
+                        .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                        .ok_or(tos_validation::item_budget_origin!())?,
+                )?)
+                .ok_or(tos_validation::item_budget_origin!())?;
+        }
+        self.provision_claim_workspace_state_bytes =
+            self.provision_claim_workspace_state_bytes.max(workspace);
+        Ok((stored.map(|(_, reference)| reference), workspace))
+    }
+
+    fn for_each_provision_claim_for_subject(
+        &mut self,
+        subject: &str,
+        max_state_bytes: usize,
+        visit: &mut dyn FnMut(
+            &str,
+            &SourceFoundationClosureClaimRef,
+            usize,
+        ) -> Result<(), ItemRefusal>,
+    ) -> Result<(u64, usize), ItemRefusal> {
+        if self.finished
+            || !self.provision_claims_sealed
+            || !self.provision_claim_eof_seen
+            || self.provision_claim_drained_rows != self.provision_claim_rows
+        {
+            return Err(source_refusal());
+        }
+        let base_workspace = Self::responsibility_claim_workspace([0; 6], 0)?
+            .checked_add(estimate_string_state(subject)?)
+            .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
+            .ok_or(tos_validation::item_budget_origin!())?;
+        self.preflight(base_workspace, max_state_bytes)?;
+        self.context.check()?;
+        let context = self.context;
+        let scan_rows = self.scan_rows;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT claim_id,location,subject,predicate,object,event,native \
+                 FROM sf_closure_provision_claims WHERE subject=?1 \
+                 ORDER BY claim_id COLLATE BINARY",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([subject]).map_err(sql_refusal)?;
+        let mut previous: Option<String> = None;
+        let mut drained = 0u64;
+        let mut read_bytes = 0u64;
+        let mut scan_row_operations = 0u64;
+        let mut workspace_peak = base_workspace;
+        loop {
+            context.check()?;
+            context.add_scan_rows(scan_rows, 1)?;
+            scan_row_operations = scan_row_operations
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
+            let Some(row) = rows.next().map_err(sql_refusal)? else {
+                break;
+            };
+            let field_bytes = [
+                row_text_state(row, 0).map_err(sql_refusal)?,
+                row_text_state(row, 1).map_err(sql_refusal)?,
+                row_text_state(row, 2).map_err(sql_refusal)?,
+                row_text_state(row, 3).map_err(sql_refusal)?,
+                row_text_state(row, 4).map_err(sql_refusal)?,
+                row_text_state(row, 5).map_err(sql_refusal)?,
+            ];
+            let field_lengths = [
+                row_text_length(row, 0).map_err(sql_refusal)?,
+                row_text_length(row, 1).map_err(sql_refusal)?,
+                row_text_length(row, 2).map_err(sql_refusal)?,
+                row_text_length(row, 3).map_err(sql_refusal)?,
+                row_text_length(row, 4).map_err(sql_refusal)?,
+                row_text_length(row, 5).map_err(sql_refusal)?,
+            ];
+            let previous_state = previous
+                .as_deref()
+                .map(estimate_string_state)
+                .transpose()?
+                .unwrap_or_default();
+            let workspace = Self::responsibility_claim_workspace(field_lengths, 3)?
+                .checked_add(field_bytes.iter().try_fold(0usize, |state, bytes| {
+                    state
+                        .checked_add(*bytes)
+                        .ok_or(tos_validation::item_budget_origin!())
+                })?)
+                .and_then(|state| state.checked_add(previous_state))
+                .and_then(|state| state.checked_add(estimate_string_state(subject).ok()?))
+                .and_then(|state| state.checked_add(size_of::<Option<String>>() + 512))
+                .ok_or(tos_validation::item_budget_origin!())?;
+            if workspace > max_state_bytes {
+                return Err(tos_validation::item_budget_origin!());
+            }
+            context.row_state(workspace)?;
+            let id = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+            let reference = SourceFoundationClosureClaimRef {
+                location: bounded_row_text(row, 1, workspace).map_err(sql_refusal)?,
+                subject: bounded_row_text(row, 2, workspace).map_err(sql_refusal)?,
+                predicate: bounded_row_text(row, 3, workspace).map_err(sql_refusal)?,
+                object: bounded_row_text(row, 4, workspace).map_err(sql_refusal)?,
+                event: bounded_row_text(row, 5, workspace).map_err(sql_refusal)?,
+                native: match row.get::<_, i64>(6).map_err(sql_refusal)? {
+                    0 => false,
+                    1 => true,
+                    _ => return Err(source_refusal()),
+                },
+            };
+            if reference.subject != subject
+                || previous.as_deref().is_some_and(|last| last >= id.as_str())
+            {
+                return Err(source_refusal());
+            }
+            visit(&id, &reference, workspace)?;
+            drained = drained
+                .checked_add(1)
+                .ok_or(tos_validation::item_budget_origin!())?;
+            read_bytes = read_bytes
+                .checked_add(usize_u64(
+                    id.len()
+                        .checked_add(reference.location.len())
+                        .and_then(|bytes| bytes.checked_add(reference.subject.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.predicate.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.object.len()))
+                        .and_then(|bytes| bytes.checked_add(reference.event.len()))
+                        .and_then(|bytes| bytes.checked_add(size_of::<i64>()))
+                        .ok_or(tos_validation::item_budget_origin!())?,
+                )?)
+                .ok_or(tos_validation::item_budget_origin!())?;
+            workspace_peak = workspace_peak.max(workspace);
+            previous = Some(id);
+            context.check()?;
+        }
+        drop(rows);
+        drop(statement);
+        context.check()?;
+        self.provision_claim_serialized_read_bytes = self
+            .provision_claim_serialized_read_bytes
+            .checked_add(read_bytes)
+            .ok_or(tos_validation::item_budget_origin!())?;
+        self.provision_claim_scan_row_operations = self
+            .provision_claim_scan_row_operations
+            .checked_add(scan_row_operations)
+            .ok_or(tos_validation::item_budget_origin!())?;
+        self.provision_claim_workspace_state_bytes = self
+            .provision_claim_workspace_state_bytes
+            .max(workspace_peak);
+        Ok((drained, workspace_peak))
+    }
+
     fn remember_topology_claim(
         &mut self,
         id: &str,
@@ -10147,8 +10364,8 @@ impl SourceFoundationClosureSchemaRequestStore
                 let line = checked_u64_blob(line)
                     .map_err(|error| row_refusal(error, 1, rusqlite::types::Type::Blob))?;
                 let line = usize::try_from(line).map_err(|_| row_shape_refusal())?;
-                let value = serde_json::from_slice::<Value>(raw)
-                    .map_err(|_| row_shape_refusal())?;
+                let value =
+                    serde_json::from_slice::<Value>(raw).map_err(|_| row_shape_refusal())?;
                 Ok((path, line, digest, value, raw.len()))
             })
             .transpose()
