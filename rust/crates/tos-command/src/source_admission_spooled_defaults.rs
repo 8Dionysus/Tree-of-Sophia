@@ -7621,10 +7621,11 @@ impl SourceFoundationClosureSchemaRequestStore
         drop(statement);
         self.context.check()?;
         let Some((id, reference)) = stored else {
-            self.provision_claim_eof_seen = true;
             if self.provision_claim_drained_rows != expected_rows {
                 return Err(source_refusal());
             }
+            self.last_provision_claim_id = None;
+            self.provision_claim_eof_seen = true;
             return Ok((None, workspace, 0, 0));
         };
         if id.is_empty()

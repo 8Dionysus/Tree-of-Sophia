@@ -830,6 +830,7 @@ impl<'budget> CreationState<'budget> {
         self.remaining(0)?;
         Ok(value)
     }
+    #[track_caller]
     pub(crate) fn charge_work(&self, bytes: usize) -> Result<()> {
         self.remaining(0)?;
         let limit = self.capture_owner.map_or(Ok(self.work_limit), |owner| {
@@ -837,7 +838,13 @@ impl<'budget> CreationState<'budget> {
                 .active_work_limit()
                 .map(|limit| limit.min(self.work_limit))
         })?;
-        checked_add(&self.work, bytes, limit)
+        let result = checked_add(&self.work, bytes, limit);
+        if result.is_err() {
+            let caller = std::panic::Location::caller();
+            eprintln!("Native creation work refused at {}:{}: used={} requested={} limit={}",
+                caller.file(), caller.line(), self.work.load(Ordering::Acquire), bytes, limit);
+        }
+        result
     }
     pub(crate) fn encode_json<T: serde::Serialize + ?Sized>(
         &self,

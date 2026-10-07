@@ -109,7 +109,7 @@ struct Stored<'a> {
     codec: &'static str,
     source_len: usize,
     source_sha256: &'a [u8],
-    attribute_refs: &'a [(&'a str, &'a str)],
+    attribute_refs: &'a [(String, String)],
     spine: &'a Value,
 }
 
@@ -152,6 +152,7 @@ fn attributes(value: &Value) -> Result<&serde_json::Map<String, Value>> {
 // Resolve RFC6901 tokens against borrowed keys without allocating decoded
 // token Strings; check/charge through traversal, including individual tokens.
 fn bytes_equal(state: &CreationState<'_>, left: &[u8], right: &[u8]) -> Result<bool> {
+    state.charge_work(2 * std::mem::size_of::<usize>())?;
     if left.len() != right.len() {
         state.active()?;
         return Ok(false);
@@ -198,7 +199,8 @@ fn pointer_owned<'v>(
     mut value: &'v Value,
     pointer: &str,
 ) -> Result<Option<&'v Value>> {
-    state.active()?;
+    // Splitting the pointer scans its own bytes, not the complete source row.
+    state.charge_work(add(pointer.len(), std::mem::size_of::<Value>())?)?;
     if pointer.is_empty() {
         return Ok(Some(value));
     }
@@ -246,7 +248,8 @@ fn equal_owned(
     right: &Value,
     depth: usize,
 ) -> Result<bool> {
-    state.active()?;
+    // Charge each visited pair, including scalar and empty-container cases.
+    state.charge_work(2 * std::mem::size_of::<Value>())?;
     // Account simultaneously live recursive arguments, iterator/match locals
     // and the RAII hold itself before descending into the typed tree.
     let frame_bytes = std::mem::size_of::<(&CreationState<'_>, &Value, &Value, usize)>()
@@ -329,19 +332,27 @@ pub(crate) fn with_factored_payload<T>(
     let source_digest = charged_digest(state, source)?;
     let normalized_digest = charged_digest(state, normalized)?;
     state.with_serde_owned_with_limits(source, source_limits, |source_value| {
-        state.with_serde_owned_with_limits(normalized, normalized_limits, |logical| {
-            // The equality traversal is distinct from hashing/parsing work.
-            state.charge_work(add(source.len(), normalized.len())?)?;
-            if !equal_owned(state, source_payload(logical)?, source_value, 0)? {
+        state.with_serde_owned_value_with_limits(normalized, normalized_limits, |logical| {
+            if !equal_owned(state, source_payload(&logical)?, source_value, 0)? {
                 return Err(Error::Invalid("carrier codec source value differs"));
             }
-            let fields = field_map(logical)?;
-            let attrs = attributes(logical)?;
+            let fields = field_map(&logical)?;
+            let attrs = attributes(&logical)?;
             let slots = fields
                 .len()
-                .checked_mul(std::mem::size_of::<(&str, &str)>())
+                .checked_mul(std::mem::size_of::<(String, String)>())
                 .ok_or(Error::Budget("carrier codec reference slots"))?;
-            let refs_hold = state.hold(slots)?;
+            // Own the small references so the admitted decoded row can become
+            // the spine in place, without cloning its full source payload.
+            let strings = fields.iter().try_fold(0usize, |bytes, (name, pointer)| {
+                state.charge_work(name.len())?;
+                let Some(key) = name.strip_prefix("attributes.") else { return Ok(bytes); };
+                let pointer = pointer.as_str()
+                    .ok_or(Error::Invalid("carrier codec field pointer type"))?;
+                state.charge_work(pointer.len())?;
+                add(bytes, add(key.len(), pointer.len())?)
+            })?;
+            let refs_hold = state.hold(add(slots, strings)?)?;
             let mut refs = Vec::with_capacity(fields.len());
             for (name, pointer) in fields {
                 state.active()?;
@@ -351,22 +362,24 @@ pub(crate) fn with_factored_payload<T>(
                 let pointer = pointer
                     .as_str()
                     .ok_or(Error::Invalid("carrier codec field pointer type"))?;
-                state.charge_work(add(add(pointer.len(), source.len())?, normalized.len())?)?;
+                state.charge_work(name.len())?;
                 if let (Some(actual), Some(original)) =
                     (attrs.get(key), pointer_owned(state, source_value, pointer)?)
                 {
                     if equal_owned(state, actual, original, 0)? {
-                        refs.push((key, pointer));
+                        state.charge_work(add(key.len(), pointer.len())?)?;
+                        refs.push((key.to_owned(), pointer.to_owned()));
                     }
                 }
             }
-            let result = state.with_clone_value(logical, |mut spine| {
+            let mut spine = logical;
+            let result = (|| {
                 for (key, _) in &refs {
                     state.active()?;
                     *spine
                         .get_mut("attributes")
                         .and_then(Value::as_object_mut)
-                        .and_then(|v| v.get_mut(*key))
+                        .and_then(|v| v.get_mut(key.as_str()))
                         .ok_or(Error::Invalid("carrier codec attribute slot absent"))? =
                         Value::Null;
                 }
@@ -393,7 +406,6 @@ pub(crate) fn with_factored_payload<T>(
                         normalized.len(),
                         normalized_digest,
                         |hydrated| {
-                            state.charge_work(normalized.len())?;
                             if !bytes_equal(state, hydrated, normalized)? {
                                 return Err(Error::Invalid("carrier codec logical bytes changed"));
                             }
@@ -402,7 +414,8 @@ pub(crate) fn with_factored_payload<T>(
                         },
                     )
                 })
-            });
+            })();
+            drop(spine);
             drop(refs);
             drop(refs_hold);
             result
@@ -447,7 +460,7 @@ pub(crate) fn with_hydrated_payload<T>(
         return Err(Error::Budget("carrier codec logical bytes"));
     }
     let source_digest = charged_digest(state, source)?;
-    state.with_serde_owned_with_limits(stored, stored_limits, |physical| {
+    state.with_serde_owned_value_with_limits(stored, stored_limits, |mut physical| {
         let map = physical
             .as_object()
             .filter(|v| v.len() == 5)
@@ -519,56 +532,51 @@ pub(crate) fn with_hydrated_payload<T>(
                 }
             }
         }
-        state.with_serde_owned_with_limits(source, source_limits, |source_value| {
-            // Admit all added clone geometry before any subtree is copied;
-            // these owners remain live until rebuilt bytes and callback close.
-            let mut extra = state.value_clone_state_upper_bound(source_value)?;
+        // Move the already admitted physical spine and references. Their
+        // decode hold remains live through reconstruction and its consumer.
+        let references = physical.get_mut("attribute_refs")
+            .ok_or(Error::Invalid("carrier codec references absent"))?.take();
+        let refs = references.as_array()
+            .ok_or(Error::Invalid("carrier codec references absent"))?;
+        let mut rebuilt = physical.get_mut("spine")
+            .ok_or(Error::Invalid("carrier codec spine absent"))?.take();
+        state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
+            // Only referenced attribute subtrees are copied. The decoded
+            // source itself moves into its existing slot under its decode hold.
+            let mut extra = 0usize;
             for reference in refs {
                 let (_, pointer) = ref_pair(reference)?;
-                state.charge_work(add(pointer.len(), source.len())?)?;
-                let item = pointer_owned(state, source_value, pointer)?
+                let item = pointer_owned(state, &source_value, pointer)?
                     .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
                 extra = add(extra, state.value_clone_state_upper_bound(item)?)?;
             }
             let extra_hold = state.hold(extra)?;
-            let result = state.with_clone_value(spine, |mut rebuilt| {
-                state.charge_work(extra)?;
-                state.with_clone_value(source_value, |copy| {
-                    *rebuilt
-                        .get_mut("source_record")
-                        .and_then(|v| v.get_mut("payload"))
-                        .ok_or(Error::Invalid("carrier codec source slot absent"))? = copy;
+            for reference in refs {
+                state.active()?;
+                let (key, pointer) = ref_pair(reference)?;
+                let item = pointer_owned(state, &source_value, pointer)?
+                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+                state.with_clone_value(item, |copy| {
+                    *rebuilt.get_mut("attributes")
+                        .and_then(Value::as_object_mut)
+                        .and_then(|v| v.get_mut(key))
+                        .ok_or(Error::Invalid("carrier codec attribute slot absent"))? = copy;
                     Ok(())
                 })?;
-                for reference in refs {
-                    state.active()?;
-                    let (key, pointer) = ref_pair(reference)?;
-                    state.charge_work(add(pointer.len(), source.len())?)?;
-                    let item = pointer_owned(state, source_value, pointer)?
-                        .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
-                    state.with_clone_value(item, |copy| {
-                        *rebuilt
-                            .get_mut("attributes")
-                            .and_then(Value::as_object_mut)
-                            .and_then(|v| v.get_mut(key))
-                            .ok_or(Error::Invalid("carrier codec attribute slot absent"))? = copy;
-                        Ok(())
-                    })?;
+            }
+            *rebuilt.get_mut("source_record")
+                .and_then(|v| v.get_mut("payload"))
+                .ok_or(Error::Invalid("carrier codec source slot absent"))? = source_value;
+            let result = state.with_json_encoded(&rebuilt, max_row_bytes, |logical| {
+                if logical.len() != logical_len
+                    || charged_digest(state, logical)? != logical_digest
+                {
+                    return Err(Error::Invalid("carrier codec logical length or digest differs"));
                 }
-                let result = state.with_json_encoded(&rebuilt, max_row_bytes, |logical| {
-                    if logical.len() != logical_len
-                        || charged_digest(state, logical)? != logical_digest
-                    {
-                        return Err(Error::Invalid(
-                            "carrier codec logical length or digest differs",
-                        ));
-                    }
-                    state.active()?;
-                    consume(logical)
-                });
-                drop(rebuilt);
-                result
+                state.active()?;
+                consume(logical)
             });
+            drop(rebuilt);
             drop(extra_hold);
             result
         })
