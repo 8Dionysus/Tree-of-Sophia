@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_ops_mechanics_plan::route_cards::{RouteRootCustody, RouteSourceReadHooks, RouteSources};
-use tos_source_store::{CorpusCutReader, is_authored_source_path_v1};
+use tos_source_store::CorpusCutReader;
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::layer_family_cut::CutLayerPayloadReader;
 use tos_validation::layer_family_rules::{LayerFamilySource, LayerPayload};
@@ -733,7 +733,9 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
             }
             return Ok(raw);
         }
-        if is_authored_source_path_v1(path) {
+        // Use the same cut/private boundary as capture and packed composition.
+        // Required private bodies stay under separate physical custody.
+        if crate::source_current_cut::foundation_capture::selected(path, false) {
             let relative = RelativePath::parse(path)
                 .map_err(|_| ItemRefusal::Source("foundation current input path".into()))?;
             let cap = self.remaining(requested)?;

@@ -1638,13 +1638,8 @@ impl<'a> KnowledgeStage<'a> {
                 state,
             )?;
         } else if disposable_native_inputs {
-            stage.charge_public_work(SCHEMA.len() as u64 + 5)?;
-            let schema = SCHEMA.replacen(
-                "CREATE TABLE raw_records",
-                "CREATE TEMP TABLE raw_records",
-                1,
-            );
-            stage.db().execute_batch(&schema)?;
+            stage.charge_public_work(NATIVE_SCHEMA.len() as u64)?;
+            stage.db().execute_batch(NATIVE_SCHEMA)?;
         } else {
             stage.db().execute_batch(SCHEMA)?;
         }
@@ -4449,11 +4444,11 @@ pub(crate) fn verify_selected_payload_ddl(
     const TABLES: [(&str, &str); 3] = [
         (
             "knowledge_nodes",
-            "1a9ab80bd46fe2ef5fdd9b78b7ef62f0d998fb967ce3045efbec1f9c34d5c2c2",
+            "6c55a558a6fc5b9d780b8cf8772ceb3e8cb408e2411a0a0cc20b3159a6f747f7",
         ),
         (
             "knowledge_relations",
-            "5ed5ddb8b1fe515cd8aa6769fe32243d076319349130e3e1f6c21ab4e53efd84",
+            "6ac6d24809beec061118ddb122ad9f341659f17936fb1949cda2e565bccde6ba",
         ),
         (
             "knowledge_source_carriers",
@@ -5968,24 +5963,24 @@ fn verify_seek_row(row: SeekRow, max_row_bytes: usize) -> Result<SeekRow> {
 }
 
 // One authored schema literal owns both compatibility text and bounded C SQL.
-macro_rules! stage_schema_literal { ($raw_location:literal) => { concat!("\nCREATE ", $raw_location, r#"TABLE raw_records(
+macro_rules! stage_schema_literal { ($raw_location:literal, $id_null:literal, $normalized_storage:literal) => { concat!("\nCREATE ", $raw_location, r#"TABLE raw_records(
  source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,
  payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,
  PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID;
 CREATE TABLE knowledge_nodes(
- id TEXT PRIMARY KEY,source_graph TEXT NOT NULL,native_id TEXT,entity_id TEXT,
+ id TEXT PRIMARY KEY"#, $id_null, r#",source_graph TEXT NOT NULL,native_id TEXT,entity_id TEXT,
  kind_id TEXT NOT NULL,type_id TEXT NOT NULL,source_order INTEGER NOT NULL UNIQUE,
- payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL) WITHOUT ROWID;
+ payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL)"#, $normalized_storage, r#";
 CREATE INDEX knowledge_nodes_source_order ON knowledge_nodes(source_graph,source_order,id);
 CREATE INDEX knowledge_nodes_kind ON knowledge_nodes(kind_id,source_order);
 CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order,id);
 CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order,id);
 CREATE INDEX knowledge_nodes_entity_id ON knowledge_nodes(entity_id,id);
 CREATE TABLE knowledge_relations(
- id TEXT PRIMARY KEY,source_graph TEXT NOT NULL,native_id TEXT,
+ id TEXT PRIMARY KEY"#, $id_null, r#",source_graph TEXT NOT NULL,native_id TEXT,
  from_id TEXT NOT NULL,to_id TEXT NOT NULL,predicate_id TEXT NOT NULL,
  relation_type_id TEXT NOT NULL,source_order INTEGER NOT NULL UNIQUE,
- payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL) WITHOUT ROWID;
+ payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL)"#, $normalized_storage, r#";
 CREATE INDEX knowledge_relations_source_order ON knowledge_relations(source_graph,source_order,id);
 CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order,id);
 CREATE INDEX knowledge_relations_from ON knowledge_relations(from_id,source_order,id);
@@ -5994,18 +5989,20 @@ CREATE INDEX knowledge_relations_from_id ON knowledge_relations(from_id,id);
 CREATE INDEX knowledge_relations_to_id ON knowledge_relations(to_id,id);
 CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order);
 "#) }; }
-const SCHEMA: &str = stage_schema_literal!("");
+const SCHEMA: &str = stage_schema_literal!("", "", " WITHOUT ROWID");
 const SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!(""), "\0").as_bytes(),
+    concat!(stage_schema_literal!("", "", " WITHOUT ROWID"), "\0").as_bytes(),
 ) {
     Ok(value) => value,
     Err(_) => panic!("stage static schema contains interior NUL"),
 };
 
-// Same authored table/index schema; only disposable Native input location differs.
-const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ");
+// Native payloads use table leaf storage with narrow primary indexes.
+// Logical columns/indexes are shared; explicit NOT NULL keeps the old key law.
+// Disposable Native raw inputs retain their TEMP/WITHOUT ROWID layout.
+const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ", " NOT NULL", "");
 const NATIVE_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!("TEMP "), "\0").as_bytes(),
+    concat!(stage_schema_literal!("TEMP ", " NOT NULL", ""), "\0").as_bytes(),
 ) {
     Ok(value) => value,
     Err(_) => panic!("native stage static schema contains interior NUL"),
