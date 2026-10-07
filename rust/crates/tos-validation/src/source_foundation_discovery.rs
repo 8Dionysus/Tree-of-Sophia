@@ -1060,11 +1060,7 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         if self.candidate_discovery_run_summaries.is_none() {
             return visit(self, in_memory);
         }
-        if !safe_relative_path(path)
-            || !path
-                .strip_prefix(DISCOVERY_RUNS)
-                .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-        {
+        if !discovery_run_path(path) {
             return visit(self, None);
         }
         let remaining_state = self.remaining_state_bytes()?;
@@ -2971,6 +2967,20 @@ fn path_parts<'a>(path: &'a str, root: &str) -> Vec<&'a str> {
 }
 fn safe_relative_path(path: &str) -> bool {
     RelativePath::parse(path).is_ok()
+}
+
+fn discovery_run_path(path: &str) -> bool {
+    safe_relative_path(path)
+        && path
+            .strip_prefix(DISCOVERY_RUNS)
+            .is_some_and(|tail| tail.ends_with(".json"))
+}
+
+fn discovery_event_stream_path(path: &str) -> bool {
+    safe_relative_path(path)
+        && path
+            .strip_prefix("ToS/source-witnesses/discovery/events/")
+            .is_some_and(|tail| tail.ends_with(".jsonl"))
 }
 
 fn lowercase_sha256(value: &str) -> bool {
@@ -8646,10 +8656,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     let mut discoveries: BTreeMap<String, DiscoveryInfo> = BTreeMap::new();
     let mut discovery_summary_observations = 0u64;
     inspector.for_each_current_path(&mut |inspector, path| {
-        if !path
-            .strip_prefix(DISCOVERY_RUNS)
-            .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-        {
+        if !discovery_run_path(path) {
             return Ok(());
         }
         let Some((value, _, _)) = inspector.json(path, path, DISCOVERY_SCHEMA)? else {
@@ -8783,11 +8790,10 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
     let mut discovery_events: BTreeMap<String, EventInfo> = BTreeMap::new();
     let mut discovery_event_ids = BTreeSet::new();
-    if scope == SourceFoundationDefaultRuleScope::FullAudit
-        || inspector.has_current_member(DISCOVERY_EVENTS)?
-    {
+    let mut inspect_discovery_stream = |inspector: &mut Inspector<'_, '_, S, I>,
+                                        event_path: &str| {
         inspector.for_each_jsonl(
-            DISCOVERY_EVENTS,
+            event_path,
             PROVENANCE_SCHEMA,
             scope,
             &mut |inspector, location, value| {
@@ -8849,8 +8855,19 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 }
                 Ok(())
             },
-        )?;
+        )
+    };
+    if scope == SourceFoundationDefaultRuleScope::FullAudit
+        || inspector.has_current_member(DISCOVERY_EVENTS)?
+    {
+        inspect_discovery_stream(&mut inspector, DISCOVERY_EVENTS)?;
     }
+    inspector.for_each_current_path(&mut |inspector, path| {
+        if discovery_event_stream_path(path) {
+            inspect_discovery_stream(inspector, path)?;
+        }
+        Ok(())
+    })?;
 
     let mut artifact_ids = BTreeSet::new();
     inspector.for_each_current_path(&mut |inspector, path| {

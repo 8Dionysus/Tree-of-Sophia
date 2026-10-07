@@ -3350,7 +3350,7 @@ fn read_navigation_integrity_rows(
                 if table != D1Table::EdgeMeta {
                     continue;
                 }
-                if !key.starts_with("source_navigation_row_digest:")
+                if !matches!(row.first(), Some(D1Cell::Text(name)) if name.starts_with("source_navigation_row_digest:"))
                     || row.get(1) != Some(&D1Cell::Integer(0))
                 {
                     return Err(invalid(
