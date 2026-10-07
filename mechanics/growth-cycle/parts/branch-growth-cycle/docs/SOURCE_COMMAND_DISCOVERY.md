@@ -3,24 +3,18 @@
 Ask the existing source-command front door what it implements before selecting
 any protected delegation or source target:
 
-```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py --discover
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py --discover --handler native-expression-responsibility
+```sh
+tos-native-owner-command source-commands --discover
+tos-native-owner-command source-commands --discover --handler native-expression-responsibility
 ```
 
-The JSON API is `discover_commands()` or
-`run_local_command(None, request)` with:
-
-```json
-{"schema_version":"tos_source_command_discovery_request_v1","operation":"discover"}
-```
-
-An optional `handler_id` selects one exact handler returned by the complete
-catalogue. The same request may be supplied on stdin without `--owner-config`.
-Unknown selectors, operations, schema versions and extra top-level fields fail
-closed. `--discover` ignores stdin and cannot be combined with `--owner-config`;
-`--handler` requires `--discover`. Existing `--owner-config PATH` invocations and
-their request/receipt envelopes remain unchanged.
+The Rust API is `tos_command::source_native_cli::discover_commands(handler)`.
+An optional handler ID selects one exact handler from the complete catalogue.
+Unknown selectors and additional CLI arguments refuse. Discovery ignores stdin
+and takes no owner configuration or invocation. Execution uses the separate
+`source-commands --invocation ABSOLUTE_PATH` entry and its protected inputs.
+HTTP `GET /commands/catalog` uses the same function under the listener's
+existing request authentication.
 
 ## Meaning of the result
 
@@ -54,11 +48,12 @@ precondition; discovery and serialization do not grant it.
 
 ## One implementation grammar
 
-`source_command_contracts.py` supplies pure descriptors. Each connected
-handler owns its descriptors beside its implementation. The front door's fixed
-implementation imports collect them for configuration dispatch, operation
-dispatch and exact request-key validation. The JSON catalogue is generated
-from those descriptors.
+The authored packaged descriptor is
+`rust/crates/tos-command/src/source_command_catalog.json`. Rust CLI and HTTP
+embed it directly. Each entry names the native implementation that owns
+execution and nested validation; descriptor edits accompany a change to that
+owner's grammar. Discovery describes the connected implementation and supplies
+no delegation. The former Python descriptor builder is retired.
 
 Currently connected families include public source/Claim forms;
 historical, declared-profile and standalone native creation; Sign promotion;
@@ -103,15 +98,13 @@ source-owner front door.
 
 ## Verification and limits
 
-Discovery imports known implementation code but performs no owner/configuration,
+Discovery reads the packaged descriptor and performs no owner/configuration,
 source-target, credential, clock or network reads and writes no source files.
 Its output is deterministic for the loaded implementation, with no target
 currentness or remote/runtime availability claim.
 
-Focused tests cover the complete connected grammar, shared descriptor dispatch,
-missing/extra/unknown request keys, grant-free and direct-handler failure
-boundaries, and fresh-process CLI/API parity. Existing handler tests own nested
-schema, authority, byte-history, conflict, replay and recovery behavior. Old
-committed receipts retain their historical request and serialization meaning;
-new preparation includes the shared grammar implementation in its dependency
-closure. A preparation from before an implementation change must be renewed.
+The native catalogue regression checks all handler selectors and the shared
+authority boundary. Family conformance owns request validation, authority,
+byte history, conflict, replay and recovery. Existing committed receipts keep
+their historical request and serialization meaning; a preparation whose
+implementation dependencies changed must be renewed.

@@ -2150,6 +2150,16 @@ The selected Owner role exposes the maintained Python-free source-command client
   --invocation /absolute/protected-native-invocation.json < /absolute/request.json
 ```
 
+Discover the packaged implementation grammar without source or owner access:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-commands --discover
+/absolute/prefix/bin/tos-native-owner-command source-commands --discover --handler native-work-expression
+```
+
+CLI discovery and HTTP `GET /commands/catalog` use the same packaged descriptor.
+Discovery grants no authority; the HTTP route retains its existing authentication.
+
 Its packaged [client contract](contracts/source-commands.v1.json) declares the
 explicit inputs and issuer boundary. The earlier `--invocation ABS` entry remains
 the same dispatcher. Requests use the existing family grammar; `describe` and

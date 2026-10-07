@@ -24,13 +24,14 @@ The transport token grants no source authority. The maintained Python listener
 remains an explicit compatibility/reference surface while retirement evidence
 is collected; it is not part of this native process.
 
-The native catalog is a deterministic implementation-only capture of the
-maintained source-command discovery contract. Rebuild it with
-`python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/build_source_command_catalog.py`
-and verify parity with `--check`. This build-time companion reads no owner
-configuration, source target, grant or clock. The installed listener serves its
-compiled catalog without Python or checkout discovery. Catalog entries remain
-weaker than the selected native owner and current delegation.
+The native catalog is the authored packaged descriptor
+`rust/crates/tos-command/src/source_command_catalog.json`. The installed
+listener and CLI discovery read that same descriptor through
+`tos_command::source_native_cli::discover_commands`. It needs no Python,
+checkout, owner configuration or source target. Entries name their native
+implementation and remain weaker than the selected owner and current
+delegation. Update a descriptor with its owner grammar; the former Python
+catalog builder is retired.
 
 Use the host's resource launcher where required. Starting this process is
 separate from installing, activating or restarting any existing application.

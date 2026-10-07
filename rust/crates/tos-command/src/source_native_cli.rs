@@ -123,6 +123,27 @@ fn bounded_read(mut input: impl Read, max: usize) -> SourceCommandResult<Vec<u8>
     Ok(raw)
 }
 
+/// Implementation-only discovery uses the packaged descriptor. It does not
+/// open a source, invocation, owner configuration or runtime policy.
+pub fn discover_commands(handler: Option<&str>) -> SourceCommandResult<Value> {
+    if handler.is_some_and(|value| value.len() > 128) {
+        return Err(SourceCommandError::Invalid("source discovery handler"));
+    }
+    let mut catalog: Value = serde_json::from_str(include_str!("source_command_catalog.json"))
+        .map_err(|_| SourceCommandError::Invalid("source discovery descriptor"))?;
+    if let Some(handler) = handler {
+        let handlers = catalog["handlers"]
+            .as_array_mut()
+            .ok_or(SourceCommandError::Invalid("source discovery handlers"))?;
+        handlers.retain(|value| value["handler_id"].as_str() == Some(handler));
+        if handlers.len() != 1 {
+            return Err(SourceCommandError::Invalid("unknown source discovery handler"));
+        }
+        catalog["handler_count"] = json!(1);
+    }
+    Ok(catalog)
+}
+
 /// Complete one explicitly selected local invocation. Both protected owner
 /// files are independently reread by the Alignment entry at current use.
 pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {

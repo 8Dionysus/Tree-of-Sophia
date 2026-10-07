@@ -470,8 +470,7 @@ fn process(socket: &mut TcpStream, selection: &mut Selection) -> io::Result<()> 
             selection,
             Some(auth),
             200,
-            serde_json::from_str(include_str!("source_command_catalog.json"))
-                .expect("generated catalog"),
+            crate::source_native_cli::discover_commands(None).expect("packaged source catalog"),
         );
     }
     if req.method != "POST" {
@@ -676,21 +675,24 @@ mod tests {
         (worker.join().unwrap(), String::from_utf8(raw).unwrap())
     }
     #[test]
-    fn compiled_catalog_matches_maintained_descriptor_owner() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(3)
-            .unwrap();
-        let builder=root.join("mechanics/growth-cycle/parts/branch-growth-cycle/scripts/build_source_command_catalog.py");
-        // A test/reference bootstrap only; no Python enters the installed HTTP
-        // executable. This catches descriptor drift against its single owner.
-        let status = std::process::Command::new("python3")
-            .arg(builder)
-            .arg("--check")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .status()
-            .unwrap();
-        assert!(status.success(), "compiled implementation catalog drift");
+    fn packaged_catalog_preserves_discovery_authority_boundary() {
+        let catalog = crate::source_native_cli::discover_commands(None).unwrap();
+        assert_eq!(catalog["schema_version"], "tos_source_command_discovery_v1");
+        assert_eq!(catalog["authorization_status"], "not_evaluated");
+        for key in ["grants_admission", "reads_owner_configuration", "reads_source_targets"] {
+            assert_eq!(catalog[key], false);
+        }
+        let handlers = catalog["handlers"].as_array().unwrap();
+        assert_eq!(catalog["handler_count"], handlers.len());
+        assert!(!handlers.is_empty());
+        for handler in handlers {
+            let name = handler["handler_id"].as_str().unwrap();
+            let selected = crate::source_native_cli::discover_commands(Some(name)).unwrap();
+            assert_eq!(selected["handler_count"], 1);
+            assert_eq!(selected["handlers"][0], *handler);
+            assert_eq!(handler["grants_admission"], false);
+        }
+        assert!(crate::source_native_cli::discover_commands(Some("unknown-handler")).is_err());
     }
     #[test]
     fn hmac_matches_maintained_python_wire_vector() {

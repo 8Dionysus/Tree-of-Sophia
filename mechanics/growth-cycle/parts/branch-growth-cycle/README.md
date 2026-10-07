@@ -2,7 +2,7 @@
 
 ## Find a source-owner command
 
-Start with `python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py --discover`.
+Start with `tos-native-owner-command source-commands --discover`.
 It returns handler-owned JSON operation and request shapes without a private
 grant or source target. Use `--discover --handler HANDLER_ID` for one exact
 family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the compact API, typed owner handles and limits. Discovery reports

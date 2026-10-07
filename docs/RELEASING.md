@@ -221,6 +221,16 @@ The portable installed Rust client is available without this checkout or Python:
   --invocation /absolute/protected-native-invocation.json < /absolute/request.json
 ```
 
+Discover the packaged implementation grammar without source or owner access:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-commands --discover
+/absolute/prefix/bin/tos-native-owner-command source-commands --discover --handler native-work-expression
+```
+
+CLI discovery and HTTP `GET /commands/catalog` use the same packaged descriptor.
+Discovery grants no authority; the HTTP route retains its existing authentication.
+
 The optional Owner software role delivers this entry and the packaged
 `access/contracts/source-commands.v1.json` input/issuer contract. The local
 account that owns the selected source supplies its protected policy files;
