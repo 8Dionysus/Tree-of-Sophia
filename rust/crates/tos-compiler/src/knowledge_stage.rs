@@ -3276,25 +3276,25 @@ impl<'a> KnowledgeStage<'a> {
         )?;
         let mut statement =
             tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), SQL)
-                .map_err(owned_stage_sql_error)?;
+                .map_err(|error| owned_stage_sql_error(error))?;
         for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
             state.charge_work(text.len())?;
             statement
                 .bind_text(slot, text)
-                .map_err(owned_stage_sql_error)?;
+                .map_err(|error| owned_stage_sql_error(error))?;
         }
         state.active()?;
-        if !statement.step().map_err(owned_stage_sql_error)? {
+        if !statement.step().map_err(|error| owned_stage_sql_error(error))? {
             return Ok(false);
         }
         let declared = statement
             .unsigned_integer(0)
-            .map_err(owned_stage_sql_error)?;
-        let payload = match statement.value_ref(1).map_err(owned_stage_sql_error)? {
+            .map_err(|error| owned_stage_sql_error(error))?;
+        let payload = match statement.value_ref(1).map_err(|error| owned_stage_sql_error(error))? {
             rusqlite::types::ValueRef::Blob(raw) => raw,
             _ => return Err(Error::Invalid("stage raw comparison payload type")),
         };
-        let digest: [u8; 32] = match statement.value_ref(2).map_err(owned_stage_sql_error)? {
+        let digest: [u8; 32] = match statement.value_ref(2).map_err(|error| owned_stage_sql_error(error))? {
             rusqlite::types::ValueRef::Blob(raw) => raw
                 .try_into()
                 .map_err(|_| Error::Invalid("stage raw comparison digest"))?,
@@ -3338,22 +3338,22 @@ impl<'a> KnowledgeStage<'a> {
                         self.db(),
                         SQL,
                     )
-                    .map_err(owned_stage_sql_error)?;
+                    .map_err(|error| owned_stage_sql_error(error))?;
                 for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
                     state.charge_work(text.len())?;
                     statement
                         .bind_text(slot, text)
-                        .map_err(owned_stage_sql_error)?;
+                        .map_err(|error| owned_stage_sql_error(error))?;
                 }
                 state.active()?;
-                if statement.step().map_err(owned_stage_sql_error)? {
+                if statement.step().map_err(|error| owned_stage_sql_error(error))? {
                     Some((
                         statement
                             .unsigned_integer(0)
-                            .map_err(owned_stage_sql_error)?,
+                            .map_err(|error| owned_stage_sql_error(error))?,
                         statement
                             .unsigned_integer(1)
-                            .map_err(owned_stage_sql_error)?,
+                            .map_err(|error| owned_stage_sql_error(error))?,
                     ))
                 } else {
                     None
@@ -3381,18 +3381,18 @@ impl<'a> KnowledgeStage<'a> {
                     self.db(),
                     SQL,
                 )
-                .map_err(owned_stage_sql_error)?;
+                .map_err(|error| owned_stage_sql_error(error))?;
             for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
                 state.charge_work(text.len())?;
                 statement
                     .bind_text(slot, text)
-                    .map_err(owned_stage_sql_error)?;
+                    .map_err(|error| owned_stage_sql_error(error))?;
             }
             statement
                 .bind_i64(4, self.raw_input_max_bytes as i64)
-                .map_err(owned_stage_sql_error)?;
+                .map_err(|error| owned_stage_sql_error(error))?;
             state.active()?;
-            let value = if statement.step().map_err(owned_stage_sql_error)? {
+            let value = if statement.step().map_err(|error| owned_stage_sql_error(error))? {
                 Some(verify_seek_row(
                     read_seek_row_bounded(&statement, state, self.raw_input_max_bytes)?,
                     self.raw_input_max_bytes,
@@ -3525,21 +3525,21 @@ impl<'a> KnowledgeStage<'a> {
                         self.db(),
                         LENGTH_SQL,
                     )
-                    .map_err(owned_stage_sql_error)?;
+                    .map_err(|error| owned_stage_sql_error(error))?;
                 for (slot, text) in [(1, source_graph), (2, collection), (3, id)] {
                     state.charge_work(text.len())?;
                     statement
                         .bind_text(slot, text)
-                        .map_err(owned_stage_sql_error)?;
+                        .map_err(|error| owned_stage_sql_error(error))?;
                 }
                 state.active()?;
-                if statement.step().map_err(owned_stage_sql_error)? {
+                if statement.step().map_err(|error| owned_stage_sql_error(error))? {
                     let declared = statement
                         .unsigned_integer(0)
-                        .map_err(owned_stage_sql_error)?;
+                        .map_err(|error| owned_stage_sql_error(error))?;
                     let actual = statement
                         .unsigned_integer(1)
-                        .map_err(owned_stage_sql_error)?;
+                        .map_err(|error| owned_stage_sql_error(error))?;
                     if declared != actual || actual > self.raw_input_max_bytes as u64 {
                         return Err(Error::Invalid("stage raw observation input length"));
                     }
@@ -3588,31 +3588,31 @@ impl<'a> KnowledgeStage<'a> {
         )?;
         let mut statement =
             tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(self.db(), sql)
-                .map_err(owned_stage_sql_error)?;
+                .map_err(|error| owned_stage_sql_error(error))?;
         for (slot, text) in [(1, source_graph), (2, collection)] {
             state.charge_work(text.len())?;
             statement
                 .bind_text(slot, text)
-                .map_err(owned_stage_sql_error)?;
+                .map_err(|error| owned_stage_sql_error(error))?;
         }
         let cap_slot = if let Some(id) = exact_id.or(after_id) {
             state.charge_work(id.len())?;
-            statement.bind_text(3, id).map_err(owned_stage_sql_error)?;
+            statement.bind_text(3, id).map_err(|error| owned_stage_sql_error(error))?;
             4
         } else {
             3
         };
         statement
             .bind_i64(cap_slot, self.raw_input_max_bytes as i64)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_sql_error(error))?;
         statement
             .bind_i64(cap_slot + 1, lookahead)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_sql_error(error))?;
         let mut bytes = 0u64;
         let mut has_more = false;
         loop {
             state.active()?;
-            if !statement.step().map_err(owned_stage_sql_error)? {
+            if !statement.step().map_err(|error| owned_stage_sql_error(error))? {
                 break;
             }
             if page.page.rows.len() == max_rows {
@@ -3620,11 +3620,11 @@ impl<'a> KnowledgeStage<'a> {
                 break;
             }
             use rusqlite::types::ValueRef;
-            let id_raw = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+            let id_raw = match statement.value_ref(0).map_err(|error| owned_stage_sql_error(error))? {
                 ValueRef::Text(raw) => raw,
                 _ => return Err(Error::Invalid("stage seek id")),
             };
-            let graph_raw = match statement.value_ref(1).map_err(owned_stage_sql_error)? {
+            let graph_raw = match statement.value_ref(1).map_err(|error| owned_stage_sql_error(error))? {
                 ValueRef::Text(raw) => raw,
                 _ => return Err(Error::Invalid("stage seek graph")),
             };
@@ -3643,14 +3643,14 @@ impl<'a> KnowledgeStage<'a> {
             let graph = std::str::from_utf8(graph_raw)
                 .map_err(|_| Error::Invalid("stage seek graph UTF8"))?;
             valid_id(id)?;
-            let payload = match statement.value_ref(3).map_err(owned_stage_sql_error)? {
+            let payload = match statement.value_ref(3).map_err(|error| owned_stage_sql_error(error))? {
                 ValueRef::Blob(raw) => raw,
                 _ => return Err(Error::Invalid("stage seek payload")),
             };
             if payload.len() > self.raw_input_max_bytes {
                 return Err(Error::Budget("stage seek row bytes"));
             }
-            let digest: [u8; 32] = match statement.value_ref(4).map_err(owned_stage_sql_error)? {
+            let digest: [u8; 32] = match statement.value_ref(4).map_err(|error| owned_stage_sql_error(error))? {
                 ValueRef::Blob(raw) => raw
                     .try_into()
                     .map_err(|_| Error::Invalid("stage seek digest bytes"))?,
@@ -4044,9 +4044,9 @@ impl<'a> KnowledgeStage<'a> {
                     self.db(),
                     DANGLING_SQL,
                 )
-                .map_err(owned_stage_sql_error)?;
+                .map_err(|error| owned_stage_sql_error(error))?;
             state.active()?;
-            let found = statement.step().map_err(owned_stage_sql_error)?;
+            let found = statement.step().map_err(|error| owned_stage_sql_error(error))?;
             state.active()?;
             found
         } else {
@@ -4758,7 +4758,7 @@ fn verify_fresh_selected(
         tos_source_store::PinnedSqliteConnection::open_readonly_immutable_with_state(
             pinned, &remaining,
         )
-        .map_err(owned_stage_sql_error)?
+        .map_err(|error| owned_stage_sql_error(error))?
     } else {
         tos_source_store::PinnedSqliteConnection::open_readonly_immutable(pinned)
             .map_err(|error| Error::Source(error.to_string()))?
@@ -4775,7 +4775,7 @@ fn verify_fresh_selected(
     if let Some(budget) = controlled {
         if db
             .retained_rust_state_upper_bound()
-            .map_err(owned_stage_sql_error)?
+            .map_err(|error| owned_stage_sql_error(error))?
             > connection_bytes
         {
             return Err(Error::Budget(
@@ -5033,12 +5033,25 @@ fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
     hash.update(id.as_bytes());
     hash.update(digest);
 }
+#[track_caller]
 fn owned_stage_sql_error(error: tos_source_store::StoreError) -> Error {
+    // StoreError.detail is a code-owned static literal, never SQLite's native
+    // message or a bound value. Preserve the failing operation and source site.
+    let site = std::panic::Location::caller();
+    eprintln!("Native stage SQL refused at {}:{}: {:?}: {}", site.file(), site.line(), error.code, error.detail);
     if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
-        Error::Budget("owned stage bounded SQL budget")
+        Error::Budget(error.detail)
     } else {
-        Error::Invalid("owned stage bounded SQL refusal")
+        Error::Invalid(error.detail)
     }
+}
+#[track_caller]
+fn owned_stage_connection_sql_error(db: &Connection, error: tos_source_store::StoreError) -> Error {
+    // The connection is still borrowed by this operation. Read only SQLite's
+    // numeric extended status; private SQL, paths and row values stay private.
+    let status = unsafe { rusqlite::ffi::sqlite3_extended_errcode(db.handle()) };
+    eprintln!("Native stage SQLite status: {status}");
+    owned_stage_sql_error(error)
 }
 
 // Fixed SQL spelling workspace is admitted before initialization/formatting.
@@ -5177,9 +5190,9 @@ fn configure_fresh_readonly_owned(
     )?;
     let mut statement =
         tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, text)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_sql_error(error))?;
     state.active()?;
-    if statement.step().map_err(owned_stage_sql_error)? {
+    if statement.step().map_err(|error| owned_stage_sql_error(error))? {
         return Err(Error::Invalid("fresh cache unexpected row"));
     }
     drop(statement);
@@ -5204,12 +5217,12 @@ fn verify_fresh_integrity_owned(
         db,
         c"PRAGMA integrity_check",
     )
-    .map_err(owned_stage_sql_error)?;
+    .map_err(|error| owned_stage_sql_error(error))?;
     state.active()?;
-    if !statement.step().map_err(owned_stage_sql_error)? {
+    if !statement.step().map_err(|error| owned_stage_sql_error(error))? {
         return Err(Error::Invalid("fresh integrity absent"));
     }
-    let text = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+    let text = match statement.value_ref(0).map_err(|error| owned_stage_sql_error(error))? {
         rusqlite::types::ValueRef::Text(raw) => raw,
         _ => return Err(Error::Invalid("fresh integrity type")),
     };
@@ -5223,7 +5236,7 @@ fn verify_fresh_integrity_owned(
         return Err(Error::Invalid("fresh integrity differs"));
     }
     state.active()?;
-    if statement.step().map_err(owned_stage_sql_error)? {
+    if statement.step().map_err(|error| owned_stage_sql_error(error))? {
         return Err(Error::Invalid("fresh integrity extra row"));
     }
     drop(statement);
@@ -5286,12 +5299,12 @@ fn stage_integrity_first_row_owned(
         db,
         c"PRAGMA integrity_check",
     )
-    .map_err(owned_stage_sql_error)?;
+    .map_err(|error| owned_stage_sql_error(error))?;
     state.active()?;
-    if !statement.step().map_err(owned_stage_sql_error)? {
+    if !statement.step().map_err(|error| owned_stage_sql_error(error))? {
         return Err(Error::Invalid("stage integrity absent"));
     }
-    let text = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+    let text = match statement.value_ref(0).map_err(|error| owned_stage_sql_error(error))? {
         rusqlite::types::ValueRef::Text(raw) => raw,
         _ => return Err(Error::Invalid("stage integrity type")),
     };
@@ -5319,14 +5332,14 @@ fn stage_integer_owned(
     )?;
     let mut statement =
         tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_sql_error(error))?;
     state.active()?;
-    if !statement.step().map_err(owned_stage_sql_error)? {
+    if !statement.step().map_err(|error| owned_stage_sql_error(error))? {
         return Err(Error::Invalid("owned stage scalar row absent"));
     }
-    let value = statement.integer(0).map_err(owned_stage_sql_error)?;
+    let value = statement.integer(0).map_err(|error| owned_stage_sql_error(error))?;
     state.active()?;
-    if statement.step().map_err(owned_stage_sql_error)? {
+    if statement.step().map_err(|error| owned_stage_sql_error(error))? {
         return Err(Error::Invalid("owned stage scalar multiple rows"));
     }
     state.active()?;
@@ -5353,7 +5366,7 @@ fn stage_batch_owned(
     tos_source_store::PinnedBoundedStatement::execute_static_batch_on_owned_connection(
         db, sql, &check,
     )
-    .map_err(owned_stage_sql_error)
+    .map_err(|error| owned_stage_connection_sql_error(db, error))
 }
 
 // These are borrowed values on the existing fixed row frame, not a heap or
@@ -5376,7 +5389,7 @@ fn stage_insert_owned(
     )?;
     let mut statement =
         tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_connection_sql_error(db, error))?;
     for (slot, value) in values.iter().enumerate() {
         state.active()?;
         let index =
@@ -5386,24 +5399,24 @@ fn stage_insert_owned(
                 state.charge_work(text.len())?;
                 statement
                     .bind_text(index, text)
-                    .map_err(owned_stage_sql_error)?;
+                    .map_err(|error| owned_stage_connection_sql_error(db, error))?;
             }
             StageSqlBinding::OptionalText(None) => {
-                statement.bind_null(index).map_err(owned_stage_sql_error)?
+                statement.bind_null(index).map_err(|error| owned_stage_connection_sql_error(db, error))?
             }
             StageSqlBinding::Integer(value) => statement
                 .bind_i64(index, *value)
-                .map_err(owned_stage_sql_error)?,
+                .map_err(|error| owned_stage_connection_sql_error(db, error))?,
             StageSqlBinding::Blob(bytes) => {
                 state.charge_work(bytes.len())?;
                 statement
                     .bind_blob(index, bytes)
-                    .map_err(owned_stage_sql_error)?;
+                    .map_err(|error| owned_stage_connection_sql_error(db, error))?;
             }
         }
     }
     state.active()?;
-    if statement.step().map_err(owned_stage_sql_error)? {
+    if statement.step().map_err(|error| owned_stage_connection_sql_error(db, error))? {
         return Err(Error::Invalid(
             "owned stage insert unexpectedly returned row",
         ));
@@ -5424,23 +5437,23 @@ fn stage_root_owned(
     )?;
     let mut statement =
         tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_sql_error(error))?;
     if let Some(entry) = entry {
         statement
             .bind_text(1, &entry.source_graph)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_sql_error(error))?;
         statement
             .bind_text(2, &entry.collection)
-            .map_err(owned_stage_sql_error)?;
+            .map_err(|error| owned_stage_sql_error(error))?;
     }
     let mut hash = Digest256Hasher::new();
     let mut count = 0u64;
     loop {
         state.active()?;
-        if !statement.step().map_err(owned_stage_sql_error)? {
+        if !statement.step().map_err(|error| owned_stage_sql_error(error))? {
             break;
         }
-        let raw_id = match statement.value_ref(0).map_err(owned_stage_sql_error)? {
+        let raw_id = match statement.value_ref(0).map_err(|error| owned_stage_sql_error(error))? {
             rusqlite::types::ValueRef::Text(raw) => raw,
             _ => return Err(Error::Invalid("owned stage root id type")),
         };
@@ -5452,7 +5465,7 @@ fn stage_root_owned(
             std::str::from_utf8(raw_id).map_err(|_| Error::Invalid("owned stage root id UTF8"))?;
         let digest = match statement
             .value_ref(if output { 3 } else { 1 })
-            .map_err(owned_stage_sql_error)?
+            .map_err(|error| owned_stage_sql_error(error))?
         {
             rusqlite::types::ValueRef::Blob(raw) => raw,
             _ => return Err(Error::Invalid("owned stage root digest type")),
@@ -5461,7 +5474,7 @@ fn stage_root_owned(
             return Err(Error::Invalid("stage payload digest size"));
         }
         if output {
-            let order = statement.integer(2).map_err(owned_stage_sql_error)?;
+            let order = statement.integer(2).map_err(|error| owned_stage_sql_error(error))?;
             if order < 0 || order as u64 != count {
                 return Err(Error::Invalid("stage output source order/digest"));
             }
@@ -5612,7 +5625,7 @@ fn read_seek_row_bounded(
     cap: usize,
 ) -> Result<SeekRow> {
     use rusqlite::types::ValueRef;
-    let text = |index| match statement.value_ref(index).map_err(owned_stage_sql_error)? {
+    let text = |index| match statement.value_ref(index).map_err(|error| owned_stage_sql_error(error))? {
         ValueRef::Text(raw) => Ok(raw),
         _ => Err(Error::Invalid("stage bounded seek text type")),
     };
@@ -5632,19 +5645,19 @@ fn read_seek_row_bounded(
     let graph =
         std::str::from_utf8(graph_raw).map_err(|_| Error::Invalid("stage seek graph UTF8"))?;
     valid_id(id)?;
-    let order = match statement.value_ref(2).map_err(owned_stage_sql_error)? {
+    let order = match statement.value_ref(2).map_err(|error| owned_stage_sql_error(error))? {
         ValueRef::Null => None,
         ValueRef::Integer(order) => Some(order),
         _ => return Err(Error::Invalid("stage bounded seek order type")),
     };
-    let payload = match statement.value_ref(3).map_err(owned_stage_sql_error)? {
+    let payload = match statement.value_ref(3).map_err(|error| owned_stage_sql_error(error))? {
         ValueRef::Blob(raw) => raw,
         _ => return Err(Error::Invalid("stage seek payload")),
     };
     if payload.len() > cap {
         return Err(Error::Budget("stage seek row bytes"));
     }
-    let digest: [u8; 32] = match statement.value_ref(4).map_err(owned_stage_sql_error)? {
+    let digest: [u8; 32] = match statement.value_ref(4).map_err(|error| owned_stage_sql_error(error))? {
         ValueRef::Blob(raw) => raw
             .try_into()
             .map_err(|_| Error::Invalid("stage seek digest bytes"))?,

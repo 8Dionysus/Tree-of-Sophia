@@ -3323,6 +3323,10 @@ fn inspect_claim_inner(
                 .and_then(|event| event["outputs"].as_array())
                 .into_iter()
                 .flatten()
+                .filter(|output| {
+                    s(output, "ref") == Some(claim.path.as_str())
+                        && s(output, "sha256") == Some(claim.raw_sha256.as_str())
+                })
                 .filter_map(|output| s(output, "role"))
                 .find(|role| {
                     matches!(
