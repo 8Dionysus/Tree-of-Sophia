@@ -4060,7 +4060,6 @@ fn fixture_record_value_v1(
         ordinal,
         profile.seed,
         profile.classes[4].count,
-        profile.classes[WeightedScaleClassV1::Claim as usize].count,
         template.claim_route == WeightedScaleClaimTemplateRouteV1::WorkAuthorshipFixtureV1,
     )?;
     if class == WeightedScaleClassV1::Claim
@@ -5578,7 +5577,6 @@ fn rewrite_fixture_record_v1(
     ordinal: u64,
     seed: Digest256,
     work_count: u64,
-    claim_count: u64,
     selected_semantic_fixture: bool,
 ) -> std::io::Result<()> {
     if matches!(
@@ -5690,40 +5688,13 @@ fn rewrite_fixture_record_v1(
             set_string(object, "identity_status", "provisional".to_owned())?;
             set_number(object, "record_version", 1)?;
             object.insert("supersedes_ref".to_owned(), serde_json::Value::Null);
-            // Source claim references in a template identify the real record.
-            // The technical route clears stale source refs. The selected route
-            // declares every actual generated Claim assigned to this Work by
-            // the same maintained modulo subject algorithm.
-            let responsibility = if selected_semantic_fixture {
-                let assigned_count = if ordinal < claim_count {
-                    (claim_count - 1 - ordinal) / work_count + 1
-                } else {
-                    0
-                };
-                let count = usize::try_from(assigned_count)
-                    .map_err(|_| io_invalid("Work claim count exceeds address space"))?;
-                let mut refs = Vec::with_capacity(count);
-                let mut claim_ordinal = ordinal;
-                while claim_ordinal < claim_count {
-                    refs.push(serde_json::Value::String(scale_identity(
-                        seed,
-                        WeightedScaleClassV1::Claim,
-                        claim_ordinal,
-                    )));
-                    if claim_count - claim_ordinal <= work_count {
-                        break;
-                    }
-                    claim_ordinal = claim_ordinal
-                        .checked_add(work_count)
-                        .ok_or_else(|| io_invalid("Work claim ordinal overflow"))?;
-                }
-                refs
-            } else {
-                Vec::new()
-            };
+            // The selected recipe emits general semantic authored_by Claims,
+            // whose subject_ref owns the relation. They do not belong to the
+            // bibliographic responsibility stream or its exact reverse field.
+            // Neither generated Claims nor stale template refs populate it.
             object.insert(
                 "responsibility_claim_refs".to_owned(),
-                serde_json::Value::Array(responsibility),
+                serde_json::Value::Array(Vec::new()),
             );
             object.insert(
                 "expression_claim_refs".to_owned(),
