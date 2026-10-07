@@ -19,7 +19,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
 tos-foundation = { path = "../tos-foundation" }
 tos-source-store = { path = "../tos-source-store" }
-tos-compiler = { path = "../tos-compiler", optional = true }
+tos-compiler = { path = "../tos-compiler", optional = true, features = ["preserve-order-workspace"] }
 tos-validation = { path = "../tos-validation" }
 toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
 unicode-general-category = "=1.1.0"

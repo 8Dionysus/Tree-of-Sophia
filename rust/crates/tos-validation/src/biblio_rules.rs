@@ -3639,6 +3639,12 @@ fn chronology(
 }
 
 fn closure_field(row: &BiblioClaim) -> Option<&'static str> {
+    // General semantic Claims do not mutate a bibliographic parent's owned
+    // reverse fields. Native membership/responsibility/link fields belong only
+    // to their compound profiles, as in the source foundation owner route.
+    if row.native && !candidate_selected_native_compound_value(true, &row.value) {
+        return None;
+    }
     match s(&row.value, "predicate") {
         Some("contains_work") => Some("membership_claim_refs"),
         Some(p) if RESPONSIBILITY.contains(&p) => Some("responsibility_claim_refs"),
@@ -4282,7 +4288,17 @@ mod tests {
         );
         let mut positive = rules(&cancelled);
         qualified(&member.value, "contains_work", &mut positive, "m").unwrap();
-        inspect_closure(&records, &[member.clone()], "exact-eof", &mut positive).unwrap();
+        let general_authorship = claim(json!({
+            "claim_id":"tos.claim.general-authorship", "subject_ref":"tos.work.w",
+            "object":"tos.agent.a", "predicate":"authored_by"
+        }));
+        inspect_closure(
+            &records,
+            &[member.clone(), general_authorship],
+            "exact-eof",
+            &mut positive,
+        )
+        .unwrap();
         assert!(
             positive.shadow.issues.is_empty(),
             "{:?}",
