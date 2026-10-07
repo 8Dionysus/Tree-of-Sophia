@@ -7866,7 +7866,6 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         drop(used_events);
         drop(validated_events);
         self.release_temporary_state(compatibility_headers)?;
-        self.release_loaded_rows(cursor_state_bytes)?;
 
         let expected_event_rows = self.cost.candidate_provision_event_id_count;
         self.schema_request_store
@@ -7938,7 +7937,6 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
             drop(event_id);
             self.release_temporary_state(row_state_bytes)?;
         }
-        self.release_loaded_rows(event_cursor_state_bytes)?;
 
         let expected_used_rows = self.cost.candidate_provision_used_event_count;
         let expected_validated_rows = self.cost.candidate_provision_validated_event_count;
