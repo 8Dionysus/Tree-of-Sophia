@@ -129,7 +129,13 @@ pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
         Error::Source(reason) => {
             let site = tos_compiler::source_witness_catalog::source_refusal_stage(reason)
                 .map(|stage| format!("compiler-{stage}"))
-                .unwrap_or_else(|| "compiler-source".to_owned());
+                .unwrap_or_else(|| {
+                    // Retain an opaque family locator for formatted source
+                    // errors too, without exporting source text or paths.
+                    let prefix = reason.split_once(':').map_or(reason.as_str(), |(p, _)| p);
+                    let prefix = Digest256::of_bytes(prefix.as_bytes()).to_hex();
+                    format!("compiler-source-{:x}-{}", reason.len(), &prefix[..12])
+                });
             crate::source_admission_spooled_index::bounded_source_cause(
                 "receiver-source",
                 &site,
@@ -186,6 +192,12 @@ mod public_refusal_tests {
         let reason = public_io_reason(&std::io::Error::other(execution));
         assert!(reason.ends_with(":11:10"));
         assert!(!reason.contains("/private/"));
+        let compiler = public_compiler_reason(&tos_compiler::Error::Source(
+            "private catalog failure:/private/source".into(),
+        ));
+        assert!(compiler.contains("compiler-source-"));
+        assert!(crate::source_admission_spooled_index::is_bounded_source_cause(&compiler));
+        assert!(!compiler.contains("private"));
     }
 }
 
