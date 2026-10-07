@@ -10156,16 +10156,11 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                     self.membership.insert(id.clone(), reference.clone());
                 }
             }
+            // Authored responsibility files and the verified native translation
+            // compound own this family. A generic source Claim can use the same
+            // predicate without declaring a bibliographic responsibility backlink.
             if path.ends_with("/responsibility-claims.jsonl")
-                || matches!(
-                    predicate.as_str(),
-                    "authored_by"
-                        | "contributed_by"
-                        | "translated_by"
-                        | "edited_by"
-                        | "afterword_by"
-                        | "designed_by"
-                )
+                || (native && predicate == "translated_by")
             {
                 let expected_subject = match predicate.as_str() {
                     "authored_by" | "contributed_by" => "work",
