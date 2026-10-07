@@ -1097,7 +1097,28 @@ pub(crate) fn resolve_retained_record_input(
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> Result<NativeRetainedInputObservation, ItemRefusal> {
-    let mut reader = NativeCompoundReader::new_from_input(input, limits, cancelled)?;
+    let reader = NativeCompoundReader::new_from_input(input, limits, cancelled)?;
+    resolve_retained_record_input_with_reader(reader, path, expected, limits, cancelled)
+}
+
+pub(crate) fn resolve_retained_record_input_from_cut(
+    cut: &CorpusCutReader,
+    path: &str,
+    expected: Digest256,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeRetainedInputObservation, ItemRefusal> {
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    resolve_retained_record_input_with_reader(reader, path, expected, limits, cancelled)
+}
+
+fn resolve_retained_record_input_with_reader(
+    mut reader: NativeCompoundReader<'_>,
+    path: &str,
+    expected: Digest256,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeRetainedInputObservation, ItemRefusal> {
     let scope = reader.temporary_state;
     let package = reader.selected(path)?;
     let name = path

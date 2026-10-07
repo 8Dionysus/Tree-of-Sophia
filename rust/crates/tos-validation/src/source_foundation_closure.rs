@@ -13,7 +13,7 @@ use crate::biblio_rules::BiblioClaim;
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::LayerFamilySource;
 use crate::record_biblio_cut::{
-    BiblioCurrentRecord, SourceCutInputCoverage, SourceCutInputWithIdentity,
+    BiblioCurrentRecord, SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity,
 };
 use crate::source_foundation_default_rules::{
     BorrowedDefaultRecords, SliceDefaultClaims, SliceDefaultPaths, SourceFoundationDefaultClaims,
@@ -1344,6 +1344,7 @@ pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     let claims = SliceDefaultClaims(bibliographic_claims);
     run_source_foundation_closure(
         source,
+        ClosureRecordedInput::Cut(cut),
         source_events,
         &records,
         &paths,
@@ -1524,6 +1525,7 @@ fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
         .verify_current_fence(coverage, limits.deadline, cancelled)?;
     let result = run_source_foundation_closure(
         source,
+        ClosureRecordedInput::Candidate(input.source_input()),
         source_events,
         records,
         paths,
@@ -1549,6 +1551,7 @@ fn inspect_source_foundation_closure_with_identity_and_link_store_cache<
 
 fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     source: &mut S,
+    recorded_input: ClosureRecordedInput<'_>,
     source_events: &dyn SourceFoundationDefaultEventLookup,
     records: &dyn SourceFoundationDefaultRecordsLookup,
     paths: &dyn SourceFoundationDefaultPaths,
@@ -1580,6 +1583,7 @@ fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     })?;
     let mut rules = ClosureRules::new(
         source,
+        recorded_input,
         source_events,
         records,
         paths,
@@ -2588,8 +2592,15 @@ fn directed_cycle<K: Ord + Clone>(
     Ok(cycle)
 }
 
+#[derive(Clone, Copy)]
+enum ClosureRecordedInput<'a> {
+    Cut(&'a CorpusCutReader),
+    Candidate(&'a dyn SourceCutInput),
+}
+
 struct ClosureRules<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> {
     source: &'a mut S,
+    recorded_input: ClosureRecordedInput<'a>,
     limits: ItemLimits,
     paths: &'a dyn SourceFoundationDefaultPaths,
     records: &'a dyn SourceFoundationDefaultRecordsLookup,
@@ -2633,6 +2644,7 @@ struct ClosureRules<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> {
 impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 'schema, S> {
     fn new(
         source: &'a mut S,
+        recorded_input: ClosureRecordedInput<'a>,
         source_events: &'a dyn SourceFoundationDefaultEventLookup,
         records: &'a dyn SourceFoundationDefaultRecordsLookup,
         paths: &'a dyn SourceFoundationDefaultPaths,
@@ -2647,6 +2659,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         check(limits.deadline, source.cancellation())?;
         Ok(Self {
             source,
+            recorded_input,
             limits,
             paths,
             records,
@@ -4166,13 +4179,101 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
                 .checked_add(1)
                 .ok_or(crate::item_budget_origin!())?;
         }
-        let matches = raw.is_some_and(|bytes| Digest256::of_bytes(&bytes).to_hex() == digest);
+        let mut matches = raw.is_some_and(|bytes| Digest256::of_bytes(&bytes).to_hex() == digest);
+        if !matches {
+            // Current bytes and captured software/schema inputs retain their
+            // original owner route. Historical metadata requires the existing
+            // complete record lineage verifier over this same held source.
+            matches = self.retained_metadata_matches(path, digest)?;
+        }
         if let Some(key) = key {
             self.recorded_checks.insert(key, matches);
         } else {
             self.release_temporary_since(temporary_baseline);
         }
         Ok(matches)
+    }
+
+    fn retained_metadata_matches(&mut self, path: &str, digest: &str) -> Result<bool, ItemRefusal> {
+        if !path.starts_with(SOURCE_HOME) || !path.ends_with(".json") {
+            return Ok(false);
+        }
+        let Ok(expected) = Digest256::from_hex(digest) else {
+            return Ok(false);
+        };
+        let remaining = self.remaining_state()?;
+        let (record, workspace) = self
+            .records
+            .record_by_path_with_state_budget(path, remaining)?;
+        if workspace > remaining {
+            return Err(crate::item_budget_origin!());
+        }
+        self.reserve_temporary(workspace)?;
+        let selected = record.is_some();
+        drop(record);
+        self.release_temporary_state(workspace)?;
+        if !selected {
+            return Ok(false);
+        }
+        let mut limits = self.limits;
+        limits.max_state_bytes = self.remaining_state()?;
+        limits.max_total_bytes = limits
+            .max_total_bytes
+            .checked_sub(self.cost.current_bytes_read)
+            .and_then(|bytes| bytes.checked_sub(self.cost.recorded_bytes_read))
+            .ok_or(crate::item_budget_origin!())?;
+        self.cost.recorded_read_operations = self
+            .cost
+            .recorded_read_operations
+            .checked_add(1)
+            .ok_or(crate::item_budget_origin!())?;
+        let observation = match self.recorded_input {
+            ClosureRecordedInput::Cut(cut) => {
+                crate::native_compound::resolve_retained_record_input_from_cut(
+                    cut,
+                    path,
+                    expected,
+                    limits,
+                    self.source.cancellation(),
+                )?
+            }
+            ClosureRecordedInput::Candidate(input) => {
+                crate::native_compound::resolve_retained_record_input(
+                    input,
+                    path,
+                    expected,
+                    limits,
+                    self.source.cancellation(),
+                )?
+            }
+        };
+        self.reserve_temporary(observation.returned_state_bytes)?;
+        self.cost.recorded_bytes_read = self
+            .cost
+            .recorded_bytes_read
+            .checked_add(observation.bytes_read)
+            .filter(|bytes| *bytes <= self.limits.max_total_bytes)
+            .ok_or(crate::item_budget_origin!())?;
+        // The history owner records one ExactPath only after reading a real
+        // body. Count those verified reads, never the successful boolean lookup
+        // as a synthetic file body.
+        let bodies =
+            u64::try_from(observation.reads.len()).map_err(|_| crate::item_budget_origin!())?;
+        self.cost.recorded_files_read = self
+            .cost
+            .recorded_files_read
+            .checked_add(bodies)
+            .ok_or(crate::item_budget_origin!())?;
+        self.cost.files_read = self
+            .cost
+            .files_read
+            .checked_add(bodies)
+            .ok_or(crate::item_budget_origin!())?;
+        let resolved = observation.resolved;
+        let state = observation.returned_state_bytes;
+        drop(observation);
+        self.release_temporary_state(state)?;
+        Ok(resolved)
     }
 
     fn current_exists(&mut self, path: &str) -> Result<bool, ItemRefusal> {
