@@ -38,6 +38,7 @@ const MAX_SELECTION_BYTES: usize = 1024 * 1024;
 const MAX_EVIDENCE_REF_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_BUILD_SECONDS: u64 = 2 * 60 * 60;
 const MAX_COLD_VM_STEPS: u64 = 50_000_000_000;
+const MAX_PRODUCER_WORK_BYTES: u64 = 64 * 1024 * 1024 * 1024;
 const MAX_COLD_WORK_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 const MAX_COLD_ROWS: u64 = 10_000_000;
 const MAX_COLD_ROW_BYTES: usize = 8 * 1024 * 1024;
@@ -64,6 +65,9 @@ struct Request {
     /// Original simultaneous producer Rust/SQLite state, separate from file caps.
     max_state_bytes: usize,
     max_json_visits: usize,
+    /// One cumulative capture/build work counter; old requests retain 16 GiB.
+    #[serde(default = "default_producer_work_bytes")]
+    max_work_bytes: u64,
     persistent_write_cap_bytes: u64,
     max_build_seconds: u64,
     cold_open: ColdOpenLimits,
@@ -72,6 +76,10 @@ struct Request {
     private_release_directory: String,
     evidence_refs: Vec<EvidenceRefInput>,
     selected_snapshot: manifest::NativeSelectedSnapshotProfile,
+}
+
+fn default_producer_work_bytes() -> u64 {
+    tos_compiler::Limits::default().max_work_bytes
 }
 
 #[derive(Deserialize)]
@@ -607,6 +615,8 @@ fn validate_request(request: &Request) -> Result<()> {
         || request.working_ram_bytes == 0
         || request.max_state_bytes < 131072
         || request.max_json_visits == 0
+        || request.max_work_bytes == 0
+        || request.max_work_bytes > MAX_PRODUCER_WORK_BYTES
         || request.max_state_bytes as u64 > request.process_limits.address_space_bytes
         || request.persistent_write_cap_bytes == 0
         || request.persistent_write_cap_bytes > manifest::NATIVE_PRODUCER_MAX_DATA_BYTES
@@ -906,7 +916,8 @@ fn execute(request: Request) -> Result<Value> {
     let mut historical =
         manifest::census_selected_runtime_closure(&request.selected_snapshot, deadline)?;
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
-    let limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
+    let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
+    limits.capture.max_work_bytes = request.max_work_bytes;
     // The private stage's live main and TEMP databases use the maintained
     // compiler limits covered by the tmpfs/RAM hold. The caller's cold-file
     // ceiling applies to the finished selected model after compaction.
@@ -1506,6 +1517,8 @@ fn execute(request: Request) -> Result<Value> {
                         ),
                         ("producer_max_state_bytes", json!(request.max_state_bytes)),
                         ("producer_max_json_visits", json!(request.max_json_visits)),
+                        ("producer_max_work_bytes", json!(request.max_work_bytes)),
+                        ("capture_build_observed_work_bytes", json!(capture.work_bytes())),
                         (
                             "writer_model_max_file_bytes",
                             json!(limits.stage.sqlite.max_output_bytes),

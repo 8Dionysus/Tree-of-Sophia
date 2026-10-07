@@ -313,9 +313,9 @@ pub(crate) fn with_factored_payload<T>(
     cap(source, max_row_bytes)?;
     let source_digest = charged_digest(state, source)?;
     let normalized_digest = charged_digest(state, normalized)?;
-    state.with_serde_owned_with_limits(source, source_limits, |source_value| {
+    state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
         state.with_serde_owned_value_with_limits(normalized, normalized_limits, |logical| {
-            if !equal_owned(state, source_payload(&logical)?, source_value, 0)? {
+            if !equal_owned(state, source_payload(&logical)?, &source_value, 0)? {
                 return Err(Error::Invalid("carrier codec source value differs"));
             }
             let fields = field_map(&logical)?;
@@ -346,7 +346,7 @@ pub(crate) fn with_factored_payload<T>(
                     .ok_or(Error::Invalid("carrier codec field pointer type"))?;
                 state.charge_work(name.len())?;
                 if let (Some(actual), Some(original)) =
-                    (attrs.get(key), pointer_owned(state, source_value, pointer)?)
+                    (attrs.get(key), pointer_owned(state, &source_value, pointer)?)
                 {
                     if equal_owned(state, actual, original, 0)? {
                         state.charge_work(add(key.len(), pointer.len())?)?;
@@ -378,12 +378,13 @@ pub(crate) fn with_factored_payload<T>(
                 };
                 state.with_json_encoded(&physical, max_row_bytes, |encoded| {
                     // Verify exact spelling/order/numbers, not just equal JSON.
-                    with_hydrated_payload(
+                    with_hydrated_payload_from_source(
                         state,
                         encoded,
-                        source,
+                        source.len(),
+                        source_digest,
+                        source_value,
                         stored_limits,
-                        source_limits,
                         max_row_bytes,
                         normalized.len(),
                         normalized_digest,
@@ -442,13 +443,37 @@ pub(crate) fn with_hydrated_payload<T>(
         return Err(Error::Budget("carrier codec logical bytes"));
     }
     let source_digest = charged_digest(state, source)?;
+    state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
+        with_hydrated_payload_from_source(state, stored, source.len(), source_digest,
+            source_value, stored_limits, max_row_bytes, logical_len, logical_digest, consume)
+    })
+}
+
+// The caller retains the admitted decode owner through this callback. Factoring
+// can move that same exact source tree into its roundtrip check instead of
+// hashing, grammar-parsing and decoding it a second time. The stored envelope
+// is still parsed and the reconstructed logical bytes are still authenticated.
+#[allow(clippy::too_many_arguments)]
+fn with_hydrated_payload_from_source<T>(
+    state: &CreationState<'_>,
+    stored: &[u8],
+    source_len: usize,
+    source_digest: Digest256,
+    source_value: Value,
+    stored_limits: JsonLimits,
+    max_row_bytes: usize,
+    logical_len: usize,
+    logical_digest: Digest256,
+    consume: impl FnOnce(&[u8]) -> Result<T>,
+) -> Result<T> {
+    state.active()?;
     state.with_serde_owned_value_with_limits(stored, stored_limits, |mut physical| {
         let map = physical
             .as_object()
             .filter(|v| v.len() == 5)
             .ok_or(Error::Invalid("carrier codec envelope fields"))?;
         if map.get("codec").and_then(Value::as_str) != Some(CODEC)
-            || map.get("source_len").and_then(Value::as_u64) != Some(source.len() as u64)
+            || map.get("source_len").and_then(Value::as_u64) != Some(source_len as u64)
         {
             return Err(Error::Invalid("carrier codec identity differs"));
         }
@@ -522,7 +547,7 @@ pub(crate) fn with_hydrated_payload<T>(
             .ok_or(Error::Invalid("carrier codec references absent"))?;
         let mut rebuilt = physical.get_mut("spine")
             .ok_or(Error::Invalid("carrier codec spine absent"))?.take();
-        state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
+        {
             // Only referenced attribute subtrees are copied. The decoded
             // source itself moves into its existing slot under its decode hold.
             let mut extra = 0usize;
@@ -561,6 +586,6 @@ pub(crate) fn with_hydrated_payload<T>(
             drop(rebuilt);
             drop(extra_hold);
             result
-        })
+        }
     })
 }

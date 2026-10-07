@@ -40,8 +40,14 @@ opaque, bounded held-file/hash checks. They are provenance references, not an
 implicit source selector or source/rights/publication admission.
 
 All existing manifest, path, member, source-byte, model, filesystem custody,
-fs-verity, original state/work/VM/deadline, tmpfs and persistent-write ceilings
-remain active. A historical fixture may carry its frozen manifest and excluded
+fs-verity, original state/VM/deadline, tmpfs and persistent-write ceilings
+remain active. The optional request field `max_work_bytes` selects one finite
+cumulative capture/build work allowance from 1 byte through 64 GiB; omission
+retains the existing 16 GiB default. This is cumulative byte/visitor work,
+separate from RAM and physical file limits. The same work counter spans
+capture, normalization, packing and build reads; phases do not reset it.
+The result reports `producer_max_work_bytes` and the counter observation
+`capture_build_observed_work_bytes`. A historical fixture may carry its frozen manifest and excluded
 SQL expectations in its explicit caller profile. Observed historical census
 numbers are evidence, not a general producer equality requirement.
 
