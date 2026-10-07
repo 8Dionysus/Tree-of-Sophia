@@ -141,17 +141,29 @@ pub struct SourceBibliographicCandidate<B = SourceBinding> {
 }
 /// Preserve the source adapter refusal category without requiring Display or
 /// inventing observations absent from the adapter's actual error.
+#[track_caller]
 pub(crate) fn candidate_input_refusal(error: tos_validation::item_rules::ItemRefusal) -> Error {
     use tos_validation::item_rules::ItemRefusal;
+    let origin = std::panic::Location::caller();
+    let source_cause = |detail: &str| {
+        let district = if origin.file().ends_with("source_bibliographic_versions.rs") {
+            "biblio-versions"
+        } else {
+            "biblio-source"
+        };
+        Error::Source(format!(
+            "source-cause:candidate-input:{district}-{}:{}",
+            origin.line(),
+            Digest256::of_bytes(detail.as_bytes()).to_hex(),
+        ))
+    };
     match error.compatibility_category() {
         ItemRefusal::Budget => Error::Budget("candidate source input"),
         ItemRefusal::BudgetCheck { check, .. } => Error::Budget(check),
         ItemRefusal::Deadline => Error::Budget("candidate source input deadline"),
-        ItemRefusal::Source(detail) => Error::Source(detail),
+        ItemRefusal::Source(detail) => source_cause(&detail),
         ItemRefusal::Executor(evidence) => Error::Source(evidence.summary()),
-        ItemRefusal::Unsupported(detail) => {
-            Error::Source(format!("unsupported candidate source input: {detail}"))
-        }
+        ItemRefusal::Unsupported(detail) => source_cause(&detail),
     }
 }
 fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
@@ -553,7 +565,7 @@ impl PlanningCut<'_> {
         match self {
             Self::Candidate(input) => input
                 .selects_semantic_member(path)
-                .map_err(candidate_input_refusal),
+                .map_err(|error| candidate_input_refusal(error)),
             _ => Ok(true),
         }
     }
@@ -574,13 +586,13 @@ impl PlanningCut<'_> {
             .map_or(Ok(false), |selection| {
                 selection.selects_catalog_member(path)
             })
-            .map_err(candidate_input_refusal)
+            .map_err(|error| candidate_input_refusal(error))
     }
     fn selects_required_member(&self, path: &str) -> Result<bool> {
         match self {
             Self::Candidate(input) => input
                 .selects_required_member(path)
-                .map_err(candidate_input_refusal),
+                .map_err(|error| candidate_input_refusal(error)),
             _ => Ok(true),
         }
     }
@@ -599,7 +611,7 @@ impl PlanningCut<'_> {
                 check(deadline, cancelled)?;
                 if input
                     .path_presence(path.as_str(), deadline, cancelled)
-                    .map_err(candidate_input_refusal)?
+                    .map_err(|error| candidate_input_refusal(error))?
                     != Some(tos_source_store::SourcePresenceV1::File)
                 {
                     return Ok(None);
@@ -628,7 +640,7 @@ impl PlanningCut<'_> {
                             Ok(())
                         },
                     )
-                    .map_err(candidate_input_refusal)?;
+                    .map_err(|error| candidate_input_refusal(error))?;
                 check(deadline, cancelled)?;
                 Ok(facts)
             }
@@ -674,7 +686,7 @@ impl PlanningCut<'_> {
                             Ok(())
                         },
                     )
-                    .map_err(candidate_input_refusal)?;
+                    .map_err(|error| candidate_input_refusal(error))?;
                 check(deadline, cancelled)?;
                 return result.ok_or(Error::Invalid("candidate source member absent"));
             }
@@ -959,7 +971,7 @@ impl Planning<'_, '_> {
             .map_or(Ok(false), |selection| {
                 selection.selects_required_member(path)
             })
-            .map_err(candidate_input_refusal)?;
+            .map_err(|error| candidate_input_refusal(error))?;
         if !path.starts_with("ToS/contracts/") && path != ENTITY && path != RELATION {
             if generated_member {
                 let caller_state = self
@@ -976,11 +988,11 @@ impl Planning<'_, '_> {
                         self.graph_limits.deadline,
                         self.cancelled,
                     )
-                    .map_err(candidate_input_refusal)?;
+                    .map_err(|error| candidate_input_refusal(error))?;
             } else if let Some(selection) = &selection {
                 selection
                     .verify_metadata_member(path, raw)
-                    .map_err(candidate_input_refusal)?;
+                    .map_err(|error| candidate_input_refusal(error))?;
             }
             if !self.cut.selects_semantic_member(path)? {
                 return Ok(());
@@ -1019,7 +1031,7 @@ impl Planning<'_, '_> {
                 for slot in selection.file_slots(path) {
                     scratch = scratch.max(
                         slot.verification_state_upper_bound()
-                            .map_err(candidate_input_refusal)?,
+                            .map_err(|error| candidate_input_refusal(error))?,
                     );
                 }
                 if let Some(limit) = self.workspace_limit {
@@ -1031,12 +1043,12 @@ impl Planning<'_, '_> {
                 }
                 let verified = selection
                     .verify_file(path, raw, self.graph_limits.deadline, self.cancelled)
-                    .map_err(candidate_input_refusal)?;
+                    .map_err(|error| candidate_input_refusal(error))?;
                 let mut cursor = verified.row_cursor();
                 while let Some(row) =
                     cursor.next_checked(self.graph_limits.deadline, self.cancelled)
                 {
-                    let (_, row, _) = row.map_err(candidate_input_refusal)?;
+                    let (_, row, _) = row.map_err(|error| candidate_input_refusal(error))?;
                     let parsed = self.parse_packet(row, cap)?;
                     self.value(parsed.value(), 0)?;
                 }
@@ -1794,7 +1806,7 @@ fn plan_inputs_kernel<B: catalog::CatalogInputBinding>(
                         other => tos_validation::item_rules::ItemRefusal::Source(other.to_string()),
                     })
                 })
-                .map_err(candidate_input_refusal)?;
+                .map_err(|error| candidate_input_refusal(error))?;
             check(l.deadline, cancelled)?;
         }
         PlanningCut::Streamed(_) => return Err(Error::Invalid("resident recipe storage kind")),
@@ -2260,7 +2272,7 @@ fn verify_candidate_input_eof<I: Eq>(
             previous.push_str(meta.path);
             Ok(())
         })
-        .map_err(candidate_input_refusal)?;
+        .map_err(|error| candidate_input_refusal(error))?;
     if &observed != coverage
         || count != coverage.member_count()
         || bytes != coverage.source_bytes_read()
@@ -2273,7 +2285,7 @@ fn verify_candidate_input_eof<I: Eq>(
     }
     input
         .verify_current_fence(&observed, deadline, cancelled)
-        .map_err(candidate_input_refusal)?;
+        .map_err(|error| candidate_input_refusal(error))?;
     check(deadline, cancelled)?;
     if input.input_identity() != identity {
         return Err(Error::Invalid("candidate EOF final identity"));
@@ -2435,7 +2447,7 @@ pub fn plan_candidate_source_catalog_inputs_with_workspace<'a, I: Copy + Eq + 's
     )?;
     input
         .verify_current_fence(coverage, l.deadline, cancelled)
-        .map_err(candidate_input_refusal)?;
+        .map_err(|error| candidate_input_refusal(error))?;
     check(l.deadline, cancelled)?;
     if input.input_identity() != expected_identity {
         return Err(Error::Invalid("candidate catalog input identity"));
@@ -2474,7 +2486,7 @@ pub fn prepare_candidate_source_catalog_plan_observed<I: Copy + Eq + 'static>(
         }
         input
             .verify_current_fence(binding.coverage(), l.deadline, validator.cancelled)
-            .map_err(candidate_input_refusal)?;
+            .map_err(|error| candidate_input_refusal(error))?;
         validator.verify_candidate_schema_binding(binding.input_identity())?;
         let receipt = match &plan.plan {
             CandidateCatalogPlanning::Resident(resident) => prepare_catalog_plan_kernel(
@@ -2723,7 +2735,7 @@ pub fn plan_candidate_source_catalog_inputs_spooled<'a, I: Copy + Eq + 'static>(
             plan.initial(meta.path, &basenames)
                 .map_err(|e| tos_validation::item_rules::ItemRefusal::Source(e.to_string()))
         })
-        .map_err(candidate_input_refusal)?;
+        .map_err(|error| candidate_input_refusal(error))?;
     if &observed != coverage {
         return Err(Error::Invalid("candidate disk planning physical EOF"));
     }
@@ -2742,7 +2754,7 @@ pub fn plan_candidate_source_catalog_inputs_spooled<'a, I: Copy + Eq + 'static>(
     let collections = spool_receipts(&plan.entries, l, cancelled)?;
     input
         .verify_current_fence(coverage, l.deadline, cancelled)
-        .map_err(candidate_input_refusal)?;
+        .map_err(|error| candidate_input_refusal(error))?;
     if input.input_identity() != expected_identity {
         return Err(Error::Invalid("candidate disk final identity"));
     }
