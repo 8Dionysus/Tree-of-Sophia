@@ -1918,26 +1918,9 @@ fn entry_record(
                 raw,
             )?;
             schema = Some(route);
-            for field in [
-                "preferred_label",
-                "variant_labels",
-                "field_languages",
-                "identity_status",
-                "source_refs",
-                "external_identifiers",
-                "same_as_posture",
-                "record_version",
-                "notes",
-            ] {
-                if let Some(value) = v.get(field) {
-                    validator.check(
-                        c,
-                        CORPUS,
-                        &format!("#/properties/{field}"),
-                        &encode(value, l.max_row_bytes)?,
-                    )?;
-                }
-            }
+            // source-metadata-record already validates these common fields
+            // through exact corpus-record fragment refs. Do not start nine
+            // additional worker exchanges for the same supplied values.
             for field in [
                 "preferred_label",
                 "identity_status",
