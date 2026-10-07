@@ -3339,6 +3339,12 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         remaining_write,
     )?;
 
+    // Records/defaults output is already bound and fully charged. No later
+    // phase reads its private SQLite projection. Close its sole connection
+    // and scope before compiling the native schema closure; otherwise the
+    // finished defaults cache needlessly overlaps that constructor workspace.
+    drop(defaults);
+
     let catalog_ticket = open_window(
         view.execution_limits,
         view.remaining_budget,
@@ -3775,7 +3781,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     };
     let held_native = base_declared_state_bytes
         .checked_add(selected_index.cache_bytes)
-        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
         .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
@@ -3911,12 +3916,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .history
         .as_deref()
         .map_or(0, |history| history.usage().1);
-    let default_event_retained_state = defaults.default_event_cost().retained_state_bytes;
     let final_held_state = candidate_owned_state
         .checked_add(base_declared_state_bytes)
         .and_then(|state| state.checked_add(selected_index.cache_bytes))
-        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
-        .and_then(|state| state.checked_add(default_event_retained_state))
         .and_then(|state| state.checked_add(worker_image_state))
         .and_then(|state| state.checked_add(image_path_state))
         .and_then(|state| state.checked_add(native_schema_state))
@@ -3929,9 +3931,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
         .and_then(|state| state.checked_add(history_retained_state))
         .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
-        .and_then(|state| {
-            state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
-        })
         .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
         .and_then(|state| state.checked_add(std::mem::size_of_val(&native_schemas)))
         .and_then(|state| {
