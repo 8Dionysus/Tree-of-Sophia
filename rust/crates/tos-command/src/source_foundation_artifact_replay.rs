@@ -895,9 +895,14 @@ impl<'provider, 'store, 'worker, I: Copy + Eq> CandidateArtifactEvidenceProvider
         let discovery_provider_state = remaining_state_bytes
             .checked_sub(self.cost.skip_state_bytes)
             .ok_or(ItemRefusal::Budget)?;
+        // The point lookup returns a fixed scalar summary. Its path/argument
+        // workspace fits the existing path envelope; the store independently
+        // checks that bound. Do not record the entire remaining operation
+        // allowance as the lookup's live high-water reservation.
         let lookup_state = discovery_provider_state
             .min(provider_state)
             .checked_sub(path_state)
+            .map(|available| available.min(path_state))
             .and_then(std::num::NonZeroUsize::new)
             .ok_or(ItemRefusal::Budget)?;
         let summary = self.records.index().visit_candidate_artifact_record_path(
