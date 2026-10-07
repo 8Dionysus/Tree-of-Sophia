@@ -2873,6 +2873,12 @@ struct LocalClaimReportState {
     workspace: usize,
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum LocalClaimValidationScope {
+    PublicForm,
+    StoredSource,
+}
+
 trait LocalClaimCurrentSource {
     fn read_member(
         &self,
@@ -3136,6 +3142,48 @@ pub fn validate_source_claim_from_input<I: Copy + Eq>(
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<CandidateSourceClaimLocalReport<I>, crate::item_rules::ItemRefusal> {
+    validate_candidate_claim_core(
+        input,
+        records,
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        LocalClaimValidationScope::PublicForm,
+    )
+}
+
+/// Validate stored Claim grammar at the corpus admission boundary. Visibility
+/// remains constrained by the exact source schema; storage admission does not
+/// authorize public forms, disclosure, review or publication.
+pub fn validate_stored_source_claim_from_input<I: Copy + Eq>(
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    selected_claim_raw: &[u8],
+    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<CandidateSourceClaimLocalReport<I>, crate::item_rules::ItemRefusal> {
+    validate_candidate_claim_core(
+        input,
+        records,
+        selected_claim_raw,
+        worker,
+        limits,
+        cancelled,
+        LocalClaimValidationScope::StoredSource,
+    )
+}
+
+fn validate_candidate_claim_core<I: Copy + Eq>(
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    selected_claim_raw: &[u8],
+    worker: &mut crate::source_cut::CandidateCutWorkerSchemaExecutor<I>,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    scope: LocalClaimValidationScope,
+) -> Result<CandidateSourceClaimLocalReport<I>, crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
     local_claim_checkpoint(limits, cancelled)?;
     if input.input_identity() != records.input_identity()
@@ -3227,6 +3275,7 @@ pub fn validate_source_claim_from_input<I: Copy + Eq>(
         &source,
         &claim,
         selected_claim_raw,
+        scope,
         std::mem::size_of::<CandidateSourceClaimLocalReport<I>>(),
         &mut schema_worker,
         limits,
@@ -3340,6 +3389,7 @@ pub fn validate_source_claim_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRan
         &source,
         &claim,
         selected_claim_raw,
+        LocalClaimValidationScope::PublicForm,
         std::mem::size_of::<SourceClaimLocalReport>(),
         worker,
         limits,
@@ -4716,6 +4766,7 @@ fn validate_source_claim_local_core(
     source: &dyn LocalClaimCurrentSource,
     claim: &Value,
     selected_claim_raw: &[u8],
+    scope: LocalClaimValidationScope,
     retained_header_state_bytes: usize,
     worker: &mut impl LocalClaimSchemaWorker,
     limits: crate::item_rules::ItemLimits,
@@ -4781,6 +4832,7 @@ fn validate_source_claim_local_core(
                     source,
                     claim,
                     selected_claim_raw,
+                    scope,
                     &routes,
                     worker,
                     limits,
@@ -4918,6 +4970,7 @@ fn validate_local_claim_shape(
     source: &dyn LocalClaimCurrentSource,
     claim: &Value,
     raw: &[u8],
+    scope: LocalClaimValidationScope,
     routes: &BTreeMap<(String, String), LocalClaimRoute>,
     worker: &mut impl LocalClaimSchemaWorker,
     limits: crate::item_rules::ItemLimits,
@@ -4931,10 +4984,11 @@ fn validate_local_claim_shape(
     report.workspace = route_state;
     local_claim_state_check(report.logical_state, route_state, limits)?;
     if !claim.is_object()
-        || !matches!(
-            local_string(claim, "visibility"),
-            Some("public" | "public_metadata_only")
-        )
+        || (scope == LocalClaimValidationScope::PublicForm
+            && !matches!(
+                local_string(claim, "visibility"),
+                Some("public" | "public_metadata_only")
+            ))
     {
         return local_claim_issue(report, limits, "claim-public-visibility", "claim");
     }

@@ -907,16 +907,14 @@ fn execute(request: Request) -> Result<Value> {
         manifest::census_selected_runtime_closure(&request.selected_snapshot, deadline)?;
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
     let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
-    // The SAME caller file ceiling bounds the full live writer before VACUUM
-    // and the copied cold reader. This is unrelated to the Rust state allowance.
+    // The selected model's live main file and copied cold reader share the
+    // caller's file ceiling. Disposable raw-input TEMP storage has its own
+    // maintained StageLimits cap, already covered by the stage tmpfs/RAM hold;
+    // it is not part of the selected model or its persistent output allowance.
     limits.stage.sqlite.max_output_bytes = limits
         .stage
         .sqlite
         .max_output_bytes
-        .min(request.cold_open.max_file_bytes);
-    limits.stage.max_temp_bytes = limits
-        .stage
-        .max_temp_bytes
         .min(request.cold_open.max_file_bytes);
     let cancelled = Arc::new(AtomicBool::new(false));
     let resources = LinuxCgroupColdOpenResourceHold::acquire_original_stage(

@@ -5630,7 +5630,9 @@ fn rewrite_fixture_record_v1(
             set_string(object, "review_status", "unreviewed".to_owned())?;
             set_string(object, "visibility", "local_only".to_owned())?;
             set_number(object, "claim_version", 1)?;
-            object.insert("reviews".to_owned(), serde_json::Value::Array(Vec::new()));
+            // The source Claim schema carries separately bound assessments;
+            // an embedded legacy reviews array is not part of this record.
+            object.remove("reviews");
             object.insert("supersedes_claim_ref".to_owned(), serde_json::Value::Null);
             if let Some(maker) = object
                 .get_mut("maker")

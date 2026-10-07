@@ -2805,7 +2805,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                             return Err(ItemRefusal::Source("selected legacy Claim owner coverage is ambiguous".into()));
                                         }
                                         let mut worker = schema_worker.borrow_mut();
-                                        let report = tos_validation::record_rules::validate_source_claim_from_input(
+                                        let report = tos_validation::record_rules::validate_stored_source_claim_from_input(
                                             input, records, bytes, &mut **worker, local_limits, cancelled)?;
                                         if report.input_identity != fence || report.current_membership != fence.membership
                                             || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
@@ -2845,12 +2845,24 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                                 for (line, bytes) in tos_validation::source_record_selection::source_rows(raw) {
                                     if !generated.selects_claim_row(meta.path, line)? { continue; }
                                     let mut worker = schema_worker.borrow_mut();
-                                    let report = tos_validation::record_rules::validate_source_claim_from_input(
+                                    let report = tos_validation::record_rules::validate_stored_source_claim_from_input(
                                         input, records, bytes, &mut **worker, local_limits, cancelled)?;
                                     if report.input_identity != fence || report.current_membership != fence.membership
-                                        || report.source_input_sha256 != Digest256::of_bytes(bytes) || !report.is_valid()
+                                        || report.source_input_sha256 != Digest256::of_bytes(bytes)
                                     {
-                                        return Err(ItemRefusal::Source("generated Claim owner local forms are invalid or unbound".into()));
+                                        return Err(ItemRefusal::Source("generated Claim owner source binding differs".into()));
+                                    }
+                                    if !report.is_valid() {
+                                        let issue = report.issues.first().ok_or_else(||
+                                            ItemRefusal::Source("generated Claim invalid report has no issue".into()))?;
+                                        let code = Digest256::of_bytes(issue.code.as_bytes()).to_hex();
+                                        let path = Digest256::of_bytes(meta.path.as_bytes()).to_hex();
+                                        let site = format!("gc-{:x}-c{}-p{}", report.issues.len(), &code[..10], &path[..10]);
+                                        return Err(ItemRefusal::Source(
+                                            crate::source_admission_spooled_index::bounded_source_cause(
+                                                "receiver-source", &site, &issue.location,
+                                            ),
+                                        ));
                                     }
                                     drop(report);
                                     checked_rows = checked_rows.checked_add(1)
