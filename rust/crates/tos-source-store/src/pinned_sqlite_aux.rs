@@ -59,6 +59,9 @@ pub struct PinnedSqliteIoSnapshot {
     pub failure: Option<PinnedSqliteIoFailure>,
     /// Local failure before any failure inherited from the shared write owner.
     pub local_failure: Option<PinnedSqliteIoFailure>,
+    /// First numeric file-limit observation, without paths or payloads. The
+    /// check names the units; it does not alter failure or admission authority.
+    pub file_limit_observation: Option<(&'static str, u64, u64)>,
 }
 
 #[derive(Debug)]
@@ -86,6 +89,7 @@ struct IoState {
     write_permitted: AtomicU64,
     write_returned: AtomicU64,
     failure: AtomicU8,
+    file_limit_observation: Mutex<Option<(&'static str, u64, u64)>>,
 }
 
 /// Cloneable cumulative logical I/O authority shared by every participating
@@ -133,6 +137,7 @@ impl PinnedSqliteIoBudget {
             write_permitted: AtomicU64::new(0),
             write_returned: AtomicU64::new(0),
             failure: AtomicU8::new(0),
+            file_limit_observation: Mutex::new(None),
         })))
     }
 
@@ -245,6 +250,7 @@ impl PinnedSqliteIoBudget {
             write_permitted: AtomicU64::new(0),
             write_returned: AtomicU64::new(0),
             failure: AtomicU8::new(0),
+            file_limit_observation: Mutex::new(None),
         })))
     }
 
@@ -544,7 +550,18 @@ impl PinnedSqliteIoBudget {
             write_returned_bytes: self.0.write_returned.load(Ordering::Acquire),
             failure: decode_failure(self.failure_code()),
             local_failure: decode_failure(self.0.failure.load(Ordering::Acquire)),
+            file_limit_observation: self.0.file_limit_observation.lock().ok().and_then(|v| *v),
         }
+    }
+
+    fn fail_file_limit(&self, check: &'static str, attempted: u64, limit: u64) {
+        if let Ok(mut observation) = self.0.file_limit_observation.lock() {
+            observation.get_or_insert((check, attempted, limit));
+        }
+        if let Some(root) = self.0.aggregate_write.as_ref() {
+            root.fail_file_limit(check, attempted, limit);
+        }
+        self.fail(PinnedSqliteIoFailure::FileLimit);
     }
 
     pub(super) fn fail(&self, reason: PinnedSqliteIoFailure) {
@@ -988,12 +1005,12 @@ impl AuxState {
     fn reserve_logical(&self, target: u64) -> bool {
         let previous = self.logical_current.load(Ordering::Acquire);
         if target > self.logical_cap {
-            self.set_failure(PinnedSqliteIoFailure::FileLimit);
+            self.io_budget.fail_file_limit("logical_growth_bytes", target, self.logical_cap);
             return false;
         }
         if let Some(other) = &self.other {
             if other.reserve_logical(previous, target).is_err() {
-                self.set_failure(PinnedSqliteIoFailure::FileLimit);
+                self.io_budget.fail_file_limit("other_member_target_vs_aggregate_bytes", target, other.logical_cap);
                 return false;
             }
         }
@@ -1020,7 +1037,7 @@ impl AuxState {
         self.logical_current.store(logical, Ordering::Release);
         self.allocated_current.store(allocated, Ordering::Release);
         if logical > self.logical_cap {
-            self.set_failure(PinnedSqliteIoFailure::FileLimit);
+            self.io_budget.fail_file_limit("observed_logical_bytes", logical, self.logical_cap);
             return false;
         }
         if physical_result.is_err() || allocated > self.allocated_cap {
@@ -1223,7 +1240,7 @@ impl AuxContext {
         }
         let (logical_cap, allocated_cap) = class.ceilings(self.limits);
         if logical_cap == 0 || allocated_cap == 0 {
-            self.io_budget.fail(PinnedSqliteIoFailure::FileLimit);
+            self.io_budget.fail_file_limit("disabled_file_class_bytes", 1, logical_cap.min(allocated_cap));
             return Err(budget_error("SQLite auxiliary file class is disabled"));
         }
         let counted_live = class != AuxClass::Main;
@@ -1231,7 +1248,7 @@ impl AuxContext {
             let current = self.live_aux.fetch_add(1, Ordering::AcqRel);
             if current >= self.limits.max_live_aux {
                 self.live_aux.fetch_sub(1, Ordering::AcqRel);
-                self.io_budget.fail(PinnedSqliteIoFailure::FileLimit);
+                self.io_budget.fail_file_limit("live_aux_count", current.saturating_add(1) as u64, self.limits.max_live_aux as u64);
                 return Err(budget_error("SQLite live auxiliary inode limit exceeded"));
             }
         }
@@ -1868,9 +1885,7 @@ impl PinnedSqliteAuxScope {
             || len > main.state.logical_cap
             || len > usize::MAX as u64
         {
-            self.request
-                .io_budget
-                .fail(PinnedSqliteIoFailure::FileLimit);
+            self.request.io_budget.fail_file_limit("main_extraction_bytes", len, max_bytes.min(main.state.logical_cap));
             return Err(budget_error("SQLite auxiliary main extraction exceeds cap"));
         }
         let policy = AuxPolicy {

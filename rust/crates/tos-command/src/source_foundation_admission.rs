@@ -137,6 +137,7 @@ struct NativeSpoolReadPacket {
     returned_bytes: u64,
     local_failure: Option<&'static str>,
     effective_failure: Option<&'static str>,
+    file_limit_observation: Option<(&'static str, u64, u64)>,
 }
 fn io_failure_name(failure: PinnedSqliteIoFailure) -> &'static str {
     match failure {
@@ -164,6 +165,7 @@ impl From<PinnedSqliteIoSnapshot> for NativeSpoolReadPacket {
             returned_bytes: value.read_returned_bytes,
             local_failure: value.local_failure.map(io_failure_name),
             effective_failure: value.failure.map(io_failure_name),
+            file_limit_observation: value.file_limit_observation,
         }
     }
 }
