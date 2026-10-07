@@ -1073,6 +1073,8 @@ fn main() {
                 Action::SourceHome => "source home",
                 Action::AgentsRouteCurrentnessBuild { .. } => "AGENTS route currentness",
                 Action::NestedAgentsValidate => "nested AGENTS route cards",
+                Action::AgentsRouteHarnessCheck => "AGENTS route harness",
+                Action::TinyEntryValidate => "tiny entry route",
                 Action::PhilosophyTopology => "philosophy topology",
                 #[cfg(feature = "compiler-backed-validators")]
                 Action::PhilosophyGraphViews => "philosophy graph views",
