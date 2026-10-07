@@ -3035,9 +3035,18 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     drop(replay);
                     let mut schemas = schema_worker.borrow_mut();
                     let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
-                    let diagnostic_state_cap = available_after_biblio
-                        .checked_sub(owner_state)
-                        .and_then(|state| state.checked_sub(reader_cost.auxiliary_state_bytes))
+                    // The source reader, replay and replay schema adapter have
+                    // ended above. Their peak remains evidence for the rules
+                    // phase; those allocations do not coexist with diagnostics.
+                    let common_evidence_state = biblio_state
+                        .checked_add(owner_state)
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    let rules_evidence_peak = common_evidence_state
+                        .checked_add(replay_state)
+                        .and_then(|state| state.checked_add(reader_cost.auxiliary_state_bytes))
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    let diagnostic_state_cap = callback_workspace_state
+                        .checked_sub(common_evidence_state)
                         .ok_or(tos_validation::item_budget_origin!())?;
                     if replay_had_skips {
                         return Err(ItemRefusal::Source(
@@ -3211,14 +3220,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             limit: Some(records_ticket.remaining().source_read_bytes),
                         });
                     }
-                    let callback_evidence_state = replay_state
-                        .checked_add(biblio_state)
-                        .and_then(|state| state.checked_add(owner_state))
-                        .and_then(|state| state.checked_add(reader_cost.auxiliary_state_bytes))
-                        .and_then(|state| {
-                            state.checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
-                        })
+                    let diagnostic_evidence_peak = common_evidence_state
+                        .checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
                         .ok_or(tos_validation::item_budget_origin!())?;
+                    let callback_evidence_state = rules_evidence_peak.max(diagnostic_evidence_peak);
                     if callback_evidence_state > callback_workspace_state {
                         return Err(ItemRefusal::BudgetCheck {
                             check: "candidate dependent evidence state upper bound",
