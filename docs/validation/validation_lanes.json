@@ -865,38 +865,71 @@
       {
         "label": "check philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/build_philosophy_atlas_projection.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_atlas_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "check philosophy graph views",
         "command": [
-          "python",
-          "scripts/build_philosophy_graph_views.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy graph views",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_views.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "validate philosophy graph projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "graph",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
@@ -919,16 +952,29 @@
       {
         "label": "check philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/build_philosophy_post_planting_audit.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/validate_philosophy_post_planting_audit.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
@@ -991,24 +1037,29 @@
       {
         "label": "check AGENTS route-card currentness",
         "command": [
-          "python",
-          "scripts/build_agents_route_currentness.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--agents-route-currentness-build",
           "--check"
         ]
       },
       {
         "label": "validate route-card structure",
         "command": [
-          "python",
-          "scripts/validate_nested_agents.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--nested-agents-validate"
         ]
       },
       {
         "label": "run deterministic AGENTS task route harness",
         "command": [
-          "python",
-          "scripts/agents_route_harness.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--agents-route-harness-check"
         ]
       }
     ],
@@ -1059,8 +1110,10 @@
       {
         "label": "validate tiny entry route",
         "command": [
-          "python",
-          "scripts/validate_tiny_entry_route.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--tiny-entry-validate"
         ]
       }
     ],
@@ -1101,38 +1154,71 @@
       {
         "label": "check philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/build_philosophy_atlas_projection.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_atlas_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "check philosophy graph views",
         "command": [
-          "python",
-          "scripts/build_philosophy_graph_views.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy graph views",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_views.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "validate philosophy graph projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "graph",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
@@ -1155,16 +1241,29 @@
       {
         "label": "check philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/build_philosophy_post_planting_audit.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/validate_philosophy_post_planting_audit.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       }
     ],
@@ -1391,8 +1490,10 @@
       {
         "label": "run mechanics-local checks",
         "command": [
-          "python",
-          "scripts/run_mechanics_local_tests.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--execute"
         ]
       }
     ],

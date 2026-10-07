@@ -33,7 +33,7 @@ const READER: &str = "scripts/source_record_profiles.py";
 const MEMBER_BYTES: usize = 1_048_576;
 const STATE_BYTES: usize = 64 * 1_048_576;
 const TOTAL_GIT_BYTES: usize = 16 * 1_048_576;
-const HELP: &str = "choose the exact pre-change commit, ensure its object is available locally, then pass --baseline-commit FULL_COMMIT_OID or set TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID before python scripts/validation_lanes.py --run semantic_registry_transition";
+const HELP: &str = "choose the exact pre-change commit, ensure its object is available locally, then pass --baseline-commit FULL_COMMIT_OID or set TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID before tos-validation-lanes --repo-root ABSOLUTE_REPO --run semantic_registry_transition";
 
 fn invalid(text: impl Into<String>) -> io::Error {
     io::Error::other(text.into())

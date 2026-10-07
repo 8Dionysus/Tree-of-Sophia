@@ -66,9 +66,6 @@ fn options() -> Result<Options, String> {
             _ => return Err(format!("unknown argument: {argument}")),
         }
     }
-    if (sequence.is_some() || run.is_some()) && python.as_ref().is_none_or(String::is_empty) {
-        return Err("--python EXACT_INTERPRETER is required for sequence or run".into());
-    }
     Ok(Options {
         root: root.ok_or("--repo-root is required")?,
         python,

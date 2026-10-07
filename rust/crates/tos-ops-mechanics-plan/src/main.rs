@@ -42,6 +42,8 @@ enum Action {
         check: bool,
     },
     NestedAgentsValidate,
+    AgentsRouteHarnessCheck,
+    TinyEntryValidate,
     DocumentationFamilyBuild {
         check: bool,
     },
@@ -110,6 +112,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut agent_surface_validate = false;
     let mut agents_route_currentness_build = false;
     let mut nested_agents_validate = false;
+    let mut agents_route_harness_check = false;
+    let mut tiny_entry_validate = false;
     let mut documentation_family_build = false;
     let mut documentation_cross_corpus_validate = false;
     let mut root_entry_map_build = false;
@@ -152,6 +156,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--agent-surface-validate" => agent_surface_validate = true,
             "--agents-route-currentness-build" => agents_route_currentness_build = true,
             "--nested-agents-validate" => nested_agents_validate = true,
+            "--agents-route-harness-check" => agents_route_harness_check = true,
+            "--tiny-entry-validate" => tiny_entry_validate = true,
             "--documentation-family-build" => documentation_family_build = true,
             "--documentation-cross-corpus-validate" => documentation_cross_corpus_validate = true,
             "--root-entry-map-build" => root_entry_map_build = true,
@@ -234,6 +240,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(agent_surface_validate)
         + usize::from(agents_route_currentness_build)
         + usize::from(nested_agents_validate)
+        + usize::from(agents_route_harness_check)
+        + usize::from(tiny_entry_validate)
         + usize::from(documentation_family_build)
         + usize::from(documentation_cross_corpus_validate)
         + usize::from(root_entry_map_build)
@@ -324,6 +332,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         Action::AgentSurfaceValidate { fetch_budget_bases }
     } else if agents_route_currentness_build {
         Action::AgentsRouteCurrentnessBuild { check }
+    } else if agents_route_harness_check {
+        Action::AgentsRouteHarnessCheck
+    } else if tiny_entry_validate {
+        Action::TinyEntryValidate
     } else if nested_agents_validate {
         Action::NestedAgentsValidate
     } else if documentation_family_build {
@@ -505,7 +517,7 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
@@ -751,6 +763,44 @@ fn main() {
                 tos_ops_mechanics_plan::route_cards::write_output(&root, &path, &rendered)?;
                 println!("wrote {display}");
                 Ok(0)
+            }
+        }),
+        Action::AgentsRouteHarnessCheck => root.canonicalize().and_then(|root| {
+            let result =
+                tos_ops_mechanics_plan::route_harness::build_result(&root, false, &CANCEL)?;
+            let tasks = result["tasks"]
+                .as_array()
+                .ok_or_else(|| std::io::Error::other("invalid harness task result"))?;
+            let failures = tasks
+                .iter()
+                .filter(|task| task["route_success"] != true)
+                .count();
+            if failures == 0 {
+                println!(
+                    "AGENTS route harness passed for {} task routes",
+                    tasks.len()
+                );
+                Ok(0)
+            } else {
+                println!(
+                    "AGENTS route harness failed for {failures}/{} task routes",
+                    tasks.len()
+                );
+                Ok(1)
+            }
+        }),
+        Action::TinyEntryValidate => root.canonicalize().and_then(|root| {
+            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
+            let issues =
+                tos_ops_mechanics_plan::tiny_entry::validate(&root, &mut sources, &CANCEL)?;
+            for (path, message) in &issues {
+                eprintln!("- {path}: {message}");
+            }
+            if issues.is_empty() {
+                println!("[ok] validated tiny entry route");
+                Ok(0)
+            } else {
+                Ok(1)
             }
         }),
         Action::NestedAgentsValidate => root.canonicalize().and_then(|root| {

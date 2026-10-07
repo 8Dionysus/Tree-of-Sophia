@@ -1,5 +1,4 @@
-//! Explicit native consumer of the existing software release command sequence.
-//! The Python entry remains active until owner-accepted parity and route cutover.
+//! Native consumer of the authored software release command sequence.
 
 use std::env;
 use std::io::{self, Write};
@@ -23,7 +22,7 @@ struct Options {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-release-check --repo-root PATH --python EXACT_INTERPRETER [--phase all|checks|tests] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-release-check --repo-root PATH [--python EXACT_INTERPRETER] [--phase all|checks|tests] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
@@ -70,10 +69,7 @@ fn options() -> Result<Options, String> {
             _ => return Err(format!("unknown argument: {argument}")),
         }
     }
-    let python = python.ok_or("--python EXACT_INTERPRETER is required")?;
-    if python.is_empty() {
-        return Err("--python EXACT_INTERPRETER is required".into());
-    }
+    let python = python.unwrap_or_default();
     Ok(Options {
         root: root.ok_or("--repo-root is required")?,
         python,

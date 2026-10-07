@@ -8,7 +8,10 @@ sources.
 
 `docs/validation/validation_lanes.json` is the sole machine authority for
 internal lane membership and command order. This file explains selection;
-`scripts/validation_lanes.py` loads and executes the selected sequence.
+`tos-validation-lanes` loads and executes the selected sequence.
+The literal `{repo_root}` in command arguments expands to the explicitly
+selected canonical repository root. Native sequences need no interpreter;
+a retained Python step currently requires `--python EXACT_INTERPRETER`.
 
 ## Select a route
 
@@ -38,13 +41,13 @@ owner, mutation-bearing builder, or package-specific procedure.
 Inspect an exact current sequence without executing it:
 
 ```bash
-python scripts/validation_lanes.py --sequence route_docs
+tos-validation-lanes --repo-root "$PWD" --sequence route_docs
 ```
 
 Execute one selected internal sequence:
 
 ```bash
-python scripts/validation_lanes.py --run route_docs
+tos-validation-lanes --repo-root "$PWD" --run route_docs
 ```
 
 Execute the full software contracts and fixture-based behavior route locally

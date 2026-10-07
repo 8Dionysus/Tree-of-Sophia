@@ -440,3 +440,19 @@ execute those implementations, and native execution has no Python fallback.
 Their presence is an explicit reference-only fate, not deletion or acceptance
 of the selected KAG export. Compatible generated format markers can retain
 historical script names without requiring those launchers.
+
+## Native validation lanes
+
+`tos-validation-lanes --repo-root ABSOLUTE_PATH --sequence route_docs`
+shows the authored command sequence; `--run route_docs` executes it under the
+same bounded process supervisor. Native sequences need no Python argument.
+The manifest's exact `{repo_root}` argument resolves to the selected canonical
+root without shell expansion. An explicitly retained Python step still
+requires `--python EXACT_INTERPRETER`; no interpreter is discovered for it.
+
+Route currentness, nested cards, task harness, tiny entry and the philosophy
+projection lanes call their existing Rust implementations directly.
+`tos-ops-mechanics-plan --agents-route-harness-check --repo-root ABSOLUTE_PATH`
+and `--tiny-entry-validate` also expose those narrow owner checks individually.
+`tos-release-check` follows the same interpreter rule for its selected phase;
+its remaining Python test steps still require explicit selection until retired.

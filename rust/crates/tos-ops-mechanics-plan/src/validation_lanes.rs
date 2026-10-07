@@ -1,6 +1,6 @@
 //! Native consumer of the existing ToS validation-lane command manifest.
-//! The authored JSON remains the sole command authority. Python compatibility
-//! and release_check imports stay in place until owner-accepted parity.
+//! The authored JSON remains the sole command authority. Native sequences do
+//! not require an interpreter; a retained Python step requires explicit selection.
 
 use serde_json::Value;
 use std::fs;
@@ -271,8 +271,8 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
 }
 
 /// Select one sequence in authored order without imposing the global --check
-/// gate, as the existing Python loader does. `python` is the exact interpreter
-/// path supplied by the Python compatibility entry (`sys.executable`).
+/// gate. An empty `python` permits native commands only. `{repo_root}` resolves
+/// to the explicitly selected canonical source root as one argv element.
 pub fn command_sequence(
     root: &Path,
     sequence_id: &str,
@@ -290,9 +290,6 @@ pub fn command_sequence_with_budgets(
     sequence_id: &str,
     python: &str,
 ) -> io::Result<Vec<BudgetedCommandStep>> {
-    if python.is_empty() {
-        return Err(invalid("invalid Python interpreter path"));
-    }
     let manifest = read_manifest(root)?.ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::NotFound,
@@ -338,7 +335,23 @@ pub fn command_sequence_with_budgets(
             .map(|part| part.as_str().unwrap_or_default().to_owned())
             .collect();
         if parts[0] == "python" {
+            if python.is_empty() || python.contains('\0') {
+                return Err(invalid(
+                    "retained Python step requires --python EXACT_INTERPRETER",
+                ));
+            }
             parts[0] = python.to_owned();
+        }
+        if parts.iter().any(|part| part == "{repo_root}") {
+            let selected = root.canonicalize()?;
+            let selected = selected
+                .to_str()
+                .ok_or_else(|| invalid("non-UTF-8 repository root"))?;
+            for part in &mut parts {
+                if part == "{repo_root}" {
+                    *part = selected.to_owned();
+                }
+            }
         }
         if parts[0] == "tos-ops-mechanics-plan"
             && let Some(selected) = std::env::var_os("TOS_OPS_MECHANICS_EXECUTOR")
