@@ -120,7 +120,9 @@ pub(crate) fn read(
             .get_ref(3)?
             .as_blob()
             .map_err(|_| Error::Budget("original projection row bytes"))?;
-        if ordinal < 0 || sha.len() != 32 || declared > max_row_bytes {
+        // Navigation uses ordinal -1 for its header. Each collection owner
+        // retains its own ordinal contract; this common decoder checks bytes.
+        if sha.len() != 32 || declared > max_row_bytes {
             return Err(Error::Invalid("original projection row identity"));
         }
         bytes = bytes
