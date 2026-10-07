@@ -721,12 +721,6 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
             return Ok(None);
         }
         if self
-            .record_selection()
-            .is_some_and(|selection| !selection.contains_member(path))
-        {
-            return Ok(None);
-        }
-        if self
             .history
             .as_deref()
             .is_some_and(|history| history.selected(path))

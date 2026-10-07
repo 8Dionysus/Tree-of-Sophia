@@ -814,7 +814,9 @@ impl<'a> KnowledgeStage<'a> {
     /// bytes; no semantic JSON equality can share a different physical packet.
     /// Both a new carrier row and its bytes use the existing Stage/page ledger.
     pub fn retain_exact_source_carrier(&mut self, packet: &[u8]) -> Result<ExactSourceCarrierRef> {
-        let result = self.retain_exact_source_carrier_inner(packet);
+        let result = self
+            .retain_exact_source_carrier_inner(packet)
+            .map_err(|error| self.annotate_sqlite_full(WritePhase::Normalized, error));
         self.poisoned |= result.is_err();
         result
     }
@@ -1796,6 +1798,7 @@ impl<'a> KnowledgeStage<'a> {
                 max_steps,
             });
         }
+        let result = result.map_err(|error| self.annotate_sqlite_full(phase, error));
         self.poisoned |= result.is_err();
         result
     }
@@ -1923,6 +1926,7 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     // Failure-only observation; the original SQLite code/message survive.
+    #[track_caller]
     fn annotate_sqlite_full(&self, phase: WritePhase, error: Error) -> Error {
         let (sqlite, original_phase) = match error {
             Error::Sql(error) => (error, None),
@@ -1941,6 +1945,12 @@ impl<'a> KnowledgeStage<'a> {
             }
             other => return wrap(other),
         };
+        let caller = std::panic::Location::caller();
+        eprintln!(
+            "Native stage SQLITE_FULL observed at {}:{}",
+            caller.file(),
+            caller.line()
+        );
         // Same shared progress handler, deadline and cancellation owner.
         let active = || self.check_public_work_active().is_ok();
         if !active() {
@@ -2217,7 +2227,9 @@ impl<'a> KnowledgeStage<'a> {
         Ok(())
     }
     pub fn ingest_input(&mut self, row: InputRow<'_>) -> Result<()> {
-        let result = self.ingest_input_inner(row);
+        let result = self
+            .ingest_input_inner(row)
+            .map_err(|error| self.annotate_sqlite_full(WritePhase::Input, error));
         self.poisoned |= result.is_err();
         result
     }
@@ -2304,6 +2316,7 @@ impl<'a> KnowledgeStage<'a> {
             tx.commit()?;
             self.check(WritePhase::Input)
         })();
+        let result = result.map_err(|error| self.annotate_sqlite_full(WritePhase::Input, error));
         self.poisoned |= result.is_err();
         result
     }
