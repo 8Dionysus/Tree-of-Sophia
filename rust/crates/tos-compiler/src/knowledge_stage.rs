@@ -559,28 +559,45 @@ impl KnowledgePayloadLayout {
     /// retain their independent whole-model and component compatibility checks.
     pub fn from_model_abi(abi: &str) -> Self {
         match abi {
-            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1 => Self::CarrierOnceV1,
-            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2 => Self::CarrierOnceV2,
+            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1 => {
+                Self::CarrierOnceV1
+            }
+            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2 => {
+                Self::CarrierOnceV2
+            }
             _ => Self::InlineV1,
         }
     }
     pub const fn carrier_model_abi(self) -> Option<&'static str> {
         match self {
             Self::InlineV1 => None,
-            Self::CarrierOnceV1 => Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1),
-            Self::CarrierOnceV2 => Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2),
+            Self::CarrierOnceV1 => {
+                Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1)
+            }
+            Self::CarrierOnceV2 => {
+                Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2)
+            }
         }
     }
     pub(crate) fn physical_bound(self, logical_bound: usize) -> Result<usize> {
-        if self.packed_bytes() { crate::knowledge_byte_codec::stored_bound(logical_bound) }
-        else { Ok(logical_bound) }
+        if self.packed_bytes() {
+            crate::knowledge_byte_codec::stored_bound(logical_bound)
+        } else {
+            Ok(logical_bound)
+        }
     }
     pub(crate) fn verify_physical_length(
-        self, stored: &[u8], expected_bytes: usize, max_bytes: usize,
+        self,
+        stored: &[u8],
+        expected_bytes: usize,
+        max_bytes: usize,
     ) -> Result<()> {
         if self.packed_bytes() {
             crate::knowledge_byte_codec::frame_metadata(stored, Some(expected_bytes), max_bytes)?;
-        } else if expected_bytes == 0 || expected_bytes > max_bytes || stored.len() != expected_bytes {
+        } else if expected_bytes == 0
+            || expected_bytes > max_bytes
+            || stored.len() != expected_bytes
+        {
             return Err(Error::Invalid("legacy physical payload length"));
         }
         Ok(())
@@ -594,10 +611,18 @@ impl KnowledgePayloadLayout {
         consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
         if self.packed_bytes() {
-            crate::knowledge_byte_codec::with_decoded(state, stored, expected_bytes, max_bytes, consume)
+            crate::knowledge_byte_codec::with_decoded(
+                state,
+                stored,
+                expected_bytes,
+                max_bytes,
+                consume,
+            )
         } else {
-            if stored.is_empty() || stored.len() > max_bytes
-                || expected_bytes.is_some_and(|n| n != stored.len()) {
+            if stored.is_empty()
+                || stored.len() > max_bytes
+                || expected_bytes.is_some_and(|n| n != stored.len())
+            {
                 return Err(Error::Invalid("legacy physical payload length"));
             }
             consume(stored)
@@ -610,8 +635,11 @@ impl KnowledgePayloadLayout {
         max_bytes: usize,
         consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
-        if self.packed_bytes() { crate::knowledge_byte_codec::with_encoded(state, raw, max_bytes, consume) }
-        else { consume(raw) }
+        if self.packed_bytes() {
+            crate::knowledge_byte_codec::with_encoded(state, raw, max_bytes, consume)
+        } else {
+            consume(raw)
+        }
     }
 }
 
@@ -908,7 +936,8 @@ impl<'a> KnowledgeStage<'a> {
         self.charge_public_work(packet.len() as u64)?;
         let digest = Digest256::of_bytes(packet);
         let layout = self.payload_layout;
-        let state = self.owned_creation_state()
+        let state = self
+            .owned_creation_state()
             .ok_or(Error::Invalid("source carrier same owner state absent"))?;
         // Read existing storage only under its selected logical/physical caps.
         let found = {
@@ -925,15 +954,25 @@ impl<'a> KnowledgeStage<'a> {
                 if declared != packet.len() as i64 {
                     return Err(Error::Invalid("source carrier logical length differs"));
                 }
-                layout.with_decoded(state, stored, Some(packet.len()), self.limits.sqlite.max_row_bytes, |raw| {
-                    state.charge_work(raw.len())?;
-                    if raw != packet {
-                        return Err(Error::Invalid("source carrier digest collision or stored bytes differ"));
-                    }
-                    Ok(())
-                })?;
+                layout.with_decoded(
+                    state,
+                    stored,
+                    Some(packet.len()),
+                    self.limits.sqlite.max_row_bytes,
+                    |raw| {
+                        state.charge_work(raw.len())?;
+                        if raw != packet {
+                            return Err(Error::Invalid(
+                                "source carrier digest collision or stored bytes differ",
+                            ));
+                        }
+                        Ok(())
+                    },
+                )?;
                 true
-            } else { false }
+            } else {
+                false
+            }
         };
         if !found {
             layout.with_encoded(state, packet, self.limits.sqlite.max_row_bytes, |stored| {
@@ -2043,6 +2082,61 @@ impl<'a> KnowledgeStage<'a> {
         let temp_page_size = pager("PRAGMA temp.page_size");
         let temp_page_count = pager("PRAGMA temp.page_count");
         let temp_max_page_count = pager("PRAGMA temp.max_page_count");
+        // Failure-only physical geometry. The bundled DBSTAT aggregate cursor
+        // visits each b-tree once and returns fixed schema metadata, never row
+        // contents. It shares the original SQLite heap, VM/deadline and work
+        // ledger; an unavailable diagnostic cannot replace SQLITE_FULL.
+        if !message
+            .as_deref()
+            .is_some_and(|text| text.contains("stage_sqlite_full"))
+        {
+            if let Some(bytes) = page_count
+                .zip(page_size)
+                .and_then(|(n, size)| n.checked_mul(size))
+            {
+                if bytes <= self.limits.sqlite.max_output_bytes
+                    && self.charge_public_work(bytes).is_ok()
+                {
+                    let state = self.owned_creation_state();
+                    let hold = state.map(|state| state.hold(4096)).transpose();
+                    if let Ok(_hold) = hold {
+                        let observed = (|| -> rusqlite::Result<()> {
+                            let mut statement = self.db().prepare(
+                                "SELECT name,pageno,pgsize,payload,unused FROM dbstat WHERE aggregate=TRUE LIMIT 65",
+                            )?;
+                            let mut rows = statement.query([])?;
+                            for _ in 0..64 {
+                                if !active() {
+                                    break;
+                                }
+                                let Some(row) = rows.next()? else {
+                                    break;
+                                };
+                                let name = row.get_ref(0)?.as_str()?;
+                                if name.len() > 128
+                                    || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                                {
+                                    break;
+                                }
+                                let pages: u64 = row.get(1)?;
+                                let allocated: u64 = row.get(2)?;
+                                let payload: u64 = row.get(3)?;
+                                let unused: u64 = row.get(4)?;
+                                eprintln!(
+                                    "Native stage geometry table={name} pages={pages} allocated_bytes={allocated} payload_bytes={payload} unused_bytes={unused}"
+                                );
+                            }
+                            Ok(())
+                        })();
+                        if observed.is_err() {
+                            eprintln!(
+                                "Native stage geometry unavailable under original owner limits"
+                            );
+                        }
+                    }
+                }
+            }
+        }
         let mut file_bytes = None;
         let mut fs_total_bytes = None;
         let mut fs_free_bytes = None;
@@ -2324,8 +2418,14 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<(usize, usize, u64)> {
         let carrier = self.payload_layout.uses_carriers();
         let rows_per_input = if carrier { 2 } else { 1 };
-        let bytes_per_input = self.payload_layout.physical_bound(max_payload_bytes)?
-            .checked_add(if carrier { self.payload_layout.physical_bound(max_source_bytes)? } else { 0 })
+        let bytes_per_input = self
+            .payload_layout
+            .physical_bound(max_payload_bytes)?
+            .checked_add(if carrier {
+                self.payload_layout.physical_bound(max_source_bytes)?
+            } else {
+                0
+            })
             .filter(|bytes| *bytes > 0)
             .ok_or(Error::Budget("exact source physical row bytes"))?;
         let (write_rows, write_bytes) = self.write_page_limits();
@@ -2616,7 +2716,9 @@ impl<'a> KnowledgeStage<'a> {
                 let source_len = if codec == 1 {
                     usize::try_from(row.get::<_, i64>(5)?)
                         .map_err(|_| Error::Invalid("normalized source logical length"))?
-                } else { 0 };
+                } else {
+                    0
+                };
                 let owned_bytes = raw
                     .len()
                     .checked_add(source.len())
@@ -2656,7 +2758,10 @@ impl<'a> KnowledgeStage<'a> {
                 return Ok(None);
             };
             let observed = layout.with_decoded(
-                state, &record.raw, (record.codec == 0).then_some(record.logical_len), max_bytes,
+                state,
+                &record.raw,
+                (record.codec == 0).then_some(record.logical_len),
+                max_bytes,
                 |raw| {
                     if record.codec == 0 {
                         state.charge_work(raw.len())?;
@@ -2666,14 +2771,27 @@ impl<'a> KnowledgeStage<'a> {
                         state.active()?;
                         consume(self, raw, None).map(Some)
                     } else {
-                        let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
-                        layout.with_decoded(state, &record.source, Some(record.source_len), max_bytes, |source| {
-                            crate::knowledge_payload_codec::with_hydrated_payload(
-                                state, raw, source, limits, limits, max_bytes,
-                                record.logical_len, record.digest,
-                                |logical| consume(self, logical, Some(source)).map(Some),
-                            )
-                        })
+                        let limits =
+                            crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
+                        layout.with_decoded(
+                            state,
+                            &record.source,
+                            Some(record.source_len),
+                            max_bytes,
+                            |source| {
+                                crate::knowledge_payload_codec::with_hydrated_payload(
+                                    state,
+                                    raw,
+                                    source,
+                                    limits,
+                                    limits,
+                                    max_bytes,
+                                    record.logical_len,
+                                    record.digest,
+                                    |logical| consume(self, logical, Some(source)).map(Some),
+                                )
+                            },
+                        )
                     }
                 },
             );
@@ -3139,9 +3257,7 @@ impl<'a> KnowledgeStage<'a> {
         row: NodeRow<'_>,
         logical: Option<(usize, Digest256, Digest256)>,
     ) -> Result<()> {
-        if self.poisoned
-            || (logical.is_some() && !self.payload_layout.uses_carriers())
-        {
+        if self.poisoned || (logical.is_some() && !self.payload_layout.uses_carriers()) {
             return Err(Error::Invalid("normalized carrier write unavailable"));
         }
         if !self.registered_source(row.source_graph) {
@@ -3288,9 +3404,7 @@ impl<'a> KnowledgeStage<'a> {
         row: RelationRow<'_>,
         logical: Option<(usize, Digest256, Digest256)>,
     ) -> Result<()> {
-        if self.poisoned
-            || (logical.is_some() && !self.payload_layout.uses_carriers())
-        {
+        if self.poisoned || (logical.is_some() && !self.payload_layout.uses_carriers()) {
             return Err(Error::Invalid("normalized carrier write unavailable"));
         }
         if !self.registered_source(row.source_graph) {
@@ -4576,7 +4690,9 @@ pub(crate) fn verify_selected_payload_ddl(
     for (table, expected) in TABLES {
         let expected = if layout.packed_bytes() && table == "knowledge_source_carriers" {
             "49e47dee375918b4ba0b22053bbd37538f495aa57ad683c2d1ecdbb58b61d4ca"
-        } else { expected };
+        } else {
+            expected
+        };
         state.active()?;
         const SQL: &std::ffi::CStr = c"SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=4096 THEN CAST(sql AS BLOB) ELSE NULL END FROM sqlite_master WHERE type='table' AND name=?1";
         state.charge_work(SQL.to_bytes().len())?;
@@ -4766,8 +4882,7 @@ fn selected_table_closure_with_layout_and_state(
             return Err(Error::Budget("selected knowledge table name bytes"));
         };
         if !(TABLES.contains(&name.as_str())
-            || layout.uses_carriers()
-                && name == "knowledge_source_carriers"
+            || layout.uses_carriers() && name == "knowledge_source_carriers"
             || navigation_original && navigation_tables.contains(&name.as_str())
             || philosophy_original && philosophy_tables.contains(&name.as_str())
             || corpus_original
@@ -4783,11 +4898,7 @@ fn selected_table_closure_with_layout_and_state(
     }
     if seen.len()
         != TABLES.len()
-            + if layout.uses_carriers() {
-                1
-            } else {
-                0
-            }
+            + if layout.uses_carriers() { 1 } else { 0 }
             + if navigation_original { 3 } else { 0 }
             + if philosophy_original { 2 } else { 0 }
             + if corpus_original { 2 } else { 0 }

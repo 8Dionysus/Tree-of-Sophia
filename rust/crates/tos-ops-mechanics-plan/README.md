@@ -92,10 +92,10 @@ and does not accept authored ToS meaning.
 `tos-validation-lanes` is a separate candidate for the current
 `scripts/validation_lanes.py` command plane. Its `--check`, `--sequence ID`,
 and `--run ID` modes read the existing
-`docs/validation/validation_lanes.json` in authored order. Selection and run
-require `--python PATH`, which the compatibility entry passes as
-its exact `sys.executable`; the native binary does not discover or install an
-interpreter. The read is bounded to 1 MiB. Run uses the existing dedicated
+`docs/validation/validation_lanes.json` in authored order. Native sequences
+require no interpreter. A selected retained Python step requires the explicit
+`--python PATH` adapter, which the compatibility entry passes as its exact
+`sys.executable`; the native binary does not discover or install an interpreter. The read is bounded to 1 MiB. Run uses the existing dedicated
 Linux pidfd/subreaper executor with its default 300-second command wall,
 3600-second sequence wall, one-second cleanup grace, and 16 MiB combined
 output per child. These finite execution limits are stricter than the Python
@@ -110,8 +110,8 @@ the Python runner previously raised an unhandled spawn exception instead.
 `release_check` sequence. `--phase all` keeps authored order; `checks` and
 `tests` select before or at the complete final suffix of named `run tests: `
 steps, while retaining support for one legacy final `run tests` step. It takes
-an exact `--python PATH` adapter and preserves the
-maintained runner's `PYTEST_DISABLE_PLUGIN_AUTOLOAD` default, Windows-style
+an exact `--python PATH` adapter only when the selected phase retains Python
+steps, and preserves the maintained runner's `PYTEST_DISABLE_PLUGIN_AUTOLOAD` default, Windows-style
 `list2cmdline` progress text, first failure line on stdout, and child status.
 The same native executor imposes the finite command, sequence, cleanup, and
 output limits above; this differs from Python's unbounded subprocess call.
@@ -181,8 +181,11 @@ identify the executable that produced those bytes. Authored cards and inventory
 retain their authority, and harness results make no model-behavior claim.
 
 One source snapshot bounds raw input to 64 MiB / 8 MiB per file, with at most
-another 64 MiB of normalized cached text, 10,000 entries/files, 100,000 lookups,
-128 path levels and 4096-byte relative paths. Cached metadata is computed once
+another 64 MiB of normalized cached text, 10,000 retained files/cards,
+100,000 lookups, 128 path levels and 4096-byte relative paths. The maintained
+whole-repository card, currentness and harness routes stream up to 131,072
+physical directory entries without retaining unrelated files; narrower source
+APIs keep their original discovery limits. Cached metadata is computed once
 per unique source. Inventory punctuation is preflighted before JSON parsing;
 arrays/tasks are limited to 4096 and cards to 65,536 lines of at most 8192 bytes.
 The snapshot checks a cooperative 30-second deadline. Each build/validator Git

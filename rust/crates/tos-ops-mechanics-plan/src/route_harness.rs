@@ -365,7 +365,15 @@ pub fn build_result(root: &Path, include_timing: bool, cancel: &AtomicI32) -> io
     let mut sources = RouteSources::new(root)?;
     let inventory = sources.inventory()?;
     let inventory_hash = sha256_bytes(&sources.bytes(INVENTORY)?);
-    let discovered = sources.discover(&inventory)?.into_iter().collect();
+    // This maintained repository-wide reader has the same streamed discovery
+    // scope as currentness; cached card/text and operation caps stay unchanged.
+    let discovered = sources
+        .discover_cards_with_limits(
+            &inventory,
+            crate::route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+        )?
+        .into_iter()
+        .collect();
     let manifest: Value = serde_json::from_str(
         &sources
             .text(LANES)?

@@ -28,7 +28,8 @@ const MAX_ENTRIES: usize = 10_000;
 /// Ordinary route APIs still receive `MAX_OPERATIONS`.
 pub const MAX_BUDGETED_ROUTE_OPERATIONS: usize = 1_000_000;
 /// Upper finite ceiling available only to callers that budget a wider tree.
-/// The ordinary route-card APIs retain the smaller historical ceiling.
+/// Maintained whole-repository card readers select this streamed ceiling;
+/// generic source discovery keeps its smaller historical ceiling.
 pub const MAX_SELECTED_PATH_DISCOVERY_ENTRIES: usize = 131_072;
 const MAX_RELATIVE_PATH_BYTES: usize = 4096;
 const MAX_RELATIVE_COMPONENTS: usize = 128;
@@ -1846,7 +1847,8 @@ pub fn load_inventory(root: &Path) -> io::Result<Value> {
     RouteSources::new(root)?.inventory()
 }
 pub fn discover_route_cards(root: &Path, inventory: &Value) -> io::Result<Vec<String>> {
-    RouteSources::new(root)?.discover(inventory)
+    RouteSources::new(root)?
+        .discover_cards_with_limits(inventory, MAX_SELECTED_PATH_DISCOVERY_ENTRIES)
 }
 pub fn target_inheritance_stack(
     root: &Path,
@@ -2890,7 +2892,12 @@ fn local_script_reference_issues(
     Ok(())
 }
 pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>> {
-    run_validation_with_sources(root, &mut RouteSources::new(root)?, cancel)
+    run_validation_with_card_discovery_limit(
+        root,
+        &mut RouteSources::new(root)?,
+        cancel,
+        MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
+    )
 }
 /// Run the same route laws on the caller's existing clock and custody.
 pub fn run_validation_with_sources(
