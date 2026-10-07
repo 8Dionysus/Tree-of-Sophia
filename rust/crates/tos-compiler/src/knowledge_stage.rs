@@ -4457,7 +4457,7 @@ pub(crate) fn verify_selected_payload_ddl(
         ),
         (
             "knowledge_source_carriers",
-            "b72d9c38a3e89c8ef2fc2b9bf36f8589f268667c0f7e60aa34793e3419f30ebb",
+            "5fce2ae1dd99d857c864de07b99b9a05eeae963d665d1c6a2711f8f8c5a1438e",
         ),
     ];
     // Distinct caller frame remains live beside the bounded statement owner.
