@@ -698,7 +698,7 @@ fn fail_candidate_window_with_classified_io<T>(
     ticket: FoundationBudgetTicket,
     original_io: &tos_source_store::PinnedSqliteIoBudget,
     io_before: tos_source_store::PinnedSqliteIoSnapshot,
-    external_reads: u64,
+    external_reads: Option<u64>,
     adopted: &mut (u64, u64, u64),
     remaining_write_bytes: &mut u64,
     error: FoundationOrchestratorError,
@@ -722,6 +722,16 @@ fn fail_candidate_window_with_classified_io<T>(
         let _ = remaining_budget.fail_window(ticket, worst);
         return Err(error);
     };
+    // A failed catalog may not return its external readback receipt. Retain
+    // measured shared IO and classify the unobserved remainder conservatively
+    // as an admitted upper bound, never as measured work.
+    let (external_reads, external_upper) = match external_reads {
+        Some(reads) => (reads, 0),
+        None => {
+            let upper = ticket.remaining().source_read_bytes.saturating_sub(shared_read);
+            (upper, upper)
+        }
+    };
     let Some(actual_read) = shared_read.checked_add(external_reads) else {
         let worst = failure_use(&ticket);
         let _ = execution_limits.clear_window(&ticket);
@@ -732,6 +742,7 @@ fn fail_candidate_window_with_classified_io<T>(
         .read_upper_bound_attempted_bytes
         .checked_sub(io_before.read_upper_bound_attempted_bytes)
         .filter(|upper| *upper <= shared_read)
+        .and_then(|upper| upper.checked_add(external_upper))
     else {
         let worst = failure_use(&ticket);
         let _ = execution_limits.clear_window(&ticket);
@@ -1650,7 +1661,7 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
                 ticket,
                 original_io,
                 io_before,
-                known_external_reads,
+                Some(known_external_reads),
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 error,
@@ -2039,7 +2050,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 schema_ticket,
                 view.original_io,
                 io_before_schema,
-                worker_image_read,
+                Some(worker_image_read),
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 error,
@@ -3258,7 +3269,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 records_ticket,
                 view.original_io,
                 io_before_records,
-                callback_external_reads.get(),
+                Some(callback_external_reads.get()),
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 FoundationOrchestratorError::Admission(error),
@@ -3350,364 +3361,360 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
     let catalog_operation = catalog_ticket.operation_limits();
     // The physical census below already reads the original candidate ledger.
     // Include it in this phase's observed prefix, before any source traversal.
-    let io_before_catalog = candidate
-        .io_usage()
-        .map_err(FoundationOrchestratorError::Admission)?;
-    let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
-    let catalog_state_cap = catalog_operation
-        .state_bytes
-        .checked_sub(catalog_identity_state)
-        .ok_or_else(|| incomplete("candidate catalog worker identity exceeds state"))?;
-    let mut largest_catalog_member = 0u64;
-    let mut observed_catalog_members = 0usize;
-    let mut observed_catalog_bytes = 0u64;
-    input
-        .for_each_current_member_meta(deadline, cancelled, &mut |member| {
-            // This is the physical preparation envelope, not the semantic
-            // SourceWitness census. The producer also reads declared grammar,
-            // registries and native source members from this same held input.
-            observed_catalog_members = observed_catalog_members
-                .checked_add(1)
-                .ok_or(tos_validation::item_budget_origin!())?;
-            largest_catalog_member = largest_catalog_member.max(member.size_bytes);
-            observed_catalog_bytes = observed_catalog_bytes
-                .checked_add(member.size_bytes)
-                .ok_or(tos_validation::item_budget_origin!())?;
-            Ok(())
-        })
-        .map_err(owner)?;
-    if observed_catalog_members == 0
-        || observed_catalog_members > max_members
-        || u64::try_from(observed_catalog_members).ok() != Some(view.coverage.member_count())
-        || observed_catalog_bytes != fence.source_bytes
-    {
-        return fail_window(
-            view.execution_limits,
-            view.remaining_budget,
-            catalog_ticket,
-            incomplete("candidate catalog current-source census refused"),
-        );
-    }
-    let max_catalog_members = observed_catalog_members.min(4096).max(1);
-    let max_catalog_files = max_members.min((u64::MAX - 1) as usize).max(1) as u64;
-    let max_catalog_rows = catalog_operation.source_read_bytes.min(u64::MAX - 1).max(1);
-    let max_catalog_file_bytes = usize::try_from(
-        budgets
-            .max_member_bytes
-            .min(16 * 1024 * 1024)
-            .min(largest_catalog_member.max(1))
-            .min(catalog_operation.source_read_bytes)
-            .min((usize::MAX - 1) as u64),
-    )
-    .map_err(|_| incomplete("candidate catalog file cap range"))?;
-    let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
-    // Contract closure is aggregate retained input, independent of any one
-    // file/row. The authenticated physical census bounds all contract bytes.
-    let max_catalog_contract_bytes = usize::try_from(
-        observed_catalog_bytes
-            .min(catalog_operation.source_read_bytes)
-            .min(catalog_state_cap as u64)
-            .min(
-                tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
-                    as u64,
-            ),
-    )
-    .map_err(|_| incomplete("candidate catalog contract cap range"))?;
-    let max_catalog_output_row_bytes = usize::try_from(
-        catalog_operation
-            .tmpfs_bytes
-            .min(4 * 1024 * 1024)
-            .min((usize::MAX - 1) as u64),
-    )
-    .map_err(|_| incomplete("candidate catalog output row cap range"))?;
-    let catalog_limits = view
-        .execution_limits
-        .catalog_limits(
-            max_catalog_files,
-            max_catalog_rows,
-            max_catalog_file_bytes,
-            max_catalog_row_bytes,
-            max_catalog_contract_bytes,
-            max_catalog_output_row_bytes,
-        )
-        .map_err(FoundationOrchestratorError::Command)?;
-    let catalog_source_limits = view
-        .execution_limits
-        .catalog_input_limits(max_catalog_members)
-        .map_err(FoundationOrchestratorError::Command)?;
-    let catalog_read_limits = view
-        .execution_limits
-        .read_limits(
-            catalog_operation,
-            max_members,
-            observed_catalog_bytes.min(catalog_operation.source_read_bytes),
-        )
-        .map_err(FoundationOrchestratorError::Command)?;
-    let max_claim_bytes = catalog_state_cap.min(128 * 1024 * 1024);
-    let max_claim_rows = (catalog_limits.max_rows.min(16_384) as usize)
-        .min(max_claim_bytes / catalog_limits.max_output_row_bytes.max(1));
-    if max_claim_rows == 0 {
-        return fail_window(
-            view.execution_limits,
-            view.remaining_budget,
-            catalog_ticket,
-            incomplete("candidate catalog Claim cohort exceeds state reservation"),
-        );
-    }
-    let biblio_catalog_limits = view
-        .execution_limits
-        .bibliography_limits(
-            catalog_limits,
-            max_claim_rows,
-            max_claim_bytes,
-            catalog_operation.tmpfs_bytes,
-        )
-        .map_err(FoundationOrchestratorError::Command)?;
-    let stage_limits = view
-        .execution_limits
-        .stage_limits(
-            max_catalog_rows,
-            max_catalog_rows.min(1024) as usize,
-            catalog_operation.tmpfs_bytes.min(64 * 1024 * 1024),
-        )
-        .map_err(FoundationOrchestratorError::Command)?;
-    // This worker belongs to the catalog phase, whose reservation may be
-    // smaller than the schema phase. Every count dimension uses its own wire
-    // envelope rather than mixing receipts from one phase with units of another.
-    let catalog_max_checks = bounded_usize(
-        u64::try_from(max_checks)
-            .unwrap_or(u64::MAX - 1)
-            .min(catalog_operation.worker_wire_bytes),
-    )?
-    .max(1);
-    let catalog_worker_shape = FoundationCatalogWorkerShape {
-        batch: BatchBudget::laboratory(),
-        max_chunks: catalog_max_checks
-            .div_ceil(BatchBudget::laboratory().max_units)
-            .max(1) as u64,
-        max_total_units: u64::try_from(catalog_max_checks)
-            .unwrap_or(u64::MAX - 1)
-            .min(catalog_operation.worker_wire_bytes)
-            .max(1),
-        max_total_raw_bytes: catalog_operation
-            .source_read_bytes
-            .min(catalog_operation.worker_wire_bytes)
-            .min(BatchBudget::MAX_RAW_BYTES as u64)
-            .max(1),
-        max_total_wire_bytes: catalog_operation.worker_wire_bytes,
-        max_distinct_selectors: catalog_max_checks.max(1).min(1024),
-        max_receipts: catalog_max_checks.max(1),
-        max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
-    };
-    let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
-        .execution_limits
-        .catalog_worker_limits(catalog_worker_shape)
-        .map_err(FoundationOrchestratorError::Command)?;
-    // Fresh catalog files are staged bytes read back for comparison, not the
-    // final CLI receipt. Both physical and cumulative read meters still apply.
-    let max_generated_bytes = usize::try_from(
-        catalog_operation
-            .tmpfs_bytes
-            .min(catalog_operation.source_read_bytes)
-            .min((usize::MAX - 1) as u64),
-    )
-    .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
-    let max_generated_files = max_catalog_files as usize;
-    let tree_limits = DisposableCatalogTreeLimits {
-        max_total_bytes: usize::try_from(
-            catalog_operation.tmpfs_bytes.min((usize::MAX - 1) as u64),
-        )
-        .map_err(|_| incomplete("candidate catalog tmpfs byte range"))?,
-        max_file_bytes: max_catalog_output_row_bytes,
-        max_files: usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
-        max_state_bytes: catalog_state_cap,
-        max_inodes: usize::try_from(max_catalog_files)
-            .unwrap_or(usize::MAX - 4)
-            .saturating_add(4),
-    };
-    let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
-    let quota_before_catalog = worker_quota
-        .usage()
-        .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
-    let validator = tos_compiler::source_witness_catalog::SourceCatalogValidator::from_candidate_prepared(
-        worker_image.identity(),
-        catalog_executor,
-        cancelled,
-        deadline,
-        &fence,
-        &mut item_schemas
-            as &mut dyn tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<CandidateFence>,
-    )
-    .map_err(FoundationOrchestratorError::Catalog)?;
-    let catalog_result = super::foundation_catalog::compare_spooled_candidate(
-        input,
-        view.coverage,
-        view.original_epoch,
-        view.sources,
-        &candidate_catalog_path,
-        view.stage,
-        stage_limits,
-        catalog_source_limits,
-        biblio_catalog_limits,
-        &validator,
-        true,
-        // Version resolution charges repeated reads, not distinct input members.
-        bounded_usize(budgets.max_readonly_record_read_calls)?,
-        // Version resolution charges cumulative reads, not the largest member.
-        bounded_usize(catalog_operation.source_read_bytes)?,
-        max_generated_bytes,
-        max_generated_files,
-        catalog_state_cap,
-        view.isolated,
-        tree_limits,
-        &mut index,
-        cancelled,
-    )
-    .map_err(FoundationOrchestratorError::Catalog)?;
-    let complete_catalog = match &catalog_result.outcome {
-        FoundationCatalogOutcome::Complete(result)
-            if result.issues.is_empty() && result.profiles.files().is_ok() =>
+    let io_before_catalog = view.original_io.snapshot();
+    let catalog_attempt = (|| {
+        let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
+        let catalog_state_cap = catalog_operation
+            .state_bytes
+            .checked_sub(catalog_identity_state)
+            .ok_or_else(|| incomplete("candidate catalog worker identity exceeds state"))?;
+        let mut largest_catalog_member = 0u64;
+        let mut observed_catalog_members = 0usize;
+        let mut observed_catalog_bytes = 0u64;
+        input
+            .for_each_current_member_meta(deadline, cancelled, &mut |member| {
+                // This is the physical preparation envelope, not the semantic
+                // SourceWitness census. The producer also reads declared grammar,
+                // registries and native source members from this same held input.
+                observed_catalog_members = observed_catalog_members
+                    .checked_add(1)
+                    .ok_or(tos_validation::item_budget_origin!())?;
+                largest_catalog_member = largest_catalog_member.max(member.size_bytes);
+                observed_catalog_bytes = observed_catalog_bytes
+                    .checked_add(member.size_bytes)
+                    .ok_or(tos_validation::item_budget_origin!())?;
+                Ok(())
+            })
+            .map_err(owner)?;
+        if observed_catalog_members == 0
+            || observed_catalog_members > max_members
+            || u64::try_from(observed_catalog_members).ok() != Some(view.coverage.member_count())
+            || observed_catalog_bytes != fence.source_bytes
         {
-            result
+            return Err(incomplete("candidate catalog current-source census refused"));
         }
-        FoundationCatalogOutcome::SchemaRejected {
-            diagnostic,
-            bibliographic_phase,
-            ..
-        } => {
-            let result = diagnostic.result();
-            let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
-            let issue = result.report().issues.first();
-            let reason = issue.map_or(0, |issue| issue.reason as u16);
-            let mut location = tos_foundation::Digest256Hasher::new();
-            if let Some(issue) = issue {
-                for segment in &issue.instance_path {
-                    use tos_validation::executor::schema_diagnostics::PathSegment;
-                    match segment {
-                        PathSegment::Property(name) => {
-                            location.update(b"p");
-                            location.update(&(name.len() as u64).to_be_bytes());
-                            location.update(name.as_bytes());
-                        }
-                        PathSegment::Index(index) => {
-                            location.update(b"i");
-                            location.update(&index.to_be_bytes());
+        let max_catalog_members = observed_catalog_members.min(4096).max(1);
+        let max_catalog_files = max_members.min((u64::MAX - 1) as usize).max(1) as u64;
+        let max_catalog_rows = catalog_operation.source_read_bytes.min(u64::MAX - 1).max(1);
+        let max_catalog_file_bytes = usize::try_from(
+            budgets
+                .max_member_bytes
+                .min(16 * 1024 * 1024)
+                .min(largest_catalog_member.max(1))
+                .min(catalog_operation.source_read_bytes)
+                .min((usize::MAX - 1) as u64),
+        )
+        .map_err(|_| incomplete("candidate catalog file cap range"))?;
+        let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
+        // Contract closure is aggregate retained input, independent of any one
+        // file/row. The authenticated physical census bounds all contract bytes.
+        let max_catalog_contract_bytes = usize::try_from(
+            observed_catalog_bytes
+                .min(catalog_operation.source_read_bytes)
+                .min(catalog_state_cap as u64)
+                .min(
+                    tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
+                        as u64,
+                ),
+        )
+        .map_err(|_| incomplete("candidate catalog contract cap range"))?;
+        let max_catalog_output_row_bytes = usize::try_from(
+            catalog_operation
+                .tmpfs_bytes
+                .min(4 * 1024 * 1024)
+                .min((usize::MAX - 1) as u64),
+        )
+        .map_err(|_| incomplete("candidate catalog output row cap range"))?;
+        let catalog_limits = view
+            .execution_limits
+            .catalog_limits(
+                max_catalog_files,
+                max_catalog_rows,
+                max_catalog_file_bytes,
+                max_catalog_row_bytes,
+                max_catalog_contract_bytes,
+                max_catalog_output_row_bytes,
+            )
+            .map_err(FoundationOrchestratorError::Command)?;
+        let catalog_source_limits = view
+            .execution_limits
+            .catalog_input_limits(max_catalog_members)
+            .map_err(FoundationOrchestratorError::Command)?;
+        let catalog_read_limits = view
+            .execution_limits
+            .read_limits(
+                catalog_operation,
+                max_members,
+                observed_catalog_bytes.min(catalog_operation.source_read_bytes),
+            )
+            .map_err(FoundationOrchestratorError::Command)?;
+        let max_claim_bytes = catalog_state_cap.min(128 * 1024 * 1024);
+        let max_claim_rows = (catalog_limits.max_rows.min(16_384) as usize)
+            .min(max_claim_bytes / catalog_limits.max_output_row_bytes.max(1));
+        if max_claim_rows == 0 {
+            return Err(incomplete("candidate catalog Claim cohort exceeds state reservation"));
+        }
+        let biblio_catalog_limits = view
+            .execution_limits
+            .bibliography_limits(
+                catalog_limits,
+                max_claim_rows,
+                max_claim_bytes,
+                catalog_operation.tmpfs_bytes,
+            )
+            .map_err(FoundationOrchestratorError::Command)?;
+        let stage_limits = view
+            .execution_limits
+            .stage_limits(
+                max_catalog_rows,
+                max_catalog_rows.min(1024) as usize,
+                catalog_operation.tmpfs_bytes.min(64 * 1024 * 1024),
+            )
+            .map_err(FoundationOrchestratorError::Command)?;
+        // This worker belongs to the catalog phase, whose reservation may be
+        // smaller than the schema phase. Every count dimension uses its own wire
+        // envelope rather than mixing receipts from one phase with units of another.
+        let catalog_max_checks = bounded_usize(
+            u64::try_from(max_checks)
+                .unwrap_or(u64::MAX - 1)
+                .min(catalog_operation.worker_wire_bytes),
+        )?
+        .max(1);
+        let catalog_worker_shape = FoundationCatalogWorkerShape {
+            batch: BatchBudget::laboratory(),
+            max_chunks: catalog_max_checks
+                .div_ceil(BatchBudget::laboratory().max_units)
+                .max(1) as u64,
+            max_total_units: u64::try_from(catalog_max_checks)
+                .unwrap_or(u64::MAX - 1)
+                .min(catalog_operation.worker_wire_bytes)
+                .max(1),
+            max_total_raw_bytes: catalog_operation
+                .source_read_bytes
+                .min(catalog_operation.worker_wire_bytes)
+                .min(BatchBudget::MAX_RAW_BYTES as u64)
+                .max(1),
+            max_total_wire_bytes: catalog_operation.worker_wire_bytes,
+            max_distinct_selectors: catalog_max_checks.max(1).min(1024),
+            max_receipts: catalog_max_checks.max(1),
+            max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
+        };
+        let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
+            .execution_limits
+            .catalog_worker_limits(catalog_worker_shape)
+            .map_err(FoundationOrchestratorError::Command)?;
+        // Fresh catalog files are staged bytes read back for comparison, not the
+        // final CLI receipt. Both physical and cumulative read meters still apply.
+        let max_generated_bytes = usize::try_from(
+            catalog_operation
+                .tmpfs_bytes
+                .min(catalog_operation.source_read_bytes)
+                .min((usize::MAX - 1) as u64),
+        )
+        .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
+        let max_generated_files = max_catalog_files as usize;
+        let tree_limits = DisposableCatalogTreeLimits {
+            max_total_bytes: usize::try_from(
+                catalog_operation.tmpfs_bytes.min((usize::MAX - 1) as u64),
+            )
+            .map_err(|_| incomplete("candidate catalog tmpfs byte range"))?,
+            max_file_bytes: max_catalog_output_row_bytes,
+            max_files: usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
+            max_state_bytes: catalog_state_cap,
+            max_inodes: usize::try_from(max_catalog_files)
+                .unwrap_or(usize::MAX - 4)
+                .saturating_add(4),
+        };
+        let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
+        let quota_before_catalog = worker_quota
+            .usage()
+            .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
+        let validator = tos_compiler::source_witness_catalog::SourceCatalogValidator::from_candidate_prepared(
+            worker_image.identity(),
+            catalog_executor,
+            cancelled,
+            deadline,
+            &fence,
+            &mut item_schemas
+                as &mut dyn tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<CandidateFence>,
+        )
+        .map_err(FoundationOrchestratorError::Catalog)?;
+        let catalog_result = super::foundation_catalog::compare_spooled_candidate(
+            input,
+            view.coverage,
+            view.original_epoch,
+            view.sources,
+            &candidate_catalog_path,
+            view.stage,
+            stage_limits,
+            catalog_source_limits,
+            biblio_catalog_limits,
+            &validator,
+            true,
+            // Version resolution charges repeated reads, not distinct input members.
+            bounded_usize(budgets.max_readonly_record_read_calls)?,
+            // Version resolution charges cumulative reads, not the largest member.
+            bounded_usize(catalog_operation.source_read_bytes)?,
+            max_generated_bytes,
+            max_generated_files,
+            catalog_state_cap,
+            view.isolated,
+            tree_limits,
+            &mut index,
+            cancelled,
+        )
+        .map_err(FoundationOrchestratorError::Catalog)?;
+        let complete_catalog = match &catalog_result.outcome {
+            FoundationCatalogOutcome::Complete(result)
+                if result.issues.is_empty() && result.profiles.files().is_ok() =>
+            {
+                result
+            }
+            FoundationCatalogOutcome::SchemaRejected {
+                diagnostic,
+                bibliographic_phase,
+                ..
+            } => {
+                let result = diagnostic.result();
+                let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
+                let issue = result.report().issues.first();
+                let reason = issue.map_or(0, |issue| issue.reason as u16);
+                let mut location = tos_foundation::Digest256Hasher::new();
+                if let Some(issue) = issue {
+                    for segment in &issue.instance_path {
+                        use tos_validation::executor::schema_diagnostics::PathSegment;
+                        match segment {
+                            PathSegment::Property(name) => {
+                                location.update(b"p");
+                                location.update(&(name.len() as u64).to_be_bytes());
+                                location.update(name.as_bytes());
+                            }
+                            PathSegment::Index(index) => {
+                                location.update(b"i");
+                                location.update(&index.to_be_bytes());
+                            }
                         }
                     }
                 }
+                let location = location.finalize().to_hex();
+                let site = format!(
+                    "cat-b{}-s{}-r{reason:x}-c{}-i{}",
+                    u8::from(*bibliographic_phase),
+                    result.status() as u8,
+                    &contract[..12],
+                    &location[..6],
+                );
+                return Err(owner(ItemRefusal::Source(
+                        crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source",
+                            &site,
+                            result.path(),
+                        ),
+                )));
             }
-            let location = location.finalize().to_hex();
-            let site = format!(
-                "cat-b{}-s{}-r{reason:x}-c{}-i{}",
-                u8::from(*bibliographic_phase),
-                result.status() as u8,
-                &contract[..12],
-                &location[..6],
-            );
-            return fail_window(
-                view.execution_limits,
-                view.remaining_budget,
-                catalog_ticket,
-                owner(ItemRefusal::Source(
-                    crate::source_admission_spooled_index::bounded_source_cause(
-                        "receiver-source",
-                        &site,
-                        result.path(),
-                    ),
-                )),
-            );
+            FoundationCatalogOutcome::Complete(result) => {
+                let refusal = if let Some((path, detail)) = result.issues.first() {
+                    let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                    owner(ItemRefusal::Source(
+                        crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source",
+                            &format!("cat-issues-{:x}-p{}", result.issues.len(), &path[..12]),
+                            detail,
+                        ),
+                    ))
+                } else {
+                    incomplete("candidate catalog record profile selection incomplete")
+                };
+                return Err(refusal);
+            }
+        };
+        let fresh = catalog_result
+            .candidate
+            .as_ref()
+            .ok_or_else(|| incomplete("candidate catalog produced no fresh sink"))?;
+        if !fresh.eof_verified() || catalog_result.fresh_sources.is_none() {
+            return Err(incomplete("candidate fresh catalog EOF or source evidence is missing"));
         }
-        FoundationCatalogOutcome::Complete(result) => {
-            let refusal = if let Some((path, detail)) = result.issues.first() {
-                let path = Digest256::of_bytes(path.as_bytes()).to_hex();
-                owner(ItemRefusal::Source(
-                    crate::source_admission_spooled_index::bounded_source_cause(
-                        "receiver-source",
-                        &format!("cat-issues-{:x}-p{}", result.issues.len(), &path[..12]),
-                        detail,
-                    ),
-                ))
-            } else {
-                incomplete("candidate catalog record profile selection incomplete")
-            };
-            return fail_window(
+        let catalog_state = catalog_retained_state(&catalog_result.outcome)?
+            .checked_add(catalog_identity_state)
+            .and_then(|state| {
+                state.checked_add(fresh.cost().fresh_rows_retained_state_upper_bound_bytes)
+            })
+            .ok_or_else(|| incomplete("candidate catalog retained-state overflow"))?;
+        let catalog_read = checked_add_u64(
+            fresh.cost().readback_bytes as u64,
+            u64::try_from(complete_catalog.generated_read_bytes)
+                .map_err(|_| incomplete("candidate catalog generated read range"))?,
+        )?;
+        let io_after_catalog = candidate
+            .io_usage()
+            .map_err(FoundationOrchestratorError::Admission)?;
+        let catalog_candidate_read = io_after_catalog
+            .read_attempted_bytes
+            .checked_sub(io_before_catalog.read_attempted_bytes)
+            .ok_or_else(|| incomplete("candidate catalog IO read counter regressed"))?;
+        let catalog_write_delta = io_after_catalog
+            .write_attempted_bytes
+            .checked_sub(io_before_catalog.write_attempted_bytes)
+            .ok_or_else(|| incomplete("candidate catalog IO write counter regressed"))?;
+        let remaining_write = remaining_write
+            .checked_sub(catalog_write_delta)
+            .ok_or_else(|| incomplete("candidate catalog IO exceeded write reservation"))?;
+        let catalog_source_use = checked_add_u64(catalog_candidate_read, catalog_read)?;
+        let catalog_free = catalog_ticket.remaining();
+        if catalog_source_use > catalog_free.source_read_bytes
+            || catalog_state > catalog_free.state_bytes
+            || complete_catalog.issues.len() > catalog_free.issue_count
+            || fresh.cost().output_bytes as u64 > catalog_free.tmpfs_bytes
+            || fresh.cost().created_inodes as u64 > catalog_free.tmpfs_inodes
+        {
+            return Err(incomplete("candidate catalog evidence exceeds the invocation reservation"));
+        }
+        let catalog_quota_after = worker_quota
+            .usage()
+            .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
+        let (catalog_cpu, catalog_wire) = use_delta(quota_before_catalog, catalog_quota_after)?;
+        let tmpfs_before = view
+            .stage
+            .quota_usage()
+            .map_err(|_| incomplete("candidate catalog stage quota unavailable"))?;
+        let catalog_usage = phase_use(
+            catalog_source_use,
+            catalog_wire,
+            catalog_state,
+            complete_catalog.issues.len(),
+            catalog_cpu,
+            fresh.cost().output_bytes as u64,
+            fresh.cost().created_inodes as u64,
+        );
+        let _ = tmpfs_before;
+        drop(catalog_result);
+        drop(validator);
+        // The catalog owner already closes the borrowed executor before returning
+        // complete output. Verify its terminal state; a second finish is refused.
+        if !item_schemas.is_finished() {
+            return Err(incomplete(
+                "candidate catalog schema worker EOF is incomplete",
+            ));
+        }
+        Ok((catalog_usage, io_after_catalog, remaining_write))
+    })();
+    let (catalog_usage, io_after_catalog, remaining_write) = match catalog_attempt {
+        Ok(result) => result,
+        Err(error) => {
+            return fail_candidate_window_with_classified_io(
                 view.execution_limits,
                 view.remaining_budget,
                 catalog_ticket,
-                refusal,
+                view.original_io,
+                io_before_catalog,
+                None,
+                view.candidate_io_adopted,
+                view.remaining_write_bytes,
+                error,
             );
         }
     };
-    let fresh = catalog_result
-        .candidate
-        .as_ref()
-        .ok_or_else(|| incomplete("candidate catalog produced no fresh sink"))?;
-    if !fresh.eof_verified() || catalog_result.fresh_sources.is_none() {
-        return fail_window(
-            view.execution_limits,
-            view.remaining_budget,
-            catalog_ticket,
-            incomplete("candidate fresh catalog EOF or source evidence is missing"),
-        );
-    }
-    let catalog_state = catalog_retained_state(&catalog_result.outcome)?
-        .checked_add(catalog_identity_state)
-        .and_then(|state| {
-            state.checked_add(fresh.cost().fresh_rows_retained_state_upper_bound_bytes)
-        })
-        .ok_or_else(|| incomplete("candidate catalog retained-state overflow"))?;
-    let catalog_read = checked_add_u64(
-        fresh.cost().readback_bytes as u64,
-        u64::try_from(complete_catalog.generated_read_bytes)
-            .map_err(|_| incomplete("candidate catalog generated read range"))?,
-    )?;
-    let io_after_catalog = candidate
-        .io_usage()
-        .map_err(FoundationOrchestratorError::Admission)?;
-    let catalog_candidate_read = io_after_catalog
-        .read_attempted_bytes
-        .checked_sub(io_before_catalog.read_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate catalog IO read counter regressed"))?;
-    let catalog_write_delta = io_after_catalog
-        .write_attempted_bytes
-        .checked_sub(io_before_catalog.write_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate catalog IO write counter regressed"))?;
-    let remaining_write = remaining_write
-        .checked_sub(catalog_write_delta)
-        .ok_or_else(|| incomplete("candidate catalog IO exceeded write reservation"))?;
-    let catalog_source_use = checked_add_u64(catalog_candidate_read, catalog_read)?;
-    let catalog_free = catalog_ticket.remaining();
-    if catalog_source_use > catalog_free.source_read_bytes
-        || catalog_state > catalog_free.state_bytes
-        || complete_catalog.issues.len() > catalog_free.issue_count
-        || fresh.cost().output_bytes as u64 > catalog_free.tmpfs_bytes
-        || fresh.cost().created_inodes as u64 > catalog_free.tmpfs_inodes
-    {
-        return fail_window(
-            view.execution_limits,
-            view.remaining_budget,
-            catalog_ticket,
-            incomplete("candidate catalog evidence exceeds the invocation reservation"),
-        );
-    }
-    let catalog_quota_after = worker_quota
-        .usage()
-        .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
-    let (catalog_cpu, catalog_wire) = use_delta(quota_before_catalog, catalog_quota_after)?;
-    let tmpfs_before = view
-        .stage
-        .quota_usage()
-        .map_err(|_| incomplete("candidate catalog stage quota unavailable"))?;
-    let catalog_usage = phase_use(
-        catalog_source_use,
-        catalog_wire,
-        catalog_state,
-        complete_catalog.issues.len(),
-        catalog_cpu,
-        fresh.cost().output_bytes as u64,
-        fresh.cost().created_inodes as u64,
-    );
-    let _ = tmpfs_before;
     complete_candidate_window(
         view.execution_limits,
         view.remaining_budget,
@@ -3719,15 +3726,6 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         view.remaining_write_bytes,
         remaining_write,
     )?;
-    drop(catalog_result);
-    drop(validator);
-    // The catalog owner already closes the borrowed executor before returning
-    // complete output. Verify its terminal state; a second finish is refused.
-    if !item_schemas.is_finished() {
-        return Err(incomplete(
-            "candidate catalog schema worker EOF is incomplete",
-        ));
-    }
     let remaining = view
         .remaining_budget
         .remaining()
@@ -3814,7 +3812,7 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 native_ticket,
                 view.original_io,
                 io_before_native,
-                0,
+                Some(0),
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
                 error,

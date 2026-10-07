@@ -784,14 +784,20 @@ fn version(v: &Value, key: &str) -> Result<u64> {
         .filter(|n| (1..=9_007_199_254_740_991).contains(n))
         .ok_or(Error::Invalid("catalog source version"))
 }
-fn public(v: &Value) -> Result<()> {
-    if !matches!(
-        v.get("visibility").and_then(Value::as_str),
-        Some("public" | "public_metadata_only")
-    ) {
-        return Err(Error::Invalid("catalog source visibility"));
+fn projects_public(v: &Value, validator: &SourceCatalogValidator<'_>) -> Result<bool> {
+    match v.get("visibility").and_then(Value::as_str) {
+        Some("public" | "public_metadata_only") => Ok(true),
+        // An authenticated admission candidate can contain private sources.
+        // Validate and index those sources, but never render their metadata
+        // or locators into the public catalog. Legacy public builders retain
+        // their refusal; this is not a new grant of publication authority.
+        Some("local_only" | "research_group" | "permission_requested")
+            if matches!(&*validator.schemas.borrow(), CatalogSchemas::Candidate(_)) =>
+        {
+            Ok(false)
+        }
+        _ => Err(Error::Invalid("catalog source visibility")),
     }
-    Ok(())
 }
 fn root_item(h: &mut Digest256Hasher, id: &str, sha: &Digest256) {
     h.update(&(id.len() as u64).to_be_bytes());
@@ -1831,13 +1837,14 @@ fn entry_record(
     c: &Contracts,
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
-) -> Result<Value> {
+) -> Result<(Value, bool)> {
     let basename = source_ref(ref_)?;
     let source = SourceRow::parse(raw, l.max_row_bytes)?;
     let v = source.value();
     let sha = Digest256::of_bytes(&canonical(raw, l.max_row_bytes)?).to_hex();
     let mut schema = None;
     let mut label_pointer = None;
+    let mut project = true;
     let (kind, id, label, status) = if basename == "artifact-witness.json" {
         if !ref_.starts_with("ToS/source-witnesses/artifacts/") {
             return Err(Error::Invalid("catalog artifact owner path"));
@@ -1882,10 +1889,10 @@ fn entry_record(
         }
         let id = text(v, "record_id")?;
         if let Some((_, p)) = c.records.iter().find(|(k, _)| k == kind) {
-            // The maintained profile reader requires explicit public metadata.
+            // Profile records declare visibility; only public metadata is projected.
             // Native Corpus/Link records use their separate exact schemas;
             // those contracts do not contain a visibility property.
-            public(v)?;
+            project = projects_public(v, validator)?;
             if let Some(adapter) = p.descriptor.get("native_binding_adapter") {
                 if adapter != "source-text-unit-v1" {
                     return Err(Error::Invalid(
@@ -1968,7 +1975,7 @@ fn entry_record(
     if entry["record_sha256"] != sha {
         return Err(Error::Invalid("catalog exact numeric source transport"));
     }
-    Ok(entry)
+    Ok((entry, project))
 }
 
 fn entry_claim(
@@ -1978,11 +1985,11 @@ fn entry_claim(
     c: &Contracts,
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
-) -> Result<Value> {
+) -> Result<(Value, bool)> {
     let basename = source_ref(ref_)?;
     let source = SourceRow::parse(raw, l.max_row_bytes)?;
     let v = source.value();
-    public(v)?;
+    let project = projects_public(v, validator)?;
     identity(text(v, "claim_id")?, "claim")?;
     version(v, "claim_version")?;
     let mut extension = None;
@@ -2110,7 +2117,7 @@ fn entry_claim(
     if entry["claim_sha256"] != Digest256::of_bytes(&canonical(raw, l.max_row_bytes)?).to_hex() {
         return Err(Error::Invalid("catalog exact numeric Claim transport"));
     }
-    Ok(entry)
+    Ok((entry, project))
 }
 
 fn insert(
@@ -2465,13 +2472,17 @@ fn source_files(
                         "source_ref":file.id,"source_line":line,"byte_offset":start,"row_bytes":raw.len(),
                         "raw_row_sha256":Digest256::of_bytes(raw).to_hex(),"delimiter":delimiter,
                         "file_sha256":file_sha,"file_bytes":file.payload.len(),"canonical_sha256":canonical_sha}});
-                    insert(stage, "slots", kind, &key, &slot, l)?;
                     if kind == "claim" {
-                        let entry = entry_claim(raw, &file.id, line, c, validator, l)?;
-                        let addressed = json!({"claim_id":id,"entry":entry,"source_slot_key":key,
-                            "claim_ref":{"id":id,"version":version(v.value(),"claim_version")?,"digest":format!("sha256:{canonical_sha}")}});
-                        insert(stage, "claims", "claim", id, &addressed, l)?;
+                        let (entry, project) = entry_claim(raw, &file.id, line, c, validator, l)?;
+                        if project {
+                            insert(stage, "slots", kind, &key, &slot, l)?;
+                            let addressed = json!({"claim_id":id,"entry":entry,"source_slot_key":key,
+                                "claim_ref":{"id":id,"version":version(v.value(),"claim_version")?,"digest":format!("sha256:{canonical_sha}")}});
+                            insert(stage, "claims", "claim", id, &addressed, l)?;
+                        }
                         observer.native_semantic_identity(id, &file.id)?;
+                    } else {
+                        insert(stage, "slots", kind, &key, &slot, l)?;
                     }
                 }
                 if let Some(cursor) = &mut cursor {
@@ -2514,7 +2525,7 @@ fn source_files(
                     .checked_add(1)
                     .filter(|n| *n <= l.max_rows)
                     .ok_or(Error::Budget("catalog source rows"))?;
-                let entry = entry_record(stage, &file.payload, &file.id, c, validator, l)?;
+                let (entry, project) = entry_record(stage, &file.payload, &file.id, c, validator, l)?;
                 let id = text(&entry, "record_id")?;
                 let kind = text(&entry, "record_type")?;
                 let reserved = stage.with_connection(WritePhase::Catalog, |db| {
@@ -2529,11 +2540,13 @@ fn source_files(
                         "catalog identity already owned by native semantic packet",
                     ));
                 }
-                let source = SourceRow::parse(&file.payload, l.max_row_bytes)?;
-                let addressed = json!({"record_id":id,"entry":entry,"source":{
-                    "source_ref":file.id,"raw_sha256":file.payload_sha256,"raw_bytes":file.payload.len(),
-                    "record_ref":{"id":id,"version":version(source.value(),"record_version")?,"digest":format!("sha256:{}",entry["record_sha256"].as_str().ok_or(Error::Invalid("catalog source digest"))?)}}});
-                insert(stage, "records", kind, id, &addressed, l)?;
+                if project {
+                    let source = SourceRow::parse(&file.payload, l.max_row_bytes)?;
+                    let addressed = json!({"record_id":id,"entry":entry,"source":{
+                        "source_ref":file.id,"raw_sha256":file.payload_sha256,"raw_bytes":file.payload.len(),
+                        "record_ref":{"id":id,"version":version(source.value(),"record_version")?,"digest":format!("sha256:{}",entry["record_sha256"].as_str().ok_or(Error::Invalid("catalog source digest"))?)}}});
+                    insert(stage, "records", kind, id, &addressed, l)?;
+                }
                 observer.native_semantic_identity(id, &file.id)?;
             }
         }
