@@ -635,12 +635,18 @@ impl Fixture {
         local_prepared_aux::install_membership(&db, &binding, AuxInstallLimits::default()).unwrap();
         db.execute_batch("COMMIT; BEGIN IMMEDIATE").unwrap();
         if available {
-            for (kind, rows) in [
-                ("nodes", &self.raw_nav["nodes"]),
-                ("edges", &self.raw_nav["edges"]),
-                ("rights", &self.raw_nav["rights"]),
+            // Build serving rows from the admitted part bytes. The raw fixture
+            // objects have insertion order; the immutable projection owns the
+            // canonical order that full integrity must reproduce exactly.
+            for (kind, snapshot) in [
+                ("nodes", &self.nav),
+                ("edges", &self.nav),
+                ("rights", &self.rights),
             ] {
-                for (ord, row) in rows.as_array().unwrap().iter().enumerate() {
+                let selected = snapshot
+                    .read_collection(kind, D1ProjectionLimits::default())
+                    .unwrap();
+                for (ord, (_, row)) in selected.rows.iter().enumerate() {
                     for projected in project_private_navigation_row(
                         kind,
                         ord as i64,
@@ -1004,7 +1010,9 @@ fn delta_stale_rows_and_independent_capture_budgets_refuse_before_outputs() {
         .unwrap();
     let error = refused(&f.request("prepared-delta", "stale"));
     assert!(
-        error.contains("D1 predecessor projected row differs"),
+        // The maintained mutation triggers invalidate the installed lens
+        // stores before capture reaches its projected-row comparison.
+        error.contains("D1 lens store state framing or validity"),
         "unexpected stale-row refusal: {error}"
     );
 }
@@ -1511,7 +1519,10 @@ fn navigation_integrity_persisted_rights_drift_and_read_budget_refuse() {
         if small_budget {
             budget_refused(&request);
         } else {
-            refused_category(&request, &["rights", "navigation", "digest", "projected"]);
+            refused_category(
+                &request,
+                &["native full source row differs from admitted input"],
+            );
         }
     }
 }

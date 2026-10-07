@@ -2874,7 +2874,7 @@ struct LocalClaimReportState {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-enum LocalClaimValidationScope {
+pub(crate) enum LocalClaimValidationScope {
     PublicForm,
     StoredSource,
 }

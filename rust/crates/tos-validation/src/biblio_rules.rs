@@ -1440,6 +1440,7 @@ pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRang
             schemas,
             &mut rules,
             s(&claim.value, "claim_id").is_some_and(|id| verified_native.contains(id)),
+            crate::record_rules::LocalClaimValidationScope::PublicForm,
         )?;
         if let Some(id) = s(&claim.value, "claim_id") {
             if !identities.contains(id) {
@@ -2204,6 +2205,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                 schemas,
                 &mut rules,
                 compound_verified,
+                crate::record_rules::LocalClaimValidationScope::StoredSource,
             )?;
             if let Some(id) = s(&claim.value, "claim_id") {
                 if stored
@@ -2755,6 +2757,7 @@ fn inspect_claim(
     schemas: &mut impl CutSchemaExecutor,
     rules: &mut Rules<'_>,
     compound_verified: bool,
+    scope: crate::record_rules::LocalClaimValidationScope,
 ) -> Result<(), ItemRefusal> {
     let raw_cost = crate::record_biblio_cut::decoded_wire_size(
         &claim.value,
@@ -2793,6 +2796,7 @@ fn inspect_claim(
         rules,
         &bytes,
         compound_verified,
+        scope,
     );
     drop(bytes);
     rules.limits.max_state_bytes = ceiling;
@@ -2810,6 +2814,7 @@ fn inspect_claim_inner(
     rules: &mut Rules<'_>,
     bytes: &[u8],
     compound_verified: bool,
+    scope: crate::record_rules::LocalClaimValidationScope,
 ) -> Result<(), ItemRefusal> {
     let row = &claim.value;
     let location = format!("{}:{}", claim.path, claim.line);
@@ -2849,10 +2854,12 @@ fn inspect_claim_inner(
         {
             rules.issue("Claim-profile-identity", &location)?;
         }
-        if !matches!(
-            s(row, "visibility"),
-            Some("public" | "public_metadata_only")
-        ) {
+        if scope == crate::record_rules::LocalClaimValidationScope::PublicForm
+            && !matches!(
+                s(row, "visibility"),
+                Some("public" | "public_metadata_only")
+            )
+        {
             rules.issue("claim-public-shape", &location)?;
         }
         if !s(row, "assertion_layer").is_some_and(|layer| route.layers.iter().any(|v| v == layer)) {

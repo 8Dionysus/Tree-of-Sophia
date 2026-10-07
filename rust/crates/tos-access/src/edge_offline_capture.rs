@@ -2478,21 +2478,23 @@ fn navigation_delta_transitions(
     if prior_digest != json!({"sha256":digest(prior_raw.as_bytes())}) {
         return Err(invalid("native navigation header digest differs"));
     }
-    let total_rows = ["nodes", "edges", "rights"].into_iter().try_fold(
-        0u64,
-        |total, collection| {
-            let count = top
-                .get("counts")
-                .and_then(|counts| counts.get(collection))
-                .and_then(Value::as_u64)
-                .ok_or_else(|| invalid("native navigation predecessor row count"))?;
-            total
-                .checked_add(count)
-                .ok_or_else(|| invalid("native navigation predecessor row count overflow"))
-        },
-    )?;
+    let total_rows =
+        ["nodes", "edges", "rights"]
+            .into_iter()
+            .try_fold(0u64, |total, collection| {
+                let count = top
+                    .get("counts")
+                    .and_then(|counts| counts.get(collection))
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| invalid("native navigation predecessor row count"))?;
+                total
+                    .checked_add(count)
+                    .ok_or_else(|| invalid("native navigation predecessor row count overflow"))
+            })?;
     if navigation_row_digest_count(db, total_rows)? != total_rows {
-        return Err(invalid("native navigation predecessor digest inventory differs"));
+        return Err(invalid(
+            "native navigation predecessor digest inventory differs",
+        ));
     }
     let mut before_rows = BTreeMap::new();
     let mut after_rows = BTreeMap::new();
