@@ -573,11 +573,15 @@ impl ExactSourceCarrierRef {
     }
 }
 
+// Large opaque packets belong in table leaf pages. WITHOUT ROWID stores the
+// whole packet in an index b-tree, spilling ordinary source rows much earlier;
+// the separate narrow digest index preserves exact-key lookup without that
+// amplification. Keep the former primary key's non-null requirement explicit.
 pub(crate) const SOURCE_CARRIER_DDL: &str = r#"
 CREATE TABLE knowledge_source_carriers(
- packet_sha256 BLOB PRIMARY KEY CHECK(length(packet_sha256)=32),
+ packet_sha256 BLOB PRIMARY KEY NOT NULL CHECK(length(packet_sha256)=32),
  packet_len INTEGER NOT NULL CHECK(packet_len>=0),
- packet BLOB NOT NULL CHECK(packet_len=length(packet))) WITHOUT ROWID;
+ packet BLOB NOT NULL CHECK(packet_len=length(packet)));
 "#;
 
 // Field order is part of the ownership law: both byte buffers drop before

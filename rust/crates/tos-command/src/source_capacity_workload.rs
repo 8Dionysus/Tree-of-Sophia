@@ -5583,7 +5583,7 @@ fn rewrite_fixture_record_v1(
         class,
         WeightedScaleClassV1::EvidencePacket | WeightedScaleClassV1::TextUnit
     ) {
-        rewrite_text_unit_ids_v1(value, seed, class, ordinal)?;
+        rewrite_text_unit_ids_v1(value, seed, class, ordinal, selected_semantic_fixture)?;
     }
     let object = value
         .as_object_mut()
@@ -5683,7 +5683,14 @@ fn rewrite_fixture_record_v1(
             {
                 method.insert(
                     "maker_kind".to_owned(),
-                    serde_json::Value::String("synthetic_fixture".to_owned()),
+                    serde_json::Value::String(
+                        if selected_semantic_fixture {
+                            "software"
+                        } else {
+                            "synthetic_fixture"
+                        }
+                        .to_owned(),
+                    ),
                 );
                 method.insert(
                     "agent_ref".to_owned(),
@@ -5721,6 +5728,7 @@ fn rewrite_text_unit_ids_v1(
     seed: Digest256,
     class: WeightedScaleClassV1,
     ordinal: u64,
+    selected_semantic_fixture: bool,
 ) -> std::io::Result<()> {
     fn collect(
         value: &serde_json::Value,
@@ -5818,7 +5826,7 @@ fn rewrite_text_unit_ids_v1(
         &mut identities,
     )?;
     replace(value, &identities);
-    fn mark_fixture_makers(value: &mut serde_json::Value) {
+    fn mark_fixture_makers(value: &mut serde_json::Value, maker_kind: &str) {
         match value {
             serde_json::Value::Object(object) => {
                 let is_method =
@@ -5826,7 +5834,7 @@ fn rewrite_text_unit_ids_v1(
                 if is_method {
                     object.insert(
                         "maker_kind".to_owned(),
-                        serde_json::Value::String("synthetic_fixture".to_owned()),
+                        serde_json::Value::String(maker_kind.to_owned()),
                     );
                     object.insert(
                         "agent_ref".to_owned(),
@@ -5834,18 +5842,28 @@ fn rewrite_text_unit_ids_v1(
                     );
                 }
                 for child in object.values_mut() {
-                    mark_fixture_makers(child);
+                    mark_fixture_makers(child, maker_kind);
                 }
             }
             serde_json::Value::Array(items) => {
                 for child in items {
-                    mark_fixture_makers(child);
+                    mark_fixture_makers(child, maker_kind);
                 }
             }
             _ => {}
         }
     }
-    mark_fixture_makers(value);
+    // Source-bound derivatives keep the authenticated witness and its rights.
+    // Their generator is software; synthetic_fixture is reserved for the
+    // separate synthetic laboratory content posture.
+    mark_fixture_makers(
+        value,
+        if selected_semantic_fixture {
+            "software"
+        } else {
+            "synthetic_fixture"
+        },
+    );
     Ok(())
 }
 
