@@ -2558,7 +2558,8 @@ impl<'a> KnowledgeStage<'a> {
             let state = self
                 .owned_creation_state()
                 .ok_or(Error::Invalid("normalized payload owner absent"))?;
-            let carrier = self.payload_layout.uses_carriers();
+            let layout = self.payload_layout;
+            let carrier = layout.uses_carriers();
             let sql = match (relation, carrier) {
                 (false, false) => {
                     "SELECT 0,payload_len,payload_sha256,payload,NULL,0 FROM knowledge_nodes WHERE id=?1"
@@ -2598,7 +2599,7 @@ impl<'a> KnowledgeStage<'a> {
                     || logical_len as u64 > max_bytes as u64
                     || sha.len() != 32
                     || raw.is_empty()
-                    || raw.len() > self.payload_layout.physical_bound(max_bytes)?
+                    || raw.len() > layout.physical_bound(max_bytes)?
                 {
                     return Err(Error::Budget("normalized payload transfer bound"));
                 }
@@ -2609,7 +2610,7 @@ impl<'a> KnowledgeStage<'a> {
                 } else {
                     &[]
                 };
-                if codec == 0 && !self.payload_layout.packed_bytes() && raw.len() != logical_len as usize {
+                if codec == 0 && !layout.packed_bytes() && raw.len() != logical_len as usize {
                     return Err(Error::Invalid("normalized inline length differs"));
                 }
                 let source_len = if codec == 1 {
@@ -2654,7 +2655,6 @@ impl<'a> KnowledgeStage<'a> {
             let Some(record) = record else {
                 return Ok(None);
             };
-            let layout = self.payload_layout;
             let observed = layout.with_decoded(
                 state, &record.raw, (record.codec == 0).then_some(record.logical_len), max_bytes,
                 |raw| {

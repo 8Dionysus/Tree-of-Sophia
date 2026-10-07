@@ -679,7 +679,11 @@ pub(crate) fn page(
         max_row_bytes as i64,
         max_rows as i64
     ])?;
-    let (rows, bytes) = crate::knowledge_original_rows::read(&mut scan, max_page_bytes)?;
+    let (rows, bytes) = crate::knowledge_original_rows::read(
+        &mut scan, max_page_bytes, max_row_bytes,
+        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
+        &mut 0, crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?,
+    )?;
     let next_ordinal = if rows.len() == max_rows {
         rows.last().map(|r| r.0)
     } else {
