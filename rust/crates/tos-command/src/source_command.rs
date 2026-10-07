@@ -133,7 +133,7 @@ pub(crate) fn public_compiler_reason(error: &tos_compiler::Error) -> String {
                     // Retain an opaque family locator for formatted source
                     // errors too, without exporting source text or paths.
                     let prefix = reason.split_once(':').map_or(reason.as_str(), |(p, _)| p);
-                    let prefix = Digest256::of_bytes(prefix.as_bytes()).to_hex();
+                    let prefix = Digest256::of_bytes(&prefix.as_bytes()[..prefix.len().min(32)]).to_hex();
                     format!("compiler-source-{:x}-{}", reason.len(), &prefix[..12])
                 });
             crate::source_admission_spooled_index::bounded_source_cause(
