@@ -1260,7 +1260,7 @@ fn ingest_nodes(
     layout: KnowledgePayloadLayout,
 ) -> Result<u64> {
     let facets = facet_names(vocab, NODE, creation)?;
-    let codec_fields = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+    let codec_fields = if layout.uses_carriers() {
         "payload_codec,source_packet_sha256"
     } else {
         "0,NULL"
@@ -1287,7 +1287,7 @@ fn ingest_nodes(
             return Err(Error::Budget("catalog rows"));
         }
         let actual_len: i64 = r.get(5)?;
-        if actual_len < 0 || actual_len as u64 > limits.max_row_bytes as u64 {
+        if actual_len < 0 || actual_len as u64 > layout.physical_bound(limits.max_row_bytes)? as u64 {
             return Err(Error::Budget("catalog row bytes"));
         }
         let field_lengths = [
@@ -1607,7 +1607,7 @@ fn ingest_relations(
     layout: KnowledgePayloadLayout,
 ) -> Result<u64> {
     let facets = facet_names(vocab, RELATION, creation)?;
-    let codec_fields = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+    let codec_fields = if layout.uses_carriers() {
         "payload_codec,source_packet_sha256"
     } else {
         "0,NULL"
@@ -1626,7 +1626,7 @@ fn ingest_relations(
             return Err(Error::Budget("catalog rows"));
         }
         let actual_len: i64 = r.get(7)?;
-        if actual_len < 0 || actual_len as u64 > limits.max_row_bytes as u64 {
+        if actual_len < 0 || actual_len as u64 > layout.physical_bound(limits.max_row_bytes)? as u64 {
             return Err(Error::Budget("catalog row bytes"));
         }
         let field_lengths = [
@@ -2897,7 +2897,7 @@ pub(crate) fn compile_catalog_with_state(
     creation: Option<&CreationState<'_>>,
     layout: KnowledgePayloadLayout,
 ) -> Result<CatalogReceipt> {
-    if layout == KnowledgePayloadLayout::CarrierOnceV1 && creation.is_none() {
+    if layout.uses_carriers() && creation.is_none() {
         return Err(Error::Invalid("catalog compact payload owner absent"));
     }
     let _digest_hold = creation.map(|owner| owner.hold(64)).transpose()?;

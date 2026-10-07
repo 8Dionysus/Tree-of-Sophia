@@ -342,8 +342,7 @@ fn seal_inner(
     } else {
         None
     };
-    let model_abi = if stage.payload_layout()
-        == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
+    let model_abi = if stage.payload_layout().uses_carriers()
     {
         if stage.owned_creation_state().is_none()
             || managed_source_root_sha256.is_some()
@@ -355,7 +354,8 @@ fn seal_inner(
                 "carrier model requires owned full Original closure",
             ));
         }
-        crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+        stage.payload_layout().carrier_model_abi()
+            .ok_or(Error::Invalid("carrier model ABI absent"))?
     } else if managed_source_root_sha256.is_some() {
         crate::KNOWLEDGE_MANAGED_MODEL_ABI
     } else if corpus.is_some() {

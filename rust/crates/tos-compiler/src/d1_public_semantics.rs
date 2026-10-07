@@ -139,7 +139,7 @@ fn with_semantic_physical_row_owned<T>(
     let logical_len: i64 = row.get(0)?;
     let digest = sql_blob_ref(row, 1)?;
     let stored = sql_blob_ref(row, 2)?;
-    let (codec, source_key) = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+    let (codec, source_key) = if layout.uses_carriers() {
         let key = match row.get_ref(codec_column + 1)? {
             ValueRef::Null => None,
             ValueRef::Blob(key) => Some(key),
@@ -1858,7 +1858,7 @@ fn validate_public_semantics_values(
     let mut claim_gap_count = 0usize;
     let mut live_gap_bytes = 256usize;
     let layout = stage.payload_layout();
-    if layout == KnowledgePayloadLayout::CarrierOnceV1 && state.is_none() {
+    if layout.uses_carriers() && state.is_none() {
         return Err(Error::Invalid("public semantic carrier owner absent"));
     }
     stage.with_connection(WritePhase::Finalize, |db| {
@@ -1880,12 +1880,12 @@ fn validate_public_semantics_values(
             VALUES (?1,?2,?3,?4,?5,?6)
             ON CONFLICT(direction,endpoint,relation_type,scope_kind,scope_value)
             DO UPDATE SET tally=tally+1 WHERE tally < 9223372036854775807")?;
-        let mut node_lookup = db.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)<=?2 THEN payload ELSE NULL END,payload_codec,source_packet_sha256 FROM knowledge_nodes WHERE id=?1" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)=payload_len THEN payload ELSE NULL END FROM knowledge_nodes WHERE id=?1" })?;
+        let mut node_lookup = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)<=?2+17 THEN payload ELSE NULL END,payload_codec,source_packet_sha256 FROM knowledge_nodes WHERE id=?1" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)=payload_len THEN payload ELSE NULL END FROM knowledge_nodes WHERE id=?1" })?;
         let mut identity_lookup = db.prepare("SELECT type_id,entity_id FROM knowledge_nodes WHERE id=?1")?;
         let mut claim_edges = db.prepare("SELECT to_id FROM knowledge_relations WHERE from_id=?1 AND relation_type_id=?2 LIMIT 2")?;
         let mut supporting_lookup = db.prepare("SELECT source_graph,id FROM knowledge_nodes WHERE entity_id=?1 AND type_id='tos.entity.claim'")?;
         {
-            let mut statement = db.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1 THEN payload ELSE NULL END,type_id,entity_id,source_graph,payload_codec,source_packet_sha256 FROM knowledge_nodes ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,type_id,entity_id,source_graph FROM knowledge_nodes ORDER BY source_order" })?;
+            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,type_id,entity_id,source_graph,payload_codec,source_packet_sha256 FROM knowledge_nodes ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,type_id,entity_id,source_graph FROM knowledge_nodes ORDER BY source_order" })?;
             let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
             while let Some(row) = rows.next()? {
                 if let Some(state) = state {
@@ -2044,7 +2044,7 @@ fn validate_public_semantics_values(
             }
         }
         {
-            let mut statement = db.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1 THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,payload_codec,source_packet_sha256 FROM knowledge_relations ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order FROM knowledge_relations ORDER BY source_order" })?;
+            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,payload_codec,source_packet_sha256 FROM knowledge_relations ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order FROM knowledge_relations ORDER BY source_order" })?;
             let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
             while let Some(row) = rows.next()? {
                 if let Some(state) = state {

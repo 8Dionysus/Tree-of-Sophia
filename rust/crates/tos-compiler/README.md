@@ -27,10 +27,35 @@ must be owner-controlled while the selector runs. This does not check current ri
 source owner does so separately. No permissive authority implementation is
 included.
 
-The crate currently implements a full source-navigation candidate build. It
-does not implement affected compilation, all knowledge/catalog projections,
-the old knowledge.sqlite3 schema, D1 SQL producer, remote page proofs, or
-production pin/restore. See the CMP execution evidence for the coverage map.
+The source-navigation compiler is one family in this crate. The maintained
+knowledge Stage, native snapshot, catalog and D1 producers have their own source
+and consumer contracts. Their presence in the crate does not establish that a
+particular selected dataset has passed construction, publication or restore.
+
+## Native snapshot byte format
+
+New complete native snapshots select
+`tos_knowledge_read_model_v5_postings_v1_carrier_once_v2`. Exact source packets
+are retained once in `knowledge_source_carriers`; normalized rows reference
+those logical bytes where their codec permits exact reconstruction. Identity,
+ordering and current rights remain properties of each row and its source.
+Sharing byte storage does not share authority.
+
+Both source packets and normalized payloads use the explicit V2 physical frame
+in `knowledge_byte_codec.rs`: eight magic bytes, a codec selector and an unsigned
+little-endian logical length, followed by raw bytes or a complete zlib stream.
+Compression is selected only when it saves space. Logical lengths and SHA-256
+values still describe the exact decoded bytes. Readers authenticate the model
+ABI before selecting the decoder and reject mismatched lengths, incomplete
+streams, extra trailing bytes and exceeded budgets. Construction and controlled
+reads charge the original operation's state, work, deadline and cancellation
+owners, including simultaneous source and normalized decoding.
+
+The previous CarrierOnce V1 ABI retains its raw-byte reader and exact DDL
+check. Older inline ABIs retain their original readers. A V2 frame is not
+inferred from an old ABI or from source contents. The new ABI is shared through
+`tos-foundation` with native and WASM consumers; complete dataset construction,
+cold opening and restore require their own execution evidence.
 
 ## Build resource boundary
 

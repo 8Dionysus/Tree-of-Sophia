@@ -538,7 +538,8 @@ pub(crate) fn validate(
             }
         }
         (
-            crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
+            crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+                | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
             Some(nav),
             Some(phi),
             Some(corpus),
@@ -1549,11 +1550,7 @@ pub fn open_selected_knowledge_model_owned(
 // Layout follows the authenticated selected ABI, never table presence. Old
 // admitted ABIs retain their exact Inline path; new cold admission is separate.
 fn selected_payload_layout(model_abi: &str) -> crate::knowledge_stage::KnowledgePayloadLayout {
-    if model_abi == crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
-        crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
-    } else {
-        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1
-    }
+    crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(&model_abi)
 }
 
 fn open_selected_inner<'a>(
@@ -2675,7 +2672,7 @@ fn owned_schema_columns(
                 ("graph_header", "singleton")
                     | ("knowledge_nodes", "native_id" | "entity_id")
                     | ("knowledge_relations", "native_id")
-            ) || layout == knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
+            ) || layout.uses_carriers()
                 && name == "source_packet_sha256"
                 && matches!(table, "knowledge_nodes" | "knowledge_relations");
             if !type_equal
@@ -2742,7 +2739,7 @@ pub(crate) fn verify_schema_with_layout(
     let philosophy =
         owned_schema_present(db, crate::knowledge_philosophy_original::META_TABLE, state)?;
     let corpus = owned_schema_present(db, crate::knowledge_corpus_original::META_TABLE, state)?;
-    let carrier = layout == knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1;
+    let carrier = layout.uses_carriers();
     let mut tables: [Option<&str>; 32] = [None; 32];
     let mut count = 0usize;
     for (table, _) in SELECTED_TABLES {
@@ -3075,8 +3072,8 @@ fn scan_core_with_owned_context(
     let sql=match (nodes,layout) {
         (true,knowledge_stage::KnowledgePayloadLayout::InlineV1)=>c"SELECT id,source_graph,source_order,payload_len,payload_sha256,payload,0,NULL,NULL,NULL FROM knowledge_nodes ORDER BY source_order",
         (false,knowledge_stage::KnowledgePayloadLayout::InlineV1)=>c"SELECT id,source_graph,source_order,payload_len,payload_sha256,payload,0,NULL,NULL,NULL FROM knowledge_relations ORDER BY source_order",
-        (true,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_nodes n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
-        (false,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_relations n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
+        (true,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_nodes n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
+        (false,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_relations n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
     };
     let mut count = 0u64;
     let mut source_index = 0usize;
@@ -3130,7 +3127,7 @@ fn scan_core_with_owned_context(
             if usize::try_from(logical_len)
                 .ok()
                 .is_none_or(|n| n > limits.max_row_bytes)
-                || physical.len() > limits.max_row_bytes
+                || physical.len() > layout.physical_bound(limits.max_row_bytes)?
             {
                 return Err(Error::Budget("knowledge core payload bytes"));
             }
@@ -3183,11 +3180,11 @@ fn scan_core_with_owned_context(
             };
             let source_packet = match statement.value_ref(9).map_err(owned_schema_sql_error)? {
                 rusqlite::types::ValueRef::Null => None,
-                rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= limits.max_row_bytes => {
+                rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= layout.physical_bound(limits.max_row_bytes)? => {
                     let length = statement.integer(8).map_err(owned_schema_sql_error)?;
-                    if length < 0 || usize::try_from(length).ok() != Some(bytes.len()) {
-                        return Err(Error::Invalid("core source packet length"));
-                    }
+                    let length = usize::try_from(length)
+                        .map_err(|_| Error::Invalid("core source packet length"))?;
+                    layout.verify_physical_length(bytes, length, limits.max_row_bytes)?;
                     Some(bytes)
                 }
                 _ => return Err(Error::Budget("core source packet bytes")),

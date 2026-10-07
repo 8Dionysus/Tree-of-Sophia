@@ -397,11 +397,15 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         {
             return Err(Error::Budget("controlled Original row admission"));
         }
-        if self.selection.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+        if !KnowledgePayloadLayout::from_model_abi(&self.selection.model_abi).uses_carriers() {
             return Err(Error::Invalid(
                 "controlled Original requires CarrierOnce ABI",
             ));
         }
+        let layout = match collection {
+            ControlledOriginalCollection::Navigation => KnowledgePayloadLayout::InlineV1,
+            _ => KnowledgePayloadLayout::from_model_abi(&self.selection.model_abi),
+        };
         let receipt = match collection {
             ControlledOriginalCollection::Navigation => ControlledOriginalReceipt::Navigation(
                 self.navigation_original
@@ -438,7 +442,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 (
                     selected.as_str(),
                     "SELECT ordinal,packet_len FROM philosophy_original_rows WHERE ordinal>?1 AND collection=?2 ORDER BY ordinal LIMIT 1",
-                    "SELECT packet_sha256,packet FROM philosophy_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE ordinal=?1 AND collection=?2 AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)=?3",
+                    "SELECT packet_sha256,packet FROM philosophy_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE ordinal=?1 AND collection=?2 AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)<=?3+17",
                 )
             }
             ControlledOriginalCollection::Corpus(selected) => {
@@ -450,7 +454,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 (
                     selected.as_str(),
                     "SELECT ordinal,packet_len FROM corpus_original_rows WHERE ordinal>?1 AND collection=?2 ORDER BY ordinal LIMIT 1",
-                    "SELECT packet_sha256,packet FROM corpus_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE ordinal=?1 AND collection=?2 AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)=?3",
+                    "SELECT packet_sha256,packet FROM corpus_original_rows LEFT JOIN knowledge_source_carriers USING(packet_sha256,packet_len) WHERE ordinal=?1 AND collection=?2 AND packet_len=?3 AND typeof(packet_sha256)='blob' AND length(packet_sha256)=32 AND typeof(packet)='blob' AND length(packet)<=?3+17",
                 )
             }
         };
@@ -531,7 +535,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 {
                     return Err(Error::Budget("controlled Original row bytes"));
                 }
-                let allocation = length_usize
+                let allocation = layout.physical_bound(length_usize)?
                     .checked_add(32)
                     .ok_or(Error::Budget("controlled Original raw state"))?;
                 let _raw_hold = self.context.owned_state().hold(allocation)?;
@@ -540,16 +544,17 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     params![ordinal, collection_name, length],
                     |row| Ok((row.get(0)?, row.get(1)?)),
                 )?;
-                self.charge_query_work(raw.len())?;
-                let computed = Digest256::of_bytes(&raw);
-                if raw.len() != length_usize || computed.as_bytes() != digest.as_slice() {
-                    return Err(Error::Invalid("controlled Original row digest"));
-                }
-                self.check_pin()?;
-                self.context
-                    .with_foundation_owned_with_limits(&raw, json, |value| {
-                        consume(receipt, ordinal, computed, &raw, value)
-                    })?;
+                layout.with_decoded(self.context.owned_state(), &raw, Some(length_usize), max_row_bytes, |raw| {
+                    self.charge_query_work(raw.len())?;
+                    let computed = Digest256::of_bytes(raw);
+                    if computed.as_bytes() != digest.as_slice() {
+                        return Err(Error::Invalid("controlled Original row digest"));
+                    }
+                    self.check_pin()?;
+                    self.context.with_foundation_owned_with_limits(raw, json, |value| {
+                        consume(receipt, ordinal, computed, raw, value)
+                    })
+                })?;
                 self.check_pin()?;
                 Ok(ControlledOriginalRowRead {
                     ordinal: Some(ordinal),
@@ -1142,7 +1147,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     .checked_mul(2)
                     .ok_or(Error::Budget("controlled candidate payload cap"))?,
             )
-            .and_then(|n| n.checked_add(256))
+            .and_then(|n| n.checked_add(256 + 2 * crate::knowledge_byte_codec::HEADER as u64))
             .ok_or(Error::Budget("controlled candidate row cap"))?;
         if position > i64::MAX as u64
             || max_vm_steps == 0
@@ -1163,12 +1168,12 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
             ControlledSearchKind::Nodes => ("nodes", "knowledge_nodes"),
             ControlledSearchKind::Relations => ("relations", "knowledge_relations"),
         };
-        if self.selection.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+        if !KnowledgePayloadLayout::from_model_abi(&self.selection.model_abi).uses_carriers() {
             return Err(Error::Invalid(
                 "controlled search requires CarrierOnce model ABI",
             ));
         }
-        let layout = KnowledgePayloadLayout::CarrierOnceV1;
+        let layout = KnowledgePayloadLayout::from_model_abi(&self.selection.model_abi);
         let sql_inline = match kind {
             ControlledSearchKind::Nodes => {
                 "SELECT \
@@ -1219,12 +1224,12 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(d.document_digest)='blob' AND length(d.document_digest)=32 THEN d.document_digest END,\
                  CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,\
                  CASE WHEN typeof(c.payload_sha256)='blob' AND length(c.payload_sha256)=32 THEN c.payload_sha256 END,\
-                 CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?4 THEN c.payload END,\
+                 CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?4+17 THEN c.payload END,\
                  CASE WHEN typeof(c.payload_codec)='integer' THEN c.payload_codec END,\
                  CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,\
                  CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=0 AND s.packet_len<=?4 THEN s.packet_len END,\
                  CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,\
-                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)=s.packet_len THEN s.packet END \
+                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)<=s.packet_len+17 THEN s.packet END \
                  FROM search_documents d JOIN knowledge_nodes c ON c.source_order=d.position \
                  LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256 \
                  WHERE d.kind=?1 AND d.position=?2"
@@ -1242,18 +1247,18 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(d.document_digest)='blob' AND length(d.document_digest)=32 THEN d.document_digest END,\
                  CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,\
                  CASE WHEN typeof(c.payload_sha256)='blob' AND length(c.payload_sha256)=32 THEN c.payload_sha256 END,\
-                 CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?4 THEN c.payload END,\
+                 CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?4+17 THEN c.payload END,\
                  CASE WHEN typeof(c.payload_codec)='integer' THEN c.payload_codec END,\
                  CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,\
                  CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=0 AND s.packet_len<=?4 THEN s.packet_len END,\
                  CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,\
-                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)=s.packet_len THEN s.packet END \
+                 CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=0 AND s.packet_len<=?4 AND length(s.packet)<=s.packet_len+17 THEN s.packet END \
                  FROM search_documents d JOIN knowledge_relations c ON c.source_order=d.position \
                  LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256 \
                  WHERE d.kind=?1 AND d.position=?2"
             }
         };
-        let sql = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        let sql = if layout.uses_carriers() {
             sql_carrier
         } else {
             sql_inline
@@ -1336,7 +1341,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         if logical_len < 0
             || document_chars < 0
             || physical.is_empty()
-            || physical.len() > max_payload_bytes
+            || physical.len() > layout.physical_bound(max_payload_bytes)?
             || (source_digest.is_some() != packet.is_some())
             || (packet.is_some() != packet_digest.is_some())
             || (packet.is_some() != source_len.is_some())
@@ -1353,12 +1358,11 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let payload_sha256 = digest(&payload_digest)?;
         let source_packet_sha256 = source_digest.as_deref().map(digest).transpose()?;
         let source_packet_sha256_joined = packet_digest.as_deref().map(digest).transpose()?;
-        if source_packet_sha256 != source_packet_sha256_joined
-            || packet
-                .as_ref()
-                .zip(source_len)
-                .is_some_and(|(packet, len)| len < 0 || packet.len() as i64 != len)
-        {
+        if let Some((packet, len)) = packet.as_ref().zip(source_len) {
+            layout.verify_physical_length(packet, usize::try_from(len)
+                .map_err(|_| Error::Invalid("controlled candidate source length"))?, max_payload_bytes)?;
+        }
+        if source_packet_sha256 != source_packet_sha256_joined {
             return Err(Error::Invalid("controlled candidate source packet join"));
         }
         let physical_len = physical.len();
@@ -1391,7 +1395,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         if payload.len()
             != usize::try_from(logical_len)
                 .map_err(|_| Error::Budget("controlled candidate logical length"))?
-            || physical_len > max_payload_bytes
+            || physical_len > layout.physical_bound(max_payload_bytes)?
         {
             return Err(Error::Invalid(
                 "controlled candidate logical payload length",
@@ -1601,7 +1605,7 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
         ) -> std::result::Result<(), E>,
     ) -> Result<std::result::Result<ControlledLegacySearchScan, E>> {
         self.check_pin()?;
-        if self.selection.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
+        if !KnowledgePayloadLayout::from_model_abi(&self.selection.model_abi).uses_carriers() {
             return Err(Error::Invalid(
                 "controlled legacy search requires CarrierOnce ABI",
             ));
@@ -1697,12 +1701,12 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                 CASE WHEN typeof(c.source_order)='integer' AND c.source_order>=0 THEN c.source_order END,
                 CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?3 THEN c.payload_len END,
                 CASE WHEN typeof(c.payload_sha256)='blob' AND length(c.payload_sha256)=32 THEN c.payload_sha256 END,
-                CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?3 THEN c.payload END,
+                CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?3+17 THEN c.payload END,
                 CASE WHEN typeof(c.payload_codec)='integer' THEN c.payload_codec END,
                 CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,
                 CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=1 AND s.packet_len<=?3 THEN s.packet_len END,
                 CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,
-                CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)=s.packet_len THEN s.packet END
+                CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)<=s.packet_len+17 THEN s.packet END
                 FROM knowledge_nodes c LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256
                 WHERE c.source_graph IN (SELECT value FROM json_each(?1))
                 AND (?4=0 OR (?4=1 AND c.id=?5) OR (?4=2 AND c.native_id=?5) OR (?4=3 AND c.entity_id=?5))
@@ -1713,12 +1717,12 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                 CASE WHEN typeof(c.source_order)='integer' AND c.source_order>=0 THEN c.source_order END,
                 CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?3 THEN c.payload_len END,
                 CASE WHEN typeof(c.payload_sha256)='blob' AND length(c.payload_sha256)=32 THEN c.payload_sha256 END,
-                CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?3 THEN c.payload END,
+                CASE WHEN typeof(c.payload)='blob' AND length(c.payload)<=?3+17 THEN c.payload END,
                 CASE WHEN typeof(c.payload_codec)='integer' THEN c.payload_codec END,
                 CASE WHEN typeof(c.source_packet_sha256)='blob' AND length(c.source_packet_sha256)=32 THEN c.source_packet_sha256 END,
                 CASE WHEN typeof(s.packet_len)='integer' AND s.packet_len>=1 AND s.packet_len<=?3 THEN s.packet_len END,
                 CASE WHEN typeof(s.packet_sha256)='blob' AND length(s.packet_sha256)=32 THEN s.packet_sha256 END,
-                CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)=s.packet_len THEN s.packet END
+                CASE WHEN typeof(s.packet)='blob' AND s.packet_len>=1 AND s.packet_len<=?3 AND length(s.packet)<=s.packet_len+17 THEN s.packet END
                 FROM knowledge_relations c LEFT JOIN knowledge_source_carriers s ON s.packet_sha256=c.source_packet_sha256
                 WHERE c.source_graph IN (SELECT value FROM json_each(?1))
                 AND (?4=0 OR (?4=1 AND c.id=?5) OR (?4=2 AND c.native_id=?5) OR (?4=4 AND (c.from_id IN (SELECT value FROM json_each(?5)) OR c.to_id IN (SELECT value FROM json_each(?5)))))
@@ -1745,7 +1749,7 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
         let pinned = self.pinned;
         let selection = self.selection;
         let custody = self.custody;
-        let layout = KnowledgePayloadLayout::CarrierOnceV1;
+        let layout = KnowledgePayloadLayout::from_model_abi(&self.selection.model_abi);
         let mut callback_error = None;
         let (scan, vm_steps) = crate::knowledge_payload_read::with_query_vm_window(
             context,
@@ -1772,6 +1776,11 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                     if scan.rows > max_rows {
                         return Err(Error::Budget("controlled legacy row count"));
                     }
+                    // Both SQL Vec blobs may carry the V2 framing bytes in
+                    // addition to the pre-existing payload envelope.
+                    let _frame_hold = context.owned_state().hold(
+                        if layout.packed_bytes() { 2 * crate::knowledge_byte_codec::HEADER } else { 0 },
+                    )?;
                     let (
                         Some(id),
                         Some(source_graph),
@@ -1803,16 +1812,11 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                     if position < 0
                         || logical_len <= 0
                         || physical.is_empty()
-                        || physical.len() > max_payload_bytes
+                        || physical.len() > layout.physical_bound(max_payload_bytes)?
                         || (source_sha.is_some() != source_packet.is_some())
                         || (source_packet.is_some() != joined_source_sha.is_some())
                         || (source_packet.is_some() != source_len.is_some())
-                        || source_len.is_some_and(|length| {
-                            length < 0
-                                || source_packet
-                                    .as_ref()
-                                    .is_none_or(|packet| packet.len() as i64 != length)
-                        })
+
                     {
                         return Err(Error::Invalid("controlled legacy carrier row shape"));
                     }
@@ -1822,6 +1826,10 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                             .map_err(|_| Error::Invalid("controlled legacy digest width"))?;
                         Ok(Digest256::from_bytes(bytes))
                     };
+                    if let Some((packet, length)) = source_packet.as_ref().zip(source_len) {
+                        layout.verify_physical_length(packet, usize::try_from(length)
+                            .map_err(|_| Error::Invalid("controlled carrier source length"))?, max_payload_bytes)?;
+                    }
                     let payload_sha256 = digest(&payload_sha)?;
                     let source_packet_sha256 = source_sha.as_deref().map(digest).transpose()?;
                     let joined_digest = joined_source_sha.as_deref().map(digest).transpose()?;
@@ -2002,7 +2010,7 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
     .ok_or(Error::Budget("controlled cold model frame"))?;
     let _frame = state.hold(fixed)?;
     context.check()?;
-    if expected.model_abi != knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+    if !KnowledgePayloadLayout::from_model_abi(&expected.model_abi).uses_carriers()
         || expected.navigation_original_root_sha256.is_none()
         || expected.philosophy_original_root_sha256.is_none()
         || expected.corpus_original_root_sha256.is_none()
@@ -2082,7 +2090,7 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
             .load(std::sync::atomic::Ordering::Acquire)
             .saturating_sub(open_vm_start);
         crate::knowledge_selected::verify_integrity_with_owned_context(&db, context)?;
-        let layout = KnowledgePayloadLayout::CarrierOnceV1;
+        let layout = KnowledgePayloadLayout::from_model_abi(&expected.model_abi);
         crate::knowledge_selected::verify_schema_with_layout(&db, layout, Some(state))?;
         crate::knowledge_selected::check_native_metadata_with_owned_context(
             &db,

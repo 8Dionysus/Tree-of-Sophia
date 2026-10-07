@@ -407,54 +407,40 @@ pub(crate) fn with_logical_payload_for_verified_layout<T>(
     .ok_or(Error::Budget("logical payload controller state"))?;
     let _fixed = state.hold(fixed)?;
     state.active()?;
-    let carrier = layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1;
-    if max_row_bytes == 0
-        || row.logical_len == 0
-        || row.logical_len > max_row_bytes
-        || row.physical.is_empty()
-        || row.physical.len() > max_row_bytes
-    {
+    let carrier = layout.uses_carriers();
+    if max_row_bytes == 0 || row.logical_len == 0 || row.logical_len > max_row_bytes
+        || row.physical.is_empty() || row.physical.len() > layout.physical_bound(max_row_bytes)? {
         return Err(Error::Budget("selected logical payload bytes"));
     }
     let result = match row.payload_codec {
         0 => {
-            if row.source_packet_sha256.is_some()
-                || row.source_packet.is_some()
-                || row.physical.len() != row.logical_len
-                || charged_digest(state, row.physical)? != row.logical_sha256
-            {
-                return Err(Error::Invalid("selected inline logical payload differs"));
+            if row.source_packet_sha256.is_some() || row.source_packet.is_some() {
+                return Err(Error::Invalid("selected inline source carrier"));
             }
-            consume(row.physical, context)
+            layout.with_decoded(state, row.physical, Some(row.logical_len), max_row_bytes, |raw| {
+                if charged_digest(state, raw)? != row.logical_sha256 {
+                    return Err(Error::Invalid("selected inline logical payload differs"));
+                }
+                consume(raw, context)
+            })
         }
         1 if carrier => {
-            let source = row
-                .source_packet
-                .ok_or(Error::Invalid("selected source carrier absent"))?;
-            let digest = row
-                .source_packet_sha256
-                .ok_or(Error::Invalid("selected carrier digest absent"))?;
-            if source.is_empty()
-                || source.len() > max_row_bytes
-                || charged_digest(state, source)? != digest
-            {
-                return Err(Error::Invalid("selected source carrier differs"));
-            }
-            crate::knowledge_payload_codec::with_hydrated_payload(
-                state,
-                row.physical,
-                source,
-                stored_limits,
-                source_limits,
-                max_row_bytes,
-                row.logical_len,
-                row.logical_sha256,
-                |logical| consume(logical, context),
-            )
+            let source = row.source_packet.ok_or(Error::Invalid("selected source carrier absent"))?;
+            let digest = row.source_packet_sha256.ok_or(Error::Invalid("selected carrier digest absent"))?;
+            layout.with_decoded(state, source, None, max_row_bytes, |source| {
+                if charged_digest(state, source)? != digest {
+                    return Err(Error::Invalid("selected source carrier differs"));
+                }
+                layout.with_decoded(state, row.physical, None, max_row_bytes, |stored| {
+                    crate::knowledge_payload_codec::with_hydrated_payload(
+                        state, stored, source, stored_limits, source_limits,
+                        max_row_bytes, row.logical_len, row.logical_sha256,
+                        |logical| consume(logical, context),
+                    )
+                })
+            })
         }
-        _ => Err(Error::Invalid(
-            "selected payload codec incompatible with ABI",
-        )),
+        _ => Err(Error::Invalid("selected payload codec incompatible with ABI")),
     };
     state.active()?;
     result
@@ -495,13 +481,10 @@ pub(crate) fn with_selected_logical_payload_owned<'budget, T>(
         state.active()?;
         model.check_pin()?;
         let abi = &model.selection().model_abi;
-        let layout = if abi == crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI {
-            crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
-        } else if abi == crate::knowledge_selected::KNOWLEDGE_MODEL_ABI {
-            crate::knowledge_stage::KnowledgePayloadLayout::InlineV1
-        } else {
+        let layout = crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(abi);
+        if !layout.uses_carriers() && abi != crate::knowledge_selected::KNOWLEDGE_MODEL_ABI {
             return Err(Error::Invalid("selected payload ABI unsupported"));
-        };
+        }
         let result = with_logical_payload_for_verified_layout(
             context,
             layout,

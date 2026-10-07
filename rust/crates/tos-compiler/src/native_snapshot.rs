@@ -3999,7 +3999,7 @@ fn build_native_snapshot_from_capture_inner(
     if deadline != capture.deadline() || !std::ptr::eq(cancelled, capture.cancellation()) {
         return Err(Error::Invalid("native snapshot admission context changed"));
     }
-    if payload_layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
+    if payload_layout.uses_carriers()
         && state.is_none()
     {
         return Err(Error::Invalid(
@@ -4105,14 +4105,7 @@ fn build_native_snapshot_from_capture_inner(
     };
     // The chosen original corpus/phi connector selects the existing V5 ABI.
     // Original receipts remain distinct from normalized projections.
-    let abi = match payload_layout {
-        crate::knowledge_stage::KnowledgePayloadLayout::InlineV1 => {
-            crate::KNOWLEDGE_CORPUS_MODEL_ABI
-        }
-        crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 => {
-            crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
-        }
-    };
+    let abi = payload_layout.carrier_model_abi().unwrap_or(crate::KNOWLEDGE_CORPUS_MODEL_ABI);
     if let Some(state) = state {
         state.retain(
             "tos-native-projection-snapshot-v1".len()
@@ -4245,7 +4238,7 @@ fn build_native_snapshot_from_capture_inner(
             capture.deadline(),
         )?,
     };
-    if payload_layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 {
+    if payload_layout.uses_carriers() {
         // The Stage owner checks its genuine native profile, original held
         // CreationState and pristine no-row boundary before schema activation.
         stage.enable_carrier_once_layout()?;

@@ -546,6 +546,73 @@ impl NativeStageOwnedBudget<'_> {
 pub enum KnowledgePayloadLayout {
     InlineV1,
     CarrierOnceV1,
+    CarrierOnceV2,
+}
+impl KnowledgePayloadLayout {
+    pub const fn uses_carriers(self) -> bool {
+        matches!(self, Self::CarrierOnceV1 | Self::CarrierOnceV2)
+    }
+    pub const fn packed_bytes(self) -> bool {
+        matches!(self, Self::CarrierOnceV2)
+    }
+    /// Format selection follows an already authenticated model ABI. Callers
+    /// retain their independent whole-model and component compatibility checks.
+    pub fn from_model_abi(abi: &str) -> Self {
+        match abi {
+            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1 => Self::CarrierOnceV1,
+            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2 => Self::CarrierOnceV2,
+            _ => Self::InlineV1,
+        }
+    }
+    pub const fn carrier_model_abi(self) -> Option<&'static str> {
+        match self {
+            Self::InlineV1 => None,
+            Self::CarrierOnceV1 => Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1),
+            Self::CarrierOnceV2 => Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2),
+        }
+    }
+    pub(crate) fn physical_bound(self, logical_bound: usize) -> Result<usize> {
+        if self.packed_bytes() { crate::knowledge_byte_codec::stored_bound(logical_bound) }
+        else { Ok(logical_bound) }
+    }
+    pub(crate) fn verify_physical_length(
+        self, stored: &[u8], expected_bytes: usize, max_bytes: usize,
+    ) -> Result<()> {
+        if self.packed_bytes() {
+            crate::knowledge_byte_codec::frame_metadata(stored, Some(expected_bytes), max_bytes)?;
+        } else if expected_bytes == 0 || expected_bytes > max_bytes || stored.len() != expected_bytes {
+            return Err(Error::Invalid("legacy physical payload length"));
+        }
+        Ok(())
+    }
+    pub(crate) fn with_decoded<T>(
+        self,
+        state: &crate::d1_public_capture::CreationState<'_>,
+        stored: &[u8],
+        expected_bytes: Option<usize>,
+        max_bytes: usize,
+        consume: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
+        if self.packed_bytes() {
+            crate::knowledge_byte_codec::with_decoded(state, stored, expected_bytes, max_bytes, consume)
+        } else {
+            if stored.is_empty() || stored.len() > max_bytes
+                || expected_bytes.is_some_and(|n| n != stored.len()) {
+                return Err(Error::Invalid("legacy physical payload length"));
+            }
+            consume(stored)
+        }
+    }
+    pub(crate) fn with_encoded<T>(
+        self,
+        state: &crate::d1_public_capture::CreationState<'_>,
+        raw: &[u8],
+        max_bytes: usize,
+        consume: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
+        if self.packed_bytes() { crate::knowledge_byte_codec::with_encoded(state, raw, max_bytes, consume) }
+        else { consume(raw) }
+    }
 }
 
 pub(crate) const CARRIER_NORMALIZED_COLUMNS_DDL: &str = r#"
@@ -556,7 +623,7 @@ ALTER TABLE knowledge_relations ADD COLUMN source_packet_sha256 BLOB CHECK((payl
 "#;
 
 pub const KNOWLEDGE_CARRIER_ONCE_MODEL_ABI: &str =
-    tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1;
+    tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2;
 
 /// An exact byte reference issued by the retaining Stage; not source authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -580,8 +647,8 @@ impl ExactSourceCarrierRef {
 pub(crate) const SOURCE_CARRIER_DDL: &str = r#"
 CREATE TABLE knowledge_source_carriers(
  packet_sha256 BLOB PRIMARY KEY NOT NULL CHECK(length(packet_sha256)=32),
- packet_len INTEGER NOT NULL CHECK(packet_len>=0),
- packet BLOB NOT NULL CHECK(packet_len=length(packet)));
+ packet_len INTEGER NOT NULL CHECK(packet_len>0),
+ packet BLOB NOT NULL CHECK(length(packet) BETWEEN 18 AND packet_len+17));
 "#;
 
 // Field order is part of the ownership law: both byte buffers drop before
@@ -592,6 +659,7 @@ struct NormalizedPayloadRead<'s, 'budget> {
     digest: Digest256,
     raw: Vec<u8>,
     source: Vec<u8>,
+    source_len: usize,
     _hold: crate::d1_public_capture::CreationStateHold<'s, 'budget>,
 }
 
@@ -806,7 +874,7 @@ impl<'a> KnowledgeStage<'a> {
             self.charge_public_work(CARRIER_NORMALIZED_COLUMNS_DDL.len() as u64)?;
             self.db().execute_batch(CARRIER_NORMALIZED_COLUMNS_DDL)?;
             self.check(WritePhase::Schema)?;
-            self.payload_layout = KnowledgePayloadLayout::CarrierOnceV1;
+            self.payload_layout = KnowledgePayloadLayout::CarrierOnceV2;
             Ok(())
         })();
         self.poisoned |= result.is_err();
@@ -830,7 +898,7 @@ impl<'a> KnowledgeStage<'a> {
         if self.poisoned {
             return Err(Error::Invalid("source carrier Stage poisoned"));
         }
-        if self.payload_layout != KnowledgePayloadLayout::CarrierOnceV1 {
+        if !self.payload_layout.uses_carriers() {
             return Err(Error::Invalid("exact source carrier layout inactive"));
         }
         if packet.is_empty() || packet.len() > self.limits.sqlite.max_row_bytes {
@@ -839,37 +907,43 @@ impl<'a> KnowledgeStage<'a> {
         self.check(WritePhase::Normalized)?;
         self.charge_public_work(packet.len() as u64)?;
         let digest = Digest256::of_bytes(packet);
-        // Borrow SQLite's BLOB only after its stored type/length is admitted.
-        // No row.get Vec allocation occurs on a collision/reuse path.
+        let layout = self.payload_layout;
+        let state = self.owned_creation_state()
+            .ok_or(Error::Invalid("source carrier same owner state absent"))?;
+        // Read existing storage only under its selected logical/physical caps.
         let found = {
             let mut statement = self.db().prepare(
-                "SELECT packet_len,length(packet),CASE WHEN typeof(packet)='blob' \
-                 AND packet_len=?2 AND length(packet)=?2 THEN packet END \
-                 FROM knowledge_source_carriers WHERE packet_sha256=?1",
+                "SELECT packet_len,CASE WHEN typeof(packet)='blob' AND packet_len=?2 AND length(packet)<=?2+17 THEN packet END FROM knowledge_source_carriers WHERE packet_sha256=?1",
             )?;
             let mut rows = statement.query(params![&digest.as_bytes()[..], packet.len() as i64])?;
             if let Some(row) = rows.next()? {
                 let declared: i64 = row.get(0)?;
-                let actual: i64 = row.get(1)?;
-                let stored = row.get_ref(2)?.as_blob().map_err(|_| {
+                let stored = row.get_ref(1)?.as_blob().map_err(|_| {
                     Error::Invalid("source carrier stored packet type or length differs")
                 })?;
                 self.charge_public_work(packet.len() as u64)?;
-                if declared != packet.len() as i64 || actual != declared || stored != packet {
-                    return Err(Error::Invalid(
-                        "source carrier digest collision or stored bytes differ",
-                    ));
+                if declared != packet.len() as i64 {
+                    return Err(Error::Invalid("source carrier logical length differs"));
                 }
+                layout.with_decoded(state, stored, Some(packet.len()), self.limits.sqlite.max_row_bytes, |raw| {
+                    state.charge_work(raw.len())?;
+                    if raw != packet {
+                        return Err(Error::Invalid("source carrier digest collision or stored bytes differ"));
+                    }
+                    Ok(())
+                })?;
                 true
-            } else {
-                false
-            }
+            } else { false }
         };
         if !found {
-            self.charge_materialized(1, packet.len() as u64)?;
-            self.db().execute(
-                "INSERT INTO knowledge_source_carriers(packet_sha256,packet_len,packet) VALUES (?1,?2,?3)",
-                params![&digest.as_bytes()[..], packet.len() as i64, packet])?;
+            layout.with_encoded(state, packet, self.limits.sqlite.max_row_bytes, |stored| {
+                self.charge_materialized(1, stored.len() as u64)?;
+                self.db().execute(
+                    "INSERT INTO knowledge_source_carriers(packet_sha256,packet_len,packet) VALUES (?1,?2,?3)",
+                    params![&digest.as_bytes()[..], packet.len() as i64, stored],
+                )?;
+                Ok(())
+            })?;
         }
         self.check(WritePhase::Normalized)?;
         Ok(ExactSourceCarrierRef {
@@ -2248,10 +2322,10 @@ impl<'a> KnowledgeStage<'a> {
         max_payload_bytes: usize,
         max_source_bytes: usize,
     ) -> Result<(usize, usize, u64)> {
-        let carrier = self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1;
+        let carrier = self.payload_layout.uses_carriers();
         let rows_per_input = if carrier { 2 } else { 1 };
-        let bytes_per_input = max_payload_bytes
-            .checked_add(if carrier { max_source_bytes } else { 0 })
+        let bytes_per_input = self.payload_layout.physical_bound(max_payload_bytes)?
+            .checked_add(if carrier { self.payload_layout.physical_bound(max_source_bytes)? } else { 0 })
             .filter(|bytes| *bytes > 0)
             .ok_or(Error::Budget("exact source physical row bytes"))?;
         let (write_rows, write_bytes) = self.write_page_limits();
@@ -2484,19 +2558,19 @@ impl<'a> KnowledgeStage<'a> {
             let state = self
                 .owned_creation_state()
                 .ok_or(Error::Invalid("normalized payload owner absent"))?;
-            let carrier = self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1;
+            let carrier = self.payload_layout.uses_carriers();
             let sql = match (relation, carrier) {
                 (false, false) => {
-                    "SELECT 0,payload_len,payload_sha256,payload,NULL FROM knowledge_nodes WHERE id=?1"
+                    "SELECT 0,payload_len,payload_sha256,payload,NULL,0 FROM knowledge_nodes WHERE id=?1"
                 }
                 (true, false) => {
-                    "SELECT 0,payload_len,payload_sha256,payload,NULL FROM knowledge_relations WHERE id=?1"
+                    "SELECT 0,payload_len,payload_sha256,payload,NULL,0 FROM knowledge_relations WHERE id=?1"
                 }
                 (false, true) => {
-                    "SELECT p.payload_codec,p.payload_len,p.payload_sha256,p.payload,CASE WHEN p.payload_codec=1 AND typeof(c.packet)='blob' AND c.packet_len=length(c.packet) AND c.packet_len>0 AND c.packet_len<=?2 AND c.packet_sha256=p.source_packet_sha256 THEN c.packet END FROM knowledge_nodes p LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=p.source_packet_sha256 WHERE p.id=?1"
+                    "SELECT p.payload_codec,p.payload_len,p.payload_sha256,p.payload,CASE WHEN p.payload_codec=1 AND typeof(c.packet)='blob' AND length(c.packet)<=c.packet_len+17 AND c.packet_len>0 AND c.packet_len<=?2 AND c.packet_sha256=p.source_packet_sha256 THEN c.packet END,c.packet_len FROM knowledge_nodes p LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=p.source_packet_sha256 WHERE p.id=?1"
                 }
                 (true, true) => {
-                    "SELECT p.payload_codec,p.payload_len,p.payload_sha256,p.payload,CASE WHEN p.payload_codec=1 AND typeof(c.packet)='blob' AND c.packet_len=length(c.packet) AND c.packet_len>0 AND c.packet_len<=?2 AND c.packet_sha256=p.source_packet_sha256 THEN c.packet END FROM knowledge_relations p LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=p.source_packet_sha256 WHERE p.id=?1"
+                    "SELECT p.payload_codec,p.payload_len,p.payload_sha256,p.payload,CASE WHEN p.payload_codec=1 AND typeof(c.packet)='blob' AND length(c.packet)<=c.packet_len+17 AND c.packet_len>0 AND c.packet_len<=?2 AND c.packet_sha256=p.source_packet_sha256 THEN c.packet END,c.packet_len FROM knowledge_relations p LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=p.source_packet_sha256 WHERE p.id=?1"
                 }
             };
             let record = self.with_connection(WritePhase::Sort, |db| {
@@ -2524,7 +2598,7 @@ impl<'a> KnowledgeStage<'a> {
                     || logical_len as u64 > max_bytes as u64
                     || sha.len() != 32
                     || raw.is_empty()
-                    || raw.len() > max_bytes
+                    || raw.len() > self.payload_layout.physical_bound(max_bytes)?
                 {
                     return Err(Error::Budget("normalized payload transfer bound"));
                 }
@@ -2535,9 +2609,13 @@ impl<'a> KnowledgeStage<'a> {
                 } else {
                     &[]
                 };
-                if codec == 0 && raw.len() != logical_len as usize {
+                if codec == 0 && !self.payload_layout.packed_bytes() && raw.len() != logical_len as usize {
                     return Err(Error::Invalid("normalized inline length differs"));
                 }
+                let source_len = if codec == 1 {
+                    usize::try_from(row.get::<_, i64>(5)?)
+                        .map_err(|_| Error::Invalid("normalized source logical length"))?
+                } else { 0 };
                 let owned_bytes = raw
                     .len()
                     .checked_add(source.len())
@@ -2569,33 +2647,36 @@ impl<'a> KnowledgeStage<'a> {
                     digest: Digest256::from_bytes(digest),
                     raw,
                     source,
+                    source_len,
                     _hold: hold,
                 }))
             })?;
             let Some(record) = record else {
                 return Ok(None);
             };
-            let observed = if record.codec == 0 {
-                state.charge_work(record.raw.len())?;
-                if Digest256::of_bytes(&record.raw) != record.digest {
-                    return Err(Error::Invalid("normalized inline digest differs"));
-                }
-                state.active()?;
-                consume(self, &record.raw, None).map(Some)
-            } else {
-                let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
-                crate::knowledge_payload_codec::with_hydrated_payload(
-                    state,
-                    &record.raw,
-                    &record.source,
-                    limits,
-                    limits,
-                    max_bytes,
-                    record.logical_len,
-                    record.digest,
-                    |logical| consume(self, logical, Some(&record.source)).map(Some),
-                )
-            };
+            let layout = self.payload_layout;
+            let observed = layout.with_decoded(
+                state, &record.raw, (record.codec == 0).then_some(record.logical_len), max_bytes,
+                |raw| {
+                    if record.codec == 0 {
+                        state.charge_work(raw.len())?;
+                        if Digest256::of_bytes(raw) != record.digest {
+                            return Err(Error::Invalid("normalized inline digest differs"));
+                        }
+                        state.active()?;
+                        consume(self, raw, None).map(Some)
+                    } else {
+                        let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
+                        layout.with_decoded(state, &record.source, Some(record.source_len), max_bytes, |source| {
+                            crate::knowledge_payload_codec::with_hydrated_payload(
+                                state, raw, source, limits, limits, max_bytes,
+                                record.logical_len, record.digest,
+                                |logical| consume(self, logical, Some(source)).map(Some),
+                            )
+                        })
+                    }
+                },
+            );
             drop(record);
             observed
         })();
@@ -2895,7 +2976,7 @@ impl<'a> KnowledgeStage<'a> {
         source: Option<&[u8]>,
         previous: Option<Digest256>,
     ) -> Result<()> {
-        if self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        if self.payload_layout.uses_carriers() {
             if let Some(source) = source {
                 return self.replace_normalized_payload_with_exact_source_if_current(
                     relation, id, logical, source, previous,
@@ -2926,18 +3007,20 @@ impl<'a> KnowledgeStage<'a> {
                 let mut hasher=Digest256Hasher::new();
                 for part in logical.chunks(4096) {state.active()?;hasher.update(part);}
                 let digest=hasher.finalize();
-                self.charge_materialized(1,logical.len() as u64)?;
+                self.charge_materialized(1,self.payload_layout.physical_bound(logical.len())? as u64)?;
                 let sql=match (self.payload_layout,relation) {
                     (KnowledgePayloadLayout::InlineV1,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
                     (KnowledgePayloadLayout::InlineV1,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
-                    (KnowledgePayloadLayout::CarrierOnceV1,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
-                    (KnowledgePayloadLayout::CarrierOnceV1,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
+                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
+                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
                 };
-                self.with_connection(WritePhase::Normalized,|db| {
-                    if db.execute(sql,params![logical.len() as i64,digest.as_bytes().as_slice(),logical,id,previous.as_ref().map(|d|d.as_bytes().as_slice())])?!=1 {
-                        return Err(Error::Invalid("logical Inline update absent or revision differs"));
-                    }
-                    Ok(())
+                self.payload_layout.with_encoded(state, logical, cap, |physical| {
+                    self.with_connection(WritePhase::Normalized,|db| {
+                        if db.execute(sql,params![logical.len() as i64,digest.as_bytes().as_slice(),physical,id,previous.as_ref().map(|d|d.as_bytes().as_slice())])?!=1 {
+                            return Err(Error::Invalid("logical Inline update absent or revision differs"));
+                        }
+                        Ok(())
+                    })
                 })
             })
         })();
@@ -2987,7 +3070,7 @@ impl<'a> KnowledgeStage<'a> {
         previous: Option<Digest256>,
     ) -> Result<()> {
         let result = (|| {
-            if self.poisoned || self.payload_layout != KnowledgePayloadLayout::CarrierOnceV1 {
+            if self.poisoned || !self.payload_layout.uses_carriers() {
                 return Err(Error::Invalid("carrier normalized update unavailable"));
             }
             valid_id(id)?;
@@ -3009,7 +3092,8 @@ impl<'a> KnowledgeStage<'a> {
                     |stored,source_digest| {
                         let reference=self.retain_exact_source_carrier(source)?;
                         if reference.packet_sha256()!=&source_digest {return Err(Error::Invalid("carrier update source differs"));}
-                        self.charge_materialized(1,stored.len() as u64)?;
+                        self.charge_materialized(1,self.payload_layout.physical_bound(stored.len())? as u64)?;
+                        self.payload_layout.with_encoded(state, stored, cap, |physical| {
                         self.with_connection(WritePhase::Normalized,|db| {
                             // Existing codec1 must retain the exact raw byte key.
                             // Inline rows may be factored from authentic supplied raw
@@ -3020,10 +3104,11 @@ impl<'a> KnowledgeStage<'a> {
                                 "UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3,payload_codec=1,source_packet_sha256=?4 WHERE id=?5 AND (payload_codec=0 OR (payload_codec=1 AND source_packet_sha256=?4)) AND (?6 IS NULL OR payload_sha256=?6)"
                             };
                             if db.execute(sql,
-                                params![logical.len() as i64,digest.as_bytes().as_slice(),stored,source_digest.as_bytes().as_slice(),id,previous.as_ref().map(|v|v.as_bytes().as_slice())])?!=1 {
+                                params![logical.len() as i64,digest.as_bytes().as_slice(),physical,source_digest.as_bytes().as_slice(),id,previous.as_ref().map(|v|v.as_bytes().as_slice())])?!=1 {
                                 return Err(Error::Invalid("carrier update absent or source binding differs"));
                             }
                             Ok(())
+                        })
                         })
                     })
             })
@@ -3055,7 +3140,7 @@ impl<'a> KnowledgeStage<'a> {
         logical: Option<(usize, Digest256, Digest256)>,
     ) -> Result<()> {
         if self.poisoned
-            || (logical.is_some() && self.payload_layout != KnowledgePayloadLayout::CarrierOnceV1)
+            || (logical.is_some() && !self.payload_layout.uses_carriers())
         {
             return Err(Error::Invalid("normalized carrier write unavailable"));
         }
@@ -3078,14 +3163,24 @@ impl<'a> KnowledgeStage<'a> {
             .unwrap_or_else(|| Digest256::of_bytes(row.payload));
         let logical_len = logical.map(|v| v.0).unwrap_or(row.payload.len());
         if let Some(state) = self.owned_creation_state() {
+            let layout = self.payload_layout;
+            if layout.packed_bytes() {
+                self.charge_materialized(0, crate::knowledge_byte_codec::HEADER as u64)?;
+            }
+            layout.with_encoded(state, row.payload, self.limits.sqlite.max_row_bytes, |physical| {
             if let Some((_, _, source_digest)) = logical {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_nodes (id,source_graph,native_id,entity_id,kind_id,type_id,source_order,payload_len,payload_sha256,payload,payload_codec,source_packet_sha256) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,1,?11)",
-                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::OptionalText(row.entity_id), StageSqlBinding::Text(row.kind_id), StageSqlBinding::Text(row.type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(row.payload), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;
+                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::OptionalText(row.entity_id), StageSqlBinding::Text(row.kind_id), StageSqlBinding::Text(row.type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;
             } else {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_nodes (id,source_graph,native_id,entity_id,kind_id,type_id,source_order,payload_len,payload_sha256,payload) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
-                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::OptionalText(row.entity_id), StageSqlBinding::Text(row.kind_id), StageSqlBinding::Text(row.type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(row.payload)], state)?;
+                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::OptionalText(row.entity_id), StageSqlBinding::Text(row.kind_id), StageSqlBinding::Text(row.type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical)], state)?;
             }
+            Ok(())
+            })?;
             return self.check(WritePhase::Normalized);
+        }
+        if self.payload_layout.packed_bytes() {
+            return Err(Error::Invalid("packed normalized writer owner absent"));
         }
         self.db().execute(
             "INSERT INTO knowledge_nodes (id,source_graph,native_id,entity_id,kind_id,type_id,source_order,payload_len,payload_sha256,payload) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
@@ -3194,7 +3289,7 @@ impl<'a> KnowledgeStage<'a> {
         logical: Option<(usize, Digest256, Digest256)>,
     ) -> Result<()> {
         if self.poisoned
-            || (logical.is_some() && self.payload_layout != KnowledgePayloadLayout::CarrierOnceV1)
+            || (logical.is_some() && !self.payload_layout.uses_carriers())
         {
             return Err(Error::Invalid("normalized carrier write unavailable"));
         }
@@ -3223,14 +3318,24 @@ impl<'a> KnowledgeStage<'a> {
             .unwrap_or_else(|| Digest256::of_bytes(row.payload));
         let logical_len = logical.map(|v| v.0).unwrap_or(row.payload.len());
         if let Some(state) = self.owned_creation_state() {
+            let layout = self.payload_layout;
+            if layout.packed_bytes() {
+                self.charge_materialized(0, crate::knowledge_byte_codec::HEADER as u64)?;
+            }
+            layout.with_encoded(state, row.payload, self.limits.sqlite.max_row_bytes, |physical| {
             if let Some((_, _, source_digest)) = logical {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_relations (id,source_graph,native_id,from_id,to_id,predicate_id,relation_type_id,source_order,payload_len,payload_sha256,payload,payload_codec,source_packet_sha256) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,1,?12)",
-                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::Text(row.from_id), StageSqlBinding::Text(row.to_id), StageSqlBinding::Text(row.predicate_id), StageSqlBinding::Text(row.relation_type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(row.payload), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;
+                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::Text(row.from_id), StageSqlBinding::Text(row.to_id), StageSqlBinding::Text(row.predicate_id), StageSqlBinding::Text(row.relation_type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;
             } else {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_relations (id,source_graph,native_id,from_id,to_id,predicate_id,relation_type_id,source_order,payload_len,payload_sha256,payload) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
-                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::Text(row.from_id), StageSqlBinding::Text(row.to_id), StageSqlBinding::Text(row.predicate_id), StageSqlBinding::Text(row.relation_type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(row.payload)], state)?;
+                    &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::Text(row.from_id), StageSqlBinding::Text(row.to_id), StageSqlBinding::Text(row.predicate_id), StageSqlBinding::Text(row.relation_type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical)], state)?;
             }
+            Ok(())
+            })?;
             return self.check(WritePhase::Normalized);
+        }
+        if self.payload_layout.packed_bytes() {
+            return Err(Error::Invalid("packed normalized writer owner absent"));
         }
         self.db().execute(
             "INSERT INTO knowledge_relations (id,source_graph,native_id,from_id,to_id,predicate_id,relation_type_id,source_order,payload_len,payload_sha256,payload) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
@@ -3915,8 +4020,8 @@ impl<'a> KnowledgeStage<'a> {
                   WHERE from_id=?1 AND source_order>?2 AND length(payload)<=?3
                     AND payload_len=length(payload)
                   ORDER BY source_order,id LIMIT ?4",
-                KnowledgePayloadLayout::CarrierOnceV1 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
-                  WHERE from_id=?1 AND source_order>?2 AND length(payload)<=?3
+                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                  WHERE from_id=?1 AND source_order>?2 AND payload_len<=?3 AND length(payload)<=?3+17
                   ORDER BY source_order,id LIMIT ?4",
             },
             from_id,
@@ -3939,8 +4044,8 @@ impl<'a> KnowledgeStage<'a> {
                   WHERE to_id=?1 AND source_order>?2 AND length(payload)<=?3
                     AND payload_len=length(payload)
                   ORDER BY source_order,id LIMIT ?4",
-                KnowledgePayloadLayout::CarrierOnceV1 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
-                  WHERE to_id=?1 AND source_order>?2 AND length(payload)<=?3
+                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                  WHERE to_id=?1 AND source_order>?2 AND payload_len<=?3 AND length(payload)<=?3+17
                   ORDER BY source_order,id LIMIT ?4",
             },
             to_id,
@@ -3970,7 +4075,7 @@ impl<'a> KnowledgeStage<'a> {
         let mut count = 0usize;
         let mut bytes = 0u64;
         while let Some(row) = rows.next()? {
-            let item = if self.payload_layout() == KnowledgePayloadLayout::CarrierOnceV1 {
+            let item = if self.payload_layout().uses_carriers() {
                 let state = self
                     .owned_creation_state()
                     .ok_or(Error::Invalid("compact stage seek owner absent"))?;
@@ -4182,7 +4287,7 @@ impl<'a> KnowledgeStage<'a> {
                     self.db().execute_batch("PRAGMA secure_delete=ON; PRAGMA temp.secure_delete=ON; DROP TABLE raw_records")?;
                 }
             }
-            if self.payload_layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            if self.payload_layout.uses_carriers() {
                 crate::knowledge_selected::verify_schema_with_layout(
                     self.db(),
                     self.payload_layout,
@@ -4469,6 +4574,9 @@ pub(crate) fn verify_selected_payload_ddl(
     );
     let _frame_hold = state.hold(std::mem::size_of::<CallerFrame<'_, '_>>())?;
     for (table, expected) in TABLES {
+        let expected = if layout.packed_bytes() && table == "knowledge_source_carriers" {
+            "49e47dee375918b4ba0b22053bbd37538f495aa57ad683c2d1ecdbb58b61d4ca"
+        } else { expected };
         state.active()?;
         const SQL: &std::ffi::CStr = c"SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=4096 THEN CAST(sql AS BLOB) ELSE NULL END FROM sqlite_master WHERE type='table' AND name=?1";
         state.charge_work(SQL.to_bytes().len())?;
@@ -4658,7 +4766,7 @@ fn selected_table_closure_with_layout_and_state(
             return Err(Error::Budget("selected knowledge table name bytes"));
         };
         if !(TABLES.contains(&name.as_str())
-            || layout == KnowledgePayloadLayout::CarrierOnceV1
+            || layout.uses_carriers()
                 && name == "knowledge_source_carriers"
             || navigation_original && navigation_tables.contains(&name.as_str())
             || philosophy_original && philosophy_tables.contains(&name.as_str())
@@ -4675,7 +4783,7 @@ fn selected_table_closure_with_layout_and_state(
     }
     if seen.len()
         != TABLES.len()
-            + if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            + if layout.uses_carriers() {
                 1
             } else {
                 0
@@ -4884,7 +4992,7 @@ fn verify_fresh_selected(
         db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
         db.execute_batch("PRAGMA temp_store=FILE")?;
     }
-    if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+    if layout.uses_carriers() {
         crate::knowledge_selected::verify_schema_with_layout(
             &db,
             layout,

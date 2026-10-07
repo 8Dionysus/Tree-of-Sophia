@@ -1270,6 +1270,7 @@ fn validate_manifest_input(
         input.model_abi,
         crate::KNOWLEDGE_CORPUS_MODEL_ABI
             | crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1
     ) || input.model_abi.len() > 256
     {
         return Err(Error::Invalid("native manifest model ABI"));

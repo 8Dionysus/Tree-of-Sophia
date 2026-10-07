@@ -1207,7 +1207,7 @@ pub fn retain_captured_corpus_original_from_capture(
             .ok_or(Error::Budget("corpus original header bytes"))?;
         // Header is not a pending row: reserve its one actual final copy.
         source.charge(header.len() as u64)?;
-        let header_physical = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+        let header_physical = if layout.uses_carriers() {
             preload_original_carrier(stage, CorpusOriginalCollection::Header, &header)?
         } else {
             header.len() as u64
@@ -1216,7 +1216,7 @@ pub fn retain_captured_corpus_original_from_capture(
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
             tx.execute_batch(META_DDL)?;
-            tx.execute_batch(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            tx.execute_batch(if layout.uses_carriers() {
                 ROW_DDL_CARRIER
             } else {
                 ROW_DDL
@@ -1224,7 +1224,7 @@ pub fn retain_captured_corpus_original_from_capture(
             for (_, ddl) in INDEXES {
                 tx.execute_batch(ddl)?;
             }
-            let mut insert = tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+            let mut insert = tx.prepare(if layout.uses_carriers() {
                 INSERT_ROW_CARRIER
             } else {
                 INSERT_ROW
@@ -1278,7 +1278,7 @@ pub fn retain_captured_corpus_original_from_capture(
                 }
                 let bytes = rows.iter().map(|r| r.3.len() as u64).sum();
                 source.charge(bytes)?;
-                let physical_bytes = if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                let physical_bytes = if layout.uses_carriers() {
                     let mut physical = 0u64;
                     for (_, _, _, raw) in &rows {
                         physical = physical
@@ -1293,7 +1293,7 @@ pub fn retain_captured_corpus_original_from_capture(
                 stage.with_connection(WritePhase::Finalize, |db| {
                     let tx = db.transaction()?;
                     let mut insert =
-                        tx.prepare(if layout == KnowledgePayloadLayout::CarrierOnceV1 {
+                        tx.prepare(if layout.uses_carriers() {
                             INSERT_ROW_CARRIER
                         } else {
                             INSERT_ROW

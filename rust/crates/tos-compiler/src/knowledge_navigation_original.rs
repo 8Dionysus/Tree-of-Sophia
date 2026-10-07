@@ -869,8 +869,8 @@ pub(crate) fn verify_stage(
         )?;
         if descriptor.is_none() {
             let abi: String=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key='model_abi'",[],|r|r.get(0))?;
-            let abi_matches = if layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 {
-                abi == crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
+            let abi_matches = if let Some(expected) = layout.carrier_model_abi() {
+                abi == expected
             } else {
                 [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI].contains(&abi.as_str())
             };
@@ -970,6 +970,7 @@ pub(crate) fn verify_with_owned_state(
                 crate::KNOWLEDGE_CORPUS_MODEL_ABI,
                 crate::KNOWLEDGE_MANAGED_MODEL_ABI,
                 crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
             ]
             .contains(&expected.model_abi.as_str())
     {

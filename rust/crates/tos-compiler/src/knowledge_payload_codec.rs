@@ -22,84 +22,66 @@ pub(crate) fn with_sql_logical_payload<T>(
     max_bytes: usize,
     consume: impl FnOnce(&[u8]) -> Result<T>,
 ) -> Result<T> {
-    use crate::knowledge_stage::KnowledgePayloadLayout;
     use rusqlite::types::ValueRef;
     let logical_len = usize::try_from(logical_len)
         .map_err(|_| Error::Invalid("normalized SQL logical length"))?;
-    if logical_len == 0 || logical_len > max_bytes || stored.is_empty() || stored.len() > max_bytes
-    {
+    if logical_len == 0 || logical_len > max_bytes || stored.is_empty()
+        || stored.len() > layout.physical_bound(max_bytes)? {
         return Err(Error::Budget("normalized SQL payload bytes"));
     }
-    let digest: [u8; 32] = logical_sha256
-        .try_into()
+    let digest: [u8; 32] = logical_sha256.try_into()
         .map_err(|_| Error::Invalid("normalized SQL logical digest"))?;
     let digest = Digest256::from_bytes(digest);
     state.active()?;
     if codec == 0 {
-        if source_key.is_some()
-            || logical_len != stored.len()
-            || charged_digest(state, stored)? != digest
-        {
-            return Err(Error::Invalid("normalized SQL Inline receipt"));
-        }
-        return consume(stored);
+        if source_key.is_some() { return Err(Error::Invalid("normalized SQL Inline source key")); }
+        return layout.with_decoded(state, stored, Some(logical_len), max_bytes, |raw| {
+            if charged_digest(state, raw)? != digest {
+                return Err(Error::Invalid("normalized SQL Inline receipt"));
+            }
+            consume(raw)
+        });
     }
-    if layout != KnowledgePayloadLayout::CarrierOnceV1 || codec != 1 {
+    if !layout.uses_carriers() || codec != 1 {
         return Err(Error::Invalid("normalized SQL payload codec"));
     }
-    let source_key = source_key
-        .filter(|key| key.len() == 32)
+    let source_key = source_key.filter(|key| key.len() == 32)
         .ok_or(Error::Invalid("normalized SQL source key"))?;
-    let sql = c"SELECT packet_len,packet FROM knowledge_source_carriers WHERE packet_sha256=?1 AND typeof(packet_len)='integer' AND packet_len BETWEEN 1 AND ?2 AND typeof(packet)='blob' AND length(packet)=packet_len";
+    // This admits bounded physical storage. The exact selected decoder below
+    // enforces V1 raw length or the V2 frame before logical hash/hydration.
+    let sql = c"SELECT packet_len,packet FROM knowledge_source_carriers WHERE packet_sha256=?1 AND typeof(packet_len)='integer' AND packet_len BETWEEN 1 AND ?2 AND typeof(packet)='blob' AND length(packet)<=packet_len+17";
     let _statement_hold = state.hold(
         tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(),
     )?;
     let sql_error = |error: tos_source_store::StoreError| {
         if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
             Error::Budget("normalized SQL source budget")
-        } else {
-            Error::Invalid("normalized SQL source refusal")
-        }
+        } else { Error::Invalid("normalized SQL source refusal") }
     };
     state.charge_work(sql.to_bytes().len() + source_key.len())?;
-    let mut statement =
-        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-            .map_err(sql_error)?;
-    statement.bind_blob(1, source_key).map_err(sql_error)?;
-    statement
-        .bind_i64(
-            2,
-            i64::try_from(max_bytes).map_err(|_| Error::Budget("normalized SQL source cap"))?,
-        )
+    let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
         .map_err(sql_error)?;
+    statement.bind_blob(1, source_key).map_err(sql_error)?;
+    statement.bind_i64(2, i64::try_from(max_bytes)
+        .map_err(|_| Error::Budget("normalized SQL source cap"))?).map_err(sql_error)?;
     state.active()?;
-    if !statement.step().map_err(sql_error)? {
-        return Err(Error::Invalid("normalized SQL source absent"));
-    }
+    if !statement.step().map_err(sql_error)? { return Err(Error::Invalid("normalized SQL source absent")); }
     let packet_len = usize::try_from(statement.integer(0).map_err(sql_error)?)
         .map_err(|_| Error::Invalid("normalized SQL source length"))?;
     let source = match statement.value_ref(1).map_err(sql_error)? {
         ValueRef::Blob(source) => source,
         _ => return Err(Error::Invalid("normalized SQL source type")),
     };
-    if packet_len != source.len()
-        || source.len() > max_bytes
-        || charged_digest(state, source)?.as_bytes().as_slice() != source_key
-    {
-        return Err(Error::Invalid("normalized SQL source receipt"));
-    }
     let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
-    with_hydrated_payload(
-        state,
-        stored,
-        source,
-        limits,
-        limits,
-        max_bytes,
-        logical_len,
-        digest,
-        consume,
-    )
+    layout.with_decoded(state, source, Some(packet_len), max_bytes, |source| {
+        if charged_digest(state, source)?.as_bytes().as_slice() != source_key {
+            return Err(Error::Invalid("normalized SQL source receipt"));
+        }
+        layout.with_decoded(state, stored, None, max_bytes, |stored| {
+            with_hydrated_payload(state, stored, source, limits, limits,
+                max_bytes, logical_len, digest, consume)
+        })
+    })
 }
 
 const CODEC: &str = "tos_knowledge_carrier_payload_v1";

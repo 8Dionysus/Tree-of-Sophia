@@ -43,7 +43,7 @@ impl OriginalPlans {
         // the physical branch does not alter their logical receipt law.
         match layout {
             crate::knowledge_stage::KnowledgePayloadLayout::InlineV1 => self.expected_model_abi(),
-            crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 => {
+            crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 | crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2 => {
                 crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
             }
         }

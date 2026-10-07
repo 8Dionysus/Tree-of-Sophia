@@ -1051,7 +1051,7 @@ fn execute(request: Request) -> Result<Value> {
                 creation_deadline: deadline,
             },
             &mut producer_usage,
-            tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1,
+            tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2,
             |completed, loan| {
                 let mut finish = || -> Result<Value> {
                     let captured_members =
@@ -1514,7 +1514,7 @@ fn execute(request: Request) -> Result<Value> {
                             "writer_temp_max_file_bytes",
                             json!(limits.stage.max_temp_bytes),
                         ),
-                        ("payload_layout", json!("CarrierOnceV1")),
+                        ("payload_layout", json!("CarrierOnceV2")),
                         (
                             "persistent_write_cap_bytes",
                             json!(request.persistent_write_cap_bytes),

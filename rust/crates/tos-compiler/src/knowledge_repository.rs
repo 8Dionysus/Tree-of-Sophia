@@ -1296,6 +1296,7 @@ fn repository_owned_write_limits(
     let physical_rows = match stage.payload_layout() {
         KnowledgePayloadLayout::InlineV1 => 1,
         KnowledgePayloadLayout::CarrierOnceV1 => 2,
+        KnowledgePayloadLayout::CarrierOnceV2 => 3,
     };
     let (rows, bytes) = stage.write_page_limits();
     let physical_bytes = limits
