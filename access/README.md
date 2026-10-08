@@ -2213,3 +2213,25 @@ candidate frame is unchanged. Repeating the same build verifies its existing
 bytes. Earlier provenance journal bytes are retained, and a concurrent journal
 change refuses the write. This command reads only tracked candidate metadata;
 it grants no passage alignment, eligibility, gold or canon status.
+
+Native target transfer passages use the frozen twenty-page, thirty-five-route frame:
+
+```sh
+tos transfer-target-passages --source-root /absolute/source --validate-tracked
+tos transfer-target-passages --source-root /absolute/source \
+  --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
+tos transfer-target-passages --source-root /absolute/source \
+  --local-input-root /absolute/private-input --local-output-root /absolute/private-output \
+  --build --generation native-r1 --event-id tos.event.native-segmentation.transfer-target.example \
+  --scratch-bytes 50331648
+```
+
+Private input/output roots are repository roots containing `ToS/source-witnesses/`.
+The default `v1` check preserves exact historical descriptions, payload bytes and
+provenance. A fresh generation gets distinct candidate and output identities and
+records the compiled Rust producer. Replay preserves matching files and refuses
+changed metadata or content. Tracked validation checks schemas, source/rights
+bindings, anchors, provenance and the ignored private boundary without opening
+the PDF; an explicit output root additionally checks private fixity and mode.
+The 32 page intersections and three rejected nonintersections retain their
+candidate status and confer no alignment, accepted text, gold or publication.

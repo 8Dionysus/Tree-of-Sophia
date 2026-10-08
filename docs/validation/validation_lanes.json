@@ -739,8 +739,11 @@
       {
         "label": "validate golden-kernel transfer target passages",
         "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_target_passages.py"
+          "tos",
+          "transfer-target-passages",
+          "--source-root",
+          "{repo_root}",
+          "--validate-tracked"
         ]
       },
       {
