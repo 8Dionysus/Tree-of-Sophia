@@ -275,7 +275,10 @@ pub(crate) fn serde_retained_heap_upper_with_check(
                 .checked_mul(std::mem::size_of::<serde_json::Value>())
                 .ok_or(Error::Budget("serde retained array"))?;
             for row in rows {
-                add(&mut bytes, serde_retained_heap_upper_with_check(row, depth + 1, check)?)?;
+                add(
+                    &mut bytes,
+                    serde_retained_heap_upper_with_check(row, depth + 1, check)?,
+                )?;
             }
         }
         serde_json::Value::Object(fields) => {
@@ -284,7 +287,10 @@ pub(crate) fn serde_retained_heap_upper_with_check(
             for (key, item) in fields {
                 check()?;
                 add(&mut bytes, key.capacity())?;
-                add(&mut bytes, serde_retained_heap_upper_with_check(item, depth + 1, check)?)?;
+                add(
+                    &mut bytes,
+                    serde_retained_heap_upper_with_check(item, depth + 1, check)?,
+                )?;
             }
         }
     }
@@ -775,6 +781,32 @@ fn stable_digest_value_owned(
             emit(hasher, b"]", state)?;
         }
         Value::Object(items) => {
+            // Captured normalized rows commonly arrive in canonical key order.
+            // Verify that order under the same work owner before borrowing it;
+            // preserve_order inputs still take the fallible sort when needed.
+            let mut ordered = true;
+            let mut previous: Option<&str> = None;
+            for key in items.keys() {
+                state.charge_work(std::mem::size_of::<&String>())?;
+                if let Some(prior) = previous {
+                    if greater(prior, key, state)? {
+                        ordered = false;
+                        break;
+                    }
+                }
+                previous = Some(key);
+            }
+            if ordered {
+                emit(hasher, b"o", state)?;
+                length(hasher, items.len(), state)?;
+                emit(hasher, b"{", state)?;
+                for (key, value) in items {
+                    string(hasher, key, state)?;
+                    stable_digest_value_owned(value, hasher, state, depth + 1)?;
+                }
+                emit(hasher, b"}", state)?;
+                return state.active();
+            }
             let bytes = items
                 .len()
                 .checked_mul(std::mem::size_of::<Entry<'_>>())
@@ -870,7 +902,9 @@ pub(crate) fn with_content_revision_owned(
         .as_object_mut()
         .ok_or(Error::Invalid("normalization revision object"))?
         .remove("content_revision");
-    state.with_json_encoded(&owner.value, max_bytes, |_| Ok(()))?;
+    // The final bounded encoding includes the added revision and is strictly
+    // larger than this unstamped object. Encoding and discarding it here would
+    // repeat two complete walks without adding a distinct admission check.
     let mut hash = Digest256Hasher::new();
     stable_digest_value_owned(&owner.value, &mut hash, state, 0)?;
     state.charge_work(64 + "content_revision".len())?;
@@ -890,6 +924,147 @@ pub(crate) fn with_content_revision_owned(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn owned_revision_keeps_exact_bytes_and_bounded_delivery_with_less_work() {
+        use crate::{
+            d1_public_capture::CreationState, knowledge_payload_read::RuntimeKnowledgeOwnedBudget,
+        };
+        use std::{
+            sync::{
+                Arc,
+                atomic::{AtomicBool, AtomicU64, Ordering},
+            },
+            time::{Duration, Instant},
+        };
+        const CHILD: &str = "TOS_REVISION_WORK_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "knowledge_normalization::tests::owned_revision_keeps_exact_bytes_and_bounded_delivery_with_less_work", "--nocapture"])
+                .env(CHILD, "1").output().unwrap();
+            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            return;
+        }
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let remaining = |bytes: usize| {
+            (16 * 1024 * 1024usize)
+                .checked_sub(bytes)
+                .ok_or(Error::Budget("revision test state"))
+        };
+        let heap = crate::sqlite_budget::DedicatedSessionSqliteHeap::establish(
+            1024 * 1024,
+            &remaining,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let work = Arc::new(AtomicU64::new(0));
+        let vm = Arc::new(AtomicU64::new(0));
+        let budget = RuntimeKnowledgeOwnedBudget {
+            remaining_after_retained: &remaining,
+            original_work: &work,
+            original_work_limit: 100_000_000,
+            original_sql_vm: &vm,
+            original_sql_vm_limit: 1_000_000,
+            original_sqlite_heap: &heap,
+            remaining_json_visits: 100_000,
+            owner_deadline: deadline,
+            operation_deadline: deadline,
+            cancelled: &cancelled,
+        };
+        let state = CreationState::from_runtime_owned_budget(&budget).unwrap();
+        let mut wide = serde_json::Map::new();
+        for i in 0..128 {
+            wide.insert(format!("key-{i:04}"), json!({"a": i, "b": "λ"}));
+        }
+        for value in [
+            Value::Object(wide.clone()),
+            json!({"a":[null,true,-0.0,1.2300,"Ж"],"b":{"c":{"d":1}},"content_revision":{"old":[1,2]}}),
+            json!({"source_payload":{"text":"λ\n".repeat(8192)}}),
+        ] {
+            let mut expected = value.clone();
+            stamp_content_revision(&mut expected, 1024 * 1024).unwrap();
+            let expected = serde_json::to_vec(&expected).unwrap();
+            let _input = state
+                .hold(state.value_clone_state_upper_bound(&value).unwrap())
+                .unwrap();
+            let mut unstamped = value.clone();
+            unstamped
+                .as_object_mut()
+                .unwrap()
+                .remove("content_revision");
+            let before = state.observed_work_bytes();
+            state
+                .with_json_encoded(&unstamped, 1024 * 1024, |_| Ok(()))
+                .unwrap();
+            let discarded_encoding = state.observed_work_bytes() - before;
+            let before = state.observed_work_bytes();
+            with_content_revision_owned(&state, value.clone(), 1024 * 1024, |_, raw| {
+                assert_eq!(raw, expected);
+                Ok(())
+            })
+            .unwrap();
+            let current = state.observed_work_bytes() - before;
+            eprintln!(
+                "revision bytes={} work={current} removed_encoding_work={discarded_encoding}",
+                expected.len()
+            );
+            assert!(discarded_encoding > 0);
+            let mut called = false;
+            assert!(
+                with_content_revision_owned(&state, value, expected.len() - 1, |_, _| {
+                    called = true;
+                    Ok(())
+                })
+                .is_err()
+            );
+            assert!(!called);
+        }
+        let ordered = Value::Object(wide.clone());
+        let reversed = Value::Object(wide.into_iter().rev().collect());
+        let mut measurements = Vec::new();
+        for value in [&ordered, &reversed] {
+            let before = state.observed_work_bytes();
+            let mut hash = Digest256Hasher::new();
+            stable_digest_value_owned(value, &mut hash, &state, 0).unwrap();
+            measurements.push((
+                hash.finalize().to_hex(),
+                state.observed_work_bytes() - before,
+            ));
+        }
+        assert_eq!(measurements[0].0, measurements[1].0);
+        if ordered.as_object().unwrap().keys().next() != reversed.as_object().unwrap().keys().next()
+        {
+            assert!(measurements[0].1 < measurements[1].1);
+        }
+        eprintln!(
+            "revision hash ordered_work={} fallback_work={}",
+            measurements[0].1, measurements[1].1
+        );
+        for exhausted in [false, true] {
+            if exhausted {
+                work.store(budget.original_work_limit, Ordering::Release);
+            } else {
+                cancelled.store(true, Ordering::Release);
+            }
+            let mut called = false;
+            assert!(
+                with_content_revision_owned(&state, json!({"a":1}), 1024, |_, _| {
+                    called = true;
+                    Ok(())
+                })
+                .is_err()
+            );
+            assert!(!called);
+            cancelled.store(false, Ordering::Release);
+        }
+    }
 
     // Frozen Python oracle: PYTHONPATH=access/src python3, then call
     // tos_access.knowledge._stable_digest/_source_refs/_source_record/

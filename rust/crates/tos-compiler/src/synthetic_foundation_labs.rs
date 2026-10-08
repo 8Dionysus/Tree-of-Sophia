@@ -118,6 +118,13 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
         row["packet_sha256"] = json!(sha(files.get(reference).ok_or("variant bytes")?));
     }
     files.insert(recipe.manifest.into(), encode(&manifest, true)?);
+    let mut generation = tos_foundation::Digest256Hasher::new();
+    for (reference, raw) in files.iter().chain(external.iter()) {
+        ctx.tick((reference.len() + raw.len()) as u64)?;
+        generation.update(&(reference.len() as u64).to_be_bytes());
+        generation.update(reference.as_bytes());
+        generation.update(tos_foundation::Digest256::of_bytes(raw).as_bytes());
+    }
     let mut source = Overlay {
         ctx,
         files: &files,
@@ -126,6 +133,7 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
         schema: &schema,
         contract: recipe.contract,
         read_bytes: 0,
+        generation: generation.finalize().to_hex(),
     };
     let limits = ItemLimits {
         max_member_bytes: CAP,
@@ -181,6 +189,7 @@ struct Overlay<'a> {
     schema: &'a SchemaBackendProbe,
     contract: &'static str,
     read_bytes: u64,
+    generation: String,
 }
 impl LayerFamilySource for Overlay<'_> {
     fn current(
@@ -235,7 +244,10 @@ impl LayerFamilySource for Overlay<'_> {
             .is_valid_raw(&format!("https://tree-of-sophia.local/{contract}"), raw)
             .map_err(|e| ItemRefusal::Source(format!("schema: {e:?}")))
     }
-    fn checkpoint(&mut self, deadline: Instant) -> std::result::Result<(), ItemRefusal> {
+    fn generation(&self) -> String {
+        self.generation.clone()
+    }
+    fn checkpoint(&self, deadline: Instant) -> std::result::Result<(), ItemRefusal> {
         if Instant::now() >= deadline {
             return Err(ItemRefusal::Deadline);
         }
