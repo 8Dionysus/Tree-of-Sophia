@@ -692,16 +692,19 @@
       {
         "label": "check reviewed open-work candidate queue parity",
         "command": [
-          "python",
-          "scripts/build_open_work_candidate_queue.py",
-          "--check"
+          "tos-open-work-queue",
+          "check",
+          "--source-root",
+          "."
         ]
       },
       {
         "label": "validate reviewed open-work candidate queue",
         "command": [
-          "python",
-          "scripts/validate_open_work_candidate_queue.py"
+          "tos-open-work-queue",
+          "validate",
+          "--source-root",
+          "."
         ]
       },
       {

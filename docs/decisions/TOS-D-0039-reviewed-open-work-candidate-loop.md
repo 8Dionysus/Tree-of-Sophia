@@ -193,9 +193,9 @@ layer-specific rights route.
 
 ## Validation
 
-Run `python scripts/build_open_work_candidate_queue.py --check`,
-`python scripts/validate_open_work_candidate_queue.py`,
-`python -m unittest tests.test_open_work_candidate_queue`,
+Run `tos-open-work-queue check --source-root ROOT`,
+`tos-open-work-queue validate --source-root ROOT`,
+`cargo test -p tos-ops-mechanics-plan open_work_queue`,
 `python scripts/validate_source_witness_foundation.py`, the focused artifact
 visual-representation test in `tests.test_source_witness_foundation`,
 `python scripts/generate_decision_indexes.py --check`, and
