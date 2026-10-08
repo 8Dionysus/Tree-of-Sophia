@@ -681,8 +681,12 @@
       {
         "label": "validate complete research registry normalization",
         "command": [
-          "python",
-          "scripts/validate_source_registry_normalization.py"
+          "tos-source-registry",
+          "validate",
+          "--source-root",
+          ".",
+          "--packet-root",
+          "ToS/research-packets/source-registries"
         ]
       },
       {

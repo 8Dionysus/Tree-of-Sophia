@@ -16,10 +16,23 @@
 
 Research originals and reported normalized values belong to
 `ToS/research-packets/source-registries/`. The field adapter in
-`config/registry-normalization.v1.json` and the `normalize_source_registries.py`
-entrypoint preserve complete raw/source trace; they never clear rights or admit
-identity. `inspect_source_registry.py` opens a scoped record or report, and
-`build_source_registry_reconciliation.py` exposes possible current owner matches.
+`config/registry-normalization.v1.json` and `tos-source-registry normalize`
+preserve complete raw/source trace; they never clear rights or admit identity.
+Select the adapter owner with `--source-root`, the packet with `--packet-root`
+and new originals with `--input-root`. Without an input root, normalization
+replays the packet's retained originals. New snapshots identify the actual
+native producer; `check` reproduces an existing snapshot while preserving its
+recorded producer provenance. `validate` additionally checks the document
+schema, exact field accounting and record counts.
+
+`tos-source-registry inspect --packet-root PACKET --corpus ID --document ID`
+opens a report; `--record ID` selects a source or normalized record ID.
+`reconcile --source-root SOURCE_ROOT --output-root OUTPUT_ROOT` exposes possible
+owner matches. `coverage` uses the same explicit roots to project reviewed
+preparation, acquisition and exact-version planting evidence. Its
+`--verify-local` mode reads current file hashes; `--remaining` and `--document`
+print selected registry rows. These observation modes write no projection.
+Output roots for these views remain separate from the selected source root.
 
 Before acquisition, review exact versions, live access, intended-use rights,
 local presence and branch anchors independently. Use the existing discovery
