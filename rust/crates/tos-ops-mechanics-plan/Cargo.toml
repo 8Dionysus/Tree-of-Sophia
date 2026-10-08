@@ -64,3 +64,8 @@ path = "src/kag_release_main.rs"
 [[bin]]
 name = "tos-stats-release"
 path = "src/stats_release_main.rs"
+
+[[bin]]
+name = "tos-source-registry"
+path = "src/source_registry_main.rs"
+required-features = ["compiler-backed-validators"]

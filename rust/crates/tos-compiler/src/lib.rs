@@ -174,6 +174,7 @@ pub mod source_corpus;
 mod source_navigation_packets;
 pub mod source_navigation_source;
 mod source_navigation_storage;
+pub mod source_registry;
 pub mod source_philosophy;
 pub mod source_philosophy_atlas;
 pub mod source_philosophy_dossier_docx;

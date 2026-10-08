@@ -24,6 +24,8 @@ pub mod kag_downstream_status;
 pub mod kag_release;
 #[cfg(target_os = "linux")]
 pub mod stats_release;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod source_registry;
 pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
 pub mod local_contracts;

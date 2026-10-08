@@ -2468,3 +2468,37 @@ pub(crate) fn scrub(text: &str) -> String {
     }
     out.trim().to_owned()
 }
+
+/// Shared bounded OOXML container access. Registry readers retain their own
+/// XML and normalization rules; DOCX content assessment remains separate.
+pub(crate) struct OfficeArchive<'a> {
+    raw: &'a [u8],
+    directory: ZipDirectory,
+    members: Vec<ZipMember>,
+}
+impl<'a> OfficeArchive<'a> {
+    pub(crate) fn open(raw: &'a [u8], check: &mut dyn FnMut(u64) -> Result<(), String>) -> Result<Self, String> {
+        check(raw.len() as u64)?;
+        if raw.is_empty() || raw.len() > MAX_ARCHIVE_BYTES { return Err("OOXML archive outside byte limit".into()); }
+        let directory = directory_from_eocd(raw, find_eocd(raw)?)?;
+        let members = central_members(raw, directory)?;
+        for member in &members {
+            check(member.name.len() as u64)?;
+            if member.uncompressed_bytes > MAX_ARCHIVE_BYTES as u64 { return Err("OOXML part outside decoded byte limit".into()); }
+        }
+        Ok(Self { raw, directory, members })
+    }
+    pub(crate) fn names(&self) -> Result<Vec<&str>, String> {
+        self.members.iter().map(|m| std::str::from_utf8(&m.name).map_err(|e| e.to_string())).collect()
+    }
+    pub(crate) fn contains(&self, name: &str) -> bool {
+        self.members.iter().any(|m| m.name == name.as_bytes())
+    }
+    pub(crate) fn read(&self, name: &str, check: &mut dyn FnMut(u64) -> Result<(), String>) -> Result<Vec<u8>, String> {
+        read_named_member(self.raw, &self.members, self.directory, name.as_bytes(), check)?
+            .ok_or_else(||format!("missing OOXML part: {name}"))
+    }
+    pub(crate) fn xml_text(&self, name: &str, check: &mut dyn FnMut(u64) -> Result<(), String>) -> Result<String, String> {
+        decode_xml_bytes(&self.read(name, check)?)
+    }
+}
