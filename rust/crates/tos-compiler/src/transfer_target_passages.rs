@@ -13,12 +13,12 @@ const BUILDER:&str="rust/crates/tos-compiler/src/transfer_target_passages.rs";
 const LEGACY_EVENT_SHA:&str="13fd906ae6a3124ff71c58cb9e36c276c117e7de0a675c734eae2551ea96b5e4";
 const LEGACY_BUILDER_SHA:&str="045f98b86c49851bb3183bf5f0d054295993a9e27f72c7a5d2d8d2c29483577e";
 fn array(v:&Value)->Result<&Vec<Value>> {v.as_array().ok_or("required array".into())}
-fn n(v:&Value)->Result<usize>{v.as_u64().and_then(|n|usize::try_from(n).ok()).ok_or("required nonnegative integer".into())}
-fn f(v:&Value)->Result<f64>{v.as_f64().filter(|f|f.is_finite()).ok_or("required finite coordinate".into())}
-fn key(v:&Value)->Result<String>{match v {Value::String(s)=>Ok(s.clone()),Value::Number(_)=>Ok(n(v)?.to_string()),_=>Err("numbered-unit key type".into())}}
-fn round(v:f64, digits:usize)->f64{format!("{v:.digits$}").parse().unwrap()}
+pub(super) fn n(v:&Value)->Result<usize>{v.as_u64().and_then(|n|usize::try_from(n).ok()).ok_or("required nonnegative integer".into())}
+pub(super) fn f(v:&Value)->Result<f64>{v.as_f64().filter(|f|f.is_finite()).ok_or("required finite coordinate".into())}
+pub(super) fn key(v:&Value)->Result<String>{match v {Value::String(s)=>Ok(s.clone()),Value::Number(_)=>Ok(n(v)?.to_string()),_=>Err("numbered-unit key type".into())}}
+pub(super) fn round(v:f64, digits:usize)->f64{format!("{v:.digits$}").parse().unwrap()}
 // Preserve insertion order and Python float spelling for the historical recipe.
-fn encode(ctx:&ResearchExecution,v:&Value,pretty:bool)->Result<Vec<u8>>{
+pub(super) fn encode(ctx:&ResearchExecution,v:&Value,pretty:bool)->Result<Vec<u8>>{
  let raw=serde_json::to_vec(v).map_err(|e|e.to_string())?;ctx.tick(raw.len() as u64)?;
  let limits=JsonLimits::new(CAP,128,200000,4300).map_err(|e|e.to_string())?;
  let doc=tos_foundation::parse_json(&raw,JsonMode::PublishedStrict,limits).map_err(|e|e.to_string())?;
@@ -30,13 +30,13 @@ fn encode(ctx:&ResearchExecution,v:&Value,pretty:bool)->Result<Vec<u8>>{
  ensure(out.len()<=CAP,"serialized packet bound")?;
  }out.push(b'\n');Ok(out)
 }
-fn jsonl(ctx:&ResearchExecution,rows:&[Value])->Result<Vec<u8>>{let mut out=vec![];for row in rows{out.extend(encode(ctx,row,false)?);out.push(b'\n');ensure(out.len()<=CAP,"JSONL bound")?;}Ok(out)}
-fn read_optional(ctx:&ResearchExecution,reference:&str)->Result<Option<Vec<u8>>>{match std::fs::symlink_metadata(ctx.root().join(reference)){Ok(_)=>Ok(Some(ctx.read(reference)?)),Err(e)if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())}}
-fn json_lines(ctx:&ResearchExecution,raw:&[u8])->Result<Vec<(Vec<u8>,Value)>>{
+pub(super) fn jsonl(ctx:&ResearchExecution,rows:&[Value])->Result<Vec<u8>>{let mut out=vec![];for row in rows{out.extend(encode(ctx,row,false)?);out.push(b'\n');ensure(out.len()<=CAP,"JSONL bound")?;}Ok(out)}
+pub(super) fn read_optional(ctx:&ResearchExecution,reference:&str)->Result<Option<Vec<u8>>>{match std::fs::symlink_metadata(ctx.root().join(reference)){Ok(_)=>Ok(Some(ctx.read(reference)?)),Err(e)if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())}}
+pub(super) fn json_lines(ctx:&ResearchExecution,raw:&[u8])->Result<Vec<(Vec<u8>,Value)>>{
  let mut rows=vec![];for line in raw.split(|b|*b==b'\n').filter(|l|!l.is_empty()) {ctx.tick(1)?;tos_foundation::parse_json(line,JsonMode::PublishedStrict,JsonLimits::default()).map_err(|e|e.to_string())?;rows.push((line.to_vec(),serde_json::from_slice(line).map_err(|e|e.to_string())?));ensure(rows.len()<=10000,"journal count bound")?;}Ok(rows)
 }
-fn descendants<'a>(node:&'a Node,name:&str,out:&mut Vec<&'a Node>){if node.name==name{out.push(node)}for part in &node.content{if let Part::Child(n)=part{descendants(n,name,out)}}}
-fn node_text(node:&Node)->String{let mut out=String::new();for part in &node.content{match part{Part::Text(t)=>out.push_str(t),Part::Child(n)=>out.push_str(&node_text(n))}}out}
+pub(super) fn descendants<'a>(node:&'a Node,name:&str,out:&mut Vec<&'a Node>){if node.name==name{out.push(node)}for part in &node.content{if let Part::Child(n)=part{descendants(n,name,out)}}}
+pub(super) fn node_text(node:&Node)->String{let mut out=String::new();for part in &node.content{match part{Part::Text(t)=>out.push_str(t),Part::Child(n)=>out.push_str(&node_text(n))}}out}
 fn coord(node:&Node,name:&str)->Result<f64>{let x=node.attrs.get(name).ok_or("bbox coordinate absent")?.parse::<f64>().map_err(|_|"invalid bbox coordinate")?;ensure(x.is_finite(),"bbox finite coordinate")?;Ok(x)}
 fn line_order(a:&Value,b:&Value)->std::cmp::Ordering{
  a["y_min"].as_f64().unwrap().total_cmp(&b["y_min"].as_f64().unwrap()).then(a["x_min"].as_f64().unwrap().total_cmp(&b["x_min"].as_f64().unwrap())).then(a["source_order"].as_u64().unwrap().cmp(&b["source_order"].as_u64().unwrap()))
@@ -48,19 +48,19 @@ fn bbox(ctx:&ResearchExecution,raw:&[u8],start:usize,end:usize)->Result<BTreeMap
  for (order,line)in nodes.into_iter().enumerate(){let words=line.children("word").into_iter().map(node_text).collect::<Vec<_>>();if words.is_empty(){continue}let x_min=coord(line,"xMin")?;let y_min=coord(line,"yMin")?;let x_max=coord(line,"xMax")?;let y_max=coord(line,"yMax")?;ensure(x_min<=x_max&&y_min<=y_max,"bbox line ordering")?;lines.push(json!({"source_order":order,"x_min":x_min,"y_min":y_min,"x_max":x_max,"y_max":y_max,"words":words,"text":words.join(" ")}));}
  lines.sort_by(line_order);pages.insert(start+idx,json!({"page":start+idx,"width":width,"height":height,"lines":lines}));}Ok(pages)
 }
-struct Poppler{root:ResearchExecution,held:File,digest:String,command:String}
+pub(super) struct Poppler{root:ResearchExecution,held:File,digest:String,command:String}
 impl Poppler{
- fn open(ctx:&ResearchExecution)->Result<Self>{
+ pub(super) fn open(ctx:&ResearchExecution)->Result<Self>{
  use crate::owned_native_child::{CaptureLimits,capture_with_cancel};
  let binary=std::fs::canonicalize("/usr/bin/pdftotext").map_err(|e|e.to_string())?;let root=ctx.select_directory(binary.parent().ok_or("Poppler parent")?)?;let mut held=root.source_file(binary.file_name().and_then(|n|n.to_str()).ok_or("Poppler filename")?,32*1024*1024)?;let digest=root.hash_file(&mut held,32*1024*1024)?;let command=format!("/proc/{}/fd/{}",std::process::id(),held.as_raw_fd());
  let r=capture_with_cancel(std::process::Command::new(&command).arg("-v"),None,CaptureLimits{max_stdin_bytes:0,max_stdout_bytes:16384,max_stderr_bytes:16384},ctx.deadline(),ctx.cancellation_flag())?;let mut b=r.stdout;b.extend(r.stderr);let text=String::from_utf8(b).map_err(|e|e.to_string())?;ensure(r.status.success()&&text.lines().next()==Some(format!("pdftotext version {PDFTOTEXT_VERSION}").as_str()),"Poppler exact version drift")?;Ok(Self{root,held,digest,command})
  }
- fn pages(&self,ctx:&ResearchExecution,pdf:&File,start:usize,end:usize)->Result<BTreeMap<usize,Value>>{
+ pub(super) fn pages(&self,ctx:&ResearchExecution,pdf:&File,start:usize,end:usize)->Result<BTreeMap<usize,Value>>{
  use crate::owned_native_child::{CaptureLimits,capture_with_cancel};
  ensure(start>0&&end>=start&&end-start<8&&end<=100000,"bbox page chunk bound")?;
  let pdf=format!("/proc/{}/fd/{}",std::process::id(),pdf.as_raw_fd());let r=capture_with_cancel(std::process::Command::new(&self.command).args(["-f",&start.to_string(),"-l",&end.to_string(),"-bbox-layout",&pdf,"-"]),None,CaptureLimits{max_stdin_bytes:0,max_stdout_bytes:CAP,max_stderr_bytes:16384},ctx.deadline(),ctx.cancellation_flag())?;ensure(r.status.success(),"Poppler bbox extraction failed")?;ctx.tick(r.stdout.len() as u64)?;bbox(ctx,&r.stdout,start,end)
  }
- fn verify(&mut self)->Result<()>{ensure(self.root.hash_file(&mut self.held,32*1024*1024)?==self.digest,"Poppler executable changed")}
+ pub(super) fn verify(&mut self)->Result<()>{ensure(self.root.hash_file(&mut self.held,32*1024*1024)?==self.digest,"Poppler executable changed")}
 }
 fn normalized_marker(text:&str)->String{text.trim().trim_end_matches('.').trim().chars().map(|c|match c{'а'|'А'=>'a','б'=>'6',_=>c}).collect()}
 fn marker(pages:&BTreeMap<usize,Value>,page:usize,unit:&str)->Result<Value>{
@@ -79,7 +79,7 @@ fn extract(ctx:&ResearchExecution,pages:&BTreeMap<usize,Value>,start:usize,a:&Va
  let mut text=String::new();for line in &selected{text.push_str(s(&line["text"])?);text.push('\n');}ensure(text.len()<=CAP,"passage text bound")?;Ok((selected,text,regions))
 }
 fn private_lines(lines:&[Value])->Result<Vec<Value>>{lines.iter().map(|v|Ok(json!({"page":v["page"],"x_min_points":round(f(&v["x_min"])?,6),"y_min_points":round(f(&v["y_min"])?,6),"x_max_points":round(f(&v["x_max"])?,6),"y_max_points":round(f(&v["y_max"])?,6),"words":v["words"],"text":v["text"]}))).collect()}
-fn flat_map(v:&Value)->Result<BTreeMap<String,Value>>{
+pub(super) fn flat_map(v:&Value)->Result<BTreeMap<String,Value>>{
  let mut out=BTreeMap::new();let series=if v["unit_starts"].is_array(){vec![(None,&v["unit_starts"])]}else{array(&v["series"])?.iter().map(|v|Ok((Some(key(&v["series_key"])?),&v["unit_starts"]))).collect::<Result<Vec<_>>>()?};
  for(series,units)in series{for pair in array(units)?.windows(2){let unit_key=key(&pair[0]["unit_key"])?;let qualified=series.as_ref().map_or_else(||unit_key.clone(),|s|format!("{s}:{unit_key}"));let passage=s(&pair[0]["anchor_ref"])?.replace("tos.anchor.","tos.passage.").replace(".pdf-start-page","");ensure(out.insert(qualified.clone(),json!({"qualified_unit_key":qualified,"series_key":series,"unit_key":unit_key,"start":pair[0],"next":pair[1],"passage_ref":passage})).is_none(),"duplicate numbered-unit mapping")?;}}
  Ok(out)
