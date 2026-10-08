@@ -215,18 +215,20 @@ pub(crate) fn recorded_generator_digest(
     {
         return Err(format!("recorded generator bytes unavailable: {reference}"));
     }
-    let current = capture
-        .read(reference)
-        .map_err(|_| format!("active generator unavailable: {reference}"))?;
-    if sha(&current) == expected_digest {
-        return Ok(expected_digest.to_owned());
-    }
     let archived_ref =
         format!("ToS/research-packets/retained-builder-inputs/{stem}/{expected_digest}.py");
-    let archived = capture
-        .read(&archived_ref)
+    // Retired generators remain exact historical inputs. Their evidence must
+    // not depend on keeping an executable at the former active script path.
+    if let Ok(archived) = capture.read(&archived_ref) {
+        if archived.len() <= MAX_RETAINED_GENERATOR_BYTES && sha(&archived) == expected_digest {
+            return Ok(expected_digest.to_owned());
+        }
+        return Err(format!("retained generator digest mismatch: {reference}"));
+    }
+    let current = capture
+        .read(reference)
         .map_err(|_| format!("recorded generator bytes unavailable: {reference}"))?;
-    if archived.len() <= MAX_RETAINED_GENERATOR_BYTES && sha(&archived) == expected_digest {
+    if current.len() <= MAX_RETAINED_GENERATOR_BYTES && sha(&current) == expected_digest {
         return Ok(expected_digest.to_owned());
     }
     Err(format!("recorded generator bytes unavailable: {reference}"))
@@ -276,6 +278,46 @@ fn latest_provenance_event(
         if !seen.insert(next_id.to_owned()) {
             return Err("cyclic lexical provenance supersession lineage".into());
         }
+    }
+}
+
+#[cfg(test)]
+mod retained_generator_tests {
+    use super::*;
+    #[test]
+    fn historical_digest_survives_active_retirement_and_refuses_tamper() {
+        let root = tempfile::tempdir().unwrap();
+        let raw = b"# immutable historical producer bytes\n";
+        let digest = sha(raw);
+        let reference = "scripts/build_retired_lexical.py";
+        let archive = root.path().join(format!(
+            "ToS/research-packets/retained-builder-inputs/build_retired_lexical/{digest}.py"
+        ));
+        std::fs::create_dir_all(archive.parent().unwrap()).unwrap();
+        std::fs::write(&archive, raw).unwrap();
+        let mut capture = LexicalCapture::new(
+            root.path(),
+            crate::zarathustra_lexical::LexicalLimits::maintained(),
+        )
+        .unwrap();
+        assert_eq!(
+            recorded_generator_digest(&mut capture, reference, &digest).unwrap(),
+            digest
+        );
+        assert!(!root.path().join(reference).exists());
+        capture.revalidate().unwrap();
+        std::fs::write(&archive, b"changed").unwrap();
+        assert!(capture.revalidate().is_err());
+        let mut changed = LexicalCapture::new(
+            root.path(),
+            crate::zarathustra_lexical::LexicalLimits::maintained(),
+        )
+        .unwrap();
+        assert!(
+            recorded_generator_digest(&mut changed, reference, &digest)
+                .unwrap_err()
+                .contains("digest mismatch")
+        );
     }
 }
 

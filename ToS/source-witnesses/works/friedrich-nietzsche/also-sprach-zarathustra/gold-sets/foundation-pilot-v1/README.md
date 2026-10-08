@@ -519,3 +519,19 @@ The frozen suite and run machinery are owned by
 source identity, sample identity, source anchors, rights, and review truth.
 `abyss-stack` may read these tracked packets and local payloads through an
 explicit run card; it must not write results into ToS canon or relabel review.
+
+### Native morphology input
+
+`tos zarathustra-morphology-input` materializes the exact-form census through
+Rust. Supply `--source-root ABS --local-input-root ABS --local-output-root ABS`
+and `--check` to verify a selected packet. A fresh `--build` requires
+`--generation NAME --scratch-bytes RESERVED_BYTES` and a separate output root;
+`--plan REL` selects an explicit alternative plan. The private JSONL stays
+mode 0600; its text-free receipt is the generation completion marker. Matching
+retries preserve existing files and can complete an interrupted generation.
+
+The frozen morphology plan names lexical projection `20a7e96b…`; the retained
+recurrence projection uses `bc587f71…`. These are distinct byte identities.
+Checking the frozen morphology plan requires its exact projection. A new plan
+may explicitly bind an available projection without changing the old plan or
+receipt. Generation and packet equality do not accept morphology or grant rights.

@@ -85,10 +85,6 @@ VALIDATOR = _load_module(
     "tos_zarathustra_lexical_validator",
     "scripts/validate_zarathustra_lexical_index.py",
 )
-MORPHOLOGY_BUILDER = _load_module(
-    "tos_zarathustra_morphology_input_builder",
-    "scripts/build_zarathustra_morphology_input.py",
-)
 MORPHOLOGY_RESULT_RECORDER = _load_module(
     "tos_zarathustra_morphology_result_recorder",
     "scripts/record_zarathustra_morphology_census_result.py",
@@ -992,33 +988,6 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         self.assertEqual(1, aggregate["lemma_analysis_total"])
         self.assertNotIn("bekannt", json.dumps(aggregate, ensure_ascii=False))
         self.assertNotIn("unbekannt", json.dumps(aggregate, ensure_ascii=False))
-
-    def test_morphology_private_rows_preserve_surface_and_frozen_order(self) -> None:
-        surfaces = ["Über-Mensch", "Straße"]
-        rows = []
-        for surface, count in zip(surfaces, (2, 1), strict=True):
-            digest = hashlib.sha256(surface.encode("utf-8")).hexdigest()
-            rows.append(
-                {
-                    "form_key": f"lexical-form:sha256:{digest}",
-                    "exact_form": surface,
-                    "exact_form_sha256": digest,
-                    "normalized_form_sha256": hashlib.sha256(
-                        surface.casefold().encode("utf-8")
-                    ).hexdigest(),
-                    "occurrence_count": count,
-                }
-            )
-        rows.sort(key=lambda row: (row["exact_form_sha256"], row["exact_form"]))
-        packet, summary = MORPHOLOGY_BUILDER.build_packet(rows)
-        decoded = [json.loads(line) for line in packet.decode("utf-8").splitlines()]
-        self.assertEqual(
-            [row["exact_form"] for row in rows],
-            [row["exact_form"] for row in decoded],
-        )
-        self.assertEqual(2, summary["exact_form_row_count"])
-        self.assertEqual(3, summary["token_occurrence_count"])
-        self.assertEqual(1, summary["joiner_form_count"])
 
     def test_morphology_context_episode_is_output_blind_and_b_only(self) -> None:
         schemas = [

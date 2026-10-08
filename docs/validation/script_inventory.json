@@ -2177,7 +2177,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_morphology_input.py",
+      "path": "rust/crates/tos-compiler/src/lexical_derivatives.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
@@ -2193,12 +2193,12 @@
         "the exact local lexical SQLite projection plus its tracked hash/count/resource projection, frozen morphology plan, and prior input receipt"
       ],
       "writes": [
-        "one ignored source-bearing exact-form JSONL census and its tracked text-free digest/count receipt unless --check is used"
+        "Explicit separate native generation of a mode-0600 exact-form JSONL packet and a text-free completion receipt; --check is read-only and a matching retry preserves output files."
       ],
-      "side_effects": "private deterministic morphology-provider input only; no provider output, accepted source, lemma, lexeme, sign, semantics, rights clearance, publication, or human backlog",
+      "side_effects": "Native tos zarathustra-morphology-input. Frozen input hashes stay mandatory; source/input/output roots are explicit. No morphology provider, source acceptance, lemma, lexeme, sign, semantics, rights or publication decision.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "test_target": "rust/crates/tos-compiler/src/lexical_derivatives.rs",
       "disposition": "keep"
     },
     {
