@@ -822,7 +822,7 @@ fn main() {
                     if issues.is_empty() { println!("[ok] canonical tree node contracts and consistency"); Ok(0) } else { Ok(1) }
                 })
             }
-            #[not(feature = "compiler-backed-validators")]
+            #[cfg(not(feature = "compiler-backed-validators"))]
             { Err(std::io::Error::other("tree node validation requires compiler-backed-validators")) }
         },
         Action::LivedWitnessValidate | Action::IntakePackValidate => root.canonicalize().and_then(|root| {
