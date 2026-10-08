@@ -5286,6 +5286,10 @@ fn remaining_bytes(
 
 fn check_work(work: AuthenticatedTreeWorkV1, limits: AuthenticatedTreeLimitsV1) -> Result<()> {
     if work.total_nodes() > limits.max_nodes || work.total_bytes() > limits.max_total_bytes {
+        eprintln!(
+            "Authenticated tree work refused: nodes={}/{} bytes={}/{}",
+            work.total_nodes(), limits.max_nodes, work.total_bytes(), limits.max_total_bytes,
+        );
         return Err(budget("authenticated tree operation budget exceeded"));
     }
     Ok(())
