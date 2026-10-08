@@ -6999,7 +6999,7 @@ mod tests {
             assert_eq!((joined.relation_count, joined.endpoint_evidence_rows, joined.inherited_view_rows), (1, 2, 2));
             for endpoint in ["node.0", "node.1"] {
                 assert_eq!(crate::knowledge_inherited_views::endpoint_inherited_views(&mut stage, endpoint, 8).unwrap(),
-                    ["view.inherited".to_owned()].into_iter().collect());
+                    vec!["view.inherited".to_owned()]);
             }
             crate::knowledge_inherited_views::clear_inherited_views(&mut stage).unwrap();
             // Exercise the other producer path with a byte-tight inline page.
