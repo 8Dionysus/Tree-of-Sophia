@@ -734,6 +734,21 @@ struct NormalizedPayloadRead<'s, 'budget> {
     _hold: crate::d1_public_capture::CreationStateHold<'s, 'budget>,
 }
 
+/// A successful codec1 read inside this Stage's BEGIN IMMEDIATE page, usable
+/// only within that page and until its next SQL write. The transaction excludes
+/// other writers; its generation and change counter detect local writes or
+/// completed pages. CAS still binds the row and logical revision.
+#[derive(Clone, Copy)]
+pub(crate) struct SourceCarrierReadReceipt {
+    stage_inode: (u64, u64),
+    sql_changes: u64,
+    page_generation: u64,
+    relation: bool,
+    previous: Digest256,
+    source_len: usize,
+    source_digest: Digest256,
+}
+
 /// One admitted representation of the already authenticated logical row.
 /// The typed tree must be consumed synchronously inside its reader callback.
 pub(crate) enum NormalizedLogical<'a> {
@@ -742,6 +757,7 @@ pub(crate) enum NormalizedLogical<'a> {
         value: serde_json::Value,
         logical_len: usize,
         digest: Digest256,
+        source_receipt: Option<SourceCarrierReadReceipt>,
     },
 }
 impl NormalizedLogical<'_> {
@@ -905,6 +921,7 @@ pub struct KnowledgeStage<'a> {
     raw_read_budget: Option<(Cell<u64>, u64, Cell<bool>)>,
     poisoned: bool,
     write_page: Option<WritePageCharge>,
+    write_page_generation: u64,
     keep: bool,
     selected_full: bool,
     payload_layout: KnowledgePayloadLayout,
@@ -1800,6 +1817,7 @@ impl<'a> KnowledgeStage<'a> {
             raw_read_budget: None,
             poisoned: false,
             write_page: None,
+            write_page_generation: 0,
             keep: false,
             selected_full: false,
             payload_layout: KnowledgePayloadLayout::InlineV1,
@@ -2194,7 +2212,10 @@ impl<'a> KnowledgeStage<'a> {
             if !self.db().is_autocommit() {
                 return Err(Error::Invalid("stage write page nested transaction"));
             }
+            let generation = self.write_page_generation.checked_add(1)
+                .ok_or(Error::Budget("stage write page generation"))?;
             self.execute_phase_batch(c"BEGIN IMMEDIATE", phase)?;
+            self.write_page_generation = generation;
             self.write_page = Some(WritePageCharge {
                 rows: 0,
                 bytes: 0,
@@ -3056,6 +3077,7 @@ impl<'a> KnowledgeStage<'a> {
                                         value,
                                         logical_len: record.logical_len,
                                         digest: record.digest,
+                                        source_receipt: None,
                                     },
                                     None,
                                 )
@@ -3087,13 +3109,26 @@ impl<'a> KnowledgeStage<'a> {
                                         max_bytes,
                                         record.logical_len,
                                         record.digest,
-                                        |value| {
+                                        |value, source_digest| {
+                                            // No write has occurred between this
+                                            // owned SQL read and authentication.
+                                            state.charge_work(std::mem::size_of::<SourceCarrierReadReceipt>())?;
+                                            let source_receipt = (self.write_page.is_some() && !self.db().is_autocommit()).then(|| SourceCarrierReadReceipt {
+                                                stage_inode: self.inode,
+                                                sql_changes: self.db().total_changes(),
+                                                page_generation: self.write_page_generation,
+                                                relation,
+                                                previous: record.digest,
+                                                source_len: source.len(),
+                                                source_digest,
+                                            });
                                             consume(
                                                 self,
                                                 NormalizedLogical::Value {
                                                     value,
                                                     logical_len: record.logical_len,
                                                     digest: record.digest,
+                                                    source_receipt,
                                                 },
                                                 Some(source),
                                             )
@@ -3562,7 +3597,7 @@ impl<'a> KnowledgeStage<'a> {
             let state = self.owned_creation_state().ok_or(Error::Invalid("carrier update owner absent"))?;
             let limits = crate::knowledge_normalization::SourceRow::json_limits(self.limits.sqlite.max_row_bytes)?;
             state.with_serde_owned_with_limits(logical, limits, |value| {
-                self.replace_normalized_value_with_exact_source_if_current(relation, id, value, logical, source, previous)
+                self.replace_normalized_value_with_exact_source_if_current(relation, id, value, logical, source, previous, None)
             })
         })();
         self.poisoned |= result.is_err();
@@ -3575,11 +3610,12 @@ impl<'a> KnowledgeStage<'a> {
     pub(crate) fn replace_finalized_value_if_current(
         &mut self, relation: bool, id: &str, value: &serde_json::Value,
         logical: &[u8], source: Option<&[u8]>, previous: Digest256,
+        source_receipt: Option<SourceCarrierReadReceipt>,
     ) -> Result<()> {
         if self.payload_layout.uses_carriers() {
             if let Some(source) = source {
                 return self.replace_normalized_value_with_exact_source_if_current(
-                    relation, id, value, logical, source, Some(previous),
+                    relation, id, value, logical, source, Some(previous), source_receipt,
                 );
             }
         }
@@ -3589,6 +3625,7 @@ impl<'a> KnowledgeStage<'a> {
     fn replace_normalized_value_with_exact_source_if_current(
         &mut self, relation: bool, id: &str, value: &serde_json::Value,
         logical: &[u8], source: &[u8], previous: Option<Digest256>,
+        source_receipt: Option<SourceCarrierReadReceipt>,
     ) -> Result<()> {
         let result = (|| {
             if self.poisoned || !self.payload_layout.uses_carriers() {
@@ -3610,8 +3647,24 @@ impl<'a> KnowledgeStage<'a> {
                 let digest=Digest256::of_bytes(logical);
                 crate::knowledge_payload_codec::with_factored_value_payload(state,value,logical,source,limits,limits,cap,
                     |stored,source_digest| {
-                        let reference=self.retain_exact_source_carrier(source)?;
-                        if reference.packet_sha256()!=&source_digest {return Err(Error::Invalid("carrier update source differs"));}
+                        if let Some(receipt) = source_receipt {
+                            state.charge_work(std::mem::size_of::<SourceCarrierReadReceipt>())?;
+                            if receipt.stage_inode != self.inode
+                                || self.write_page.is_none()
+                                || self.db().is_autocommit()
+                                || receipt.page_generation != self.write_page_generation
+                                || receipt.sql_changes != self.db().total_changes()
+                                || receipt.relation != relation
+                                || Some(receipt.previous) != previous
+                                || receipt.source_len != source.len()
+                                || receipt.source_digest != source_digest
+                            {
+                                return Err(Error::Invalid("carrier read receipt changed before update"));
+                            }
+                        } else {
+                            let reference=self.retain_exact_source_carrier(source)?;
+                            if reference.packet_sha256()!=&source_digest {return Err(Error::Invalid("carrier update source differs"));}
+                        }
                         self.charge_materialized(1,stored.len() as u64)?;
                         self.charge_representation(0, if self.payload_layout.packed_bytes() { crate::knowledge_byte_codec::HEADER as u64 } else { 0 })?;
                         let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
@@ -6831,7 +6884,8 @@ mod tests {
                     assert_eq!(logical["attributes"]["text"], source_value["text"]);
                     crate::knowledge_payload_codec::with_hydrated_value_payload(
                         &state, stored, &source, json_limits, json_limits, 32768,
-                        raw.len(), Digest256::of_bytes(&raw), |value| {
+                        raw.len(), Digest256::of_bytes(&raw), |value, source_digest| {
+                            assert_eq!(source_digest, Digest256::of_bytes(&source));
                             assert_eq!(serde_json::to_vec(&value).unwrap(), raw);
                             assert_eq!(value["attributes"]["text"], source_value["text"]);
                             assert_eq!(value["source_record"]["payload"], source_value);
@@ -6841,7 +6895,7 @@ mod tests {
                     let mut delivered = false;
                     assert!(crate::knowledge_payload_codec::with_hydrated_value_payload(
                         &state, stored, &source, json_limits, json_limits, 32768,
-                        raw.len(), Digest256::of_bytes(b"wrong logical digest"), |_| {
+                        raw.len(), Digest256::of_bytes(b"wrong logical digest"), |_, _| {
                             delivered = true; Ok(())
                         },
                     ).is_err());
@@ -6896,15 +6950,18 @@ mod tests {
                             &id, &logical, &source, Some(Digest256::of_bytes(&logical)),
                         )
                     } else {
-                        let limits = crate::knowledge_normalization::SourceRow::json_limits(32768)?;
-                        state.with_serde_owned_with_limits(&logical, limits, |value| {
+                        stage.with_normalized_payload_decoded_owned(false, &id, 32768, true, |stage, decoded, source| {
+                            let NormalizedLogical::Value { value, digest, source_receipt, .. } = decoded else {
+                                return Err(Error::Invalid("typed update fixture requires Value"));
+                            };
+                            assert!(source_receipt.is_some());
                             let before_typed = work.load(Ordering::Acquire);
                             let result = stage.replace_finalized_value_if_current(
-                                false, &id, value, &logical, Some(&source), Digest256::of_bytes(&logical),
+                                false, &id, &value, &logical, source, digest, source_receipt,
                             );
                             eprintln!("dictionary finalized typed update layout={layout:?} work={}", work.load(Ordering::Acquire)-before_typed);
                             result
-                        })
+                        })?.ok_or(Error::Invalid("typed update fixture row absent"))
                     }
                 }).unwrap();
                 eprintln!("dictionary finalized complete update layout={layout:?} order={order} work={}", work.load(Ordering::Acquire)-before_update);
@@ -7028,11 +7085,36 @@ mod tests {
                 let samples: u64 = stage.db().query_row("SELECT samples FROM temp.knowledge_byte_dictionary_pending WHERE dictionary_kind='node' AND source_graph='tiny'", [], |row| row.get(0)).unwrap();
                 assert_eq!(samples, 32);
             }
-            // Reserved representation rows cannot hide excess data writes.
-            let refusal = stage.with_write_page(WritePhase::Normalized, 1, 1, |stage| {
-                stage.charge_materialized(2, 1)
-            });
-            assert!(matches!(refusal, Err(Error::Budget("stage write page rows/bytes"))));
+            if layout.dictionary_bytes() {
+                // A receipt cannot hide even a byte-preserving intervening
+                // source write. Refuse before changing the logical row; its
+                // original exact source remains readable after cold reopen.
+                let refusal = stage.with_write_page(WritePhase::Finalize, 1, 32768, |stage| {
+                    stage.with_normalized_payload_decoded_owned(false, "node.0", 32768, true, |stage, decoded, source| {
+                        let NormalizedLogical::Value { value, digest, source_receipt, .. } = decoded else {
+                            return Err(Error::Invalid("receipt control requires Value"));
+                        };
+                        stage.with_connection(WritePhase::Finalize, |db| {
+                            db.execute("UPDATE knowledge_source_carriers SET packet=packet", [])?;
+                            Ok(())
+                        })?;
+                        state.with_json_encoded(&value, 32768, |raw| {
+                            stage.replace_finalized_value_if_current(
+                                false, "node.0", &value, raw, source, digest, source_receipt,
+                            )
+                        })
+                    })?.ok_or(Error::Invalid("receipt control row absent"))
+                });
+                assert!(matches!(refusal, Err(Error::Invalid("carrier read receipt changed before update"))));
+                let digest: Vec<u8> = stage.db().query_row("SELECT payload_sha256 FROM knowledge_nodes WHERE id='node.0'", [], |row| row.get(0)).unwrap();
+                assert_eq!(digest, Digest256::of_bytes(expected.as_ref().unwrap()).as_bytes());
+            } else {
+                // Reserved representation rows cannot hide excess data writes.
+                let refusal = stage.with_write_page(WritePhase::Normalized, 1, 1, |stage| {
+                    stage.charge_materialized(2, 1)
+                });
+                assert!(matches!(refusal, Err(Error::Budget("stage write page rows/bytes"))));
+            }
             assert!(stage.poisoned);
             // Close the actual writer before opening a distinct read connection.
             // This tests physical cold decoding; full selected-model admission

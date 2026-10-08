@@ -227,6 +227,10 @@ where
                         return Err(Error::Budget("native final scan"));
                     }
                     let state = stage.owned_creation_state();
+                    let source_receipt = match &row.payload {
+                        NormalizedLogical::Value { source_receipt, .. } => *source_receipt,
+                        NormalizedLogical::Bytes(_) => None,
+                    };
                     let mut process_value = |mut value: Value| -> Result<()> {
                     if value.get("id").and_then(Value::as_str) != Some(row.id)
                         || value.get("source_graph").and_then(Value::as_str)
@@ -401,7 +405,7 @@ where
                         if stage.owned_creation_state().is_some() {
                             stage.replace_finalized_value_if_current(
                                 table == "knowledge_relations", row.id, value, raw,
-                                row.source_packet, row.digest,
+                                row.source_packet, row.digest, source_receipt,
                             )?;
                         } else {
                             stage.charge_materialized(1, raw.len() as u64)?;

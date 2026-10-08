@@ -760,7 +760,7 @@ pub(crate) fn with_hydrated_value_payload<T>(
     max_row_bytes: usize,
     logical_len: usize,
     logical_digest: Digest256,
-    consume: impl FnOnce(Value) -> Result<T>,
+    consume: impl FnOnce(Value, Digest256) -> Result<T>,
 ) -> Result<T> {
     state.active()?;
     cap(stored, max_row_bytes)?;
@@ -806,7 +806,7 @@ pub(crate) fn with_hydrated_value_payload<T>(
                 *slot = original.clone();
             }
             logical["source_record"]["payload"] = source_value;
-            let result = consume(logical);
+            let result = consume(logical, source_digest);
             drop(clone_hold);
             result
         })

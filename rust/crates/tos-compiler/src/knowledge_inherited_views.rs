@@ -374,6 +374,7 @@ fn prepare_inner(
                                         value,
                                         logical_len,
                                         digest,
+                                        ..
                                     } => process(stage, &value, logical_len, digest),
                                     NormalizedLogical::Bytes(_) => {
                                         Err(Error::Invalid("inherited typed reader differs"))
