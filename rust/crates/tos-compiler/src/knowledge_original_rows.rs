@@ -136,10 +136,6 @@ pub(crate) fn decode_packet_from_connection(
             .as_blob()
             .map_err(|_| Error::Invalid("original dictionary type/length"))?;
         charge_decode_work(work, work_cap, raw.len())?;
-        if Digest256::of_bytes(raw) != digest {
-            return Err(Error::Invalid("original dictionary digest"));
-        }
-        charge_decode_work(work, work_cap, raw.len())?;
         let mut owned = Vec::new();
         owned
             .try_reserve_exact(raw.len())
@@ -160,7 +156,6 @@ pub(crate) fn decode_packet_from_connection(
         .checked_add(usize::from(compressed))
         .and_then(|n| n.checked_add(prefix))
         .ok_or(Error::Budget("original projection decode capacity"))?;
-    charge_decode_work(work, work_cap, capacity)?;
     let mut raw = Vec::new();
     raw.try_reserve_exact(capacity)
         .map_err(|_| Error::Budget("original projection allocation"))?;
@@ -168,20 +163,30 @@ pub(crate) fn decode_packet_from_connection(
         return Err(Error::Budget("original projection allocation capacity"));
     }
     if compressed {
-        raw.resize(capacity, 0);
         if let Some(dictionary) = dictionary.as_deref() {
-            codec::decompress_dictionary_into(stored, dictionary, declared, &mut raw, |bytes| {
-                charge_decode_work(work, work_cap, bytes)
-            })?;
+            let verified = crate::knowledge_byte_dictionary::VerifiedDictionary::from_bytes(
+                dictionary,
+                |bytes| charge_decode_work(work, work_cap, bytes),
+            )?;
+            codec::decompress_verified_dictionary_vec(
+                stored,
+                verified,
+                declared,
+                &mut raw,
+                |bytes| charge_decode_work(work, work_cap, bytes),
+            )?;
             charge_decode_work(work, work_cap, declared)?;
             raw.copy_within(prefix..prefix + declared, 0);
         } else {
+            charge_decode_work(work, work_cap, capacity)?;
+            raw.resize(capacity, 0);
             codec::decompress_into(stored, declared, &mut raw, |bytes| {
                 charge_decode_work(work, work_cap, bytes)
             })?;
         }
         raw.truncate(declared);
     } else {
+        charge_decode_work(work, work_cap, capacity)?;
         raw.extend_from_slice(if layout.packed_bytes() {
             &stored[codec::HEADER..]
         } else {

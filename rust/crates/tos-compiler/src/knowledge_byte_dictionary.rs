@@ -21,13 +21,50 @@ pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema =
     table "knowledge_byte_dictionary_pending(dictionary_kind TEXT NOT NULL,source_graph TEXT NOT NULL,samples INTEGER NOT NULL CHECK(samples BETWEEN 1 AND 32),dictionary BLOB NOT NULL CHECK(length(dictionary)<=4096),dictionary_sha256 BLOB CHECK(dictionary_sha256 IS NULL OR length(dictionary_sha256)=32),PRIMARY KEY(dictionary_kind,source_graph)) WITHOUT ROWID"
 );
 
+/// A digest established over these immutable dictionary bytes. The view
+/// conveys byte integrity only, with no row/source or publication authority.
+#[derive(Clone, Copy)]
+pub(crate) struct VerifiedDictionary<'a> {
+    bytes: &'a [u8],
+    digest: Digest256,
+}
+impl<'a> VerifiedDictionary<'a> {
+    pub(crate) fn from_bytes(
+        bytes: &'a [u8],
+        mut checkpoint: impl FnMut(usize) -> Result<()>,
+    ) -> Result<Self> {
+        if bytes.is_empty() || bytes.len() > DICTIONARY_BYTES {
+            return Err(Error::Invalid("byte dictionary length"));
+        }
+        checkpoint(bytes.len())?;
+        Ok(Self {
+            bytes,
+            digest: Digest256::of_bytes(bytes),
+        })
+    }
+    pub(crate) fn as_bytes(self) -> &'a [u8] {
+        self.bytes
+    }
+    pub(crate) fn digest(self) -> Digest256 {
+        self.digest
+    }
+}
 pub(crate) struct OwnedDictionary<'s, 'budget> {
     bytes: Vec<u8>,
+    digest: Option<Digest256>,
     _hold: CreationStateHold<'s, 'budget>,
 }
 impl OwnedDictionary<'_, '_> {
     pub(crate) fn as_bytes(&self) -> &[u8] {
         &self.bytes
+    }
+    pub(crate) fn verified(&self) -> Result<VerifiedDictionary<'_>> {
+        Ok(VerifiedDictionary {
+            bytes: &self.bytes,
+            digest: self
+                .digest
+                .ok_or(Error::Invalid("unfinished dictionary has no digest"))?,
+        })
     }
 }
 fn sql_error(e: tos_source_store::StoreError) -> Error {
@@ -46,7 +83,11 @@ fn allocate<'s, 'b>(state: &'s CreationState<'b>) -> Result<OwnedDictionary<'s, 
     if bytes.capacity() != DICTIONARY_BYTES {
         return Err(Error::Budget("byte dictionary capacity"));
     }
-    Ok(OwnedDictionary { bytes, _hold: hold })
+    Ok(OwnedDictionary {
+        bytes,
+        digest: None,
+        _hold: hold,
+    })
 }
 fn with_statement<T>(
     db: &Connection,
@@ -91,7 +132,7 @@ pub(crate) fn read<'s, 'b>(
         state.charge_work(raw.len())?;
         if Digest256::of_bytes(raw)!=digest {return Err(Error::Invalid("byte dictionary digest differs"));}
         let mut owned=allocate(state)?;
-        state.charge_work(raw.len())?;owned.bytes.extend_from_slice(raw);
+        state.charge_work(raw.len())?;owned.bytes.extend_from_slice(raw);owned.digest=Some(digest);
         if statement.step().map_err(sql_error)? {return Err(Error::Invalid("byte dictionary duplicate"));}
         Ok(Some(owned))
     })
@@ -120,8 +161,9 @@ pub(crate) fn prepare<'s, 'b>(
         let raw=packet(statement,1)?;
         let sha=match statement.value_ref(0).map_err(sql_error)? {ValueRef::Blob(v) if v.len()==32=>v,_=>return Err(Error::Invalid("byte dictionary stored digest"))};
         state.charge_work(raw.len())?;
-        if Digest256::of_bytes(raw).as_bytes().as_slice()!=sha {return Err(Error::Invalid("byte dictionary stored bytes"));}
-        let mut owned=allocate(state)?;state.charge_work(raw.len())?;owned.bytes.extend_from_slice(raw);
+        let digest=Digest256::of_bytes(raw);
+        if digest.as_bytes().as_slice()!=sha {return Err(Error::Invalid("byte dictionary stored bytes"));}
+        let mut owned=allocate(state)?;state.charge_work(raw.len())?;owned.bytes.extend_from_slice(raw);owned.digest=Some(digest);
         if statement.step().map_err(sql_error)? {return Err(Error::Invalid("byte dictionary family duplicate"));}
         Ok(Some(owned))
     })?;
@@ -144,6 +186,7 @@ pub(crate) fn prepare<'s, 'b>(
     if owned.bytes.len() == DICTIONARY_BYTES || samples == 31 {
         state.charge_work(owned.bytes.len())?;
         let digest = Digest256::of_bytes(&owned.bytes);
+        owned.digest = Some(digest);
         with_statement(db,state,c"INSERT INTO knowledge_byte_dictionaries(dictionary_sha256,dictionary) VALUES (?1,?2) ON CONFLICT(dictionary_sha256) DO NOTHING",|statement|{
             statement.bind_blob(1,digest.as_bytes()).map_err(sql_error)?;statement.bind_blob(2,&owned.bytes).map_err(sql_error)?;
             if statement.step().map_err(sql_error)? {return Err(Error::Invalid("byte dictionary insertion row"));}Ok(())

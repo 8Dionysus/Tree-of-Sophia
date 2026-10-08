@@ -620,11 +620,11 @@ impl KnowledgePayloadLayout {
         consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
         let dictionary=self.read_dictionary(db,state,stored,max_bytes)?;
-        self.with_decoded_dictionary(state,stored,dictionary.as_ref().map(|d|d.as_bytes()),expected,max_bytes,consume)
+        self.with_decoded_dictionary(state,stored,dictionary.as_ref().map(|d|d.verified()).transpose()?,expected,max_bytes,consume)
     }
     pub(crate) fn with_decoded_dictionary<T>(
         self, state: &crate::d1_public_capture::CreationState<'_>, stored: &[u8],
-        dictionary: Option<&[u8]>, expected: Option<usize>, max_bytes: usize,
+        dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>, expected: Option<usize>, max_bytes: usize,
         consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
         if self.dictionary_bytes() && crate::knowledge_byte_codec::is_dictionary_frame(stored) {
@@ -636,7 +636,7 @@ impl KnowledgePayloadLayout {
         }
     }
     pub(crate) fn with_encoded_dictionary<T>(
-        self, state: &crate::d1_public_capture::CreationState<'_>, dictionary: Option<&[u8]>,
+        self, state: &crate::d1_public_capture::CreationState<'_>, dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>,
         raw: &[u8], max_bytes: usize, consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
         match dictionary {
@@ -1110,7 +1110,7 @@ impl<'a> KnowledgeStage<'a> {
         };
         if !found {
             let dictionary = self.prepare_byte_dictionary("source", family, packet)?;
-            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), packet, self.limits.sqlite.max_row_bytes, |stored| {
+            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, packet, self.limits.sqlite.max_row_bytes, |stored| {
                 self.charge_materialized(1, packet.len() as u64)?;
                 self.charge_representation(0, stored.len().saturating_sub(packet.len()) as u64)?;
                 self.db().execute(
@@ -2991,7 +2991,7 @@ impl<'a> KnowledgeStage<'a> {
             let observed = layout.with_decoded_dictionary(
                 state,
                 &record.raw,
-                dictionary.as_ref().map(|d| d.as_bytes()),
+                dictionary.as_ref().map(|d|d.verified()).transpose()?,
                 (record.codec == 0).then_some(record.logical_len),
                 max_bytes,
                 |raw| {
@@ -3008,7 +3008,7 @@ impl<'a> KnowledgeStage<'a> {
                         layout.with_decoded_dictionary(
                             state,
                             &record.source,
-                            source_dictionary.as_ref().map(|d| d.as_bytes()),
+                            source_dictionary.as_ref().map(|d|d.verified()).transpose()?,
                             Some(record.source_len),
                             max_bytes,
                             |source| {
@@ -3368,7 +3368,7 @@ impl<'a> KnowledgeStage<'a> {
                 };
                 let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
                 let dictionary = self.prepare_byte_dictionary(if relation {"relation"} else {"node"}, family, logical)?;
-                self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), logical, cap, |physical| {
+                self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, logical, cap, |physical| {
                     self.with_connection(WritePhase::Normalized,|db| {
                         if db.execute(sql,params![logical.len() as i64,digest.as_bytes().as_slice(),physical,id,previous.as_ref().map(|d|d.as_bytes().as_slice())])?!=1 {
                             return Err(Error::Invalid("logical Inline update absent or revision differs"));
@@ -3450,7 +3450,7 @@ impl<'a> KnowledgeStage<'a> {
                         self.charge_representation(0, if self.payload_layout.packed_bytes() { crate::knowledge_byte_codec::HEADER as u64 } else { 0 })?;
                         let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
                         let dictionary = self.prepare_byte_dictionary(if relation {"relation"} else {"node"}, family, stored)?;
-                        self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), stored, cap, |physical| {
+                        self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, stored, cap, |physical| {
                         self.with_connection(WritePhase::Normalized,|db| {
                             // Existing codec1 must retain the exact raw byte key.
                             // Inline rows may be factored from authentic supplied raw
@@ -3523,7 +3523,7 @@ impl<'a> KnowledgeStage<'a> {
                 self.charge_representation(0, crate::knowledge_byte_codec::HEADER as u64)?;
             }
             let dictionary = self.prepare_byte_dictionary("node", row.source_graph, row.payload)?;
-            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), row.payload, self.limits.sqlite.max_row_bytes, |physical| {
+            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, row.payload, self.limits.sqlite.max_row_bytes, |physical| {
             if let Some((_, _, source_digest)) = logical {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_nodes (id,source_graph,native_id,entity_id,kind_id,type_id,source_order,payload_len,payload_sha256,payload,payload_codec,source_packet_sha256) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,1,?11)",
                     &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::OptionalText(row.entity_id), StageSqlBinding::Text(row.kind_id), StageSqlBinding::Text(row.type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;
@@ -3677,7 +3677,7 @@ impl<'a> KnowledgeStage<'a> {
                 self.charge_representation(0, crate::knowledge_byte_codec::HEADER as u64)?;
             }
             let dictionary = self.prepare_byte_dictionary("relation", row.source_graph, row.payload)?;
-            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), row.payload, self.limits.sqlite.max_row_bytes, |physical| {
+            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, row.payload, self.limits.sqlite.max_row_bytes, |physical| {
             if let Some((_, _, source_digest)) = logical {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_relations (id,source_graph,native_id,from_id,to_id,predicate_id,relation_type_id,source_order,payload_len,payload_sha256,payload,payload_codec,source_packet_sha256) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,1,?12)",
                     &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::Text(row.from_id), StageSqlBinding::Text(row.to_id), StageSqlBinding::Text(row.predicate_id), StageSqlBinding::Text(row.relation_type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;

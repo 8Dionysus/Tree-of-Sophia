@@ -1,6 +1,7 @@
 //! Bounded byte compression for an explicitly selected physical model format.
 //! This module supplies no model or source authority. Callers authenticate the
 //! format and verify logical length/digest before delivering decoded contents.
+use crate::knowledge_byte_dictionary::VerifiedDictionary;
 use crate::{Error, Result, d1_public_capture::CreationState};
 use flate2::{Compress, Compression, FlushCompress, Status};
 use miniz_oxide::inflate::{
@@ -333,21 +334,24 @@ pub(crate) fn dictionary_frame_metadata(
 pub(crate) fn with_dictionary_encoded<T>(
     state: &CreationState<'_>,
     raw: &[u8],
-    dictionary: &[u8],
+    dictionary: VerifiedDictionary<'_>,
     max_bytes: usize,
     consume: impl FnOnce(&[u8]) -> Result<T>,
 ) -> Result<T> {
     state.active()?;
     if raw.is_empty()
         || raw.len() > max_bytes
-        || dictionary.is_empty()
-        || dictionary.len() > DICTIONARY_BYTES
+        || dictionary.as_bytes().is_empty()
+        || dictionary.as_bytes().len() > DICTIONARY_BYTES
     {
         return Err(Error::Budget("dictionary encoder input"));
     }
     let cap = stored_bound(raw.len())?;
     let workspace = add(encoder_workspace_upper()?, CHUNK + 2 * DICTIONARY_BYTES)?;
-    let _hold = state.hold(add(add(workspace, cap)?, std::mem::size_of_val(&consume))?)?;
+    let _hold = state.hold(add(
+        add(add(workspace, cap)?, std::mem::size_of_val(&dictionary))?,
+        std::mem::size_of_val(&consume),
+    )?)?;
     let mut output = Vec::new();
     output
         .try_reserve_exact(cap)
@@ -357,7 +361,7 @@ pub(crate) fn with_dictionary_encoded<T>(
     }
     state.charge_work(cap)?;
     output.resize(cap, 0);
-    let used = encode_dictionary_into(raw, dictionary, &mut output, |bytes| {
+    let used = encode_verified_dictionary_into(raw, dictionary, &mut output, |bytes| {
         state.active()?;
         state.charge_work(bytes)
     })?;
@@ -365,12 +369,23 @@ pub(crate) fn with_dictionary_encoded<T>(
     consume(&output[..used])
 }
 
+#[cfg(test)]
 fn encode_dictionary_into(
     raw: &[u8],
     dictionary: &[u8],
     output: &mut [u8],
     mut checkpoint: impl FnMut(usize) -> Result<()>,
 ) -> Result<usize> {
+    let verified = VerifiedDictionary::from_bytes(dictionary, &mut checkpoint)?;
+    encode_verified_dictionary_into(raw, verified, output, checkpoint)
+}
+fn encode_verified_dictionary_into(
+    raw: &[u8],
+    dictionary_view: VerifiedDictionary<'_>,
+    output: &mut [u8],
+    mut checkpoint: impl FnMut(usize) -> Result<()>,
+) -> Result<usize> {
+    let dictionary = dictionary_view.as_bytes();
     checkpoint(0)?;
     if raw.is_empty()
         || dictionary.is_empty()
@@ -383,9 +398,7 @@ fn encode_dictionary_into(
         output[..8].copy_from_slice(DICTIONARY_MAGIC);
         output[8] = 2;
         output[9..HEADER].copy_from_slice(&(raw.len() as u64).to_le_bytes());
-        checkpoint(dictionary.len())?;
-        output[HEADER..DICTIONARY_HEADER]
-            .copy_from_slice(tos_foundation::Digest256::of_bytes(dictionary).as_bytes());
+        output[HEADER..DICTIONARY_HEADER].copy_from_slice(dictionary_view.digest().as_bytes());
         let mut encoder = Compress::new(Compression::default(), false);
         // Sync ends on a byte boundary without clearing the existing miniz
         // history. The discarded prefix initializes exactly the dictionary
@@ -468,6 +481,7 @@ fn encode_dictionary_into(
     Ok(output.len())
 }
 
+#[cfg(test)]
 pub(crate) fn decompress_dictionary_into(
     stored: &[u8],
     dictionary: &[u8],
@@ -476,23 +490,62 @@ pub(crate) fn decompress_dictionary_into(
     mut checkpoint: impl FnMut(usize) -> Result<()>,
 ) -> Result<()> {
     checkpoint(0)?;
-    let (length, digest) = dictionary_frame_metadata(stored, Some(decoded_len), decoded_len)?;
-    if dictionary.is_empty()
-        || dictionary.len() > DICTIONARY_BYTES
-        || output.len() != add(add(length, dictionary.len())?, 1)?
-    {
-        return Err(Error::Invalid("dictionary decoder admission"));
-    }
-    checkpoint(dictionary.len())?;
-    if tos_foundation::Digest256::of_bytes(dictionary) != digest {
-        return Err(Error::Invalid("dictionary decoder digest"));
-    }
+    let verified = VerifiedDictionary::from_bytes(dictionary, &mut checkpoint)?;
+    check_dictionary_output(stored, verified, decoded_len, output.len())?;
     checkpoint(dictionary.len())?;
     output[..dictionary.len()].copy_from_slice(dictionary);
+    decompress_seeded_dictionary(stored, dictionary.len(), decoded_len, output, checkpoint)
+}
+fn check_dictionary_output(
+    stored: &[u8],
+    dictionary: VerifiedDictionary<'_>,
+    decoded_len: usize,
+    capacity: usize,
+) -> Result<()> {
+    let (length, digest) = dictionary_frame_metadata(stored, Some(decoded_len), decoded_len)?;
+    if dictionary.digest() != digest
+        || capacity != add(add(length, dictionary.as_bytes().len())?, 1)?
+    {
+        return Err(Error::Invalid("dictionary decoder digest/capacity"));
+    }
+    Ok(())
+}
+/// The caller has admitted the complete vector and decoder workspace. Only its
+/// tail is zeroed; the verified dictionary prefix is copied exactly once.
+pub(crate) fn decompress_verified_dictionary_vec(
+    stored: &[u8],
+    dictionary: VerifiedDictionary<'_>,
+    decoded_len: usize,
+    output: &mut Vec<u8>,
+    mut checkpoint: impl FnMut(usize) -> Result<()>,
+) -> Result<()> {
+    checkpoint(0)?;
+    check_dictionary_output(stored, dictionary, decoded_len, output.capacity())?;
+    if !output.is_empty() {
+        return Err(Error::Invalid("dictionary output must be empty"));
+    }
+    checkpoint(output.capacity())?;
+    output.extend_from_slice(dictionary.as_bytes());
+    output.resize(output.capacity(), 0);
+    decompress_seeded_dictionary(
+        stored,
+        dictionary.as_bytes().len(),
+        decoded_len,
+        output,
+        &mut checkpoint,
+    )
+}
+fn decompress_seeded_dictionary(
+    stored: &[u8],
+    dictionary_len: usize,
+    decoded_len: usize,
+    output: &mut [u8],
+    mut checkpoint: impl FnMut(usize) -> Result<()>,
+) -> Result<()> {
     let mut decoder = DecompressorOxide::new();
     let input = &stored[DICTIONARY_HEADER..];
     let mut input_at = 0;
-    let mut output_at = dictionary.len();
+    let mut output_at = dictionary_len;
     let output_cap = output.len();
     loop {
         checkpoint(0)?;
@@ -523,7 +576,7 @@ pub(crate) fn decompress_dictionary_into(
         checkpoint(0)?;
         match status {
             TINFLStatus::Done => {
-                if input_at != input.len() || output_at != dictionary.len() + decoded_len {
+                if input_at != input.len() || output_at != dictionary_len + decoded_len {
                     return Err(Error::Invalid("dictionary decoder exact EOF"));
                 }
                 return Ok(());
@@ -540,15 +593,18 @@ pub(crate) fn decompress_dictionary_into(
 pub(crate) fn with_dictionary_decoded<T>(
     state: &CreationState<'_>,
     stored: &[u8],
-    dictionary: &[u8],
+    dictionary: VerifiedDictionary<'_>,
     expected: Option<usize>,
     max_bytes: usize,
     consume: impl FnOnce(&[u8]) -> Result<T>,
 ) -> Result<T> {
     let (length, _) = dictionary_frame_metadata(stored, expected, max_bytes)?;
-    let cap = add(add(length, dictionary.len())?, 1)?;
+    let cap = add(add(length, dictionary.as_bytes().len())?, 1)?;
     let _hold = state.hold(add(
-        add(cap, decoder_workspace_upper()?)?,
+        add(
+            add(cap, decoder_workspace_upper()?)?,
+            std::mem::size_of_val(&dictionary),
+        )?,
         std::mem::size_of_val(&consume),
     )?)?;
     let mut output = Vec::new();
@@ -558,13 +614,11 @@ pub(crate) fn with_dictionary_decoded<T>(
     if output.capacity() != cap {
         return Err(Error::Budget("dictionary decoder capacity"));
     }
-    state.charge_work(cap)?;
-    output.resize(cap, 0);
-    decompress_dictionary_into(stored, dictionary, length, &mut output, |bytes| {
+    decompress_verified_dictionary_vec(stored, dictionary, length, &mut output, |bytes| {
         state.active()?;
         state.charge_work(bytes)
     })?;
-    consume(&output[dictionary.len()..dictionary.len() + length])
+    consume(&output[dictionary.as_bytes().len()..dictionary.as_bytes().len() + length])
 }
 
 #[cfg(test)]
@@ -674,6 +728,67 @@ mod tests {
             (1, false)
         );
         assert_eq!(&stored[HEADER..used], short);
+    }
+
+    #[test]
+    fn verified_dictionary_decode_charges_one_initialization_and_keeps_integrity() {
+        let dictionary =
+            b"{\"stable\":\"public source metadata\",\"rights\":\"unchanged\"}".repeat(64);
+        let raw = [dictionary.as_slice(), b" exact suffix"].concat();
+        let mut stored = vec![0; stored_bound(raw.len()).unwrap()];
+        let used = encode_dictionary_into(&raw, &dictionary, &mut stored, |_| Ok(())).unwrap();
+        stored.truncate(used);
+        assert!(is_dictionary_frame(&stored));
+        let cap = dictionary.len() + raw.len() + 1;
+        let mut old_work = cap; // Previous caller zeroed the entire allocation.
+        let mut old = vec![0; cap];
+        decompress_dictionary_into(&stored, &dictionary, raw.len(), &mut old, |n| {
+            old_work += n;
+            Ok(())
+        })
+        .unwrap();
+        let mut new_work = 0;
+        let verified = VerifiedDictionary::from_bytes(&dictionary, |n| {
+            new_work += n;
+            Ok(())
+        })
+        .unwrap();
+        let mut restored = Vec::with_capacity(cap);
+        decompress_verified_dictionary_vec(&stored, verified, raw.len(), &mut restored, |n| {
+            new_work += n;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(restored, old);
+        assert_eq!(
+            &restored[dictionary.len()..dictionary.len() + raw.len()],
+            raw
+        );
+        // Both paths include the one required digest calculation. The new
+        // path also avoids a second initialization of the dictionary prefix.
+        assert_eq!(old_work - new_work, dictionary.len());
+        let mut wrong = dictionary.clone();
+        wrong[0] ^= 1;
+        let wrong = VerifiedDictionary::from_bytes(&wrong, |_| Ok(())).unwrap();
+        let mut untouched = Vec::with_capacity(cap);
+        assert!(
+            decompress_verified_dictionary_vec(&stored, wrong, raw.len(), &mut untouched, |_| Ok(
+                ()
+            ))
+            .is_err()
+        );
+        assert!(untouched.is_empty());
+        assert!(matches!(
+            decompress_verified_dictionary_vec(
+                &stored,
+                verified,
+                raw.len(),
+                &mut untouched,
+                |_| Err(Error::Budget("test work refusal"))
+            ),
+            Err(Error::Budget("test work refusal"))
+        ));
+        assert!(untouched.is_empty());
     }
 
     #[test]

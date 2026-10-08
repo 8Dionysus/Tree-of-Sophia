@@ -3983,6 +3983,20 @@ pub fn build_native_addressed_knowledge_snapshot_from_capture(
     Ok((completed, snapshot, report))
 }
 
+fn native_snapshot_phase<T>(
+    capture: &PublicCapture,
+    name: &'static str,
+    run: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    let started = Instant::now();
+    let before = capture.work_bytes();
+    let result = run();
+    eprintln!("Native snapshot phase={name} status={} elapsed_ms={} work_bytes={} total_work_bytes={}",
+        if result.is_ok() { "ok" } else { "refused" },
+        started.elapsed().as_millis(), capture.work_bytes().saturating_sub(before), capture.work_bytes());
+    result
+}
+
 #[allow(clippy::too_many_arguments)]
 fn build_native_snapshot_from_capture_inner(
     capture: &PublicCapture,
@@ -4284,7 +4298,7 @@ fn build_native_snapshot_from_capture_inner(
     // exact carriers without making them authored source or canon.
     families.prepared_philosophy_projection = true;
     families.prepared_canon_projection = true;
-    let producer = crate::materialize_native_sources_with_inputs(
+    let producer = native_snapshot_phase(capture, "materialize", || crate::materialize_native_sources_with_inputs(
         &mut stage,
         &registry,
         &entity,
@@ -4294,14 +4308,14 @@ fn build_native_snapshot_from_capture_inner(
         &nav,
         limits.native,
         families,
-    )?;
+    ))?;
     check_snapshot_active(cancelled, deadline)?;
-    let semantics =
-        validate_native_snapshot_semantics(&mut stage, capture, &registry, &entity, &relation)?;
+    let semantics = native_snapshot_phase(capture, "semantics", ||
+        validate_native_snapshot_semantics(&mut stage, capture, &registry, &entity, &relation))?;
     check_snapshot_active(cancelled, deadline)?;
     let (processor, configuration) =
         crate::d1_public_build::processor_binding(&repository, &descriptor, &entity, &relation)?;
-    let header = build_native_snapshot_header(
+    let header = native_snapshot_phase(capture, "header", || build_native_snapshot_header(
         &mut stage,
         capture,
         &registry,
@@ -4310,13 +4324,13 @@ fn build_native_snapshot_from_capture_inner(
         processor,
         configuration,
         &semantics,
-    )?;
+    ))?;
     check_snapshot_active(cancelled, deadline)?;
     let lenses = match state {
         Some(state) => saved_lenses_owned(capture, state)?,
         None => saved_lenses(capture)?,
     };
-    let full = crate::compile_full_knowledge_components(
+    let full = native_snapshot_phase(capture, "full-components", || crate::compile_full_knowledge_components(
         &mut stage,
         &header,
         &registry,
@@ -4326,7 +4340,7 @@ fn build_native_snapshot_from_capture_inner(
         &vocabulary,
         &descriptor,
         limits.full,
-    )?;
+    ))?;
     check_snapshot_active(cancelled, deadline)?;
     if full.seal.model_abi != abi || full.seal.managed_source_root_sha256.is_some() {
         return Err(Error::Invalid("native snapshot actual component ABI"));
@@ -4378,7 +4392,7 @@ fn build_native_snapshot_from_capture_inner(
     } else {
         None
     };
-    let output = stage.finish()?;
+    let output = native_snapshot_phase(capture, "finish-stage", || stage.finish())?;
     check_snapshot_active(cancelled, deadline)?;
     let completed_path = fs::canonicalize(candidate)?;
     isolation.verify(&completed_path, limits.stage, WritePhase::Finalize)?;
