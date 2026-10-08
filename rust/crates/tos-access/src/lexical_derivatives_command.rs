@@ -5,15 +5,18 @@ const HELP: &str = "tos zarathustra-morphology-input --source-root ABS --local-i
 const RECURRENCE_HELP: &str = "tos zarathustra-recurrence-projection --source-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nCompute frequency, structural range and exact rational dispersion from the hash-only lexical projection fixed by the plan. Check retains historical provenance; a fresh build requires a separate output root, generation, event time and admitted bytes. Matching retries preserve outputs; conflicts refuse. Source strings and semantic judgments are outside this projection.\n";
 const USAGE_HELP: &str = "tos zarathustra-usage-context --source-root ABS --local-input-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--receipt REL --provenance REL] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nBuild the complete page-bounded private concordance for the frozen exact-form method control. The private JSONL stays mode0600; the receipt and provenance expose only fixity, counts and source references. Checks preserve historical provenance; a new generation requires a separate output root and admitted bytes.\n";
 const SOURCE_RECURRENCE_HELP: &str = "tos semantic-source-recurrence --source-root ABS --local-input-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nReturn every selected occurrence to fixity-bound raw TEI Unicode character offsets. Preserves historical evidence on check; new generations use private mode0600 packets and text-free Rust receipts. No semantic, rights or publication admission.\n";
+const CONTEXT_HELP: &str = "tos zarathustra-morphology-context --source-root ABS --local-input-root ABS --local-output-root ABS --a-raw-output ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--receipt REL --provenance REL] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nVerify the retained provider A stream and freeze the preselected first/median/last raw TEI contexts. This command runs no provider. Private packets stay mode0600; source-withholding receipts preserve historical evidence or record a new Rust generation.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     let command = args.first().map(String::as_str);
     let recurrence = command == Some("zarathustra-recurrence-projection");
     let usage = command == Some("zarathustra-usage-context");
     let source_recurrence = command == Some("semantic-source-recurrence");
+    let context = command == Some("zarathustra-morphology-context");
     if command != Some("zarathustra-morphology-input")
         && !recurrence
         && !usage
         && !source_recurrence
+        && !context
     {
         return None;
     }
@@ -21,7 +24,9 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         return Some(
             if out
                 .write_all(
-                    if source_recurrence {
+                    if context {
+                        CONTEXT_HELP
+                    } else if source_recurrence {
                         SOURCE_RECURRENCE_HELP
                     } else if recurrence {
                         RECURRENCE_HELP
@@ -48,13 +53,14 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             mut plan,
             mut generation,
             mut at,
+            mut a_raw,
             mut receipt,
             mut provenance,
             mut seconds,
             mut scratch,
             mut mode,
         ) = (
-            None, None, None, None, None, None, None, None, None, None, None,
+            None, None, None, None, None, None, None, None, None, None, None, None,
         );
         let mut it = args.iter().skip(1);
         while let Some(key) = it.next() {
@@ -74,6 +80,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
                 "--plan" => &mut plan,
                 "--generation" => &mut generation,
                 "--event-at" => &mut at,
+                "--a-raw-output" => &mut a_raw,
                 "--receipt" => &mut receipt,
                 "--provenance" => &mut provenance,
                 "--max-seconds" => &mut seconds,
@@ -91,11 +98,14 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         if source_recurrence && receipt.is_some() {
             return Err("source recurrence retains plan-selected receipt paths".into());
         }
-        if !usage && provenance.is_some() {
+        if !usage && !context && provenance.is_some() {
             return Err("provenance redirection belongs to usage context".into());
         }
-        if !recurrence && !usage && !source_recurrence && at.is_some() {
+        if !recurrence && !usage && !source_recurrence && !context && at.is_some() {
             return Err("morphology census has no provenance timestamp option".into());
+        }
+        if !context && a_raw.is_some() {
+            return Err("provider A selection belongs to morphology context".into());
         }
         let input = if recurrence {
             root.clone()
@@ -126,6 +136,26 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             ResearchExecution::new(&root, seconds)?
         };
+        if context {
+            let a_raw = PathBuf::from(a_raw.ok_or("explicit provider A output required")?);
+            if !a_raw.is_absolute() {
+                return Err("absolute provider A output required".into());
+            }
+            return lexical_derivatives::morphology_context::run(
+                &ctx,
+                lexical_derivatives::morphology_context::Options {
+                    build,
+                    input_root: &input,
+                    output_root: &output,
+                    a_raw_output: &a_raw,
+                    plan: plan.unwrap_or(lexical_derivatives::morphology_context::PLAN),
+                    generation,
+                    event_at: at,
+                    receipt,
+                    provenance,
+                },
+            );
+        }
         if source_recurrence {
             return lexical_derivatives::semantic_recurrence::run(
                 &ctx,
