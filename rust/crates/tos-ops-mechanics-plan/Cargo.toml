@@ -69,3 +69,8 @@ path = "src/stats_release_main.rs"
 name = "tos-source-registry"
 path = "src/source_registry_main.rs"
 required-features = ["compiler-backed-validators"]
+
+[[bin]]
+name = "tos-open-work-queue"
+path = "src/open_work_queue_main.rs"
+required-features = ["compiler-backed-validators"]

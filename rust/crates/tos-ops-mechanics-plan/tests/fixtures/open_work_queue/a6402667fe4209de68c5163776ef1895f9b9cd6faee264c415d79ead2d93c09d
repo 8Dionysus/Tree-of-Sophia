@@ -1,0 +1,98 @@
+{
+  "schema_version": "tos_open_work_readiness_plan_v1",
+  "reviewed_at": "2026-09-08T12:00:00Z",
+  "reviewer_ref": "codex:test",
+  "targets": [
+    {
+      "target_id": "planting-target.new-corpus-record",
+      "preferred_label": "New work from independently named corpus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/test/documents/third/A01.json.gz",
+          "sha256": "3cfa4dc2a61c053a81a25847ea0e1e9e84f99c77f196801f66f1fd786bb3a420",
+          "corpus_id": "other-corpus",
+          "document_id": "A01",
+          "record_id": "stable:R001"
+        }
+      ],
+      "target": {
+        "target_kind": "work",
+        "description": "Exact selected version",
+        "known_tos_refs": []
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/version.json",
+              "sha256": "fefa9f40e29444517592d3f6332be1e1a850157eaa4cda4e0b89613b62bfa894"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/version.json",
+              "sha256": "fefa9f40e29444517592d3f6332be1e1a850157eaa4cda4e0b89613b62bfa894"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/version.json",
+              "sha256": "fefa9f40e29444517592d3f6332be1e1a850157eaa4cda4e0b89613b62bfa894"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/version.json",
+              "sha256": "fefa9f40e29444517592d3f6332be1e1a850157eaa4cda4e0b89613b62bfa894"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/synthetic/branch.manifest.json",
+              "sha256": "4e6e5bd6f6c481213683608e71b15d670285e802d78a9f533a42df39b7a6d6f6"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://example.org/exact-version.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/synthetic/items/one/payload/source.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    }
+  ]
+}

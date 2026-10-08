@@ -47,6 +47,17 @@ pub fn observed_instant_elapsed_micros(
     Ok(i128::from(end.0) - i128::from(start.0))
 }
 
+/// Queue receipts historically interpret naive timestamps as UTC.
+/// The returned microsecond key is source ordering evidence, not a trusted clock.
+pub fn observed_utc_or_naive_timestamp_micros(value: &str) -> Result<i64, ObservedDateTimeError> {
+    let (micros, _) = observed_datetime(value, true)?;
+    let upper = year_days(10000) * 86_400_000_000;
+    if !(0..upper).contains(&micros) {
+        return Err(ObservedDateTimeError::Invalid);
+    }
+    Ok(micros)
+}
+
 pub fn observed_datetime_order(
     start: &str,
     end: &str,

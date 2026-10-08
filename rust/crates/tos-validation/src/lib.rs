@@ -25,6 +25,7 @@ pub mod assessment;
 #[cfg(feature = "native")]
 pub mod biblio_rules;
 mod datetime_support;
+pub use datetime_support::{ObservedDateTimeError, observed_utc_or_naive_timestamp_micros};
 #[cfg(feature = "native")]
 pub mod executor;
 pub mod item_rules;

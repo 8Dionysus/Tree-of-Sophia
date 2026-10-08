@@ -1,0 +1,56 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-candidate-receipt.schema.json",
+  "schema_version": "tos_open_work_candidate_receipt_v1",
+  "receipt_id": "open-work-candidate-receipt.earliest.2026-08-29.v1",
+  "candidate_id": "open-work-candidate.earliest",
+  "candidate_record_sha256": "809034c50e5db80ef8f55e1f34df34d5a2d3a7356e637a9a59c4aea97cf40d3e",
+  "candidate_ledger_sha256": "987c915d300068de1ed9338429e741b5516ce4fdd4f2c3ac1bcc80f8cd300e9b",
+  "queue_snapshot_sha256": "53eedfafb477004399b411978be2258858c1fa1485c9ab8bba18bee5ee1f0625",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+  "discovery_id": "tos.discovery.earliest",
+  "candidate_target_sha256": "8ea4b7e8012def3eba46d6f264cbaa734f703edcc16ee86aabe6778f7a5f05d6",
+  "discovery_sha256": "34a567dfda25e49174b2cfbdf6c018c93d81b474d9745d617d3147667f8ecdce",
+  "discovery_target_sha256": "8ea4b7e8012def3eba46d6f264cbaa734f703edcc16ee86aabe6778f7a5f05d6",
+  "timing_ref": "ToS/source-witnesses/discovery/timings/earliest.v1.json",
+  "timing_sha256": "2c766679aaa806fed1b3c035cbd0156d0990a568156795bf2f5f68b2094ecdea",
+  "terminal_status": "metadata_only",
+  "target_resolution": {
+    "identity_status": "provisional",
+    "work_ref": null,
+    "expression_ref": null,
+    "edition_ref": null,
+    "item_ref": null,
+    "summary": "Metadata route only."
+  },
+  "rights_result": {
+    "status": "insufficient-for-acquisition",
+    "reviewed_jurisdictions": [
+      "US"
+    ],
+    "reviewed_layers": [
+      "work",
+      "digital-object"
+    ],
+    "evidence_refs": [
+      "ToS/source-witnesses/discovery/runs/earliest.v1.json"
+    ],
+    "summary": "No exact reusable digital object admitted."
+  },
+  "acquisition": {
+    "downloaded": false,
+    "item_ref": null,
+    "artifact_ref": null,
+    "representation_ref": null,
+    "file_ref": null,
+    "provenance_event_ref": null
+  },
+  "planting_refs": [],
+  "operational_relation_refs": [],
+  "next_trigger": "A stronger exact rights record.",
+  "issued_at": "2026-08-29T12:00:00.125000Z",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "codex:test"
+  },
+  "record_version": 1
+}

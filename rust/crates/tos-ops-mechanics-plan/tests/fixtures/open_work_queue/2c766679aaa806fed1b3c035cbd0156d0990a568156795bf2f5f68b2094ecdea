@@ -1,0 +1,27 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/open-work-channel-timing-receipt.schema.json",
+  "schema_version": "tos_open_work_channel_timing_receipt_v1",
+  "timing_id": "open-work-channel-timing.synthetic.2026-08-29.v1",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/earliest.v1.json",
+  "discovery_id": "tos.discovery.earliest",
+  "measured_at": "2026-08-29T12:00:00.125000Z",
+  "measurements": [
+    {
+      "channel_id": "channel-originating-record",
+      "measurement": {
+        "method": "monotonic-http-request-v1",
+        "clock": "python.time.perf_counter_ns",
+        "timing_scope": "request-through-first-16384-response-bytes",
+        "probe_url": "https://example.test/source",
+        "started_at": "2026-08-29T12:00:00Z",
+        "ended_at": "2026-08-29T12:00:00.125000Z",
+        "elapsed_seconds": 0,
+        "outcome": "success",
+        "http_status": 200,
+        "response_bytes_observed": 1
+      }
+    }
+  ],
+  "claim_limit": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time",
+  "record_version": 1
+}

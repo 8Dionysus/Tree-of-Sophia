@@ -766,3 +766,6 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[cfg(feature = "compiler-backed-validators")]
+pub mod open_work_queue;
