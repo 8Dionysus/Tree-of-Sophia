@@ -14,6 +14,9 @@ const SOURCE: &str = "transfer-source-passage-candidates.v1.json";
 const SCHEMA: &str = "ToS/contracts/transfer-route-readiness-projection.schema.json";
 const SCHEMA_URI: &str =
     "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection.schema.json";
+const SCHEMA_V2: &str = "ToS/contracts/transfer-route-readiness-projection-v2.schema.json";
+const SCHEMA_V2_URI: &str =
+    "https://tree-of-sophia.local/ToS/contracts/transfer-route-readiness-projection-v2.schema.json";
 const PROJECTION_ID: &str = "tos.transfer-route-readiness.golden-kernel-v1";
 const LEGACY_EVENT: &str =
     "tos.event.projection.golden-kernel-transfer-route-readiness-v1.2026-08-09";
@@ -225,7 +228,12 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     ensure(output != provenance, "projection aliases provenance")?;
     let (target_raw, target) = load(ctx, &target_ref)?;
     let (source_raw, source) = load(ctx, &source_ref)?;
-    let schema_raw = ctx.read(SCHEMA)?;
+    let schema_ref = if opts.event_id.is_none_or(|id| id == LEGACY_EVENT) {
+        SCHEMA
+    } else {
+        SCHEMA_V2
+    };
+    let schema_raw = ctx.read(schema_ref)?;
     let existing = match std::fs::symlink_metadata(ctx.root().join(&provenance)) {
         Ok(_) => ctx.read(&provenance)?,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -271,8 +279,11 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let mut projected = projection(&target, &source, &target_binding, &source_binding, event_id)?;
     if historical {
         projected["authority_boundary"] = json!(LEGACY_AUTHORITY);
+    } else {
+        projected["$schema"] = json!(SCHEMA_V2_URI);
+        projected["schema_version"] = json!("tos_transfer_route_readiness_projection_v2");
     }
-    schema(ctx, SCHEMA, &projected)?;
+    schema(ctx, schema_ref, &projected)?;
     let rendered = render(&projected)?;
     let builder_ref = if historical { LEGACY_BUILDER } else { BUILDER };
     let builder_digest = if historical {
@@ -285,7 +296,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let event_inputs = vec![
         json!({"ref":target_ref,"sha256":sha(&target_raw),"role":"target-candidate-set"}),
         json!({"ref":source_ref,"sha256":sha(&source_raw),"role":"source-candidate-set"}),
-        json!({"ref":SCHEMA,"sha256":sha(&schema_raw),"role":"readiness-contract"}),
+        json!({"ref":schema_ref,"sha256":sha(&schema_raw),"role":"readiness-contract"}),
         json!({"ref":builder_ref,"sha256":builder_digest,"role":"readiness-builder"}),
     ];
     let event = if let Some((_, event)) = &found {
@@ -326,7 +337,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     ensure(
         ctx.read(&target_ref)? == target_raw
             && ctx.read(&source_ref)? == source_raw
-            && ctx.read(SCHEMA)? == schema_raw,
+            && ctx.read(schema_ref)? == schema_raw,
         "input changed before output",
     )?;
     let new_output = fresh_or_matching(ctx, &output, &rendered)?;
@@ -404,6 +415,55 @@ mod tests {
                     .unwrap()
             );
         }
+    }
+    #[test]
+    fn native_v2_requires_its_own_event_and_retains_non_promoting_contract() {
+        let f = fixture();
+        let mut p = projection(
+            &f["target"],
+            &f["source"],
+            &f["target_binding"],
+            &f["source_binding"],
+            "tos.event.native-projection.golden-kernel-transfer-route-readiness.test",
+        )
+        .unwrap();
+        p["$schema"] = json!(SCHEMA_V2_URI);
+        p["schema_version"] = json!("tos_transfer_route_readiness_projection_v2");
+        let probe = tos_validation::SchemaBackendProbe::new(
+            [tos_validation::SchemaResource {
+                uri: SCHEMA_V2_URI.into(),
+                raw: include_bytes!(
+                    "../../../../ToS/contracts/transfer-route-readiness-projection-v2.schema.json"
+                )
+                .to_vec(),
+            }],
+            tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        assert!(
+            probe
+                .is_valid_raw(SCHEMA_V2_URI, &render(&p).unwrap())
+                .unwrap()
+        );
+        for key in [
+            "source_to_target_passage_alignment",
+            "eligible_for_variant_execution",
+            "target_gold",
+        ] {
+            let mut v = p.clone();
+            v["routes"][0][key] = json!(true);
+            assert!(
+                !probe
+                    .is_valid_raw(SCHEMA_V2_URI, &render(&v).unwrap())
+                    .unwrap()
+            );
+        }
+        p["provenance_event_ref"] = json!(LEGACY_EVENT);
+        assert!(
+            !probe
+                .is_valid_raw(SCHEMA_V2_URI, &render(&p).unwrap())
+                .unwrap()
+        );
     }
     #[test]
     fn rejects_identity_intersection_and_authority_drift() {
