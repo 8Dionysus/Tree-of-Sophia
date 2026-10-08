@@ -10,7 +10,7 @@ use tos_foundation::{Digest256, JsonLimits};
 /// connection and original CreationState. Layout comes from that Stage, never
 /// from table discovery. The source packet stays borrowed through consume.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn with_sql_logical_payload<T>(
+fn with_sql_decoded_parts<T>(
     db: &rusqlite::Connection,
     state: &CreationState<'_>,
     layout: crate::knowledge_stage::KnowledgePayloadLayout,
@@ -20,7 +20,7 @@ pub(crate) fn with_sql_logical_payload<T>(
     codec: i64,
     source_key: Option<&[u8]>,
     max_bytes: usize,
-    consume: impl FnOnce(&[u8]) -> Result<T>,
+    consume: impl FnOnce(SqlLogicalParts<'_>) -> Result<T>,
 ) -> Result<T> {
     use rusqlite::types::ValueRef;
     let logical_len = usize::try_from(logical_len)
@@ -45,7 +45,7 @@ pub(crate) fn with_sql_logical_payload<T>(
             if charged_digest(state, raw)? != digest {
                 return Err(Error::Invalid("normalized SQL Inline receipt"));
             }
-            consume(raw)
+            consume(SqlLogicalParts::Inline(raw))
         });
     }
     if !layout.uses_carriers() || codec != 1 {
@@ -88,25 +88,142 @@ pub(crate) fn with_sql_logical_payload<T>(
         ValueRef::Blob(source) => source,
         _ => return Err(Error::Invalid("normalized SQL source type")),
     };
-    let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
     layout.with_sql_decoded(db, state, source, Some(packet_len), max_bytes, |source| {
-        if charged_digest(state, source)?.as_bytes().as_slice() != source_key {
+        let source_digest = charged_digest(state, source)?;
+        if source_digest.as_bytes().as_slice() != source_key {
             return Err(Error::Invalid("normalized SQL source receipt"));
         }
         layout.with_sql_decoded(db, state, stored, None, max_bytes, |stored| {
-            with_hydrated_payload(
-                state,
+            consume(SqlLogicalParts::Carrier {
                 stored,
                 source,
-                limits,
-                limits,
-                max_bytes,
+                source_digest,
                 logical_len,
-                digest,
-                consume,
-            )
+                logical_digest: digest,
+            })
         })
     })
+}
+
+// This private value is created only after SQL codec/length/digest admission.
+// Its borrowed source and physical frame cannot escape the owning callback.
+enum SqlLogicalParts<'a> {
+    Inline(&'a [u8]),
+    Carrier {
+        stored: &'a [u8],
+        source: &'a [u8],
+        source_digest: Digest256,
+        logical_len: usize,
+        logical_digest: Digest256,
+    },
+}
+
+/// Exact byte consumer. Shares physical admission with the typed consumer.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_sql_logical_payload<T>(
+    db: &rusqlite::Connection,
+    state: &CreationState<'_>,
+    layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    logical_len: i64,
+    logical_sha256: &[u8],
+    stored: &[u8],
+    codec: i64,
+    source_key: Option<&[u8]>,
+    max_bytes: usize,
+    consume: impl FnOnce(&[u8]) -> Result<T>,
+) -> Result<T> {
+    let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
+    with_sql_decoded_parts(
+        db,
+        state,
+        layout,
+        logical_len,
+        logical_sha256,
+        stored,
+        codec,
+        source_key,
+        max_bytes,
+        |parts| match parts {
+            SqlLogicalParts::Inline(raw) => consume(raw),
+            SqlLogicalParts::Carrier {
+                stored,
+                source,
+                source_digest,
+                logical_len,
+                logical_digest,
+            } => state.with_serde_owned_value_with_limits(source, limits, |source_value| {
+                with_hydrated_payload_from_source(
+                    state,
+                    stored,
+                    source.len(),
+                    source_digest,
+                    source_value,
+                    limits,
+                    max_bytes,
+                    logical_len,
+                    logical_digest,
+                    consume,
+                )
+            }),
+        },
+    )
+}
+
+/// Semantic/catalog consumers retain the authenticated decoded tree, avoiding
+/// serialization followed by another grammar parse, decode and digest pass.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_sql_logical_value<T>(
+    db: &rusqlite::Connection,
+    state: &CreationState<'_>,
+    layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    logical_len: i64,
+    logical_sha256: &[u8],
+    stored: &[u8],
+    codec: i64,
+    source_key: Option<&[u8]>,
+    max_bytes: usize,
+    consume: impl FnOnce(&Value) -> Result<T>,
+) -> Result<T> {
+    let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
+    with_sql_decoded_parts(
+        db,
+        state,
+        layout,
+        logical_len,
+        logical_sha256,
+        stored,
+        codec,
+        source_key,
+        max_bytes,
+        |parts| match parts {
+            SqlLogicalParts::Inline(raw) => {
+                state.with_serde_owned_with_limits(raw, limits, consume)
+            }
+            SqlLogicalParts::Carrier {
+                stored,
+                source,
+                source_digest,
+                logical_len,
+                logical_digest,
+            } => state.with_serde_owned_value_with_limits(source, limits, |source_value| {
+                with_hydrated_value_from_source(
+                    state,
+                    stored,
+                    source.len(),
+                    source_digest,
+                    source_value,
+                    limits,
+                    max_bytes,
+                    logical_len,
+                    logical_digest,
+                    |value, _| {
+                        state.check_serde_structure(&value, limits)?;
+                        consume(&value)
+                    },
+                )
+            }),
+        },
+    )
 }
 
 const CODEC: &str = "tos_knowledge_carrier_payload_v1";
@@ -354,7 +471,9 @@ fn equal_owned(
                             break;
                         }
                     }
-                    let Some(y) = found else { return Ok(false); };
+                    let Some(y) = found else {
+                        return Ok(false);
+                    };
                     y
                 };
                 if !equal_owned(state, x, y, depth + 1)? {
@@ -475,8 +594,9 @@ pub(crate) fn with_factored_value_payload<T>(
             for (reference, pointer) in &refs {
                 if bytes_equal(state, key.as_bytes(), reference.as_bytes())? {
                     selected = &Value::Null;
-                    restored = pointer_owned(state, &source_value, pointer)?
-                        .ok_or(Error::Invalid("carrier codec selected source pointer absent"))?;
+                    restored = pointer_owned(state, &source_value, pointer)?.ok_or(
+                        Error::Invalid("carrier codec selected source pointer absent"),
+                    )?;
                     break;
                 }
             }
@@ -518,15 +638,13 @@ pub(crate) fn with_factored_value_payload<T>(
                     source: &source_value,
                 },
             };
-            state.with_json_encoded_exact(
-                &rebuilt, normalized.len(), max_row_bytes, |hydrated| {
-                    if !bytes_equal(state, hydrated, normalized)? {
-                        return Err(Error::Invalid("carrier codec logical bytes changed"));
-                    }
-                    state.active()?;
-                    consume(encoded, source_digest)
-                },
-            )
+            state.with_json_encoded_exact(&rebuilt, normalized.len(), max_row_bytes, |hydrated| {
+                if !bytes_equal(state, hydrated, normalized)? {
+                    return Err(Error::Invalid("carrier codec logical bytes changed"));
+                }
+                state.active()?;
+                consume(encoded, source_digest)
+            })
         })
     })
 }
@@ -770,46 +888,73 @@ pub(crate) fn with_hydrated_value_payload<T>(
     }
     let source_digest = charged_digest(state, source)?;
     state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
-        state.with_serde_owned_value_with_limits(stored, stored_limits, |mut physical| {
-            with_authenticated_logical(
-                state,
-                &physical,
-                &source_value,
-                source.len(),
-                source_digest,
-                max_row_bytes,
-                logical_len,
-                logical_digest,
-                |_| Ok(()),
-            )?;
-            let refs = physical["attribute_refs"]
-                .as_array()
-                .ok_or(Error::Invalid("carrier codec references absent"))?;
-            let mut clone_bytes = 0usize;
-            for reference in refs {
-                let (_, pointer) = ref_pair(reference)?;
-                let original = pointer_owned(state, &source_value, pointer)?
-                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
-                clone_bytes = add(clone_bytes, state.value_clone_state_upper_bound(original)?)?;
-            }
-            let clone_hold = state.hold(clone_bytes)?;
-            let refs = physical["attribute_refs"].take();
-            let mut logical = physical["spine"].take();
-            for reference in refs.as_array().expect("validated reference array") {
-                let (key, pointer) = ref_pair(reference)?;
-                let original = pointer_owned(state, &source_value, pointer)?
-                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
-                let slot = logical["attributes"]
-                    .as_object_mut()
-                    .and_then(|fields| fields.get_mut(key))
-                    .ok_or(Error::Invalid("carrier codec attribute slot absent"))?;
-                *slot = original.clone();
-            }
-            logical["source_record"]["payload"] = source_value;
-            let result = consume(logical, source_digest);
-            drop(clone_hold);
-            result
-        })
+        with_hydrated_value_from_source(
+            state,
+            stored,
+            source.len(),
+            source_digest,
+            source_value,
+            stored_limits,
+            max_row_bytes,
+            logical_len,
+            logical_digest,
+            consume,
+        )
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn with_hydrated_value_from_source<T>(
+    state: &CreationState<'_>,
+    stored: &[u8],
+    source_len: usize,
+    source_digest: Digest256,
+    source_value: Value,
+    stored_limits: JsonLimits,
+    max_row_bytes: usize,
+    logical_len: usize,
+    logical_digest: Digest256,
+    consume: impl FnOnce(Value, Digest256) -> Result<T>,
+) -> Result<T> {
+    state.with_serde_owned_value_with_limits(stored, stored_limits, |mut physical| {
+        with_authenticated_logical(
+            state,
+            &physical,
+            &source_value,
+            source_len,
+            source_digest,
+            max_row_bytes,
+            logical_len,
+            logical_digest,
+            |_| Ok(()),
+        )?;
+        let refs = physical["attribute_refs"]
+            .as_array()
+            .ok_or(Error::Invalid("carrier codec references absent"))?;
+        let mut clone_bytes = 0usize;
+        for reference in refs {
+            let (_, pointer) = ref_pair(reference)?;
+            let original = pointer_owned(state, &source_value, pointer)?
+                .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+            clone_bytes = add(clone_bytes, state.value_clone_state_upper_bound(original)?)?;
+        }
+        let clone_hold = state.hold(clone_bytes)?;
+        let refs = physical["attribute_refs"].take();
+        let mut logical = physical["spine"].take();
+        for reference in refs.as_array().expect("validated reference array") {
+            let (key, pointer) = ref_pair(reference)?;
+            let original = pointer_owned(state, &source_value, pointer)?
+                .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+            let slot = logical["attributes"]
+                .as_object_mut()
+                .and_then(|fields| fields.get_mut(key))
+                .ok_or(Error::Invalid("carrier codec attribute slot absent"))?;
+            *slot = original.clone();
+        }
+        logical["source_record"]["payload"] = source_value;
+        let result = consume(logical, source_digest);
+        drop(clone_hold);
+        result
     })
 }
 
@@ -819,30 +964,60 @@ mod tests {
     #[test]
     fn ordered_equality_preserves_reordered_objects_and_charges_less_work() {
         use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
-        use std::{sync::{Arc, atomic::{AtomicBool, AtomicU64, Ordering}}, time::{Duration, Instant}};
+        use std::{
+            sync::{
+                Arc,
+                atomic::{AtomicBool, AtomicU64, Ordering},
+            },
+            time::{Duration, Instant},
+        };
         const CHILD: &str = "TOS_CODEC_EQUALITY_CHILD";
         if std::env::var_os(CHILD).is_none() {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args(["--exact", "knowledge_payload_codec::tests::ordered_equality_preserves_reordered_objects_and_charges_less_work", "--nocapture"])
                 .env(CHILD, "1").output().unwrap();
-            assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            assert!(
+                output.status.success(),
+                "{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
             return;
         }
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = Arc::new(AtomicBool::new(false));
-        let remaining = |n: usize| (4 * 1024 * 1024usize).checked_sub(n).ok_or(Error::Budget("equality test state"));
-        let heap = crate::sqlite_budget::DedicatedSessionSqliteHeap::establish(1024 * 1024, &remaining, deadline, &cancelled).unwrap();
+        let remaining = |n: usize| {
+            (4 * 1024 * 1024usize)
+                .checked_sub(n)
+                .ok_or(Error::Budget("equality test state"))
+        };
+        let heap = crate::sqlite_budget::DedicatedSessionSqliteHeap::establish(
+            1024 * 1024,
+            &remaining,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
         let work = Arc::new(AtomicU64::new(0));
         let vm = Arc::new(AtomicU64::new(0));
         let budget = RuntimeKnowledgeOwnedBudget {
-            remaining_after_retained: &remaining, original_work: &work, original_work_limit: 4 * 1024 * 1024,
-            original_sql_vm: &vm, original_sql_vm_limit: 1_000_000, original_sqlite_heap: &heap,
-            remaining_json_visits: 100_000, owner_deadline: deadline, operation_deadline: deadline, cancelled: &cancelled,
+            remaining_after_retained: &remaining,
+            original_work: &work,
+            original_work_limit: 4 * 1024 * 1024,
+            original_sql_vm: &vm,
+            original_sql_vm_limit: 1_000_000,
+            original_sqlite_heap: &heap,
+            remaining_json_visits: 100_000,
+            owner_deadline: deadline,
+            operation_deadline: deadline,
+            cancelled: &cancelled,
         };
         let state = CreationState::from_runtime_owned_budget(&budget).unwrap();
         let mut fields = serde_json::Map::new();
-        for i in 0..128 { fields.insert(format!("field.{i:03}"), serde_json::json!([i, "α\n", null])); }
+        for i in 0..128 {
+            fields.insert(format!("field.{i:03}"), serde_json::json!([i, "α\n", null]));
+        }
         let value = Value::Object(fields);
         let before = work.load(Ordering::Acquire);
         assert!(equal_owned(&state, &value, &value, 0).unwrap());
@@ -855,13 +1030,19 @@ mod tests {
         for (key, x) in a {
             for (other, y) in a {
                 if bytes_equal(&state, key.as_bytes(), other.as_bytes()).unwrap() {
-                    assert!(equal_owned(&state, x, y, 1).unwrap()); break;
+                    assert!(equal_owned(&state, x, y, 1).unwrap());
+                    break;
                 }
             }
         }
         let scanned_work = work.load(Ordering::Acquire) - before;
         assert!(ordered_work * 3 < scanned_work);
-        let reversed = Value::Object(a.iter().rev().map(|(k,v)| (k.clone(),v.clone())).collect());
+        let reversed = Value::Object(
+            a.iter()
+                .rev()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
+        );
         assert!(equal_owned(&state, &value, &reversed, 0).unwrap());
         let mut different = reversed.clone();
         different["field.001"] = Value::Null;

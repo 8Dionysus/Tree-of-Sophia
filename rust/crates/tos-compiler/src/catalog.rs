@@ -1160,21 +1160,7 @@ fn stage(db: &Connection, limits: CatalogLimits) -> Result<()> {
     Ok(())
 }
 
-fn ensure_row(
-    item: &Value,
-    id: &str,
-    source: &str,
-    raw: &[u8],
-    stored_len: i64,
-    stored_sha: &[u8],
-    limits: CatalogLimits,
-) -> Result<()> {
-    if raw.len() > limits.max_row_bytes || stored_len < 0 || raw.len() != stored_len as usize {
-        return Err(Error::Budget("catalog row bytes"));
-    }
-    if stored_sha != &Digest256::of_bytes(raw).as_bytes()[..] {
-        return Err(Error::Invalid("catalog row digest"));
-    }
+fn ensure_row(item: &Value, id: &str, source: &str) -> Result<()> {
     if text(item, "id")? != id || text(item, "source_graph")? != source {
         return Err(Error::Invalid("catalog row identity"));
     }
@@ -1196,18 +1182,16 @@ fn with_catalog_item<T>(
     max_bytes: usize,
     invalid: &'static str,
     creation: Option<&CreationState<'_>>,
-    operation: impl FnOnce(&Value, &[u8]) -> Result<T>,
+    operation: impl FnOnce(&Value) -> Result<T>,
 ) -> Result<T> {
     if let Some(creation) = creation {
-        let limits = JsonLimits::new(max_bytes, 96, 1_000_000, 4096)
-            .map_err(|_| Error::Budget("catalog row JSON limits"))?;
         let codec: i64 = row.get(codec_column)?;
         let source_key = match row.get_ref(codec_column + 1)? {
             rusqlite::types::ValueRef::Null => None,
             rusqlite::types::ValueRef::Blob(key) => Some(key),
             _ => return Err(Error::Invalid("catalog source key type")),
         };
-        crate::knowledge_payload_codec::with_sql_logical_payload(
+        crate::knowledge_payload_codec::with_sql_logical_value(
             db,
             creation,
             layout,
@@ -1217,18 +1201,20 @@ fn with_catalog_item<T>(
             codec,
             source_key,
             max_bytes,
-            |logical| {
-                creation.with_serde_owned_with_limits(logical, limits, |value| {
-                    operation(value, logical)
-                })
-            },
+            operation,
         )
     } else {
         if layout != KnowledgePayloadLayout::InlineV1 {
             return Err(Error::Invalid("catalog compact payload owner absent"));
         }
+        if raw.len() > max_bytes || logical_len < 0 || raw.len() != logical_len as usize {
+            return Err(Error::Budget("catalog row bytes"));
+        }
+        if digest != Digest256::of_bytes(raw).as_bytes().as_slice() {
+            return Err(Error::Invalid("catalog row digest"));
+        }
         let item: Value = serde_json::from_slice(raw).map_err(|_| Error::Invalid(invalid))?;
-        operation(&item, raw)
+        operation(&item)
     }
 }
 
@@ -1287,7 +1273,8 @@ fn ingest_nodes(
             return Err(Error::Budget("catalog rows"));
         }
         let actual_len: i64 = r.get(5)?;
-        if actual_len < 0 || actual_len as u64 > layout.physical_bound(limits.max_row_bytes)? as u64 {
+        if actual_len < 0 || actual_len as u64 > layout.physical_bound(limits.max_row_bytes)? as u64
+        {
             return Err(Error::Budget("catalog row bytes"));
         }
         let field_lengths = [
@@ -1382,8 +1369,8 @@ fn ingest_nodes(
             limits.max_row_bytes,
             "catalog node JSON",
             creation,
-            |item, raw| {
-                ensure_row(item, &id, &source, raw, len, &sha, limits)?;
+            |item| {
+                ensure_row(item, &id, &source)?;
                 if text(item, "kind_id")? != kind || text(item, "type_id")? != type_id {
                     return Err(Error::Invalid("catalog node columns"));
                 }
@@ -1626,7 +1613,8 @@ fn ingest_relations(
             return Err(Error::Budget("catalog rows"));
         }
         let actual_len: i64 = r.get(7)?;
-        if actual_len < 0 || actual_len as u64 > layout.physical_bound(limits.max_row_bytes)? as u64 {
+        if actual_len < 0 || actual_len as u64 > layout.physical_bound(limits.max_row_bytes)? as u64
+        {
             return Err(Error::Budget("catalog row bytes"));
         }
         let field_lengths = [
@@ -1726,8 +1714,8 @@ fn ingest_relations(
             limits.max_row_bytes,
             "catalog relation JSON",
             creation,
-            |item, raw| {
-                ensure_row(item, &id, &source, raw, len, &sha, limits)?;
+            |item| {
+                ensure_row(item, &id, &source)?;
                 for (key, expected) in [
                     ("from_id", &from),
                     ("to_id", &to),

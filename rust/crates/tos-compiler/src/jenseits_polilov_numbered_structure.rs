@@ -628,3 +628,33 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         json!({"status":if options.build{"built"}else{"current"},"generator":BUILDER,"generation":generation,"historical_reconstruction_only":generation.is_none(),"numbered_units":keys.len(),"machine_matches":matched,"reviewed_overrides":PAGE_OVERRIDES.len(),"outputs_written":written,"outputs":outputs.iter().map(|(r,b)|json!({"ref":r,"bytes":b.len(),"sha256":sha(b)})).collect::<Vec<_>>(),"accepted_source_text":false,"human_review_performed":false,"canon_effect":false,"execution_budget":ctx.budget_report()}),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn ordered_candidates_preserve_missing_units_and_raw_labels() {
+        let keys = ["1", "2", "3", "4"].map(str::to_owned);
+        let candidates =
+            [(10, "1"), (11, "3"), (12, "2"), (13, "4")].map(|(page, key)| Candidate {
+                page,
+                key: key.into(),
+                raw: format!("{key}."),
+            });
+        let (pages, raw, gaps) = ordered(&keys, &candidates);
+        assert_eq!(
+            pages,
+            [("1".into(), 10), ("3".into(), 11), ("4".into(), 13)].into()
+        );
+        assert_eq!(gaps, ["2"]);
+        assert_eq!(
+            raw,
+            [
+                ("1".into(), "1.".into()),
+                ("3".into(), "3.".into()),
+                ("4".into(), "4.".into())
+            ]
+            .into()
+        );
+    }
+}

@@ -827,6 +827,32 @@ impl<'budget> CreationState<'budget> {
         drop(hold);
         result
     }
+    /// Recheck only composition-sensitive limits of an already strictly parsed
+    /// tree. Keys, numeric lexemes and UTF8 were admitted with its constituents.
+    pub(crate) fn check_serde_structure(&self, value: &serde_json::Value, limits: JsonLimits) -> Result<()> {
+        fn walk(state: &CreationState<'_>, value: &serde_json::Value, limits: JsonLimits,
+                depth: usize, visited: &mut usize) -> Result<()> {
+            state.charge_work(1)?;
+            if depth > limits.max_depth.min(96) || *visited >= limits.max_visits
+                || state.json_visits.get() >= state.max_json_visits {
+                return Err(Error::Budget("owned composed JSON structure"));
+            }
+            *visited += 1;
+            state.json_visits.set(state.json_visits.get() + 1);
+            match value {
+                serde_json::Value::Array(rows) => {
+                    for row in rows { walk(state, row, limits, depth + 1, visited)?; }
+                }
+                serde_json::Value::Object(fields) => {
+                    for row in fields.values() { walk(state, row, limits, depth + 1, visited)?; }
+                }
+                _ => {}
+            }
+            Ok(())
+        }
+        let _frames = self.hold(97 * 128)?;
+        walk(self, value, limits, 0, &mut 0)
+    }
     #[cfg(test)]
     fn decode_serde_raw(&self, raw: &[u8]) -> Result<serde_json::Value> {
         // The original raw input is borrowed. Every byte supplied to serde is

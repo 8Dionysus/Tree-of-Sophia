@@ -111,23 +111,6 @@ fn sql_optional_text_ref<'row>(row: &'row Row<'_>, column: usize) -> Result<Opti
         _ => Err(Error::Invalid("public D1 semantic SQL text")),
     }
 }
-fn with_checked_row_owned<T>(
-    raw: &[u8],
-    digest: &[u8],
-    state: &CreationState<'_>,
-    operation: impl FnOnce(&Value) -> Result<T>,
-) -> Result<T> {
-    if raw.len() > MAX_ROW_BYTES || digest.len() != 32 {
-        return Err(Error::Invalid("public D1 semantic row digest"));
-    }
-    state.charge_work(raw.len())?;
-    if digest != Digest256::of_bytes(raw).as_bytes() {
-        return Err(Error::Invalid("public D1 semantic row digest"));
-    }
-    let limits = tos_foundation::JsonLimits::new(MAX_ROW_BYTES, 96, 1_000_000, 4096)
-        .map_err(|_| Error::Budget("public D1 semantic row limits"))?;
-    state.with_serde_owned_with_limits(raw, limits, operation)
-}
 fn with_semantic_physical_row_owned<T>(
     db: &rusqlite::Connection,
     row: &Row<'_>,
@@ -149,7 +132,7 @@ fn with_semantic_physical_row_owned<T>(
     } else {
         (0, None)
     };
-    crate::knowledge_payload_codec::with_sql_logical_payload(
+    crate::knowledge_payload_codec::with_sql_logical_value(
         db,
         state,
         layout,
@@ -159,7 +142,7 @@ fn with_semantic_physical_row_owned<T>(
         codec,
         source_key,
         MAX_ROW_BYTES,
-        |logical| with_checked_row_owned(logical, digest, state, operation),
+        operation,
     )
 }
 fn node(statement: &mut Statement<'_>, capture: &PublicCapture, id: &str) -> Result<Option<Value>> {

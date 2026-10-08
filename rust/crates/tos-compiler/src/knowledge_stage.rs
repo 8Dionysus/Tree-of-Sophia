@@ -6971,6 +6971,57 @@ mod tests {
                     Ok(())
                 }).unwrap().unwrap();
             }
+            // The actual SQL consumer interface checks the same packed frames,
+            // dictionaries, exact source and normalized digest in both forms.
+            // Typed semantic/catalog readers avoid another whole JSON parse.
+            {
+                let db = stage.db();
+                let mut sql = db.prepare("SELECT payload_len,payload_sha256,payload,payload_codec,source_packet_sha256 FROM knowledge_nodes WHERE id='node.0'").unwrap();
+                let mut rows = sql.query([]).unwrap();
+                let row = rows.next().unwrap().unwrap();
+                let len = row.get(0).unwrap();
+                let digest = row.get_ref(1).unwrap().as_blob().unwrap();
+                let stored = row.get_ref(2).unwrap().as_blob().unwrap();
+                let codec = row.get(3).unwrap();
+                let key = row.get_ref(4).unwrap().as_blob().unwrap();
+                let limits = crate::knowledge_normalization::SourceRow::json_limits(32768).unwrap();
+                let before = work.load(Ordering::Acquire);
+                let expected = crate::knowledge_payload_codec::with_sql_logical_payload(
+                    db, &state, layout, len, digest, stored, codec, Some(key), 32768,
+                    |raw| state.with_serde_owned_with_limits(raw, limits,
+                        |value| Ok(serde_json::to_vec(value).unwrap())),
+                ).unwrap();
+                let byte_work = work.load(Ordering::Acquire) - before;
+                let before = work.load(Ordering::Acquire);
+                crate::knowledge_payload_codec::with_sql_logical_value(
+                    db, &state, layout, len, digest, stored, codec, Some(key), 32768,
+                    |value| { assert_eq!(serde_json::to_vec(value).unwrap(), expected); Ok(()) },
+                ).unwrap();
+                let typed_work = work.load(Ordering::Acquire) - before;
+                assert!(typed_work < byte_work, "typed={typed_work} byte={byte_work}");
+                eprintln!("SQL logical reader layout={layout:?} byte_work={byte_work} typed_work={typed_work}");
+                for (bad_len, bad_digest, bad_codec, bad_key) in [
+                    (len + 1, digest, codec, Some(key)),
+                    (len, &[0u8; 32][..], codec, Some(key)),
+                    (len, digest, 2, Some(key)),
+                    (len, digest, codec, None),
+                    (len, digest, codec, Some(&[0u8; 32][..])),
+                ] {
+                    let mut delivered = false;
+                    assert!(crate::knowledge_payload_codec::with_sql_logical_value(
+                        db, &state, layout, bad_len, bad_digest, stored, bad_codec, bad_key, 32768,
+                        |_| { delivered = true; Ok(()) },
+                    ).is_err());
+                    assert!(!delivered);
+                }
+                // Joining valid constituents must still retain the logical
+                // depth/visit limits formerly enforced by the redundant parse.
+                let mut nested = serde_json::Value::Null;
+                for _ in 0..97 { nested = serde_json::json!([nested]); }
+                assert!(state.check_serde_structure(&nested, limits).is_err());
+                let tight = tos_foundation::JsonLimits::new(32768, 96, 2, 4096).unwrap();
+                assert!(state.check_serde_structure(&serde_json::json!([0,1]), tight).is_err());
+            }
             let count: u64 = stage.db().query_row("SELECT count(*) FROM knowledge_source_carriers", [], |row| row.get(0)).unwrap();
             assert_eq!(count, 1, "identical exact source retains one carrier");
             if layout.dictionary_bytes() {
