@@ -1218,21 +1218,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_golden_kernel_transfer_route_readiness.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "generated_parity",
-      "validation_lane": "source_witness_foundation",
-      "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
-      "protects": "text-free co-availability across all 35 source/target candidate routes, 32 frozen-page intersections, three preserved target nonintersections, at least one dual intersecting route for all 20 frozen pages, and zero alignment, eligibility, gold, human, semantic, publication, or canon promotion",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_golden_kernel_transfer_route_readiness.py",
-      "failure_route": "Fix the readiness contract, source/target candidate sets, builder, tracked projection, provenance, or validator before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_source_text_layer_proposal.py",
       "home": "tests",
       "home_scope": "root",

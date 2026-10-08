@@ -753,16 +753,11 @@
       {
         "label": "check golden-kernel transfer route readiness",
         "command": [
-          "python",
-          "scripts/build_golden_kernel_transfer_route_readiness.py",
+          "tos",
+          "transfer-route-readiness",
+          "--source-root",
+          "{repo_root}",
           "--check"
-        ]
-      },
-      {
-        "label": "validate golden-kernel transfer route readiness",
-        "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_route_readiness.py"
         ]
       },
       {

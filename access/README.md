@@ -2196,3 +2196,20 @@ version, payload and exact bbox output. Private text and bbox files stay ignored
 and mode 0600. Sentence and alignment records contain only selectors, hashes and
 source references; their proposal status grants no textual, translation, rights,
 publication or canon admission.
+
+Native transfer readiness uses the same explicit source selection:
+
+```sh
+tos transfer-route-readiness --source-root /absolute/source --check
+tos transfer-route-readiness --source-root /absolute/source --build \
+  --output ToS/source-witnesses/transfer-readiness.native.json \
+  --event-id tos.event.native-projection.golden-kernel-transfer-route-readiness.example \
+  --scratch-bytes 4194304
+```
+
+The default check preserves the exact historical V1 projection and event.
+A fresh output uses the V2 contract and a distinct event; its source and target
+candidate frame is unchanged. Repeating the same build verifies its existing
+bytes. Earlier provenance journal bytes are retained, and a concurrent journal
+change refuses the write. This command reads only tracked candidate metadata;
+it grants no passage alignment, eligibility, gold or canon status.

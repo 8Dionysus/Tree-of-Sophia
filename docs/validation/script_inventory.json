@@ -2736,25 +2736,29 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_golden_kernel_transfer_route_readiness.py",
+      "path": "rust/crates/tos-compiler/src/transfer_route_readiness.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
       "source_truth": [
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
-        "ToS/contracts/transfer-route-readiness-projection.schema.json"
+        "ToS/contracts/transfer-route-readiness-projection.schema.json",
+        "ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
       ],
       "reads": [
-        "tracked candidate identities, mechanical statuses, boundary-layer names, frozen-page identities, and authority flags only; no private content"
+        "tracked candidate identities, mechanical statuses, boundary-layer names, frozen-page identities, and authority flags only; no private content",
+        "tracked readiness contract, source and target candidate frames, text-free projection, input digests, and provenance"
       ],
       "writes": [
         "one tracked text-free thirty-five-route and twenty-page readiness projection plus one provenance event unless --check is used"
       ],
-      "side_effects": "reports 35 dual mechanically available routes, 32 frozen-page intersections, three target nonintersections, and 20 of 20 pages with an intersecting route; creates no bilingual pair, alignment, accepted text, eligibility, gold, human, semantic, publication, or canon effect",
+      "side_effects": "reports 35 dual mechanically available routes, 32 frozen-page intersections, three target nonintersections, and 20 of 20 pages with an intersecting route; creates no bilingual pair, alignment, accepted text, eligibility, gold, human, semantic, publication, or canon effect; native --check also verifies exact provenance closure; fresh --build requires a new event ID and retains earlier journal bytes",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
-      "test_target": "tests/test_golden_kernel_transfer_route_readiness.py",
+      "test_target": "rust/crates/tos-compiler/src/transfer_route_readiness.rs",
       "disposition": "keep"
     },
     {
@@ -3128,28 +3132,6 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_golden_kernel_transfer_route_readiness.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
-      "source_truth": [
-        "ToS/contracts/transfer-route-readiness-projection.schema.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
-      ],
-      "reads": [
-        "tracked readiness contract, source and target candidate frames, text-free projection, input digests, and provenance"
-      ],
-      "writes": [],
-      "side_effects": "validation output only; independently checks 35 dual candidate routes, the 32/3 intersection split, 20 of 20 frozen-page coverage, text-free shape, and zero alignment/eligibility/gold/human/semantic/publication/canon effects",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_golden_kernel_transfer_route_readiness.py",
       "disposition": "keep"
     },
     {
