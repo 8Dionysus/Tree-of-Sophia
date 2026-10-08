@@ -667,3 +667,7 @@ pub fn python_printable_unicode16_v1(ch: char) -> bool {
                 | Category::SpaceSeparator
         )
 }
+
+/// Scalar predicates pinned to the same Unicode 16 profile as normalization.
+#[path = "unicode_predicates16.rs"]
+pub mod predicates16;

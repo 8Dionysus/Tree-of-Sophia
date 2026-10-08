@@ -132,3 +132,5 @@ pub mod nietzsche_transfer_routes_command;
 pub mod jenseits_structure_command;
 
 pub mod lexical_derivatives_command;
+
+pub mod morphology_result_command;

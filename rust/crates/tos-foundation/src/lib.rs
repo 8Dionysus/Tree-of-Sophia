@@ -13,6 +13,7 @@ mod logical_ref;
 pub mod native_software_roles;
 mod path;
 mod unicode;
+pub use unicode::predicates16 as unicode_predicates16;
 
 pub use capability::{FoundationCapabilities, capabilities};
 pub use coordinates::{ByteSpan, CodePointSpan};
