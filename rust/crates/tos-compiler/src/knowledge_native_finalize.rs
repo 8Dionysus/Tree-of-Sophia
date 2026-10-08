@@ -176,6 +176,9 @@ where
     F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,
     G: FnMut(&mut KnowledgeStage<'_>, bool, &str, &str, &str) -> Result<Option<Vec<u8>>>,
 {
+    let mut total = 0u64;
+    let mut work = 0u64;
+    let mut readable = 0u64;
     let result = (|| {
         limits.validate()?;
         if inherited.source_cut != stage.exact_receipt()?.binding.source_cut
@@ -197,9 +200,6 @@ where
                 max_work_bytes: limits.max_work_bytes,
             },
         )?;
-        let mut total = 0u64;
-        let mut work = 0u64;
-        let mut readable = 0u64;
         for table in ["knowledge_nodes", "knowledge_relations"] {
             let mut after = -1i64;
             loop {
@@ -443,6 +443,9 @@ where
                         }
                     }
                     after = row.order;
+                    if total.is_power_of_two() {
+                        eprintln!("Native finalize progress table={table} rows={total} readable_rows={readable} source_output_bytes={work}");
+                    }
                 }
                 Ok(())
                     },
@@ -467,6 +470,10 @@ where
             relation_root_sha256: final_roots.relation_sha256,
         })
     })();
+    eprintln!(
+        "Native finalize complete status={} rows={total} readable_rows={readable} source_output_bytes={work}",
+        if result.is_ok() { "passed" } else { "refused" }
+    );
     if result.is_err() {
         stage.poison();
     }
