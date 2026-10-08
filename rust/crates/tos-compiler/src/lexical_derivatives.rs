@@ -45,7 +45,9 @@ fn digest_bound(
     digest: &str,
     held: &mut Vec<Held>,
 ) -> Result<()> {
-    let source = Held::open(ctx, reference, META_CAP)?;
+    // The retained hash-only lexical projection is 12.3 MiB. It is streamed
+    // for fixity here, without materializing its full JSON graph.
+    let source = Held::open(ctx, reference, PACKET_CAP as u64)?;
     ensure(
         source.digest == digest,
         &format!("source digest drift: {reference}"),
