@@ -46,9 +46,9 @@ impl Inputs {
             .ok_or("unselected provenance input")?;
         tos_foundation::parse_json(
             raw,
+            tos_foundation::JsonMode::PublishedStrict,
             tos_foundation::JsonLimits::new(CAP, 96, 100_000, 4096)
                 .map_err(|e| format!("limits: {e:?}"))?,
-            tos_foundation::JsonMode::PublishedStrict,
         )
         .map_err(|e| format!("strict input: {e:?}"))?;
         serde_json::from_slice(raw).map_err(|e| e.to_string())
@@ -193,12 +193,12 @@ pub fn variant(
     )?;
     let start_at = utc_now()?;
     let start = Instant::now();
-    let input = &selected.files[&path("input-fixture.txt")];
+    let input = selected.files[&path("input-fixture.txt")].clone();
     let (output_name, bytes, exit) = match id {
         "A" => ("variant-a.copy.txt", input.clone(), 0),
         "B" => (
             "variant-b.nfc.txt",
-            std::str::from_utf8(input)
+            std::str::from_utf8(&input)
                 .map_err(|e| e.to_string())?
                 .nfc()
                 .collect::<String>()
@@ -207,7 +207,7 @@ pub fn variant(
         ),
         _ => {
             ensure(
-                !std::str::from_utf8(input)
+                !std::str::from_utf8(&input)
                     .map_err(|e| e.to_string())?
                     .is_ascii(),
                 "ASCII negative control unexpectedly accepted input",
@@ -249,7 +249,7 @@ pub fn variant(
         },
         &end_at,
     );
-    event["entities"] = json!({"inputs":[entity(&path("input-fixture.txt"),input,"public-synthetic-input",&end_at)],"outputs":if exit==0 {vec![result_entity.clone()]} else {vec![]},"byproducts":if exit==7 {vec![result_entity]} else {vec![]}});
+    event["entities"] = json!({"inputs":[entity(&path("input-fixture.txt"),&input,"public-synthetic-input",&end_at)],"outputs":if exit==0 {vec![result_entity.clone()]} else {vec![]},"byproducts":if exit==7 {vec![result_entity]} else {vec![]}});
     let builder_sha = sha(include_bytes!("provenance_event_lab.rs"));
     let binding = json!({"ref":BUILDER,"sha256":builder_sha});
     event["responsibility"][0]["evidence_binding"] = binding.clone();
