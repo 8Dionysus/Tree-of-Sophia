@@ -4,11 +4,21 @@ const HELP: &str = "tos jenseits-numbered-structure --source-root ABS --local-in
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     let command = args.first().map(String::as_str);
     let polilov = command == Some("jenseits-polilov-numbered-structure");
-    if command != Some("jenseits-numbered-structure") && !polilov {
+    let mysl = command == Some("mysl-transfer-target-structure");
+    if command != Some("jenseits-numbered-structure") && !polilov && !mysl {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
-        let help = if polilov {
+        let help = if mysl {
+            HELP.replace(
+                "jenseits-numbered-structure",
+                "mysl-transfer-target-structure",
+            )
+            .replace(
+                "ABBYY numbered-unit map",
+                "Mysl hierarchical maps and frozen page crosswalks",
+            )
+        } else if polilov {
             HELP.replace(
                 "jenseits-numbered-structure",
                 "jenseits-polilov-numbered-structure",
@@ -75,7 +85,17 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
         };
-        if polilov {
+        if mysl {
+            tos_compiler::mysl_transfer_target_structure::run(
+                &ctx,
+                tos_compiler::mysl_transfer_target_structure::Options {
+                    build,
+                    input_root: Some(&input),
+                    generation,
+                    event_at: at,
+                },
+            )
+        } else if polilov {
             tos_compiler::jenseits_polilov_numbered_structure::run(
                 &ctx,
                 tos_compiler::jenseits_polilov_numbered_structure::Options {

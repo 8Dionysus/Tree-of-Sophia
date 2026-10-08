@@ -569,6 +569,14 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
             )?;
         }
     }
+    if generation.is_none() {
+        let Out::Array(warnings) = field(&mut event, "warnings")? else {
+            return Err("event warnings array".into());
+        };
+        warnings[4] = q(
+            "No source-to-target unit alignment, translation equivalence, translation quality, or semantic claim was made.",
+        );
+    }
     let event_raw = render(&event, false)?;
     validate(
         "ToS/contracts/target-numbered-unit-page-map.schema.json",

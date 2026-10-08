@@ -1716,6 +1716,6 @@ mod contract_tests {
                 );
             }
         }
-        assert_eq!(count, 14);
+        assert_eq!(count, 22);
     }
 }

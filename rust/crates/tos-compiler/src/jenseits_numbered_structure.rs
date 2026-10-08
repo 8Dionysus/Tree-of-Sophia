@@ -20,16 +20,16 @@ use constants::*;
 type Result<T> = std::result::Result<T, String>;
 const CAP: u64 = 4 * 1024 * 1024;
 const BUILDER: &str = "rust/crates/tos-compiler/src/jenseits_numbered_structure.rs";
-fn q(v: impl Into<String>) -> Out {
+pub(super) fn q(v: impl Into<String>) -> Out {
     Out::String(v.into())
 }
-fn n(v: u64) -> Out {
+pub(super) fn n(v: u64) -> Out {
     Out::Integer(v)
 }
-fn o(v: Vec<(&str, Out)>) -> Out {
+pub(super) fn o(v: Vec<(&str, Out)>) -> Out {
     Out::Object(v.into_iter().map(|(k, v)| (k.into(), v)).collect())
 }
-fn field<'a>(v: &'a mut Out, key: &str) -> Result<&'a mut Out> {
+pub(super) fn field<'a>(v: &'a mut Out, key: &str) -> Result<&'a mut Out> {
     let Out::Object(rows) = v else {
         return Err("ordered object required".into());
     };
@@ -38,18 +38,18 @@ fn field<'a>(v: &'a mut Out, key: &str) -> Result<&'a mut Out> {
         .map(|(_, v)| v)
         .ok_or_else(|| format!("missing ordered field {key}"))
 }
-fn set(v: &mut Out, key: &str, next: Out) -> Result<()> {
+pub(super) fn set(v: &mut Out, key: &str, next: Out) -> Result<()> {
     *field(v, key)? = next;
     Ok(())
 }
-fn append(v: &mut Out, next: Out) -> Result<()> {
+pub(super) fn append(v: &mut Out, next: Out) -> Result<()> {
     let Out::Array(rows) = v else {
         return Err("ordered array required".into());
     };
     rows.push(next);
     Ok(())
 }
-fn render(v: &Out, pretty: bool) -> Result<Vec<u8>> {
+pub(super) fn render(v: &Out, pretty: bool) -> Result<Vec<u8>> {
     let mut b = if pretty {
         serde_json::to_vec_pretty(v)
     } else {
@@ -60,7 +60,7 @@ fn render(v: &Out, pretty: bool) -> Result<Vec<u8>> {
     ensure(b.len() <= CAP as usize, "structure packet byte bound")?;
     Ok(b)
 }
-fn array(v: &Value) -> Result<&Vec<Value>> {
+pub(super) fn array(v: &Value) -> Result<&Vec<Value>> {
     v.as_array().ok_or("array required".into())
 }
 fn keys() -> Vec<String> {
@@ -262,14 +262,14 @@ fn basis(key: &str) -> &'static str {
         "ocr_order_candidate"
     }
 }
-struct Held {
-    reference: String,
-    file: File,
-    metadata: std::fs::Metadata,
-    digest: String,
+pub(super) struct Held {
+    pub(super) reference: String,
+    pub(super) file: File,
+    pub(super) metadata: std::fs::Metadata,
+    pub(super) digest: String,
 }
 impl Held {
-    fn open(ctx: &ResearchExecution, reference: &str, cap: u64) -> Result<Self> {
+    pub(super) fn open(ctx: &ResearchExecution, reference: &str, cap: u64) -> Result<Self> {
         let mut file = ctx.source_file(reference, cap)?;
         let metadata = file.metadata().map_err(|e| e.to_string())?;
         let digest = ctx.hash_file(&mut file, cap)?;
@@ -280,7 +280,7 @@ impl Held {
             digest,
         })
     }
-    fn verify(&mut self, ctx: &ResearchExecution) -> Result<()> {
+    pub(super) fn verify(&mut self, ctx: &ResearchExecution) -> Result<()> {
         ctx.verify_file_unchanged(&self.file, &self.metadata)?;
         let current = ctx.source_file(&self.reference, self.metadata.len())?;
         ctx.verify_file_unchanged(&current, &self.metadata)?;
