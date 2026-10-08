@@ -335,7 +335,7 @@ pub fn retain_philosophy_original(
                         .checked_add(collection.len() as u64)
                         .and_then(|n| n.checked_add(id.len() as u64))
                         .ok_or(Error::Budget("philosophy original metadata bytes"))?;
-                    stage.retain_exact_source_carrier(raw)?;
+                    stage.retain_exact_source_carrier_for_family(collection, raw)?;
                     bytes = bytes
                         .checked_add(row_bytes)
                         .ok_or(Error::Budget("philosophy original metadata bytes"))?;
@@ -531,7 +531,7 @@ fn page_with_layout_and_work(
         max_row_bytes as i64,
         max_rows as i64
     ])?;
-    let (rows, decoded_bytes) = crate::knowledge_original_rows::read(&mut scan, max_page_bytes, max_row_bytes, layout, decode_work, work_cap)?;
+    let (rows, decoded_bytes) = crate::knowledge_original_rows::read(db, &mut scan, max_page_bytes, max_row_bytes, layout, decode_work, work_cap)?;
     let rows = rows
         .into_iter()
         .map(|(ordinal, raw)| {
@@ -741,7 +741,7 @@ pub(crate) fn verify(
                 KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
                 crate::KNOWLEDGE_CORPUS_MODEL_ABI,
                 KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
             ]
             .contains(&e.model_abi.as_str())
     {
@@ -1122,7 +1122,7 @@ fn verify_rows_owned(
                         "philosophy original ordinal/length coverage",
                     ));
                 }
-                layout.with_decoded(state, raw, Some(declared as usize), l.max_row_bytes, |raw| {
+                layout.with_sql_decoded(db, state, raw, Some(declared as usize), l.max_row_bytes, |raw| {
                 let row_work = raw.len() as u64 + 40;
                 *work = work
                     .checked_add(row_work)
@@ -1242,7 +1242,7 @@ pub(crate) fn verify_with_owned_state(
                 KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
                 crate::KNOWLEDGE_CORPUS_MODEL_ABI,
                 KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
             ]
             .contains(&e.model_abi.as_str())
     {

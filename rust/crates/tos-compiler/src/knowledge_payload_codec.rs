@@ -41,7 +41,7 @@ pub(crate) fn with_sql_logical_payload<T>(
         if source_key.is_some() {
             return Err(Error::Invalid("normalized SQL Inline source key"));
         }
-        return layout.with_decoded(state, stored, Some(logical_len), max_bytes, |raw| {
+        return layout.with_sql_decoded(db, state, stored, Some(logical_len), max_bytes, |raw| {
             if charged_digest(state, raw)? != digest {
                 return Err(Error::Invalid("normalized SQL Inline receipt"));
             }
@@ -89,11 +89,11 @@ pub(crate) fn with_sql_logical_payload<T>(
         _ => return Err(Error::Invalid("normalized SQL source type")),
     };
     let limits = crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
-    layout.with_decoded(state, source, Some(packet_len), max_bytes, |source| {
+    layout.with_sql_decoded(db, state, source, Some(packet_len), max_bytes, |source| {
         if charged_digest(state, source)?.as_bytes().as_slice() != source_key {
             return Err(Error::Invalid("normalized SQL source receipt"));
         }
-        layout.with_decoded(state, stored, None, max_bytes, |stored| {
+        layout.with_sql_decoded(db, state, stored, None, max_bytes, |stored| {
             with_hydrated_payload(
                 state,
                 stored,

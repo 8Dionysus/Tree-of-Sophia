@@ -35,21 +35,28 @@ particular selected dataset has passed construction, publication or restore.
 ## Native snapshot byte format
 
 New complete native snapshots select
-`tos_knowledge_read_model_v5_postings_v1_carrier_once_v2`. Exact source packets
+`tos_knowledge_read_model_v5_postings_v1_carrier_once_v3`. Exact source packets
 are retained once in `knowledge_source_carriers`; normalized rows reference
 those logical bytes where their codec permits exact reconstruction. Identity,
 ordering and current rights remain properties of each row and its source.
 Sharing byte storage does not share authority.
 
-Both source packets and normalized payloads use the explicit V2 physical frame
-in `knowledge_byte_codec.rs`: eight magic bytes, a codec selector and an unsigned
-little-endian logical length, followed by raw bytes or a complete zlib stream.
-Compression is selected only when it saves space. Logical lengths and SHA-256
-values still describe the exact decoded bytes. Readers authenticate the model
-ABI before selecting the decoder and reject mismatched lengths, incomplete
-streams, extra trailing bytes and exceeded budgets. Construction and controlled
-reads charge the original operation's state, work, deadline and cancellation
-owners, including simultaneous source and normalized decoding.
+Source packets and normalized payloads use bounded physical frames from
+`knowledge_byte_codec.rs`. V3 stores a SHA-256-addressed dictionary once in
+`knowledge_byte_dictionaries` and uses raw deflate for dictionary frames.
+A dictionary contains at most 4 KiB from the first 32 packets of one producer
+family. Its preparation state belongs to TEMP and ends with normalization.
+The sealed dictionary never changes. Short and early packets retain V2 raw or
+zlib frames; frame selection cannot exceed the original logical-length-plus-17
+storage bound. Dictionary bytes do not own source identity, rights or membership.
+
+Logical lengths and SHA-256 values describe exact decoded bytes. Readers select
+the physical format from the authenticated model ABI, resolve dictionary hashes
+from the same held database, and reject incompatible frames, changed dictionaries,
+incomplete streams, trailing bytes and exceeded budgets. Construction and reads
+charge the original operation's state, work, SQL, deadline and cancellation
+owners, including simultaneous source and normalized decoding. Plain page APIs
+also account for dictionary and decoder workspace within their finite envelope.
 
 Native construction explicitly selects a storage profile with 16 KiB main
 pages, 4 KiB TEMP pages and disposable raw/preparation tables in TEMP. Other
@@ -58,9 +65,9 @@ string does not choose physical storage. Preparation table/index definitions
 produce static main and temporary DDL without rewriting SQL at runtime. Both
 page caps derive from the selected byte limits, and preparation owners remove
 their tables before selection. Changing geometry does not increase the caps.
-The writer uses normal zlib compression, retaining the same V2 byte frame and
-exact decoder contract. Full build and cold-file limits still require measured
-dataset execution.
+V3 secondary ordering indexes omit a repeated text ID after the globally unique
+`source_order`; primary-key identity and exact query order remain unchanged.
+Full build and cold-file limits still require measured dataset execution.
 
 Hydration borrows the verified source subtrees when emitting repeated logical
 fields. It preserves JSON field order and exact numeric/string encoding without
@@ -72,9 +79,10 @@ codec work. A checked walk tightens the existing bound to the returned value;
 scoped and persistent decoding share this transfer, without a new allowance or
 resetting work, JSON visits, deadline or cancellation.
 
-The previous CarrierOnce V1 ABI retains its raw-byte reader and exact DDL
-check. Older inline ABIs retain their original readers. A V2 frame is not
-inferred from an old ABI or from source contents. The new ABI is shared through
+The previous CarrierOnce V1 and V2 ABIs retain their raw and framed readers,
+original indexes and exact DDL checks. Explicit V2 construction remains available.
+Older inline ABIs retain their original readers. A V3 frame is accepted only under
+V3; byte patterns never upgrade an older selected ABI. The new ABI is shared through
 `tos-foundation` with native and WASM consumers; complete dataset construction,
 cold opening and restore require their own execution evidence.
 

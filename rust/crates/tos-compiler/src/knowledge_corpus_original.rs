@@ -629,7 +629,7 @@ pub(crate) fn preload_original_carrier(
             .checked_add(field.len() as u64)
             .ok_or(Error::Budget("corpus carrier metadata bytes"))?;
     }
-    stage.retain_exact_source_carrier(raw)?;
+    stage.retain_exact_source_carrier_for_family(collection.as_str(), raw)?;
     Ok(bytes)
 }
 
@@ -978,7 +978,7 @@ fn page_with_layout_and_work(
     values.push(rusqlite::types::Value::Integer(max_rows as i64));
     let mut q = db.prepare(&sql)?;
     let mut scan = q.query(params_from_iter(values))?;
-    let (rows, bytes) = crate::knowledge_original_rows::read(&mut scan, max_page_bytes, max_row_bytes, layout, decode_work, work_cap)?;
+    let (rows, bytes) = crate::knowledge_original_rows::read(db, &mut scan, max_page_bytes, max_row_bytes, layout, decode_work, work_cap)?;
     let next_ordinal = if rows.len() == max_rows {
         rows.last().map(|r| r.0 as u64)
     } else {
@@ -1075,8 +1075,8 @@ pub(crate) fn all_row_with_state_budget_and_layout(
         .ok_or(Error::Budget("corpus original row state"))?;
     let mut decode_work = 0;
     let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?;
-    let raw = crate::knowledge_original_rows::decode_packet(
-        borrowed, size as usize, max_row_bytes, raw_available, layout, &mut decode_work, work_cap,
+    let raw = crate::knowledge_original_rows::decode_packet_from_connection(
+        Some(db), borrowed, size as usize, max_row_bytes, raw_available, layout, &mut decode_work, work_cap,
     )?;
     crate::knowledge_original_rows::charge_decode_work(&mut decode_work, work_cap, raw.len())?;
     if digest != Digest256::of_bytes(&raw).as_bytes() {
@@ -1350,7 +1350,7 @@ pub(crate) fn verify(
     let found = present(db)?;
     if found != e.corpus_original_root_sha256.is_some()
         || found
-            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1]
+            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2]
                 .contains(&e.model_abi.as_str()))
     {
         return Err(Error::Invalid("corpus original ABI/expected presence"));
@@ -1659,7 +1659,7 @@ fn verify_rows_owned(
                         .checked_add(index[i].map_or(0, str::len))
                         .ok_or(Error::Budget("corpus original key bytes"))?;
                 }
-                layout.with_decoded(state, raw, Some(declared as usize), l.max_row_bytes, |raw| {
+                layout.with_sql_decoded(db, state, raw, Some(declared as usize), l.max_row_bytes, |raw| {
                 let row_work = (raw.len() as u64)
                     .checked_add(40)
                     .ok_or(Error::Budget("corpus original row work"))?;
@@ -1818,7 +1818,7 @@ pub(crate) fn verify_with_owned_state(
     let found = present_with_state(db, state)?;
     if found != e.corpus_original_root_sha256.is_some()
         || found
-            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1]
+            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2]
                 .contains(&e.model_abi.as_str()))
     {
         return Err(Error::Invalid("corpus original ABI/expected presence"));

@@ -60,20 +60,106 @@ pub(crate) fn decode_packet(
     work: &mut u64,
     work_cap: u64,
 ) -> Result<Vec<u8>> {
+    decode_packet_from_connection(
+        None,
+        stored,
+        declared,
+        max_row_bytes,
+        available,
+        layout,
+        work,
+        work_cap,
+    )
+}
+
+/// The page path borrows the already-held SQLite connection. Dictionary SQL
+/// inherits that connection's existing finite VM controller; no model reopen.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn decode_packet_from_connection(
+    db: Option<&rusqlite::Connection>,
+    stored: &[u8],
+    declared: usize,
+    max_row_bytes: usize,
+    available: usize,
+    layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    work: &mut u64,
+    work_cap: u64,
+) -> Result<Vec<u8>> {
+    use crate::knowledge_byte_codec as codec;
     layout.verify_physical_length(stored, declared, max_row_bytes)?;
-    let compressed = layout.packed_bytes()
-        && crate::knowledge_byte_codec::frame_metadata(stored, Some(declared), max_row_bytes)?.1;
-    let capacity = declared
-        .checked_add(usize::from(compressed))
-        .ok_or(Error::Budget("original projection decode capacity"))?;
-    let decoder = if compressed {
-        crate::knowledge_byte_codec::decoder_workspace_upper()?
+    let dictionary_frame = layout.dictionary_bytes() && codec::is_dictionary_frame(stored);
+    let compressed = dictionary_frame
+        || layout.packed_bytes() && codec::frame_metadata(stored, Some(declared), max_row_bytes)?.1;
+    // Admit the worst dictionary (borrowed SQL plus owned copy) before looking
+    // it up. Returned rows retain at most this extra 4 KiB of vector capacity.
+    let dictionary_state = if dictionary_frame {
+        2 * codec::DICTIONARY_BYTES
+            + tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(
+            )
     } else {
         0
     };
-    if capacity.checked_add(decoder).is_none_or(|n| n > available) {
+    let decoder = if compressed {
+        codec::decoder_workspace_upper()?
+    } else {
+        0
+    };
+    let capacity_bound = declared
+        .checked_add(usize::from(compressed))
+        .and_then(|n| {
+            n.checked_add(if dictionary_frame {
+                codec::DICTIONARY_BYTES
+            } else {
+                0
+            })
+        })
+        .ok_or(Error::Budget("original projection decode capacity"))?;
+    if capacity_bound
+        .checked_add(decoder)
+        .and_then(|n| n.checked_add(dictionary_state))
+        .is_none_or(|n| n > available)
+    {
         return Err(Error::Budget("original projection decode state"));
     }
+    let dictionary = if dictionary_frame {
+        let db = db.ok_or(Error::Invalid("original dictionary connection absent"))?;
+        let (_, digest) = codec::dictionary_frame_metadata(stored, Some(declared), max_row_bytes)?;
+        let sql = "SELECT CASE WHEN typeof(dictionary)='blob' AND length(dictionary) BETWEEN 1 AND 4096 THEN dictionary END FROM knowledge_byte_dictionaries WHERE dictionary_sha256=?1";
+        charge_decode_work(work, work_cap, sql.len() + 32)?;
+        let mut statement = db.prepare(sql)?;
+        let mut rows = statement.query([digest.as_bytes().as_slice()])?;
+        let row = rows
+            .next()?
+            .ok_or(Error::Invalid("original dictionary absent"))?;
+        let raw = row
+            .get_ref(0)?
+            .as_blob()
+            .map_err(|_| Error::Invalid("original dictionary type/length"))?;
+        charge_decode_work(work, work_cap, raw.len())?;
+        if Digest256::of_bytes(raw) != digest {
+            return Err(Error::Invalid("original dictionary digest"));
+        }
+        charge_decode_work(work, work_cap, raw.len())?;
+        let mut owned = Vec::new();
+        owned
+            .try_reserve_exact(raw.len())
+            .map_err(|_| Error::Budget("original dictionary allocation"))?;
+        if owned.capacity() != raw.len() {
+            return Err(Error::Budget("original dictionary capacity"));
+        }
+        owned.extend_from_slice(raw);
+        if rows.next()?.is_some() {
+            return Err(Error::Invalid("original dictionary duplicate"));
+        }
+        Some(owned)
+    } else {
+        None
+    };
+    let prefix = dictionary.as_ref().map_or(0, |d| d.len());
+    let capacity = declared
+        .checked_add(usize::from(compressed))
+        .and_then(|n| n.checked_add(prefix))
+        .ok_or(Error::Budget("original projection decode capacity"))?;
     charge_decode_work(work, work_cap, capacity)?;
     let mut raw = Vec::new();
     raw.try_reserve_exact(capacity)
@@ -83,13 +169,21 @@ pub(crate) fn decode_packet(
     }
     if compressed {
         raw.resize(capacity, 0);
-        crate::knowledge_byte_codec::decompress_into(stored, declared, &mut raw, |bytes| {
-            charge_decode_work(work, work_cap, bytes)
-        })?;
+        if let Some(dictionary) = dictionary.as_deref() {
+            codec::decompress_dictionary_into(stored, dictionary, declared, &mut raw, |bytes| {
+                charge_decode_work(work, work_cap, bytes)
+            })?;
+            charge_decode_work(work, work_cap, declared)?;
+            raw.copy_within(prefix..prefix + declared, 0);
+        } else {
+            codec::decompress_into(stored, declared, &mut raw, |bytes| {
+                charge_decode_work(work, work_cap, bytes)
+            })?;
+        }
         raw.truncate(declared);
     } else {
         raw.extend_from_slice(if layout.packed_bytes() {
-            &stored[crate::knowledge_byte_codec::HEADER..]
+            &stored[codec::HEADER..]
         } else {
             stored
         });
@@ -98,6 +192,7 @@ pub(crate) fn decode_packet(
 }
 
 pub(crate) fn read(
+    db: &rusqlite::Connection,
     scan: &mut rusqlite::Rows<'_>,
     max_page_bytes: u64,
     max_row_bytes: usize,
@@ -130,15 +225,20 @@ pub(crate) fn read(
             .filter(|n| *n <= max_page_bytes)
             .ok_or(Error::Budget("original projection page bytes"))?;
         // One bounded decoder workspace exists alongside the page; each
-        // returned allocation may retain one spare byte (at most MAX_PAGE_ROWS).
-        // Neither contributes to the logical receipt.
+        // returned V3 allocation can retain a 4 KiB dictionary prefix as spare
+        // capacity. Neither that capacity nor scratch contributes to receipts.
         let available = declared
             .checked_add(1)
             .and_then(|n| {
                 n.checked_add(crate::knowledge_byte_codec::decoder_workspace_upper().ok()?)
             })
+            .and_then(|n| n.checked_add(if layout.dictionary_bytes() {
+                3 * crate::knowledge_byte_codec::DICTIONARY_BYTES
+                    + tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
+            } else {0}))
             .ok_or(Error::Budget("original projection page decode state"))?;
-        let raw = decode_packet(
+        let raw = decode_packet_from_connection(
+            Some(db),
             stored,
             declared,
             max_row_bytes,

@@ -612,9 +612,6 @@ impl KnowledgePayloadLayout {
         self, db: &Connection, state: &'s crate::d1_public_capture::CreationState<'b>,
         stored: &[u8], max_bytes: usize,
     ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'s,'b>>> {
-        if crate::knowledge_byte_codec::is_dictionary_frame(stored) && !self.dictionary_bytes() {
-            return Err(Error::Invalid("dictionary frame incompatible with model ABI"));
-        }
         if self.dictionary_bytes() { crate::knowledge_byte_dictionary::read(db,state,stored,max_bytes) } else { Ok(None) }
     }
     pub(crate) fn with_sql_decoded<T>(
@@ -697,7 +694,7 @@ ALTER TABLE knowledge_relations ADD COLUMN source_packet_sha256 BLOB CHECK((payl
 "#;
 
 pub const KNOWLEDGE_CARRIER_ONCE_MODEL_ABI: &str =
-    tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2;
+    tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3;
 
 /// An exact byte reference issued by the retaining Stage; not source authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -983,9 +980,10 @@ impl<'a> KnowledgeStage<'a> {
 
     /// Only the native full producer may opt in, before the first row. Other
     /// factories and existing callers retain their original inline layout.
-    pub(crate) fn enable_carrier_once_layout(&mut self) -> Result<()> {
+    pub(crate) fn enable_carrier_once_layout(&mut self, layout: KnowledgePayloadLayout) -> Result<()> {
         let result = (|| {
             if self.poisoned
+                || !matches!(layout, KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3)
                 || self.exact_receipt()?.binding.owner_profile
                     != "tos-native-projection-snapshot-v1"
                 || self.storage_profile != StageStorageProfile::NativeProjection
@@ -1009,25 +1007,49 @@ impl<'a> KnowledgeStage<'a> {
             self.charge_public_work(CARRIER_NORMALIZED_COLUMNS_DDL.len() as u64)?;
             self.db().execute_batch(CARRIER_NORMALIZED_COLUMNS_DDL)?;
             self.check(WritePhase::Schema)?;
-            self.payload_layout = KnowledgePayloadLayout::CarrierOnceV2;
+            if layout.dictionary_bytes() {
+                self.charge_public_work(crate::knowledge_byte_dictionary::DDL.len() as u64)?;
+                self.db().execute_batch(crate::knowledge_byte_dictionary::DDL)?;
+                self.create_preparation_tables(crate::knowledge_byte_dictionary::PREPARATION_SCHEMA)?;
+                for (_, drop_sql, create_sql) in COMPACT_ORDER_INDEXES {
+                    self.charge_public_work((drop_sql.len() + create_sql.len()) as u64)?;
+                    self.db().execute_batch(drop_sql)?;
+                    self.db().execute_batch(create_sql)?;
+                }
+            }
+            self.payload_layout = layout;
             Ok(())
         })();
         self.poisoned |= result.is_err();
         result
     }
 
+    fn prepare_byte_dictionary(
+        &mut self, kind: &str, graph: &str, raw: &[u8],
+    ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'a, 'a>>> {
+        if !self.payload_layout.dictionary_bytes() { return Ok(None); }
+        let state = self.owned_creation_state().ok_or(Error::Invalid("dictionary producer owner absent"))?;
+        let (dictionary, rows, bytes) = crate::knowledge_byte_dictionary::prepare(self.db(), state, kind, graph, raw)?;
+        self.charge_materialized(rows, bytes)?;
+        Ok(dictionary)
+    }
+
     /// Retain exact opaque packet bytes once. A digest hit must have identical
     /// bytes; no semantic JSON equality can share a different physical packet.
     /// Both a new carrier row and its bytes use the existing Stage/page ledger.
     pub fn retain_exact_source_carrier(&mut self, packet: &[u8]) -> Result<ExactSourceCarrierRef> {
+        self.retain_exact_source_carrier_for_family("source", packet)
+    }
+    pub(crate) fn retain_exact_source_carrier_for_family(&mut self, family: &str, packet: &[u8]) -> Result<ExactSourceCarrierRef> {
         let result = self
-            .retain_exact_source_carrier_inner(packet)
+            .retain_exact_source_carrier_inner(family, packet)
             .map_err(|error| self.annotate_sqlite_full(WritePhase::Normalized, error));
         self.poisoned |= result.is_err();
         result
     }
     fn retain_exact_source_carrier_inner(
         &mut self,
+        family: &str,
         packet: &[u8],
     ) -> Result<ExactSourceCarrierRef> {
         if self.poisoned {
@@ -1061,8 +1083,8 @@ impl<'a> KnowledgeStage<'a> {
                 if declared != packet.len() as i64 {
                     return Err(Error::Invalid("source carrier logical length differs"));
                 }
-                layout.with_decoded(
-                    state,
+                layout.with_sql_decoded(
+                    self.db(), state,
                     stored,
                     Some(packet.len()),
                     self.limits.sqlite.max_row_bytes,
@@ -1082,7 +1104,8 @@ impl<'a> KnowledgeStage<'a> {
             }
         };
         if !found {
-            layout.with_encoded(state, packet, self.limits.sqlite.max_row_bytes, |stored| {
+            let dictionary = self.prepare_byte_dictionary("source", family, packet)?;
+            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), packet, self.limits.sqlite.max_row_bytes, |stored| {
                 self.charge_materialized(1, stored.len() as u64)?;
                 self.db().execute(
                     "INSERT INTO knowledge_source_carriers(packet_sha256,packet_len,packet) VALUES (?1,?2,?3)",
@@ -2358,6 +2381,12 @@ impl<'a> KnowledgeStage<'a> {
                 )?;
                 Ok(())
             })?;
+            if self.payload_layout.dictionary_bytes() {
+                self.with_connection(WritePhase::Finalize, |db| {
+                    db.execute_batch("DROP TABLE knowledge_byte_dictionary_pending")?;
+                    Ok(())
+                })?;
+            }
             self.closed_input_rows = Some(rows);
             Ok(())
         })();
@@ -2701,7 +2730,7 @@ impl<'a> KnowledgeStage<'a> {
                 limits,
                 cap,
                 |stored, source_digest| {
-                    let reference = self.retain_exact_source_carrier(source)?;
+                    let reference = self.retain_exact_source_carrier_for_family(row.source_graph, source)?;
                     if reference.packet_sha256() != &source_digest {
                         return Err(Error::Invalid("carrier source reference differs"));
                     }
@@ -2892,9 +2921,12 @@ impl<'a> KnowledgeStage<'a> {
             let Some(record) = record else {
                 return Ok(None);
             };
-            let observed = layout.with_decoded(
+            let dictionary = layout.read_dictionary(self.db(), state, &record.raw, max_bytes)?;
+            let source_dictionary = if record.codec == 1 { layout.read_dictionary(self.db(), state, &record.source, max_bytes)? } else { None };
+            let observed = layout.with_decoded_dictionary(
                 state,
                 &record.raw,
+                dictionary.as_ref().map(|d| d.as_bytes()),
                 (record.codec == 0).then_some(record.logical_len),
                 max_bytes,
                 |raw| {
@@ -2908,9 +2940,10 @@ impl<'a> KnowledgeStage<'a> {
                     } else {
                         let limits =
                             crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
-                        layout.with_decoded(
+                        layout.with_decoded_dictionary(
                             state,
                             &record.source,
+                            source_dictionary.as_ref().map(|d| d.as_bytes()),
                             Some(record.source_len),
                             max_bytes,
                             |source| {
@@ -3267,7 +3300,9 @@ impl<'a> KnowledgeStage<'a> {
                     (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
                     (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
                 };
-                self.payload_layout.with_encoded(state, logical, cap, |physical| {
+                let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
+                let dictionary = self.prepare_byte_dictionary(if relation {"relation"} else {"node"}, family, logical)?;
+                self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), logical, cap, |physical| {
                     self.with_connection(WritePhase::Normalized,|db| {
                         if db.execute(sql,params![logical.len() as i64,digest.as_bytes().as_slice(),physical,id,previous.as_ref().map(|d|d.as_bytes().as_slice())])?!=1 {
                             return Err(Error::Invalid("logical Inline update absent or revision differs"));
@@ -3346,7 +3381,9 @@ impl<'a> KnowledgeStage<'a> {
                         let reference=self.retain_exact_source_carrier(source)?;
                         if reference.packet_sha256()!=&source_digest {return Err(Error::Invalid("carrier update source differs"));}
                         self.charge_materialized(1,self.payload_layout.physical_bound(stored.len())? as u64)?;
-                        self.payload_layout.with_encoded(state, stored, cap, |physical| {
+                        let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
+                        let dictionary = self.prepare_byte_dictionary(if relation {"relation"} else {"node"}, family, stored)?;
+                        self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), stored, cap, |physical| {
                         self.with_connection(WritePhase::Normalized,|db| {
                             // Existing codec1 must retain the exact raw byte key.
                             // Inline rows may be factored from authentic supplied raw
@@ -3418,7 +3455,8 @@ impl<'a> KnowledgeStage<'a> {
             if layout.packed_bytes() {
                 self.charge_materialized(0, crate::knowledge_byte_codec::HEADER as u64)?;
             }
-            layout.with_encoded(state, row.payload, self.limits.sqlite.max_row_bytes, |physical| {
+            let dictionary = self.prepare_byte_dictionary("node", row.source_graph, row.payload)?;
+            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), row.payload, self.limits.sqlite.max_row_bytes, |physical| {
             if let Some((_, _, source_digest)) = logical {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_nodes (id,source_graph,native_id,entity_id,kind_id,type_id,source_order,payload_len,payload_sha256,payload,payload_codec,source_packet_sha256) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,1,?11)",
                     &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::OptionalText(row.entity_id), StageSqlBinding::Text(row.kind_id), StageSqlBinding::Text(row.type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;
@@ -3492,7 +3530,7 @@ impl<'a> KnowledgeStage<'a> {
                 limits,
                 cap,
                 |stored, source_digest| {
-                    let reference = self.retain_exact_source_carrier(source)?;
+                    let reference = self.retain_exact_source_carrier_for_family(row.source_graph, source)?;
                     if reference.packet_sha256() != &source_digest {
                         return Err(Error::Invalid("carrier source reference differs"));
                     }
@@ -3571,7 +3609,8 @@ impl<'a> KnowledgeStage<'a> {
             if layout.packed_bytes() {
                 self.charge_materialized(0, crate::knowledge_byte_codec::HEADER as u64)?;
             }
-            layout.with_encoded(state, row.payload, self.limits.sqlite.max_row_bytes, |physical| {
+            let dictionary = self.prepare_byte_dictionary("relation", row.source_graph, row.payload)?;
+            layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), row.payload, self.limits.sqlite.max_row_bytes, |physical| {
             if let Some((_, _, source_digest)) = logical {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_relations (id,source_graph,native_id,from_id,to_id,predicate_id,relation_type_id,source_order,payload_len,payload_sha256,payload,payload_codec,source_packet_sha256) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,1,?12)",
                     &[StageSqlBinding::Text(row.id), StageSqlBinding::Text(row.source_graph), StageSqlBinding::OptionalText(row.native_id), StageSqlBinding::Text(row.from_id), StageSqlBinding::Text(row.to_id), StageSqlBinding::Text(row.predicate_id), StageSqlBinding::Text(row.relation_type_id), StageSqlBinding::Integer(row.source_order), StageSqlBinding::Integer(logical_len as i64), StageSqlBinding::Blob(digest.as_bytes()), StageSqlBinding::Blob(physical), StageSqlBinding::Blob(source_digest.as_bytes())], state)?;
@@ -4929,6 +4968,27 @@ pub(crate) const SELECTED_EXPLICIT_INDEXES: &[(&str, &str)] = &[
     ),
 ];
 
+// source_order is UNIQUE in each table. The final text ID adds no ordering
+// information to these V3 rowid indexes; exact identity remains in the table
+// and its primary-key index. Older selected layouts retain their original SQL.
+const COMPACT_ORDER_INDEXES: &[(&str, &str, &str)] = &[
+    ("knowledge_nodes_source_order", "DROP INDEX knowledge_nodes_source_order", "CREATE INDEX knowledge_nodes_source_order ON knowledge_nodes(source_graph,source_order)"),
+    ("knowledge_nodes_entity", "DROP INDEX knowledge_nodes_entity", "CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order)"),
+    ("knowledge_nodes_native", "DROP INDEX knowledge_nodes_native", "CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order)"),
+    ("knowledge_relations_native", "DROP INDEX knowledge_relations_native", "CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order)"),
+    ("knowledge_relations_source_order", "DROP INDEX knowledge_relations_source_order", "CREATE INDEX knowledge_relations_source_order ON knowledge_relations(source_graph,source_order)"),
+    ("knowledge_relations_from", "DROP INDEX knowledge_relations_from", "CREATE INDEX knowledge_relations_from ON knowledge_relations(from_id,source_order)"),
+    ("knowledge_relations_to", "DROP INDEX knowledge_relations_to", "CREATE INDEX knowledge_relations_to ON knowledge_relations(to_id,source_order)"),
+ ];
+pub(crate) fn selected_index_sql<'s>(layout: KnowledgePayloadLayout, name: &str, legacy: &'s str) -> &'s str {
+    if layout.dictionary_bytes() {
+        for (compact_name, _, sql) in COMPACT_ORDER_INDEXES {
+            if name == *compact_name { return sql; }
+        }
+    }
+    legacy
+}
+
 pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
     selected_table_closure_with_owned_state(db, None)
 }
@@ -4969,7 +5029,7 @@ fn selected_table_closure_with_layout_and_state(
     ];
     let node = 11 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>();
     let key_count = TABLES.len()
-        + 7
+        + 8
         + SELECTED_EXPLICIT_INDEXES.len()
         + crate::knowledge_corpus_original::INDEXES.len();
     let _closure_state=state.map(|state|state.hold(key_count.checked_mul(node+128)
@@ -5018,6 +5078,7 @@ fn selected_table_closure_with_layout_and_state(
         };
         if !(TABLES.contains(&name.as_str())
             || layout.uses_carriers() && name == "knowledge_source_carriers"
+            || layout.dictionary_bytes() && name == "knowledge_byte_dictionaries"
             || navigation_original && navigation_tables.contains(&name.as_str())
             || philosophy_original && philosophy_tables.contains(&name.as_str())
             || corpus_original
@@ -5034,6 +5095,7 @@ fn selected_table_closure_with_layout_and_state(
     if seen.len()
         != TABLES.len()
             + if layout.uses_carriers() { 1 } else { 0 }
+            + if layout.dictionary_bytes() { 1 } else { 0 }
             + if navigation_original { 3 } else { 0 }
             + if philosophy_original { 2 } else { 0 }
             + if corpus_original { 2 } else { 0 }
@@ -5083,7 +5145,7 @@ fn selected_table_closure_with_layout_and_state(
         };
         if !(SELECTED_EXPLICIT_INDEXES
             .iter()
-            .any(|(expected_name, expected_sql)| name == *expected_name && sql == *expected_sql)
+            .any(|(expected_name, expected_sql)| name == *expected_name && sql == selected_index_sql(layout, expected_name, expected_sql))
             || corpus_original
                 && crate::knowledge_corpus_original::INDEXES
                     .iter()

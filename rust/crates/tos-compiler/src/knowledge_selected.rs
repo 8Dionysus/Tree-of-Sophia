@@ -539,7 +539,7 @@ pub(crate) fn validate(
         }
         (
             crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
-                | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1 | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
             Some(nav),
             Some(phi),
             Some(corpus),
@@ -2593,6 +2593,7 @@ fn owned_schema_column_sql(table: &str) -> Result<&'static std::ffi::CStr> {
         "catalog_facets" => c"PRAGMA table_xinfo(catalog_facets)",
         "catalog_routes" => c"PRAGMA table_xinfo(catalog_routes)",
         "catalog_source_counts" => c"PRAGMA table_xinfo(catalog_source_counts)",
+        "knowledge_byte_dictionaries" => c"PRAGMA table_xinfo(knowledge_byte_dictionaries)",
         "knowledge_source_carriers" => c"PRAGMA table_xinfo(knowledge_source_carriers)",
         _ => return Err(Error::Invalid("owned schema column table")),
     })
@@ -2750,6 +2751,10 @@ pub(crate) fn verify_schema_with_layout(
         tables[count] = Some("knowledge_source_carriers");
         count += 1;
     }
+    if layout.dictionary_bytes() {
+        tables[count] = Some("knowledge_byte_dictionaries");
+        count += 1;
+    }
     for (present, names) in [
         (
             navigation,
@@ -2800,6 +2805,10 @@ pub(crate) fn verify_schema_with_layout(
         Ok(())
     })?;
     knowledge_stage::verify_selected_payload_ddl(db, layout, Some(state))?;
+    if layout.dictionary_bytes() {
+        owned_schema_ddl(db, "knowledge_byte_dictionaries", None, Some(crate::knowledge_byte_dictionary::DDL.trim_end_matches(';')), state)?;
+        owned_schema_columns(db, "knowledge_byte_dictionaries", &["dictionary_sha256:BLOB:1", "dictionary:BLOB:0"], &[], layout, state)?;
+    }
     for (table, hash) in SELECTED_TABLES {
         if !(carrier && matches!(table, "knowledge_nodes" | "knowledge_relations")) {
             owned_schema_ddl(db, table, Some(hash), None, state)?;
@@ -2907,7 +2916,7 @@ pub(crate) fn verify_schema_with_layout(
             let rusqlite::types::ValueRef::Blob(sql)=statement.value_ref(1).map_err(owned_schema_sql_error)? else {return Err(Error::Invalid("selected index SQL type/bytes"));};
             let mut found=None;
             for (i,(expected_name,expected_sql)) in knowledge_stage::SELECTED_EXPLICIT_INDEXES.iter().chain(crate::knowledge_corpus_original::INDEXES[..if corpus {crate::knowledge_corpus_original::INDEXES.len()} else {0}].iter()).enumerate() {
-                if owned_schema_equal(state,name,expected_name.as_bytes())? && owned_schema_equal(state,sql,expected_sql.as_bytes())? { found=Some(i);break; }
+                if owned_schema_equal(state,name,expected_name.as_bytes())? && owned_schema_equal(state,sql,knowledge_stage::selected_index_sql(layout, expected_name, expected_sql).as_bytes())? { found=Some(i);break; }
             }
             let i=found.ok_or(Error::Invalid("selected extra/different index"))?;
             if seen[i] {return Err(Error::Invalid("selected duplicate index"));} seen[i]=true;
@@ -3212,7 +3221,7 @@ fn scan_core_with_owned_context(
             let json = JsonLimits::new(limits.max_row_bytes, 96, visits, 4096)
                 .map_err(|_| Error::Budget("core codec JSON limits"))?;
             crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
-                context,
+                db, context,
                 layout,
                 &row,
                 json,

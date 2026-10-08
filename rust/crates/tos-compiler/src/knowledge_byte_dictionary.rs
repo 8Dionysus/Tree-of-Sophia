@@ -100,10 +100,10 @@ pub(crate) fn prepare<'s, 'b>(
     kind: &str,
     graph: &str,
     raw: &[u8],
-) -> Result<Option<OwnedDictionary<'s, 'b>>> {
+) -> Result<(Option<OwnedDictionary<'s, 'b>>, u64, u64)> {
     if !matches!(kind, "source" | "node" | "relation")
         || graph.is_empty()
-        || graph.len() > 128
+        || graph.len() > 4096
         || raw.is_empty()
     {
         return Err(Error::Invalid("byte dictionary producer family"));
@@ -120,7 +120,7 @@ pub(crate) fn prepare<'s, 'b>(
         Ok(Some(owned))
     })?;
     if published.is_some() {
-        return Ok(published);
+        return Ok((published, 0, 0));
     }
     let mut owned = allocate(state)?;
     let samples=with_statement(db,state,c"SELECT samples,CASE WHEN typeof(dictionary)='blob' AND length(dictionary) BETWEEN 1 AND 4096 THEN dictionary END FROM knowledge_byte_dictionary_pending WHERE dictionary_kind=?1 AND source_graph=?2",|statement|{
@@ -166,13 +166,18 @@ pub(crate) fn prepare<'s, 'b>(
             statement.bind_blob(3,digest.as_bytes()).map_err(sql_error)?;
             if statement.step().map_err(sql_error)? {return Err(Error::Invalid("byte dictionary selection row"));}Ok(())
         })?;
-        Ok(Some(owned))
+        let written = (owned.bytes.len() + kind.len() + graph.len() + 256) as u64;
+        Ok((Some(owned), 1 + u64::from(samples == 0), written))
     } else {
         with_statement(db,state,c"INSERT INTO knowledge_byte_dictionary_pending(dictionary_kind,source_graph,samples,dictionary) VALUES (?1,?2,?3,?4) ON CONFLICT(dictionary_kind,source_graph) DO UPDATE SET samples=excluded.samples,dictionary=excluded.dictionary",|statement|{
             statement.bind_text(1,kind).map_err(sql_error)?;statement.bind_text(2,graph).map_err(sql_error)?;
             statement.bind_i64(3,samples+1).map_err(sql_error)?;statement.bind_blob(4,&owned.bytes).map_err(sql_error)?;
             if statement.step().map_err(sql_error)? {return Err(Error::Invalid("byte dictionary collection row"));}Ok(())
         })?;
-        Ok(None)
+        Ok((
+            None,
+            u64::from(samples == 0),
+            (owned.bytes.len() + kind.len() + graph.len() + 128) as u64,
+        ))
     }
 }

@@ -680,7 +680,7 @@ pub(crate) fn page(
         max_rows as i64
     ])?;
     let (rows, bytes) = crate::knowledge_original_rows::read(
-        &mut scan, max_page_bytes, max_row_bytes,
+        db, &mut scan, max_page_bytes, max_row_bytes,
         crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
         &mut 0, crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?,
     )?;
@@ -974,7 +974,7 @@ pub(crate) fn verify_with_owned_state(
                 crate::KNOWLEDGE_CORPUS_MODEL_ABI,
                 crate::KNOWLEDGE_MANAGED_MODEL_ABI,
                 crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
             ]
             .contains(&expected.model_abi.as_str())
     {

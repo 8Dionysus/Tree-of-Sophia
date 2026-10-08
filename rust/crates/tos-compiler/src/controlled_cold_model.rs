@@ -544,7 +544,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     params![ordinal, collection_name, length],
                     |row| Ok((row.get(0)?, row.get(1)?)),
                 )?;
-                layout.with_decoded(self.context.owned_state(), &raw, Some(length_usize), max_row_bytes, |raw| {
+                layout.with_sql_decoded(&self.connection, self.context.owned_state(), &raw, Some(length_usize), max_row_bytes, |raw| {
                     self.charge_query_work(raw.len())?;
                     let computed = Digest256::of_bytes(raw);
                     if computed.as_bytes() != digest.as_slice() {
@@ -1368,8 +1368,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let physical_len = physical.len();
         let physical_bytes = physical;
         let source_packet_bytes = packet;
-        let payload = crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
-            self.context,
+        let decode = || crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
+            &self.connection, self.context,
             layout,
             &SelectedPayloadRow {
                 payload_codec: u8::try_from(codec)
@@ -1391,7 +1391,14 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 context.charge_work(logical.len())?;
                 Ok(logical.to_vec())
             },
-        )?;
+        );
+        let (payload, dictionary_vm) = if layout.dictionary_bytes() {
+            let remaining_vm = max_vm_steps.checked_sub(vm_steps).filter(|n| *n > 0)
+                .ok_or(Error::Budget("controlled candidate dictionary VM remainder"))?;
+            crate::knowledge_payload_read::with_query_vm_window(self.context, &self.connection, remaining_vm, decode)?
+        } else { (decode()?, 0) };
+        let vm_steps = vm_steps.checked_add(dictionary_vm)
+            .ok_or(Error::Budget("controlled candidate total VM"))?;
         if payload.len()
             != usize::try_from(logical_len)
                 .map_err(|_| Error::Budget("controlled candidate logical length"))?
@@ -1849,7 +1856,7 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                     limits.max_bytes = limits.max_bytes.min(max_payload_bytes);
                     let _decoded =
                         crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
-                            context,
+                            &self.connection, context,
                             layout,
                             &SelectedPayloadRow {
                                 payload_codec: u8::try_from(codec).map_err(|_| {

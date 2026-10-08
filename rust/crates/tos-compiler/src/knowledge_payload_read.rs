@@ -375,6 +375,7 @@ fn charged_digest(state: &CreationState<'_>, bytes: &[u8]) -> Result<Digest256> 
 /// explicit expected ABI and retained the real SQL row. This supplies no model
 /// authority; cold callers still perform complete schema/root/source fences.
 pub(crate) fn with_logical_payload_for_verified_layout<T>(
+    db: &Connection,
     context: &RuntimeKnowledgeReadContext<'_, '_>,
     layout: crate::knowledge_stage::KnowledgePayloadLayout,
     row: &SelectedPayloadRow<'_>,
@@ -417,7 +418,7 @@ pub(crate) fn with_logical_payload_for_verified_layout<T>(
             if row.source_packet_sha256.is_some() || row.source_packet.is_some() {
                 return Err(Error::Invalid("selected inline source carrier"));
             }
-            layout.with_decoded(state, row.physical, Some(row.logical_len), max_row_bytes, |raw| {
+            layout.with_sql_decoded(db, state, row.physical, Some(row.logical_len), max_row_bytes, |raw| {
                 if charged_digest(state, raw)? != row.logical_sha256 {
                     return Err(Error::Invalid("selected inline logical payload differs"));
                 }
@@ -427,11 +428,11 @@ pub(crate) fn with_logical_payload_for_verified_layout<T>(
         1 if carrier => {
             let source = row.source_packet.ok_or(Error::Invalid("selected source carrier absent"))?;
             let digest = row.source_packet_sha256.ok_or(Error::Invalid("selected carrier digest absent"))?;
-            layout.with_decoded(state, source, None, max_row_bytes, |source| {
+            layout.with_sql_decoded(db, state, source, None, max_row_bytes, |source| {
                 if charged_digest(state, source)? != digest {
                     return Err(Error::Invalid("selected source carrier differs"));
                 }
-                layout.with_decoded(state, row.physical, None, max_row_bytes, |stored| {
+                layout.with_sql_decoded(db, state, row.physical, None, max_row_bytes, |stored| {
                     crate::knowledge_payload_codec::with_hydrated_payload(
                         state, stored, source, stored_limits, source_limits,
                         max_row_bytes, row.logical_len, row.logical_sha256,
@@ -486,7 +487,7 @@ pub(crate) fn with_selected_logical_payload_owned<'budget, T>(
             return Err(Error::Invalid("selected payload ABI unsupported"));
         }
         let result = with_logical_payload_for_verified_layout(
-            context,
+            model.connection(), context,
             layout,
             row,
             stored_limits,

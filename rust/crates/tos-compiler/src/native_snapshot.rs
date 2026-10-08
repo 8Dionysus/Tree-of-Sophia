@@ -4241,7 +4241,7 @@ fn build_native_snapshot_from_capture_inner(
     if payload_layout.uses_carriers() {
         // The Stage owner checks its genuine native profile, original held
         // CreationState and pristine no-row boundary before schema activation.
-        stage.enable_carrier_once_layout()?;
+        stage.enable_carrier_once_layout(payload_layout)?;
         if stage.payload_layout() != payload_layout {
             return Err(Error::Invalid("native payload layout activation changed"));
         }

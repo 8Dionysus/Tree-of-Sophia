@@ -595,6 +595,50 @@ mod tests {
             &output[dictionary.len()..dictionary.len() + raw.len()],
             &raw
         );
+        // Real page reader resolves only the content-addressed dictionary in
+        // the selected held DB, then restores the exact packet and rejects a
+        // missing or tampered dictionary under the same finite page envelope.
+        let db = rusqlite::Connection::open_in_memory().unwrap();
+        db.execute_batch(crate::knowledge_byte_dictionary::DDL)
+            .unwrap();
+        let digest = tos_foundation::Digest256::of_bytes(&dictionary);
+        db.execute(
+            "INSERT INTO knowledge_byte_dictionaries VALUES (?1,?2)",
+            rusqlite::params![digest.as_bytes().as_slice(), &dictionary],
+        )
+        .unwrap();
+        let available = raw.len()
+            + 1
+            + 3 * DICTIONARY_BYTES
+            + decoder_workspace_upper().unwrap()
+            + tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(
+            );
+        let read_page = |layout| {
+            crate::knowledge_original_rows::decode_packet_from_connection(
+                Some(&db),
+                &stored,
+                raw.len(),
+                raw.len(),
+                available,
+                layout,
+                &mut 0,
+                1024 * 1024,
+            )
+        };
+        assert_eq!(
+            read_page(crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3).unwrap(),
+            raw
+        );
+        assert!(read_page(crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2).is_err());
+        db.execute(
+            "UPDATE knowledge_byte_dictionaries SET dictionary=x'00'",
+            [],
+        )
+        .unwrap();
+        assert!(read_page(crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3).is_err());
+        db.execute("DELETE FROM knowledge_byte_dictionaries", [])
+            .unwrap();
+        assert!(read_page(crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3).is_err());
         let mut wrong = dictionary.clone();
         wrong[0] ^= 1;
         assert!(
