@@ -222,6 +222,23 @@ pub struct V2ReadSession {
 }
 
 impl V2ReadSession {
+    /// Begin one trusted-local read invocation with an explicitly selected
+    /// cumulative work allowance. The same meter serves tree and packed-object
+    /// reads for the lifetime of this session; structural limits grant no work.
+    pub fn open_with_work_limit(
+        path: &Path,
+        limits: V2PointReadLimits,
+        original_io: PinnedSqliteIoBudget,
+        max_work_units: u64,
+        deadline: Instant,
+        cancel: Arc<AtomicBool>,
+    ) -> io::Result<Self> {
+        let work = AdmissionWorkBudget::new(max_work_units)?;
+        let store =
+            AdmissionStore::open_existing_with_io(path, original_io.clone(), deadline, &cancel)?;
+        Self::open_store(store, limits, original_io, Some(work), deadline, cancel)
+    }
+
     pub fn open(
         path: &Path,
         limits: V2PointReadLimits,

@@ -13,7 +13,10 @@ the requested revision, and verifies the object before it is staged. A missing
 exact member path is a nonzero result with no selected bytes on stdout; it does
 not create or infer a source identity. V2 also requires finite
 caller-supplied pointer, segment, tree, object, cumulative I/O, state, and
-deadline limits. Its staging directory must be absolute, normalized, owned by
+deadline limits. Packed V2 objects additionally require `--max-work-units N`,
+a positive finite cumulative work allowance shared by tree visits and packed
+object reads. An omitted work allowance retains the existing unpacked V2
+interface and refuses packed reads before exposing selected bytes. Its staging directory must be absolute, normalized, owned by
 the current user, and private; the stage file is created relative to a held
 directory descriptor. Verified bytes remain staged until the current-pointer
 fence succeeds.

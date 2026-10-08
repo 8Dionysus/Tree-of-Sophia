@@ -24,7 +24,7 @@ V2 additionally requires --max-read-bytes N --max-write-bytes N \
 --tree-max-key-bytes N --tree-max-value-bytes N --tree-max-kind-bytes N \
 --tree-max-node-bytes N --tree-max-children N --tree-max-nodes N \
 --tree-max-total-bytes N --tree-max-rows N --max-state-bytes N \
---deadline-seconds N";
+--deadline-seconds N [--max-work-units N (required for packed V2 objects)]";
 const CAPABILITIES: &str = "{\"schema_version\":\"tos_reader_capabilities_v1\",\"store_format\":\"tos_corpus_snapshot_v1\",\"supported_store_formats\":[\"tos_corpus_snapshot_v1\",\"tos_native_admission_v2\"],\"default_format\":\"v1\",\"selection\":\"exact_revision_and_source_id_or_v2_member_path\",\"platform\":\"linux\",\"minimum_kernel\":\"5.6\",\"required_open_api\":\"openat2\",\"path_traversal\":\"beneath_no_symlinks\",\"unsafe_fallback\":false}";
 const MAX_ARGUMENTS: usize = 64;
 const MAX_ARGUMENT_BYTES: usize = 16 * 1024;
@@ -306,6 +306,10 @@ fn run_v2(
 ) -> Result<(), String> {
     let max_read_bytes = required_u64(values, "--max-read-bytes")?;
     let max_write_bytes = required_u64(values, "--max-write-bytes")?;
+    let max_work_units = values
+        .contains_key("--max-work-units")
+        .then(|| required_u64(values, "--max-work-units"))
+        .transpose()?;
     let segment = SegmentLimits {
         max_segment_bytes: required_u64(values, "--max-segment-bytes")?,
         max_frame_bytes: required_u64(values, "--max-frame-bytes")?,
@@ -358,13 +362,25 @@ fn run_v2(
     let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let stage_root = open_private_stage_root(&stage_dir, deadline, cancelled.as_ref())?;
     check_active(deadline, cancelled.as_ref())?;
-    let mut reader = tos_command::source_admission_v2_reader::V2ReadSession::open(
-        &store,
-        point,
-        io_budget.clone(),
-        deadline,
-        cancelled.clone(),
-    )
+    let mut reader = match max_work_units {
+        Some(max_work_units) => {
+            tos_command::source_admission_v2_reader::V2ReadSession::open_with_work_limit(
+                &store,
+                point,
+                io_budget.clone(),
+                max_work_units,
+                deadline,
+                cancelled.clone(),
+            )
+        }
+        None => tos_command::source_admission_v2_reader::V2ReadSession::open(
+            &store,
+            point,
+            io_budget.clone(),
+            deadline,
+            cancelled.clone(),
+        ),
+    }
     .map_err(|error| error.to_string())?;
     let (observation, absent_message) = match &selector {
         ReadSelector::SourceId(source_id) => (
