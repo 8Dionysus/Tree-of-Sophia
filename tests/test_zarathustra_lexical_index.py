@@ -89,10 +89,6 @@ MORPHOLOGY_RESULT_RECORDER = _load_module(
     "tos_zarathustra_morphology_result_recorder",
     "scripts/record_zarathustra_morphology_census_result.py",
 )
-MORPHOLOGY_CONTEXT_BUILDER = _load_module(
-    "tos_zarathustra_morphology_context_builder",
-    "scripts/build_zarathustra_morphology_context_packet.py",
-)
 MORPHOLOGY_CONTEXT_RESULT_RECORDER = _load_module(
     "tos_zarathustra_morphology_context_result_recorder",
     "scripts/record_zarathustra_morphology_contextual_result.py",
@@ -1252,33 +1248,6 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         )
         self.assertEqual(0, result.returncode)
 
-    def test_morphology_context_raw_tei_tail_offset_is_exact(self) -> None:
-        xml = (
-            b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><div>'
-            b'<p>alpha <lb/>wieder omega</p></div></body></text></TEI>'
-        )
-        tree = MORPHOLOGY_CONTEXT_BUILDER.etree.ElementTree(
-            MORPHOLOGY_CONTEXT_BUILDER.etree.fromstring(xml)
-        )
-        target_path = "TEI/text[1]/body[1]/div[1]/p[1]/lb[1]/tail()[1]"
-        owner_path, owner_kind = MORPHOLOGY_CONTEXT_BUILDER.target_owner(
-            target_path
-        )
-        owner = MORPHOLOGY_CONTEXT_BUILDER.one_element(
-            tree, owner_path, "synthetic owner"
-        )
-        context_path, context_kind = MORPHOLOGY_CONTEXT_BUILDER.context_unit(
-            target_path
-        )
-        context = MORPHOLOGY_CONTEXT_BUILDER.one_element(
-            tree, context_path, "synthetic context"
-        )
-        text, target_base = MORPHOLOGY_CONTEXT_BUILDER.flatten_with_target_base(
-            context, owner, owner_kind
-        )
-        self.assertEqual("paragraph", context_kind)
-        self.assertEqual("alpha wieder omega", text)
-        self.assertEqual("wieder", text[target_base : target_base + 6])
 
 
 if __name__ == "__main__":

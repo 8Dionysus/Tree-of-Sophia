@@ -89,3 +89,12 @@ historical basename and add `.native-NAME`; the receipt records the Rust
 generator. Replaying a matching generation preserves its files and completes
 missing outputs. Conflicting bytes, wrong file modes and symlinks refuse.
 The private usage packet remains mode `0600`; tracked metadata stays `0644`.
+
+`tos semantic-source-recurrence` returns the complete selected recurrence to
+the four fixity-bound raw TEI witnesses. `tos zarathustra-morphology-context`
+freezes the planned first, inclusive-median and last contexts; select the
+retained provider stream with `--a-raw-output ABS`. Both commands require
+explicit source, private input and output roots and support the same retained
+`--check` and fresh generation modes above. They run no morphology provider.
+The context selection remains output-blind; private source strings and
+positions remain in the mode-`0600` packet.
