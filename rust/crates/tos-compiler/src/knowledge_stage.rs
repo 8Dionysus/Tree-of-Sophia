@@ -6540,6 +6540,101 @@ mod tests {
     }
 
     #[test]
+    fn native_dictionary_stage_roundtrips_exact_source_and_normalized_bytes() {
+        const CHILD: &str = "TOS_DICTIONARY_STAGE_TEST_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "knowledge_stage::tests::native_dictionary_stage_roundtrips_exact_source_and_normalized_bytes", "--nocapture"])
+                .env(CHILD, "1").output().unwrap();
+            assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            return;
+        }
+        use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
+        let deadline = Instant::now() + std::time::Duration::from_secs(60);
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let remaining = |bytes: usize| (32 * 1024 * 1024usize).checked_sub(bytes)
+            .ok_or(Error::Budget("dictionary Stage test retained bytes"));
+        let heap = sqlite_budget::DedicatedSessionSqliteHeap::establish(
+            8 * 1024 * 1024, &remaining, deadline, &cancelled,
+        ).unwrap();
+        let work = Arc::new(AtomicU64::new(0));
+        let vm = Arc::new(AtomicU64::new(0));
+        let budget = RuntimeKnowledgeOwnedBudget {
+            remaining_after_retained: &remaining, original_work: &work,
+            original_work_limit: 256 * 1024 * 1024, original_sql_vm: &vm,
+            original_sql_vm_limit: 10_000_000, original_sqlite_heap: &heap,
+            remaining_json_visits: 1_000_000, owner_deadline: deadline,
+            operation_deadline: deadline, cancelled: &cancelled,
+        };
+        let state = crate::d1_public_capture::CreationState::from_runtime_owned_budget(&budget).unwrap();
+        let owner = Owner { checks: AtomicUsize::new(0) };
+        let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
+        // Both dictionary families seal on the first row. Exact source spelling
+        // intentionally differs from the serialized normalized representation.
+        let source = format!("{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n", "source words ".repeat(500)).into_bytes();
+        let source_value: serde_json::Value = serde_json::from_slice(&source).unwrap();
+        for layout in [KnowledgePayloadLayout::CarrierOnceV2, KnowledgePayloadLayout::CarrierOnceV3] {
+            let candidate = stage_path("dictionary-roundtrip");
+            let mut receipt = exact_receipt(RAW_ROOT);
+            receipt.binding.owner_profile = "tos-native-projection-snapshot-v1".into();
+            let mut selected = limits();
+            selected.sqlite.max_output_bytes = 8 * 1024 * 1024;
+            selected.sqlite.max_row_bytes = 32768;
+            selected.sqlite.sqlite_cache_kib = 1024;
+            selected.sqlite.max_work_bytes = budget.original_work_limit;
+            selected.sqlite.max_sql_vm_steps = budget.original_sql_vm_limit;
+            let mut stage = KnowledgeStage::create_captured_native_snapshot_owned(
+                &candidate, selected, receipt, &owner, &quota,
+                Arc::clone(&vm), Arc::clone(&work), Arc::clone(&cancelled),
+                budget.original_work_limit, deadline, &remaining, &heap,
+                budget.original_sql_vm_limit, &state,
+            ).unwrap();
+            stage.enable_carrier_once_layout(layout).unwrap();
+            for order in 0..2 {
+                let id = format!("node.{order}");
+                let logical = serde_json::to_vec(&serde_json::json!({
+                    "id": id, "attributes": {},
+                    "metadata": "normalized words ".repeat(400),
+                    "source_record": {"payload": source_value, "field_map": {}}
+                })).unwrap();
+                stage.with_write_page(WritePhase::Normalized, 6, 6 * 32768, |stage| {
+                    stage.insert_node_with_exact_source(NodeRow {
+                        id: &id, source_graph: "fixture.graph", native_id: None,
+                        entity_id: None, kind_id: "kind.fixture", type_id: "type.fixture",
+                        source_order: order, payload: &logical,
+                    }, &source)
+                }).unwrap();
+                stage.with_node_payload_source_owned(&id, 32768, |_, actual, raw| {
+                    assert_eq!(actual, logical);
+                    assert_eq!(raw, Some(source.as_slice()));
+                    Ok(())
+                }).unwrap().unwrap();
+            }
+            let count: u64 = stage.db().query_row("SELECT count(*) FROM knowledge_source_carriers", [], |row| row.get(0)).unwrap();
+            assert_eq!(count, 1, "identical exact source retains one carrier");
+            if layout.dictionary_bytes() {
+                let dictionaries: u64 = stage.db().query_row("SELECT count(*) FROM knowledge_byte_dictionaries", [], |row| row.get(0)).unwrap();
+                assert_eq!(dictionaries, 2);
+                let pending: u64 = stage.db().query_row("SELECT count(*) FROM temp.knowledge_byte_dictionary_pending", [], |row| row.get(0)).unwrap();
+                assert_eq!(pending, 2);
+            }
+            // Close the actual writer before opening a distinct read connection.
+            // This tests physical cold decoding; full selected-model admission
+            // remains the separate installed-consumer conformance route.
+            stage.db.take().unwrap().close().unwrap();
+            let cold = Connection::open_with_flags(&candidate, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+            let stored: Vec<u8> = cold.query_row("SELECT packet FROM knowledge_source_carriers", [], |row| row.get(0)).unwrap();
+            layout.with_sql_decoded(&cold, &state, &stored, Some(source.len()), 32768, |actual| {
+                assert_eq!(actual, source);
+                Ok(())
+            }).unwrap();
+            drop(cold);
+            drop(stage);
+            fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
+        }
+    }
+
+    #[test]
     fn native_preparation_keeps_main_byte_cap_and_refuses_temp_overflow() {
         let owner = Owner { checks: AtomicUsize::new(0) };
         let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };

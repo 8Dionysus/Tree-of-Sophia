@@ -1297,8 +1297,9 @@ fn repository_owned_write_limits(
         KnowledgePayloadLayout::InlineV1 => 1,
         KnowledgePayloadLayout::CarrierOnceV1 => 2,
         KnowledgePayloadLayout::CarrierOnceV2 => 3,
-        // V3 can also seal a source and a normalized byte dictionary.
-        KnowledgePayloadLayout::CarrierOnceV3 => 5,
+        // Each new dictionary family may insert its pending selection and
+        // published bytes, in addition to the carrier and normalized row.
+        KnowledgePayloadLayout::CarrierOnceV3 => 6,
     };
     let (rows, bytes) = stage.write_page_limits();
     let physical_bytes = limits
