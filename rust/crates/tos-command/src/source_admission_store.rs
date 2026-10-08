@@ -1342,7 +1342,15 @@ impl AdmissionStore {
         {
             return Err(invalid("corpus store path must be absolute and normalized"));
         }
-        let root = owned_directory(held_root.try_clone()?)?;
+        // A protected root may be an O_PATH anchor. Open a readable
+        // description of that exact inode; cloning would preserve O_PATH
+        // and make the backup walk fail at getdents64. A fresh description
+        // also gives each store its own directory cursor.
+        if let Some(io) = io.as_ref() {
+            io.charge_read_upper_bound(v2_component_guard_bytes(b".")?)
+                .map_err(invalid)?;
+        }
+        let root = owned_directory(tos_fd_open::reopen_directory(held_root).map_err(invalid)?)?;
         let named = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
         if identity(&named)? != identity(&root)? {
             return Err(invalid("named corpus root differs from held root"));
@@ -5053,6 +5061,40 @@ mod tests {
             revision,
             crate::source_admission_candidate::canonical(&value, json).unwrap(),
         )
+    }
+
+    #[test]
+    fn held_path_anchor_opens_readable_independent_store_directory() {
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("store");
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let cancel = AtomicBool::new(false);
+        drop(AdmissionStore::create(&path, deadline, &cancel).unwrap());
+        let held = File::from(rustix::fs::open(
+            &path,
+            OFlags::PATH | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::empty(),
+        ).unwrap());
+        let first = AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
+        let second = AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
+        let collect = |store: &AdmissionStore| {
+            let (root, _, _) = store.backup_namespaces().unwrap();
+            assert_eq!(identity(root).unwrap(), identity(&held).unwrap());
+            let mut buffer = [std::mem::MaybeUninit::uninit(); 8192];
+            let mut entries = rustix::fs::RawDir::new(root, &mut buffer);
+            let mut names = std::collections::BTreeSet::new();
+            while let Some(entry) = entries.next() {
+                names.insert(entry.unwrap().file_name().to_str().unwrap().to_owned());
+            }
+            names
+        };
+        let names = collect(&first);
+        assert!(names.contains("objects") && names.contains("revisions") && names.contains("staging"));
+        assert_eq!(collect(&second), names);
+        // A held inode must still match the requested named store.
+        let other = temporary.path().join("other");
+        drop(AdmissionStore::create(&other, deadline, &cancel).unwrap());
+        assert!(AdmissionStore::open_existing_at_named(&other, &held, deadline, &cancel).is_err());
     }
 
     #[test]
