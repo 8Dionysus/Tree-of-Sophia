@@ -2574,7 +2574,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_opening_sentence_alignment.py",
+      "path": "rust/crates/tos-compiler/src/opening_sentence_alignment.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/README.md",
@@ -2587,19 +2587,20 @@
         "ToS/contracts/provenance-event-v2.schema.json"
       ],
       "reads": [
-        "the two existing exact ignored private paragraph layers plus their tracked identity, layout, edition-reading, translated-by, rights, and frozen alignment-plan evidence"
+        "the two existing exact ignored private paragraph layers plus their tracked identity, layout, edition-reading, translated-by, rights, and frozen alignment-plan evidence",
+        "Explicit source and private input roots selected by tos opening-sentence-alignment; bounded native schema and exact byte replay checks."
       ],
       "writes": [
         "two tracked text-free proposed sentence-unit packets, one tracked text-free proposed alignment packet, and one tracked provenance-event-v2 record unless --check is used"
       ],
-      "side_effects": "one question-scoped real ordinal first-sentence correspondence proposal only; no tracked source text, accepted sentence boundary, German/Russian, translation act or fidelity, lexical equivalence, human review/task, projection, semantics, graph/canon effect, redistribution, publication, another sentence, or bulk migration",
+      "side_effects": "one question-scoped real ordinal first-sentence correspondence proposal only; no tracked source text, accepted sentence boundary, German/Russian, translation act or fidelity, lexical equivalence, human review/task, projection, semantics, graph/canon effect, redistribution, publication, another sentence, or bulk migration; historical provenance stays byte-identical, fresh builds use a new native event identity and fresh output paths",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "test_target": "rust/crates/tos-compiler/src/opening_sentence_alignment.rs",
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_source_text_foundation.py",
+      "path": "rust/crates/tos-compiler/src/source_text_foundation.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/README.md",
@@ -2614,19 +2615,20 @@
         "ToS/contracts/provenance-event-v2.schema.json"
       ],
       "reads": [
-        "one exact fixity-bound DTA Part-I TEI, its tracked identity and layered-rights records, and one frozen Za-I-Vorrede-1 source-text-foundation plan"
+        "one exact fixity-bound DTA Part-I TEI, its tracked identity and layered-rights records, and one frozen Za-I-Vorrede-1 source-text-foundation plan",
+        "Explicit source and private input roots selected by tos source-text-foundation; bounded native schema and exact byte replay checks."
       ],
       "writes": [
         "one ignored mode-0600 353-byte provider-transcription paragraph plus tracked text-free source-anchor-v2, source-text-layer-v1, source-text-unit-v1, and provenance-event-v2 records unless --check is used"
       ],
-      "side_effects": "one question-scoped real source-layout foundation only; no accepted German, sentence/token boundary, translation input or alignment, semantic or sign claim, graph/canon effect, human task, redistribution, publication, another paragraph, or bulk migration",
+      "side_effects": "one question-scoped real source-layout foundation only; no accepted German, sentence/token boundary, translation input or alignment, semantic or sign claim, graph/canon effect, human task, redistribution, publication, another paragraph, or bulk migration; historical provenance stays byte-identical, fresh builds use a new native event identity and fresh output paths",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "test_target": "rust/crates/tos-compiler/src/source_text_foundation.rs",
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_target_text_foundation.py",
+      "path": "rust/crates/tos-compiler/src/target_text_foundation.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/README.md",
@@ -2642,15 +2644,16 @@
         "ToS/contracts/provenance-event-v2.schema.json"
       ],
       "reads": [
-        "one exact fixity-bound Antonovsky 1911 PDF, its page-resource and layered-rights records, and one frozen page-6 opening-paragraph target-text-foundation plan"
+        "one exact fixity-bound Antonovsky 1911 PDF, its page-resource and layered-rights records, and one frozen page-6 opening-paragraph target-text-foundation plan",
+        "Explicit source and private input roots selected by tos target-text-foundation; bounded native schema and exact byte replay checks."
       ],
       "writes": [
         "one ignored mode-0600 633-byte raw embedded-text paragraph, one ignored exact Poppler bbox intermediate, and tracked text-free source-anchor-v2, source-text-layer-v1, source-text-unit-v1, and provenance-event-v2 records unless --check is used"
       ],
-      "side_effects": "one question-scoped real target-layout foundation only; no accepted Russian, diplomatic text, sentence/token boundary, accepted translation or alignment, semantic or sign claim, graph/canon effect, human task, redistribution, publication, another paragraph, or bulk migration",
+      "side_effects": "one question-scoped real target-layout foundation only; no accepted Russian, diplomatic text, sentence/token boundary, accepted translation or alignment, semantic or sign claim, graph/canon effect, human task, redistribution, publication, another paragraph, or bulk migration; historical provenance stays byte-identical, fresh builds use a new native event identity and fresh output paths",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "test_target": "rust/crates/tos-compiler/src/target_text_foundation.rs",
       "disposition": "keep"
     },
     {

@@ -30,7 +30,7 @@
       "aoa-tdd-slice"
     ]
   },
-  "manifest_sha256": "8323d0d7cde98df8428f6d9ac9d2e7ff552110dbfcf1bd4413fee44ad22f0d8e",
+  "manifest_sha256": "2a08e0cbcfcefee2f8af71164ee9911513619faedf7d150fda947a5b31b41357",
   "owner_ports": [
     {
       "id": "eval_port",
@@ -77,17 +77,19 @@
           "sha256": "7ef05e98e563c3d882dbaebed19b85372c157b955bf33b19ef7593ad02c4464c"
         },
         {
-          "missing": true,
-          "path": "kag/manifest.json"
+          "bytes": 13441,
+          "path": "kag/provider-template.json",
+          "sha256": "b845f822a0077b225a23e90d439f285a7b0b79df508bc05bd55d8f3b3b979267"
         },
         {
-          "missing": true,
-          "path": "kag/provider_pin.json"
-        },
-        {
-          "bytes": 1829,
+          "bytes": 3152,
           "path": "kag/README.md",
-          "sha256": "c176d4549e354a5eac24e545e9d4f20bc6042a211634e9c9068176ef27bf5c2d"
+          "sha256": "3ee8844ef8a81db8454a1bc308e79dc1d86b8b60ba5467eb90432702e9a5793e"
+        },
+        {
+          "bytes": 3980,
+          "path": "kag/VALIDATION.md",
+          "sha256": "0f075bbab322843510f4e699061690ac4eb7f77cfcf2abf271a44072ea00f369"
         },
         {
           "bytes": 1098,
@@ -95,44 +97,27 @@
           "sha256": "456cc189ffc47ee58463d59a67e741a9197975102038fb6e0ba68a30b8c69325"
         },
         {
-          "missing": true,
-          "path": "scripts/validate_local_segmented_kag_provider.py"
+          "bytes": 1966,
+          "path": "scripts/build_kag_export.py",
+          "sha256": "2545e5739f670375e3086eab17e8d1a58335b91f62ea02d7e0c2840f9c08cb9f"
         },
         {
-          "missing": true,
-          "path": "kag/indexes/provider_readiness_index.json"
+          "bytes": 4949,
+          "path": "scripts/publish_kag_release.py",
+          "sha256": "442fea086393eb80b0091ab7ffcbb447104d81655b5d9be10579e18cc3f5ea0b"
         },
         {
-          "missing": true,
-          "path": "kag/nodes/kag_export_capsule.json"
-        },
-        {
-          "missing": true,
-          "path": "kag/nodes/derived_export_route.json"
-        },
-        {
-          "missing": true,
-          "path": "kag/edges/kag_export_returns_to_route.json"
-        },
-        {
-          "missing": true,
-          "path": "kag/projections/mcp_source_return.json"
-        },
-        {
-          "missing": true,
-          "path": "ToS/derived-exports/kag_export.min.json"
-        },
-        {
-          "missing": true,
-          "path": "ToS/derived-exports/philosophy_graph_projection.min.json"
-        },
-        {
-          "bytes": 3723,
+          "bytes": 4225,
           "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-          "sha256": "45d6e5c54559eb511782e5729ceaadd3413a215e203be9502309a1f98f13db3a"
+          "sha256": "51adb24565567945cf6f2d21ffb082c2e2050f817ee201238f01a428c2f35b24"
+        },
+        {
+          "bytes": 6384,
+          "path": "docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md",
+          "sha256": "a21f53e286be49fd5950c18242a715c89be0fe39311675347322f62c1579b5cb"
         }
       ],
-      "manifest": "kag/manifest.json"
+      "manifest": "kag/provider-template.json"
     },
     {
       "id": "memo_port",

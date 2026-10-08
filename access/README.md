@@ -2172,3 +2172,27 @@ and software captures, and selected worker bindings separately. Installation and
 a request grant no source, field, rights or publication authority. Host
 `private-stage-run`, when required by a selected receiver, supplies OS/resource
 isolation under its actual admitted profile; it is not this source-policy issuer.
+
+The private foundation producers run through the installed Rust CLI with explicit
+source and local payload roots:
+
+```sh
+/absolute/prefix/bin/tos source-text-foundation --source-root /absolute/source \
+  --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
+/absolute/prefix/bin/tos target-text-foundation --source-root /absolute/source \
+  --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
+/absolute/prefix/bin/tos opening-sentence-alignment --source-root /absolute/source \
+  --local-input-root /absolute/private-input --check
+```
+
+Each command accepts an explicit source-relative `--plan`. A new `--build`
+requires `--event-id`, fresh plan-selected output paths and `--scratch-bytes`
+from the host's admitted remaining write capacity. Repeating a build preserves
+matching outputs and refuses differing ones. Checks do not write. Historical
+provenance remains unchanged; new events identify the native executor and its
+actual Unicode version. TEI extraction uses the Rust XML reader. PDF extraction
+uses the declared native Poppler `pdftotext` backend and verifies its selected
+version, payload and exact bbox output. Private text and bbox files stay ignored
+and mode 0600. Sentence and alignment records contain only selectors, hashes and
+source references; their proposal status grants no textual, translation, rights,
+publication or canon admission.
