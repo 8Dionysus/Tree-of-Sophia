@@ -57,6 +57,9 @@ fn exact_keys(v: &Value, keys: &[&str], label: &str) -> Result<()> {
         label,
     )
 }
+fn text(v: &Value) -> Result<&str> {
+    v.as_str().ok_or("provider string required".into())
+}
 fn token(v: &Value, context: &str, n: usize) -> Result<()> {
     exact_keys(
         v,
@@ -82,7 +85,7 @@ fn token(v: &Value, context: &str, n: usize) -> Result<()> {
         start < end && unicode_slice(context, start, end)? == s(&v["text"])?,
         "provider token source return drift",
     )?;
-    s(&v["whitespace"])?;
+    text(&v["whitespace"])?;
     ensure(
         v["head_token_index"].is_null()
             || v["head_token_index"].as_u64().is_some_and(|v| v < n as u64),
@@ -192,7 +195,7 @@ impl Contexts {
         for (i, t) in tokens.iter().enumerate() {
             equal(&t["token_index"], json!(i), "provider token order")?;
             token(t, context, tokens.len())?;
-            for piece in [s(&t["text"])?, s(&t["whitespace"])?] {
+            for piece in [s(&t["text"])?, text(&t["whitespace"])?] {
                 ensure(
                     piece.len() <= META_CAP as usize - text.len(),
                     "context reconstruction byte bound",
@@ -228,7 +231,7 @@ impl Contexts {
             .or_default() += 1;
         for t in target_tokens {
             for (key, map) in [("pos", &mut self.pos), ("tag", &mut self.tag)] {
-                let label = s(&t[key])?;
+                let label = text(&t[key])?;
                 ensure(label.len() <= 128, "provider label bound")?;
                 *map.entry(if label.is_empty() { "<none>" } else { label }.into())
                     .or_default() += 1;
