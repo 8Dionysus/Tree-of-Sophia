@@ -687,6 +687,31 @@ pub fn materialize_native_sources(
     )
 }
 
+// Fixed phase labels expose cumulative work without logging source content.
+struct MaterializePhases<'a> {
+    state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    name: Option<&'static str>,
+    started: std::time::Instant,
+    work: u64,
+}
+impl<'a> MaterializePhases<'a> {
+    fn new(state: Option<&'a crate::d1_public_capture::CreationState<'a>>) -> Self {
+        Self { state, name: None, started: std::time::Instant::now(), work: 0 }
+    }
+    fn finish(&mut self, success: bool) {
+        if let (Some(state), Some(name)) = (self.state, self.name.take()) {
+            let work = state.observed_work_bytes();
+            eprintln!("Native materialize phase={} status={} elapsed_ms={} work_bytes={} total_work_bytes={}",
+                name, if success { "passed" } else { "refused" }, self.started.elapsed().as_millis(), work.saturating_sub(self.work), work);
+        }
+    }
+    fn next(&mut self, name: &'static str) {
+        self.finish(true);
+        self.name = Some(name);
+        self.started = std::time::Instant::now();
+        self.work = self.state.map_or(0, |s| s.observed_work_bytes());
+    }
+}
 pub fn materialize_native_sources_with_inputs(
     stage: &mut KnowledgeStage<'_>,
     registry: &KnowledgeRegistry,
@@ -698,6 +723,7 @@ pub fn materialize_native_sources_with_inputs(
     limits: NativeProducerLimits,
     additional: NativeFamilyInputs<'_>,
 ) -> Result<NativeProducerReceipt> {
+    let mut phases = MaterializePhases::new(stage.owned_creation_state());
     let result = (|| {
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
         let selected = |profile: &str| -> Result<bool> {
@@ -719,6 +745,7 @@ pub fn materialize_native_sources_with_inputs(
         {
             return Err(Error::Invalid("native source adapter family incomplete"));
         }
+        phases.next("navigation-prepare");
         let navigation = prepare_source_navigation(
             stage,
             vocabulary,
@@ -752,12 +779,14 @@ pub fn materialize_native_sources_with_inputs(
             descriptor_bytes,
             limits.navigation_relations,
         )?;
+        phases.next("navigation-nodes");
         let nav_base = materialize_navigation_nodes(
             stage,
             &mut nav_nodes,
             &navigation,
             limits.navigation_materialize,
         )?;
+        phases.next("claim-nodes");
         let claims = if selected("reified-bibliographic-claims-v1")? {
             let prepared = prepare_source_claims(stage, vocabulary, limits.claims_prepare)?;
             let normalizer = ClaimNormalizer::new(
@@ -773,6 +802,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             None
         };
+        phases.next("philosophy-nodes");
         let mut philosophy_original = None;
         let philosophy = if selected("philosophy-node-edge-v1")? {
             let prepared = if additional.prepared_philosophy_projection {
@@ -807,6 +837,7 @@ pub fn materialize_native_sources_with_inputs(
                 "philosophy originals without selected producer",
             ));
         }
+        phases.next("canon-nodes");
         let canon = if selected("canon-node-relation-v1")? {
             let prepared = if additional.prepared_canon_projection {
                 prepare_public_projection_family(
@@ -843,6 +874,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             None
         };
+        phases.next("candidate-prepare");
         let candidates = if selected("candidate-relation-v1")? {
             let prepared = if additional.prepared_canon_projection {
                 prepare_public_projection_family(
@@ -878,6 +910,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             None
         };
+        phases.next("repository-nodes");
         let base_normalizer = if let Some(state) = stage.owned_creation_state() {
             KnowledgeBaseNormalizer::new_with_owned_state(
                 registry,
@@ -918,6 +951,7 @@ pub fn materialize_native_sources_with_inputs(
             }
             None
         };
+        phases.next("indexed-nodes");
         let indexed_nodes =
             materialize_registered_indexed_nodes(stage, vocabulary, registry, additional.indexed)?
                 .node_count;
@@ -932,6 +966,7 @@ pub fn materialize_native_sources_with_inputs(
             node_count: roots.nodes,
             node_root_sha256: roots.node_sha256,
         };
+        phases.next("semantic-placeholder-prepare");
         let semantic = if selected("declared-identity-and-source-ref-joins-v1")? {
             Some(prepare_semantic_joins(
                 stage,
@@ -976,6 +1011,7 @@ pub fn materialize_native_sources_with_inputs(
             limits.finalize.max_work_bytes,
         )?;
         let roots = stage.core_roots()?;
+        phases.next("titles");
         let titles = prepare_global_titles(
             stage,
             &CompleteBaseNodes {
@@ -985,6 +1021,7 @@ pub fn materialize_native_sources_with_inputs(
             },
             limits.titles,
         )?;
+        phases.next("claim-contexts-navigation-dependencies");
         let contexts = prepare_claim_context_groups(stage, limits.claims)?;
         let dependencies = prepare_navigation_relation_dependencies(
             stage,
@@ -992,6 +1029,7 @@ pub fn materialize_native_sources_with_inputs(
             vocabulary,
             limits.navigation_dependencies,
         )?;
+        phases.next("navigation-relations");
         let relation = materialize_navigation_relations(
             stage,
             &nav_relations,
@@ -1018,6 +1056,7 @@ pub fn materialize_native_sources_with_inputs(
                 Ok((left, right, group))
             },
         )?;
+        phases.next("claim-relations");
         let (claim_nodes, claim_relations) = if let Some((prepared, normalizer)) = &claims {
             let relations = materialize_source_claim_relations(
                 stage, prepared, normalizer, &contexts, &titles,
@@ -1027,6 +1066,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             (0, 0)
         };
+        phases.next("philosophy-relations");
         let (philosophy_nodes, philosophy_relations) =
             if let Some((prepared, normalizer)) = &philosophy {
                 let receipt = materialize_philosophy_relations(
@@ -1046,6 +1086,7 @@ pub fn materialize_native_sources_with_inputs(
             } else {
                 (0, 0)
             };
+        phases.next("canon-relations");
         let canon_relations = if let Some((prepared, normalizer)) = &canon {
             materialize_canon_relations(
                 stage,
@@ -1064,6 +1105,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             0
         };
+        phases.next("candidate-relations");
         let candidate_relations = if let Some((prepared, normalizer)) = &candidates {
             materialize_canon_relations(
                 stage,
@@ -1082,6 +1124,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             0
         };
+        phases.next("repository-relations");
         let repository_relations = if let Some(prepared) = &repository {
             if stage.owned_creation_state().is_some() {
                 crate::knowledge_repository::materialize_repository_relations_with_titles_owned(
@@ -1111,6 +1154,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             0
         };
+        phases.next("semantic-relations");
         let semantic_relations = if let Some(prepared) = &semantic {
             materialize_semantic_relations(
                 stage,
@@ -1129,6 +1173,7 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             0
         };
+        phases.next("indexed-relations");
         let indexed_relations = materialize_registered_indexed_relations(
             stage,
             vocabulary,
@@ -1141,8 +1186,10 @@ pub fn materialize_native_sources_with_inputs(
             limits.finalize.max_rows,
             limits.finalize.max_work_bytes,
         )?;
+        phases.next("claim-context-binding");
         bind_native_claim_contexts(stage, vocabulary, &contexts, limits.claims, limits.finalize)?;
         let roots = stage.core_roots()?;
+        phases.next("inherited-views");
         let inherited = prepare_global_inherited_views(
             stage,
             &CompleteRelationSeal {
@@ -1152,6 +1199,7 @@ pub fn materialize_native_sources_with_inputs(
             },
             limits.inherited,
         )?;
+        phases.next("finalize");
         let final_rows = finalize_native_graph_rows_with_witnesses(
             stage,
             registry,
@@ -1189,6 +1237,7 @@ pub fn materialize_native_sources_with_inputs(
                 Ok(None)
             },
         )?;
+        phases.next("cleanup");
         // Complete actual rows now own final roots. Cleanup checks raw family
         // coverage and dependency roots again, then removes private joins only.
         let mut absence = Digest256Hasher::new();
@@ -1318,6 +1367,7 @@ pub fn materialize_native_sources_with_inputs(
         }
         clear_global_titles(stage)?;
         clear_inherited_views(stage)?;
+        phases.next("corpus-originals");
         let corpus_original = additional
             .corpus_original
             .map(|plan| crate::retain_captured_corpus_original(stage, vocabulary, plan))
@@ -1347,6 +1397,7 @@ pub fn materialize_native_sources_with_inputs(
             indexed_relations,
         })
     })();
+    phases.finish(result.is_ok());
     if result.is_err() {
         stage.poison();
     }

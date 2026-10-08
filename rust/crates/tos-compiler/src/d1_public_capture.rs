@@ -674,9 +674,9 @@ impl<'budget> CreationState<'budget> {
     pub(crate) fn json<'a>(&'a self, raw: &[u8], cap: usize) -> Result<CreationJson<'a>> {
         creation_json(self, raw, cap)
     }
-    /// Same strict JSON grammar and pinned serde decode, admitted before any
-    /// owned serde tree. The metered FND tree is dropped before the serde tree;
-    /// its original visitor usage persists on success and failure.
+    /// Strict grammar is parsed once. Decoded text and key ownership move from
+    /// the metered Foundation tree into serde under the same operation budget;
+    /// original parser visitor usage persists on success and failure.
     #[track_caller]
     pub(crate) fn serde_owned(&self, raw: &[u8], cap: usize) -> Result<serde_json::Value> {
         let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
@@ -720,27 +720,86 @@ impl<'budget> CreationState<'budget> {
         limits: JsonLimits,
     ) -> Result<(serde_json::Value, CreationStateHold<'s, 'budget>)> {
         let document = creation_json_with_limits(self, raw, limits)?;
-        self.charge_work(
-            raw.len()
-                .checked_mul(2)
-                .ok_or(Error::Budget("owned serde geometry work"))?,
-        )?;
-        let upper =
-            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
-        drop(document);
-        let temporary = crate::knowledge_normalization::serde_input_temporary_upper(raw.len())?;
-        let retained = upper
-            .checked_sub(temporary)
-            .ok_or(Error::Budget("owned serde retained geometry"))?;
-        let mut hold = self.hold(retained)?;
-        let scratch = self.hold(temporary)?;
-        let value = self.decode_serde_raw(raw)?;
-        // Decoder scratch and recursion frames ended with decode. The returned
-        // value retains only its own admitted geometry during later callbacks.
-        drop(scratch);
-        hold.finish_value_construction(&value)?;
-        Ok((value, hold))
+        // The strict Foundation parser already owns decoded strings, exact
+        // number lexemes and insertion order. Transfer them into the consumer
+        // representation; retain the original bytes separately at their owner.
+        let extra = self.serde_transfer_workspace_upper(&document)?;
+        let mut output_hold = self.hold(extra)?;
+        let CreationJson { value, _hold } = document;
+        let mut input_hold = _hold.ok_or(Error::Invalid("strict transfer input hold absent"))?;
+        let value = self.transfer_foundation_value(value, 0)?;
+        // Both guards were continuously charged during conversion. Move the
+        // original string/number custody into the result guard before releasing
+        // old container geometry. No live value receives a temporary refund.
+        output_hold.admitted = output_hold.admitted.checked_add(input_hold.admitted)
+            .ok_or(Error::Budget("strict value custody transfer overflow"))?;
+        input_hold.admitted = 0;
+        drop(input_hold);
+        output_hold.finish_value_construction(&value)?;
+        Ok((value, output_hold))
     }
+    fn serde_transfer_workspace_upper(&self, value: &JsonValue) -> Result<usize> {
+        fn add(left: usize, right: usize) -> Result<usize> {
+            left.checked_add(right).ok_or(Error::Budget("strict value conversion state"))
+        }
+        fn walk(state: &CreationState<'_>, value: &JsonValue, depth: usize) -> Result<usize> {
+            state.charge_work(1)?;
+            if depth > 96 { return Err(Error::Budget("strict value conversion depth")); }
+            match value {
+                // UTF8 strings and object keys are moved from the admitted
+                // Foundation tree, so conversion allocates no replacement text.
+                JsonValue::Null | JsonValue::Bool(_) | JsonValue::String(_) => Ok(0),
+                JsonValue::Number(n) => n.lexeme.len().checked_mul(4)
+                    .and_then(|n| n.checked_add(128))
+                    .ok_or(Error::Budget("strict numeric conversion state")),
+                JsonValue::Array(rows) => {
+                    let mut bytes = rows.len().checked_mul(std::mem::size_of::<serde_json::Value>())
+                        .ok_or(Error::Budget("strict array conversion state"))?;
+                    for row in rows { bytes = add(bytes, walk(state, row, depth + 1)?)?; }
+                    Ok(bytes)
+                }
+                JsonValue::Object(fields) => {
+                    let mut bytes = crate::knowledge_normalization::serde_object_slots_upper(fields.len())?;
+                    for (_, value) in fields { bytes = add(bytes, walk(state, value, depth + 1)?)?; }
+                    Ok(bytes)
+                }
+            }
+        }
+        let frames = 97usize.checked_mul(std::mem::size_of::<JsonValue>() + std::mem::size_of::<serde_json::Value>() + 512)
+            .ok_or(Error::Budget("strict conversion frame state"))?;
+        add(frames, walk(self, value, 0)?)
+    }
+    fn transfer_foundation_value(&self, value: JsonValue, depth: usize) -> Result<serde_json::Value> {
+        self.charge_work(1)?;
+        if depth > 96 { return Err(Error::Budget("strict value conversion depth")); }
+        use serde_json::Value as V;
+        Ok(match value {
+            JsonValue::Null => V::Null,
+            JsonValue::Bool(v) => V::Bool(v),
+            JsonValue::String(v) => V::String(v.into_utf8().ok_or(Error::Invalid("strict serde unpaired surrogate"))?),
+            JsonValue::Number(n) => {
+                self.charge_work(n.lexeme.len())?;
+                V::Number(n.lexeme.parse().map_err(|_| Error::Invalid("strict serde number conversion"))?)
+            }
+            JsonValue::Array(rows) => {
+                let mut output = Vec::with_capacity(rows.len());
+                for row in rows { output.push(self.transfer_foundation_value(row, depth + 1)?); }
+                V::Array(output)
+            }
+            JsonValue::Object(fields) => {
+                let mut output = serde_json::Map::with_capacity(fields.len());
+                for (key, value) in fields {
+                    let key = key.into_utf8().ok_or(Error::Invalid("strict serde unpaired key surrogate"))?;
+                    self.charge_work(key.len())?;
+                    if output.insert(key, self.transfer_foundation_value(value, depth + 1)?).is_some() {
+                        return Err(Error::Invalid("strict conversion duplicate key"));
+                    }
+                }
+                V::Object(output)
+            }
+        })
+    }
+
     #[track_caller]
     pub(crate) fn with_serde_owned_with_limits<T>(
         &self,
@@ -768,6 +827,7 @@ impl<'budget> CreationState<'budget> {
         drop(hold);
         result
     }
+    #[cfg(test)]
     fn decode_serde_raw(&self, raw: &[u8]) -> Result<serde_json::Value> {
         // The original raw input is borrowed. Every byte supplied to serde is
         // byte-work/cutoff checked; no independent parser clock/counter.
@@ -805,6 +865,9 @@ impl<'budget> CreationState<'budget> {
             .map_err(|_| Error::Invalid("owned model serde trailing input"))?;
         self.remaining(0)?;
         Ok(value)
+    }
+    pub(crate) fn observed_work_bytes(&self) -> u64 {
+        self.work.load(std::sync::atomic::Ordering::Acquire)
     }
     #[track_caller]
     pub(crate) fn charge_work(&self, bytes: usize) -> Result<()> {
@@ -2619,24 +2682,11 @@ fn strict_value_owned<'a>(
             _hold: None,
         });
     };
-    let document = creation_json(owner, raw, cap)?;
-    // Same maintained geometry owner used by raw normalization. Charge the
-    // geometry walk and unchanged serde decode before either executes.
-    let work = raw
-        .len()
-        .checked_add(1)
-        .and_then(|n| n.checked_mul(2))
-        .ok_or(Error::Budget("runtime carrier serde work"))?;
-    checked_add(&owner.work, work, owner.work_limit)?;
-    let upper = crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
-    drop(document);
-    let hold = owner.hold(upper)?;
-    let value = serde_json::from_slice(raw).map_err(|e| Error::Source(e.to_string()))?;
-    check_capture_active(Some(owner.cancelled), owner.deadline)?;
-    Ok(CreationSerde {
-        value,
-        _hold: Some(hold),
-    })
+    let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("runtime carrier strict value limits"))?;
+    let (value, hold) = owner.serde_scoped_with_limits(raw, limits)?;
+    Ok(CreationSerde { value, _hold: Some(hold) })
+
 }
 
 fn strict_value(raw: &[u8], cap: usize) -> Result<serde_json::Value> {
@@ -7111,6 +7161,40 @@ mod construction_phase_tests {
         assert_eq!(number.as_number().unwrap().as_str(), large_number);
         drop(number); drop(number_hold);
         assert_eq!(state.retained.get(), baseline);
+        // Compare the existing strict serde decoder for exact numeric spelling,
+        // Unicode, insertion order and nested arrays. It is not a runtime path.
+        for raw in [
+            br#"[-0,0,1.2300,1e+3,1E-3,18446744073709551616,-9223372036854775809]"#.as_slice(),
+            br#"{"z":"\uD83D\uDE00","a":[null,true,false,"\u0416"],"empty":{}}"#.as_slice(),
+        ] {
+            let previous = state.decode_serde_raw(raw).unwrap();
+            let (next, hold) = state.serde_scoped_with_limits(raw, limits).unwrap();
+            assert_eq!(serde_json::to_vec(&next).unwrap(), serde_json::to_vec(&previous).unwrap());
+            drop(next); drop(hold);
+            assert_eq!(state.retained.get(), baseline);
+        }
+        for raw in [br#"{"a":1,"\u0061":2}"#.as_slice(), br#"{} []"#.as_slice(), br#""\ud800""#.as_slice()] {
+            assert!(state.serde_scoped_with_limits(raw, limits).is_err());
+            assert_eq!(state.retained.get(), baseline);
+        }
+        let long = serde_json::to_vec(&serde_json::json!({"text": "x".repeat(8192),"n":1.2300})).unwrap();
+        let mut old_work = 0;
+        // Recreate the former grammar/geometry/second-parse sequence once.
+        let before_work = work.load(Ordering::Acquire);
+        let old_document = creation_json_with_limits(&state, &long, JsonLimits::new(16384,96,10000,4096).unwrap()).unwrap();
+        state.charge_work(long.len()*2).unwrap();
+        let _ = crate::knowledge_normalization::serde_input_workspace_upper(&old_document, long.len()).unwrap();
+        drop(old_document);
+        let old = state.decode_serde_raw(&long).unwrap();
+        old_work += work.load(Ordering::Acquire)-before_work;
+        let before_work = work.load(Ordering::Acquire);
+        let (next, hold) = state.serde_scoped_with_limits(&long, JsonLimits::new(16384,96,10000,4096).unwrap()).unwrap();
+        let new_work = work.load(Ordering::Acquire)-before_work;
+        assert_eq!(next,old);
+        assert!(new_work < old_work, "single parse must remove real work: old={old_work} new={new_work}");
+        eprintln!("strict conversion measured work old={old_work} new={new_work}");
+        drop(next);drop(hold);drop(old);
+        assert_eq!(state.retained.get(),baseline);
         let persistent = state.serde_owned_with_limits(raw, limits).unwrap();
         assert!(state.persistent.get() > 0);
         assert_eq!(state.retained.get(), baseline + state.persistent.get());

@@ -120,6 +120,11 @@ impl JsonString {
     pub fn as_str(&self) -> Option<&str> {
         self.utf8.as_deref()
     }
+    /// Consume the already decoded UTF-8 buffer without encoding or copying it.
+    /// A retained lone surrogate has no UTF-8 representation and returns None.
+    pub fn into_utf8(self) -> Option<String> {
+        self.utf8
+    }
     pub fn units(&self) -> &[u16] {
         &self.units
     }
