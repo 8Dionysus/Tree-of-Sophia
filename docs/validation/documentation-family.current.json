@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 6384,
+    "tracked_surface_count": 6383,
     "unhandled_family_count": 1
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5613,
+    "excluded_tracked_path_count": 5616,
     "human_scope": {
-      "bytes": 7335863,
+      "bytes": 7337131,
       "count": 1086,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 691374,
+          "bytes": 692642,
           "count": 45,
-          "lines": 11020
+          "lines": 11041
         },
         "agents-other": {
           "bytes": 9174,
@@ -121,15 +121,15 @@
           "lines": 82420
         }
       },
-      "lines": 121296
+      "lines": 121317
     },
     "surface_kind_counts": {
-      "executable": 597,
+      "executable": 592,
       "human": 1086,
-      "structured": 4701
+      "structured": 4705
     },
-    "tracked_path_count": 11997,
-    "tracked_surface_count": 6384,
+    "tracked_path_count": 11999,
+    "tracked_surface_count": 6383,
     "unhandled_family_count": 1,
     "unhandled_paths": [
       ".scale-completion-r1/v2-writer-source-pin-r1.json"
@@ -175,7 +175,7 @@
         "human": 726,
         "structured": 4400
       },
-      "tracked_surface_bytes": 99542578,
+      "tracked_surface_bytes": 99542825,
       "tracked_surface_count": 5159
     },
     {
@@ -185,7 +185,7 @@
         "human": 45,
         "structured": 54
       },
-      "tracked_surface_bytes": 6069407,
+      "tracked_surface_bytes": 6070675,
       "tracked_surface_count": 302
     },
     {
@@ -194,7 +194,7 @@
         "human": 88,
         "structured": 6
       },
-      "tracked_surface_bytes": 1101279,
+      "tracked_surface_bytes": 1098549,
       "tracked_surface_count": 94
     },
     {
@@ -236,32 +236,32 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 151,
+        "executable": 147,
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 4061125,
-      "tracked_surface_count": 155
+      "tracked_surface_bytes": 3936907,
+      "tracked_surface_count": 151
     },
     {
       "family_id": "rust",
       "surface_kind_counts": {
         "executable": 4,
         "human": 10,
-        "structured": 183
+        "structured": 187
       },
-      "tracked_surface_bytes": 2477950,
-      "tracked_surface_count": 197
+      "tracked_surface_bytes": 2534047,
+      "tracked_surface_count": 201
     },
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 116,
+        "executable": 115,
         "human": 10,
         "structured": 11
       },
-      "tracked_surface_bytes": 3763911,
-      "tracked_surface_count": 137
+      "tracked_surface_bytes": 3749466,
+      "tracked_surface_count": 136
     },
     {
       "family_id": "manifests",
@@ -295,7 +295,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "ba101a8a9904182f059749f80e8a670403938a0938fe0c2e19d16cf6cc599ed8",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "35ce8ed8671d48d9169078fa4da13691f19eeffe334678b07fe3653a33bedb30",
+  "tracked_surface_digest": "a7c38e4dc82cf34f4d69569e596e150f8efb7f5402955cf71b78bfb040d68347",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -342,7 +342,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "1cbd3d897b0342536ae8a56387f404c0b0ca365e3463fce7a3627f328d329ad3",
+      "sha256": "8078b44e5d75eb391a2f6b0adf6145b643c7524255696d356e26f178b9553db5",
       "surface_kind": "structured"
     },
     {
@@ -17066,11 +17066,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2466,
+      "bytes": 2480,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/lab.manifest.json",
-      "sha256": "a054998f6f80880e22598655917eeebacc485bbf4090454cec7b7433cffde093",
+      "sha256": "c754d6cd87d6e4a8902f1e30da260b62f55b1becaac329b61d6bde945ffd89ba",
       "surface_kind": "structured"
     },
     {
@@ -17234,11 +17234,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2540,
+      "bytes": 2557,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/lab.manifest.json",
-      "sha256": "692003c8015172152aa1e0275d40b3f34bd7729414a5208d901754ea3b36f857",
+      "sha256": "6568b261155e1cebedb68f15608f59926e97d063e406ef039e09a409e5be69dc",
       "surface_kind": "structured"
     },
     {
@@ -17258,27 +17258,27 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 14120,
+      "bytes": 14154,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json",
-      "sha256": "c7065c753a9b7b1df46c579041d39cdaa89db007408bf3d597f8539d1c586de4",
+      "sha256": "a606e6470ea8addf2c9362cddefb964723da61c15b3fb5f9c13d2eb631ce94e5",
       "surface_kind": "structured"
     },
     {
-      "bytes": 105124,
+      "bytes": 105260,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-b-competing-segmentations.json",
-      "sha256": "653f3663aa1fc04f20a8f5d2e412dc5b19e121fada1f584837f36d9a06142e3b",
+      "sha256": "ba70bc3ff22f3f0ccc6d0a4d5b7a981566d9dec4f0c9b1d02aaec3f6bce8cbfc",
       "surface_kind": "structured"
     },
     {
-      "bytes": 12499,
+      "bytes": 12533,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-c-invalid-acceptance.json",
-      "sha256": "5edca499ad3d1775b043ed51c33179ebfab503496a16205e4b90166326b0ae53",
+      "sha256": "c0baef216e701050dcf3a5e270febef97053a6416c3c540a84c35eecc15f7262",
       "surface_kind": "structured"
     },
     {
@@ -17290,11 +17290,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3708,
+      "bytes": 3720,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/lab.manifest.json",
-      "sha256": "14394bff97599d13353c288abb061f16636eccc6a3e0ba582cda934f5727b762",
+      "sha256": "5c347cc2bc5e007c4f8d38bf758e3ca985ed1d146bda6430fe0e1a16fbabc2c6",
       "surface_kind": "structured"
     },
     {
@@ -41834,11 +41834,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 146738,
+      "bytes": 148006,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "5bef19346dba6991a42835526c7d4f4ff32fd25586efd92849f931960cd55155",
+      "sha256": "8f8e986df709823acfbb545e07bbee5532980239d12b3e40a4600fb30ade8491",
       "surface_kind": "human"
     },
     {
@@ -44930,11 +44930,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 286587,
+      "bytes": 283857,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "33d9c25a83e0e98ae83a28a16fa9b42bb8bffa015924fb13e71254d16aa6335a",
+      "sha256": "cae1ba35b41fe4d91d6927e0a5c3dd7c8fb91e49748c656ed7552e8e01080725",
       "surface_kind": "structured"
     },
     {
@@ -48530,6 +48530,38 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 412,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/authored_canon_bridge/authority-boundary.json",
+      "sha256": "d8605dc71e04e0da312c16cc12d1dd87a92c29599f915e97ee483b1b5734d704",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 34741,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/authored_canon_bridge/historical-event.json",
+      "sha256": "b4db0cf0f05f630d25d608c2fd41d6fd8d2f0989fa86bc0d2178861219436e8f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 12994,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/authored_canon_bridge/historical-plan.json",
+      "sha256": "767bb3179b7824afa74b13a1575fabe5a682e1ccaed5f4069be67f7cdb6e677a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7950,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/authored_canon_bridge/sequence-matcher-autojunk-cases.json",
+      "sha256": "1ed1c02ebb6b036f78006af4df7aecad6808cd5b0bf3c26696ec4178a57b80bd",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 13858,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
@@ -49226,14 +49258,6 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 15917,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_semantic_annotation_v2_lab.py",
-      "sha256": "e0f42750f53e4b0679d6346ff5199bd4f7cd7a4442834cba62758ca57f339ffe",
-      "surface_kind": "executable"
-    },
-    {
       "bytes": 33866,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
@@ -49247,14 +49271,6 @@
       "family_id": "scripts",
       "path": "scripts/build_source_resource_inventories.py",
       "sha256": "31988286af420be8524230b0bd5618665ecc1de3e17e580cc8a4a126d2412023",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 26804,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_source_text_unit_v1_lab.py",
-      "sha256": "4da34c86754934fe44b0e24188cd1016df2a296101c63d163d7587108cf9c930",
       "surface_kind": "executable"
     },
     {
@@ -49282,27 +49298,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 17658,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_translation_alignment_v1_lab.py",
-      "sha256": "4faf54fcae1dd7d891caccb88404d3f852f54a7c2c3ff26c937861cff5a3f166",
-      "surface_kind": "executable"
-    },
-    {
       "bytes": 44044,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_witness_structure_correspondence.py",
       "sha256": "0564cb83d2f3c74fff8a3550c2d876f69f52364b54e9aaa1c5d40804f2585897",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 63839,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_zarathustra_authored_canon_evidence_bridge.py",
-      "sha256": "a98ab5ddcb8d9ab89e9f478fbde0fed0c0f7c70c492a597756edd48b248f6ec4",
       "surface_kind": "executable"
     },
     {
@@ -50826,11 +50826,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 171227,
+      "bytes": 169829,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "edfd36749d97cbc855a8ae83380f7ca2e5c8ece1439e55d60e0eed9e8d30cdbf",
+      "sha256": "f89fb9b10b8c79926c67ebc4d9af2ec5d6e09514118e80c27978bc52890db454",
       "surface_kind": "structured"
     },
     {
@@ -51255,14 +51255,6 @@
       "family_id": "tests",
       "path": "tests/test_witness_structure_correspondence.py",
       "sha256": "1c7aa95c72d3927eca4fcd18a7a956a1cd5d8219d2340a0e85656f2605d00cab",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 13047,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tests",
-      "path": "tests/test_zarathustra_authored_canon_evidence_bridge.py",
-      "sha256": "e48f1a12480dbd20a3d26abb2966e8c8de590bd15be6245c8d0ff3864a517911",
       "surface_kind": "executable"
     },
     {
