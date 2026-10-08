@@ -6776,13 +6776,13 @@ mod tests {
         let mut after = None;
         for n in 0..96 {
             let rows = stage.scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1).unwrap();
-            assert_eq!(rows.len(), 1);
-            assert_eq!(rows[0].id, format!("fixture-{n:04}"));
-            assert_eq!(rows[0].payload, payload);
-            assert_eq!(rows[0].payload_sha256, Digest256::of_bytes(&payload).to_hex());
-            after = Some(rows[0].id.clone());
+            assert_eq!(rows.rows.len(), 1);
+            assert_eq!(rows.rows[0].id, format!("fixture-{n:04}"));
+            assert_eq!(rows.rows[0].payload, payload);
+            assert_eq!(rows.rows[0].payload_sha256, Digest256::of_bytes(&payload).to_hex());
+            after = Some(rows.rows[0].id.clone());
         }
-        assert!(stage.scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1).unwrap().is_empty());
+        assert!(stage.scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1).unwrap().rows.is_empty());
         assert_eq!(stage.verified_input_rows().unwrap(), 96);
         let size: u64 = stage.db().query_row("PRAGMA temp.page_size", [], |r| r.get(0)).unwrap();
         let pages: u64 = stage.db().query_row("PRAGMA temp.page_count", [], |r| r.get(0)).unwrap();

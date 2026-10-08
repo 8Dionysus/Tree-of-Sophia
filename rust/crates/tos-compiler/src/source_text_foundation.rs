@@ -122,11 +122,11 @@ fn xml(ctx: &ResearchExecution, raw: &[u8]) -> Result<Node> {
                 stack.last_mut().unwrap().content.push(Part::Child(child));
             }
             Event::Text(e) => {
-                let decoded = e.xml_content().map_err(|e| e.to_string())?;
+                let decoded = e.xml_content(quick_xml::XmlVersion::Explicit1_0).map_err(|e| e.to_string())?;
                 stack.last_mut().unwrap().text(&decoded);
             }
             Event::CData(e) => {
-                let decoded = e.xml_content().map_err(|e| e.to_string())?;
+                let decoded = e.xml_content(quick_xml::XmlVersion::Explicit1_0).map_err(|e| e.to_string())?;
                 stack.last_mut().unwrap().text(&decoded);
             }
             Event::GeneralRef(e) => {
@@ -134,6 +134,9 @@ fn xml(ctx: &ResearchExecution, raw: &[u8]) -> Result<Node> {
                 let entity = format!("&{decoded};");
                 let value = quick_xml::escape::unescape(&entity).map_err(|e| e.to_string())?;
                 stack.last_mut().unwrap().text(&value);
+            }
+            Event::Decl(e) => {
+                ensure(e.xml_version().map_err(|e| e.to_string())? != quick_xml::XmlVersion::Explicit1_1, "source requires XML 1.0")?;
             }
             Event::DocType(_) => return Err("bounded DTA source does not allow a DTD".into()),
             Event::Eof => break,
