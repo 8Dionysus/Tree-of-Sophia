@@ -30,19 +30,42 @@ struct Context {
 }
 
 #[derive(Clone)]
-struct Surface {
-    context_ref: String,
-    id: String,
-    start: usize,
-    end: usize,
-    kind: String,
-    exact_text: String,
-    normalized_text: String,
-    language: Option<Value>,
-    part: Option<Value>,
-    exact_sha256: Option<Value>,
-    normalized_sha256: Option<Value>,
-    sentence_id: Option<Value>,
+pub(super) struct Surface {
+    pub(super) context_ref: String,
+    pub(super) id: String,
+    pub(super) start: usize,
+    pub(super) end: usize,
+    pub(super) kind: String,
+    pub(super) exact_text: String,
+    pub(super) normalized_text: String,
+    pub(super) language: Option<Value>,
+    pub(super) part: Option<Value>,
+    pub(super) exact_sha256: Option<Value>,
+    pub(super) normalized_sha256: Option<Value>,
+    pub(super) sentence_id: Option<Value>,
+}
+
+impl Surface {
+    fn from_value(value: &Value) -> R<Self> {
+        Ok(Self {
+            context_ref: string_field(value, "context_unit_ref")?.to_owned(),
+            id: string_field(value, "surface_unit_id")?.to_owned(),
+            start: offset_field(value, "start_offset")?,
+            end: offset_field(value, "end_offset")?,
+            kind: string_field(value, "surface_kind")?.to_owned(),
+            exact_text: string_field(value, "exact_text")?.to_owned(),
+            normalized_text: value
+                .get("normalized_text")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned(),
+            language: value.get("language").cloned(),
+            part: value.get("part").cloned(),
+            exact_sha256: value.get("exact_sha256").cloned(),
+            normalized_sha256: value.get("normalized_sha256").cloned(),
+            sentence_id: value.get("sentence_id").cloned(),
+        })
+    }
 }
 
 #[derive(Clone)]
@@ -220,7 +243,7 @@ fn lexical(kind: &str) -> bool {
 fn validated_streams(
     root: &ResearchExecution,
     contexts: &[Value],
-    surfaces: &[Value],
+    surfaces: impl IntoIterator<Item = R<Surface>>,
 ) -> R<(
     Vec<Vec<Token>>,
     Vec<Context>,
@@ -266,38 +289,20 @@ fn validated_streams(
 
     let mut grouped: BTreeMap<String, Vec<Surface>> = BTreeMap::new();
     let mut seen_surface_ids = BTreeSet::new();
-    for value in surfaces {
+    for surface in surfaces {
         root.check()?;
         root.tick(1)?;
-        let context_ref = string_field(value, "context_unit_ref")?.to_owned();
-        let id = string_field(value, "surface_unit_id")?.to_owned();
-        if !by_ref.contains_key(&context_ref) {
-            return Err(format!("surface has unknown context: {id}"));
+        let surface = surface?;
+        if !by_ref.contains_key(&surface.context_ref) {
+            return Err(format!("surface has unknown context: {}", surface.id));
         }
-        if !seen_surface_ids.insert(id.clone()) {
-            return Err(format!("duplicate surface reference: {id}"));
+        if !seen_surface_ids.insert(surface.id.clone()) {
+            return Err(format!("duplicate surface reference: {}", surface.id));
         }
         grouped
-            .entry(context_ref.clone())
+            .entry(surface.context_ref.clone())
             .or_default()
-            .push(Surface {
-                context_ref,
-                id,
-                start: offset_field(value, "start_offset")?,
-                end: offset_field(value, "end_offset")?,
-                kind: string_field(value, "surface_kind")?.to_owned(),
-                exact_text: string_field(value, "exact_text")?.to_owned(),
-                normalized_text: value
-                    .get("normalized_text")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_owned(),
-                language: value.get("language").cloned(),
-                part: value.get("part").cloned(),
-                exact_sha256: value.get("exact_sha256").cloned(),
-                normalized_sha256: value.get("normalized_sha256").cloned(),
-                sentence_id: value.get("sentence_id").cloned(),
-            });
+            .push(surface);
     }
 
     let mut order: Vec<usize> = (0..parsed_contexts.len()).collect();
@@ -672,6 +677,15 @@ pub fn build_formulas(
     root: &ResearchExecution,
     contexts: &[Value],
     surfaces: &[Value],
+) -> R<(Vec<Value>, Vec<Value>, Vec<Value>, Value)> {
+    build_formulas_owned(root, contexts, surfaces.iter().map(Surface::from_value))
+}
+
+/// Consume the already decoded source rows instead of retaining a second JSON tree.
+pub(super) fn build_formulas_owned(
+    root: &ResearchExecution,
+    contexts: &[Value],
+    surfaces: impl IntoIterator<Item = R<Surface>>,
 ) -> R<(Vec<Value>, Vec<Value>, Vec<Value>, Value)> {
     root.check()?;
     let (streams, context_rows, by_ref, coverage) = validated_streams(root, contexts, surfaces)?;

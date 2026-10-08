@@ -2,6 +2,7 @@
 //! remain subordinate to source, policy and review owners.
 use crate::research_eternal_return::{bytes, digest, lines, load};
 use crate::research_execution::ResearchExecution;
+use crate::research_reading_formulas::Surface;
 use rusqlite::{
     Connection, params_from_iter,
     types::{Value as SqlValue, ValueRef},
@@ -234,78 +235,137 @@ fn validate_policies(
     }
     Ok(checked)
 }
+// Only fields used by the German occurrence crosswalk survive SQLite decoding.
+struct LegacyOccurrence {
+    reference: String,
+    context: Option<String>,
+    ordinal: u64,
+    form: String,
+    digest: String,
+}
+fn surface_rows(root: &ResearchExecution, db: &Connection) -> Result<Vec<Surface>> {
+    let mut statement=db.prepare("SELECT context_unit_ref,surface_unit_id,start_offset,end_offset,surface_kind,exact_text,normalized_text,language,part,exact_sha256,normalized_sha256,sentence_id FROM surface_units NOT INDEXED ORDER BY +language,+witness_ordinal").map_err(|e|e.to_string())?;
+    let mut rows = statement.query([]).map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    while let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        root.tick(12)?;
+        let string = |index| row.get::<_, String>(index).map_err(|e| e.to_string());
+        let scalar = |index| -> Result<Value> {
+            Ok(match row.get_ref(index).map_err(|e| e.to_string())? {
+                ValueRef::Null => Value::Null,
+                ValueRef::Integer(n) => json!(n),
+                ValueRef::Text(b) => json!(std::str::from_utf8(b).map_err(|e| e.to_string())?),
+                _ => return Err("unexpected surface SQLite scalar".into()),
+            })
+        };
+        out.push(Surface {
+            context_ref: string(0)?,
+            id: string(1)?,
+            start: row.get::<_, usize>(2).map_err(|e| e.to_string())?,
+            end: row.get::<_, usize>(3).map_err(|e| e.to_string())?,
+            kind: string(4)?,
+            exact_text: string(5)?,
+            normalized_text: scalar(6)?.as_str().unwrap_or_default().to_owned(),
+            language: Some(scalar(7)?),
+            part: Some(scalar(8)?),
+            exact_sha256: Some(scalar(9)?),
+            normalized_sha256: Some(scalar(10)?),
+            sentence_id: Some(scalar(11)?),
+        });
+    }
+    root.check()?;
+    Ok(out)
+}
+fn legacy_occurrences(root: &ResearchExecution, db: &Connection) -> Result<Vec<LegacyOccurrence>> {
+    // The predecessor recipe excludes Russian and explicitly out-of-work rows
+    // before grouping; doing that in SQL keeps the same order and gap evidence.
+    let mut statement=db.prepare("SELECT existing_occurrence_ref,context_unit_ref,token_ordinal,exact_form,exact_form_sha256 FROM exact_occurrences NOT INDEXED WHERE +language='de' AND (in_work_scope IS NULL OR in_work_scope<>0) ORDER BY +language,+part,+token_ordinal").map_err(|e|e.to_string())?;
+    let mut rows = statement.query([]).map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    while let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        root.tick(5)?;
+        let ordinal = match row.get_ref(2).map_err(|e| e.to_string())? {
+            ValueRef::Integer(n) => u64::try_from(n).unwrap_or(0),
+            ValueRef::Text(_) | ValueRef::Null => 0,
+            _ => return Err("unexpected occurrence ordinal".into()),
+        };
+        out.push(LegacyOccurrence {
+            reference: row.get(0).map_err(|e| e.to_string())?,
+            context: row.get(1).map_err(|e| e.to_string())?,
+            ordinal,
+            form: row.get(3).map_err(|e| e.to_string())?,
+            digest: row.get(4).map_err(|e| e.to_string())?,
+        });
+    }
+    root.check()?;
+    Ok(out)
+}
 fn crosswalk(
     root: &ResearchExecution,
     contexts: &[Value],
-    surfaces: &[Value],
-    occurrences: &[Value],
+    surfaces: &[Surface],
+    occurrences: &[LegacyOccurrence],
 ) -> Result<(Vec<Value>, Vec<Value>)> {
     let by: BTreeMap<_, _> = contexts
         .iter()
-        .map(|c| Ok((s(c, "context_unit_ref")?.to_owned(), c)))
+        .map(|c| Ok((s(c, "context_unit_ref")?, c)))
         .collect::<Result<_>>()?;
     let spans: BTreeMap<_, _> = surfaces
         .iter()
         .map(|r| {
-            Ok((
-                (
-                    s(r, "context_unit_ref")?.to_owned(),
-                    n(r, "start_offset")?,
-                    n(r, "end_offset")?,
-                ),
-                r["surface_unit_id"].clone(),
-            ))
+            (
+                (r.context_ref.as_str(), r.start as u64, r.end as u64),
+                r.id.as_str(),
+            )
         })
-        .collect::<Result<_>>()?;
-    // Python insertion order of first encountered context is semantically visible.
-    let mut groups: Vec<(String, Vec<&Value>)> = Vec::new();
+        .collect();
+    // The first encounter order is part of the retained output recipe.
+    let mut groups: Vec<(&str, Vec<&LegacyOccurrence>)> = Vec::new();
+    let mut group_index = BTreeMap::new();
     let mut gap = Vec::new();
     for r in occurrences {
         root.tick(1)?;
-        if r["language"] != "de"
-            || r["in_work_scope"].as_i64() == Some(0)
-            || r["in_work_scope"] == false
-        {
-            continue;
-        }
-        let Some(reference) = r["context_unit_ref"].as_str() else {
-            gap.push(json!({"kind":"legacy_occurrence_context_unmapped","occurrence_ref":r["existing_occurrence_ref"],"status":"deferred"}));
+        let reference = r
+            .context
+            .as_deref()
+            .filter(|reference| by.contains_key(reference));
+        let Some(reference) = reference else {
+            gap.push(json!({"kind":"legacy_occurrence_context_unmapped","occurrence_ref":r.reference,"status":"deferred"}));
             continue;
         };
-        if !by.contains_key(reference) {
-            gap.push(json!({"kind":"legacy_occurrence_context_unmapped","occurrence_ref":r["existing_occurrence_ref"],"status":"deferred"}));
-            continue;
-        }
-        if let Some((_, rows)) = groups.iter_mut().find(|(k, _)| k == reference) {
-            rows.push(r)
-        } else {
-            groups.push((reference.into(), vec![r]))
-        }
+        let i = *group_index.entry(reference).or_insert_with(|| {
+            groups.push((reference, Vec::new()));
+            groups.len() - 1
+        });
+        groups[i].1.push(r);
     }
     let mut mappings = Vec::new();
     for (reference, mut rows) in groups {
-        rows.sort_by_key(|r| r["token_ordinal"].as_u64().unwrap_or(0));
-        let text = s(by[&reference], "exact_text")?;
+        rows.sort_by_key(|r| r.ordinal);
+        let text = s(by[reference], "exact_text")?;
+        let char_len = text.chars().count() as u64;
         let mut cursor = 0u64;
         for r in rows {
-            let form = s(r, "exact_form")?;
-            let suffix = slice(text, cursor, text.chars().count() as u64)?;
+            let form = r.form.as_str();
+            let suffix = slice(text, cursor, char_len)?;
             root.tick(suffix.chars().count() as u64)?;
             let found = suffix
                 .find(form)
                 .map(|byte| cursor + suffix[..byte].chars().count() as u64);
-            if found.is_none() || sha(form) != s(r, "exact_form_sha256")? {
-                gap.push(json!({"kind":"legacy_occurrence_exact_crosswalk_failed","context_unit_ref":reference,"occurrence_ref":r["existing_occurrence_ref"],"status":"deferred"}));
+            let exact_sha = sha(form);
+            if found.is_none() || exact_sha != r.digest {
+                gap.push(json!({"kind":"legacy_occurrence_exact_crosswalk_failed","context_unit_ref":reference,"occurrence_ref":r.reference,"status":"deferred"}));
                 continue;
             }
             let start = found.unwrap();
             let end = start + form.chars().count() as u64;
-            mappings.push(json!({"existing_occurrence_ref":r["existing_occurrence_ref"],"context_unit_ref":reference,"surface_unit_ref":spans.get(&(reference.clone(),start,end)),"start_offset":start,"end_offset":end,"exact_text":form,"exact_sha256":sha(form),"status":"proposed"}));
+            mappings.push(json!({"existing_occurrence_ref":r.reference,"context_unit_ref":reference,"surface_unit_ref":spans.get(&(reference,start,end)),"start_offset":start,"end_offset":end,"exact_text":form,"exact_sha256":exact_sha,"status":"proposed"}));
             cursor = end;
         }
     }
     Ok((mappings, gap))
 }
+
 fn sql_value(v: &Value) -> Result<SqlValue> {
     Ok(match v {
         Value::Null => SqlValue::Null,
@@ -688,11 +748,12 @@ fn materialize(
         &source,
         "SELECT * FROM sentences NOT INDEXED ORDER BY language,witness_ordinal",
     )?;
-    let surfaces = query(
-        root,
-        &source,
-        "SELECT * FROM surface_units NOT INDEXED ORDER BY +language,+witness_ordinal",
-    )?;
+    let surfaces = surface_rows(root, &source)?;
+    eprintln!(
+        "Reading phase=source-input rows_context={} rows_surface={}",
+        contexts.len(),
+        surfaces.len()
+    );
     drop(source);
     let analysis = root.open_sqlite_readonly_for_ordered_scan(&inputs[1].file)?;
     quick_check(root, &analysis)?;
@@ -709,11 +770,8 @@ fn materialize(
     drop(analysis);
     let concept = root.open_sqlite_readonly_for_ordered_scan(&inputs[2].file)?;
     quick_check(root, &concept)?;
-    let occurrences = query(
-        root,
-        &concept,
-        "SELECT * FROM exact_occurrences NOT INDEXED ORDER BY +language,+part,+token_ordinal",
-    )?;
+    let occurrences = legacy_occurrences(root, &concept)?;
+    eprintln!("Reading phase=legacy-input rows={}", occurrences.len());
     drop(concept);
     let policy_ref = format!("{ROUTE}/chapter-voice-policies.v1.json");
     let policy_raw = root.read(&policy_ref)?;
@@ -736,10 +794,21 @@ fn materialize(
     let conservation =
         crate::research_reading_discourse::validate_partition(root, &contexts, &segments)?;
     let (mappings, mapping_gaps) = crosswalk(root, &contexts, &surfaces, &occurrences)?;
+    drop(occurrences);
+    eprintln!("Reading phase=crosswalk mappings={}", mappings.len());
     let mapping_gap_count = mapping_gaps.len();
     gaps.extend(mapping_gaps);
     let (families, memberships, relations, formula_receipt) =
-        crate::research_reading_formulas::build_formulas(root, &contexts, &surfaces)?;
+        crate::research_reading_formulas::build_formulas_owned(
+            root,
+            &contexts,
+            surfaces.into_iter().map(Ok),
+        )?;
+    eprintln!(
+        "Reading phase=formulas families={} memberships={}",
+        families.len(),
+        memberships.len()
+    );
     let context_map: BTreeMap<_, _> = contexts
         .iter()
         .map(|c| Ok((s(c, "context_unit_ref")?.to_owned(), c)))
