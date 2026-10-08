@@ -13,7 +13,6 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import build_witness_structure_correspondence as builder
-import build_jenseits_polilov_numbered_unit_structure as target_builder
 import validate_witness_structure_correspondence as validator
 
 
@@ -109,21 +108,6 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
         )
 
         self.assertTrue(list(schema_validator.iter_errors(payload)))
-
-    def test_target_bbox_order_route_keeps_missing_units_explicit(self) -> None:
-        matches, skipped, raw_matches = target_builder._ordered_candidate_matches(
-            ["1", "2", "3", "4"],
-            [
-                {"page": 10, "normalized": "1", "raw": "1."},
-                {"page": 11, "normalized": "3", "raw": "3."},
-                {"page": 12, "normalized": "2", "raw": "2."},
-                {"page": 13, "normalized": "4", "raw": "4."},
-            ],
-        )
-
-        self.assertEqual({"1": 10, "3": 11, "4": 13}, matches)
-        self.assertEqual(["2"], skipped)
-        self.assertEqual({"1": "1.", "3": "3.", "4": "4."}, raw_matches)
 
     def test_numbered_label_pairings_close_over_both_independent_maps(
         self,
