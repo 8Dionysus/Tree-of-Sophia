@@ -2301,3 +2301,24 @@ requires a separate plan, output paths and opaque identities. Reserve its output
 bytes first. Matching repeats are idempotent; private artifacts remain mode0600.
 The command preserves the existing observation and creates no new human review,
 textual equivalence, translation relation, source acceptance or publication right.
+
+
+`tos synthetic-foundation-lab --source-root ABS --laboratory NAME --check`
+checks one generated public laboratory and its declared negative controls.
+`NAME` is `source-text-unit-v1`, `translation-alignment-v1`, or
+`semantic-annotation-v2`. `--build --scratch-bytes RESERVED_BYTES` refreshes
+that laboratory from its compiled native recipe and current contract/research
+bindings, committing its manifest last. Reserve the output bytes first.
+A deliberately invalid variant remains an expected negative example.
+
+`tos authored-canon-bridge --source-root ABS --local-input-root ABS
+--local-output-root ABS --check` reconstructs the bounded DTA/authored route:
+twelve source paragraphs, twelve independent authored segments, 92 nodes and
+125 relations. Historical public records and all four private artifacts must
+match exactly; private files remain ignored with mode0600. A new
+`--plan-ref REPO_PATH --event-id ID --build --scratch-bytes RESERVED_BYTES`
+requires separate output paths, opaque identities and a new `bridge_id` in
+the plan. It records the actual native executable and invocation digest.
+This bridge preserves source/authored boundary differences and current
+rights; it performs no translation assessment, claim admission, publication
+or canon revision.

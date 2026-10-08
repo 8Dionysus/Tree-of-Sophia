@@ -11,8 +11,8 @@
   },
   "authority_posture": "public_synthetic_contract_mechanics_only",
   "builder": {
-    "ref": "scripts/build_semantic_annotation_v2_lab.py",
-    "sha256": "e0f42750f53e4b0679d6346ff5199bd4f7cd7a4442834cba62758ca57f339ffe"
+    "ref": "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs",
+    "sha256": "a2fec44f7ef3a16a4535ae5994ab64c5ad260cea31a13533202dd84722a5db6d"
   },
   "contract": {
     "ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
