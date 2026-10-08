@@ -593,7 +593,7 @@ fn bounded_error(error: impl std::fmt::Display) -> String {
         .take(4096)
         .collect()
 }
-fn run_owner(
+pub(crate) fn run_owner(
     root: &Path,
     argv: Vec<String>,
     deadline: Instant,
@@ -601,7 +601,7 @@ fn run_owner(
 ) -> io::Result<Vec<u8>> {
     let remaining = deadline.saturating_duration_since(Instant::now());
     if remaining.is_zero() || cancel.load(Ordering::Relaxed) != 0 {
-        return Err(invalid("KAG publication cancelled or expired"));
+        return Err(invalid("selected owner operation cancelled or expired"));
     }
     let (status, out, err) = crate::executor::capture_kag_owner(
         root,
@@ -616,7 +616,7 @@ fn run_owner(
     )?;
     if status != 0 {
         return Err(invalid(format!(
-            "selected KAG owner failed ({status}): {}",
+            "selected external owner failed ({status}): {}",
             bounded_error(String::from_utf8_lossy(&err))
         )));
     }
@@ -748,7 +748,7 @@ pub fn build_release(
         File::open(&temporary)?.sync_all()?;
         if Instant::now() >= deadline || cancel.load(Ordering::Relaxed) != 0 {
             return Err(invalid(
-                "KAG publication cancelled or expired before publication",
+                "selected owner operation cancelled or expired before publication",
             ));
         }
         let destination = release.join("releases").join(&integration_revision);

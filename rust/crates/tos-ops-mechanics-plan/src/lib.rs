@@ -22,6 +22,8 @@ pub mod kag_corpus_export;
 pub mod kag_downstream_status;
 #[cfg(target_os = "linux")]
 pub mod kag_release;
+#[cfg(target_os = "linux")]
+pub mod stats_release;
 pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
 pub mod local_contracts;
