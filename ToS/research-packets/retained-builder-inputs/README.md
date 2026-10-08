@@ -76,3 +76,10 @@ the genuine native API cutover. An explicit technical plan can change only five
 input digests and technical lineage/ID/status; frozen semantics and timestamp
 remain unchanged. Generated candidates grant no semantic, review, rights or canon
 admission. Native build/check/preview retain generation semantics.
+
+The native `tos provenance-event-v2-lab --check` route resolves its historical
+builder by the manifest's original logical path and exact retained digest even
+after the active Python builder has been retired. It reads that archive as
+opaque bytes and never executes it. Current contract validation and the exact
+historical contract binding remain separate checks. Fresh execution belongs to
+`rust/crates/tos-compiler/src/provenance_event_lab.rs`.

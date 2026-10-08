@@ -2311,6 +2311,20 @@ that laboratory from its compiled native recipe and current contract/research
 bindings, committing its manifest last. Reserve the output bytes first.
 A deliberately invalid variant remains an expected negative example.
 
+
+`tos provenance-event-v2-lab --source-root ABS --check` verifies either the
+retained historical A/B/C records or a fresh native run. Historical builder
+and contract digests resolve only to their exact nonexecuted archives; the
+current schema still validates each record. To execute a new public synthetic
+run in a separate source root, supply the tracked plan, fixture and contract,
+then run `--prepare`, `--variant A`, `--variant B`, `--variant C`, and
+`--finalize` independently, with `--scratch-bytes RESERVED_BYTES` on each write.
+Reserve the output bytes first. C writes its failed event and returns 7.
+Finalization validates all three events and negative controls before committing
+the manifest. Matching finalization repeats are idempotent. Events record the
+actual executable, times and argv digest while withholding local paths; they
+remain unsigned evidence without human review or publication authority.
+
 `tos authored-canon-bridge --source-root ABS --local-input-root ABS
 --local-output-root ABS --check` reconstructs the bounded DTA/authored route:
 twelve source paragraphs, twelve independent authored segments, 92 nodes and

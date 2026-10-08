@@ -6707,6 +6707,7 @@ mod tests {
             let mut selected = limits();
             selected.sqlite.max_output_bytes = 8 * 1024 * 1024;
             selected.sqlite.max_row_bytes = 32768;
+            selected.max_seek_bytes = 32768;
             selected.sqlite.sqlite_cache_kib = 1024;
             selected.sqlite.max_work_bytes = budget.original_work_limit;
             selected.sqlite.max_sql_vm_steps = budget.original_sql_vm_limit;
@@ -6720,7 +6721,7 @@ mod tests {
             for order in 0..2 {
                 let id = format!("node.{order}");
                 let logical = serde_json::to_vec(&serde_json::json!({
-                    "id": id, "source_graph": "fixture.graph", "attributes": {},
+                    "id": id, "source_graph": "fixture.graph", "attributes": {}, "view_ids": [],
                     "metadata": "normalized words ".repeat(400),
                     "source_record": {"payload": source_value, "field_map": {}}
                 })).unwrap();
@@ -6768,6 +6769,53 @@ mod tests {
                 let pending: u64 = stage.db().query_row("SELECT count(*) FROM temp.knowledge_byte_dictionary_pending", [], |row| row.get(0)).unwrap();
                 assert_eq!(pending, 2);
             }
+            // The actual global finalizer reads a factored, packed row, adds an
+            // inherited view, stamps its revision and CAS-writes it. Compare the
+            // independent scalar normalization and preserve original source bytes.
+            stage.create_preparation_tables(crate::knowledge_inherited_views::PREPARATION_SCHEMA).unwrap();
+            stage.with_connection(WritePhase::Normalized, |db| {
+                db.execute("INSERT INTO knowledge_global_inherited_views(endpoint_id,view_id) VALUES('node.0','view.inherited')", [])?;
+                Ok(())
+            }).unwrap();
+            let entity = include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
+            let registry = crate::KnowledgeRegistry::parse(entity,
+                include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json")).unwrap();
+            let roots = stage.core_roots().unwrap();
+            let inherited = crate::knowledge_inherited_views::InheritedViewReceipt {
+                source_cut: stage.exact_receipt().unwrap().binding.source_cut.clone(),
+                relation_count: roots.relations, relation_root_sha256: roots.relation_sha256,
+                endpoint_evidence_rows: 0, inherited_view_rows: 1,
+                dependency_root_sha256: "0".repeat(64), final_graph_rows_written: false,
+            };
+            let mut expected = None;
+            stage.with_node_payload_source_owned("node.0", 32768, |_, raw, _| {
+                let mut value: serde_json::Value = serde_json::from_slice(raw).unwrap();
+                value["view_ids"] = serde_json::json!(["view.inherited"]);
+                crate::knowledge_normalization::stamp_content_revision(&mut value, 32768)?;
+                expected = Some(serde_json::to_vec(&value).unwrap());
+                Ok(())
+            }).unwrap().unwrap();
+            let finalize_limits = crate::knowledge_native_finalize::NativeFinalizeLimits {
+                max_rows: 2, max_page_rows: 1, max_page_bytes: 32768, max_row_bytes: 32768,
+                max_view_ids_per_node: 8, max_context_sources: 8, max_work_bytes: 16 * 1024 * 1024,
+            };
+            let before_finalize = work.load(Ordering::Acquire);
+            let finalized = crate::knowledge_native_finalize::finalize_native_graph_rows(
+                &mut stage, &registry, entity, &inherited, finalize_limits,
+                |_, _, _| Err(Error::Invalid("fixture has no claim references")),
+            ).unwrap();
+            eprintln!("full finalizer measured work layout={layout:?} work={}", work.load(Ordering::Acquire)-before_finalize);
+            assert_eq!((finalized.nodes, finalized.relations, finalized.readable_rows), (2, 0, 0));
+            stage.with_node_payload_source_owned("node.0", 32768, |_, raw, exact_source| {
+                assert_eq!(raw, expected.as_ref().unwrap());
+                assert_eq!(exact_source, Some(source.as_slice()));
+                Ok(())
+            }).unwrap().unwrap();
+            let replay = crate::knowledge_native_finalize::finalize_native_graph_rows(
+                &mut stage, &registry, entity, &inherited, finalize_limits,
+                |_, _, _| Err(Error::Invalid("fixture has no claim references")),
+            ).unwrap();
+            assert_eq!(replay.node_root_sha256, finalized.node_root_sha256);
             // Exercise the other producer path with a byte-tight inline page.
             // Tiny packets collect over multiple pages and seal at sample 32;
             // both insert and replacement pay framing/dictionary overhead here.

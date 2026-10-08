@@ -499,7 +499,7 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
         &root,
         &commit,
         &[
-            "scripts/build_provenance_event_v2_lab.py",
+            "rust/crates/tos-compiler/src/provenance_event_lab.rs",
             "rust/crates/tos-validation/src/source_cut.rs",
         ],
     );

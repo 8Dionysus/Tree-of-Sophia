@@ -2823,7 +2823,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_provenance_event_v2_lab.py",
+      "path": "rust/crates/tos-compiler/src/provenance_event_lab.rs",
       "family": "source_fixture_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/README.md",
@@ -2833,15 +2833,15 @@
         "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt"
       ],
       "reads": [
-        "tracked public-synthetic UTF-8 input fixture, frozen plan, provenance v2 contract, builder bytes, and host runtime identity"
+        "tracked public synthetic fixture and plan, current contract, explicitly digest-bound historical contract and nonexecuted builder archives, native executable identity"
       ],
       "writes": [
         "tracked public-synthetic environment profile, A copy output, B NFC output, C diagnostic byproduct, three v2 event records, and exact lab manifest"
       ],
-      "side_effects": "variant C intentionally returns exit code 7 after preserving its failed terminal event and diagnostic byproduct; no corpus payload, model, human evidence, accepted content, publication, semantics, graph, or canon effect",
+      "side_effects": "tos provenance-event-v2-lab runs explicit prepare, independent variants A/B/C and finalize; C records a real failed terminal event and returns 7. Check preserves historical bytes. New records withhold local argv paths and provide no human review, source admission, publication or canon authority.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "test_target": "tests/conformance/rust/validation_cut_cases.rs",
       "disposition": "keep"
     },
     {
