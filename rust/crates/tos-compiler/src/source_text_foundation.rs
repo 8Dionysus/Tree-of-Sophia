@@ -433,12 +433,21 @@ pub(super) fn fresh_or_matching(
     reference: &str,
     bytes: &[u8],
 ) -> Result<bool> {
+    fresh_or_matching_limit(ctx, reference, bytes, CAP)
+}
+pub(super) fn fresh_or_matching_limit(
+    ctx: &ResearchExecution,
+    reference: &str,
+    bytes: &[u8],
+    cap: usize,
+) -> Result<bool> {
+    ensure(bytes.len() <= cap, "output byte bound")?;
     // Distinguish an absent file from an unsafe/read-failed existing one before writes.
     match std::fs::symlink_metadata(ctx.root().join(reference)) {
         Ok(_) => {
-            let mut f = ctx.source_file(reference, CAP as u64)?;
+            let mut f = ctx.source_file(reference, cap as u64)?;
             ensure(
-                ctx.read_file(&mut f, CAP as u64)? == bytes,
+                ctx.read_file(&mut f, cap as u64)? == bytes,
                 "existing output differs; preserve it and select a new source-owned plan/revision",
             )?;
             Ok(false)
@@ -957,4 +966,59 @@ mod tests {
                 .unwrap()
         );
     }
+}
+
+const UNIT_PACKET_SCHEMA_SHA: &str =
+    "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab";
+pub(super) fn unit_packet_schema(ctx: &ResearchExecution, p: &Value) -> Result<()> {
+    use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
+    let raw = ctx.read("ToS/contracts/source-text-unit-packet-v1.schema.json")?;
+    // V1 is an exact retained contract. Its two large arrays have only
+    // minItems:1/items constraints and no global uniqueness/cardinality clause.
+    // A changed schema must receive a new decomposition review, never silently
+    // weaken its new law to fit the backend's 1MiB instance cap.
+    ensure(
+        sha(&raw) == UNIT_PACKET_SCHEMA_SHA,
+        "v1 packet schema bytes changed; source-owned adapter review required",
+    )?;
+    let uri = "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json"
+        .to_owned();
+    let probe = SchemaBackendProbe::new(
+        [SchemaResource {
+            uri: uri.clone(),
+            raw,
+        }],
+        FormatProfile::AssertedSourceCandidateV1,
+    )
+    .map_err(|e| format!("packet schema preparation: {e:?}"))?;
+    let anchors = p["anchors"].as_array().ok_or("packet anchors array")?;
+    let units = p["units"].as_array().ok_or("packet units array")?;
+    ensure(
+        !anchors.is_empty() && !units.is_empty(),
+        "packet arrays must be nonempty",
+    )?;
+    let mut base = p.clone();
+    base["anchors"] = json!([anchors[0]]);
+    base["units"] = json!([units[0]]);
+    for index in 0..anchors.len().max(units.len()).div_ceil(50) {
+        ctx.tick(1)?;
+        let mut chunk = base.clone();
+        for (key, rows) in [("anchors", anchors), ("units", units)] {
+            let start = index * 50;
+            chunk[key] = json!(if start < rows.len() {
+                &rows[start..(start + 50).min(rows.len())]
+            } else {
+                &rows[..1]
+            });
+        }
+        let encoded = encode(&chunk, false)?;
+        ensure(
+            probe
+                .is_valid_raw(&uri, &encoded)
+                .map_err(|e| format!("packet schema execution: {e:?}"))?,
+            "source-text-unit schema failure",
+        )?;
+        ctx.check()?;
+    }
+    Ok(())
 }

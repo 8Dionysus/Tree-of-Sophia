@@ -1,56 +1,8 @@
 use super::*;
-const SCHEMA_SHA: &str = "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab";
-pub(super) fn schema(ctx: &ResearchExecution, p: &Value) -> Result<()> {
-    use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
-    let raw = ctx.read(SCHEMA)?;
-    // V1 is an exact retained contract. Its two large arrays have only
-    // minItems:1/items constraints and no global uniqueness/cardinality clause.
-    // A changed schema must receive a new decomposition review, never silently
-    // weaken its new law to fit the backend's 1MiB instance cap.
-    ensure(
-        sha(&raw) == SCHEMA_SHA,
-        "v1 packet schema bytes changed; source-owned adapter review required",
-    )?;
-    let uri = format!("https://tree-of-sophia.local/{SCHEMA}");
-    let probe = SchemaBackendProbe::new(
-        [SchemaResource {
-            uri: uri.clone(),
-            raw,
-        }],
-        FormatProfile::AssertedSourceCandidateV1,
-    )
-    .map_err(|e| format!("packet schema preparation: {e:?}"))?;
-    let anchors = p["anchors"].as_array().ok_or("packet anchors array")?;
-    let units = p["units"].as_array().ok_or("packet units array")?;
-    ensure(
-        !anchors.is_empty() && !units.is_empty(),
-        "packet arrays must be nonempty",
-    )?;
-    let mut base = p.clone();
-    base["anchors"] = json!([anchors[0]]);
-    base["units"] = json!([units[0]]);
-    for index in 0..anchors.len().max(units.len()).div_ceil(50) {
-        ctx.tick(1)?;
-        let mut chunk = base.clone();
-        for (key, rows) in [("anchors", anchors), ("units", units)] {
-            let start = index * 50;
-            chunk[key] = json!(if start < rows.len() {
-                &rows[start..(start + 50).min(rows.len())]
-            } else {
-                &rows[..1]
-            });
-        }
-        let encoded = compact(ctx, &chunk)?;
-        ensure(
-            probe
-                .is_valid_raw(&uri, &encoded)
-                .map_err(|e| format!("packet schema execution: {e:?}"))?,
-            "source-text-unit schema failure",
-        )?;
-        ctx.check()?;
-    }
-    Ok(())
+pub(super) fn schema(ctx: &ResearchExecution, packet: &Value) -> Result<()> {
+    crate::source_text_foundation::unit_packet_schema(ctx, packet)
 }
+
 fn text_free(ctx: &ResearchExecution, v: &Value) -> Result<()> {
     ctx.tick(1)?;
     match v {
