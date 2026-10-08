@@ -10,6 +10,7 @@ mod identity;
 mod json;
 mod knowledge_model_abi;
 mod logical_ref;
+pub mod native_software_roles;
 mod path;
 mod unicode;
 

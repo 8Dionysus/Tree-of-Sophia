@@ -16,23 +16,9 @@ const EXECUTORS: [&str; 3] = [
     "tos-validation-lanes",
     "tos-software-ci",
 ];
-const COMMANDS: [&str; 5] = [
-    "tos-native-owner-command",
-    "tos-schema-worker",
-    "tos-validation-lanes",
-    "tos-release-check",
-    "tos-software-ci",
-];
-// Controlled integration consumers need these images, independently of the
-// five software-package command roles above. Their receipts are not bundle membership.
-const KAG_IMAGES: [&str; 2] = ["tos-kag-release", "tos-kag-provider-controls"];
-const SOFTWARE_NO_DEFAULT_FEATURES: [&str; 5] = [
-    "tos-validation-lanes",
-    "tos-release-check",
-    "tos-software-ci",
-    "tos-kag-release",
-    "tos-kag-provider-controls",
-];
+use tos_foundation::native_software_roles::{
+    self, COMMANDS, NO_DEFAULT_FEATURES as SOFTWARE_NO_DEFAULT_FEATURES,
+};
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 const TOOLCHAIN: &str = "1.98.1";
 const META: usize = 1024 * 1024;
@@ -400,12 +386,8 @@ fn cargo_products(
         if !names.contains(&name) {
             continue;
         }
-        let package = match name {
-            "tos-access" => "tos-access",
-            "tos-native-owner-command" => "tos-command",
-            "tos-schema-worker" => "tos-validation",
-            _ => "tos-ops-mechanics-plan",
-        };
+        let package = native_software_roles::package(name)
+            .ok_or_else(|| bad("unsupported Cargo software role"))?;
         let expected_features =
             enabled_features(root, package, !no_default_features.contains(&name), b)?;
         let actual_features = value["features"]
@@ -468,7 +450,16 @@ fn cargo_products(
     }
     unchanged(reader.get_ref(), messages, &before)?;
     b.check()?;
-    if success != if names.len() == 3 { 1 } else { 4 } || seen.len() != names.len() {
+    let groups = names
+        .iter()
+        .map(|name| {
+            (
+                native_software_roles::package(name),
+                !no_default_features.contains(name),
+            )
+        })
+        .collect::<BTreeSet<_>>();
+    if success != groups.len() || seen.len() != names.len() {
         return Err(bad("Cargo stream lacks successful requested products"));
     }
     Ok(product_features)
@@ -727,7 +718,6 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             absolute(receipt_root)?;
             let mut names = vec!["tos-access"];
             names.extend(COMMANDS);
-            names.extend(KAG_IMAGES);
             let product_features = cargo_products(
                 root,
                 get("--cargo-messages"),
@@ -955,7 +945,6 @@ mod tests {
         // Software receipts require the explicitly selected reduced debug-info profile.
         let mut names = vec!["tos-access"];
         names.extend(COMMANDS);
-        names.extend(KAG_IMAGES);
         package_manifest(&root, "tos-access", "[package]\nname = \"tos-access\"\n");
         package_manifest(
             &root,
@@ -974,21 +963,21 @@ mod tests {
             "tos-ops-mechanics-plan",
             "[package]\nname = \"tos-ops-mechanics-plan\"\n[features]\ndefault = [\"compiler-backed-validators\"]\ncompiler-backed-validators = [\"dep:tos-compiler\"]\n",
         );
+        for package in ["tos-compiler", "tos-reader"] {
+            package_manifest(
+                &root,
+                package,
+                &format!("[package]\nname = \"{package}\"\n"),
+            );
+        }
         let mut software_stream = Vec::new();
         for n in &names {
-            let package = match *n {
-                "tos-access" => "tos-access",
-                "tos-native-owner-command" => "tos-command",
-                "tos-schema-worker" => "tos-validation",
-                _ => "tos-ops-mechanics-plan",
-            };
-            let features = if *n == "tos-schema-worker" {
-                json!(["default", "native"])
-            } else {
-                json!([])
-            };
+            let package = native_software_roles::package(n).unwrap();
+            let features = native_software_roles::features(n).unwrap_or(&[]);
             let required_features = if *n == "tos-schema-worker" {
                 json!(["native"])
+            } else if ["tos-source-registry", "tos-open-work-queue"].contains(n) {
+                json!(["compiler-backed-validators"])
             } else {
                 json!([])
             };
@@ -996,7 +985,7 @@ mod tests {
             serde_json::to_writer(&mut software_stream, &event).unwrap();
             software_stream.push(b'\n');
         }
-        for _ in 0..4 {
+        for _ in 0..7 {
             software_stream
                 .extend_from_slice(b"{\"reason\":\"build-finished\",\"success\":true}\n");
         }

@@ -257,7 +257,15 @@ jobs:
           cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
             --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci \
-            --bin tos-kag-release --bin tos-kag-provider-controls \
+            --bin tos-kag-release --bin tos-kag-provider-controls --bin tos-stats-release \
+            --bin tos-route-cards --bin tos-agents-route-harness \
+            --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-ops-mechanics-plan \
+            --bin tos-ops-mechanics-plan --bin tos-source-registry --bin tos-open-work-queue \
+            --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-compiler --bin tos-constructor-library --bin tos-constructor-fragments \
+            --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-reader --bin tos-reader \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
@@ -296,7 +304,7 @@ jobs:
           native="$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-access"
           root="$GITHUB_WORKSPACE"
           archive="$root/dist/tree-of-sophia-software.zip"
-          # Bound the complete six-image input closure, plus generated manifest/README.
+          # Bound every selected native image plus generated manifest/README.
           "$TOS_SOFTWARE_CI_EXECUTOR" software-limits --repo-root "$root" \
             --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" --receipt-root "$RUNNER_TEMP"
           read -r total_cap archive_cap member_cap metadata_cap < "$RUNNER_TEMP/tos-native-package-limits.txt"
@@ -310,7 +318,7 @@ jobs:
           "$native" software install --archive "$archive" --prefix "$RUNNER_TEMP/tos-native-install" "${limits[@]}"
           env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --help
           env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --version
-          for role in tos-native-owner-command tos-schema-worker tos-validation-lanes tos-release-check tos-software-ci; do
+          for role in tos-native-owner-command tos-schema-worker tos-validation-lanes tos-release-check tos-software-ci tos-ops-mechanics-plan tos-constructor-library tos-constructor-fragments tos-reader tos-route-cards tos-agents-route-harness tos-kag-provider-controls tos-kag-release tos-stats-release tos-source-registry tos-open-work-queue; do
             test -x "$RUNNER_TEMP/tos-native-install/bin/$role"
           done
 

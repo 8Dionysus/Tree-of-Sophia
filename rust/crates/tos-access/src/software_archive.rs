@@ -23,16 +23,7 @@ use zip::{CompressionMethod, DateTime, ZipWriter, write::SimpleFileOptions};
 
 const PROGRAM: &str = "access/src/tos_access/tos-access";
 const COMMAND_SCHEMA: &str = "tos_native_software_command_build_v1";
-const COMMANDS: [&str; 8] = [
-    "tos-native-owner-command",
-    "tos-schema-worker",
-    "tos-validation-lanes",
-    "tos-release-check",
-    "tos-software-ci",
-    "tos-ops-mechanics-plan",
-    "tos-constructor-library",
-    "tos-constructor-fragments",
-];
+use tos_foundation::native_software_roles::{self, COMMANDS};
 fn command_member(name: &str) -> String {
     format!("native/bin/{name}")
 }
@@ -460,13 +451,8 @@ fn proof_kind(p: &JsonValue, source_ref: &str, role: Option<&str>) -> Result<()>
         return Err("native proof profile/source differs".into());
     }
     if let Some(role) = role {
-        let expected: &[&str] = if role == "tos-ops-mechanics-plan" {
-            &["compiler-backed-validators", "default"]
-        } else if role == "tos-schema-worker" {
-            &["default", "native"]
-        } else {
-            &[]
-        };
+        let expected =
+            native_software_roles::features(role).ok_or("unsupported native command proof role")?;
         if !field(p, "features")?.as_array().is_some_and(|features| {
             features.len() == expected.len()
                 && features
@@ -1798,10 +1784,21 @@ mod role_feature_tests {
         assert!(command_proof("tos-ops-mechanics-plan", &phi, &empty).is_ok());
         assert!(command_proof("tos-ops-mechanics-plan", &empty, &empty).is_err());
         for role in COMMANDS {
-            if !["tos-ops-mechanics-plan", "tos-schema-worker"].contains(&role) {
+            if ![
+                "tos-ops-mechanics-plan",
+                "tos-source-registry",
+                "tos-open-work-queue",
+                "tos-schema-worker",
+            ]
+            .contains(&role)
+            {
                 assert!(command_proof(role, &empty, &empty).is_ok());
                 assert!(command_proof(role, &phi, &empty).is_err());
             }
+        }
+        for role in ["tos-source-registry", "tos-open-work-queue"] {
+            assert!(command_proof(role, &phi, &empty).is_ok());
+            assert!(command_proof(role, &empty, &empty).is_err());
         }
         for features in [
             r#"["compiler-backed-validators"]"#,
