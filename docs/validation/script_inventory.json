@@ -2429,7 +2429,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_jenseits_numbered_unit_label_correspondence.py",
+      "path": "rust/crates/tos-compiler/src/jenseits_label_correspondence.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
@@ -2444,12 +2444,12 @@
         "tracked source and target numbered-unit maps plus their rights records; no local payload or text"
       ],
       "writes": [
-        "the tracked text-free shared-number-label pairing map and provenance unless --check is used"
+        "New source-owned map/event generation only with explicit selection; historical check and repeated matching build preserve existing bytes."
       ],
-      "side_effects": "298 proposed shared structural label pairings with source-only 237a retained unpaired and no passage or translation claim",
+      "side_effects": "tos jenseits-label-correspondence builds 298 proposed label pairs with source-only 237a unpaired; validates schemas and current input digests, records actual Rust source identity for fresh events, reconstructs frozen historical wording without re-executing or rewriting history. No passage, translation, semantic or rights admission.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_witness_structure_correspondence.py",
+      "test_target": "rust/crates/tos-compiler/src/jenseits_label_correspondence.rs",
       "disposition": "keep"
     },
     {

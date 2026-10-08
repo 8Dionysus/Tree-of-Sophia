@@ -13,7 +13,6 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import build_witness_structure_correspondence as builder
-import build_jenseits_numbered_unit_label_correspondence as label_builder
 import build_jenseits_polilov_numbered_unit_structure as target_builder
 import validate_witness_structure_correspondence as validator
 
@@ -174,24 +173,6 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
 
         self.assertTrue(list(schema_validator.iter_errors(payload)))
 
-    def test_numbered_label_generation_is_deterministic_from_tracked_maps(
-        self,
-    ) -> None:
-        expected_map = (
-            REPO_ROOT / label_builder.MAP_PATH
-        ).read_text(encoding="utf-8")
-        expected_provenance = (
-            REPO_ROOT / label_builder.PROVENANCE_PATH
-        ).read_text(encoding="utf-8")
-        current_event = json.loads(expected_provenance)
-
-        actual_map, actual_provenance = label_builder.build_outputs(
-            repo_root=REPO_ROOT,
-            event_at=current_event["started_at"],
-        )
-
-        self.assertEqual(expected_map, actual_map)
-        self.assertEqual(expected_provenance, actual_provenance)
 
     def test_numbered_unit_map_materializes_proposed_addresses_not_text(
         self,

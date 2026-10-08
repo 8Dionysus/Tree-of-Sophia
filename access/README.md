@@ -2363,3 +2363,10 @@ that generation. Existing different output bytes and historical outputs are
 preserved; repeated identical generation is idempotent. Inputs and source
 rights bindings are checked before any output. This route reads structural
 metadata only and keeps candidates ineligible for variant execution.
+
+`tos nietzsche-transfer-source-routes --source-root ABS --validate-tracked`
+also checks both German source maps against their schemas, source inventory
+resources, address/navigation page relation, proposed anchors, rights digests
+and input/output provenance. It requires the retained aggregate of 140 pairs,
+12 candidate pages and 20 source routes. This read-only mode covers the full
+source-validation scope separately from producer reconstruction.

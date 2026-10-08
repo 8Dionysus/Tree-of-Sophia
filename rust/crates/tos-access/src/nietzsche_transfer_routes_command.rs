@@ -1,6 +1,6 @@
 //! Text-free structural source routes selected explicitly by the operator.
 use std::{io::Write, path::PathBuf};
-const HELP: &str = "tos nietzsche-transfer-source-routes --source-root ABS --check|--build [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nChecks both retained historical maps, candidate source routes and their events exactly. A new generation creates eight files under separate native-NAME source-owned alignment directories and records Rust provenance. An existing different output is preserved. No witness payloads, source text acceptance, translation assessment or rights admission.\n";
+const HELP: &str = "tos nietzsche-transfer-source-routes --source-root ABS --check|--build|--validate-tracked [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nChecks both retained historical maps, candidate source routes and their events exactly. A new generation creates eight files under separate native-NAME source-owned alignment directories and records Rust provenance. An existing different output is preserved. No witness payloads, source text acceptance, translation assessment or rights admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("nietzsche-transfer-source-routes") {
         return None;
@@ -17,8 +17,8 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             (None, None, None, None, None, None);
         let mut it = args.iter().skip(1);
         while let Some(key) = it.next() {
-            if matches!(key.as_str(), "--check" | "--build") {
-                if action.replace(key == "--build").is_some() {
+            if matches!(key.as_str(), "--check" | "--build" | "--validate-tracked") {
+                if action.replace(key.as_str()).is_some() {
                     return Err("choose one action".into());
                 }
                 continue;
@@ -42,7 +42,8 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         if !root.is_absolute() {
             return Err("absolute source root required".into());
         }
-        let build = action.ok_or("action required")?;
+        let action = action.ok_or("action required")?;
+        let build = action == "--build";
         let seconds = seconds
             .unwrap_or("180")
             .parse()
@@ -69,7 +70,14 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
         };
-        tos_compiler::nietzsche_transfer_source_routes::run(&ctx, build, generation)
+        if action == "--validate-tracked" {
+            if generation.is_some() {
+                return Err("validate-tracked selects retained canonical routes".into());
+            }
+            tos_compiler::nietzsche_transfer_source_routes::validate_tracked(&ctx)
+        } else {
+            tos_compiler::nietzsche_transfer_source_routes::run(&ctx, build, generation)
+        }
     })();
     Some(match result {
         Ok(v) => {

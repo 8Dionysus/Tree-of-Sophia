@@ -818,3 +818,267 @@ const CONFIGS: &[Config] = &[
         expected: 62,
     },
 ];
+
+fn recheck(ctx: &ResearchExecution, held: Vec<Held>) -> Result<()> {
+    for mut input in held {
+        ensure(
+            ctx.hash_file(&mut input.file, CAP)? == input.digest,
+            "structural validation input changed",
+        )?;
+        let mut current = ctx.source_file(&input.reference, CAP)?;
+        ensure(
+            ctx.hash_file(&mut current, CAP)? == input.digest,
+            "structural validation input path changed",
+        )?;
+    }
+    Ok(())
+}
+fn rows(ctx: &ResearchExecution, reference: &str, held: &mut Vec<Held>) -> Result<Vec<Value>> {
+    let mut file = ctx.source_file(reference, CAP)?;
+    let raw = ctx.read_file(&mut file, CAP)?;
+    let result = std::str::from_utf8(&raw)
+        .map_err(|e| e.to_string())?
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| serde_json::from_str(l).map_err(|e| e.to_string()))
+        .collect::<Result<Vec<Value>>>()?;
+    held.push(Held {
+        reference: reference.into(),
+        file,
+        digest: sha(&raw),
+    });
+    Ok(result)
+}
+fn bound_ref(ctx: &ResearchExecution, entry: &Value, held: &mut Vec<Held>) -> Result<()> {
+    let reference = s(&entry["ref"])?;
+    let expected = s(&entry["sha256"])?;
+    if let Some(digest) = reference.strip_prefix("tos.file.sha256.") {
+        return ensure(
+            digest == expected
+                && digest.len() == 64
+                && digest
+                    .bytes()
+                    .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+            "file identity digest closure drifted",
+        );
+    }
+    let mut file = ctx.source_file(reference, CAP)?;
+    let digest = ctx.hash_file(&mut file, CAP)?;
+    ensure(
+        digest == expected,
+        &format!("structural reference digest drift: {reference}"),
+    )?;
+    held.push(Held {
+        reference: reference.into(),
+        file,
+        digest,
+    });
+    Ok(())
+}
+fn source_event(
+    ctx: &ResearchExecution,
+    source: &Value,
+    output_ref: &str,
+    output_sha: &str,
+    held: &mut Vec<Held>,
+) -> Result<()> {
+    let reference = s(&source["provenance_ref"])?;
+    let id = s(&source["provenance_event_ref"])?;
+    let events = rows(ctx, reference, held)?;
+    let matching: Vec<_> = events.iter().filter(|v| v["event_id"] == id).collect();
+    ensure(
+        matching.len() == 1,
+        "source provenance event must occur exactly once",
+    )?;
+    let event = matching[0];
+    schema(ctx, "ToS/contracts/provenance-event.schema.json", event)?;
+    for input in event["inputs"]
+        .as_array()
+        .ok_or("source event inputs absent")?
+    {
+        bound_ref(ctx, input, held)?;
+    }
+    let outputs: Vec<_> = event["outputs"]
+        .as_array()
+        .ok_or("source event outputs absent")?
+        .iter()
+        .filter(|v| v["ref"] == output_ref)
+        .collect();
+    ensure(
+        outputs.len() == 1 && outputs[0]["sha256"] == output_sha,
+        "source provenance output digest closure drifted",
+    )
+}
+fn no_text(ctx: &ResearchExecution, value: &Value) -> Result<()> {
+    ctx.tick(1)?;
+    match value {
+        Value::Object(fields) => {
+            for (key, child) in fields {
+                ensure(
+                    !matches!(
+                        key.as_str(),
+                        "text"
+                            | "source_text"
+                            | "target_text"
+                            | "quote"
+                            | "excerpt"
+                            | "transcription"
+                            | "translation"
+                    ),
+                    "prohibited text-bearing structural field",
+                )?;
+                no_text(ctx, child)?;
+            }
+        }
+        Value::Array(values) => {
+            for child in values {
+                no_text(ctx, child)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+fn ordered_units(value: &Value, page: &str, expected: usize) -> Result<Vec<String>> {
+    let (order, _) = units(value, page, expected)?;
+    for series in value["series"].as_array().ok_or("series absent")? {
+        let rows = series["unit_starts"].as_array().ok_or("units absent")?;
+        ensure(
+            series["expected_unit_count"].as_u64() == Some(rows.len() as u64),
+            "series expected count drifted",
+        )?;
+        let mut last = 0;
+        for unit in rows {
+            let next = unit[page].as_u64().ok_or("page absent")?;
+            ensure(next >= last, "non-monotonic structural page")?;
+            last = next;
+        }
+    }
+    Ok(order)
+}
+/// Source-map inventories, anchors, provenance and all retained pair/route outputs.
+/// This is the full former validator scope; no payload or authority admission.
+pub fn validate_tracked(ctx: &ResearchExecution) -> Result<Value> {
+    let mut held = Vec::new();
+    let mut total_routes = 0;
+    let mut total_candidates = 0;
+    for config in CONFIGS {
+        let (source, source_sha) = load(ctx, config.source, &mut held)?;
+        let (target, _) = load(ctx, config.target, &mut held)?;
+        let (crosswalk, _) = load(ctx, config.crosswalk, &mut held)?;
+        schema(
+            ctx,
+            "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+            &source,
+        )?;
+        no_text(ctx, &source)?;
+        let source_order = ordered_units(&source, "source_page", config.expected)?;
+        let target_order = ordered_units(&target, "pdf_page", config.expected)?;
+        ensure(
+            source_order == target_order,
+            "source/target structural order drifted",
+        )?;
+        ensure(
+            source["summary"]["numbered_unit_count"].as_u64() == Some(config.expected as u64)
+                && source["summary"]["accepted_german_unit_count"] == 0
+                && source["summary"]["human_review_performed"] == false,
+            "source authority summary drifted",
+        )?;
+        for name in ["address_witness", "navigation_witness"] {
+            bound_ref(ctx, &source[name]["inventory"], &mut held)?;
+            bound_ref(ctx, &source[name]["rights"], &mut held)?;
+        }
+        let (inventory, _) = load(
+            ctx,
+            s(&source["address_witness"]["inventory"]["ref"])?,
+            &mut held,
+        )?;
+        let mut resources = BTreeSet::new();
+        for file in inventory["files"]
+            .as_array()
+            .ok_or("inventory files absent")?
+        {
+            for row in file["resources"]
+                .as_array()
+                .ok_or("inventory resources absent")?
+            {
+                resources.insert(s(&row["resource_id"])?);
+            }
+        }
+        let anchor_ref = std::path::Path::new(config.source)
+            .with_file_name("hierarchical-numbered-unit-anchors.jsonl")
+            .to_str()
+            .ok_or("invalid anchor path")?
+            .to_owned();
+        let anchors = rows(ctx, &anchor_ref, &mut held)?;
+        ensure(
+            anchors.len() == config.expected,
+            "source anchor count drifted",
+        )?;
+        let mut by_id = BTreeMap::new();
+        for anchor in &anchors {
+            schema(ctx, "ToS/contracts/source-anchor.schema.json", anchor)?;
+            ensure(
+                by_id.insert(s(&anchor["anchor_id"])?, anchor).is_none(),
+                "duplicate source anchor identity",
+            )?;
+        }
+        let offset = source["navigation_relation"]["address_page_from_navigation_page_offset"]
+            .as_i64()
+            .ok_or("navigation offset absent")?;
+        for series in source["series"].as_array().ok_or("series absent")? {
+            for unit in series["unit_starts"].as_array().ok_or("units absent")? {
+                ensure(
+                    resources.contains(s(&unit["resource_id"])?),
+                    "source unit resource absent from address inventory",
+                )?;
+                let page = unit["source_page"].as_i64().ok_or("source page absent")?;
+                ensure(
+                    unit["navigation_page"]
+                        .as_i64()
+                        .and_then(|n| n.checked_add(offset))
+                        == Some(page),
+                    "source navigation/address page relation drifted",
+                )?;
+                let anchor = by_id
+                    .get(s(&unit["anchor_ref"])?)
+                    .ok_or("source unit anchor absent")?;
+                let pages: Vec<_> = anchor["selectors"]
+                    .as_array()
+                    .ok_or("anchor selectors absent")?
+                    .iter()
+                    .filter(|s| s["type"] == "page_region")
+                    .map(|s| s["page"].as_i64())
+                    .collect();
+                ensure(
+                    pages == vec![Some(page)]
+                        && anchor["status"] == "proposed"
+                        && anchor["review_ref"].is_null(),
+                    "source anchor authority/page drifted",
+                )?;
+            }
+        }
+        source_event(ctx, &source, config.source, &source_sha, &mut held)?;
+        for candidate in crosswalk["candidates"]
+            .as_array()
+            .ok_or("candidates absent")?
+        {
+            total_candidates += 1;
+            total_routes += candidate["possible_target_unit_refs"]
+                .as_array()
+                .ok_or("routes absent")?
+                .len();
+        }
+    }
+    ensure(
+        (total_routes, total_candidates) == (20, 12),
+        "aggregate source route/candidate closure drifted",
+    )?;
+    // Reconstructing every pair, route and event also checks their schemas,
+    // current digests, target order and false authority fields byte for byte.
+    let reconstructed = run(ctx, false, None)?;
+    recheck(ctx, held)?;
+    Ok(
+        json!({"status":"PASS","mode":"validate-tracked","source_maps":2,"pairings":140,"candidate_pages":total_candidates,"source_routes":total_routes,"changed_files":0,"local_payloads_read":false,"source_text_accepted":false,"translation_alignment_claimed":false,"outputs":reconstructed["outputs"],"execution_budget":ctx.budget_report()}),
+    )
+}
