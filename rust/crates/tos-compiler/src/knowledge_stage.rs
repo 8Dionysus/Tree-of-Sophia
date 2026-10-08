@@ -6860,7 +6860,7 @@ mod tests {
         let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
         // Both dictionary families seal on the first row. Exact source spelling
         // intentionally differs from the serialized normalized representation.
-        let source = format!("{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n", "source words ".repeat(500)).into_bytes();
+        let source = format!("{{ \"text\" : \"{}\", \"number\" : 1.2300, \"claim_ref\" : \"claim.test\" }}\n", "source words ".repeat(500)).into_bytes();
         let source_value: serde_json::Value = serde_json::from_slice(&source).unwrap();
         {
             let logical = serde_json::json!({"id": "codec.exact", "attributes": {"text": source_value["text"]},
@@ -7113,6 +7113,46 @@ mod tests {
                     relation_type_id: "tos.relation.unmapped", source_order: 0, payload: &relation,
                 }, &source)
             }).unwrap();
+            // Run the actual late Claim join on packed carriers: a changed
+            // context is CAS-written once; replay preserves its exact revision.
+            let claim_limits = crate::knowledge_source_claims::ClaimNormalizeLimits {
+                max_raw_bytes: 32768, max_output_bytes: 32768, max_page_rows: 1,
+                max_contexts: 8, max_work_bytes: 1024 * 1024,
+            };
+            let mut contexts = crate::knowledge_source_claims::prepare_claim_context_groups(&mut stage, claim_limits).unwrap();
+            let context = serde_json::json!({"binding_role":"referenced-claim", "fields":{"review_status":{"value":"source-recorded"}}});
+            let context_bytes = serde_json::to_vec(&context).unwrap();
+            let context_digest = Digest256::from_hex(&crate::knowledge_normalization::stable_digest(&context).unwrap()).unwrap();
+            let source_digest = Digest256::of_bytes(&source);
+            stage.with_connection(WritePhase::Normalized, |db| {
+                db.execute("INSERT INTO knowledge_claim_context_groups VALUES(?1,?2,0,?3,?4,?5,?6)",
+                    params!["fixture.graph","claim.test",context_digest.as_bytes().as_slice(),&context_bytes,"node.0",source_digest.as_bytes().as_slice()])?;
+                Ok(())
+            }).unwrap();
+            let mut root = Digest256Hasher::new(); root.update(b"tos-claim-context-groups-v1\0");
+            for (id, digest) in [("fixture.graph", &[][..]), ("claim.test",context_digest.as_bytes().as_slice()), ("node.0",source_digest.as_bytes().as_slice())] {
+                root.update(&(id.len() as u64).to_be_bytes()); root.update(id.as_bytes()); root.update(digest);
+            }
+            contexts.contexts = 1; contexts.root_sha256 = root.finalize().to_hex();
+            crate::knowledge_source_claims::verify_claim_context_groups(&mut stage, &contexts, claim_limits).unwrap();
+            let vocabulary = crate::QueryVocabulary::parse(include_bytes!("../tests/fixtures/query-vocabulary.v1.json"), &[
+                "candidate-relation-v1","canon-node-relation-v1","declared-identity-and-source-ref-joins-v1",
+                "philosophy-node-edge-v1","reified-bibliographic-claims-v1","repository-topology-v1","source-navigation-node-edge-v1",
+            ]).unwrap();
+            let before = work.load(Ordering::Acquire);
+            crate::knowledge_native::bind_native_claim_contexts(&mut stage, &vocabulary, &contexts, claim_limits, finalize_limits).unwrap();
+            eprintln!("Claim typed binding layout={layout:?} work={}",work.load(Ordering::Acquire)-before);
+            let mut joined_bytes = Vec::new();
+            stage.with_relation_payload_source_owned("edge.0",32768,|_,raw,exact| {
+                let value: serde_json::Value = serde_json::from_slice(raw).unwrap();
+                assert_eq!(value["semantics"]["assertion_contexts"],serde_json::json!([context]));
+                assert!(value["content_revision"].as_str().is_some());
+                assert_eq!(exact,Some(source.as_slice())); joined_bytes = raw.to_vec(); Ok(())
+            }).unwrap().unwrap();
+            crate::knowledge_native::bind_native_claim_contexts(&mut stage, &vocabulary, &contexts, claim_limits, finalize_limits).unwrap();
+            stage.with_relation_payload_source_owned("edge.0",32768,|_,raw,exact| {
+                assert_eq!(raw,joined_bytes); assert_eq!(exact,Some(source.as_slice())); Ok(())
+            }).unwrap().unwrap();
             let roots = stage.core_roots().unwrap();
             let seal = crate::knowledge_inherited_views::CompleteRelationSeal {
                 source_cut: inherited.source_cut.clone(), relation_count: 1,

@@ -23,7 +23,7 @@ use crate::knowledge_source_navigation_prepare::{
 use crate::knowledge_source_navigation_relation::{
     NavigationRelationCompletionProof, clear_navigation_relation_dependencies,
 };
-use crate::knowledge_stage::{KnowledgeStage, NodeRow, WritePhase};
+use crate::knowledge_stage::{KnowledgeStage, NodeRow, NormalizedLogical, WritePhase};
 use crate::*;
 use serde_json::Value;
 use tos_foundation::{Digest256, Digest256Hasher};
@@ -472,7 +472,7 @@ fn prepared_family_placeholders(
 // Every maintained relation family consumes the same complete Claim groups.
 // Read the join key from the exact copied source payload, never from a
 // similarly named property or an inferred relation endpoint.
-fn bind_native_claim_contexts(
+pub(crate) fn bind_native_claim_contexts(
     stage: &mut KnowledgeStage<'_>,
     vocabulary: &QueryVocabulary,
     groups: &crate::knowledge_source_claims::ClaimContextReceipt,
@@ -490,169 +490,114 @@ fn bind_native_claim_contexts(
         let page_rows = (write_bytes as usize / limits.max_row_bytes)
             .min(write_rows)
             .min(limits.max_page_rows);
+        if page_rows == 0 {
+            return Err(Error::Budget("native Claim join empty page"));
+        }
+        let page_after = after;
         let mut exhausted = false;
-        let mut write_page = |stage: &mut KnowledgeStage<'_>| -> Result<()> {
-            for _ in 0..page_rows {
-                // Only one carrier and its derived context are resident at a time.
-                let _page_hold =
-                    stage.hold_normalized_page(1, limits.max_row_bytes, limits.max_row_bytes)?;
+        stage.with_write_page(WritePhase::Finalize, page_rows, limits.max_page_bytes as u64, |stage| {
+            let mut process = |stage: &mut KnowledgeStage<'_>, order: i64, id: &str, graph: &str,
+                               logical: NormalizedLogical<'_>, source_packet: Option<&[u8]>, digest: Digest256| -> Result<()> {
+                let _page_hold = stage.hold_normalized_page(1, limits.max_row_bytes, limits.max_row_bytes)?;
                 let state = stage.owned_creation_state();
-                let row: Option<(i64, String, String, Vec<u8>, Vec<u8>, Option<Vec<u8>>)> =
-                    if let Some(state) = state {
-                        let mut received = None;
-                        stage.with_normalized_rows_owned(
-                            true,
-                            after,
-                            1,
-                            limits.max_row_bytes,
-                            |_, metadata, logical, source| {
-                                state.charge_work(
-                                    logical
-                                        .len()
-                                        .checked_add(source.map_or(0, <[u8]>::len))
-                                        .ok_or(Error::Budget("native Claim join copy work"))?,
-                                )?;
-                                received = Some((
-                                    metadata.source_order,
-                                    metadata.id.to_owned(),
-                                    metadata.source_graph.to_owned(),
-                                    logical.to_vec(),
-                                    metadata.logical_digest.as_bytes().to_vec(),
-                                    source.map(<[u8]>::to_vec),
-                                ));
-                                Ok(())
-                            },
-                        )?;
-                        received
-                    } else {
-                        stage.with_connection(WritePhase::Finalize, |db| {
-                            use rusqlite::OptionalExtension;
-                            Ok(db.query_row(
-                                "SELECT source_order,id,source_graph,CASE WHEN payload_len=length(payload) AND payload_len<=?2 THEN payload ELSE NULL END,payload_sha256 FROM knowledge_relations WHERE source_order>?1 ORDER BY source_order LIMIT 1",
-                                rusqlite::params![after, limits.max_row_bytes],
-                                |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,None)),
-                            ).optional()?)
-                        })?
-                    };
-                let Some((order, id, graph, raw, sha, source_packet)) = row else {
-                    exhausted = true;
-                    break;
-                };
-                count = count
-                    .checked_add(1)
-                    .ok_or(Error::Budget("native Claim join rows"))?;
-                work = work
-                    .checked_add(raw.len() as u64)
-                    .ok_or(Error::Budget("native Claim join work"))?;
+                count = count.checked_add(1).ok_or(Error::Budget("native Claim join rows"))?;
+                work = work.checked_add(logical.len() as u64).ok_or(Error::Budget("native Claim join work"))?;
                 if count > limits.max_rows || work > limits.max_work_bytes {
                     return Err(Error::Budget("native Claim join limits"));
                 }
-                if order <= after || sha.as_slice() != Digest256::of_bytes(&raw).as_bytes() {
-                    return Err(Error::Invalid("native Claim join row digest/order"));
-                }
+                if order <= after || match &logical {
+                    NormalizedLogical::Bytes(raw) => Digest256::of_bytes(raw) != digest,
+                    NormalizedLogical::Value { digest: actual, .. } => *actual != digest,
+                } { return Err(Error::Invalid("native Claim join row digest/order")); }
                 after = order;
-                if vocabulary.sources.iter().any(|s| {
-                    s.source_graph_id == graph && s.adapter_profile == "indexed-node-edge-v1"
-                }) {
-                    continue;
-                }
-                let parsed = SourceRow::parse_scoped_with_optional_owned_state(
-                    &raw,
-                    limits.max_row_bytes,
-                    state,
-                )?;
-                let _clone_hold = state
-                    .map(|state| {
-                        state
-                            .value_clone_state_upper_bound(parsed.value())
-                            .and_then(|bytes| state.hold(bytes))
-                    })
-                    .transpose()?;
-                let mut value = parsed.value().clone();
-                if value.get("id").and_then(Value::as_str) != Some(id.as_str())
-                    || value.get("source_graph").and_then(Value::as_str) != Some(graph.as_str())
-                {
-                    return Err(Error::Invalid("native Claim join row identity"));
-                }
-                let Some(reference) = value
-                    .pointer("/source_record/payload/claim_ref")
-                    .and_then(Value::as_str)
-                    .map(str::to_owned)
-                else {
-                    continue;
+                if vocabulary.sources.iter().any(|s| s.source_graph_id == graph
+                    && s.adapter_profile == "indexed-node-edge-v1") { return Ok(()); }
+                let source_receipt = match &logical {
+                    NormalizedLogical::Value { source_receipt, .. } => *source_receipt,
+                    NormalizedLogical::Bytes(_) => None,
                 };
-                let referenced = claim_contexts(stage, groups, &graph, &reference, claims)?;
-                let mut contexts: Vec<Value> = value
-                    .pointer("/semantics/assertion_contexts")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                    .filter(|c| {
-                        c.get("binding_role").and_then(Value::as_str) != Some("referenced-claim")
-                    })
-                    .cloned()
-                    .collect();
-                contexts.extend(referenced);
-                if contexts.is_empty() {
-                    continue;
-                }
-                let next = Value::Array(contexts);
-                if value.pointer("/semantics/assertion_contexts") == Some(&next) {
-                    continue;
-                }
-                value["semantics"]["assertion_contexts"] = next;
-                let mut write = |output: &[u8]| -> Result<()> {
-                    work = work
-                        .checked_add(output.len() as u64)
-                        .ok_or(Error::Budget("native Claim join work"))?;
-                    if output.len() > limits.max_row_bytes || work > limits.max_work_bytes {
-                        return Err(Error::Budget("native Claim join output"));
+                let mut process_value = |mut value: Value| -> Result<()> {
+                    if value.get("id").and_then(Value::as_str) != Some(id)
+                        || value.get("source_graph").and_then(Value::as_str) != Some(graph) {
+                        return Err(Error::Invalid("native Claim join row identity"));
                     }
-                    if state.is_some() {
-                        stage.replace_relation_logical_payload_if_current(
-                            &id,
-                            output,
-                            source_packet.as_deref(),
-                            Some(Digest256::of_bytes(&raw)),
-                        )?;
-                    } else {
-                        stage.charge_materialized(1, output.len() as u64)?;
-                        let digest = Digest256::of_bytes(&output);
-                        let changed = stage.with_connection(WritePhase::Finalize, |db| {
-            Ok(db.execute("UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_sha256=?5",
-                rusqlite::params![output.len(),digest.as_bytes().as_slice(),output,id,sha])?)
-        })?;
-                        if changed != 1 {
-                            return Err(Error::Invalid("native Claim join concurrent row change"));
+                    let Some(reference) = value.pointer("/source_record/payload/claim_ref")
+                        .and_then(Value::as_str).map(str::to_owned) else { return Ok(()); };
+                    let referenced = claim_contexts(stage, groups, graph, &reference, claims)?;
+                    let original = value.pointer("/semantics/assertion_contexts").unwrap_or(&Value::Null);
+                    let _context_hold = state.map(|state| state.value_clone_state_upper_bound(original)
+                        .and_then(|bytes| state.hold(bytes))).transpose()?;
+                    let mut contexts: Vec<Value> = original.as_array().into_iter().flatten()
+                        .filter(|c| c.get("binding_role").and_then(Value::as_str) != Some("referenced-claim"))
+                        .cloned().collect();
+                    contexts.extend(referenced);
+                    if contexts.is_empty() { return Ok(()); }
+                    let next = Value::Array(contexts);
+                    if original == &next { return Ok(()); }
+                    value["semantics"]["assertion_contexts"] = next;
+                    let mut write = |value: &Value, output: &[u8]| -> Result<()> {
+                        work = work.checked_add(output.len() as u64).ok_or(Error::Budget("native Claim join work"))?;
+                        if output.len() > limits.max_row_bytes || work > limits.max_work_bytes {
+                            return Err(Error::Budget("native Claim join output"));
                         }
+                        if state.is_some() {
+                            stage.replace_finalized_value_if_current(true, id, value, output,
+                                source_packet, digest, source_receipt)?;
+                        } else {
+                            stage.charge_materialized(1, output.len() as u64)?;
+                            let next_digest = Digest256::of_bytes(output);
+                            let changed = stage.with_connection(WritePhase::Finalize, |db| {
+                                Ok(db.execute("UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_sha256=?5",
+                                    rusqlite::params![output.len(),next_digest.as_bytes().as_slice(),output,id,digest.as_bytes().as_slice()])?)
+                            })?;
+                            if changed != 1 { return Err(Error::Invalid("native Claim join concurrent row change")); }
+                        }
+                        Ok(())
+                    };
+                    if let Some(state) = state {
+                        crate::knowledge_normalization::with_content_revision_owned(state, value,
+                            limits.max_row_bytes, |value, output| write(value, output))?;
+                    } else {
+                        crate::knowledge_normalization::stamp_content_revision(&mut value, limits.max_row_bytes)?;
+                        let output = serde_json::to_vec(&value).map_err(|_| Error::Invalid("native Claim join JSON"))?;
+                        write(&value, &output)?;
                     }
                     Ok(())
                 };
-                if let Some(state) = state {
-                    crate::knowledge_normalization::with_content_revision_owned(
-                        state,
-                        value,
-                        limits.max_row_bytes,
-                        |_, output| write(output),
-                    )?;
-                } else {
-                    crate::knowledge_normalization::stamp_content_revision(
-                        &mut value,
-                        limits.max_row_bytes,
-                    )?;
-                    let output = serde_json::to_vec(&value)
-                        .map_err(|_| Error::Invalid("native Claim join JSON"))?;
-                    write(&output)?;
+                match logical {
+                    NormalizedLogical::Value { value, .. } => {
+                        state.expect("typed reader owner").check_serde_structure(&value, SourceRow::json_limits(limits.max_row_bytes)?)?;
+                        process_value(value)
+                    }
+                    NormalizedLogical::Bytes(raw) => SourceRow::parse_scoped_with_optional_owned_state(raw,
+                        limits.max_row_bytes, state)?.with_value(process_value),
+                }
+            };
+            if stage.owned_creation_state().is_some() {
+                let (_, next) = stage.with_normalized_rows_decoded_owned(true, page_after, page_rows,
+                    limits.max_row_bytes, true, |stage, metadata, logical, source| {
+                        process(stage, metadata.source_order, metadata.id, metadata.source_graph,
+                            logical, source, metadata.logical_digest)
+                    })?;
+                exhausted = next.is_none();
+            } else {
+                let mut current_order = page_after;
+                for _ in 0..page_rows {
+                    // The shared processor advances after. A scalar query cursor
+                    // avoids retaining a page of duplicate normalized trees.
+                    let row: Option<(i64,String,String,Vec<u8>,Vec<u8>)> = stage.with_connection(WritePhase::Finalize, |db| {
+                        use rusqlite::OptionalExtension;
+                        Ok(db.query_row("SELECT source_order,id,source_graph,CASE WHEN payload_len=length(payload) AND payload_len<=?2 THEN payload ELSE NULL END,payload_sha256 FROM knowledge_relations WHERE source_order>?1 ORDER BY source_order LIMIT 1",
+                            rusqlite::params![current_order,limits.max_row_bytes], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).optional()?)
+                    })?;
+                    let Some((order,id,graph,raw,sha)) = row else { exhausted = true; break; };
+                    let digest = Digest256::from_bytes(sha.as_slice().try_into().map_err(|_| Error::Invalid("native Claim join digest length"))?);
+                    process(stage,order,&id,&graph,NormalizedLogical::Bytes(&raw),None,digest)?;
+                    current_order = order;
                 }
             }
             Ok(())
-        };
-        stage.with_write_page(
-            WritePhase::Finalize,
-            page_rows,
-            limits.max_page_bytes as u64,
-            &mut write_page,
-        )?;
+        })?;
         if exhausted {
             break;
         }

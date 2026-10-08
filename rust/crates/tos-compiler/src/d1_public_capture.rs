@@ -7299,10 +7299,11 @@ mod construction_phase_tests {
             ..budget
         };
         let limited_state = CreationState::from_runtime_owned_budget(&limited_budget).unwrap();
+        let limited_baseline = limited_state.retained.get();
         assert!(creation_json_with_limits(&limited_state, parse_raw, limits).is_err());
         assert_eq!(limited_work.load(Ordering::Acquire), parse_raw.len() as u64);
         assert_eq!(limited_state.json_visits.get(), 0);
-        assert_eq!(limited_state.retained.get(), 0);
+        assert_eq!(limited_state.retained.get(), limited_baseline);
         drop(limited_state);
         let persistent = state.serde_owned_with_limits(raw, limits).unwrap();
         assert!(state.persistent.get() > 0);

@@ -697,9 +697,63 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
                 q(LEGACY_CROSSWALK_AUTHORITY),
             )?;
         }
-        let cross_raw = render(&cross, true)?;
+        // Retained crosswalk bytes include a later plan/rights update. The
+        // earlier event still names its original inputs and original output.
+        // Reproduce those separate historical layers; a fresh generation binds
+        // every current input and the bytes actually emitted in that generation.
+        let historical_event_cross_hash = if options.generation.is_none() {
+            const PLAN_SHA: &str =
+                "adad0534a5ce61f3eaa821aaa19fcc7257958c7baac06b75f30b321f65f36cb6";
+            const RIGHTS_SHA: &str =
+                "4c72113047353c6148af2ef3580e4128e8a968558f45331542081d7e0e761de0";
+            let mut earlier = cross.clone();
+            for (key, reference, expected) in [
+                ("transfer_plan", TRANSFER_PLAN_PATH, PLAN_SHA),
+                ("target_rights", RIGHTS_PATH, RIGHTS_SHA),
+            ] {
+                let recorded = array(&events[1]["inputs"])?
+                    .iter()
+                    .filter(|v| v["ref"] == reference)
+                    .collect::<Vec<_>>();
+                ensure(
+                    recorded.len() == 1 && recorded[0]["sha256"] == expected,
+                    "historical crosswalk input binding differs",
+                )?;
+                set(
+                    field(field(&mut earlier, "inputs")?, key)?,
+                    "sha256",
+                    q(expected),
+                )?;
+            }
+            let digest = sha(&render(&earlier, true)?);
+            let recorded = array(&events[1]["outputs"])?;
+            ensure(
+                recorded.len() == 1
+                    && recorded[0]["ref"] == legacy_paths["crosswalk"]
+                    && recorded[0]["sha256"] == digest,
+                "historical crosswalk output binding differs",
+            )?;
+            Some(digest)
+        } else {
+            None
+        };
+        let mut cross_raw = render(&cross, true)?;
+        if options.generation.is_none() {
+            // Preserve the one retained indentation change in the later plan
+            // digest line. It changes exact bytes, never JSON field meaning.
+            let current = format!("\n      \"sha256\": \"{}\"", held[4].digest);
+            let retained = format!("\n    \"sha256\": \"{}\"", held[4].digest);
+            let text = String::from_utf8(cross_raw).map_err(|_| "crosswalk UTF8")?;
+            ensure(
+                text.matches(&current).count() == 1,
+                "historical plan digest formatting differs",
+            )?;
+            cross_raw = text.replacen(&current, &retained, 1).into_bytes();
+        }
         let cross_hash = sha(&cross_raw);
-        d.crosswalk_digest = &cross_hash;
+        d.crosswalk_digest = historical_event_cross_hash
+            .as_deref()
+            .unwrap_or(&cross_hash);
         d.event_at = options.event_at.unwrap_or(s(&events[1]["started_at"])?);
         let bindings = [
             (
@@ -732,6 +786,16 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         let mut cross_event = records::crosswalk_event(&d)?;
         if options.generation.is_none() {
             historical_warning(&mut cross_event, 3, LEGACY_CROSSWALK_WARNING)?;
+            let Out::Array(inputs) = field(&mut cross_event, "inputs")? else {
+                return Err("crosswalk event inputs".into());
+            };
+            for (at, reference) in [(0, TRANSFER_PLAN_PATH), (3, RIGHTS_PATH)] {
+                let recorded = array(&events[1]["inputs"])?
+                    .iter()
+                    .find(|v| v["ref"] == reference)
+                    .ok_or("historical crosswalk input absent")?;
+                set(&mut inputs[at], "sha256", q(s(&recorded["sha256"])?))?;
+            }
         }
         if options.generation.is_some() {
             native_event(
