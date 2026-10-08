@@ -403,7 +403,7 @@ where
                         changed = true;
                     }
                     if changed {
-                        let mut write = |raw: &[u8]| -> Result<()> {
+                        let mut write = |value: &Value, raw: &[u8]| -> Result<()> {
                         work = work
                             .checked_add(raw.len() as u64)
                             .ok_or(Error::Budget("native final output work"))?;
@@ -411,12 +411,11 @@ where
                             return Err(Error::Budget("native final output bytes"));
                         }
                         if stage.owned_creation_state().is_some() {
-                            let previous = Some(Digest256::of_bytes(&row.payload));
-                            if table == "knowledge_relations" {
-                                stage.replace_relation_logical_payload_if_current(
-                                    &row.id, raw, row.source_packet.as_deref(), previous,
-                                )?;
-                            } else {
+                            stage.replace_finalized_value_if_current(
+                                table == "knowledge_relations", &row.id, value, raw,
+                                row.source_packet.as_deref(), Digest256::of_bytes(&row.payload),
+                            )?;
+                        } else {
                                 stage.replace_node_logical_payload_if_current(
                                     &row.id, raw, row.source_packet.as_deref(), previous,
                                 )?;
@@ -436,13 +435,13 @@ where
                         };
                         if let Some(state) = state {
                             crate::knowledge_normalization::with_content_revision_owned(
-                                state, value, limits.max_row_bytes, |_, raw| write(raw),
+                                state, value, limits.max_row_bytes, |value, raw| write(value, raw),
                             )?;
                         } else {
                             stamp_content_revision(&mut value, limits.max_row_bytes)?;
                             let raw = serde_json::to_vec(&value)
                                 .map_err(|_| Error::Invalid("native final JSON"))?;
-                            write(&raw)?;
+                            write(&value, &raw)?;
                         }
                     }
                     after = row.order;

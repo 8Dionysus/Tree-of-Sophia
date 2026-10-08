@@ -156,12 +156,12 @@ impl Serialize for BorrowedHydratedSpine<'_> {
 }
 
 #[derive(Serialize)]
-struct Stored<'a> {
+struct Stored<'a, S: Serialize> {
     codec: &'static str,
     source_len: usize,
     source_sha256: &'a [u8],
     attribute_refs: &'a [(String, String)],
-    spine: &'a Value,
+    spine: &'a S,
 }
 
 fn add(a: usize, b: usize) -> Result<usize> {
@@ -377,104 +377,142 @@ pub(crate) fn with_factored_payload<T>(
     max_row_bytes: usize,
     consume: impl FnOnce(&[u8], Digest256) -> Result<T>,
 ) -> Result<T> {
+    state.with_serde_owned_with_limits(normalized, normalized_limits, |logical| {
+        with_factored_value_payload(
+            state,
+            logical,
+            normalized,
+            source,
+            source_limits,
+            stored_limits,
+            max_row_bytes,
+            consume,
+        )
+    })
+}
+
+/// Reuse a caller-owned normalized tree. Its admission stays live until the
+/// callback returns. The independent physical roundtrip below authenticates
+/// it against `normalized`, so a mismatched tree cannot reach SQL.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_factored_value_payload<T>(
+    state: &CreationState<'_>,
+    logical: &Value,
+    normalized: &[u8],
+    source: &[u8],
+    source_limits: JsonLimits,
+    stored_limits: JsonLimits,
+    max_row_bytes: usize,
+    consume: impl FnOnce(&[u8], Digest256) -> Result<T>,
+) -> Result<T> {
     state.active()?;
     cap(normalized, max_row_bytes)?;
     cap(source, max_row_bytes)?;
     let source_digest = charged_digest(state, source)?;
     let normalized_digest = charged_digest(state, normalized)?;
     state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
-        state.with_serde_owned_value_with_limits(normalized, normalized_limits, |logical| {
-            if !equal_owned(state, source_payload(&logical)?, &source_value, 0)? {
-                return Err(Error::Invalid("carrier codec source value differs"));
+        if !equal_owned(state, source_payload(logical)?, &source_value, 0)? {
+            return Err(Error::Invalid("carrier codec source value differs"));
+        }
+        let fields = field_map(logical)?;
+        let attrs = attributes(logical)?;
+        let slots = fields
+            .len()
+            .checked_mul(std::mem::size_of::<(String, String)>())
+            .and_then(|n| {
+                n.checked_add(
+                    attrs
+                        .len()
+                        .checked_mul(std::mem::size_of::<(&str, &Value)>())?,
+                )
+            })
+            .ok_or(Error::Budget("carrier codec reference slots"))?;
+        let strings = fields.iter().try_fold(0usize, |bytes, (name, pointer)| {
+            state.charge_work(name.len())?;
+            let Some(key) = name.strip_prefix("attributes.") else {
+                return Ok(bytes);
+            };
+            let pointer = pointer
+                .as_str()
+                .ok_or(Error::Invalid("carrier codec field pointer type"))?;
+            state.charge_work(pointer.len())?;
+            add(bytes, add(key.len(), pointer.len())?)
+        })?;
+        let _refs_hold = state.hold(add(slots, strings)?)?;
+        let mut refs = Vec::with_capacity(fields.len());
+        for (name, pointer) in fields {
+            state.active()?;
+            let Some(key) = name.strip_prefix("attributes.") else {
+                continue;
+            };
+            let pointer = pointer
+                .as_str()
+                .ok_or(Error::Invalid("carrier codec field pointer type"))?;
+            state.charge_work(name.len())?;
+            if let (Some(actual), Some(original)) = (
+                attrs.get(key),
+                pointer_owned(state, &source_value, pointer)?,
+            ) {
+                if equal_owned(state, actual, original, 0)? {
+                    state.charge_work(add(key.len(), pointer.len())?)?;
+                    refs.push((key.to_owned(), pointer.to_owned()));
+                }
             }
-            let fields = field_map(&logical)?;
-            let attrs = attributes(&logical)?;
-            let slots = fields
-                .len()
-                .checked_mul(std::mem::size_of::<(String, String)>())
-                .ok_or(Error::Budget("carrier codec reference slots"))?;
-            // Own the small references so the admitted decoded row can become
-            // the spine in place, without cloning its full source payload.
-            let strings = fields.iter().try_fold(0usize, |bytes, (name, pointer)| {
-                state.charge_work(name.len())?;
-                let Some(key) = name.strip_prefix("attributes.") else {
-                    return Ok(bytes);
-                };
-                let pointer = pointer
-                    .as_str()
-                    .ok_or(Error::Invalid("carrier codec field pointer type"))?;
-                state.charge_work(pointer.len())?;
-                add(bytes, add(key.len(), pointer.len())?)
-            })?;
-            let refs_hold = state.hold(add(slots, strings)?)?;
-            let mut refs = Vec::with_capacity(fields.len());
-            for (name, pointer) in fields {
-                state.active()?;
-                let Some(key) = name.strip_prefix("attributes.") else {
-                    continue;
-                };
-                let pointer = pointer
-                    .as_str()
-                    .ok_or(Error::Invalid("carrier codec field pointer type"))?;
-                state.charge_work(name.len())?;
-                if let (Some(actual), Some(original)) = (
-                    attrs.get(key),
-                    pointer_owned(state, &source_value, pointer)?,
-                ) {
-                    if equal_owned(state, actual, original, 0)? {
-                        state.charge_work(add(key.len(), pointer.len())?)?;
-                        refs.push((key.to_owned(), pointer.to_owned()));
+        }
+        // Borrow the same admitted fields and substitute only the codec slots.
+        // This preserves insertion order and numeric lexemes without copying
+        // and then destroying a second source/normalized tree.
+        let mut selected_attributes = Vec::with_capacity(attrs.len());
+        for (key, value) in attrs {
+            let mut selected = value;
+            for (reference, _) in &refs {
+                if bytes_equal(state, key.as_bytes(), reference.as_bytes())? {
+                    selected = &Value::Null;
+                    break;
+                }
+            }
+            selected_attributes.push((key.as_str(), selected));
+        }
+        let spine = BorrowedHydratedSpine {
+            spine: logical
+                .as_object()
+                .ok_or(Error::Invalid("carrier codec spine object"))?,
+            attributes: BorrowedAttributes(&selected_attributes),
+            source_record: BorrowedSourceRecord {
+                record: logical
+                    .get("source_record")
+                    .and_then(Value::as_object)
+                    .ok_or(Error::Invalid("carrier codec source record object"))?,
+                source: &Value::Null,
+            },
+        };
+        let physical = Stored {
+            codec: CODEC,
+            source_len: source.len(),
+            source_sha256: source_digest.as_bytes(),
+            attribute_refs: &refs,
+            spine: &spine,
+        };
+        state.with_json_encoded(&physical, max_row_bytes, |encoded| {
+            // Exact spelling/order/numbers are still checked before delivery.
+            with_hydrated_payload_from_source(
+                state,
+                encoded,
+                source.len(),
+                source_digest,
+                source_value,
+                stored_limits,
+                max_row_bytes,
+                normalized.len(),
+                normalized_digest,
+                |hydrated| {
+                    if !bytes_equal(state, hydrated, normalized)? {
+                        return Err(Error::Invalid("carrier codec logical bytes changed"));
                     }
-                }
-            }
-            let mut spine = logical;
-            let result = (|| {
-                for (key, _) in &refs {
                     state.active()?;
-                    *spine
-                        .get_mut("attributes")
-                        .and_then(Value::as_object_mut)
-                        .and_then(|v| v.get_mut(key.as_str()))
-                        .ok_or(Error::Invalid("carrier codec attribute slot absent"))? =
-                        Value::Null;
-                }
-                *spine
-                    .get_mut("source_record")
-                    .and_then(|v| v.get_mut("payload"))
-                    .ok_or(Error::Invalid("carrier codec source slot absent"))? = Value::Null;
-                let physical = Stored {
-                    codec: CODEC,
-                    source_len: source.len(),
-                    source_sha256: source_digest.as_bytes(),
-                    attribute_refs: &refs,
-                    spine: &spine,
-                };
-                state.with_json_encoded(&physical, max_row_bytes, |encoded| {
-                    // Verify exact spelling/order/numbers, not just equal JSON.
-                    with_hydrated_payload_from_source(
-                        state,
-                        encoded,
-                        source.len(),
-                        source_digest,
-                        source_value,
-                        stored_limits,
-                        max_row_bytes,
-                        normalized.len(),
-                        normalized_digest,
-                        |hydrated| {
-                            if !bytes_equal(state, hydrated, normalized)? {
-                                return Err(Error::Invalid("carrier codec logical bytes changed"));
-                            }
-                            state.active()?;
-                            consume(encoded, source_digest)
-                        },
-                    )
-                })
-            })();
-            drop(spine);
-            drop(refs);
-            drop(refs_hold);
-            result
+                    consume(encoded, source_digest)
+                },
+            )
         })
     })
 }

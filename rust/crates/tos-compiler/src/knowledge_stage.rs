@@ -3424,6 +3424,38 @@ impl<'a> KnowledgeStage<'a> {
         previous: Option<Digest256>,
     ) -> Result<()> {
         let result = (|| {
+            let state = self.owned_creation_state().ok_or(Error::Invalid("carrier update owner absent"))?;
+            let limits = crate::knowledge_normalization::SourceRow::json_limits(self.limits.sqlite.max_row_bytes)?;
+            state.with_serde_owned_with_limits(logical, limits, |value| {
+                self.replace_normalized_value_with_exact_source_if_current(relation, id, value, logical, source, previous)
+            })
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+
+    /// The finalizer retains the admission of this tree through exact codec
+    /// verification and SQL CAS. A caller-supplied tree is not trusted merely
+    /// because it was decoded earlier: the codec proves its emitted bytes.
+    pub(crate) fn replace_finalized_value_if_current(
+        &mut self, relation: bool, id: &str, value: &serde_json::Value,
+        logical: &[u8], source: Option<&[u8]>, previous: Digest256,
+    ) -> Result<()> {
+        if self.payload_layout.uses_carriers() {
+            if let Some(source) = source {
+                return self.replace_normalized_value_with_exact_source_if_current(
+                    relation, id, value, logical, source, Some(previous),
+                );
+            }
+        }
+        self.replace_logical_payload_if_current(relation, id, logical, source, Some(previous))
+    }
+
+    fn replace_normalized_value_with_exact_source_if_current(
+        &mut self, relation: bool, id: &str, value: &serde_json::Value,
+        logical: &[u8], source: &[u8], previous: Option<Digest256>,
+    ) -> Result<()> {
+        let result = (|| {
             if self.poisoned || !self.payload_layout.uses_carriers() {
                 return Err(Error::Invalid("carrier normalized update unavailable"));
             }
@@ -3435,14 +3467,13 @@ impl<'a> KnowledgeStage<'a> {
                 .map_err(|_| Error::Budget("carrier update row conversion"))?;
             let limits = crate::knowledge_normalization::SourceRow::json_limits(cap)?;
             self.charge_preparation_work(logical.len() as u64)?;
-            state.with_serde_owned_with_limits(logical,limits,|value| {
                 let actual=value.get("id").and_then(serde_json::Value::as_str)
                     .ok_or(Error::Invalid("carrier update logical ID absent"))?;
                 state.charge_work(actual.len())?;
                 if actual!=id {return Err(Error::Invalid("carrier update logical ID differs"));}
                 state.charge_work(logical.len())?;
                 let digest=Digest256::of_bytes(logical);
-                crate::knowledge_payload_codec::with_factored_payload(state,logical,source,limits,limits,limits,cap,
+                crate::knowledge_payload_codec::with_factored_value_payload(state,value,logical,source,limits,limits,cap,
                     |stored,source_digest| {
                         let reference=self.retain_exact_source_carrier(source)?;
                         if reference.packet_sha256()!=&source_digest {return Err(Error::Invalid("carrier update source differs"));}
@@ -3468,7 +3499,6 @@ impl<'a> KnowledgeStage<'a> {
                         })
                         })
                     })
-            })
         })();
         self.poisoned |= result.is_err();
         result
@@ -6643,6 +6673,30 @@ mod tests {
         // intentionally differs from the serialized normalized representation.
         let source = format!("{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n", "source words ".repeat(500)).into_bytes();
         let source_value: serde_json::Value = serde_json::from_slice(&source).unwrap();
+        {
+            let logical = serde_json::json!({"id": "codec.exact", "attributes": {"text": source_value["text"]},
+                "source_record": {"payload": source_value, "field_map": {"attributes.text": "/text"}}});
+            let raw = serde_json::to_vec(&logical).unwrap();
+            let mut mismatched = logical.clone();
+            mismatched["id"] = serde_json::json!("codec.other");
+            let json_limits = crate::knowledge_normalization::SourceRow::json_limits(32768).unwrap();
+            let mut delivered = false;
+            assert!(crate::knowledge_payload_codec::with_factored_value_payload(
+                &state, &mismatched, &raw, &source, json_limits, json_limits, 32768,
+                |_, _| { delivered = true; Ok(()) },
+            ).is_err());
+            assert!(!delivered, "mismatched borrowed tree must not reach consumer");
+            crate::knowledge_payload_codec::with_factored_value_payload(
+                &state, &logical, &raw, &source, json_limits, json_limits, 32768,
+                |stored, _| {
+                    let physical: serde_json::Value = serde_json::from_slice(stored).unwrap();
+                    assert!(physical["spine"]["attributes"]["text"].is_null());
+                    assert!(physical["spine"]["source_record"]["payload"].is_null());
+                    assert_eq!(logical["attributes"]["text"], source_value["text"]);
+                    Ok(())
+                },
+            ).unwrap();
+        }
         for layout in [KnowledgePayloadLayout::CarrierOnceV2, KnowledgePayloadLayout::CarrierOnceV3] {
             let candidate = stage_path("dictionary-roundtrip");
             let mut receipt = exact_receipt(RAW_ROOT);
@@ -6680,6 +6734,26 @@ mod tests {
                         source_order: order, payload: &logical,
                     }, &source)
                 }).unwrap();
+                let before_update = work.load(Ordering::Acquire);
+                stage.with_write_page(WritePhase::Finalize, 1, 32768, |stage| {
+                    // Both entrypoints preserve exact bytes and the same CAS.
+                    if order == 0 {
+                        stage.replace_node_payload_with_exact_source_if_current(
+                            &id, &logical, &source, Some(Digest256::of_bytes(&logical)),
+                        )
+                    } else {
+                        let limits = crate::knowledge_normalization::SourceRow::json_limits(32768)?;
+                        state.with_serde_owned_with_limits(&logical, limits, |value| {
+                            let before_typed = work.load(Ordering::Acquire);
+                            let result = stage.replace_finalized_value_if_current(
+                                false, &id, value, &logical, Some(&source), Digest256::of_bytes(&logical),
+                            );
+                            eprintln!("dictionary finalized typed update layout={layout:?} work={}", work.load(Ordering::Acquire)-before_typed);
+                            result
+                        })
+                    }
+                }).unwrap();
+                eprintln!("dictionary finalized complete update layout={layout:?} order={order} work={}", work.load(Ordering::Acquire)-before_update);
                 stage.with_node_payload_source_owned(&id, 32768, |_, actual, raw| {
                     assert_eq!(actual, logical);
                     assert_eq!(raw, Some(source.as_slice()));
