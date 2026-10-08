@@ -6627,6 +6627,9 @@ mod tests {
             let candidate = stage_path("dictionary-roundtrip");
             let mut receipt = exact_receipt(RAW_ROOT);
             receipt.binding.owner_profile = "tos-native-projection-snapshot-v1".into();
+            let mut tiny_family = receipt.collections[0].clone();
+            tiny_family.source_graph = "tiny".into();
+            receipt.collections.push(tiny_family);
             let mut selected = limits();
             selected.sqlite.max_output_bytes = 8 * 1024 * 1024;
             selected.sqlite.max_row_bytes = 32768;
