@@ -371,8 +371,8 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let mut pinned = BTreeMap::new();
     let mut values = BTreeMap::new();
     for r in source_refs {
-        let raw = ctx.read(r)?;
-        values.insert(r, load(ctx, r)?);
+        let (raw, value) = load(ctx, r)?;
+        values.insert(r, value);
         pinned.insert(r, sha(&raw));
     }
     rights(&values[RIGHTS_PATH])?;
@@ -395,7 +395,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         }
     }
     if matches!(opts.action, Action::ValidateTracked) {
-        let p = load(ctx, &paths.plan)?;
+        let (_, p) = load(ctx, &paths.plan)?;
         let ar = json_lines(ctx, &ctx.read(&paths.anchors)?)?
             .into_iter()
             .map(|(_, v)| v)
