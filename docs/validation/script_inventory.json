@@ -2453,7 +2453,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_german_source_triangulation.py",
+      "path": "rust/crates/tos-compiler/src/german_triangulation.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/german-source-triangulation.schema.json",
@@ -2472,16 +2472,16 @@
         "one explicit local-only eKGWB HTTP response, one fixity-verified DTA TEI, one fixity-verified Naumann automatic-OCR EPUB, and their tracked plans, manifests, and rights records"
       ],
       "writes": [
-        "one reconciled public-safe discovery record, one tracked text-free machine-triangulation packet, and separate provenance unless --check is used"
+        "tos german-triangulation writes a fresh text-free comparison packet and alignment event; historical discovery, acquisition and provenance remain immutable"
       ],
       "side_effects": "tracked aggregate comparison counts and one-way fingerprints only; no source text, German acceptance, critical-edition admission, translation lane, semantics, or promotion",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "ci_inclusion": "native-software-tests",
+      "test_target": "rust/crates/tos-compiler/src/german_triangulation.rs",
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_bounded_translation_input.py",
+      "path": "rust/crates/tos-compiler/src/bounded_translation_input.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/bounded-translation-research-input.schema.json",
@@ -2503,12 +2503,12 @@
         "one explicit DTA TEI, one local-only eKGWB response, the first twenty Naumann OCR tokens, and digest-bound source, rights, research, triangulation, and frozen translation-plan evidence"
       ],
       "writes": [
-        "one ignored local JSON source string plus a tracked text-free admission packet and separate provenance unless --check is used"
+        "tos bounded-translation-input writes one ignored mode0600 local artifact, one tracked text-free packet and a separate provenance event; historical evidence remains immutable"
       ],
       "side_effects": "admits exactly one DTA-derived source artifact to local blind machine-method calibration only and seals pre-existing authored translation surfaces; no German acceptance, accepted translation lane, comparator reveal, canon revalidation, semantics, rights clearance, publication, graph, or promotion",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "ci_inclusion": "native-software-tests",
+      "test_target": "rust/crates/tos-compiler/src/bounded_translation_input.rs",
       "disposition": "keep"
     },
     {

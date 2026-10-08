@@ -2275,3 +2275,16 @@ Naumann OCR diagnostic shape. `--validate-tracked` checks metadata only. A new
 uses the same explicit private input root and writes separate text-free packet
 and alignment-event files. Historical discovery, acquisition and appended
 provenance remain unchanged; no source text or acceptance is produced.
+
+
+`tos bounded-translation-input --source-root ABS --check --local-input-root ABS
+--local-output-root ABS` reproduces the exact local DTA opening sentence, its
+cross-witness corroboration and tracked text-free bindings. All three roots
+use repository-relative paths. `--validate-tracked` reads only metadata; add
+`--local-output-root ABS` to verify the existing private artifact as well.
+A fresh `--build --generation NAME --prepared-at RFC3339 --scratch-bytes
+RESERVED_BYTES` uses both explicit local roots and writes a separate mode0600
+artifact, packet and provenance event. The output quota must be reserved first.
+Historical `v1` and its appended journal stay exact. This operation prepares
+local calibration input without performing translation, source assessment or
+publication admission.

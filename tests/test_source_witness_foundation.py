@@ -814,8 +814,6 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import validate_source_witness_foundation as foundation
 import build_source_witness_catalog as catalog_builder
-import build_zarathustra_german_source_triangulation as triangulation_builder
-import build_zarathustra_bounded_translation_input as bounded_input_builder
 
 
 PRE_DRAFT_STAGE_NAMES = [
@@ -11900,13 +11898,6 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         tracked_source_text["inputs"]["ekgwb"]["source_text_tracked"] = True
         self.assertTrue(list(validator.iter_errors(tracked_source_text)))
 
-        raw_tokens = triangulation_builder._alpha_tokens("prüf¬ wort")
-        source_aware_tokens = triangulation_builder._alpha_tokens(
-            triangulation_builder.re.sub(r"¬\s*", "", "prüf¬ wort")
-        )
-        self.assertEqual(["prüf", "wort"], raw_tokens)
-        self.assertEqual(["prüfwort"], source_aware_tokens)
-
     def test_bounded_translation_input_opens_only_local_calibration(
         self,
     ) -> None:
@@ -11990,26 +11981,6 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "preexisting_authored_translation_surfaces_visible"
         ] = True
         self.assertTrue(list(validator.iter_errors(contaminated_blind_run)))
-
-    def test_bounded_translation_input_builder_uses_synthetic_source_only(
-        self,
-    ) -> None:
-        sentence = bounded_input_builder._first_sentence(
-            "Erste synthetische Aussage. Zweite Aussage."
-        )
-        self.assertEqual("Erste synthetische Aussage.", sentence)
-        self.assertEqual(
-            "Mehrere Leerzeichen bleiben lesbar.",
-            bounded_input_builder._first_sentence(
-                "Mehrere   Leerzeichen\nbleiben lesbar. Danach."
-            ),
-        )
-        with self.assertRaises(
-            bounded_input_builder.BoundedInputBuildError
-        ):
-            bounded_input_builder._first_sentence(
-                "Synthetischer Text ohne Abschluss"
-            )
 
     def test_critical_edition_witness_freezes_metadata_without_admission(
         self,
