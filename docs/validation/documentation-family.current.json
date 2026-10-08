@@ -34,16 +34,16 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5597,
+    "excluded_tracked_path_count": 5600,
     "human_scope": {
-      "bytes": 7332105,
+      "bytes": 7332878,
       "count": 1086,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 687616,
+          "bytes": 688389,
           "count": 45,
-          "lines": 10963
+          "lines": 10974
         },
         "agents-other": {
           "bytes": 9174,
@@ -121,14 +121,14 @@
           "lines": 82420
         }
       },
-      "lines": 121239
+      "lines": 121250
     },
     "surface_kind_counts": {
-      "executable": 604,
+      "executable": 603,
       "human": 1086,
-      "structured": 4693
+      "structured": 4694
     },
-    "tracked_path_count": 11980,
+    "tracked_path_count": 11983,
     "tracked_surface_count": 6383,
     "unhandled_family_count": 1,
     "unhandled_paths": [
@@ -185,7 +185,7 @@
         "human": 45,
         "structured": 54
       },
-      "tracked_surface_bytes": 6065649,
+      "tracked_surface_bytes": 6066422,
       "tracked_surface_count": 302
     },
     {
@@ -194,7 +194,7 @@
         "human": 88,
         "structured": 6
       },
-      "tracked_surface_bytes": 1100861,
+      "tracked_surface_bytes": 1101096,
       "tracked_surface_count": 94
     },
     {
@@ -236,22 +236,22 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 156,
+        "executable": 155,
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 4265365,
-      "tracked_surface_count": 160
+      "tracked_surface_bytes": 4233544,
+      "tracked_surface_count": 159
     },
     {
       "family_id": "rust",
       "surface_kind_counts": {
         "executable": 4,
         "human": 10,
-        "structured": 175
+        "structured": 176
       },
-      "tracked_surface_bytes": 2388642,
-      "tracked_surface_count": 189
+      "tracked_surface_bytes": 2391994,
+      "tracked_surface_count": 190
     },
     {
       "family_id": "tests",
@@ -295,7 +295,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "ba101a8a9904182f059749f80e8a670403938a0938fe0c2e19d16cf6cc599ed8",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "8783abd487200a7543842369d0e5236e1945b3b388ef54acc8eb34b97c452d43",
+  "tracked_surface_digest": "e12b317a5ee79689a475b41a2035e2b86ffe41c951e3416949e1fd816dfe5a7f",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -342,7 +342,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "b22609dce13d20b73e7a132b589c43cf0e7607b70b26f39904f7f542b120e595",
+      "sha256": "b2a3711c5465b965745e05f6f696ccbfdb51c9bdc961f70a1843fc48ec5bfe75",
       "surface_kind": "structured"
     },
     {
@@ -41834,11 +41834,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 142980,
+      "bytes": 143753,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "618772acdad6f5bdfbab69aa90b9dafe9223e6f07b2f0a16477ac07cd29c3809",
+      "sha256": "66a356faca194a66a4882944b27e8228ddd5f3351af78db15f47394ce2db6a4b",
       "surface_kind": "human"
     },
     {
@@ -44930,11 +44930,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 286169,
+      "bytes": 286404,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "d7f0fb1a9f80a8cdb275820b522da819a978cdd6200a98de836f492f8e12e10a",
+      "sha256": "a4f9709b9b0188b7ca1dea9a76c287e5ff3b34ed5e7cf86a65b0f4e02be90974",
       "surface_kind": "structured"
     },
     {
@@ -48570,6 +48570,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3352,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/transfer_candidates/templates.json",
+      "sha256": "02bff3f8ec324c985a980fcbb2caff7cc85fce95bccb88edaa25d0f1c12fc911",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 72098,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
@@ -49055,14 +49063,6 @@
       "family_id": "scripts",
       "path": "scripts/build_epistemic_evidence_projection.py",
       "sha256": "4d7e8054b47913c22cc92bef5a7a714d599da8476b25e17956fe693ed43cfca8",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 31821,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_golden_kernel_transfer_candidates.py",
-      "sha256": "6f0f2ea4823e53ddac1d16baec0000560150031b2753ad281a723eec5644b2bf",
       "surface_kind": "executable"
     },
     {
