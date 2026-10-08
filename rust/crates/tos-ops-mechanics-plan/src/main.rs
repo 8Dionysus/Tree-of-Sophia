@@ -44,6 +44,8 @@ enum Action {
     NestedAgentsValidate,
     AgentsRouteHarnessCheck,
     TinyEntryValidate,
+    LivedWitnessValidate,
+    IntakePackValidate,
     DocumentationFamilyBuild {
         check: bool,
     },
@@ -114,6 +116,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut nested_agents_validate = false;
     let mut agents_route_harness_check = false;
     let mut tiny_entry_validate = false;
+    let mut lived_witness_validate = false;
+    let mut intake_pack_validate = false;
     let mut documentation_family_build = false;
     let mut documentation_cross_corpus_validate = false;
     let mut root_entry_map_build = false;
@@ -158,6 +162,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--nested-agents-validate" => nested_agents_validate = true,
             "--agents-route-harness-check" => agents_route_harness_check = true,
             "--tiny-entry-validate" => tiny_entry_validate = true,
+            "--lived-witness-validate" => lived_witness_validate = true,
+            "--intake-pack-validate" => intake_pack_validate = true,
             "--documentation-family-build" => documentation_family_build = true,
             "--documentation-cross-corpus-validate" => documentation_cross_corpus_validate = true,
             "--root-entry-map-build" => root_entry_map_build = true,
@@ -242,6 +248,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(nested_agents_validate)
         + usize::from(agents_route_harness_check)
         + usize::from(tiny_entry_validate)
+        + usize::from(lived_witness_validate)
+        + usize::from(intake_pack_validate)
         + usize::from(documentation_family_build)
         + usize::from(documentation_cross_corpus_validate)
         + usize::from(root_entry_map_build)
@@ -334,6 +342,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         Action::AgentsRouteCurrentnessBuild { check }
     } else if agents_route_harness_check {
         Action::AgentsRouteHarnessCheck
+    } else if lived_witness_validate {
+        Action::LivedWitnessValidate
+    } else if intake_pack_validate {
+        Action::IntakePackValidate
     } else if tiny_entry_validate {
         Action::TinyEntryValidate
     } else if nested_agents_validate {
@@ -517,7 +529,7 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
@@ -534,6 +546,8 @@ fn main() {
             | Action::KagSourceExportVerify
             | Action::AgentsRouteCurrentnessBuild { .. }
             | Action::NestedAgentsValidate
+            | Action::LivedWitnessValidate
+            | Action::IntakePackValidate
     ) {
         #[cfg(target_os = "linux")]
         unsafe {
@@ -788,6 +802,27 @@ fn main() {
                 );
                 Ok(1)
             }
+        }),
+        Action::LivedWitnessValidate | Action::IntakePackValidate => root.canonicalize().and_then(|root| {
+            let deadline = std::time::Instant::now().checked_add(limits.lane_wall)
+                .ok_or_else(|| std::io::Error::other("validator deadline overflow"))?;
+            let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new_until(&root, deadline)?;
+            let lived = matches!(action, Action::LivedWitnessValidate);
+            let issues = if lived {
+                tos_ops_mechanics_plan::lived_witness::validate(&root, &mut sources, limits, &CANCEL)?
+            } else {
+                tos_ops_mechanics_plan::intake_pack::validate(&mut sources, &CANCEL)?
+            };
+            for (path, message) in &issues { eprintln!("- {path}: {message}"); }
+            if !issues.is_empty() { return Ok(1); }
+            if lived {
+                println!("Lived-witness route check passed for structure and private boundary only.");
+                println!("Human authorship, consent, memory, context, and meaning remain unvalidated.");
+            } else {
+                println!("[ok] validated v6.1 tabular base intake pack");
+                println!("[ok] validated tabular registries against the current edges.csv");
+            }
+            Ok(0)
         }),
         Action::TinyEntryValidate => root.canonicalize().and_then(|root| {
             let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new(&root)?;
@@ -1075,6 +1110,8 @@ fn main() {
                 Action::NestedAgentsValidate => "nested AGENTS route cards",
                 Action::AgentsRouteHarnessCheck => "AGENTS route harness",
                 Action::TinyEntryValidate => "tiny entry route",
+                Action::LivedWitnessValidate => "lived-witness route",
+                Action::IntakePackValidate => "intake pack",
                 Action::PhilosophyTopology => "philosophy topology",
                 #[cfg(feature = "compiler-backed-validators")]
                 Action::PhilosophyGraphViews => "philosophy graph views",

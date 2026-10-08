@@ -42,6 +42,8 @@ pub mod prepared_dossier_readiness;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
 pub mod prepared_dossier_render;
 pub mod tiny_entry;
+pub mod lived_witness;
+pub mod intake_pack;
 
 pub mod provider_controls;
 pub mod public_mirror;

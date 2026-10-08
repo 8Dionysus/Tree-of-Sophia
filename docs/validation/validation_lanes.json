@@ -670,8 +670,10 @@
       {
         "label": "validate lived-witness private route",
         "command": [
-          "python",
-          "scripts/validate_lived_witness_route.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--lived-witness-validate"
         ]
       }
     ],
@@ -1028,8 +1030,10 @@
       {
         "label": "validate intake pack",
         "command": [
-          "python",
-          "scripts/validate_intake_pack.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--intake-pack-validate"
         ]
       }
     ],

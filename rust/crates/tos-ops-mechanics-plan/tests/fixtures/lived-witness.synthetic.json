@@ -1,0 +1,145 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/lived-witness-packet.schema.json",
+  "schema_version": "tos_lived_witness_packet_v1",
+  "packet_id": "tos.lived-witness.validator.synthetic-draft-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "author": {
+    "agent_ref": "human:synthetic-validator-fixture",
+    "agent_kind": "human",
+    "first_person_human_authorship_asserted": true,
+    "public_name": null
+  },
+  "record_status": "draft",
+  "testimony": {
+    "body": "Synthetic schema-validation fixture; this is not lived testimony.",
+    "body_sha256": "796844f9b1be16ae656970063eecfbc305b22adae40902614c923dd265d0f7a3",
+    "language": "en",
+    "media_type": "text/plain",
+    "authorship_posture": "human-authored-text",
+    "human_wording_asserted": true
+  },
+  "targets": [
+    {
+      "target_kind": "whole-work",
+      "target_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "anchor_refs": [],
+      "relationship": "lived-with",
+      "note": null
+    }
+  ],
+  "experience_context": {
+    "temporal_scopes": [
+      {
+        "precision": "withheld",
+        "started": null,
+        "ended": null,
+        "author_note": null
+      }
+    ],
+    "author_context_terms": [],
+    "context_note": null,
+    "recollection_posture": "first-person-recollection-not-objective-event-proof"
+  },
+  "capture": {
+    "mode": "self-authored-text",
+    "recorded_at": "2026-08-08T00:00:00Z",
+    "recorder_ref": "human:synthetic-validator-fixture",
+    "raw_artifacts": [],
+    "ai_involvement": {
+      "involved": false,
+      "roles": [],
+      "model_refs": [],
+      "prompt_or_instruction_refs": []
+    },
+    "transformations": [],
+    "silent_transformation_allowed": false
+  },
+  "third_party_posture": {
+    "mentions_or_implicates_others": "no",
+    "risk_review_status": "not-needed",
+    "redaction_status": "not-needed",
+    "public_derivative_blocked_until_review": true
+  },
+  "rights": {
+    "copyright_holder_ref": "human:synthetic-validator-fixture",
+    "copyright_posture": "author-retained",
+    "license_ref": null,
+    "permission_model": "purpose-specific-no-inheritance"
+  },
+  "use_permissions": {
+    "store_local": {
+      "status": "granted",
+      "decided_at": "2026-08-08T00:00:00Z",
+      "scope_note": null
+    },
+    "track_metadata_in_git": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    },
+    "quote": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    },
+    "lexical_index": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    },
+    "semantic_index": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    },
+    "graph_projection": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    },
+    "public_release": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    },
+    "model_training": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    },
+    "external_service_processing": {
+      "status": "not-granted",
+      "decided_at": null,
+      "scope_note": null
+    }
+  },
+  "author_review": {
+    "author_confirmed": false,
+    "confirmed_at": null,
+    "confirmation_method": "not-yet-confirmed",
+    "reviewed_body_sha256": null,
+    "review_note": null
+  },
+  "revision": {
+    "packet_version": 1,
+    "supersedes_packet_ref": null,
+    "superseded_by_packet_ref": null,
+    "change_summary": null,
+    "withdrawal_note": null
+  },
+  "provenance_event_refs": [
+    "tos.event.lived-witness.validator.synthetic-capture-v1"
+  ],
+  "authority_boundary": {
+    "is_first_person_authored_record": true,
+    "is_primary_source_witness": false,
+    "establishes_textual_fact": false,
+    "establishes_bibliographic_fact": false,
+    "establishes_philological_fact": false,
+    "establishes_translation_truth": false,
+    "establishes_semantic_truth": false,
+    "promotes_canon": false,
+    "ai_output_alone_can_be_lived_witness": false,
+    "separate_claim_and_review_required_for_promotion": true
+  }
+}

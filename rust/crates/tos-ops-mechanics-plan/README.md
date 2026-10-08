@@ -459,3 +459,10 @@ projection lanes call their existing Rust implementations directly.
 and `--tiny-entry-validate` also expose those narrow owner checks individually.
 `tos-release-check` follows the same interpreter rule for its selected phase;
 its remaining Python test steps still require explicit selection until retired.
+
+The source-home lane runs `--lived-witness-validate` through the native owner.
+It checks the schema, exact body/review digests, purpose-specific permissions,
+route documents and Git private-path boundaries; authorship, consent, memory
+and meaning remain unvalidated. `--intake-pack-validate` checks the maintained
+nine-table intake pack, its anchors, promotion residue, gloss coverage and
+predicate/class registry counts against explicitly selected repository inputs.
