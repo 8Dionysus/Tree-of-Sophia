@@ -298,6 +298,42 @@ pub fn finalize(ctx: &ResearchExecution, build: bool) -> Result<Value> {
     ] {
         selected.read(ctx, &path(file))?;
     }
+    if !build {
+        selected.read(ctx, &path("lab.manifest.json"))?;
+        let existing = selected.json(&path("lab.manifest.json"))?;
+        const HISTORICAL_BUILDER: &str = "scripts/build_provenance_event_v2_lab.py";
+        if existing["builder"]["ref"] == HISTORICAL_BUILDER {
+            // The retained script is exact historical input bytes only. It is
+            // never imported or executed, and no recorded event is rewritten.
+            let digest = s(&existing["builder"]["sha256"])?;
+            ensure(
+                digest.len() == 64 && digest.bytes().all(|b| b.is_ascii_hexdigit()),
+                "historical builder digest shape",
+            )?;
+            let archive = format!(
+                "ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/{digest}.py"
+            );
+            selected.read(ctx, &archive)?;
+            let builder = &selected.files[&archive];
+            ensure(
+                sha(builder) == digest,
+                "retained historical builder fixity differs",
+            )?;
+            crate::synthetic_foundation_labs::validate_overlay(
+                ctx,
+                &selected.files,
+                BTreeMap::new(),
+                HISTORICAL_BUILDER,
+                builder,
+                CONTRACT,
+                tos_validation::source_foundation_labs::SourceFoundationLab::ProvenanceV2,
+            )?;
+            selected.verify(ctx)?;
+            return Ok(
+                json!({"status":"passed","historical_records_preserved":true,"variants":3,"negative_controls":14,"written":false,"execution_truth_established":false,"source_admission_performed":false,"human_review_performed":false,"canon_effect":false}),
+            );
+        }
+    }
     let mut manifest = definitions()["manifest"].clone();
     manifest["builder"] =
         json!({"ref":BUILDER,"sha256":sha(include_bytes!("provenance_event_lab.rs"))});
