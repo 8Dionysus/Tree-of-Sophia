@@ -180,11 +180,9 @@ pub fn read_backup_restore_case_with_cold_spill(
     cancel: Arc<AtomicBool>,
 ) -> io::Result<V2CaseOutcome> {
     let limits = limits.validate_cold_spill()?;
-    if original_auxiliary_space.shares_with(persistent_space) {
-        return Err(invalid(
-            "V2 cold spill auxiliary space must be separately held",
-        ));
-    }
+    // Source, image and SQLite reserve their own live allocations. They may
+    // share the original aggregate envelope: this keeps their combined usage
+    // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(&original_io, original_auxiliary_space, deadline, &cancel)?;
     let _profiles = limits.image.validate_cold_spill(&requests)?;
     read_backup_restore_case_inner(
@@ -230,11 +228,9 @@ pub fn read_backup_restore_case_with_cold_spill_at(
     cancel: Arc<AtomicBool>,
 ) -> io::Result<V2CaseOutcome> {
     let limits = limits.validate_cold_spill()?;
-    if original_auxiliary_space.shares_with(persistent_space) {
-        return Err(invalid(
-            "V2 cold spill auxiliary space must be separately held",
-        ));
-    }
+    // Source, image and SQLite reserve their own live allocations. They may
+    // share the original aggregate envelope: this keeps their combined usage
+    // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(&original_io, original_auxiliary_space, deadline, &cancel)?;
     let _profiles = limits.image.validate_cold_spill(&requests)?;
     verify_named_root(

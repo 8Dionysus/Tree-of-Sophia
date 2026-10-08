@@ -1633,11 +1633,9 @@ pub fn transfer_image_with_cold_spill(
     deadline: Instant,
     cancel: &Arc<AtomicBool>,
 ) -> io::Result<V2ImageOutcome> {
-    if auxiliary_space.shares_with(image_space) {
-        return Err(invalid(
-            "V2 cold spill auxiliary space must be separately held",
-        ));
-    }
+    // Source, image and SQLite reserve their own live allocations. They may
+    // share the original aggregate envelope: this keeps their combined usage
+    // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
     let (limits, source_limits, target_limits) = limits.validate_cold_spill(&requests)?;
     let plan = V2ImageColdSpillPlan {
@@ -1675,11 +1673,9 @@ pub(crate) fn transfer_image_with_cold_spill_at(
     deadline: Instant,
     cancel: &Arc<AtomicBool>,
 ) -> io::Result<V2ImageOutcome> {
-    if auxiliary_space.shares_with(image_space) {
-        return Err(invalid(
-            "V2 cold spill auxiliary space must be separately held",
-        ));
-    }
+    // Source, image and SQLite reserve their own live allocations. They may
+    // share the original aggregate envelope: this keeps their combined usage
+    // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
     let (limits, source_limits, target_limits) = limits.validate_cold_spill(&requests)?;
     let target_root =
