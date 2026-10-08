@@ -1003,8 +1003,10 @@
       {
         "label": "validate tree node contracts",
         "command": [
-          "python",
-          "scripts/validate_tree_node_contracts.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--tree-node-validate"
         ]
       },
       {

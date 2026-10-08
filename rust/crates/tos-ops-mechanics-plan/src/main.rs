@@ -44,6 +44,7 @@ enum Action {
     NestedAgentsValidate,
     AgentsRouteHarnessCheck,
     TinyEntryValidate,
+    TreeNodeValidate,
     LivedWitnessValidate,
     IntakePackValidate,
     DocumentationFamilyBuild {
@@ -116,6 +117,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut nested_agents_validate = false;
     let mut agents_route_harness_check = false;
     let mut tiny_entry_validate = false;
+    let mut tree_node_validate = false;
     let mut lived_witness_validate = false;
     let mut intake_pack_validate = false;
     let mut documentation_family_build = false;
@@ -162,6 +164,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--nested-agents-validate" => nested_agents_validate = true,
             "--agents-route-harness-check" => agents_route_harness_check = true,
             "--tiny-entry-validate" => tiny_entry_validate = true,
+            "--tree-node-validate" => tree_node_validate = true,
             "--lived-witness-validate" => lived_witness_validate = true,
             "--intake-pack-validate" => intake_pack_validate = true,
             "--documentation-family-build" => documentation_family_build = true,
@@ -248,6 +251,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(nested_agents_validate)
         + usize::from(agents_route_harness_check)
         + usize::from(tiny_entry_validate)
+        + usize::from(tree_node_validate)
         + usize::from(lived_witness_validate)
         + usize::from(intake_pack_validate)
         + usize::from(documentation_family_build)
@@ -342,6 +346,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         Action::AgentsRouteCurrentnessBuild { check }
     } else if agents_route_harness_check {
         Action::AgentsRouteHarnessCheck
+    } else if tree_node_validate {
+        Action::TreeNodeValidate
     } else if lived_witness_validate {
         Action::LivedWitnessValidate
     } else if intake_pack_validate {
@@ -546,6 +552,7 @@ fn main() {
             | Action::KagSourceExportVerify
             | Action::AgentsRouteCurrentnessBuild { .. }
             | Action::NestedAgentsValidate
+            | Action::TreeNodeValidate
             | Action::LivedWitnessValidate
             | Action::IntakePackValidate
     ) {
@@ -803,6 +810,21 @@ fn main() {
                 Ok(1)
             }
         }),
+        Action::TreeNodeValidate => {
+            #[cfg(feature = "compiler-backed-validators")]
+            {
+                root.canonicalize().and_then(|root| {
+                    let deadline = std::time::Instant::now().checked_add(limits.lane_wall)
+                        .ok_or_else(|| std::io::Error::other("node validator deadline overflow"))?;
+                    let mut sources = tos_ops_mechanics_plan::route_cards::RouteSources::new_until(&root, deadline)?;
+                    let issues = tos_ops_mechanics_plan::tree_nodes::validate(&mut sources, &CANCEL)?;
+                    for (path, message) in &issues { eprintln!("- {path}: {message}"); }
+                    if issues.is_empty() { println!("[ok] canonical tree node contracts and consistency"); Ok(0) } else { Ok(1) }
+                })
+            }
+            #[not(feature = "compiler-backed-validators")]
+            { Err(std::io::Error::other("tree node validation requires compiler-backed-validators")) }
+        },
         Action::LivedWitnessValidate | Action::IntakePackValidate => root.canonicalize().and_then(|root| {
             let deadline = std::time::Instant::now().checked_add(limits.lane_wall)
                 .ok_or_else(|| std::io::Error::other("validator deadline overflow"))?;
@@ -1110,6 +1132,7 @@ fn main() {
                 Action::NestedAgentsValidate => "nested AGENTS route cards",
                 Action::AgentsRouteHarnessCheck => "AGENTS route harness",
                 Action::TinyEntryValidate => "tiny entry route",
+                Action::TreeNodeValidate => "tree node contracts",
                 Action::LivedWitnessValidate => "lived-witness route",
                 Action::IntakePackValidate => "intake pack",
                 Action::PhilosophyTopology => "philosophy topology",

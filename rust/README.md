@@ -77,3 +77,9 @@ Mutable external authored trees remain `FullOnly`; current v1 source selection
 still performs complete O(N) manifest and retained-chain work outside commit.
 
 For an explicitly selected local `--root`, Concept search and Word task/candidate validation accept a paired `--concept-max-file-bytes N --concept-max-total-file-bytes N` profile before the command. Both are positive byte counts and the file bound must not exceed the total. These options affect only Concept/Word file fixity; Reading uses its own selectors. Defaults, SQL VM/row/materialization/work/output limits and authority remain unchanged. A prepared or explicit release selection refuses these options. For the retained 160,477,184-byte private Concept DB, the proposed bounded profile is 201326592 bytes per file and 402653184 bytes total; execution still requires normal resource admission.
+
+The installed `tos-ops-mechanics-plan --repo-root /absolute/Tree-of-Sophia
+--tree-node-validate` checks canonical node schemas, exact numeric input,
+identity uniqueness and shared language-witness spines. Its cross-field rules
+are shared with the canon compiler. The selected schema remains source-owned;
+structural success does not grant canon admission.

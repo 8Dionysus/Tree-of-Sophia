@@ -168,7 +168,6 @@ fn git(
             "--no-pager",
             "--no-optional-locks",
             "--no-replace-objects",
-            "--literal-pathspecs",
             "-c",
             "core.fsmonitor=false",
             "-c",
@@ -184,6 +183,11 @@ fn git(
         ]
         .map(str::to_owned),
     );
+    // check-ignore takes literal filesystem paths already and rejects Git's
+    // global literal pathspec magic. ls-files uses the pathspec parser.
+    if args.first() == Some(&"ls-files") {
+        argv.push("--literal-pathspecs".into());
+    }
     argv.extend(args.iter().map(|s| (*s).to_owned()));
     let wall = sources
         .remaining_time()?

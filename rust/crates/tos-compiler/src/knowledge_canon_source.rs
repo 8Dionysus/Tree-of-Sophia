@@ -237,7 +237,7 @@ fn exact_node_numbers(v: &JsonValue, max: usize) -> Result<()> {
     }
     Ok(())
 }
-fn node_consistency(v: &Value, path: &str) -> Result<()> {
+fn node_field_consistency(v: &Value) -> Result<()> {
     let id = required(v, "node_id")?;
     let kind = required(v, "node_type")?;
     if !id.starts_with(&format!("tos.{kind}.")) {
@@ -288,6 +288,25 @@ fn node_consistency(v: &Value, path: &str) -> Result<()> {
             return Err(Error::Invalid("canon translation tension segment"));
         }
     }
+    Ok(())
+}
+/// The authored node validator and compiler share exact numeric and cross-field
+/// rules. Schema evaluation remains with the caller's selected source schema;
+/// this check does not admit the object to canon or bind a filesystem path.
+pub fn validate_authored_node_mechanics(raw: &[u8], max_bytes: usize) -> Result<String> {
+    if max_bytes == 0 || max_bytes > 8 * 1024 * 1024 {
+        return Err(Error::Budget("canon node validator bytes"));
+    }
+    let source = parse(raw, max_bytes)?;
+    exact_node_numbers(&source, max_bytes)?;
+    let value = decoded(&source, max_bytes)?;
+    node_field_consistency(&value)?;
+    Ok(required(&value, "node_id")?.to_owned())
+}
+fn node_consistency(v: &Value, path: &str) -> Result<()> {
+    node_field_consistency(v)?;
+    let id = required(v, "node_id")?;
+    let kind = required(v, "node_type")?;
     if v.get("schema_version").and_then(Value::as_str) == Some("tos_canonical_node_v1") {
         let parts = path.split('/').collect::<Vec<_>>();
         let slug = id.rsplit('.').next().unwrap_or(id);

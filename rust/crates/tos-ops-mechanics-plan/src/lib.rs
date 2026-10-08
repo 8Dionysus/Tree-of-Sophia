@@ -15,12 +15,14 @@ pub mod documentation_family;
 pub mod executor;
 pub mod growth_coverage;
 pub mod growth_native_plan;
+pub mod intake_pack;
 #[cfg(target_os = "linux")]
 pub mod kag_corpus_export;
 #[cfg(target_os = "linux")]
 pub mod kag_downstream_status;
 #[cfg(target_os = "linux")]
 pub mod kag_release;
+pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
 pub mod local_contracts;
 pub mod mechanics_topology;
@@ -42,8 +44,8 @@ pub mod prepared_dossier_readiness;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
 pub mod prepared_dossier_render;
 pub mod tiny_entry;
-pub mod lived_witness;
-pub mod intake_pack;
+#[cfg(feature = "compiler-backed-validators")]
+pub mod tree_nodes;
 
 pub mod provider_controls;
 pub mod public_mirror;
