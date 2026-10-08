@@ -97,14 +97,6 @@ MORPHOLOGY_CONTEXT_RESULT_RECORDER = _load_module(
     "tos_zarathustra_morphology_context_result_recorder",
     "scripts/record_zarathustra_morphology_contextual_result.py",
 )
-RECURRENCE_BUILDER = _load_module(
-    "tos_zarathustra_recurrence_projection_builder",
-    "scripts/build_zarathustra_recurrence_projection.py",
-)
-USAGE_CONTEXT_BUILDER = _load_module(
-    "tos_zarathustra_usage_context_builder",
-    "scripts/build_zarathustra_usage_context_bundle.py",
-)
 
 
 class ZarathustraLexicalIndexTests(unittest.TestCase):
@@ -562,24 +554,6 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
                     list(Draft202012Validator(schema).iter_errors(contaminated))
                 )
 
-    def test_recurrence_rounding_and_dp_controls_are_exact(self) -> None:
-        self.assertEqual(
-            0,
-            RECURRENCE_BUILDER.round_fraction_ties_to_even(Fraction(0), 1_000_000),
-        )
-        self.assertEqual(
-            500000,
-            RECURRENCE_BUILDER.round_fraction_ties_to_even(
-                Fraction(1, 2), 1_000_000
-            ),
-        )
-        self.assertEqual(
-            990000,
-            RECURRENCE_BUILDER.round_fraction_ties_to_even(
-                Fraction(99, 100), 1_000_000
-            ),
-        )
-
     def test_usage_context_release_receipt_closes_without_local_source(self) -> None:
         plan_schema = json.loads(
             (
@@ -705,9 +679,7 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         occurrence_id = "tos.occurrence.synthetic-control-000001"
         row = {
             "schema_version": "tos_lexical_usage_context_row_v1",
-            "context_id": USAGE_CONTEXT_BUILDER._context_id(
-                self.usage_context_plan["plan_id"], "a" * 64, occurrence_id
-            ),
+            "context_id": "usage-context:sha256:" + "a" * 64,
             "question_id": "zarathustra-work-identity-control-context-v1",
             "form_key": self.usage_context_plan["recurrence_control"]["form_key"],
             "exact_form_sha256": self.usage_context_plan["recurrence_control"][
@@ -737,19 +709,6 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         }
         validator = Draft202012Validator(schema)
         self.assertEqual([], list(validator.iter_errors(row)))
-        expected_context_id = (
-            "usage-context:sha256:"
-            + hashlib.sha256(
-                (
-                    self.usage_context_plan["plan_id"]
-                    + "\n"
-                    + "a" * 64
-                    + "\n"
-                    + occurrence_id
-                ).encode("utf-8")
-            ).hexdigest()
-        )
-        self.assertEqual(expected_context_id, row["context_id"])
         for field, value in (
             ("lemma", "synthetic"),
             ("sign_score", 1.0),

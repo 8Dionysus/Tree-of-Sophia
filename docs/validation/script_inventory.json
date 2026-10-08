@@ -2100,7 +2100,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_recurrence_projection.py",
+      "path": "rust/crates/tos-compiler/src/lexical_derivatives/recurrence.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
@@ -2116,9 +2116,9 @@
         "the frozen recurrence plan and tracked hash/count/resource lexical projection only; no source payload, exact string, or private lexical database"
       ],
       "writes": [
-        "the tracked hash-only exact-form recurrence projection and its provenance unless --check is used"
+        "explicit separate output root only for --build with a new generation, event time and admitted bytes; --check preserves retained historical outputs"
       ],
-      "side_effects": "tracked frequency/range/DP observation tuples only; no source acceptance, morphology, lemma, lexeme, sign candidate, semantics, public route, or human backlog",
+      "side_effects": "tracked frequency/range/DP observation tuples only; no source acceptance, morphology, lemma, lexeme, sign candidate, semantics, public route, or human backlog; native tos zarathustra-recurrence-projection uses held exact inputs and exclusive replayable writes",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_zarathustra_lexical_index.py",
@@ -2149,7 +2149,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_usage_context_bundle.py",
+      "path": "rust/crates/tos-compiler/src/lexical_derivatives/usage_context.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
@@ -2168,9 +2168,9 @@
         "one frozen question-scoped plan, the exact ignored lexical SQLite database, and the tracked lexical and recurrence projections"
       ],
       "writes": [
-        "one ignored mode-0600 source-bearing JSONL context bundle plus a tracked string-free receipt and provenance unless --check is used"
+        "explicit separate output root only for --build with a new generation, event time and admitted bytes; --check preserves retained historical outputs"
       ],
-      "side_effects": "private complete page-bounded KWIC method control plus tracked fixity/count/selector closure only; no accepted source, sentence, morphology, lemma, lexeme, sign, semantics, public route, or human backlog",
+      "side_effects": "private complete page-bounded KWIC method control plus tracked fixity/count/selector closure only; no accepted source, sentence, morphology, lemma, lexeme, sign, semantics, public route, or human backlog; native tos zarathustra-usage-context uses held exact inputs and exclusive replayable writes",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_lexical_index.py",

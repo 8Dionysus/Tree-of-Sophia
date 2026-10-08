@@ -73,3 +73,19 @@ promotion. The source-gated plan and text-free materialization receipt live at:
 They admit an exhaustive direct-form DWDSmor coverage census only. The exact
 input stays ignored, and contextual A/B/C, German acceptance, lemma/lexeme
 promotion, signs, and semantics remain separate blocked stages.
+
+The maintained downstream commands are `tos zarathustra-recurrence-projection`
+and `tos zarathustra-usage-context`. Select an absolute `--source-root` and
+`--local-output-root`; usage context also requires `--local-input-root` for the
+private database. `--check` reconstructs the complete retained result and
+preserves its original provenance. Recurrence checks select an output root
+containing the retained projection and provenance; usage checks select the
+private packet root, with tracked receipt and provenance in the source root.
+
+For a new generation, use `--build --generation NAME --event-at RFC3339
+--scratch-bytes RESERVED_BYTES` with a separate output root. Reserve that
+space through the host storage owner first. Generated names retain the
+historical basename and add `.native-NAME`; the receipt records the Rust
+generator. Replaying a matching generation preserves its files and completes
+missing outputs. Conflicting bytes, wrong file modes and symlinks refuse.
+The private usage packet remains mode `0600`; tracked metadata stays `0644`.

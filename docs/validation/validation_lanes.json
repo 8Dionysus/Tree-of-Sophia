@@ -776,8 +776,12 @@
       {
         "label": "check Zarathustra exact-form recurrence projection",
         "command": [
-          "python",
-          "scripts/build_zarathustra_recurrence_projection.py",
+          "tos",
+          "zarathustra-recurrence-projection",
+          "--source-root",
+          "{repo_root}",
+          "--local-output-root",
+          "{repo_root}",
           "--check"
         ]
       }
