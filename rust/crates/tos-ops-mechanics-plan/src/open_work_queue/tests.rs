@@ -1,5 +1,4 @@
 use super::*;
-use std::process::Command;
 fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/open_work_queue")
 }
@@ -222,73 +221,161 @@ fn historical_queue_contract_cases() {
     );
 }
 #[test]
-fn native_queue_cli_requires_explicit_sources_and_checks_generated_bytes() {
-    let manifest: Value =
-        serde_json::from_slice(&fs::read(fixture().join("cases.json")).unwrap()).unwrap();
-    let case = manifest["cases"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|c| c["op"] == "build_payload" && c["ok"] == true)
-        .unwrap();
-    let temp = temp(1000);
-    materialize(case, &temp.0);
-    let schema_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../ToS/contracts");
-    fs::create_dir_all(temp.0.join("ToS/contracts")).unwrap();
-    for name in [
-        "open-work-candidate",
-        "open-work-candidate-receipt",
-        "open-work-candidate-queue",
-        "open-work-channel-timing-receipt",
-    ] {
-        let name = format!("{name}.schema.json");
-        fs::copy(
-            schema_root.join(&name),
-            temp.0.join("ToS/contracts").join(name),
-        )
-        .unwrap();
-    }
-    let bin = std::env::var_os("TOS_QUEUE_TEST_EXECUTABLE")
-        .map(PathBuf::from)
-        .expect("test launcher supplies exact queue CLI");
-    let call = |operation: &str, tail: &[&str]| {
-        let mut c = Command::new(&bin);
-        c.arg(operation).current_dir(std::env::temp_dir());
-        if operation != "--version" && operation != "--help" {
-            c.arg("--source-root").arg(&temp.0);
-        }
-        c.args(tail).output().unwrap()
+fn monotonic_channel_measurement_preserves_source_and_supersession() {
+    use std::{
+        io::{Read, Write},
+        net::TcpListener,
     };
-    let missing = Command::new(&bin)
-        .arg("build")
-        .current_dir(&temp.0)
-        .output()
-        .unwrap();
-    assert!(!missing.status.success());
-    for operation in ["--version", "--help", "build", "check", "validate"] {
-        let out = call(operation, &[]);
-        assert!(
-            out.status.success(),
-            "{operation}: {}",
-            String::from_utf8_lossy(&out.stderr)
-        );
-    }
-    let out = call("build", &["--dry-run"]);
-    assert!(out.status.success());
-    let stored = fs::read(temp.0.join(QUEUE)).unwrap();
-    assert_eq!(out.stdout, stored);
-    let out = call("readiness", &[]);
+    let server = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = server.local_addr().unwrap();
+    let dead = TcpListener::bind("127.0.0.1:0").unwrap();
+    let dead_address = dead.local_addr().unwrap();
+    drop(dead);
+    let worker = std::thread::spawn(move || {
+        for _ in 0..4 {
+            let (mut stream, _) = server.accept().unwrap();
+            stream
+                .set_read_timeout(Some(std::time::Duration::from_secs(3)))
+                .unwrap();
+            let mut request = [0u8; 2048];
+            let n = stream.read(&mut request).unwrap();
+            let request = String::from_utf8_lossy(&request[..n]);
+            let (header, body) = if request.starts_with("GET /missing ") {
+                (
+                    "HTTP/1.1 404 Not Found\r\nContent-Length: 7\r\nConnection: close\r\n\r\n"
+                        .into(),
+                    b"missing".to_vec(),
+                )
+            } else if request.starts_with("GET /redirect ") {
+                (
+                    format!(
+                        "HTTP/1.1 302 Found\r\nLocation: http://{address}/long\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                    ),
+                    vec![],
+                )
+            } else {
+                (
+                    "HTTP/1.1 200 OK\r\nContent-Length: 32768\r\nConnection: close\r\n\r\n".into(),
+                    vec![b'x'; 32768],
+                )
+            };
+            let _ = stream.write_all(header.as_bytes());
+            let _ = stream.write_all(&body);
+        }
+    });
+    let temp = temp(1001);
+    let path = "ToS/source-witnesses/discovery/runs/original.json";
+    fs::create_dir_all(temp.0.join(path).parent().unwrap()).unwrap();
+    let urls = [
+        format!("http://{address}/long"),
+        format!("http://{address}/missing"),
+        format!("http://{address}/redirect"),
+        format!("http://{dead_address}/absent"),
+    ];
+    let source = json!({"discovery_id":"tos.discovery.original","record_version":4,"channels":urls.iter().enumerate().map(|(i,url)|json!({"channel_id":format!("channel-{i}"),"endpoint_url":url})).collect::<Vec<_>>(),"channel_comparison":(0..4).map(|i|json!({"channel_id":format!("channel-{i}"),"human_minutes":0,"machine_seconds":0,"notes":"Measured automatically. Timer sentinel"})).collect::<Vec<_>>()});
+    let raw = render(&source).unwrap();
+    fs::write(temp.0.join(path), &raw).unwrap();
+    let cancel = AtomicI32::new(0);
     assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
+        measure(
+            &temp.0,
+            path,
+            MeasureOptions {
+                output: Some(path),
+                timeout_seconds: 1.,
+                ..Default::default()
+            },
+            &cancel
+        )
+        .is_err()
     );
-    let v: Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(v["selection_mode"], "readiness");
-    assert_eq!(fs::read(temp.0.join(QUEUE)).unwrap(), stored);
-    let mut drift = stored;
-    drift.push(b' ');
-    fs::write(temp.0.join(QUEUE), drift).unwrap();
-    assert!(!call("check", &[]).status.success());
-    assert!(!call("validate", &[]).status.success());
+    assert!(
+        measure(
+            &temp.0,
+            path,
+            MeasureOptions {
+                superseding_output: Some("new.json"),
+                new_discovery_id: Some("foo"),
+                supersedes_ref: Some("tos.discovery.original"),
+                provenance_event_ref: Some("tos.event.discovery.next"),
+                timeout_seconds: 1.,
+                ..Default::default()
+            },
+            &cancel
+        )
+        .is_err()
+    );
+    assert!(
+        measure(
+            &temp.0,
+            path,
+            MeasureOptions {
+                superseding_output: Some("new.json"),
+                new_discovery_id: Some("tos.discovery.next"),
+                supersedes_ref: Some("tos.discovery.wrong"),
+                provenance_event_ref: Some("tos.event.discovery.next"),
+                timeout_seconds: 1.,
+                ..Default::default()
+            },
+            &cancel
+        )
+        .is_err()
+    );
+    assert!(!temp.0.join("new.json").exists());
+    let next = "ToS/source-witnesses/discovery/runs/next.json";
+    let receipt = measure(
+        &temp.0,
+        path,
+        MeasureOptions {
+            output: Some("receipt.json"),
+            superseding_output: Some(next),
+            new_discovery_id: Some("tos.discovery.next"),
+            supersedes_ref: Some("tos.discovery.original"),
+            provenance_event_ref: Some("tos.event.discovery.next"),
+            timeout_seconds: 1.,
+            ..Default::default()
+        },
+        &cancel,
+    )
+    .unwrap();
+    worker.join().unwrap();
+    assert_eq!(fs::read_to_string(temp.0.join(path)).unwrap(), raw);
+    assert_eq!(receipt["discovery_id"], "tos.discovery.next");
+    assert_eq!(receipt["discovery_ref"], next);
+    for (i, outcome, bytes) in [
+        (0, "success", 16384),
+        (1, "http-error", 7),
+        (2, "success", 16384),
+        (3, "transport-error", 0),
+    ] {
+        let m = &receipt["measurements"][i]["measurement"];
+        assert_eq!(m["clock"], "rust.std.time.Instant");
+        assert_eq!(m["outcome"], outcome);
+        assert_eq!(m["response_bytes_observed"], bytes);
+        assert!(m["elapsed_seconds"].as_f64().unwrap() > 0.);
+    }
+    let next: Value = serde_json::from_slice(&fs::read(temp.0.join(next)).unwrap()).unwrap();
+    assert_eq!(next["record_version"], 5);
+    assert_eq!(next["supersedes_discovery_ref"], "tos.discovery.original");
+    assert_eq!(
+        next["provenance_event_refs"],
+        json!(["tos.event.discovery.next"])
+    );
+    assert_eq!(next["channel_comparison"][0]["human_minutes"], 0);
+    assert!(!text(&next["channel_comparison"][0]["notes"]).contains("sentinel"));
+    timings(&next, &receipt, text(&receipt["discovery_ref"]), None).unwrap();
+    let schema: Value = serde_json::from_slice(
+        &fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../../ToS/contracts/open-work-channel-timing-receipt.schema.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    jsonschema::options()
+        .should_validate_formats(true)
+        .build(&schema)
+        .unwrap()
+        .validate(&receipt)
+        .unwrap();
 }

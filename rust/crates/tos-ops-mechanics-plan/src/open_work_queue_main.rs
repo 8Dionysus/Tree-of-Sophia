@@ -13,10 +13,10 @@ fn run() -> Result<(), String> {
     let mut args = std::env::args().skip(1);
     let operation = args
         .next()
-        .ok_or("expected build, check, validate or readiness")?;
+        .ok_or("expected build, check, validate, readiness or measure")?;
     if operation == "--help" {
         println!(
-            "usage: tos-open-work-queue build|check|validate --source-root PATH\n       tos-open-work-queue readiness --source-root PATH [--readiness-plan REPOSITORY_RELATIVE_PATH]\n       tos-open-work-queue build --source-root PATH --dry-run\nreadiness prints a read-only projection; it never replaces the historical queue."
+            "usage: tos-open-work-queue build|check|validate --source-root PATH\n       tos-open-work-queue readiness --source-root PATH [--readiness-plan REPOSITORY_RELATIVE_PATH]\n       tos-open-work-queue build --source-root PATH --dry-run\n       tos-open-work-queue measure --source-root PATH --discovery REPO_PATH [--output REPO_PATH] [--timeout-seconds SECONDS]\n       [--instrumented-output REPO_PATH | --superseding-output REPO_PATH --new-discovery-id ID --supersedes-ref ID --provenance-event-ref ID]\nreadiness prints a read-only projection; it never replaces the historical queue."
         );
         return Ok(());
     }
@@ -24,7 +24,7 @@ fn run() -> Result<(), String> {
         println!("tos-open-work-queue {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
-    if !["build", "check", "validate", "readiness"].contains(&operation.as_str()) {
+    if !["build", "check", "validate", "readiness", "measure"].contains(&operation.as_str()) {
         return Err("unknown queue operation".into());
     }
     let mut options = BTreeMap::new();
@@ -34,7 +34,21 @@ fn run() -> Result<(), String> {
             dry = true;
             continue;
         }
-        if key != "--source-root" && !(key == "--readiness-plan" && operation == "readiness") {
+        if key != "--source-root"
+            && !(key == "--readiness-plan" && operation == "readiness")
+            && !(operation == "measure"
+                && [
+                    "--discovery",
+                    "--output",
+                    "--timeout-seconds",
+                    "--instrumented-output",
+                    "--superseding-output",
+                    "--new-discovery-id",
+                    "--supersedes-ref",
+                    "--provenance-event-ref",
+                ]
+                .contains(&key.as_str()))
+        {
             return Err(format!("unexpected option {key}"));
         }
         let value = args.next().ok_or_else(|| format!("missing {key} value"))?;
@@ -47,6 +61,38 @@ fn run() -> Result<(), String> {
             .get("--source-root")
             .ok_or("missing --source-root")?,
     );
+    if operation == "measure" {
+        let option = |name: &str| options.get(name).map(String::as_str);
+        let timeout = option("--timeout-seconds")
+            .unwrap_or("20")
+            .parse::<f64>()
+            .map_err(|_| "invalid timeout")?;
+        let value = open_work_queue::measure(
+            &root,
+            option("--discovery").ok_or("missing --discovery")?,
+            open_work_queue::MeasureOptions {
+                output: option("--output"),
+                instrumented_output: option("--instrumented-output"),
+                superseding_output: option("--superseding-output"),
+                new_discovery_id: option("--new-discovery-id"),
+                supersedes_ref: option("--supersedes-ref"),
+                provenance_event_ref: option("--provenance-event-ref"),
+                timeout_seconds: timeout,
+            },
+            &CANCEL,
+        )
+        .map_err(|e| e.to_string())?;
+        if option("--output").is_none() {
+            std::io::stdout()
+                .write_all(
+                    open_work_queue::render(&value)
+                        .map_err(|e| e.to_string())?
+                        .as_bytes(),
+                )
+                .map_err(|e| e.to_string())?;
+        }
+        return Ok(());
+    }
     if operation == "validate" {
         open_work_queue::validate(&root, &CANCEL).map_err(|e| e.to_string())?;
     } else {

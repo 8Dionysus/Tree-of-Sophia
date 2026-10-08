@@ -7,6 +7,8 @@ mod closure;
 mod constraints;
 #[path = "open_work_queue/history.rs"]
 mod history;
+#[path = "open_work_queue/measurement.rs"]
+mod measurement;
 #[path = "open_work_queue/readiness.rs"]
 mod readiness;
 use crate::{
@@ -16,6 +18,7 @@ use crate::{
 use closure::*;
 use constraints::*;
 use history::*;
+pub use measurement::{MeasureOptions, measure};
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},

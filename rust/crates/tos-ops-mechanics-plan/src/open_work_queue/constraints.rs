@@ -262,7 +262,10 @@ pub(super) fn timings(
             "unsupported timing method",
         )?;
         require(
-            m["clock"] == "python.time.perf_counter_ns",
+            matches!(
+                text(&m["clock"]),
+                "python.time.perf_counter_ns" | "rust.std.time.Instant"
+            ),
             "unsupported historical timing clock",
         )?;
         let begin = stamp(&m["started_at"])?;
