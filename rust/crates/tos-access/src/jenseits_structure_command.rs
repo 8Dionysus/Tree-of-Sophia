@@ -2,11 +2,22 @@
 use std::{io::Write, path::PathBuf};
 const HELP: &str = "tos jenseits-numbered-structure --source-root ABS --local-input-root ABS --check|--build [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nReconstruct the retained text-free ABBYY numbered-unit map, or produce a separate native generation with its own provenance. Build requires a generation, event timestamp and admitted bytes. Checks are read-only. No source text, translation, rights or canon admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
-    if args.first().map(String::as_str) != Some("jenseits-numbered-structure") {
+    let command = args.first().map(String::as_str);
+    let polilov = command == Some("jenseits-polilov-numbered-structure");
+    if command != Some("jenseits-numbered-structure") && !polilov {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
-        return Some(if out.write_all(HELP.as_bytes()).is_ok() {
+        let help = if polilov {
+            HELP.replace(
+                "jenseits-numbered-structure",
+                "jenseits-polilov-numbered-structure",
+            )
+            .replace("ABBYY", "Poppler PDF")
+        } else {
+            HELP.into()
+        };
+        return Some(if out.write_all(help.as_bytes()).is_ok() {
             0
         } else {
             2
@@ -64,15 +75,27 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
         };
-        tos_compiler::jenseits_numbered_structure::run(
-            &ctx,
-            tos_compiler::jenseits_numbered_structure::Options {
-                build,
-                input_root: Some(&input),
-                generation,
-                event_at: at,
-            },
-        )
+        if polilov {
+            tos_compiler::jenseits_polilov_numbered_structure::run(
+                &ctx,
+                tos_compiler::jenseits_polilov_numbered_structure::Options {
+                    build,
+                    input_root: Some(&input),
+                    generation,
+                    event_at: at,
+                },
+            )
+        } else {
+            tos_compiler::jenseits_numbered_structure::run(
+                &ctx,
+                tos_compiler::jenseits_numbered_structure::Options {
+                    build,
+                    input_root: Some(&input),
+                    generation,
+                    event_at: at,
+                },
+            )
+        }
     })();
     Some(match result {
         Ok(v) => {
