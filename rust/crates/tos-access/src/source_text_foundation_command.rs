@@ -1,16 +1,20 @@
-//! Native explicit-source adapter for the exact DTA source-text foundation.
+//! Native explicit-source adapters for exact text extraction and alignment proposals.
 use std::{io::Write, path::PathBuf};
+const ALIGNMENT_HELP: &str = "tos opening-sentence-alignment --source-root ABS --local-input-root ABS --build|--check [--plan REPO_PATH] [--event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nReads exact private source/target layers and source-owned bindings, produces text-free sentence/alignment proposals and preserves historical provenance. New builds need a new event ID and fresh plan-selected outputs. Build requires admitted scratch bytes. No textual, translation, semantic or publication admission.\n";
 const TARGET_HELP: &str = "tos target-text-foundation --source-root ABS --local-input-root ABS --local-output-root ABS --build|--check [--plan REPO_PATH] [--event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nReplays exact PDF/Poppler bbox/text/address/unit bytes and retained provenance. New native builds require a separate event ID and fresh plan-selected output paths. Build requires admitted scratch bytes; local text and bbox remain Git-ignored and mode0600. Poppler is the declared native extraction backend. No textual or publication admission.\n";
 const HELP: &str = "tos source-text-foundation --source-root ABS --local-input-root ABS --local-output-root ABS --build|--check [--plan REPO_PATH] [--event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nChecks replay exact XML/text/address/unit bytes and retained provenance closure.\nNew builds require a separate event ID and fresh plan-selected output paths. Existing exact outputs may be reused; differing records are never overwritten.\n--build requires admitted remaining scratch bytes. All extracted text stays Git-ignored, mode0600 and local-only; no source or publication admission is granted.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
+    let alignment = args.first().map(String::as_str) == Some("opening-sentence-alignment");
     let target = args.first().map(String::as_str) == Some("target-text-foundation");
-    if !target && args.first().map(String::as_str) != Some("source-text-foundation") {
+    if !target && !alignment && args.first().map(String::as_str) != Some("source-text-foundation") {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return Some(
             if out
-                .write_all(if target {
+                .write_all(if alignment {
+                    ALIGNMENT_HELP.as_bytes()
+                } else if target {
                     TARGET_HELP.as_bytes()
                 } else {
                     HELP.as_bytes()
@@ -59,7 +63,11 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         }
         let root = PathBuf::from(source.ok_or("--source-root is required")?);
         let input = PathBuf::from(input.ok_or("--local-input-root is required")?);
-        let output = PathBuf::from(output.ok_or("--local-output-root is required")?);
+        let output = PathBuf::from(if alignment {
+            output.unwrap_or_else(|| root.to_string_lossy().into_owned())
+        } else {
+            output.ok_or("--local-output-root is required")?
+        });
         if [&root, &input, &output].iter().any(|p| !p.is_absolute()) {
             return Err("all selected roots must be absolute".into());
         }
@@ -86,7 +94,9 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         };
         let argv = serde_json::json!(std::env::args().collect::<Vec<_>>());
         let opts = tos_compiler::source_text_foundation::Options {
-            plan_ref: plan.as_deref().unwrap_or(if target {
+            plan_ref: plan.as_deref().unwrap_or(if alignment {
+                tos_compiler::opening_sentence_alignment::PLAN
+            } else if target {
                 tos_compiler::target_text_foundation::PLAN
             } else {
                 tos_compiler::source_text_foundation::PLAN
@@ -97,7 +107,9 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             event_id: event.as_deref(),
             argv: &argv,
         };
-        if target {
+        if alignment {
+            tos_compiler::opening_sentence_alignment::run(&ctx, opts)
+        } else if target {
             tos_compiler::target_text_foundation::run(&ctx, opts)
         } else {
             tos_compiler::source_text_foundation::run(&ctx, opts)
