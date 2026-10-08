@@ -1,16 +1,63 @@
-pub(super) const ITEM_DIR:&str="ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf";
-pub(super) const MANIFEST_PATH:&str="ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json";
-pub(super) const INVENTORY_PATH:&str="ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json";
-pub(super) const OUTPUT_DIR:&str="ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure";
-pub(super) const PROVENANCE_PATH:&str="ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/provenance.jsonl";
-pub(super) const WORK_REF:&str="tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese";
-pub(super) const EXPRESSION_REF:&str="tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886";
-pub(super) const EDITION_REF:&str="tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886";
-pub(super) const MAP_ID:&str="tos.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886";
-pub(super) const EVENT_ID:&str="tos.event.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29";
-pub(super) const RIGHTS_REF:&str="ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json";
-pub(super) const GAP_REVIEW_KEYS:&[&str]=&["15","18","23","24","30","32","108","110","131","151","160","188","202","227","233","234","245","251","254","276","277","291"];
-pub(super) const OCR_DISAMBIGUATION_KEYS:&[&str]=&["195","199","224","247","253","258","262","270","283","296"];
-pub(super) const PAGE_OVERRIDES:&[(&str,usize)]=&[("15",27),("18",30),("23",37),("24",42),("30",50),("32",52),("108",98),("110",98),("131",101),("151",103),("199",125),("202",131),("227",176),("233",187),("234",187),("245",205),("247",208),("251",211),("253",216),("254",217),("258",228),("262",238),("270",250),("276",254),("277",254),("291",261),("296",266)];
-pub(super) const OCR_SUBSTITUTIONS:&[(&str,&str)]=&[("0","0aoöü"),("1","1ilt»"),("2","2z"),("3","3"),("4","4"),("5","5s"),("6","6"),("7","7"),("8","8sö"),("9","9gq")];
-pub(super) const OCR_ALLOWED_CHARACTERS:&str=" *,-./0123456789:;AGILOQSTZ\\^agiloqstz~«»ÖÜöü–—•";
+pub(super) const ITEM_DIR: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf";
+pub(super) const MANIFEST_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json";
+pub(super) const INVENTORY_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json";
+pub(super) const OUTPUT_DIR: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure";
+pub(super) const PROVENANCE_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/provenance.jsonl";
+pub(super) const WORK_REF: &str = "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese";
+pub(super) const EXPRESSION_REF: &str =
+    "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886";
+pub(super) const EDITION_REF: &str =
+    "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886";
+pub(super) const MAP_ID: &str =
+    "tos.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886";
+pub(super) const EVENT_ID: &str = "tos.event.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29";
+pub(super) const RIGHTS_REF: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json";
+pub(super) const GAP_REVIEW_KEYS: &[&str] = &[
+    "15", "18", "23", "24", "30", "32", "108", "110", "131", "151", "160", "188", "202", "227",
+    "233", "234", "245", "251", "254", "276", "277", "291",
+];
+pub(super) const OCR_DISAMBIGUATION_KEYS: &[&str] = &[
+    "195", "199", "224", "247", "253", "258", "262", "270", "283", "296",
+];
+pub(super) const PAGE_OVERRIDES: &[(&str, usize)] = &[
+    ("15", 27),
+    ("18", 30),
+    ("23", 37),
+    ("24", 42),
+    ("30", 50),
+    ("32", 52),
+    ("108", 98),
+    ("110", 98),
+    ("131", 101),
+    ("151", 103),
+    ("199", 125),
+    ("202", 131),
+    ("227", 176),
+    ("233", 187),
+    ("234", 187),
+    ("245", 205),
+    ("247", 208),
+    ("251", 211),
+    ("253", 216),
+    ("254", 217),
+    ("258", 228),
+    ("262", 238),
+    ("270", 250),
+    ("276", 254),
+    ("277", 254),
+    ("291", 261),
+    ("296", 266),
+];
+pub(super) const OCR_SUBSTITUTIONS: &[(&str, &str)] = &[
+    ("0", "0aoöü"),
+    ("1", "1ilt»"),
+    ("2", "2z"),
+    ("3", "3"),
+    ("4", "4"),
+    ("5", "5s"),
+    ("6", "6"),
+    ("7", "7"),
+    ("8", "8sö"),
+    ("9", "9gq"),
+];
+pub(super) const OCR_ALLOWED_CHARACTERS: &str = " *,-./0123456789:;AGILOQSTZ\\^agiloqstz~«»ÖÜöü–—•";
