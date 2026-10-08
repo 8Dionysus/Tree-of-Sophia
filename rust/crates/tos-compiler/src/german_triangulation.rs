@@ -6,7 +6,8 @@ use crate::{
     research_text_comparison::{alpha, opcodes, space},
     source_philosophy_dossier_docx::OfficeArchive,
     source_text_foundation::{
-        Node, ensure, fresh_or_matching_limit, load, private_boundary, s, schema, sha, xml,
+        Node, ensure, fresh_or_matching_limit, load, private_boundary, s, schema, sha,
+        xml_with_doctype,
     },
     transfer_target_passages::{encode, json_lines, jsonl, node_text, read_optional},
 };
@@ -99,7 +100,7 @@ fn first<'a>(node: &'a Node, name: &str) -> Result<&'a Node> {
         .ok_or_else(|| format!("TEI {name} absent"))
 }
 fn dta(ctx: &ResearchExecution, raw: &[u8]) -> Result<(Vec<Vec<String>>, usize)> {
-    let root = xml(ctx, raw)?;
+    let root = xml_with_doctype(ctx, raw, false)?;
     ensure(
         root.name == "TEI"
             && root
