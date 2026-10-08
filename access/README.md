@@ -2255,3 +2255,23 @@ those explicit roots and a prior storage reservation. The confirmation belongs
 to the caller's actual source-visible assessment. A matching replay needs no
 new confirmation. Candidates remain ineligible; no target gold or textual
 acceptance is created. The default historical generation remains byte exact.
+
+
+`tos transfer-source-visible --source-root ABS --validate-tracked` checks the
+text-free receipt and current rights without opening private sources. Use
+`--check --local-input-root ABS` to verify the retained private bundle, exact
+PDFs, four page-render hashes, critical HTML selector and aggregate diagnostics.
+A fresh receipt uses `--build --generation NAME --scratch-bytes RESERVED_BYTES`
+with the explicit input root and a prior storage reservation. The input root
+contains repository-relative `ToS/...` paths; Poppler 26.01.0 renders are bounded
+in memory and are not retained. The default `v1` is an exact historical replay.
+New receipts preserve the original review authorship and timestamp and perform
+no new source-visible review, textual acceptance or publication decision.
+
+`tos german-triangulation --source-root ABS --check --local-input-root ABS`
+reproduces the retained twelve-paragraph eKGWB/DTA comparison and the exact
+Naumann OCR diagnostic shape. `--validate-tracked` checks metadata only. A new
+`--build --generation NAME --prepared-at RFC3339 --scratch-bytes RESERVED_BYTES`
+uses the same explicit private input root and writes separate text-free packet
+and alignment-event files. Historical discovery, acquisition and appended
+provenance remain unchanged; no source text or acceptance is produced.

@@ -4235,7 +4235,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/record_golden_kernel_transfer_source_visible_review.py",
+      "path": "rust/crates/tos-compiler/src/transfer_source_visible.rs",
       "family": "private_evidence_recorder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
@@ -4247,15 +4247,15 @@
         "operator-local Tree of Sophia payloads and ignored source-visible review bundle"
       ],
       "reads": [
-        "one mode-0600 private model source-visible bundle, exact German and Russian PDFs, frozen private automatic candidates, one local eKGWB HTML response, and tracked rights records"
+        "Explicit private review bundle, current rights, exact source/target PDFs and automatic candidates, local critical HTML; bounded Poppler page rendering verifies the retained hashes."
       ],
       "writes": [
-        "one deterministic tracked text-free fixity, render-reproduction, and aggregate token-diagnostic receipt unless --check is used"
+        "tos transfer-source-visible --build writes one fresh text-free receipt; --check reconstructs the exact receipt; --validate-tracked reads metadata only. Historical v1 remains immutable."
       ],
-      "side_effects": "creates no accepted source or target passage, alignment, eligibility, gold, human debt, semantic object, publication authority, or canon effect; temporary renders are deleted",
+      "side_effects": "Preserves the prior model review identity; performs no new source-visible review, source acceptance, alignment, eligibility, gold, human debt, semantic or canon action. No render files or source text are emitted.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_golden_kernel_transfer_source_visible_review.py",
+      "test_target": "rust/crates/tos-compiler/src/research_text_comparison.rs",
       "disposition": "keep"
     },
     {
