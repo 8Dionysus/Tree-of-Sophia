@@ -85,6 +85,9 @@ fn main() {
     ) {
         std::process::exit(code);
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(code) = tos_access::german_triangulation_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
+    #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::transfer_source_visible_command::run_if_requested(
         &args, &mut std::io::stdout(), &mut std::io::stderr(),
     ) {

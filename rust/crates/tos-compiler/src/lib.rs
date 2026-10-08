@@ -1082,3 +1082,6 @@ pub mod transfer_candidates;
 pub mod research_html;
 mod research_text_comparison;
 pub mod transfer_source_visible;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod german_triangulation;
