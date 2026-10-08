@@ -734,8 +734,27 @@ struct NormalizedPayloadRead<'s, 'budget> {
     _hold: crate::d1_public_capture::CreationStateHold<'s, 'budget>,
 }
 
-/// Metadata is authoritative scalar row data, held with the actual payload
-/// scope. `semantic_key` is node kind_id or relation predicate_id.
+/// One admitted representation of the already authenticated logical row.
+/// The typed tree must be consumed synchronously inside its reader callback.
+pub(crate) enum NormalizedLogical<'a> {
+    Bytes(&'a [u8]),
+    Value {
+        value: serde_json::Value,
+        logical_len: usize,
+        digest: Digest256,
+    },
+}
+impl NormalizedLogical<'_> {
+    pub(crate) fn len(&self) -> usize {
+        match self {
+            Self::Bytes(raw) => raw.len(),
+            Self::Value { logical_len, .. } => *logical_len,
+        }
+    }
+}
+
+/// Metadata is authoritative scalar row data held through the payload scope.
+/// `semantic_key` is node kind_id or relation predicate_id.
 pub(crate) struct NormalizedRowMetadata<'row> {
     pub id: &'row str,
     pub source_graph: &'row str,
@@ -2869,6 +2888,28 @@ impl<'a> KnowledgeStage<'a> {
         max_bytes: usize,
         consume: impl FnOnce(&mut Self, &[u8], Option<&[u8]>) -> Result<T>,
     ) -> Result<Option<T>> {
+        self.with_normalized_payload_decoded_owned(
+            relation,
+            id,
+            max_bytes,
+            false,
+            |stage, logical, source| match logical {
+                NormalizedLogical::Bytes(raw) => consume(stage, raw, source),
+                NormalizedLogical::Value { .. } => {
+                    Err(Error::Invalid("byte reader representation differs"))
+                }
+            },
+        )
+    }
+
+    pub(crate) fn with_normalized_payload_decoded_owned<T>(
+        &mut self,
+        relation: bool,
+        id: &str,
+        max_bytes: usize,
+        typed: bool,
+        consume: impl FnOnce(&mut Self, NormalizedLogical<'_>, Option<&[u8]>) -> Result<T>,
+    ) -> Result<Option<T>> {
         let result = (|| {
             if self.poisoned {
                 return Err(Error::Invalid("poisoned normalized payload read"));
@@ -2987,11 +3028,15 @@ impl<'a> KnowledgeStage<'a> {
                 return Ok(None);
             };
             let dictionary = layout.read_dictionary(self.db(), state, &record.raw, max_bytes)?;
-            let source_dictionary = if record.codec == 1 { layout.read_dictionary(self.db(), state, &record.source, max_bytes)? } else { None };
+            let source_dictionary = if record.codec == 1 {
+                layout.read_dictionary(self.db(), state, &record.source, max_bytes)?
+            } else {
+                None
+            };
             let observed = layout.with_decoded_dictionary(
                 state,
                 &record.raw,
-                dictionary.as_ref().map(|d|d.verified()).transpose()?,
+                dictionary.as_ref().map(|d| d.verified()).transpose()?,
                 (record.codec == 0).then_some(record.logical_len),
                 max_bytes,
                 |raw| {
@@ -3001,28 +3046,80 @@ impl<'a> KnowledgeStage<'a> {
                             return Err(Error::Invalid("normalized inline digest differs"));
                         }
                         state.active()?;
-                        consume(self, raw, None).map(Some)
+                        if typed {
+                            let limits =
+                                crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
+                            state.with_serde_owned_value_with_limits(raw, limits, |value| {
+                                consume(
+                                    self,
+                                    NormalizedLogical::Value {
+                                        value,
+                                        logical_len: record.logical_len,
+                                        digest: record.digest,
+                                    },
+                                    None,
+                                )
+                                .map(Some)
+                            })
+                        } else {
+                            consume(self, NormalizedLogical::Bytes(raw), None).map(Some)
+                        }
                     } else {
                         let limits =
                             crate::knowledge_normalization::SourceRow::json_limits(max_bytes)?;
                         layout.with_decoded_dictionary(
                             state,
                             &record.source,
-                            source_dictionary.as_ref().map(|d|d.verified()).transpose()?,
+                            source_dictionary
+                                .as_ref()
+                                .map(|d| d.verified())
+                                .transpose()?,
                             Some(record.source_len),
                             max_bytes,
                             |source| {
-                                crate::knowledge_payload_codec::with_hydrated_payload(
-                                    state,
-                                    raw,
-                                    source,
-                                    limits,
-                                    limits,
-                                    max_bytes,
-                                    record.logical_len,
-                                    record.digest,
-                                    |logical| consume(self, logical, Some(source)).map(Some),
-                                )
+                                if typed {
+                                    crate::knowledge_payload_codec::with_hydrated_value_payload(
+                                        state,
+                                        raw,
+                                        source,
+                                        limits,
+                                        limits,
+                                        max_bytes,
+                                        record.logical_len,
+                                        record.digest,
+                                        |value| {
+                                            consume(
+                                                self,
+                                                NormalizedLogical::Value {
+                                                    value,
+                                                    logical_len: record.logical_len,
+                                                    digest: record.digest,
+                                                },
+                                                Some(source),
+                                            )
+                                            .map(Some)
+                                        },
+                                    )
+                                } else {
+                                    crate::knowledge_payload_codec::with_hydrated_payload(
+                                        state,
+                                        raw,
+                                        source,
+                                        limits,
+                                        limits,
+                                        max_bytes,
+                                        record.logical_len,
+                                        record.digest,
+                                        |logical| {
+                                            consume(
+                                                self,
+                                                NormalizedLogical::Bytes(logical),
+                                                Some(source),
+                                            )
+                                            .map(Some)
+                                        },
+                                    )
+                                }
                             },
                         )
                     }
@@ -3121,6 +3218,35 @@ impl<'a> KnowledgeStage<'a> {
             Option<&[u8]>,
         ) -> Result<()>,
     ) -> Result<(usize, Option<i64>)> {
+        self.with_normalized_rows_decoded_owned(
+            relation,
+            after_order,
+            max_rows,
+            max_bytes,
+            false,
+            |stage, metadata, logical, source| match logical {
+                NormalizedLogical::Bytes(raw) => consume(stage, metadata, raw, source),
+                NormalizedLogical::Value { .. } => {
+                    Err(Error::Invalid("byte cursor representation differs"))
+                }
+            },
+        )
+    }
+
+    pub(crate) fn with_normalized_rows_decoded_owned(
+        &mut self,
+        relation: bool,
+        after_order: i64,
+        max_rows: usize,
+        max_bytes: usize,
+        typed: bool,
+        mut consume: impl FnMut(
+            &mut Self,
+            &NormalizedRowMetadata<'_>,
+            NormalizedLogical<'_>,
+            Option<&[u8]>,
+        ) -> Result<()>,
+    ) -> Result<(usize, Option<i64>)> {
         let result = (|| {
             if self.poisoned
                 || max_rows == 0
@@ -3170,10 +3296,11 @@ impl<'a> KnowledgeStage<'a> {
                     logical_digest: cursor.logical_digest,
                     raw_input_present: cursor.raw_input_present,
                 };
-                let delivered = self.with_normalized_payload_owned(
+                let delivered = self.with_normalized_payload_decoded_owned(
                     relation,
                     &cursor.id,
                     max_bytes,
+                    typed,
                     |stage, logical, source| {
                         bytes = bytes
                             .checked_add(logical.len() as u64)
@@ -3181,9 +3308,17 @@ impl<'a> KnowledgeStage<'a> {
                         if bytes > stage.limits.max_seek_bytes {
                             return Err(Error::Budget("normalized cursor page bytes"));
                         }
-                        // Recheck metadata's logical digest inside the same payload hold.
-                        state.charge_work(logical.len())?;
-                        if Digest256::of_bytes(logical) != metadata.logical_digest {
+                        // The typed reader already authenticated its exact serialized
+                        // bytes before moving the admitted tree. Bind that digest to
+                        // this cursor without serializing or reparsing it again.
+                        let digest = match &logical {
+                            NormalizedLogical::Bytes(raw) => {
+                                state.charge_work(raw.len())?;
+                                Digest256::of_bytes(raw)
+                            }
+                            NormalizedLogical::Value { digest, .. } => *digest,
+                        };
+                        if digest != metadata.logical_digest {
                             return Err(Error::Invalid(
                                 "normalized cursor payload revision changed",
                             ));
@@ -6647,6 +6782,7 @@ mod tests {
                 .args(["--exact", "knowledge_stage::tests::native_dictionary_stage_roundtrips_exact_source_and_normalized_bytes", "--nocapture"])
                 .env(CHILD, "1").output().unwrap();
             assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
             return;
         }
         use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
@@ -6693,6 +6829,23 @@ mod tests {
                     assert!(physical["spine"]["attributes"]["text"].is_null());
                     assert!(physical["spine"]["source_record"]["payload"].is_null());
                     assert_eq!(logical["attributes"]["text"], source_value["text"]);
+                    crate::knowledge_payload_codec::with_hydrated_value_payload(
+                        &state, stored, &source, json_limits, json_limits, 32768,
+                        raw.len(), Digest256::of_bytes(&raw), |value| {
+                            assert_eq!(serde_json::to_vec(&value).unwrap(), raw);
+                            assert_eq!(value["attributes"]["text"], source_value["text"]);
+                            assert_eq!(value["source_record"]["payload"], source_value);
+                            Ok(())
+                        },
+                    )?;
+                    let mut delivered = false;
+                    assert!(crate::knowledge_payload_codec::with_hydrated_value_payload(
+                        &state, stored, &source, json_limits, json_limits, 32768,
+                        raw.len(), Digest256::of_bytes(b"wrong logical digest"), |_| {
+                            delivered = true; Ok(())
+                        },
+                    ).is_err());
+                    assert!(!delivered);
                     Ok(())
                 },
             ).unwrap();
@@ -6816,6 +6969,39 @@ mod tests {
                 |_, _, _| Err(Error::Invalid("fixture has no claim references")),
             ).unwrap();
             assert_eq!(replay.node_root_sha256, finalized.node_root_sha256);
+            // Inheritance uses the same typed reader for an actual packed
+            // relation, including source-derived attributes and both endpoints.
+            crate::knowledge_inherited_views::clear_inherited_views(&mut stage).unwrap();
+            let relation = serde_json::to_vec(&serde_json::json!({
+                "id": "edge.0", "source_graph": "fixture.graph", "from_id": "node.0", "to_id": "node.1",
+                "view_ids": ["view.inherited"], "attributes": {"text": source_value["text"]},
+                "source_record": {"payload": source_value, "field_map": {"attributes.text": "/text"}}
+            })).unwrap();
+            let (_, rows, bytes) = stage.exact_source_write_page_limits(1, 32768, 32768).unwrap();
+            stage.with_write_page(WritePhase::Normalized, rows, bytes, |stage| {
+                stage.insert_relation_with_exact_source(RelationRow {
+                    id: "edge.0", source_graph: "fixture.graph", native_id: None,
+                    from_id: "node.0", to_id: "node.1", predicate_id: "related_to",
+                    relation_type_id: "tos.relation.unmapped", source_order: 0, payload: &relation,
+                }, &source)
+            }).unwrap();
+            let roots = stage.core_roots().unwrap();
+            let seal = crate::knowledge_inherited_views::CompleteRelationSeal {
+                source_cut: inherited.source_cut.clone(), relation_count: 1,
+                relation_root_sha256: roots.relation_sha256,
+            };
+            let joined = crate::knowledge_inherited_views::prepare_global_inherited_views(&mut stage, &seal,
+                crate::knowledge_inherited_views::InheritedViewLimits {
+                    max_relations: 1, max_endpoint_evidence_rows: 2, max_view_tokens: 1,
+                    max_page_rows: 1, max_page_bytes: 32768, max_row_bytes: 32768,
+                    max_work_bytes: 16 * 1024 * 1024,
+                }).unwrap();
+            assert_eq!((joined.relation_count, joined.endpoint_evidence_rows, joined.inherited_view_rows), (1, 2, 2));
+            for endpoint in ["node.0", "node.1"] {
+                assert_eq!(crate::knowledge_inherited_views::endpoint_inherited_views(&mut stage, endpoint, 8).unwrap(),
+                    ["view.inherited".to_owned()].into_iter().collect());
+            }
+            crate::knowledge_inherited_views::clear_inherited_views(&mut stage).unwrap();
             // Exercise the other producer path with a byte-tight inline page.
             // Tiny packets collect over multiple pages and seal at sample 32;
             // both insert and replacement pay framing/dictionary overhead here.

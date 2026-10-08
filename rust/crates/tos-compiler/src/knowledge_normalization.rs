@@ -37,6 +37,18 @@ impl std::ops::Deref for OwnedSourceRow<'_, '_> {
     }
 }
 
+impl OwnedSourceRow<'_, '_> {
+    /// Move the decoded tree into one synchronous operation while its original
+    /// admission remains live. Only unit escapes; the value drops first on
+    /// success, refusal and unwinding.
+    pub(crate) fn with_value(self, operation: impl FnOnce(Value) -> Result<()>) -> Result<()> {
+        let Self { row, _hold } = self;
+        let result = operation(row.value);
+        drop(_hold);
+        result
+    }
+}
+
 struct CappedWriter {
     bytes: usize,
     ceiling: usize,

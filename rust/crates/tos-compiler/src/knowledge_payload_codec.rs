@@ -593,121 +593,213 @@ fn with_hydrated_payload_from_source<T>(
 ) -> Result<T> {
     state.active()?;
     state.with_serde_owned_value_with_limits(stored, stored_limits, |physical| {
-        let map = physical
-            .as_object()
-            .filter(|v| v.len() == 5)
-            .ok_or(Error::Invalid("carrier codec envelope fields"))?;
-        if map.get("codec").and_then(Value::as_str) != Some(CODEC)
-            || map.get("source_len").and_then(Value::as_u64) != Some(source_len as u64)
-        {
-            return Err(Error::Invalid("carrier codec identity differs"));
+        with_authenticated_logical(
+            state,
+            &physical,
+            &source_value,
+            source_len,
+            source_digest,
+            max_row_bytes,
+            logical_len,
+            logical_digest,
+            consume,
+        )
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn with_authenticated_logical<T>(
+    state: &CreationState<'_>,
+    physical: &Value,
+    source_value: &Value,
+    source_len: usize,
+    source_digest: Digest256,
+    max_row_bytes: usize,
+    logical_len: usize,
+    logical_digest: Digest256,
+    consume: impl FnOnce(&[u8]) -> Result<T>,
+) -> Result<T> {
+    let map = physical
+        .as_object()
+        .filter(|v| v.len() == 5)
+        .ok_or(Error::Invalid("carrier codec envelope fields"))?;
+    if map.get("codec").and_then(Value::as_str) != Some(CODEC)
+        || map.get("source_len").and_then(Value::as_u64) != Some(source_len as u64)
+    {
+        return Err(Error::Invalid("carrier codec identity differs"));
+    }
+    let digest = map
+        .get("source_sha256")
+        .and_then(Value::as_array)
+        .filter(|v| v.len() == 32)
+        .ok_or(Error::Invalid("carrier codec digest shape"))?;
+    for (actual, expected) in digest.iter().zip(source_digest.as_bytes()) {
+        state.active()?;
+        if actual.as_u64() != Some(*expected as u64) {
+            return Err(Error::Invalid("carrier codec exact source digest differs"));
         }
-        let digest = map
-            .get("source_sha256")
-            .and_then(Value::as_array)
-            .filter(|v| v.len() == 32)
-            .ok_or(Error::Invalid("carrier codec digest shape"))?;
-        for (actual, expected) in digest.iter().zip(source_digest.as_bytes()) {
+    }
+    let refs = map
+        .get("attribute_refs")
+        .and_then(Value::as_array)
+        .ok_or(Error::Invalid("carrier codec references absent"))?;
+    let spine = map
+        .get("spine")
+        .ok_or(Error::Invalid("carrier codec spine absent"))?;
+    if !source_payload(spine)?.is_null() {
+        return Err(Error::Invalid("carrier codec source slot not null"));
+    }
+    let fields = field_map(spine)?;
+    let attrs = attributes(spine)?;
+    // Bound duplicate detection without allocating an unpriced set. The
+    // same original work charges each pairwise scan before it executes.
+    for (at, reference) in refs.iter().enumerate() {
+        state.active()?;
+        let (key, pointer) = ref_pair(reference)?;
+        if !attrs.get(key).is_some_and(Value::is_null) {
+            return Err(Error::Invalid("carrier codec referenced slot not null"));
+        }
+        state.charge_work(add(
+            fields
+                .len()
+                .checked_mul(add(key.len(), pointer.len())?)
+                .ok_or(Error::Budget("carrier codec pointer work"))?,
+            at.checked_mul(key.len())
+                .ok_or(Error::Budget("carrier codec duplicate work"))?,
+        )?)?;
+        let mut matched = false;
+        for (field, value) in fields {
             state.active()?;
-            if actual.as_u64() != Some(*expected as u64) {
-                return Err(Error::Invalid("carrier codec exact source digest differs"));
-            }
-        }
-        let refs = map
-            .get("attribute_refs")
-            .and_then(Value::as_array)
-            .ok_or(Error::Invalid("carrier codec references absent"))?;
-        let spine = map
-            .get("spine")
-            .ok_or(Error::Invalid("carrier codec spine absent"))?;
-        if !source_payload(spine)?.is_null() {
-            return Err(Error::Invalid("carrier codec source slot not null"));
-        }
-        let fields = field_map(spine)?;
-        let attrs = attributes(spine)?;
-        // Bound duplicate detection without allocating an unpriced set. The
-        // same original work charges each pairwise scan before it executes.
-        for (at, reference) in refs.iter().enumerate() {
-            state.active()?;
-            let (key, pointer) = ref_pair(reference)?;
-            if !attrs.get(key).is_some_and(Value::is_null) {
-                return Err(Error::Invalid("carrier codec referenced slot not null"));
-            }
-            state.charge_work(add(
-                fields
-                    .len()
-                    .checked_mul(add(key.len(), pointer.len())?)
-                    .ok_or(Error::Budget("carrier codec pointer work"))?,
-                at.checked_mul(key.len())
-                    .ok_or(Error::Budget("carrier codec duplicate work"))?,
-            )?)?;
-            let mut matched = false;
-            for (field, value) in fields {
-                state.active()?;
-                if let (Some(name), Some(actual_pointer)) =
-                    (field.strip_prefix("attributes."), value.as_str())
+            if let (Some(name), Some(actual_pointer)) =
+                (field.strip_prefix("attributes."), value.as_str())
+            {
+                if bytes_equal(state, name.as_bytes(), key.as_bytes())?
+                    && bytes_equal(state, actual_pointer.as_bytes(), pointer.as_bytes())?
                 {
-                    if bytes_equal(state, name.as_bytes(), key.as_bytes())?
-                        && bytes_equal(state, actual_pointer.as_bytes(), pointer.as_bytes())?
-                    {
-                        matched = true;
-                        break;
-                    }
-                }
-            }
-            if !matched {
-                return Err(Error::Invalid("carrier codec reference not in field map"));
-            }
-            for earlier in &refs[..at] {
-                if bytes_equal(state, ref_pair(earlier)?.0.as_bytes(), key.as_bytes())? {
-                    return Err(Error::Invalid("carrier codec duplicate reference"));
-                }
-            }
-        }
-        let slots = attrs
-            .len()
-            .checked_mul(std::mem::size_of::<(&str, &Value)>())
-            .ok_or(Error::Budget("carrier codec borrowed attribute slots"))?;
-        let attributes_hold = state.hold(slots)?;
-        let mut selected_attributes = Vec::with_capacity(attrs.len());
-        for (key, stored_value) in attrs {
-            state.active()?;
-            let mut selected = stored_value;
-            for reference in refs {
-                let (ref_key, pointer) = ref_pair(reference)?;
-                if bytes_equal(state, key.as_bytes(), ref_key.as_bytes())? {
-                    selected = pointer_owned(state, &source_value, pointer)?
-                        .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+                    matched = true;
                     break;
                 }
             }
-            selected_attributes.push((key.as_str(), selected));
         }
-        let rebuilt = BorrowedHydratedSpine {
-            spine: spine
-                .as_object()
-                .ok_or(Error::Invalid("carrier codec spine object"))?,
-            attributes: BorrowedAttributes(&selected_attributes),
-            source_record: BorrowedSourceRecord {
-                record: spine
-                    .get("source_record")
-                    .and_then(Value::as_object)
-                    .ok_or(Error::Invalid("carrier codec source record object"))?,
-                source: &source_value,
-            },
-        };
-        let result = state.with_json_encoded_exact(&rebuilt, logical_len, max_row_bytes, |logical| {
-            if logical.len() != logical_len || charged_digest(state, logical)? != logical_digest {
-                return Err(Error::Invalid(
-                    "carrier codec logical length or digest differs",
-                ));
+        if !matched {
+            return Err(Error::Invalid("carrier codec reference not in field map"));
+        }
+        for earlier in &refs[..at] {
+            if bytes_equal(state, ref_pair(earlier)?.0.as_bytes(), key.as_bytes())? {
+                return Err(Error::Invalid("carrier codec duplicate reference"));
             }
-            state.active()?;
-            consume(logical)
-        });
-        drop(selected_attributes);
-        drop(attributes_hold);
-        result
+        }
+    }
+    let slots = attrs
+        .len()
+        .checked_mul(std::mem::size_of::<(&str, &Value)>())
+        .ok_or(Error::Budget("carrier codec borrowed attribute slots"))?;
+    let attributes_hold = state.hold(slots)?;
+    let mut selected_attributes = Vec::with_capacity(attrs.len());
+    for (key, stored_value) in attrs {
+        state.active()?;
+        let mut selected = stored_value;
+        for reference in refs {
+            let (ref_key, pointer) = ref_pair(reference)?;
+            if bytes_equal(state, key.as_bytes(), ref_key.as_bytes())? {
+                selected = pointer_owned(state, source_value, pointer)?
+                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+                break;
+            }
+        }
+        selected_attributes.push((key.as_str(), selected));
+    }
+    let rebuilt = BorrowedHydratedSpine {
+        spine: spine
+            .as_object()
+            .ok_or(Error::Invalid("carrier codec spine object"))?,
+        attributes: BorrowedAttributes(&selected_attributes),
+        source_record: BorrowedSourceRecord {
+            record: spine
+                .get("source_record")
+                .and_then(Value::as_object)
+                .ok_or(Error::Invalid("carrier codec source record object"))?,
+            source: source_value,
+        },
+    };
+    let result = state.with_json_encoded_exact(&rebuilt, logical_len, max_row_bytes, |logical| {
+        if logical.len() != logical_len || charged_digest(state, logical)? != logical_digest {
+            return Err(Error::Invalid(
+                "carrier codec logical length or digest differs",
+            ));
+        }
+        state.active()?;
+        consume(logical)
+    });
+    drop(selected_attributes);
+    drop(attributes_hold);
+    result
+}
+
+/// Authenticate the same logical bytes as the byte reader, then transfer the
+/// already admitted source and physical spine into one normalized tree. Only
+/// referenced attribute copies allocate new trees. All three admissions stay
+/// live through the caller; no JSON reparse or whole logical clone is needed.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_hydrated_value_payload<T>(
+    state: &CreationState<'_>,
+    stored: &[u8],
+    source: &[u8],
+    stored_limits: JsonLimits,
+    source_limits: JsonLimits,
+    max_row_bytes: usize,
+    logical_len: usize,
+    logical_digest: Digest256,
+    consume: impl FnOnce(Value) -> Result<T>,
+) -> Result<T> {
+    state.active()?;
+    cap(stored, max_row_bytes)?;
+    cap(source, max_row_bytes)?;
+    if logical_len == 0 || logical_len > max_row_bytes {
+        return Err(Error::Budget("carrier codec logical bytes"));
+    }
+    let source_digest = charged_digest(state, source)?;
+    state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
+        state.with_serde_owned_value_with_limits(stored, stored_limits, |mut physical| {
+            with_authenticated_logical(
+                state,
+                &physical,
+                &source_value,
+                source.len(),
+                source_digest,
+                max_row_bytes,
+                logical_len,
+                logical_digest,
+                |_| Ok(()),
+            )?;
+            let refs = physical["attribute_refs"]
+                .as_array()
+                .ok_or(Error::Invalid("carrier codec references absent"))?;
+            let mut clone_bytes = 0usize;
+            for reference in refs {
+                let (_, pointer) = ref_pair(reference)?;
+                let original = pointer_owned(state, &source_value, pointer)?
+                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+                clone_bytes = add(clone_bytes, state.value_clone_state_upper_bound(original)?)?;
+            }
+            let clone_hold = state.hold(clone_bytes)?;
+            let refs = physical["attribute_refs"].take();
+            let mut logical = physical["spine"].take();
+            for reference in refs.as_array().expect("validated reference array") {
+                let (key, pointer) = ref_pair(reference)?;
+                let original = pointer_owned(state, &source_value, pointer)?
+                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+                let slot = logical["attributes"]
+                    .as_object_mut()
+                    .and_then(|fields| fields.get_mut(key))
+                    .ok_or(Error::Invalid("carrier codec attribute slot absent"))?;
+                *slot = original.clone();
+            }
+            logical["source_record"]["payload"] = source_value;
+            let result = consume(logical);
+            drop(clone_hold);
+            result
+        })
     })
 }
 

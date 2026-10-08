@@ -4,7 +4,7 @@
 
 use crate::knowledge_inherited_views::{InheritedViewReceipt, endpoint_inherited_views};
 use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
-use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::knowledge_stage::{KnowledgeStage, NormalizedLogical, WritePhase};
 use crate::{
     Error, KnowledgeRegistry, ReadableContextCarrier, ReadableContextCompiler,
     ReadableContextLimits, Result, ordered_readable_witness,
@@ -69,40 +69,22 @@ struct Row {
     source_packet: Option<Vec<u8>>,
 }
 
+struct RowRef<'a> {
+    id: &'a str,
+    source: &'a str,
+    native: Option<&'a str>,
+    order: i64,
+    payload: NormalizedLogical<'a>,
+    digest: Digest256,
+    source_packet: Option<&'a [u8]>,
+}
+
 fn page(
     stage: &mut KnowledgeStage<'_>,
     table: &str,
     after: i64,
     limits: NativeFinalizeLimits,
 ) -> Result<Vec<Row>> {
-    if let Some(state) = stage.owned_creation_state() {
-        let mut batch = Vec::with_capacity(limits.max_page_rows);
-        stage.with_normalized_rows_owned(
-            table == "knowledge_relations",
-            after,
-            limits.max_page_rows,
-            limits.max_row_bytes,
-            |_, metadata, logical, source| {
-                state.charge_work(
-                    logical
-                        .len()
-                        .checked_add(source.map_or(0, <[u8]>::len))
-                        .ok_or(Error::Budget("native final page copy work"))?,
-                )?;
-                batch.push(Row {
-                    id: metadata.id.to_owned(),
-                    source: metadata.source_graph.to_owned(),
-                    native: metadata.native_id.map(str::to_owned),
-                    order: metadata.source_order,
-                    payload: logical.to_vec(),
-                    sha: metadata.logical_digest.as_bytes().to_vec(),
-                    source_packet: source.map(<[u8]>::to_vec),
-                });
-                Ok(())
-            },
-        )?;
-        return Ok(batch);
-    }
     stage.with_connection(WritePhase::Finalize, |db| {
         let sql = format!("SELECT id,source_graph,native_id,source_order,
             CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND length(payload)<=?2 THEN payload ELSE NULL END,
@@ -200,28 +182,38 @@ where
                 max_work_bytes: limits.max_work_bytes,
             },
         )?;
-        eprintln!("Native finalize start nodes={} relations={}", roots.nodes, roots.relations);
+        eprintln!(
+            "Native finalize start nodes={} relations={}",
+            roots.nodes, roots.relations
+        );
         for table in ["knowledge_nodes", "knowledge_relations"] {
             let mut after = -1i64;
             loop {
-                let _page_hold = stage.hold_normalized_page(
-                    limits.max_page_rows,
-                    limits.max_row_bytes,
-                    limits.max_row_bytes,
-                )?;
-                let batch = page(stage, table, after, limits)?;
-                if batch.is_empty() {
+                let page_after = after;
+                let owned = stage.owned_creation_state().is_some();
+                let batch = if owned {
+                    None
+                } else {
+                    Some(page(stage, table, page_after, limits)?)
+                };
+                if batch.as_ref().is_some_and(Vec::is_empty) {
                     break;
                 }
-                stage.with_write_page(
+                let count = stage.with_write_page(
                     WritePhase::Finalize,
                     limits.max_page_rows,
                     limits.max_page_bytes as u64,
                     |stage| {
-                for row in batch {
+                        let mut count = 0usize;
+                        let mut process = |stage: &mut KnowledgeStage<'_>, row: RowRef<'_>| -> Result<()> {
+                            // One row owns its transient mutation workspace through SQL.
+                            // The normalized reader retains the actual payload and source.
+                            let _row_hold = stage.hold_normalized_page(1, limits.max_row_bytes, limits.max_row_bytes)?;
                     if row.order <= after
-                        || row.sha.len() != 32
-                        || Digest256::of_bytes(&row.payload).as_bytes().as_slice() != row.sha
+                        || match &row.payload {
+                            NormalizedLogical::Bytes(raw) => Digest256::of_bytes(raw) != row.digest,
+                            NormalizedLogical::Value { digest, .. } => *digest != row.digest,
+                        }
                     {
                         return Err(Error::Invalid("native final row digest/order"));
                     }
@@ -235,24 +227,17 @@ where
                         return Err(Error::Budget("native final scan"));
                     }
                     let state = stage.owned_creation_state();
-                    let parsed = SourceRow::parse_scoped_with_optional_owned_state(
-                        &row.payload, limits.max_row_bytes, state,
-                    )?;
-                    let _clone_hold = state.map(|state| {
-                        state.value_clone_state_upper_bound(parsed.value())
-                            .and_then(|bytes| state.hold(bytes))
-                    }).transpose()?;
-                    let mut value = parsed.value().clone();
-                    if value.get("id").and_then(Value::as_str) != Some(row.id.as_str())
+                    let mut process_value = |mut value: Value| -> Result<()> {
+                    if value.get("id").and_then(Value::as_str) != Some(row.id)
                         || value.get("source_graph").and_then(Value::as_str)
-                            != Some(row.source.as_str())
+                            != Some(row.source)
                     {
                         return Err(Error::Invalid("native final row identity"));
                     }
                     let mut changed = false;
                     if table == "knowledge_nodes" {
                         let views =
-                            endpoint_inherited_views(stage, &row.id, limits.max_view_ids_per_node)?;
+                            endpoint_inherited_views(stage, row.id, limits.max_view_ids_per_node)?;
                         if !views.is_empty() {
                             let current = value
                                 .get("view_ids")
@@ -287,7 +272,6 @@ where
                     }) {
                         let native = row
                             .native
-                            .as_deref()
                             .ok_or(Error::Invalid("native context source identity absent"))?;
                         let collections: &[&str] = if table == "knowledge_nodes" {
                             &["nodes"]
@@ -297,8 +281,8 @@ where
                         let mut owner = source_material(
                             stage,
                             table == "knowledge_relations",
-                            &row.source,
-                            &row.id,
+                            row.source,
+                            row.id,
                             native,
                         )?;
                         let needs_raw = owner.is_none();
@@ -308,7 +292,7 @@ where
                             }) {
                                 continue;
                             }
-                            if let Some(raw) = stage.raw_by_id(&row.source, collection, native)? {
+                            if let Some(raw) = stage.raw_by_id(row.source, collection, native)? {
                                 if owner.is_some() {
                                     return Err(Error::Invalid("ambiguous native context source"));
                                 }
@@ -342,8 +326,8 @@ where
                             owner =
                                 crate::knowledge_source_claims::claim_relation_material_witness(
                                     stage,
-                                    &row.source,
-                                    &row.id,
+                                    row.source,
+                                    row.id,
                                     limits.max_row_bytes,
                                 )?;
                         }
@@ -372,7 +356,7 @@ where
                         }
                         let mut sources = Vec::new();
                         for reference in keys {
-                            sources.extend(claim_sources(stage, &row.source, &reference)?);
+                            sources.extend(claim_sources(stage, row.source, &reference)?);
                         }
                         if sources.len() > limits.max_context_sources {
                             return Err(Error::Budget("native referenced source witnesses"));
@@ -416,15 +400,15 @@ where
                         }
                         if stage.owned_creation_state().is_some() {
                             stage.replace_finalized_value_if_current(
-                                table == "knowledge_relations", &row.id, value, raw,
-                                row.source_packet.as_deref(), Digest256::of_bytes(&row.payload),
+                                table == "knowledge_relations", row.id, value, raw,
+                                row.source_packet, row.digest,
                             )?;
                         } else {
                             stage.charge_materialized(1, raw.len() as u64)?;
                             let sha = Digest256::of_bytes(&raw);
                             let changed = stage.with_connection(WritePhase::Finalize, |db| {
                                 Ok(db.execute(&format!("UPDATE {table} SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_sha256=?5"),
-                                    params![raw.len() as i64,sha.as_bytes().as_slice(),raw,row.id,row.sha])?)
+                                    params![raw.len() as i64,sha.as_bytes().as_slice(),raw,row.id,row.digest.as_bytes().as_slice()])?)
                             })?;
                             if changed != 1 {
                                 return Err(Error::Invalid("native final concurrent row change"));
@@ -443,16 +427,52 @@ where
                             write(&value, &raw)?;
                         }
                     }
+                    Ok(())
+                    };
+                    match row.payload {
+                        NormalizedLogical::Bytes(raw) => {
+                            SourceRow::parse_scoped_with_optional_owned_state(raw, limits.max_row_bytes, state)?
+                                .with_value(process_value)?;
+                        }
+                        NormalizedLogical::Value { value, .. } => process_value(value)?,
+                    }
                     after = row.order;
                     if total.is_power_of_two() {
                         eprintln!("Native finalize progress table={table} rows={total} readable_rows={readable} source_output_bytes={work}");
                     }
-                }
-                Ok(())
+                            count += 1;
+                            Ok(())
+                        };
+                        if let Some(batch) = batch {
+                            for row in batch {
+                                let digest = Digest256::from_bytes(row.sha.as_slice().try_into()
+                                    .map_err(|_| Error::Invalid("native final row digest size"))?);
+                                process(stage, RowRef {
+                                    id: &row.id, source: &row.source, native: row.native.as_deref(),
+                                    order: row.order, payload: NormalizedLogical::Bytes(&row.payload), digest,
+                                    source_packet: row.source_packet.as_deref(),
+                                })?;
+                            }
+                        } else {
+                            stage.with_normalized_rows_decoded_owned(
+                                table == "knowledge_relations", page_after,
+                                limits.max_page_rows, limits.max_row_bytes, true,
+                                |stage, metadata, logical, source| process(stage, RowRef {
+                                    id: metadata.id, source: metadata.source_graph, native: metadata.native_id,
+                                    order: metadata.source_order, payload: logical,
+                                    digest: metadata.logical_digest, source_packet: source,
+                                }),
+                            )?;
+                        }
+                        Ok(count)
                     },
                 )?;
+                if count == 0 {
+                    break;
+                }
             }
         }
+
         if total
             != roots
                 .nodes

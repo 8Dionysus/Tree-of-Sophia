@@ -4,7 +4,7 @@
 //! relation assembly, and before final node revision stamping. This phase does
 //! not create nodes, relations, or a selected output file.
 
-use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::knowledge_stage::{KnowledgeStage, NormalizedLogical, WritePhase};
 use crate::{Error, Result, knowledge_normalization::SourceRow};
 use rusqlite::params;
 use serde_json::Value;
@@ -80,7 +80,7 @@ fn read_page(
     limits: InheritedViewLimits,
 ) -> Result<Vec<RelationInput>> {
     let owned = stage.owned_creation_state();
-    let mut batch = stage.with_connection(WritePhase::Sort, |db| {
+    let batch = stage.with_connection(WritePhase::Sort, |db| {
         let payload = if owned.is_some() { "NULL" } else { "payload" };
         let columns = if owned.is_some() {
             "CASE WHEN length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN length(CAST(from_id AS BLOB)) BETWEEN 1 AND 4096 THEN from_id END,CASE WHEN length(CAST(to_id AS BLOB)) BETWEEN 1 AND 4096 THEN to_id END"
@@ -138,25 +138,6 @@ fn read_page(
         }
         Ok(result)
     })?;
-    if let Some(state) = owned {
-        let mut bytes = 0u64;
-        for row in &mut batch {
-            let payload = &mut row.payload;
-            stage
-                .with_relation_payload_owned(&row.id, limits.max_row_bytes, |_, logical| {
-                    bytes = bytes
-                        .checked_add(logical.len() as u64)
-                        .ok_or(Error::Budget("inherited page bytes"))?;
-                    if bytes > limits.max_page_bytes {
-                        return Err(Error::Budget("inherited page bytes"));
-                    }
-                    state.charge_work(logical.len())?;
-                    *payload = logical.to_vec();
-                    Ok(())
-                })?
-                .ok_or(Error::Invalid("inherited relation disappeared"))?;
-        }
-    }
     Ok(batch)
 }
 
@@ -176,17 +157,16 @@ fn root_item(hash: &mut Digest256Hasher, id: &str, sha: &[u8; 32]) {
     hash.update(sha);
 }
 
-pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema =
-    crate::knowledge_stage::preparation_schema!(
-        table r#"knowledge_global_inherited_endpoint_evidence(
+pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema = crate::knowledge_stage::preparation_schema!(
+    table r#"knowledge_global_inherited_endpoint_evidence(
  endpoint_id TEXT NOT NULL, relation_id TEXT NOT NULL,
  PRIMARY KEY(endpoint_id,relation_id))"#,
-        index r#"knowledge_global_inherited_relation
- ON knowledge_global_inherited_endpoint_evidence(relation_id,endpoint_id)"#,
-        table r#"knowledge_global_inherited_views(
+    index r#"knowledge_global_inherited_relation
+ON knowledge_global_inherited_endpoint_evidence(relation_id,endpoint_id)"#,
+    table r#"knowledge_global_inherited_views(
  endpoint_id TEXT NOT NULL, view_id TEXT NOT NULL,
  PRIMARY KEY(endpoint_id,view_id))"#,
-    );
+);
 
 fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
     stage.create_preparation_tables(PREPARATION_SCHEMA)
@@ -268,12 +248,23 @@ fn prepare_inner(
     let mut view_tokens = 0u64;
     let mut endpoint_evidence_limit_count = 0u64;
     let mut hash = Digest256Hasher::new();
+    let _cursor_hold = stage
+        .owned_creation_state()
+        .map(|state| state.hold(2 * 4096 + std::mem::size_of::<(String, String)>()))
+        .transpose()?;
     loop {
-        let _page_hold = stage.hold_normalized_page(
-            limits.max_page_rows,
-            limits.max_row_bytes,
-            limits.max_row_bytes,
-        )?;
+        // Page storage owns only four bounded identity columns and fixed
+        // metadata. A single decoded row lives through the consumer below.
+        let _page_hold = stage
+            .owned_creation_state()
+            .map(|state| {
+                let bytes = limits
+                    .max_page_rows
+                    .checked_mul(4 * 4096 + 32 + std::mem::size_of::<RelationInput>())
+                    .ok_or(Error::Budget("inherited metadata page state"))?;
+                state.hold(bytes)
+            })
+            .transpose()?;
         let page = read_page(
             stage,
             after.as_ref().map(|(s, i)| (s.as_str(), i.as_str())),
@@ -288,74 +279,117 @@ fn prepare_inner(
             page_len,
             limits.max_page_bytes,
             |stage| {
+                let mut page_bytes = 0u64;
                 for relation in &page {
-                    count = count
-                        .checked_add(1)
-                        .ok_or(Error::Budget("inherited relation count"))?;
-                    if count > limits.max_relations {
-                        return Err(Error::Budget("inherited relation count"));
-                    }
-                    if relation.order < 0 || relation.order as u64 != count - 1 {
-                        return Err(Error::Invalid("inherited relation source order"));
-                    }
-                    work = work
-                        .checked_add(relation.payload.len() as u64)
-                        .ok_or(Error::Budget("inherited work bytes"))?;
-                    if work > limits.max_work_bytes {
-                        return Err(Error::Budget("inherited work bytes"));
-                    }
-                    if Digest256::of_bytes(&relation.payload).as_bytes() != &relation.payload_sha {
-                        return Err(Error::Invalid("inherited relation payload digest"));
-                    }
-                    root_item(&mut hash, &relation.id, &relation.payload_sha);
-                    let parsed = SourceRow::parse_scoped_with_optional_owned_state(
-                        &relation.payload,
-                        limits.max_row_bytes,
-                        stage.owned_creation_state(),
-                    )?;
-                    let value = parsed.value();
-                    for (field, expected) in [
-                        ("id", relation.id.as_str()),
-                        ("source_graph", relation.source_graph.as_str()),
-                        ("from_id", relation.from_id.as_str()),
-                        ("to_id", relation.to_id.as_str()),
-                    ] {
-                        if text(value, field)? != expected {
-                            return Err(Error::Invalid(
-                                "inherited relation column/payload mismatch",
-                            ));
+                    let mut process = |stage: &mut KnowledgeStage<'_>,
+                                       value: &Value,
+                                       logical_len: usize,
+                                       digest: Digest256|
+                     -> Result<()> {
+                        let _row_hold = stage.hold_normalized_page(
+                            1,
+                            limits.max_row_bytes,
+                            limits.max_row_bytes,
+                        )?;
+                        count = count
+                            .checked_add(1)
+                            .ok_or(Error::Budget("inherited relation count"))?;
+                        if count > limits.max_relations {
+                            return Err(Error::Budget("inherited relation count"));
                         }
+                        if relation.order < 0 || relation.order as u64 != count - 1 {
+                            return Err(Error::Invalid("inherited relation source order"));
+                        }
+                        work = work
+                            .checked_add(logical_len as u64)
+                            .ok_or(Error::Budget("inherited work bytes"))?;
+                        if work > limits.max_work_bytes {
+                            return Err(Error::Budget("inherited work bytes"));
+                        }
+                        if digest.as_bytes() != &relation.payload_sha {
+                            return Err(Error::Invalid("inherited relation payload digest"));
+                        }
+                        root_item(&mut hash, &relation.id, &relation.payload_sha);
+                        page_bytes = page_bytes
+                            .checked_add(logical_len as u64)
+                            .ok_or(Error::Budget("inherited page bytes"))?;
+                        if page_bytes > limits.max_page_bytes {
+                            return Err(Error::Budget("inherited page bytes"));
+                        }
+                        for (field, expected) in [
+                            ("id", relation.id.as_str()),
+                            ("source_graph", relation.source_graph.as_str()),
+                            ("from_id", relation.from_id.as_str()),
+                            ("to_id", relation.to_id.as_str()),
+                        ] {
+                            if text(value, field)? != expected {
+                                return Err(Error::Invalid(
+                                    "inherited relation column/payload mismatch",
+                                ));
+                            }
+                        }
+                        let view_values = value
+                            .get("view_ids")
+                            .and_then(Value::as_array)
+                            .ok_or(Error::Invalid("inherited normalized relation view list"))?;
+                        view_tokens = view_tokens
+                            .checked_add(view_values.len() as u64)
+                            .ok_or(Error::Budget("inherited view tokens"))?;
+                        if view_tokens > limits.max_view_tokens {
+                            return Err(Error::Budget("inherited view tokens"));
+                        }
+                        let mut views = BTreeSet::new();
+                        for view in view_values {
+                            let text = view
+                                .as_str()
+                                .filter(|v| !v.is_empty() && v.len() <= 4096)
+                                .ok_or(Error::Invalid(
+                                "inherited normalized relation view member",
+                            ))?;
+                            views.insert(text.to_owned());
+                        }
+                        endpoint_evidence_limit_count = endpoint_evidence_limit_count
+                            .checked_add(if relation.from_id == relation.to_id {
+                                1
+                            } else {
+                                2
+                            })
+                            .ok_or(Error::Budget("inherited endpoint evidence"))?;
+                        if endpoint_evidence_limit_count > limits.max_endpoint_evidence_rows {
+                            return Err(Error::Budget("inherited endpoint evidence"));
+                        }
+                        insert_relation(stage, &relation, &views)?;
+                        after = Some((relation.source_graph.clone(), relation.id.clone()));
+                        Ok(())
+                    };
+                    if stage.owned_creation_state().is_some() {
+                        stage
+                            .with_normalized_payload_decoded_owned(
+                                true,
+                                &relation.id,
+                                limits.max_row_bytes,
+                                true,
+                                |stage, logical, _| match logical {
+                                    NormalizedLogical::Value {
+                                        value,
+                                        logical_len,
+                                        digest,
+                                    } => process(stage, &value, logical_len, digest),
+                                    NormalizedLogical::Bytes(_) => {
+                                        Err(Error::Invalid("inherited typed reader differs"))
+                                    }
+                                },
+                            )?
+                            .ok_or(Error::Invalid("inherited relation disappeared"))?;
+                    } else {
+                        let parsed = SourceRow::parse(&relation.payload, limits.max_row_bytes)?;
+                        process(
+                            stage,
+                            parsed.value(),
+                            relation.payload.len(),
+                            Digest256::of_bytes(&relation.payload),
+                        )?;
                     }
-                    let view_values = value
-                        .get("view_ids")
-                        .and_then(Value::as_array)
-                        .ok_or(Error::Invalid("inherited normalized relation view list"))?;
-                    view_tokens = view_tokens
-                        .checked_add(view_values.len() as u64)
-                        .ok_or(Error::Budget("inherited view tokens"))?;
-                    if view_tokens > limits.max_view_tokens {
-                        return Err(Error::Budget("inherited view tokens"));
-                    }
-                    let mut views = BTreeSet::new();
-                    for view in view_values {
-                        let text = view
-                            .as_str()
-                            .filter(|v| !v.is_empty() && v.len() <= 4096)
-                            .ok_or(Error::Invalid("inherited normalized relation view member"))?;
-                        views.insert(text.to_owned());
-                    }
-                    endpoint_evidence_limit_count = endpoint_evidence_limit_count
-                        .checked_add(if relation.from_id == relation.to_id {
-                            1
-                        } else {
-                            2
-                        })
-                        .ok_or(Error::Budget("inherited endpoint evidence"))?;
-                    if endpoint_evidence_limit_count > limits.max_endpoint_evidence_rows {
-                        return Err(Error::Budget("inherited endpoint evidence"));
-                    }
-                    insert_relation(stage, &relation, &views)?;
-                    after = Some((relation.source_graph.clone(), relation.id.clone()));
                 }
                 Ok(())
             },
