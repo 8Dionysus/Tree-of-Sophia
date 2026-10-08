@@ -2,7 +2,7 @@
 //! same admitted creation operation; callbacks retain decoded/encoded custody.
 //! This module does not activate a Stage mode or manufacture a model ABI.
 use crate::{Error, Result, d1_public_capture::CreationState};
-use serde::Serialize;
+use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
 use tos_foundation::{Digest256, JsonLimits};
 
@@ -25,16 +25,22 @@ pub(crate) fn with_sql_logical_payload<T>(
     use rusqlite::types::ValueRef;
     let logical_len = usize::try_from(logical_len)
         .map_err(|_| Error::Invalid("normalized SQL logical length"))?;
-    if logical_len == 0 || logical_len > max_bytes || stored.is_empty()
-        || stored.len() > layout.physical_bound(max_bytes)? {
+    if logical_len == 0
+        || logical_len > max_bytes
+        || stored.is_empty()
+        || stored.len() > layout.physical_bound(max_bytes)?
+    {
         return Err(Error::Budget("normalized SQL payload bytes"));
     }
-    let digest: [u8; 32] = logical_sha256.try_into()
+    let digest: [u8; 32] = logical_sha256
+        .try_into()
         .map_err(|_| Error::Invalid("normalized SQL logical digest"))?;
     let digest = Digest256::from_bytes(digest);
     state.active()?;
     if codec == 0 {
-        if source_key.is_some() { return Err(Error::Invalid("normalized SQL Inline source key")); }
+        if source_key.is_some() {
+            return Err(Error::Invalid("normalized SQL Inline source key"));
+        }
         return layout.with_decoded(state, stored, Some(logical_len), max_bytes, |raw| {
             if charged_digest(state, raw)? != digest {
                 return Err(Error::Invalid("normalized SQL Inline receipt"));
@@ -45,7 +51,8 @@ pub(crate) fn with_sql_logical_payload<T>(
     if !layout.uses_carriers() || codec != 1 {
         return Err(Error::Invalid("normalized SQL payload codec"));
     }
-    let source_key = source_key.filter(|key| key.len() == 32)
+    let source_key = source_key
+        .filter(|key| key.len() == 32)
         .ok_or(Error::Invalid("normalized SQL source key"))?;
     // This admits bounded physical storage. The exact selected decoder below
     // enforces V1 raw length or the V2 frame before logical hash/hydration.
@@ -56,16 +63,25 @@ pub(crate) fn with_sql_logical_payload<T>(
     let sql_error = |error: tos_source_store::StoreError| {
         if error.code == tos_source_store::StoreErrorCode::BudgetExceeded {
             Error::Budget("normalized SQL source budget")
-        } else { Error::Invalid("normalized SQL source refusal") }
+        } else {
+            Error::Invalid("normalized SQL source refusal")
+        }
     };
     state.charge_work(sql.to_bytes().len() + source_key.len())?;
-    let mut statement = tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
-        .map_err(sql_error)?;
+    let mut statement =
+        tos_source_store::PinnedBoundedStatement::prepare_on_owned_connection(db, sql)
+            .map_err(sql_error)?;
     statement.bind_blob(1, source_key).map_err(sql_error)?;
-    statement.bind_i64(2, i64::try_from(max_bytes)
-        .map_err(|_| Error::Budget("normalized SQL source cap"))?).map_err(sql_error)?;
+    statement
+        .bind_i64(
+            2,
+            i64::try_from(max_bytes).map_err(|_| Error::Budget("normalized SQL source cap"))?,
+        )
+        .map_err(sql_error)?;
     state.active()?;
-    if !statement.step().map_err(sql_error)? { return Err(Error::Invalid("normalized SQL source absent")); }
+    if !statement.step().map_err(sql_error)? {
+        return Err(Error::Invalid("normalized SQL source absent"));
+    }
     let packet_len = usize::try_from(statement.integer(0).map_err(sql_error)?)
         .map_err(|_| Error::Invalid("normalized SQL source length"))?;
     let source = match statement.value_ref(1).map_err(sql_error)? {
@@ -78,13 +94,66 @@ pub(crate) fn with_sql_logical_payload<T>(
             return Err(Error::Invalid("normalized SQL source receipt"));
         }
         layout.with_decoded(state, stored, None, max_bytes, |stored| {
-            with_hydrated_payload(state, stored, source, limits, limits,
-                max_bytes, logical_len, digest, consume)
+            with_hydrated_payload(
+                state,
+                stored,
+                source,
+                limits,
+                limits,
+                max_bytes,
+                logical_len,
+                digest,
+                consume,
+            )
         })
     })
 }
 
 const CODEC: &str = "tos_knowledge_carrier_payload_v1";
+
+// These serializers borrow admitted source subtrees. Repeated logical fields
+// still emit their exact bytes and order without materializing duplicate trees.
+struct BorrowedAttributes<'a>(&'a [(&'a str, &'a Value)]);
+impl Serialize for BorrowedAttributes<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+        for (key, value) in self.0 {
+            map.serialize_entry(key, value)?;
+        }
+        map.end()
+    }
+}
+struct BorrowedSourceRecord<'a> {
+    record: &'a serde_json::Map<String, Value>,
+    source: &'a Value,
+}
+impl Serialize for BorrowedSourceRecord<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(self.record.len()))?;
+        for (key, value) in self.record {
+            map.serialize_entry(key, if key == "payload" { self.source } else { value })?;
+        }
+        map.end()
+    }
+}
+struct BorrowedHydratedSpine<'a> {
+    spine: &'a serde_json::Map<String, Value>,
+    attributes: BorrowedAttributes<'a>,
+    source_record: BorrowedSourceRecord<'a>,
+}
+impl Serialize for BorrowedHydratedSpine<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(self.spine.len()))?;
+        for (key, value) in self.spine {
+            match key.as_str() {
+                "attributes" => map.serialize_entry(key, &self.attributes)?,
+                "source_record" => map.serialize_entry(key, &self.source_record)?,
+                _ => map.serialize_entry(key, value)?,
+            }
+        }
+        map.end()
+    }
+}
 
 #[derive(Serialize)]
 struct Stored<'a> {
@@ -328,8 +397,11 @@ pub(crate) fn with_factored_payload<T>(
             // the spine in place, without cloning its full source payload.
             let strings = fields.iter().try_fold(0usize, |bytes, (name, pointer)| {
                 state.charge_work(name.len())?;
-                let Some(key) = name.strip_prefix("attributes.") else { return Ok(bytes); };
-                let pointer = pointer.as_str()
+                let Some(key) = name.strip_prefix("attributes.") else {
+                    return Ok(bytes);
+                };
+                let pointer = pointer
+                    .as_str()
                     .ok_or(Error::Invalid("carrier codec field pointer type"))?;
                 state.charge_work(pointer.len())?;
                 add(bytes, add(key.len(), pointer.len())?)
@@ -345,9 +417,10 @@ pub(crate) fn with_factored_payload<T>(
                     .as_str()
                     .ok_or(Error::Invalid("carrier codec field pointer type"))?;
                 state.charge_work(name.len())?;
-                if let (Some(actual), Some(original)) =
-                    (attrs.get(key), pointer_owned(state, &source_value, pointer)?)
-                {
+                if let (Some(actual), Some(original)) = (
+                    attrs.get(key),
+                    pointer_owned(state, &source_value, pointer)?,
+                ) {
                     if equal_owned(state, actual, original, 0)? {
                         state.charge_work(add(key.len(), pointer.len())?)?;
                         refs.push((key.to_owned(), pointer.to_owned()));
@@ -444,8 +517,18 @@ pub(crate) fn with_hydrated_payload<T>(
     }
     let source_digest = charged_digest(state, source)?;
     state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
-        with_hydrated_payload_from_source(state, stored, source.len(), source_digest,
-            source_value, stored_limits, max_row_bytes, logical_len, logical_digest, consume)
+        with_hydrated_payload_from_source(
+            state,
+            stored,
+            source.len(),
+            source_digest,
+            source_value,
+            stored_limits,
+            max_row_bytes,
+            logical_len,
+            logical_digest,
+            consume,
+        )
     })
 }
 
@@ -467,7 +550,7 @@ fn with_hydrated_payload_from_source<T>(
     consume: impl FnOnce(&[u8]) -> Result<T>,
 ) -> Result<T> {
     state.active()?;
-    state.with_serde_owned_value_with_limits(stored, stored_limits, |mut physical| {
+    state.with_serde_owned_value_with_limits(stored, stored_limits, |physical| {
         let map = physical
             .as_object()
             .filter(|v| v.len() == 5)
@@ -539,53 +622,92 @@ fn with_hydrated_payload_from_source<T>(
                 }
             }
         }
-        // Move the already admitted physical spine and references. Their
-        // decode hold remains live through reconstruction and its consumer.
-        let references = physical.get_mut("attribute_refs")
-            .ok_or(Error::Invalid("carrier codec references absent"))?.take();
-        let refs = references.as_array()
-            .ok_or(Error::Invalid("carrier codec references absent"))?;
-        let mut rebuilt = physical.get_mut("spine")
-            .ok_or(Error::Invalid("carrier codec spine absent"))?.take();
-        {
-            // Only referenced attribute subtrees are copied. The decoded
-            // source itself moves into its existing slot under its decode hold.
-            let mut extra = 0usize;
+        let slots = attrs
+            .len()
+            .checked_mul(std::mem::size_of::<(&str, &Value)>())
+            .ok_or(Error::Budget("carrier codec borrowed attribute slots"))?;
+        let attributes_hold = state.hold(slots)?;
+        let mut selected_attributes = Vec::with_capacity(attrs.len());
+        for (key, stored_value) in attrs {
+            state.active()?;
+            let mut selected = stored_value;
             for reference in refs {
-                let (_, pointer) = ref_pair(reference)?;
-                let item = pointer_owned(state, &source_value, pointer)?
-                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
-                extra = add(extra, state.value_clone_state_upper_bound(item)?)?;
-            }
-            let extra_hold = state.hold(extra)?;
-            for reference in refs {
-                state.active()?;
-                let (key, pointer) = ref_pair(reference)?;
-                let item = pointer_owned(state, &source_value, pointer)?
-                    .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
-                state.with_clone_value(item, |copy| {
-                    *rebuilt.get_mut("attributes")
-                        .and_then(Value::as_object_mut)
-                        .and_then(|v| v.get_mut(key))
-                        .ok_or(Error::Invalid("carrier codec attribute slot absent"))? = copy;
-                    Ok(())
-                })?;
-            }
-            *rebuilt.get_mut("source_record")
-                .and_then(|v| v.get_mut("payload"))
-                .ok_or(Error::Invalid("carrier codec source slot absent"))? = source_value;
-            let result = state.with_json_encoded(&rebuilt, max_row_bytes, |logical| {
-                if logical.len() != logical_len
-                    || charged_digest(state, logical)? != logical_digest
-                {
-                    return Err(Error::Invalid("carrier codec logical length or digest differs"));
+                let (ref_key, pointer) = ref_pair(reference)?;
+                if bytes_equal(state, key.as_bytes(), ref_key.as_bytes())? {
+                    selected = pointer_owned(state, &source_value, pointer)?
+                        .ok_or(Error::Invalid("carrier codec source pointer absent"))?;
+                    break;
                 }
-                state.active()?;
-                consume(logical)
-            });
-            drop(rebuilt);
-            drop(extra_hold);
-            result
+            }
+            selected_attributes.push((key.as_str(), selected));
         }
+        let rebuilt = BorrowedHydratedSpine {
+            spine: spine
+                .as_object()
+                .ok_or(Error::Invalid("carrier codec spine object"))?,
+            attributes: BorrowedAttributes(&selected_attributes),
+            source_record: BorrowedSourceRecord {
+                record: spine
+                    .get("source_record")
+                    .and_then(Value::as_object)
+                    .ok_or(Error::Invalid("carrier codec source record object"))?,
+                source: &source_value,
+            },
+        };
+        let result = state.with_json_encoded(&rebuilt, max_row_bytes, |logical| {
+            if logical.len() != logical_len || charged_digest(state, logical)? != logical_digest {
+                return Err(Error::Invalid(
+                    "carrier codec logical length or digest differs",
+                ));
+            }
+            state.active()?;
+            consume(logical)
+        });
+        drop(selected_attributes);
+        drop(attributes_hold);
+        result
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn borrowed_hydration_preserves_exact_nested_order_numbers_and_utf8() {
+        let source: Value = serde_json::from_str(r#"{"label":"声\nточные bytes","n":18446744073709551617001,"nested":{"z":[1.2500,null,true],"a":"é"}}"#).unwrap();
+        let physical: Value = serde_json::from_str(r#"{"z":1,"source_record":{"payload":null,"field_map":{"attributes.a":"/nested","attributes.b":"/label"},"tail":false},"attributes":{"untouched":[2,1],"a":null,"b":null},"a":2}"#).unwrap();
+        let attrs = physical["attributes"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(key, item)| {
+                (
+                    key.as_str(),
+                    match key.as_str() {
+                        "a" => &source["nested"],
+                        "b" => &source["label"],
+                        _ => item,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        let borrowed = BorrowedHydratedSpine {
+            spine: physical.as_object().unwrap(),
+            attributes: BorrowedAttributes(&attrs),
+            source_record: BorrowedSourceRecord {
+                record: physical["source_record"].as_object().unwrap(),
+                source: &source,
+            },
+        };
+        let mut owned = physical.clone();
+        owned["source_record"]["payload"] = source.clone();
+        owned["attributes"]["a"] = source["nested"].clone();
+        owned["attributes"]["b"] = source["label"].clone();
+        assert_eq!(
+            serde_json::to_vec(&borrowed).unwrap(),
+            serde_json::to_vec(&owned).unwrap()
+        );
+        assert!(physical["attributes"]["a"].is_null());
+        assert!(physical["source_record"]["payload"].is_null());
+    }
 }

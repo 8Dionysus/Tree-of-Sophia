@@ -374,8 +374,14 @@ fn checked_add(work: &AtomicU64, bytes: usize, limit: u64) -> Result<()> {
             .filter(|value| *value <= limit)
         else {
             let caller = std::panic::Location::caller();
-            eprintln!("Native capture work refused at {}:{}: used={} requested={} limit={}",
-                caller.file(), caller.line(), current, bytes, limit);
+            eprintln!(
+                "Native capture work refused at {}:{}: used={} requested={} limit={}",
+                caller.file(),
+                caller.line(),
+                current,
+                bytes,
+                limit
+            );
             return Err(Error::Budget("public D1 capture work"));
         };
         match work.compare_exchange_weak(
@@ -741,8 +747,16 @@ impl<'budget> CreationState<'budget> {
         let upper =
             crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
         drop(document);
-        let hold = self.hold(upper)?;
+        let temporary = crate::knowledge_normalization::serde_input_temporary_upper(raw.len())?;
+        let retained = upper
+            .checked_sub(temporary)
+            .ok_or(Error::Budget("owned serde retained geometry"))?;
+        let hold = self.hold(retained)?;
+        let scratch = self.hold(temporary)?;
         let value = self.decode_serde_raw(raw)?;
+        // Decoder scratch and recursion frames ended with decode. The returned
+        // value retains only its own admitted geometry during later callbacks.
+        drop(scratch);
         Ok((value, hold))
     }
     #[track_caller]
@@ -752,22 +766,8 @@ impl<'budget> CreationState<'budget> {
         limits: JsonLimits,
         operation: impl FnOnce(&serde_json::Value) -> Result<T>,
     ) -> Result<T> {
-        let document = creation_json_with_limits(self, raw, limits)?;
-        // Admit the maintained typed geometry traversal before it executes;
-        // checked serde reads charge their own later byte pass separately.
-        self.charge_work(
-            raw.len()
-                .checked_mul(2)
-                .ok_or(Error::Budget("owned serde geometry work"))?,
-        )?;
-        let upper =
-            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
-        drop(document);
-        let hold = self.hold(upper)?;
-        let value = self.decode_serde_raw(raw)?;
+        let (value, hold) = self.serde_scoped_with_limits(raw, limits)?;
         let result = operation(&value);
-        // Callback output owners must be admitted separately before cloning.
-        // This releases only the actual decoded input and its scratch owners.
         drop(value);
         drop(hold);
         result
@@ -779,21 +779,9 @@ impl<'budget> CreationState<'budget> {
         limits: JsonLimits,
         operation: impl FnOnce(serde_json::Value) -> Result<T>,
     ) -> Result<T> {
-        let document = creation_json_with_limits(self, raw, limits)?;
-        // Admit the maintained typed geometry traversal before it executes;
-        // checked serde reads charge their own later byte pass separately.
-        self.charge_work(
-            raw.len()
-                .checked_mul(2)
-                .ok_or(Error::Budget("owned serde geometry work"))?,
-        )?;
-        let upper =
-            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
-        drop(document);
-        let hold = self.hold(upper)?;
-        let value = self.decode_serde_raw(raw)?;
-        // Internal typed wrappers keep this value inside the callback. Any
-        // returned owned output must carry its separately admitted ownership.
+        let (value, hold) = self.serde_scoped_with_limits(raw, limits)?;
+        // Internal wrappers keep the moved value inside the callback; any
+        // returned output has independently admitted ownership.
         let result = operation(value);
         drop(hold);
         result
@@ -1165,20 +1153,6 @@ impl<'budget> CreationState<'budget> {
     }
     pub(crate) fn clone_value(&self, value: &serde_json::Value) -> Result<serde_json::Value> {
         self.clone_value_mode(value, true)
-    }
-    pub(crate) fn with_clone_value<T>(
-        &self,
-        value: &serde_json::Value,
-        operation: impl FnOnce(serde_json::Value) -> Result<T>,
-    ) -> Result<T> {
-        // The source value stays owned by the caller. Reserve the recursive
-        // destination geometry before any String/Number/container copy.
-        let bytes = self.value_clone_state_upper_bound(value)?;
-        let hold = self.hold(bytes)?;
-        let output = self.clone_value_mode(value, false)?;
-        let result = operation(output);
-        drop(hold);
-        result
     }
     pub(crate) fn remaining(&self, prospective: usize) -> Result<usize> {
         let deadline = match self.capture_owner {

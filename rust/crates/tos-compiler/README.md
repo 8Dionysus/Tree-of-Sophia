@@ -59,6 +59,12 @@ The writer uses normal zlib compression, retaining the same V2 byte frame and
 exact decoder contract. Full build and cold-file limits still require measured
 dataset execution.
 
+Hydration borrows the verified source subtrees when emitting repeated logical
+fields. It preserves JSON field order and exact numeric/string encoding without
+allocating duplicate value trees. Scoped decoders reserve their complete peak
+before decoding and release decoder-only scratch when decoding returns; the
+value's retained geometry remains charged until its consumer finishes.
+
 The previous CarrierOnce V1 ABI retains its raw-byte reader and exact DDL
 check. Older inline ABIs retain their original readers. A V2 frame is not
 inferred from an old ABI or from source contents. The new ABI is shared through
