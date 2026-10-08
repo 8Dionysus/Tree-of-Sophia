@@ -177,6 +177,12 @@ pub(super) fn xml_with_doctype(
                     "source requires XML 1.0",
                 )?;
             }
+            Event::Comment(_) | Event::PI(_) => {
+                // Comments and processing instructions separate XPath character
+                // data nodes, while contributing no text to flattened passages.
+                // Empty separators are ignored by character-data selectors.
+                stack.last_mut().unwrap().content.push(Part::Text(String::new()));
+            }
             Event::DocType(_) if !allow_doctype => {
                 return Err("bounded DTA source does not allow a DTD".into());
             }

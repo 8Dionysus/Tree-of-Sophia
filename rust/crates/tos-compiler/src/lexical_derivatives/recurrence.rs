@@ -23,7 +23,7 @@ fn array(v: &Value) -> Result<&Vec<Value>> {
 fn add(a: u64, b: u64) -> Result<u64> {
     a.checked_add(b).ok_or("recurrence count overflow".into())
 }
-fn round_even(numerator: u128, denominator: u128, scale: u64) -> Result<u64> {
+pub(super) fn round_even(numerator: u128, denominator: u128, scale: u64) -> Result<u64> {
     ensure(denominator != 0, "zero recurrence denominator")?;
     let n = numerator
         .checked_mul(scale as u128)

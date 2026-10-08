@@ -4,18 +4,26 @@ use tos_compiler::{lexical_derivatives, research_execution::ResearchExecution};
 const HELP: &str = "tos zarathustra-morphology-input --source-root ABS --local-input-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME] [--receipt REL] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nReconstruct the frozen exact-form census. Without a generation, check the retained private packet and historical receipt. Build requires a separate output root, a new generation and admitted bytes; its receipt commits the generation after the private mode-0600 packet. Repeating the same build verifies matching outputs and completes an interrupted generation. Conflicting outputs are refused. No morphology provider, source acceptance or rights decision.\n";
 const RECURRENCE_HELP: &str = "tos zarathustra-recurrence-projection --source-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nCompute frequency, structural range and exact rational dispersion from the hash-only lexical projection fixed by the plan. Check retains historical provenance; a fresh build requires a separate output root, generation, event time and admitted bytes. Matching retries preserve outputs; conflicts refuse. Source strings and semantic judgments are outside this projection.\n";
 const USAGE_HELP: &str = "tos zarathustra-usage-context --source-root ABS --local-input-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--receipt REL --provenance REL] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nBuild the complete page-bounded private concordance for the frozen exact-form method control. The private JSONL stays mode0600; the receipt and provenance expose only fixity, counts and source references. Checks preserve historical provenance; a new generation requires a separate output root and admitted bytes.\n";
+const SOURCE_RECURRENCE_HELP: &str = "tos semantic-source-recurrence --source-root ABS --local-input-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nReturn every selected occurrence to fixity-bound raw TEI Unicode character offsets. Preserves historical evidence on check; new generations use private mode0600 packets and text-free Rust receipts. No semantic, rights or publication admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     let command = args.first().map(String::as_str);
     let recurrence = command == Some("zarathustra-recurrence-projection");
     let usage = command == Some("zarathustra-usage-context");
-    if command != Some("zarathustra-morphology-input") && !recurrence && !usage {
+    let source_recurrence = command == Some("semantic-source-recurrence");
+    if command != Some("zarathustra-morphology-input")
+        && !recurrence
+        && !usage
+        && !source_recurrence
+    {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return Some(
             if out
                 .write_all(
-                    if recurrence {
+                    if source_recurrence {
+                        SOURCE_RECURRENCE_HELP
+                    } else if recurrence {
                         RECURRENCE_HELP
                     } else if usage {
                         USAGE_HELP
@@ -80,10 +88,13 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         if recurrence && (input.is_some() || receipt.is_some()) {
             return Err("recurrence does not accept private input or receipt redirection".into());
         }
+        if source_recurrence && receipt.is_some() {
+            return Err("source recurrence retains plan-selected receipt paths".into());
+        }
         if !usage && provenance.is_some() {
             return Err("provenance redirection belongs to usage context".into());
         }
-        if !recurrence && !usage && at.is_some() {
+        if !recurrence && !usage && !source_recurrence && at.is_some() {
             return Err("morphology census has no provenance timestamp option".into());
         }
         let input = if recurrence {
@@ -115,6 +126,19 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             ResearchExecution::new(&root, seconds)?
         };
+        if source_recurrence {
+            return lexical_derivatives::semantic_recurrence::run(
+                &ctx,
+                lexical_derivatives::semantic_recurrence::Options {
+                    build,
+                    input_root: &input,
+                    output_root: &output,
+                    plan: plan.unwrap_or(lexical_derivatives::semantic_recurrence::PLAN),
+                    generation,
+                    event_at: at,
+                },
+            );
+        }
         if recurrence {
             return lexical_derivatives::recurrence::run(
                 &ctx,
