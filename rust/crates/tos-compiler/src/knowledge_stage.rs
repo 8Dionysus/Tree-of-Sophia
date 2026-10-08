@@ -1735,12 +1735,12 @@ impl<'a> KnowledgeStage<'a> {
         // unused tails of compressed native normalized rows on 4 KiB pages.
         if stage.native_projection_inputs() {
             if let Some(state) = stage.owned_creation_state() {
-                stage_batch_owned(stage.db(), c"PRAGMA main.page_size=16384", state)?;
+                stage_batch_owned(stage.db(), c"PRAGMA main.page_size=16384; PRAGMA temp.page_size=4096", state)?;
                 if stage_integer_owned(stage.db(), c"PRAGMA main.page_size", state)? != 16384 {
                     return Err(Error::Invalid("native stage page size"));
                 }
             } else {
-                stage.db().execute_batch("PRAGMA main.page_size=16384")?;
+                stage.db().execute_batch("PRAGMA main.page_size=16384; PRAGMA temp.page_size=4096")?;
                 let applied: i64 = stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0))?;
                 if applied != 16384 {
                     return Err(Error::Invalid("native stage page size"));
@@ -1777,6 +1777,16 @@ impl<'a> KnowledgeStage<'a> {
             }
         } else {
             configure_stage_temp_reclamation(stage.db())?;
+        }
+        if stage.native_projection_inputs() {
+            let size = if let Some(state) = stage.owned_creation_state() {
+                stage_integer_owned(stage.db(), c"PRAGMA temp.page_size", state)?
+            } else {
+                stage.db().query_row("PRAGMA temp.page_size", [], |r| r.get::<_, i64>(0))?
+            };
+            if size != 4096 {
+                return Err(Error::Invalid("native stage TEMP page size"));
+            }
         }
         // Native full output drops authenticated raw inputs before selection.
         // Generic stages retain their established main-table representation.

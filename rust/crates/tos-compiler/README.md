@@ -51,6 +51,14 @@ streams, extra trailing bytes and exceeded budgets. Construction and controlled
 reads charge the original operation's state, work, deadline and cancellation
 owners, including simultaneous source and normalized decoding.
 
+Native construction uses 16 KiB main pages and 4 KiB TEMP pages. Disposable
+preparation tables use the same capped TEMP database as raw inputs and are
+removed by their existing owners before selection. Both page caps are derived
+from the selected byte limits; changing page geometry does not increase them.
+The writer uses normal zlib compression, retaining the same V2 byte frame and
+exact decoder contract. Full build and cold-file limits still require measured
+dataset execution.
+
 The previous CarrierOnce V1 ABI retains its raw-byte reader and exact DDL
 check. Older inline ABIs retain their original readers. A V2 frame is not
 inferred from an old ABI or from source contents. The new ABI is shared through
