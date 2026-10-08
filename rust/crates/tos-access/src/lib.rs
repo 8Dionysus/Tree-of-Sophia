@@ -102,3 +102,5 @@ pub mod transfer_metadata_command;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod dta_technical_markup_command;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod transfer_target_passages_command;

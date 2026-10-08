@@ -1073,3 +1073,5 @@ pub use native_snapshot::{
     build_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout,
     with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout,
 };
+
+pub mod transfer_target_passages;
