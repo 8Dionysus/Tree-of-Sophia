@@ -2288,3 +2288,16 @@ artifact, packet and provenance event. The output quota must be reserved first.
 Historical `v1` and its appended journal stay exact. This operation prepares
 local calibration input without performing translation, source assessment or
 publication admission.
+
+
+`tos antonovsky-collation --source-root ABS --local-input-root ABS
+--artifact-input-root ABS --local-output-root ABS --check` reconstructs the
+retained 2007/1911 proposal from exact witness bytes and the existing unattested
+Workbench observation. Source and local roots contain repository-relative
+paths; the artifact root contains the three plan-selected observation records.
+The historical plan and its five tracked and two private results remain exact.
+A fresh `--build --plan-ref REPO_PATH --event-id ID --scratch-bytes RESERVED_BYTES`
+requires a separate plan, output paths and opaque identities. Reserve its output
+bytes first. Matching repeats are idempotent; private artifacts remain mode0600.
+The command preserves the existing observation and creates no new human review,
+textual equivalence, translation relation, source acceptance or publication right.

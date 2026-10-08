@@ -2512,7 +2512,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_antonovsky_2007_1911_collation.py",
+      "path": "rust/crates/tos-compiler/src/antonovsky_collation.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/README.md",
@@ -2535,12 +2535,12 @@
         "one fixed unattested p011 Workbench observation and sparse-calibration closure, the exact local Antonovsky 2007 PDF page binding, the existing Antonovsky 1911 private paragraph/sentence proposal, layered rights, and the frozen collation plan"
       ],
       "writes": [
-        "one ignored mode-0600 observation layer, one ignored mode-0600 reconstructive comparison detail, and five tracked text-free source-anchor, source-text-layer, source-text-unit, witness-collation, and provenance records unless --check is used"
+        "tos antonovsky-collation --build writes two ignored mode0600 private artifacts and five tracked text-free records; a new plan must use separate output references and opaque identities, and --check never writes"
       ],
       "side_effects": "one question-scoped same-language witness correspondence proposal only; no repeated human work, attestation, review, gold, accepted text or boundary, preferred reading, textual equivalence, Edition genealogy, Expression derivation, translation, lexical or semantic identity, projection, graph/canon effect, redistribution, or publication",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_antonovsky_witness_text_collation.py",
+      "ci_inclusion": "native-software-tests",
+      "test_target": "rust/crates/tos-compiler/src/antonovsky_collation.rs",
       "disposition": "keep"
     },
     {
