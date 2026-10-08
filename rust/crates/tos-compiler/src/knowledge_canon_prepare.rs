@@ -175,13 +175,13 @@ fn canonical_digest_with_optional_properties(
     Ok(Some(digest))
 }
 fn init(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.create_preparation_tables(r#"
-CREATE TABLE IF NOT EXISTS knowledge_canon_nodes(source_graph TEXT NOT NULL,node_id TEXT NOT NULL,source_path TEXT NOT NULL,raw_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,node_id)) WITHOUT ROWID;
-CREATE INDEX IF NOT EXISTS knowledge_canon_source_paths ON knowledge_canon_nodes(source_path,node_id);
-CREATE TABLE IF NOT EXISTS knowledge_canon_packs(source_graph TEXT NOT NULL,pack_id TEXT NOT NULL,path TEXT NOT NULL,owner_branch TEXT,edge_count INTEGER,raw_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,pack_id)) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS knowledge_canon_proposals(source_graph TEXT NOT NULL,identity_id TEXT NOT NULL,native_id TEXT NOT NULL,origin_collection TEXT NOT NULL,origin_id TEXT NOT NULL,pack_id TEXT,material BLOB NOT NULL,material_sha256 BLOB NOT NULL,origin_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,identity_id)) WITHOUT ROWID;
-CREATE INDEX IF NOT EXISTS knowledge_canon_proposal_packs ON knowledge_canon_proposals(source_graph,pack_id);
-"#)
+    stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"IF NOT EXISTS knowledge_canon_nodes(source_graph TEXT NOT NULL,node_id TEXT NOT NULL,source_path TEXT NOT NULL,raw_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,node_id)) WITHOUT ROWID"#,
+            index r#"IF NOT EXISTS knowledge_canon_source_paths ON knowledge_canon_nodes(source_path,node_id)"#,
+            table r#"IF NOT EXISTS knowledge_canon_packs(source_graph TEXT NOT NULL,pack_id TEXT NOT NULL,path TEXT NOT NULL,owner_branch TEXT,edge_count INTEGER,raw_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,pack_id)) WITHOUT ROWID"#,
+            table r#"IF NOT EXISTS knowledge_canon_proposals(source_graph TEXT NOT NULL,identity_id TEXT NOT NULL,native_id TEXT NOT NULL,origin_collection TEXT NOT NULL,origin_id TEXT NOT NULL,pack_id TEXT,material BLOB NOT NULL,material_sha256 BLOB NOT NULL,origin_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,identity_id)) WITHOUT ROWID"#,
+            index r#"IF NOT EXISTS knowledge_canon_proposal_packs ON knowledge_canon_proposals(source_graph,pack_id)"#
+        ))
 }
 
 pub(crate) fn verify_public_projection_stage(stage: &KnowledgeStage<'_>) -> Result<()> {

@@ -142,10 +142,12 @@ fn build_inner(
     if roots.nodes != sealed.node_count || roots.node_sha256 != sealed.node_root_sha256 {
         return Err(Error::Invalid("global title complete base root"));
     }
-    stage.create_preparation_tables("CREATE TABLE knowledge_global_titles(
+    stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"knowledge_global_titles(
              node_id TEXT PRIMARY KEY,title_len INTEGER NOT NULL,
              title_sha256 BLOB NOT NULL CHECK(length(title_sha256)=32),
-             title_json BLOB NOT NULL) WITHOUT ROWID")?;
+             title_json BLOB NOT NULL) WITHOUT ROWID"#
+        ))?;
     let mut after = -1i64;
     let mut count = 0u64;
     let mut work = 0u64;

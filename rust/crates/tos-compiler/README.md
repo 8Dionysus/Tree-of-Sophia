@@ -51,10 +51,13 @@ streams, extra trailing bytes and exceeded budgets. Construction and controlled
 reads charge the original operation's state, work, deadline and cancellation
 owners, including simultaneous source and normalized decoding.
 
-Native construction uses 16 KiB main pages and 4 KiB TEMP pages. Disposable
-preparation tables use the same capped TEMP database as raw inputs and are
-removed by their existing owners before selection. Both page caps are derived
-from the selected byte limits; changing page geometry does not increase them.
+Native construction explicitly selects a storage profile with 16 KiB main
+pages, 4 KiB TEMP pages and disposable raw/preparation tables in TEMP. Other
+factories select persistent staging with 4 KiB pages; the receipt's provenance
+string does not choose physical storage. Preparation table/index definitions
+produce static main and temporary DDL without rewriting SQL at runtime. Both
+page caps derive from the selected byte limits, and preparation owners remove
+their tables before selection. Changing geometry does not increase the caps.
 The writer uses normal zlib compression, retaining the same V2 byte frame and
 exact decoder contract. Full build and cold-file limits still require measured
 dataset execution.

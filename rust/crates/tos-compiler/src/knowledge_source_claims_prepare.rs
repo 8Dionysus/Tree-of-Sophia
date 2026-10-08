@@ -210,20 +210,20 @@ impl InputWalk {
 }
 
 fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.create_preparation_tables(r#"
-CREATE TABLE knowledge_claim_dependencies(
+    stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"knowledge_claim_dependencies(
  claim_ref TEXT PRIMARY KEY, claim_node_id TEXT NOT NULL, subject_node_id TEXT NOT NULL,
  object_node_id TEXT NOT NULL, predicate_id TEXT NOT NULL,
  source_claim_sha256 BLOB NOT NULL CHECK(length(source_claim_sha256)=32),
- trace_sha256 BLOB NOT NULL CHECK(length(trace_sha256)=32));
-CREATE TABLE knowledge_claim_edge_bindings(
+ trace_sha256 BLOB NOT NULL CHECK(length(trace_sha256)=32))"#,
+            table r#"knowledge_claim_edge_bindings(
  edge_id TEXT PRIMARY KEY, claim_ref TEXT NOT NULL, from_id TEXT NOT NULL,
  to_id TEXT NOT NULL, edge_kind TEXT NOT NULL,
  edge_sha256 BLOB NOT NULL CHECK(length(edge_sha256)=32),
  listed_by_trace INTEGER NOT NULL DEFAULT 0 CHECK(listed_by_trace IN (0,1)),
- FOREIGN KEY(claim_ref) REFERENCES knowledge_claim_dependencies(claim_ref));
-CREATE INDEX knowledge_claim_edges_claim ON knowledge_claim_edge_bindings(claim_ref,edge_id);
-"#)
+ FOREIGN KEY(claim_ref) REFERENCES knowledge_claim_dependencies(claim_ref))"#,
+            index r#"knowledge_claim_edges_claim ON knowledge_claim_edge_bindings(claim_ref,edge_id)"#
+        ))
 }
 
 fn walk_nodes(

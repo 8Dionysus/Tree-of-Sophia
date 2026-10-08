@@ -1281,7 +1281,10 @@ pub fn prepare_claim_context_groups(
 ) -> Result<ClaimContextReceipt> {
     let result = (|| {
         limits.validate()?;
-        stage.create_preparation_tables("CREATE TABLE knowledge_claim_context_groups(source_graph TEXT NOT NULL,claim_ref TEXT NOT NULL,encounter INTEGER NOT NULL,context_sha256 BLOB NOT NULL,context_json BLOB NOT NULL,owner_native_id TEXT NOT NULL,owner_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,claim_ref,context_sha256)); CREATE INDEX knowledge_claim_context_order ON knowledge_claim_context_groups(source_graph,claim_ref,encounter)")?;
+        stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"knowledge_claim_context_groups(source_graph TEXT NOT NULL,claim_ref TEXT NOT NULL,encounter INTEGER NOT NULL,context_sha256 BLOB NOT NULL,context_json BLOB NOT NULL,owner_native_id TEXT NOT NULL,owner_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,claim_ref,context_sha256))"#,
+            index r#"knowledge_claim_context_order ON knowledge_claim_context_groups(source_graph,claim_ref,encounter)"#
+        ))?;
         let mut after = -1i64;
         let mut work = 0;
         loop {
@@ -1516,7 +1519,9 @@ pub fn materialize_source_claim_relations(
         verify_prepared_dependencies(stage, prepared, normalizer.limits)?;
         verify_claim_context_groups(stage, contexts, normalizer.limits)?;
         verify_global_titles(stage, titles, 65536, normalizer.limits.max_work_bytes)?;
-        stage.create_preparation_tables("CREATE TABLE knowledge_claim_relation_material(source_graph TEXT NOT NULL,id TEXT NOT NULL,native_id TEXT NOT NULL,raw_sha256 BLOB NOT NULL,material_len INTEGER NOT NULL,material_sha256 BLOB NOT NULL,material BLOB NOT NULL,PRIMARY KEY(source_graph,id)) WITHOUT ROWID;")?;
+        stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"knowledge_claim_relation_material(source_graph TEXT NOT NULL,id TEXT NOT NULL,native_id TEXT NOT NULL,raw_sha256 BLOB NOT NULL,material_len INTEGER NOT NULL,material_sha256 BLOB NOT NULL,material BLOB NOT NULL,PRIMARY KEY(source_graph,id)) WITHOUT ROWID"#
+        ))?;
         let mut after = None;
         let mut count = 0u64;
         let mut root = Digest256Hasher::new();

@@ -264,23 +264,23 @@ impl Walk {
     }
 }
 fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.create_preparation_tables(r#"
-CREATE TABLE knowledge_navigation_nodes(
+    stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"knowledge_navigation_nodes(
  node_id TEXT PRIMARY KEY, node_kind TEXT NOT NULL, label TEXT NOT NULL,
  source_ref TEXT NOT NULL, identity_status TEXT NOT NULL,
- raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32));
-CREATE TABLE knowledge_navigation_edges(
+ raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32))"#,
+            table r#"knowledge_navigation_edges(
  edge_id TEXT PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL,
  predicate_id TEXT NOT NULL, edge_kind TEXT NOT NULL, review_status TEXT NOT NULL,
- raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32));
-CREATE TABLE knowledge_navigation_endpoints(
+ raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32))"#,
+            table r#"knowledge_navigation_endpoints(
  edge_id TEXT NOT NULL, endpoint_role TEXT NOT NULL CHECK(endpoint_role IN ('from','to')),
  source_graph TEXT NOT NULL, native_id TEXT NOT NULL,
  locally_resolved INTEGER NOT NULL CHECK(locally_resolved IN (0,1)),
- PRIMARY KEY(edge_id,endpoint_role));
-CREATE INDEX knowledge_navigation_endpoints_seek
- ON knowledge_navigation_endpoints(source_graph,native_id,edge_id);
-"#)
+ PRIMARY KEY(edge_id,endpoint_role))"#,
+            index r#"knowledge_navigation_endpoints_seek
+ ON knowledge_navigation_endpoints(source_graph,native_id,edge_id)"#
+        ))
 }
 
 struct NodeIndex {

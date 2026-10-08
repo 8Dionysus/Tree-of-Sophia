@@ -781,6 +781,45 @@ fn read_normalized_cursor_row<'s, 'budget>(
     })
 }
 
+/// Physical staging is selected by the factory, independently of provenance
+/// and the normalized payload ABI. Both profiles retain the caller's byte caps.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StageStorageProfile {
+    Persistent,
+    NativeProjection,
+}
+impl StageStorageProfile {
+    fn geometry(self) -> (&'static std::ffi::CStr, i64, i64) {
+        match self {
+            Self::Persistent => (c"PRAGMA main.page_size=4096; PRAGMA temp.page_size=4096", 4096, 4096),
+            Self::NativeProjection => (c"PRAGMA main.page_size=16384; PRAGMA temp.page_size=4096", 16384, 4096),
+        }
+    }
+}
+
+pub(crate) struct PreparationSchema {
+    pub(crate) main: &'static str,
+    pub(crate) temporary: &'static str,
+}
+
+// One authored table/index definition, two static physical schemas. Indexes
+// follow their table's schema under SQLite's CREATE INDEX rules.
+macro_rules! preparation_statement {
+    (main, table, $sql:literal) => { concat!("CREATE TABLE ", $sql, ";\n") };
+    (temporary, table, $sql:literal) => { concat!("CREATE TEMP TABLE ", $sql, ";\n") };
+    ($placement:ident, index, $sql:literal) => { concat!("CREATE INDEX ", $sql, ";\n") };
+}
+pub(crate) use preparation_statement;
+macro_rules! preparation_schema {
+    ($($kind:ident $sql:literal),+ $(,)?) => {
+        $crate::knowledge_stage::PreparationSchema {
+            main: concat!($($crate::knowledge_stage::preparation_statement!(main, $kind, $sql)),+),
+            temporary: concat!($($crate::knowledge_stage::preparation_statement!(temporary, $kind, $sql)),+),
+        }
+    };
+}
+pub(crate) use preparation_schema;
+
 pub struct KnowledgeStage<'a> {
     candidate: PathBuf,
     inode: (u64, u64),
@@ -807,6 +846,7 @@ pub struct KnowledgeStage<'a> {
     keep: bool,
     selected_full: bool,
     payload_layout: KnowledgePayloadLayout,
+    storage_profile: StageStorageProfile,
     closed_input_rows: Option<u64>,
     fresh_selected: Option<PathBuf>,
 }
@@ -875,51 +915,19 @@ impl<'a> KnowledgeStage<'a> {
         self.payload_layout
     }
 
-    fn native_projection_inputs(&self) -> bool {
-        matches!(&self.receipt, StageInputReceipt::Projection(receipt)
-            if receipt.binding.owner_profile == "tos-native-projection-snapshot-v1")
-    }
-
-    /// Native preparation tables are disposable and share the existing TEMP
-    /// byte cap. Only selected tables contribute to the published main file.
-    /// Legacy stages keep their established placement and page geometry.
-    pub(crate) fn create_preparation_tables(&mut self, sql: &'static str) -> Result<()> {
+    /// Select explicit static DDL for the storage profile. Provenance never
+    /// selects physical placement, and schema text is not rewritten at runtime.
+    pub(crate) fn create_preparation_tables(&mut self, schema: PreparationSchema) -> Result<()> {
+        let sql = match self.storage_profile {
+            StageStorageProfile::Persistent => schema.main,
+            StageStorageProfile::NativeProjection => schema.temporary,
+        };
         let result = (|| {
             if sql.len() > 64 * 1024 || sql.is_empty() {
                 return Err(Error::Budget("preparation schema bytes"));
             }
-            if !self.native_projection_inputs() {
-                return self.with_connection(WritePhase::Schema, |db| {
-                    db.execute_batch(sql)?;
-                    Ok(())
-                });
-            }
-            let length = sql.matches("CREATE TABLE ").count()
-                .checked_mul(5)
-                .and_then(|extra| sql.len().checked_add(extra))
-                .ok_or(Error::Budget("preparation schema expansion"))?;
-            let state = self.owned_creation_state();
-            let _hold = state.map(|state| state.hold(length + std::mem::size_of::<String>()))
-                .transpose()?;
-            if let Some(state) = state {
-                state.charge_work(sql.len() + length)?;
-            } else {
-                self.charge_public_work((sql.len() + length) as u64)?;
-            }
-            let mut temporary = String::new();
-            temporary.try_reserve_exact(length)
-                .map_err(|_| Error::Budget("preparation schema allocation"))?;
-            if temporary.capacity() != length {
-                return Err(Error::Budget("preparation schema allocation capacity"));
-            }
-            let mut parts = sql.split("CREATE TABLE ");
-            temporary.push_str(parts.next().unwrap_or_default());
-            for part in parts {
-                temporary.push_str("CREATE TEMP TABLE ");
-                temporary.push_str(part);
-            }
             self.with_connection(WritePhase::Schema, |db| {
-                db.execute_batch(&temporary)?;
+                db.execute_batch(sql)?;
                 Ok(())
             })
         })();
@@ -934,6 +942,7 @@ impl<'a> KnowledgeStage<'a> {
             if self.poisoned
                 || self.exact_receipt()?.binding.owner_profile
                     != "tos-native-projection-snapshot-v1"
+                || self.storage_profile != StageStorageProfile::NativeProjection
                 || self.total_rows != 0
                 || self.closed_input_rows.is_some()
                 || self.write_page.is_some()
@@ -1183,6 +1192,7 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner(
             candidate,
             limits,
+            StageStorageProfile::Persistent,
             StageInputReceipt::Projection(receipt),
             StageInputOwner::Projection(owner),
             Some(isolation),
@@ -1202,6 +1212,7 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner(
             candidate,
             limits,
+            StageStorageProfile::Persistent,
             StageInputReceipt::Cold(receipt),
             StageInputOwner::Cold(owner),
             Some(isolation),
@@ -1256,6 +1267,7 @@ impl<'a> KnowledgeStage<'a> {
         let mut stage = Self::create_inner(
             candidate,
             limits,
+            StageStorageProfile::Persistent,
             StageInputReceipt::Cold(receipt),
             StageInputOwner::Cold(owner),
             Some(isolation),
@@ -1290,6 +1302,7 @@ impl<'a> KnowledgeStage<'a> {
         let mut stage = Self::create_inner(
             candidate,
             limits,
+            StageStorageProfile::Persistent,
             StageInputReceipt::Candidate(ErasedCandidateReceipt::new(receipt)),
             StageInputOwner::Candidate(Box::new(CandidateOwnerAdapter(owner))),
             Some(isolation),
@@ -1371,6 +1384,7 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner(
             candidate,
             limits,
+            StageStorageProfile::NativeProjection,
             StageInputReceipt::Projection(receipt),
             StageInputOwner::Projection(owner),
             Some(isolation),
@@ -1420,6 +1434,7 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner_owned(
             candidate,
             limits,
+            StageStorageProfile::NativeProjection,
             StageInputReceipt::Projection(receipt),
             StageInputOwner::Projection(owner),
             Some(isolation),
@@ -1455,6 +1470,7 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner(
             candidate,
             limits,
+            StageStorageProfile::Persistent,
             StageInputReceipt::Projection(receipt),
             StageInputOwner::Projection(owner),
             None,
@@ -1496,6 +1512,7 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner_owned(
             candidate,
             limits,
+            StageStorageProfile::Persistent,
             StageInputReceipt::Projection(receipt),
             StageInputOwner::Projection(owner),
             None,
@@ -1515,6 +1532,7 @@ impl<'a> KnowledgeStage<'a> {
     fn create_inner(
         candidate: &Path,
         limits: StageLimits,
+        storage_profile: StageStorageProfile,
         receipt: StageInputReceipt,
         owner: StageInputOwner<'a>,
         isolation: Option<&'a dyn StageIsolation>,
@@ -1525,6 +1543,7 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner_owned(
             candidate,
             limits,
+            storage_profile,
             receipt,
             owner,
             isolation,
@@ -1538,6 +1557,7 @@ impl<'a> KnowledgeStage<'a> {
     fn create_inner_owned(
         candidate: &Path,
         limits: StageLimits,
+        storage_profile: StageStorageProfile,
         receipt: StageInputReceipt,
         owner: StageInputOwner<'a>,
         isolation: Option<&'a dyn StageIsolation>,
@@ -1689,6 +1709,7 @@ impl<'a> KnowledgeStage<'a> {
             keep: false,
             selected_full: false,
             payload_layout: KnowledgePayloadLayout::InlineV1,
+            storage_profile,
             closed_input_rows: None,
             fresh_selected: None,
         };
@@ -1730,22 +1751,17 @@ impl<'a> KnowledgeStage<'a> {
             );
         }
         stage.db = Some(db);
-        // Set geometry before the first page and before deriving the page cap
-        // from the unchanged byte limit. Larger pages avoid the measured large
-        // unused tails of compressed native normalized rows on 4 KiB pages.
-        if stage.native_projection_inputs() {
-            if let Some(state) = stage.owned_creation_state() {
-                stage_batch_owned(stage.db(), c"PRAGMA main.page_size=16384; PRAGMA temp.page_size=4096", state)?;
-                if stage_integer_owned(stage.db(), c"PRAGMA main.page_size", state)? != 16384 {
-                    return Err(Error::Invalid("native stage page size"));
-                }
-            } else {
-                stage.db().execute_batch("PRAGMA main.page_size=16384; PRAGMA temp.page_size=4096")?;
-                let applied: i64 = stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0))?;
-                if applied != 16384 {
-                    return Err(Error::Invalid("native stage page size"));
-                }
-            }
+        // Apply the selected geometry before allocating pages or deriving the
+        // page cap from the unchanged main-file byte limit.
+        let (geometry_sql, main_page_bytes, temp_page_bytes) = storage_profile.geometry();
+        stage.execute_phase_batch(geometry_sql, WritePhase::SqliteOpen)?;
+        let applied: i64 = if let Some(state) = stage.owned_creation_state() {
+            stage_integer_owned(stage.db(), c"PRAGMA main.page_size", state)?
+        } else {
+            stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0))?
+        };
+        if applied != main_page_bytes {
+            return Err(Error::Invalid("stage storage profile main page size"));
         }
         stage.vm_used = Some(if let Some(used) = shared_vm_used {
             if stage.controlled.is_some() {
@@ -1778,19 +1794,15 @@ impl<'a> KnowledgeStage<'a> {
         } else {
             configure_stage_temp_reclamation(stage.db())?;
         }
-        if stage.native_projection_inputs() {
-            let size = if let Some(state) = stage.owned_creation_state() {
-                stage_integer_owned(stage.db(), c"PRAGMA temp.page_size", state)?
-            } else {
-                stage.db().query_row("PRAGMA temp.page_size", [], |r| r.get::<_, i64>(0))?
-            };
-            if size != 4096 {
-                return Err(Error::Invalid("native stage TEMP page size"));
-            }
+        let applied: i64 = if let Some(state) = stage.owned_creation_state() {
+            stage_integer_owned(stage.db(), c"PRAGMA temp.page_size", state)?
+        } else {
+            stage.db().query_row("PRAGMA temp.page_size", [], |r| r.get(0))?
+        };
+        if applied != temp_page_bytes {
+            return Err(Error::Invalid("stage storage profile TEMP page size"));
         }
-        // Native full output drops authenticated raw inputs before selection.
-        // Generic stages retain their established main-table representation.
-        let disposable_native_inputs = stage.native_projection_inputs();
+        let disposable_native_inputs = storage_profile == StageStorageProfile::NativeProjection;
         if stage.public_build || disposable_native_inputs {
             if let Some(state) = stage.owned_creation_state() {
                 configure_stage_temp_cap_owned(stage.db(), limits.max_temp_bytes, state)?;
@@ -6423,31 +6435,40 @@ mod tests {
     fn native_preparation_keeps_main_byte_cap_and_refuses_temp_overflow() {
         let owner = Owner { checks: AtomicUsize::new(0) };
         let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
-        for native in [false, true] {
+        // Native provenance alone must not select a physical storage profile.
+        for (native, native_provenance) in [(false, false), (false, true), (true, true)] {
             let candidate = stage_path("preparation-geometry");
             let mut receipt = exact_receipt(RAW_ROOT);
-            if native {
+            if native_provenance {
                 receipt.binding.owner_profile = "tos-native-projection-snapshot-v1".into();
             }
             let mut selected = limits();
             selected.sqlite.max_output_bytes = 1024 * 1024;
             selected.max_temp_bytes = 64 * 1024;
-            let mut stage = KnowledgeStage::create(&candidate, selected, receipt, &owner, &quota)
-                .unwrap();
-            stage.create_preparation_tables(
-                "CREATE TABLE preparation_fixture(id INTEGER PRIMARY KEY,payload BLOB NOT NULL);
-                 CREATE INDEX preparation_fixture_payload ON preparation_fixture(payload)",
-            ).unwrap();
+            let mut stage = if native {
+                KnowledgeStage::create_captured_native_snapshot(
+                    &candidate, selected, receipt, &owner, &quota,
+                    Arc::new(AtomicU64::new(0)), Arc::new(AtomicU64::new(0)),
+                    Arc::new(AtomicBool::new(false)), selected.sqlite.max_work_bytes,
+                    Instant::now() + std::time::Duration::from_secs(60),
+                )
+            } else {
+                KnowledgeStage::create(&candidate, selected, receipt, &owner, &quota)
+            }.unwrap();
+            stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"preparation_fixture(id INTEGER PRIMARY KEY,payload BLOB NOT NULL)"#,
+            index r#"preparation_fixture_payload ON preparation_fixture(payload)"#
+        )).unwrap();
             let page_size: u64 = stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0)).unwrap();
             let pages: u64 = stage.db().query_row("PRAGMA main.max_page_count", [], |r| r.get(0)).unwrap();
             assert_eq!(page_size, if native { 16384 } else { 4096 });
             assert_eq!(page_size * pages, selected.sqlite.max_output_bytes);
             for (schema, expected) in [("main", !native), ("temp", native)] {
                 let count: u64 = stage.db().query_row(
-                    &format!("SELECT count(*) FROM {schema}.sqlite_schema WHERE name IN ('preparation_fixture','preparation_fixture_payload')"),
+                    &format!("SELECT count(*) FROM {schema}.sqlite_schema WHERE name IN ('preparation_fixture','preparation_fixture_payload','raw_records')"),
                     [], |r| r.get(0),
                 ).unwrap();
-                assert_eq!(count, if expected { 2 } else { 0 });
+                assert_eq!(count, if expected { 3 } else { 0 });
             }
             if native {
                 let error = stage.with_connection(WritePhase::Normalized, |db| {

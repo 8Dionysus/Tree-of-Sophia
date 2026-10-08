@@ -2017,552 +2017,608 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             incomplete("candidate schema worker exceeds declared working envelope"),
         );
     }
-    let mut item_schemas = match prepare_candidate_schema_worker(
-        &view,
-        input,
-        &worker_image,
-        &worker_quota,
-        &schema_ticket,
-        schema_limits,
-        schema_operation.state_bytes,
-        first_worker_limits,
-        first_diagnostics,
-        first_worker_stream,
-        first_worker_held,
-        original_operation_state,
-    ) {
-        Ok(worker) => worker,
-        Err(error) => {
-            return fail_candidate_window_with_classified_io(
+    // Catalog consumes the prepared schema worker after Records. The scope
+    // enforces its release before native preparation, while the existing ledger
+    // retains all completed charges and the report/index continue explicitly.
+    let (mut index, verified_records, records_cost_state, mut record_executor, remaining_write) = {
+        let mut item_schemas = match prepare_candidate_schema_worker(
+            &view,
+            input,
+            &worker_image,
+            &worker_quota,
+            &schema_ticket,
+            schema_limits,
+            schema_operation.state_bytes,
+            first_worker_limits,
+            first_diagnostics,
+            first_worker_stream,
+            first_worker_held,
+            original_operation_state,
+        ) {
+            Ok(worker) => worker,
+            Err(error) => {
+                return fail_candidate_window_with_classified_io(
+                    view.execution_limits,
+                    view.remaining_budget,
+                    schema_ticket,
+                    view.original_io,
+                    io_before_schema,
+                    worker_image_read,
+                    view.candidate_io_adopted,
+                    view.remaining_write_bytes,
+                    error,
+                );
+            }
+        };
+        let schema_base_state = schema_state_upper_bound(
+            item_schemas.schema_bytes(),
+            item_schemas.source_resource_count(),
+            item_schemas
+                .source_resource_metadata_state_bytes()
+                .ok_or_else(|| incomplete("candidate selected schema metadata state unavailable"))?,
+        )?;
+        let schema_controller = item_schemas
+            .diagnostics_v2_controller_state_upper_bound(schema_limits.max_instance_bytes, 4096)
+            .map_err(owner)?;
+        let schema_state = schema_base_state
+            .checked_add(schema_controller)
+            .and_then(|state| state.checked_add(std::mem::size_of_val(&item_schemas)))
+            .ok_or_else(|| incomplete("candidate schema retained-state overflow"))?;
+        let io_after_schema = candidate
+            .io_usage()
+            .map_err(FoundationOrchestratorError::Admission)?;
+        let schema_read_delta = io_after_schema
+            .read_attempted_bytes
+            .checked_sub(io_before_schema.read_attempted_bytes)
+            .ok_or_else(|| incomplete("candidate schema IO read counter regressed"))?;
+        let schema_write_delta = io_after_schema
+            .write_attempted_bytes
+            .checked_sub(io_before_schema.write_attempted_bytes)
+            .ok_or_else(|| incomplete("candidate schema IO write counter regressed"))?;
+        let remaining_write = remaining_write_before_schema
+            .checked_sub(schema_write_delta)
+            .ok_or_else(|| incomplete("candidate schema IO exceeded write reservation"))?;
+        let schema_candidate_headroom = schema_ticket
+            .remaining()
+            .source_read_bytes
+            .checked_sub(worker_image_read)
+            .and_then(|bytes| bytes.checked_sub(schema_read_delta))
+            .ok_or_else(|| incomplete("candidate schema IO exceeded source reservation"))?;
+        candidate
+            .restrict_remaining_io(schema_candidate_headroom, remaining_write)
+            .map_err(FoundationOrchestratorError::Admission)?;
+        let schema_charge = checked_add_usize(
+            checked_add_usize(base_declared_state_bytes, worker_image_state)?,
+            checked_add_usize(schema_state, image_path_state)?,
+        )?;
+        complete_candidate_window(
+            view.execution_limits,
+            view.remaining_budget,
+            schema_ticket,
+            phase_use(
+                checked_add_u64(worker_image_read, schema_read_delta)?,
+                0,
+                schema_charge,
+                0,
+                0,
+                0,
+                0,
+            ),
+            io_before_schema,
+            io_after_schema,
+            view.candidate_io_adopted,
+            view.remaining_write_bytes,
+            remaining_write,
+        )?;
+        let remaining = view
+            .remaining_budget
+            .remaining()
+            .map_err(FoundationOrchestratorError::Command)?;
+        candidate
+            .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
+            .map_err(FoundationOrchestratorError::Admission)?;
+
+        // This phase owns the defaults projection and callback workspace. Only
+        // the verified report, index and the record worker's final-EOF obligation
+        // survive. Leaving the scope releases temporary state on every exit.
+        let (mut index, verified_records, records_cost_state, record_executor, remaining_write) = {
+            let records_ticket = open_window(
                 view.execution_limits,
                 view.remaining_budget,
-                schema_ticket,
-                view.original_io,
-                io_before_schema,
-                worker_image_read,
-                view.candidate_io_adopted,
-                view.remaining_write_bytes,
-                error,
-            );
-        }
-    };
-    let schema_base_state = schema_state_upper_bound(
-        item_schemas.schema_bytes(),
-        item_schemas.source_resource_count(),
-        item_schemas
-            .source_resource_metadata_state_bytes()
-            .ok_or_else(|| incomplete("candidate selected schema metadata state unavailable"))?,
-    )?;
-    let schema_controller = item_schemas
-        .diagnostics_v2_controller_state_upper_bound(schema_limits.max_instance_bytes, 4096)
-        .map_err(owner)?;
-    let schema_state = schema_base_state
-        .checked_add(schema_controller)
-        .and_then(|state| state.checked_add(std::mem::size_of_val(&item_schemas)))
-        .ok_or_else(|| incomplete("candidate schema retained-state overflow"))?;
-    let io_after_schema = candidate
-        .io_usage()
-        .map_err(FoundationOrchestratorError::Admission)?;
-    let schema_read_delta = io_after_schema
-        .read_attempted_bytes
-        .checked_sub(io_before_schema.read_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate schema IO read counter regressed"))?;
-    let schema_write_delta = io_after_schema
-        .write_attempted_bytes
-        .checked_sub(io_before_schema.write_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate schema IO write counter regressed"))?;
-    let remaining_write = remaining_write_before_schema
-        .checked_sub(schema_write_delta)
-        .ok_or_else(|| incomplete("candidate schema IO exceeded write reservation"))?;
-    let schema_candidate_headroom = schema_ticket
-        .remaining()
-        .source_read_bytes
-        .checked_sub(worker_image_read)
-        .and_then(|bytes| bytes.checked_sub(schema_read_delta))
-        .ok_or_else(|| incomplete("candidate schema IO exceeded source reservation"))?;
-    candidate
-        .restrict_remaining_io(schema_candidate_headroom, remaining_write)
-        .map_err(FoundationOrchestratorError::Admission)?;
-    let schema_charge = checked_add_usize(
-        checked_add_usize(base_declared_state_bytes, worker_image_state)?,
-        checked_add_usize(schema_state, image_path_state)?,
-    )?;
-    complete_candidate_window(
-        view.execution_limits,
-        view.remaining_budget,
-        schema_ticket,
-        phase_use(
-            checked_add_u64(worker_image_read, schema_read_delta)?,
-            0,
-            schema_charge,
-            0,
-            0,
-            0,
-            0,
-        ),
-        io_before_schema,
-        io_after_schema,
-        view.candidate_io_adopted,
-        view.remaining_write_bytes,
-        remaining_write,
-    )?;
-    let remaining = view
-        .remaining_budget
-        .remaining()
-        .map_err(FoundationOrchestratorError::Command)?;
-    candidate
-        .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
-        .map_err(FoundationOrchestratorError::Admission)?;
-
-    let records_ticket = open_window(
-        view.execution_limits,
-        view.remaining_budget,
-        "candidate-records-artifact-bibliography-defaults",
-        FoundationWindowKind::RecordsAndBibliography,
-        FoundationPhaseReservation::default(),
-    )?;
-    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate records", error);
-    let records_operation = records_ticket.operation_limits();
-    if records_operation.source_read_bytes == 0
-        || records_operation.state_bytes == 0
-        || records_operation.issue_count == 0
-    {
-        return fail_window(
-            view.execution_limits,
-            view.remaining_budget,
-            records_ticket,
-            incomplete("candidate Records operation reservation exhausted"),
-        );
-    }
-    let callback_held = base_declared_state_bytes
-        .checked_add(selected_index.cache_bytes)
-        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
-        .and_then(|state| state.checked_add(worker_image_state))
-        .and_then(|state| state.checked_add(image_path_state))
-        .and_then(|state| state.checked_add(schema_state))
-        .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
-        .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
-        .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
-        .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
-        .and_then(|state| {
-            state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
-        })
-        .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
-    let binding_state =
-        crate::source_admission_candidate_schema::candidate_schema_binding_additional_state_bytes(
-            &item_schemas,
-        )
-        .map_err(owner)?;
-    let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
-        .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
-        .and_then(|bytes| bytes.checked_add(binding_state))
-        .ok_or_else(|| incomplete("candidate callback report-header state overflow"))?;
-    let callback_workspace_state = callback_state_bytes
-        .checked_sub(callback_held)
-        .and_then(|state| state.checked_sub(callback_header_state))
-        .ok_or_else(|| {
-            incomplete("candidate simultaneous callback state exceeds its fixed reservation")
-        })?
-        .min(records_operation.state_bytes);
-    if callback_state_bytes > working_ram || callback_workspace_state == 0 {
-        return fail_window(
-            view.execution_limits,
-            view.remaining_budget,
-            records_ticket,
-            incomplete("candidate simultaneous callback state exceeds its fixed reservation"),
-        );
-    }
-    input
-        .require_callback_state(
-            callback_state_bytes,
-            original_operation_state,
-            "candidate Records and Claim callback state",
-        )
-        .map_err(owner)?;
-
-    let callback_result_state = std::mem::size_of::<(usize, u64)>();
-    let records_callback_state = callback_workspace_state
-        .checked_sub(callback_result_state)
-        .ok_or_else(|| incomplete("candidate callback result header exceeds reservation"))?;
-    let mut records_profile = records_operation;
-    records_profile.state_bytes = records_callback_state;
-    let records_schema_request_state = records_callback_state.max(1);
-    let records_limits = view
-        .execution_limits
-        .rolling_records_limits(records_profile, records_schema_request_state)
-        .map_err(FoundationOrchestratorError::Command)?;
-    let records_max_checks = usize::try_from(records_profile.worker_wire_bytes)
-        .ok()
-        .filter(|n| *n > 0 && *n < usize::MAX)
-        .ok_or_else(|| incomplete("candidate Records diagnostic count range"))?;
-    let mut records_shape = cut_worker_shape(records_profile, records_max_checks);
-    records_shape.max_chunks = records_shape.max_total_units;
-    let records_stream = view
-        .execution_limits
-        .cut_worker_stream_budget(records_profile, records_shape)
-        .map_err(FoundationOrchestratorError::Command)?;
-    let record_executor_budget = ticket_worker_budget(
-        &records_ticket,
-        deadline,
-        budgets.worker_address_space_bytes,
-    )?;
-    let mut record_executor = BiblioRecordExecutor::new_with_image(
-        &worker_image,
-        record_executor_budget,
-        FormatProfile::LegacyPythonObserved20260923,
-        records_max_checks,
-        deadline,
-        cancelled,
-    )
-    .map_err(owner)?;
-    let record_diagnostic_ceilings = BiblioSchemaDiagnosticsLimits {
-        max_total_issues: records_profile.issue_count.max(1),
-        max_total_report_bytes: bounded_usize(records_profile.worker_wire_bytes)?.max(1),
-        max_total_state_bytes: records_profile.state_bytes.max(1),
-    };
-    let record_diagnostic_limits = BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
-        record_diagnostic_ceilings,
-        records_max_checks,
-        records_stream,
-    )
-    .map_err(owner)?;
-    record_executor
-        .set_operation_budget(records_stream)
-        .map_err(owner)?;
-    record_executor
-        .enable_diagnostics_v2(record_diagnostic_limits)
-        .map_err(owner)?;
-    record_executor
-        .set_shared_schema_worker_quota(worker_quota.clone())
-        .map_err(owner)?;
-
-    let stored_operation_state = callback_workspace_state.min(defaults_limits.max_row_state_bytes);
-    let stored_page_state = (stored_operation_state / 3).max(1);
-    let page_state = NonZeroUsize::new(stored_page_state)
-        .ok_or_else(|| incomplete("candidate stored page-state ceiling is zero"))?;
-    let cursor_state = NonZeroUsize::new((stored_page_state / 4).min(64 * 1024).max(1))
-        .ok_or_else(|| incomplete("candidate stored cursor-state ceiling is zero"))?;
-    let max_page_rows = max_members
-        .min(stored_page_state / std::mem::size_of::<String>().max(1))
-        .max(1);
-    let page_budget = SourceFoundationRecordsPageBudget {
-        max_rows: NonZeroUsize::new(max_page_rows)
-            .ok_or_else(|| incomplete("candidate stored page-row ceiling is zero"))?,
-        max_state_bytes: page_state,
-        max_cursor_bytes: cursor_state,
-    };
-    let max_scan_rows = records_profile.source_read_bytes.min(u64::MAX - 1).max(1);
-    let stored_limits =
-        tos_validation::source_foundation_default_rules::SourceFoundationDefaultStoredLimits {
-            page_budget,
-            max_scan_rows,
-        };
-    let item_limits = view
-        .execution_limits
-        .item_limits(records_profile)
-        .map_err(FoundationOrchestratorError::Command)?;
-    let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
-        usize::try_from(item_limits.max_total_bytes)
-            .map_err(|_| incomplete("candidate bibliography query-byte range"))?,
-    )
-    .map_err(owner)?;
-    let event_json_cap = item_limits.max_state_bytes.min(
-        usize::try_from(item_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX),
-    );
-    if event_json_cap < 2 {
-        return fail_window(
-            view.execution_limits,
-            view.remaining_budget,
-            records_ticket,
-            incomplete("candidate stored event JSON ceiling is too small"),
-        );
-    }
-
-    let io_before_records = view.original_io.snapshot();
-    let quota_before_records = worker_quota
-        .usage()
-        .map_err(|_| incomplete("candidate schema quota unavailable"))?;
-    candidate
-        .restrict_remaining_io(
-            records_ticket.remaining().source_read_bytes,
-            remaining_write,
-        )
-        .map_err(FoundationOrchestratorError::Admission)?;
-    payloads
-        .restrict_remaining_budget(
-            records_ticket.remaining().source_read_bytes,
-            payloads
-                .cost()
-                .peak_state_bytes
-                .checked_add(records_ticket.remaining().state_bytes)
-                .ok_or_else(|| incomplete("candidate payload allowance overflow"))?,
-            deadline,
-            cancelled,
-        )
-        .map_err(owner)?;
-    let mut index = IndexSink::open(candidate, selected_index)
-        .map_err(FoundationOrchestratorError::Admission)?;
-    let after_index_open = candidate
-        .io_usage()
-        .map_err(FoundationOrchestratorError::Admission)?;
-    let index_open_read = after_index_open
-        .read_attempted_bytes
-        .checked_sub(io_before_records.read_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate index-open read counter regressed"))?;
-    let index_open_write = after_index_open
-        .write_attempted_bytes
-        .checked_sub(io_before_records.write_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate index-open write counter regressed"))?;
-    let write_after_index = remaining_write
-        .checked_sub(index_open_write)
-        .ok_or_else(|| incomplete("candidate index-open write reservation exceeded"))?;
-    let read_after_index = records_ticket
-        .remaining()
-        .source_read_bytes
-        .checked_sub(index_open_read)
-        .ok_or_else(|| incomplete("candidate index-open read reservation exceeded"))?;
-    candidate
-        .restrict_remaining_io(read_after_index, write_after_index)
-        .map_err(FoundationOrchestratorError::Admission)?;
-    let mut defaults = SpoolDefaultStore::open(
-        candidate,
-        defaults_limits,
-        biblio_query_rows,
-        event_json_cap,
-        stored_operation_state,
-    )
-    .map_err(FoundationOrchestratorError::Admission)?;
-
-    let physical_facts = view.physical.facts();
-    let callback_external_reads = std::cell::Cell::new(0u64);
-    let (verified_records, (dependent_state, history_rule_reads)) = match index.with_candidate_records_report(
-        input,
-        &mut item_schemas,
-        records_limits,
-        view.launch.arguments.require_local_payloads,
-        cancelled,
-        &mut record_executor,
-        physical_facts,
-        &mut payloads,
-        tos_validation::record_biblio_cut::SourceCutRecordFactBudget {
-            max_facts: records_profile.source_read_bytes.min(u64::MAX - 1).max(1),
-            max_encoded_bytes: records_profile.source_read_bytes.min(u64::MAX - 1).max(1),
-        },
-        page_budget,
-        callback_held,
-        original_operation_state,
-        records_callback_state,
-        |records, verified, schemas, record_executor, payload_reader| {
-            let predicates = [
-                verified.fence() != fence,
-                verified.record_issue_count() != 0,
-                verified.item_issue_count() != 0,
-                records.input_identity() != &fence,
-                records.source_membership() != &fence.membership,
-                records.cost().selected_current_member_bytes != fence.source_bytes,
-            ];
-            let mask = predicates.into_iter().enumerate().fold(0u8, |mask, (bit, failed)| {
-                mask | if failed { 1u8 << bit } else { 0 }
-            });
-            if mask != 0 {
-                let mut site = format!("ri-{mask:x}-{:x}-{:x}",
-                    verified.record_issue_count(), verified.item_issue_count());
-                let mut reason = crate::source_admission_spooled_index::bounded_source_cause(
-                    "receiver-source", &site, "candidate Records report is not clean and bound");
-                if verified.record_issue_count() != 0 || verified.item_issue_count() != 0 {
-                    use tos_validation::source_foundation_records::{
-                        SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
-                    };
-                    let collection = if verified.record_issue_count() != 0 {
-                        SourceFoundationRecordsCollection::OrderedIssues
-                    } else {
-                        SourceFoundationRecordsCollection::ItemIssues
-                    };
-                    let page = records.index().page(collection, None,
-                        SourceFoundationRecordsPageBudget {
-                            max_rows: NonZeroUsize::MIN,
-                            ..page_budget
-                        }, deadline, cancelled)
-                        .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
-                    let first = page.rows.first().and_then(|row| match row {
-                        SourceFoundationRecordsStoredFact::OrderedIssue(issue) =>
-                            Some((issue.location.as_str(), issue.message.as_str())),
-                        SourceFoundationRecordsStoredFact::ItemIssue(issue) =>
-                            Some((issue.path.as_str(), issue.code)),
-                        _ => None,
-                    });
-                    if let Some((location, message)) = first {
-                        let digest = Digest256::of_bytes(location.as_bytes()).to_hex();
-                        let issue_site = format!("{site}-p{}", &digest[..12]);
-                        if issue_site.len() <= 40 { site = issue_site; }
-                        reason = crate::source_admission_spooled_index::bounded_source_cause(
-                            "receiver-source", &site, message);
-                    }
-                }
-                if verified.record_issue_count() == 0 && verified.item_issue_count() != 0 {
-                    use tos_validation::source_foundation_records::{
-                        SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
-                    };
-                    let cap = 192usize; // Original Item histogram envelope; collections have their own bound.
-                    let expected = usize::try_from(verified.item_issue_count())
-                        .map_err(|_| io::Error::other("Item issue count does not fit"))?;
-                    if expected > item_limits.max_issues {
-                        return Err(io::Error::other("Item issue count exceeds original issue cap"));
-                    }
-                    // The histogram and formatting buffers coexist with one page and
-                    // its old cursor, all inside the original page-state allowance.
-                    let retained = expected.checked_mul(std::mem::size_of::<(&'static str, u64)>())
-                        .and_then(|n| n.checked_add(std::mem::size_of::<Vec<(&'static str, u64)>>()))
-                        .and_then(|n| n.checked_add(cap.checked_mul(6)?))
-                        .and_then(|n| n.checked_add(std::mem::size_of::<tos_foundation::Digest256Hasher>()))
-                        .and_then(|n| n.checked_add(page_budget.max_cursor_bytes.get()))
-                        .ok_or_else(|| io::Error::other("Item histogram state overflow"))?;
-                    let page_state = page_budget.max_state_bytes.get().checked_sub(retained)
-                        .and_then(NonZeroUsize::new)
-                        .ok_or_else(|| io::Error::other("Item histogram exceeds original page state"))?;
-                    let mut histogram: Vec<(&'static str, u64)> = Vec::new();
-                    histogram.try_reserve_exact(expected)
-                        .map_err(|_| io::Error::other("Item histogram allocation refused"))?;
-                    if histogram.capacity() > expected {
-                        return Err(io::Error::other("Item histogram capacity exceeds charge"));
-                    }
-                    let mut cursor = None;
-                    let mut observed = 0usize;
-                    loop {
-                        let page = records.index().page(
-                            SourceFoundationRecordsCollection::ItemIssues, cursor.as_ref(),
-                            SourceFoundationRecordsPageBudget {
-                                max_rows: NonZeroUsize::MIN,
-                                max_state_bytes: page_state,
-                                ..page_budget
-                            }, deadline, cancelled)
-                            .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
-                        if page.rows.is_empty() && page.next_cursor.is_some() {
-                            return Err(io::Error::other("Item issue page made no progress"));
-                        }
-                        for row in &page.rows {
-                            let SourceFoundationRecordsStoredFact::ItemIssue(issue) = row else {
-                                return Err(io::Error::other("Item issue page contains another fact"));
-                            };
-                            observed = observed.checked_add(1)
-                                .filter(|n| *n <= expected)
-                                .ok_or_else(|| io::Error::other("Item issue page count drift"))?;
-                            if issue.code.is_empty() || issue.code.len() > cap ||
-                                !issue.code.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-') {
-                                return Err(io::Error::other("Item issue code is not an owned public code"));
-                            }
-                            if let Some((_, count)) = histogram.iter_mut().find(|(code, _)| *code == issue.code) {
-                                *count += 1;
-                            } else { histogram.push((issue.code, 1)); }
-                        }
-                        cursor = page.next_cursor;
-                        if cursor.is_none() { break; }
-                    }
-                    if observed != expected {
-                        return Err(io::Error::other("Item issue EOF count drift"));
-                    }
-                    histogram.sort_unstable_by_key(|(code, _)| *code);
-                    let mut hash = tos_foundation::Digest256Hasher::new();
-                    for (code, count) in &histogram {
-                        hash.update(code.as_bytes()); hash.update(&[0]); hash.update(&count.to_le_bytes());
-                    }
-                    let digest = hash.finalize().to_hex();
-                    let mut summary = format!("{site} items={observed} codes={}", histogram.len());
-                    let complete_bytes = histogram.iter().try_fold(summary.len(), |n, (code, count)| {
-                        n.checked_add(code.len() + 2 + count.to_string().len())
-                    }).ok_or_else(|| io::Error::other("Item histogram output overflow"))?;
-                    if complete_bytes <= cap {
-                        for (code, count) in &histogram {
-                            use std::fmt::Write;
-                            write!(&mut summary, " {code}={count}").map_err(io::Error::other)?;
-                        }
-                    } else {
-                        // Full ordered histogram identity survives even when the
-                        // finite public packet cannot carry every textual code.
-                        summary.push_str(&format!(" hash={digest}"));
-                        let mut shown = 0usize;
-                        for (code, count) in &histogram {
-                            let entry = format!(" {code}={count}");
-                            let suffix = format!(" omitted={}", histogram.len() - shown);
-                            if summary.len() + entry.len() + suffix.len() > cap { break; }
-                            summary.push_str(&entry); shown += 1;
-                        }
-                        summary.push_str(&format!(" omitted={}", histogram.len() - shown));
-                    }
-                    if summary.len() > cap {
-                        return Err(io::Error::other("Item histogram exceeds public reason cap"));
-                    }
-                    return Err(io::Error::other(crate::source_command::SourceCommandError::DeniedWithReason(summary)));
-                }
-                return Err(io::Error::other(reason));
+                "candidate-records-artifact-bibliography-defaults",
+                FoundationWindowKind::RecordsAndBibliography,
+                FoundationPhaseReservation::default(),
+            )?;
+            let owner = |error| FoundationOrchestratorError::OwnerAt("candidate records", error);
+            let records_operation = records_ticket.operation_limits();
+            if records_operation.source_read_bytes == 0
+                || records_operation.state_bytes == 0
+                || records_operation.issue_count == 0
+            {
+                return fail_window(
+                    view.execution_limits,
+                    view.remaining_budget,
+                    records_ticket,
+                    incomplete("candidate Records operation reservation exhausted"),
+                );
             }
-            let after_records = view.original_io.snapshot();
-            let read_used = after_records
+            let callback_held = base_declared_state_bytes
+                .checked_add(selected_index.cache_bytes)
+                .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
+                .and_then(|state| state.checked_add(worker_image_state))
+                .and_then(|state| state.checked_add(image_path_state))
+                .and_then(|state| state.checked_add(schema_state))
+                .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
+                .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
+                .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
+                .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
+                .and_then(|state| {
+                    state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
+                })
+                .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
+            let binding_state =
+                crate::source_admission_candidate_schema::candidate_schema_binding_additional_state_bytes(
+                    &item_schemas,
+                )
+                .map_err(owner)?;
+            let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
+                .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
+                .and_then(|bytes| bytes.checked_add(binding_state))
+                .ok_or_else(|| incomplete("candidate callback report-header state overflow"))?;
+            let callback_workspace_state = callback_state_bytes
+                .checked_sub(callback_held)
+                .and_then(|state| state.checked_sub(callback_header_state))
+                .ok_or_else(|| {
+                    incomplete("candidate simultaneous callback state exceeds its fixed reservation")
+                })?
+                .min(records_operation.state_bytes);
+            if callback_state_bytes > working_ram || callback_workspace_state == 0 {
+                return fail_window(
+                    view.execution_limits,
+                    view.remaining_budget,
+                    records_ticket,
+                    incomplete("candidate simultaneous callback state exceeds its fixed reservation"),
+                );
+            }
+            input
+                .require_callback_state(
+                    callback_state_bytes,
+                    original_operation_state,
+                    "candidate Records and Claim callback state",
+                )
+                .map_err(owner)?;
+
+            let callback_result_state = std::mem::size_of::<(usize, u64)>();
+            let records_callback_state = callback_workspace_state
+                .checked_sub(callback_result_state)
+                .ok_or_else(|| incomplete("candidate callback result header exceeds reservation"))?;
+            let mut records_profile = records_operation;
+            records_profile.state_bytes = records_callback_state;
+            let records_schema_request_state = records_callback_state.max(1);
+            let records_limits = view
+                .execution_limits
+                .rolling_records_limits(records_profile, records_schema_request_state)
+                .map_err(FoundationOrchestratorError::Command)?;
+            let records_max_checks = usize::try_from(records_profile.worker_wire_bytes)
+                .ok()
+                .filter(|n| *n > 0 && *n < usize::MAX)
+                .ok_or_else(|| incomplete("candidate Records diagnostic count range"))?;
+            let mut records_shape = cut_worker_shape(records_profile, records_max_checks);
+            records_shape.max_chunks = records_shape.max_total_units;
+            let records_stream = view
+                .execution_limits
+                .cut_worker_stream_budget(records_profile, records_shape)
+                .map_err(FoundationOrchestratorError::Command)?;
+            let record_executor_budget = ticket_worker_budget(
+                &records_ticket,
+                deadline,
+                budgets.worker_address_space_bytes,
+            )?;
+            let mut record_executor = BiblioRecordExecutor::new_with_image(
+                &worker_image,
+                record_executor_budget,
+                FormatProfile::LegacyPythonObserved20260923,
+                records_max_checks,
+                deadline,
+                cancelled,
+            )
+            .map_err(owner)?;
+            let record_diagnostic_ceilings = BiblioSchemaDiagnosticsLimits {
+                max_total_issues: records_profile.issue_count.max(1),
+                max_total_report_bytes: bounded_usize(records_profile.worker_wire_bytes)?.max(1),
+                max_total_state_bytes: records_profile.state_bytes.max(1),
+            };
+            let record_diagnostic_limits = BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
+                record_diagnostic_ceilings,
+                records_max_checks,
+                records_stream,
+            )
+            .map_err(owner)?;
+            record_executor
+                .set_operation_budget(records_stream)
+                .map_err(owner)?;
+            record_executor
+                .enable_diagnostics_v2(record_diagnostic_limits)
+                .map_err(owner)?;
+            record_executor
+                .set_shared_schema_worker_quota(worker_quota.clone())
+                .map_err(owner)?;
+
+            let stored_operation_state = callback_workspace_state.min(defaults_limits.max_row_state_bytes);
+            let stored_page_state = (stored_operation_state / 3).max(1);
+            let page_state = NonZeroUsize::new(stored_page_state)
+                .ok_or_else(|| incomplete("candidate stored page-state ceiling is zero"))?;
+            let cursor_state = NonZeroUsize::new((stored_page_state / 4).min(64 * 1024).max(1))
+                .ok_or_else(|| incomplete("candidate stored cursor-state ceiling is zero"))?;
+            let max_page_rows = max_members
+                .min(stored_page_state / std::mem::size_of::<String>().max(1))
+                .max(1);
+            let page_budget = SourceFoundationRecordsPageBudget {
+                max_rows: NonZeroUsize::new(max_page_rows)
+                    .ok_or_else(|| incomplete("candidate stored page-row ceiling is zero"))?,
+                max_state_bytes: page_state,
+                max_cursor_bytes: cursor_state,
+            };
+            let max_scan_rows = records_profile.source_read_bytes.min(u64::MAX - 1).max(1);
+            let stored_limits =
+                tos_validation::source_foundation_default_rules::SourceFoundationDefaultStoredLimits {
+                    page_budget,
+                    max_scan_rows,
+                };
+            let item_limits = view
+                .execution_limits
+                .item_limits(records_profile)
+                .map_err(FoundationOrchestratorError::Command)?;
+            let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
+                usize::try_from(item_limits.max_total_bytes)
+                    .map_err(|_| incomplete("candidate bibliography query-byte range"))?,
+            )
+            .map_err(owner)?;
+            let event_json_cap = item_limits.max_state_bytes.min(
+                usize::try_from(item_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX),
+            );
+            if event_json_cap < 2 {
+                return fail_window(
+                    view.execution_limits,
+                    view.remaining_budget,
+                    records_ticket,
+                    incomplete("candidate stored event JSON ceiling is too small"),
+                );
+            }
+
+            let io_before_records = view.original_io.snapshot();
+            let quota_before_records = worker_quota
+                .usage()
+                .map_err(|_| incomplete("candidate schema quota unavailable"))?;
+            candidate
+                .restrict_remaining_io(
+                    records_ticket.remaining().source_read_bytes,
+                    remaining_write,
+                )
+                .map_err(FoundationOrchestratorError::Admission)?;
+            payloads
+                .restrict_remaining_budget(
+                    records_ticket.remaining().source_read_bytes,
+                    payloads
+                        .cost()
+                        .peak_state_bytes
+                        .checked_add(records_ticket.remaining().state_bytes)
+                        .ok_or_else(|| incomplete("candidate payload allowance overflow"))?,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(owner)?;
+            let mut index = IndexSink::open(candidate, selected_index)
+                .map_err(FoundationOrchestratorError::Admission)?;
+            let after_index_open = candidate
+                .io_usage()
+                .map_err(FoundationOrchestratorError::Admission)?;
+            let index_open_read = after_index_open
                 .read_attempted_bytes
                 .checked_sub(io_before_records.read_attempted_bytes)
-                .ok_or_else(|| io::Error::other("candidate Records read counter regressed"))?;
-            let write_used = after_records
+                .ok_or_else(|| incomplete("candidate index-open read counter regressed"))?;
+            let index_open_write = after_index_open
                 .write_attempted_bytes
                 .checked_sub(io_before_records.write_attempted_bytes)
-                .ok_or_else(|| io::Error::other("candidate Records write counter regressed"))?;
-            let current_read = records_ticket
+                .ok_or_else(|| incomplete("candidate index-open write counter regressed"))?;
+            let write_after_index = remaining_write
+                .checked_sub(index_open_write)
+                .ok_or_else(|| incomplete("candidate index-open write reservation exceeded"))?;
+            let read_after_index = records_ticket
                 .remaining()
                 .source_read_bytes
-                .checked_sub(read_used)
-                .ok_or_else(|| io::Error::other("candidate Records read budget exceeded"))?;
-            let current_write = remaining_write
-                .checked_sub(write_used)
-                .ok_or_else(|| io::Error::other("candidate Records write budget exceeded"))?;
+                .checked_sub(index_open_read)
+                .ok_or_else(|| incomplete("candidate index-open read reservation exceeded"))?;
             candidate
-                .restrict_remaining_io(current_read, current_write)
-                .map_err(|_| io::Error::other("candidate Records IO narrowing refused"))?;
+                .restrict_remaining_io(read_after_index, write_after_index)
+                .map_err(FoundationOrchestratorError::Admission)?;
+            let mut defaults = SpoolDefaultStore::open(
+                candidate,
+                defaults_limits,
+                biblio_query_rows,
+                event_json_cap,
+                stored_operation_state,
+            )
+            .map_err(FoundationOrchestratorError::Admission)?;
 
-            let artifact_limits = view
-                .execution_limits
-                .item_limits(FoundationPhaseReservation {
-                    source_read_bytes: current_read,
-                    worker_wire_bytes: records_ticket.remaining().worker_wire_bytes,
-                    state_bytes: callback_workspace_state,
-                    issue_count: records_ticket.remaining().issue_count,
-                    output_bytes: records_ticket.remaining().output_bytes,
-                    worker_cpu_micros: records_ticket.remaining().worker_cpu_micros,
-                    worker_cpu_seconds: records_ticket.remaining().worker_cpu_seconds,
-                    tmpfs_bytes: records_ticket.remaining().tmpfs_bytes,
-                    tmpfs_inodes: records_ticket.remaining().tmpfs_inodes,
-                })
-                .map_err(|_| io::Error::other("candidate Artifact limits refused"))?;
-            let source_root = view
-                .selected_roots
-                .repo_root
-                .join("ToS/source-witnesses");
-            let history_usage_before = view.history.as_deref().map(|history| history.usage());
-            let history_shared_before = view
-                .history
-                .as_deref()
-                .filter(|history| history.shared_io_budget_matches(view.original_io))
-                .map(|history| history.shared_runtime_read_bytes_returned());
-            let schema_worker = RefCell::new(schemas);
-            let replay_result = super::foundation_artifact_replay::prepare_candidate_artifact_replay(
+            let physical_facts = view.physical.facts();
+            let callback_external_reads = std::cell::Cell::new(0u64);
+            let (verified_records, (dependent_state, history_rule_reads)) = match index.with_candidate_records_report(
                 input,
-                view.coverage,
-                records,
-                &source_root,
-                u64::from(view.invocation.uid()),
-                &schema_worker,
-                worker_quota.clone(),
-                artifact_limits,
-                page_budget,
-                max_scan_rows.min(usize::MAX as u64) as usize,
-                max_checks,
+                &mut item_schemas,
+                records_limits,
+                view.launch.arguments.require_local_payloads,
                 cancelled,
-            );
-            let mut replay = match replay_result {
-                Ok(replay) => replay,
-                Err(error) => {
-                    let history_after = view.history.as_deref().map(|history| history.usage());
-                    let history_read = match (history_usage_before, history_after) {
-                        (Some((before, _)), Some((after, _))) =>
-                            after.checked_sub(before).unwrap_or(0),
+                &mut record_executor,
+                physical_facts,
+                &mut payloads,
+                tos_validation::record_biblio_cut::SourceCutRecordFactBudget {
+                    max_facts: records_profile.source_read_bytes.min(u64::MAX - 1).max(1),
+                    max_encoded_bytes: records_profile.source_read_bytes.min(u64::MAX - 1).max(1),
+                },
+                page_budget,
+                callback_held,
+                original_operation_state,
+                records_callback_state,
+                |records, verified, schemas, record_executor, payload_reader| {
+                    let predicates = [
+                        verified.fence() != fence,
+                        verified.record_issue_count() != 0,
+                        verified.item_issue_count() != 0,
+                        records.input_identity() != &fence,
+                        records.source_membership() != &fence.membership,
+                        records.cost().selected_current_member_bytes != fence.source_bytes,
+                    ];
+                    let mask = predicates.into_iter().enumerate().fold(0u8, |mask, (bit, failed)| {
+                        mask | if failed { 1u8 << bit } else { 0 }
+                    });
+                    if mask != 0 {
+                        let mut site = format!("ri-{mask:x}-{:x}-{:x}",
+                            verified.record_issue_count(), verified.item_issue_count());
+                        let mut reason = crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source", &site, "candidate Records report is not clean and bound");
+                        if verified.record_issue_count() != 0 || verified.item_issue_count() != 0 {
+                            use tos_validation::source_foundation_records::{
+                                SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
+                            };
+                            let collection = if verified.record_issue_count() != 0 {
+                                SourceFoundationRecordsCollection::OrderedIssues
+                            } else {
+                                SourceFoundationRecordsCollection::ItemIssues
+                            };
+                            let page = records.index().page(collection, None,
+                                SourceFoundationRecordsPageBudget {
+                                    max_rows: NonZeroUsize::MIN,
+                                    ..page_budget
+                                }, deadline, cancelled)
+                                .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                            let first = page.rows.first().and_then(|row| match row {
+                                SourceFoundationRecordsStoredFact::OrderedIssue(issue) =>
+                                    Some((issue.location.as_str(), issue.message.as_str())),
+                                SourceFoundationRecordsStoredFact::ItemIssue(issue) =>
+                                    Some((issue.path.as_str(), issue.code)),
+                                _ => None,
+                            });
+                            if let Some((location, message)) = first {
+                                let digest = Digest256::of_bytes(location.as_bytes()).to_hex();
+                                let issue_site = format!("{site}-p{}", &digest[..12]);
+                                if issue_site.len() <= 40 { site = issue_site; }
+                                reason = crate::source_admission_spooled_index::bounded_source_cause(
+                                    "receiver-source", &site, message);
+                            }
+                        }
+                        if verified.record_issue_count() == 0 && verified.item_issue_count() != 0 {
+                            use tos_validation::source_foundation_records::{
+                                SourceFoundationRecordsCollection, SourceFoundationRecordsStoredFact,
+                            };
+                            let cap = 192usize; // Original Item histogram envelope; collections have their own bound.
+                            let expected = usize::try_from(verified.item_issue_count())
+                                .map_err(|_| io::Error::other("Item issue count does not fit"))?;
+                            if expected > item_limits.max_issues {
+                                return Err(io::Error::other("Item issue count exceeds original issue cap"));
+                            }
+                            // The histogram and formatting buffers coexist with one page and
+                            // its old cursor, all inside the original page-state allowance.
+                            let retained = expected.checked_mul(std::mem::size_of::<(&'static str, u64)>())
+                                .and_then(|n| n.checked_add(std::mem::size_of::<Vec<(&'static str, u64)>>()))
+                                .and_then(|n| n.checked_add(cap.checked_mul(6)?))
+                                .and_then(|n| n.checked_add(std::mem::size_of::<tos_foundation::Digest256Hasher>()))
+                                .and_then(|n| n.checked_add(page_budget.max_cursor_bytes.get()))
+                                .ok_or_else(|| io::Error::other("Item histogram state overflow"))?;
+                            let page_state = page_budget.max_state_bytes.get().checked_sub(retained)
+                                .and_then(NonZeroUsize::new)
+                                .ok_or_else(|| io::Error::other("Item histogram exceeds original page state"))?;
+                            let mut histogram: Vec<(&'static str, u64)> = Vec::new();
+                            histogram.try_reserve_exact(expected)
+                                .map_err(|_| io::Error::other("Item histogram allocation refused"))?;
+                            if histogram.capacity() > expected {
+                                return Err(io::Error::other("Item histogram capacity exceeds charge"));
+                            }
+                            let mut cursor = None;
+                            let mut observed = 0usize;
+                            loop {
+                                let page = records.index().page(
+                                    SourceFoundationRecordsCollection::ItemIssues, cursor.as_ref(),
+                                    SourceFoundationRecordsPageBudget {
+                                        max_rows: NonZeroUsize::MIN,
+                                        max_state_bytes: page_state,
+                                        ..page_budget
+                                    }, deadline, cancelled)
+                                    .map_err(crate::source_admission_spooled_index::receiver_refusal)?;
+                                if page.rows.is_empty() && page.next_cursor.is_some() {
+                                    return Err(io::Error::other("Item issue page made no progress"));
+                                }
+                                for row in &page.rows {
+                                    let SourceFoundationRecordsStoredFact::ItemIssue(issue) = row else {
+                                        return Err(io::Error::other("Item issue page contains another fact"));
+                                    };
+                                    observed = observed.checked_add(1)
+                                        .filter(|n| *n <= expected)
+                                        .ok_or_else(|| io::Error::other("Item issue page count drift"))?;
+                                    if issue.code.is_empty() || issue.code.len() > cap ||
+                                        !issue.code.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-') {
+                                        return Err(io::Error::other("Item issue code is not an owned public code"));
+                                    }
+                                    if let Some((_, count)) = histogram.iter_mut().find(|(code, _)| *code == issue.code) {
+                                        *count += 1;
+                                    } else { histogram.push((issue.code, 1)); }
+                                }
+                                cursor = page.next_cursor;
+                                if cursor.is_none() { break; }
+                            }
+                            if observed != expected {
+                                return Err(io::Error::other("Item issue EOF count drift"));
+                            }
+                            histogram.sort_unstable_by_key(|(code, _)| *code);
+                            let mut hash = tos_foundation::Digest256Hasher::new();
+                            for (code, count) in &histogram {
+                                hash.update(code.as_bytes()); hash.update(&[0]); hash.update(&count.to_le_bytes());
+                            }
+                            let digest = hash.finalize().to_hex();
+                            let mut summary = format!("{site} items={observed} codes={}", histogram.len());
+                            let complete_bytes = histogram.iter().try_fold(summary.len(), |n, (code, count)| {
+                                n.checked_add(code.len() + 2 + count.to_string().len())
+                            }).ok_or_else(|| io::Error::other("Item histogram output overflow"))?;
+                            if complete_bytes <= cap {
+                                for (code, count) in &histogram {
+                                    use std::fmt::Write;
+                                    write!(&mut summary, " {code}={count}").map_err(io::Error::other)?;
+                                }
+                            } else {
+                                // Full ordered histogram identity survives even when the
+                                // finite public packet cannot carry every textual code.
+                                summary.push_str(&format!(" hash={digest}"));
+                                let mut shown = 0usize;
+                                for (code, count) in &histogram {
+                                    let entry = format!(" {code}={count}");
+                                    let suffix = format!(" omitted={}", histogram.len() - shown);
+                                    if summary.len() + entry.len() + suffix.len() > cap { break; }
+                                    summary.push_str(&entry); shown += 1;
+                                }
+                                summary.push_str(&format!(" omitted={}", histogram.len() - shown));
+                            }
+                            if summary.len() > cap {
+                                return Err(io::Error::other("Item histogram exceeds public reason cap"));
+                            }
+                            return Err(io::Error::other(crate::source_command::SourceCommandError::DeniedWithReason(summary)));
+                        }
+                        return Err(io::Error::other(reason));
+                    }
+                    let after_records = view.original_io.snapshot();
+                    let read_used = after_records
+                        .read_attempted_bytes
+                        .checked_sub(io_before_records.read_attempted_bytes)
+                        .ok_or_else(|| io::Error::other("candidate Records read counter regressed"))?;
+                    let write_used = after_records
+                        .write_attempted_bytes
+                        .checked_sub(io_before_records.write_attempted_bytes)
+                        .ok_or_else(|| io::Error::other("candidate Records write counter regressed"))?;
+                    let current_read = records_ticket
+                        .remaining()
+                        .source_read_bytes
+                        .checked_sub(read_used)
+                        .ok_or_else(|| io::Error::other("candidate Records read budget exceeded"))?;
+                    let current_write = remaining_write
+                        .checked_sub(write_used)
+                        .ok_or_else(|| io::Error::other("candidate Records write budget exceeded"))?;
+                    candidate
+                        .restrict_remaining_io(current_read, current_write)
+                        .map_err(|_| io::Error::other("candidate Records IO narrowing refused"))?;
+
+                    let artifact_limits = view
+                        .execution_limits
+                        .item_limits(FoundationPhaseReservation {
+                            source_read_bytes: current_read,
+                            worker_wire_bytes: records_ticket.remaining().worker_wire_bytes,
+                            state_bytes: callback_workspace_state,
+                            issue_count: records_ticket.remaining().issue_count,
+                            output_bytes: records_ticket.remaining().output_bytes,
+                            worker_cpu_micros: records_ticket.remaining().worker_cpu_micros,
+                            worker_cpu_seconds: records_ticket.remaining().worker_cpu_seconds,
+                            tmpfs_bytes: records_ticket.remaining().tmpfs_bytes,
+                            tmpfs_inodes: records_ticket.remaining().tmpfs_inodes,
+                        })
+                        .map_err(|_| io::Error::other("candidate Artifact limits refused"))?;
+                    let source_root = view
+                        .selected_roots
+                        .repo_root
+                        .join("ToS/source-witnesses");
+                    let history_usage_before = view.history.as_deref().map(|history| history.usage());
+                    let history_shared_before = view
+                        .history
+                        .as_deref()
+                        .filter(|history| history.shared_io_budget_matches(view.original_io))
+                        .map(|history| history.shared_runtime_read_bytes_returned());
+                    let schema_worker = RefCell::new(schemas);
+                    let replay_result = super::foundation_artifact_replay::prepare_candidate_artifact_replay(
+                        input,
+                        view.coverage,
+                        records,
+                        &source_root,
+                        u64::from(view.invocation.uid()),
+                        &schema_worker,
+                        worker_quota.clone(),
+                        artifact_limits,
+                        page_budget,
+                        max_scan_rows.min(usize::MAX as u64) as usize,
+                        max_checks,
+                        cancelled,
+                    );
+                    let mut replay = match replay_result {
+                        Ok(replay) => replay,
+                        Err(error) => {
+                            let history_after = view.history.as_deref().map(|history| history.usage());
+                            let history_read = match (history_usage_before, history_after) {
+                                (Some((before, _)), Some((after, _))) =>
+                                    after.checked_sub(before).unwrap_or(0),
+                                _ => 0,
+                            };
+                            let history_shared = match (
+                                history_shared_before,
+                                view.history
+                                    .as_deref()
+                                    .filter(|history| history.shared_io_budget_matches(view.original_io))
+                                    .map(|history| history.shared_runtime_read_bytes_returned()),
+                            ) {
+                                (Some(before), Some(after)) => after.checked_sub(before).unwrap_or(0),
+                                _ => 0,
+                            };
+                            let owner_reads = error
+                                .cost
+                                .native_history_source_read_bytes
+                                .checked_add(error.cost.readonly.read_bytes);
+                            if let Some(external) = owner_reads
+                                .and_then(|reads| reads.checked_sub(history_shared.min(history_read)))
+                            {
+                                callback_external_reads.set(external);
+                            }
+                            return Err(io::Error::other(
+                                crate::source_admission_spooled_index::bounded_source_cause(
+                                    "receiver-source",
+                                    "artifact-replay",
+                                    &format!("{:?}:{:?}", error.stage, error.class),
+                                ),
+                            ));
+                        }
+                    };
+                    let replay_cost = replay.cost();
+                    let mut replay_state = replay_cost
+                        .retained_state_upper_bound_bytes()
+                        .ok_or_else(|| io::Error::other("candidate Artifact retained cost overflow"))?;
+                    let replay_external_reads = replay_cost
+                        .native_history_source_read_bytes
+                        .checked_add(replay_cost.readonly.read_bytes)
+                        .ok_or_else(|| io::Error::other("candidate Artifact read cost overflow"))?;
+                    let after_replay = view.original_io.snapshot();
+                    let candidate_used = after_replay
+                        .read_attempted_bytes
+                        .checked_sub(io_before_records.read_attempted_bytes)
+                        .ok_or_else(|| io::Error::other("candidate Artifact read counter regressed"))?;
+                    let history_usage_after = view.history.as_deref().map(|history| history.usage());
+                    let history_read = match (history_usage_before, history_usage_after) {
+                        (Some((before, _)), Some((after, _))) => after
+                            .checked_sub(before)
+                            .ok_or_else(|| io::Error::other("candidate Artifact history cost regressed"))?,
                         _ => 0,
                     };
                     let history_shared = match (
@@ -2572,1170 +2628,1115 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                             .filter(|history| history.shared_io_budget_matches(view.original_io))
                             .map(|history| history.shared_runtime_read_bytes_returned()),
                     ) {
-                        (Some(before), Some(after)) => after.checked_sub(before).unwrap_or(0),
-                        _ => 0,
-                    };
-                    let owner_reads = error
-                        .cost
-                        .native_history_source_read_bytes
-                        .checked_add(error.cost.readonly.read_bytes);
-                    if let Some(external) = owner_reads
-                        .and_then(|reads| reads.checked_sub(history_shared.min(history_read)))
-                    {
-                        callback_external_reads.set(external);
-                    }
-                    return Err(io::Error::other(
-                        crate::source_admission_spooled_index::bounded_source_cause(
-                            "receiver-source",
-                            "artifact-replay",
-                            &format!("{:?}:{:?}", error.stage, error.class),
-                        ),
-                    ));
-                }
-            };
-            let replay_cost = replay.cost();
-            let mut replay_state = replay_cost
-                .retained_state_upper_bound_bytes()
-                .ok_or_else(|| io::Error::other("candidate Artifact retained cost overflow"))?;
-            let replay_external_reads = replay_cost
-                .native_history_source_read_bytes
-                .checked_add(replay_cost.readonly.read_bytes)
-                .ok_or_else(|| io::Error::other("candidate Artifact read cost overflow"))?;
-            let after_replay = view.original_io.snapshot();
-            let candidate_used = after_replay
-                .read_attempted_bytes
-                .checked_sub(io_before_records.read_attempted_bytes)
-                .ok_or_else(|| io::Error::other("candidate Artifact read counter regressed"))?;
-            let history_usage_after = view.history.as_deref().map(|history| history.usage());
-            let history_read = match (history_usage_before, history_usage_after) {
-                (Some((before, _)), Some((after, _))) => after
-                    .checked_sub(before)
-                    .ok_or_else(|| io::Error::other("candidate Artifact history cost regressed"))?,
-                _ => 0,
-            };
-            let history_shared = match (
-                history_shared_before,
-                view.history
-                    .as_deref()
-                    .filter(|history| history.shared_io_budget_matches(view.original_io))
-                    .map(|history| history.shared_runtime_read_bytes_returned()),
-            ) {
-                (Some(before), Some(after)) => after
-                    .checked_sub(before)
-                    .filter(|bytes| *bytes <= history_read)
-                    .ok_or_else(|| io::Error::other("candidate Artifact history share differs"))?,
-                (None, None) => 0,
-                _ => return Err(io::Error::other("candidate Artifact history IO identity changed")),
-            };
-            if history_read != replay_cost.native_history_source_read_bytes
-                || replay_cost.candidate_source_read_bytes > candidate_used
-                || history_shared > candidate_used
-            {
-                return Err(io::Error::other("candidate Artifact history cost differs"));
-            }
-            let artifact_external_reads = replay_external_reads
-                .checked_sub(history_shared)
-                .ok_or_else(|| io::Error::other("candidate Artifact shared-read accounting differs"))?;
-            callback_external_reads.set(artifact_external_reads);
-            let after_replay_headroom = records_ticket
-                .remaining()
-                .source_read_bytes
-                .checked_sub(candidate_used)
-                .and_then(|bytes| bytes.checked_sub(artifact_external_reads))
-                .ok_or_else(|| io::Error::other("candidate Artifact source budget exceeded"))?;
-            candidate
-                .restrict_remaining_io(after_replay_headroom, current_write)
-                .map_err(|_| io::Error::other("candidate Artifact IO narrowing refused"))?;
-            let biblio_operation = FoundationPhaseReservation {
-                source_read_bytes: after_replay_headroom,
-                worker_wire_bytes: records_ticket.remaining().worker_wire_bytes,
-                state_bytes: callback_workspace_state.saturating_sub(replay_state),
-                issue_count: records_ticket.remaining().issue_count,
-                output_bytes: records_ticket.remaining().output_bytes,
-                worker_cpu_micros: records_ticket.remaining().worker_cpu_micros,
-                worker_cpu_seconds: records_ticket.remaining().worker_cpu_seconds,
-                tmpfs_bytes: records_ticket.remaining().tmpfs_bytes,
-                tmpfs_inodes: records_ticket.remaining().tmpfs_inodes,
-            };
-            let biblio_limits = view
-                .execution_limits
-                .item_limits(biblio_operation)
-                .map_err(|_| io::Error::other("candidate Biblio limits refused"))?;
-            let default_event_json_bytes = event_json_cap
-                .min(biblio_limits.max_state_bytes)
-                .min(usize::try_from(biblio_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX));
-            if default_event_json_bytes < 2 {
-                return Err(io::Error::other("candidate Biblio event ceiling is too small"));
-            }
-            defaults
-                .fold_record_events(
-                    records,
-                    stored_limits,
-                    default_event_json_bytes,
-                    stored_operation_state,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(|error| candidate_callback_refusal("candidate default record event fold", error))?;
-            let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
-                usize::try_from(biblio_limits.max_total_bytes)
-                    .map_err(|_| io::Error::other("candidate Biblio query cap range"))?,
-            )
-            .map_err(|_| io::Error::other("candidate Biblio query budget refused"))?;
-            let providers_result = defaults.with_providers(
-                records,
-                input,
-                stored_limits,
-                stored_operation_state,
-                deadline,
-                cancelled,
-                |records_lookup,
-                 paths,
-                 default_events,
-                 closure_links,
-                 closure_schema_requests,
-                 discovery_seen_ids,
-                 discovery_run_summaries,
-                 discovery_event_summaries,
-                 discovery_schema_requests,
-                 discovery_digest_cache,
-                 biblio_sink| {
-                    let mut biblio_schema_worker = schema_worker.borrow_mut();
-                    let biblio_report = tos_validation::biblio_rules::inspect_bibliography_from_input_stored(
-                        input,
-                        view.coverage,
-                        records,
-                        records_lookup,
-                        default_events.event_lookup(),
-                        biblio_sink,
-                        &mut **biblio_schema_worker,
-                        biblio_limits,
-                        cancelled,
-                    ).map_err(|error| candidate_owner_refusal("candidate bibliography receiver", error))?;
-                    drop(biblio_schema_worker);
-                    let biblio_failures = [
-                        biblio_report.input_identity() != &fence,
-                        biblio_report.source_membership() != fence.membership,
-                        !biblio_report.owner_predicates_complete(),
-                        biblio_report.shadow().issue_sink_truncated,
-                        !biblio_report.shadow().issues.is_empty(),
-                    ];
-                    let biblio_mask = biblio_failures.into_iter().enumerate()
-                        .fold(0u8, |mask, (bit, failed)| mask | if failed { 1u8 << bit } else { 0 });
-                    if biblio_mask != 0 {
-                        // Preserve the failed predicates and first owner issue as
-                        // bounded fingerprints; source locators stay private.
-                        let issues = &biblio_report.shadow().issues;
-                        let mut site = format!("bi-{biblio_mask:x}-{:x}", issues.len());
-                        let mut cause = "candidate Biblio owner predicates are incomplete or invalid";
-                        if let Some(issue) = issues.first() {
-                            let location = Digest256::of_bytes(issue.location.as_bytes()).to_hex();
-                            site.push_str(&format!("-p{}", &location[..12]));
-                            cause = issue.code;
-                        }
-                        return Err(ItemRefusal::Source(
-                            crate::source_admission_spooled_index::bounded_source_cause(
-                                "receiver-source", &site, cause),
-                        ));
-                    }
-                    let claims: &dyn tos_validation::source_foundation_default_rules::SourceFoundationDefaultClaims =
-                        biblio_sink;
-                    let biblio_state = biblio_report.accounted_state_upper_bound_bytes();
-                    let available_after_biblio = biblio_operation
-                        .state_bytes
-                        .checked_sub(biblio_state)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let reader_member_bytes = max_member_bytes
-                        .min(after_replay_headroom as usize)
-                        .max(1)
-                        .min(usize::try_from(biblio_limits.max_member_bytes)
-                            .map_err(|_| tos_validation::item_budget_origin!())?);
-                    // The same callback retains the Records header while the
-                    // rule reader owns its header, copied member and auxiliary
-                    // map. Project those simultaneous allocations from the one
-                    // remaining state reservation before assigning the map cap.
-                    let reader_retained_state = callback_held
-                        .checked_add(callback_header_state)
-                        .and_then(|state| state.checked_add(replay_state))
-                        .and_then(|state| state.checked_add(biblio_state))
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let reader_auxiliary_state_bytes = available_after_biblio
-                        .checked_sub(std::mem::size_of::<FoundationRuleSource<'_, '_>>())
-                        .and_then(|state| state.checked_sub(reader_member_bytes))
-                        .filter(|state| *state != 0)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let reader_limits = FoundationRuleReadLimits {
-                        max_member_bytes: reader_member_bytes,
-                        max_read_bytes: after_replay_headroom,
-                        max_auxiliary_paths: max_members
-                            .min(reader_auxiliary_state_bytes
-                                / std::mem::size_of::<(String, Option<(Digest256, u64)>)>().max(1))
-                            .max(1),
-                        max_auxiliary_state_bytes: reader_auxiliary_state_bytes,
-                        deadline,
-                    };
-                    let history_usage_before_rules =
-                        view.history.as_deref().map(|history| history.usage());
-                    let history_shared_before_rules = view
-                        .history
-                        .as_deref()
-                        .filter(|history| history.shared_io_budget_matches(view.original_io))
-                        .map(|history| history.shared_runtime_read_bytes_returned());
-                    let worker_usage_before_rules = worker_quota
-                        .usage()
-                        .map_err(|_| tos_validation::item_budget_origin!())?;
-                    let reader_io_before = view.original_io.snapshot();
-                    if let Some(selection) = input.record_selection() {
-                        let mut checked_claims = 0usize;
-                        for member in selection.members().filter(|member|
-                            selection.file_slots(&member.source_ref).iter().any(|slot| slot.kind == "claim"))
-                        {
-                            input.with_current_member(&member.source_ref, reader_member_bytes, deadline, cancelled,
-                                &mut |meta, raw| {
-                                    if meta.path != member.source_ref || meta.size_bytes != raw.len() as u64 {
-                                        return Err(ItemRefusal::Source("selected Claim member custody differs".into()));
-                                    }
-                                    let verification_state = selection.file_slots(&member.source_ref).iter()
-                                        .try_fold(0usize, |peak, slot| Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?)))?;
-                                    let held = reader_retained_state.checked_add(raw.len())
-                                        .and_then(|state| state.checked_add(verification_state))
-                                        .ok_or(tos_validation::item_budget_origin!())?;
-                                    callback_state_bytes.checked_sub(held)
-                                        .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
-                                    input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
-                                    let verified = selection.verify_file(&member.source_ref, raw, deadline, cancelled)?;
-                                    let mut rows = verified.row_cursor();
-                                    while let Some(row) = rows.next_checked(deadline, cancelled) {
-                                        let (line, _bytes, slot) = row?;
-                                        if slot.kind != "claim" { continue; }
-                                        require_completed_biblio_claim(
-                                            claims, &member.source_ref,
-                                            usize::try_from(line).map_err(|_| tos_validation::item_budget_origin!())?,
-                                            Digest256::from_hex(&slot.source.file_sha256)
-                                                .map_err(|_| ItemRefusal::Source("selected Claim file digest invalid".into()))?,
-                                            Some(slot.identity.as_str()),
-                                        )?;
-                                        checked_claims = checked_claims.checked_add(1)
-                                            .ok_or(tos_validation::item_budget_origin!())?;
-                                    }
-                                    Ok(())
-                                })?;
-                        }
-                        if checked_claims != selection.slots().filter(|slot| slot.kind == "claim").count() {
-                            return Err(ItemRefusal::Source("selected Claim local owner coverage did not reach EOF".into()));
-                        }
-                    }
-                    if let Some(generated) = input.generated_selection() {
-                        // Verify generated geometry against the completed Biblio index,
-                        // retaining physical traversal EOF and exact file/line binding.
-                        let generated_coverage = input.for_each_current_member(deadline, cancelled,
-                            &mut |meta, raw| {
-                                if !generated.selects_claim_row(meta.path, 1)? { return Ok(()); }
-                                let held = reader_retained_state.checked_add(raw.len())
-                                    .ok_or(tos_validation::item_budget_origin!())?;
-                                callback_state_bytes.checked_sub(held)
-                                    .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
-                                input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
-                                let file_sha256 = Digest256::of_bytes(raw);
-                                let mut checked_rows = 0u64;
-                                for (line, _bytes) in tos_validation::source_record_selection::source_rows(raw) {
-                                    if !generated.selects_claim_row(meta.path, line)? { continue; }
-                                    require_completed_biblio_claim(
-                                        claims, meta.path,
-                                        usize::try_from(line).map_err(|_| tos_validation::item_budget_origin!())?,
-                                        file_sha256, None,
-                                    )?;
-                                    checked_rows = checked_rows.checked_add(1)
-                                        .ok_or(tos_validation::item_budget_origin!())?;
-                                }
-                                if checked_rows != 1 {
-                                    return Err(ItemRefusal::Source("generated Claim local owner row coverage differs".into()));
-                                }
-                                Ok(())
-                            })?;
-                        if generated_coverage.membership() != fence.membership
-                            || generated_coverage.member_count() != fence.membership.count
-                            || generated_coverage.source_bytes_read() != fence.source_bytes
-                        {
-                            return Err(ItemRefusal::Source("generated Claim physical owner traversal is incomplete".into()));
-                        }
-                    }
-                    let mut schema_executor =
-                        CandidateArtifactSchemaExecutor::new(&schema_worker);
-                    let mut rule_source = FoundationRuleSource::from_candidate(
-                        input,
-                        view.original_io,
-                        view.sources,
-                        &mut schema_executor,
-                        payload_reader,
-                        cancelled,
-                        reader_limits,
-                        reader_retained_state,
-                        callback_state_bytes,
-                        original_operation_state,
-                    ).map_err(|error| candidate_owner_refusal("candidate default source preparation", error))?;
-                    if let Some(history) = view.history.as_deref_mut() {
-                        rule_source = rule_source.with_history(history)
-                            .map_err(|error| candidate_owner_refusal("candidate default history binding", error))?;
-                    }
-                    let event_state_cap = biblio_operation
-                        .state_bytes
-                        .min(biblio_operation.output_bytes);
-                    let default_rules_limits =
-                        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRulesLimits {
-                            operation: {
-                                let mut operation = biblio_limits;
-                                operation.max_state_bytes = available_after_biblio;
-                                operation.max_total_bytes = after_replay_headroom;
-                                operation
-                            },
-                            max_event_map_bytes: event_state_cap.min(available_after_biblio),
-                        };
-                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links_and_closure_schema_requests(
-                        &mut rule_source,
-                        input,
-                        view.coverage,
-                        records,
-                        records_lookup,
-                        paths,
-                        default_events,
-                        claims,
-                        physical_facts,
-                        &mut replay,
-                        discovery_seen_ids,
-                        discovery_run_summaries,
-                        discovery_event_summaries,
-                        discovery_schema_requests,
-                        discovery_digest_cache,
-                        closure_links,
-                        closure_schema_requests,
-                        view.launch.arguments.require_local_payloads,
-                        default_rules_limits,
-                        stored_limits,
-                        cancelled,
-                        scope,
-                    ).map_err(|error| candidate_owner_refusal("candidate default rules receiver", error))?;
-                    let replay_cost_after_rules = replay.cost();
-                    let evidence_peak_state = replay_cost_after_rules
-                        .candidate_artifact_evidence_peak_state_bytes
-                        .max(replay_cost_after_rules.candidate_record_index_state_bytes)
-                        .max(
-                            stored_report
-                                .discovery
-                                .cost
-                                .candidate_artifact_evidence_peak_state_bytes,
-                        )
-                        .max(
-                            stored_report
-                                .discovery
-                                .cost
-                                .candidate_discovery_seen_ids_peak_workspace_state_bytes,
-                        );
-                    let evidence_peak_state = evidence_peak_state.max(
-                        stored_report
-                            .discovery
-                            .cost
-                            .candidate_discovery_run_summary_peak_workspace_state_bytes,
-                    );
-                    let evidence_peak_state = evidence_peak_state.max(
-                        stored_report
-                            .discovery
-                            .cost
-                            .candidate_discovery_event_summary_peak_workspace_state_bytes,
-                    );
-                    replay_state = replay_cost_after_rules
-                        .retained_state_upper_bound_bytes()
-                        .and_then(|state| state.checked_add(evidence_peak_state))
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let replay_had_skips = replay.has_skips();
-                    let worker_usage_after_discovery = worker_quota
-                        .usage()
-                        .map_err(|_| tos_validation::item_budget_origin!())?;
-                    let replay_worker_cpu = worker_usage_after_discovery
-                        .worker_cpu_micros
-                        .checked_sub(worker_usage_before_rules.worker_cpu_micros)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let replay_worker_wire = worker_usage_after_discovery
-                        .worker_wire_bytes
-                        .checked_sub(worker_usage_before_rules.worker_wire_bytes)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let replay_worker_units = worker_usage_after_discovery
-                        .worker_units
-                        .checked_sub(worker_usage_before_rules.worker_units)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    if replay_cost_after_rules.candidate_replay_worker_cpu_micros
-                        > replay_worker_cpu
-                        || replay_cost_after_rules.candidate_replay_worker_wire_bytes
-                            > replay_worker_wire
-                        || replay_cost_after_rules.candidate_replay_worker_units
-                            > replay_worker_units
-                    {
-                        return Err(tos_validation::item_budget_origin!());
-                    }
-                    rule_source.recheck_auxiliary()
-                        .map_err(|error| candidate_owner_refusal("candidate default auxiliary recheck", error))?;
-                    let reader_cost = rule_source.cost();
-                    drop(rule_source);
-                    let reader_io_after = view.original_io.snapshot();
-                    let history_usage_after_rules =
-                        view.history.as_deref().map(|history| history.usage());
-                    let history_rule_read = match (
-                        history_usage_before_rules,
-                        history_usage_after_rules,
-                    ) {
-                        (Some((before, _)), Some((after, _))) => {
-                            after.checked_sub(before).ok_or(tos_validation::item_budget_origin!())?
-                        }
-                        _ => 0,
-                    };
-                    let history_shared_rule_read = match (
-                        history_shared_before_rules,
-                        view.history
-                            .as_deref()
-                            .filter(|history| history.shared_io_budget_matches(view.original_io))
-                            .map(|history| history.shared_runtime_read_bytes_returned()),
-                    ) {
                         (Some(before), Some(after)) => after
                             .checked_sub(before)
-                            .filter(|bytes| *bytes <= history_rule_read)
-                            .ok_or(tos_validation::item_budget_origin!())?,
+                            .filter(|bytes| *bytes <= history_read)
+                            .ok_or_else(|| io::Error::other("candidate Artifact history share differs"))?,
                         (None, None) => 0,
-                        _ => return Err(tos_validation::item_budget_origin!()),
+                        _ => return Err(io::Error::other("candidate Artifact history IO identity changed")),
                     };
-                    let reader_shared_attempts = reader_io_after
-                        .read_attempted_bytes
-                        .checked_sub(reader_io_before.read_attempted_bytes)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let reader_external_reads = reader_cost
-                        .bytes_read
-                        .checked_sub(reader_cost.shared_read_bytes_returned)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    if history_rule_read
-                        > reader_cost
-                            .bytes_read
-                            .checked_add(replay_cost_after_rules.native_history_source_read_bytes)
-                            .ok_or(tos_validation::item_budget_origin!())?
-                        || reader_cost.shared_read_bytes_returned > reader_shared_attempts
+                    if history_read != replay_cost.native_history_source_read_bytes
+                        || replay_cost.candidate_source_read_bytes > candidate_used
+                        || history_shared > candidate_used
                     {
-                        return Err(tos_validation::item_budget_origin!());
+                        return Err(io::Error::other("candidate Artifact history cost differs"));
                     }
-                    let provider_shared_history = history_shared_rule_read
-                        .saturating_sub(reader_cost.shared_read_bytes_returned);
-                    let replay_external_reads_after_rules = replay_cost_after_rules
-                        .native_history_source_read_bytes
-                        .checked_add(replay_cost_after_rules.readonly.read_bytes)
-                        .and_then(|reads| reads.checked_sub(provider_shared_history))
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    callback_external_reads.set(
-                        replay_external_reads_after_rules
-                            .checked_add(reader_external_reads)
-                            .ok_or(tos_validation::item_budget_origin!())?,
-                    );
-                    drop(schema_executor);
-                    drop(replay);
-                    let mut schemas = schema_worker.borrow_mut();
-                    let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
-                    // The source reader, replay and replay schema adapter have
-                    // ended above. Their peak remains evidence for the rules
-                    // phase; those allocations do not coexist with diagnostics.
-                    let common_evidence_state = biblio_state
-                        .checked_add(owner_state)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let rules_evidence_peak = common_evidence_state
-                        .checked_add(replay_state)
-                        .and_then(|state| state.checked_add(reader_cost.auxiliary_state_bytes))
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let diagnostic_state_cap = callback_workspace_state
-                        .checked_sub(common_evidence_state)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    if replay_had_skips {
-                        return Err(ItemRefusal::Source(
-                            "candidate Artifact evidence is incomplete".into(),
-                        ));
-                    }
-                    let rule_diag_limits = SourceFoundationRuleDiagnosticsLimits {
-                        max_issues: biblio_operation.issue_count.max(1),
-                        max_output_bytes: biblio_operation.output_bytes.max(1),
-                        max_state_bytes: diagnostic_state_cap.max(1),
+                    let artifact_external_reads = replay_external_reads
+                        .checked_sub(history_shared)
+                        .ok_or_else(|| io::Error::other("candidate Artifact shared-read accounting differs"))?;
+                    callback_external_reads.set(artifact_external_reads);
+                    let after_replay_headroom = records_ticket
+                        .remaining()
+                        .source_read_bytes
+                        .checked_sub(candidate_used)
+                        .and_then(|bytes| bytes.checked_sub(artifact_external_reads))
+                        .ok_or_else(|| io::Error::other("candidate Artifact source budget exceeded"))?;
+                    candidate
+                        .restrict_remaining_io(after_replay_headroom, current_write)
+                        .map_err(|_| io::Error::other("candidate Artifact IO narrowing refused"))?;
+                    let biblio_operation = FoundationPhaseReservation {
+                        source_read_bytes: after_replay_headroom,
+                        worker_wire_bytes: records_ticket.remaining().worker_wire_bytes,
+                        state_bytes: callback_workspace_state.saturating_sub(replay_state),
+                        issue_count: records_ticket.remaining().issue_count,
+                        output_bytes: records_ticket.remaining().output_bytes,
+                        worker_cpu_micros: records_ticket.remaining().worker_cpu_micros,
+                        worker_cpu_seconds: records_ticket.remaining().worker_cpu_seconds,
+                        tmpfs_bytes: records_ticket.remaining().tmpfs_bytes,
+                        tmpfs_inodes: records_ticket.remaining().tmpfs_inodes,
                     };
-                    let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
-                        stored_report,
+                    let biblio_limits = view
+                        .execution_limits
+                        .item_limits(biblio_operation)
+                        .map_err(|_| io::Error::other("candidate Biblio limits refused"))?;
+                    let default_event_json_bytes = event_json_cap
+                        .min(biblio_limits.max_state_bytes)
+                        .min(usize::try_from(biblio_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX));
+                    if default_event_json_bytes < 2 {
+                        return Err(io::Error::other("candidate Biblio event ceiling is too small"));
+                    }
+                    defaults
+                        .fold_record_events(
+                            records,
+                            stored_limits,
+                            default_event_json_bytes,
+                            stored_operation_state,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(|error| candidate_callback_refusal("candidate default record event fold", error))?;
+                    let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
+                        usize::try_from(biblio_limits.max_total_bytes)
+                            .map_err(|_| io::Error::other("candidate Biblio query cap range"))?,
+                    )
+                    .map_err(|_| io::Error::other("candidate Biblio query budget refused"))?;
+                    let providers_result = defaults.with_providers(
                         records,
-                        page_budget,
-                        discovery_schema_requests,
-                        closure_schema_requests,
-                        &mut **schemas,
-                        schema_limits,
-                        super::foundation_rule_diagnostics::CandidateRuleDiagnosticOperationLimits {
-                            max_checks,
-                            max_total_instance_bytes: usize::try_from(first_worker_stream.max_total_raw_bytes)
-                                .map_err(|_| ItemRefusal::Budget)?,
-                        },
+                        input,
+                        stored_limits,
+                        stored_operation_state,
                         deadline,
                         cancelled,
-                        rule_diag_limits,
-                    )
-                    .map_err(|error| {
-                        let (site, reason) = match error {
-                            CandidateRuleDiagnosticsError::Refused { reason, .. } =>
-                                ("default-refused", reason.to_owned()),
-                            CandidateRuleDiagnosticsError::Incomplete { reason, .. } =>
-                                ("default-incomplete", reason.to_owned()),
-                        };
-                        ItemRefusal::Source(
-                            crate::source_admission_spooled_index::bounded_source_cause(
-                                "receiver-source", site, &reason,
-                            ),
-                        )
-                    })?;
-                    let owner_report = &evaluated.owner_report;
-                    if owner_report.scope != scope {
-                        return Err(ItemRefusal::Source("candidate default profile binding differs".into()));
-                    }
-
-                    // Preserve every failed owned predicate, without printing private
-                    // source paths, issue prose, or worker payloads. The first failed
-                    // predicate carries exact observed/expected scalar counts.
-                    let predicates = [
-                        ("default direct owner issues", owner_report.cost.direct_owner_issue_count, 0),
-                        ("default aggregate Labs coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.unimplemented.len()), 0),
-                        ("default per-lab coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.results.iter().filter(|lab| !lab.unimplemented.is_empty()).count()), 0),
-                        ("default Goldset coverage", owner_report.goldsets.as_ref().map_or(0, |goldsets| goldsets.coverage_gaps.len()), 0),
-                        ("default Discovery coverage", owner_report.discovery.unsupported.len(), 0),
-                        ("default Closure coverage", owner_report.closure.unsupported.len(), 0),
-                        ("default queued execution count", evaluated.cost.schema_check_count, owner_report.cost.queued_schema_document_count),
-                        ("default resolved schema issues", evaluated.semantic_failure_count().ok_or(ItemRefusal::Budget)?, 0),
-                        ("default diagnostic live binding", usize::from(!evaluated.diagnostics_bound_to(&**schemas, scope)), 0),
-                    ];
-                    let mut failed_mask = 0u16;
-                    let mut primary = None;
-                    for (index, (label, observed, expected)) in predicates.into_iter().enumerate() {
-                        if observed != expected {
-                            failed_mask |= 1u16 << index;
-                            primary.get_or_insert((label, observed, expected));
-                        }
-                    }
-                    if let Some((label, observed, expected)) = primary {
-                        let issue = owner_report.labs.as_ref().and_then(|labs| labs.ordered_issues.first()).map(|(_, text)| text.as_str())
-                            .or_else(|| owner_report.goldsets.as_ref().and_then(|goldsets| goldsets.ordered_issues.first()).map(|(_, text)| text.as_str()))
-                            .or_else(|| owner_report.discovery.issues.first().map(|issue| issue.detail.as_str()))
-                            .or_else(|| owner_report.closure.issues.first().map(|(_, text)| text.as_str()))
-                            .unwrap_or(label);
-                        // 11 predicate bits and two 64-bit hex counters fit the
-                        // existing 40-byte source-cause site bound exactly.
-                        let mut site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
-                        let mut cause = issue;
-                        if owner_report.labs.as_ref().is_none_or(|labs| labs.ordered_issues.is_empty())
-                            && owner_report.goldsets.as_ref().is_none_or(|goldsets| goldsets.ordered_issues.is_empty())
-                        {
-                            let finding = owner_report.discovery.issues.first()
-                                .map(|finding| ("d", finding.code, finding.location.as_str()))
-                                .or_else(|| owner_report.closure.issues.first()
-                                    .map(|(path, _)| ("c", "closure", path.as_str())));
-                            if let Some((district, code, path)) = finding {
-                                let code = Digest256::of_bytes(code.as_bytes()).to_hex();
-                                let path = Digest256::of_bytes(path.as_bytes()).to_hex();
-                                let located = format!("{site}-{district}{}-p{}", &code[..12], &path[..12]);
-                                if located.len() <= 40 {
-                                    site = located;
+                        |records_lookup,
+                         paths,
+                         default_events,
+                         closure_links,
+                         closure_schema_requests,
+                         discovery_seen_ids,
+                         discovery_run_summaries,
+                         discovery_event_summaries,
+                         discovery_schema_requests,
+                         discovery_digest_cache,
+                         biblio_sink| {
+                            let mut biblio_schema_worker = schema_worker.borrow_mut();
+                            let biblio_report = tos_validation::biblio_rules::inspect_bibliography_from_input_stored(
+                                input,
+                                view.coverage,
+                                records,
+                                records_lookup,
+                                default_events.event_lookup(),
+                                biblio_sink,
+                                &mut **biblio_schema_worker,
+                                biblio_limits,
+                                cancelled,
+                            ).map_err(|error| candidate_owner_refusal("candidate bibliography receiver", error))?;
+                            drop(biblio_schema_worker);
+                            let biblio_failures = [
+                                biblio_report.input_identity() != &fence,
+                                biblio_report.source_membership() != fence.membership,
+                                !biblio_report.owner_predicates_complete(),
+                                biblio_report.shadow().issue_sink_truncated,
+                                !biblio_report.shadow().issues.is_empty(),
+                            ];
+                            let biblio_mask = biblio_failures.into_iter().enumerate()
+                                .fold(0u8, |mask, (bit, failed)| mask | if failed { 1u8 << bit } else { 0 });
+                            if biblio_mask != 0 {
+                                // Preserve the failed predicates and first owner issue as
+                                // bounded fingerprints; source locators stay private.
+                                let issues = &biblio_report.shadow().issues;
+                                let mut site = format!("bi-{biblio_mask:x}-{:x}", issues.len());
+                                let mut cause = "candidate Biblio owner predicates are incomplete or invalid";
+                                if let Some(issue) = issues.first() {
+                                    let location = Digest256::of_bytes(issue.location.as_bytes()).to_hex();
+                                    site.push_str(&format!("-p{}", &location[..12]));
+                                    cause = issue.code;
+                                }
+                                return Err(ItemRefusal::Source(
+                                    crate::source_admission_spooled_index::bounded_source_cause(
+                                        "receiver-source", &site, cause),
+                                ));
+                            }
+                            let claims: &dyn tos_validation::source_foundation_default_rules::SourceFoundationDefaultClaims =
+                                biblio_sink;
+                            let biblio_state = biblio_report.accounted_state_upper_bound_bytes();
+                            let available_after_biblio = biblio_operation
+                                .state_bytes
+                                .checked_sub(biblio_state)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let reader_member_bytes = max_member_bytes
+                                .min(after_replay_headroom as usize)
+                                .max(1)
+                                .min(usize::try_from(biblio_limits.max_member_bytes)
+                                    .map_err(|_| tos_validation::item_budget_origin!())?);
+                            // The same callback retains the Records header while the
+                            // rule reader owns its header, copied member and auxiliary
+                            // map. Project those simultaneous allocations from the one
+                            // remaining state reservation before assigning the map cap.
+                            let reader_retained_state = callback_held
+                                .checked_add(callback_header_state)
+                                .and_then(|state| state.checked_add(replay_state))
+                                .and_then(|state| state.checked_add(biblio_state))
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let reader_auxiliary_state_bytes = available_after_biblio
+                                .checked_sub(std::mem::size_of::<FoundationRuleSource<'_, '_>>())
+                                .and_then(|state| state.checked_sub(reader_member_bytes))
+                                .filter(|state| *state != 0)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let reader_limits = FoundationRuleReadLimits {
+                                max_member_bytes: reader_member_bytes,
+                                max_read_bytes: after_replay_headroom,
+                                max_auxiliary_paths: max_members
+                                    .min(reader_auxiliary_state_bytes
+                                        / std::mem::size_of::<(String, Option<(Digest256, u64)>)>().max(1))
+                                    .max(1),
+                                max_auxiliary_state_bytes: reader_auxiliary_state_bytes,
+                                deadline,
+                            };
+                            let history_usage_before_rules =
+                                view.history.as_deref().map(|history| history.usage());
+                            let history_shared_before_rules = view
+                                .history
+                                .as_deref()
+                                .filter(|history| history.shared_io_budget_matches(view.original_io))
+                                .map(|history| history.shared_runtime_read_bytes_returned());
+                            let worker_usage_before_rules = worker_quota
+                                .usage()
+                                .map_err(|_| tos_validation::item_budget_origin!())?;
+                            let reader_io_before = view.original_io.snapshot();
+                            if let Some(selection) = input.record_selection() {
+                                let mut checked_claims = 0usize;
+                                for member in selection.members().filter(|member|
+                                    selection.file_slots(&member.source_ref).iter().any(|slot| slot.kind == "claim"))
+                                {
+                                    input.with_current_member(&member.source_ref, reader_member_bytes, deadline, cancelled,
+                                        &mut |meta, raw| {
+                                            if meta.path != member.source_ref || meta.size_bytes != raw.len() as u64 {
+                                                return Err(ItemRefusal::Source("selected Claim member custody differs".into()));
+                                            }
+                                            let verification_state = selection.file_slots(&member.source_ref).iter()
+                                                .try_fold(0usize, |peak, slot| Ok::<_, ItemRefusal>(peak.max(slot.verification_state_upper_bound()?)))?;
+                                            let held = reader_retained_state.checked_add(raw.len())
+                                                .and_then(|state| state.checked_add(verification_state))
+                                                .ok_or(tos_validation::item_budget_origin!())?;
+                                            callback_state_bytes.checked_sub(held)
+                                                .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
+                                            input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
+                                            let verified = selection.verify_file(&member.source_ref, raw, deadline, cancelled)?;
+                                            let mut rows = verified.row_cursor();
+                                            while let Some(row) = rows.next_checked(deadline, cancelled) {
+                                                let (line, _bytes, slot) = row?;
+                                                if slot.kind != "claim" { continue; }
+                                                require_completed_biblio_claim(
+                                                    claims, &member.source_ref,
+                                                    usize::try_from(line).map_err(|_| tos_validation::item_budget_origin!())?,
+                                                    Digest256::from_hex(&slot.source.file_sha256)
+                                                        .map_err(|_| ItemRefusal::Source("selected Claim file digest invalid".into()))?,
+                                                    Some(slot.identity.as_str()),
+                                                )?;
+                                                checked_claims = checked_claims.checked_add(1)
+                                                    .ok_or(tos_validation::item_budget_origin!())?;
+                                            }
+                                            Ok(())
+                                        })?;
+                                }
+                                if checked_claims != selection.slots().filter(|slot| slot.kind == "claim").count() {
+                                    return Err(ItemRefusal::Source("selected Claim local owner coverage did not reach EOF".into()));
                                 }
                             }
-                        }
-                        if let Some(diagnostic) = evaluated.first_invalid()
-                        {
-                            let result = diagnostic.result();
-                            let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
-                            let reason = result.report().issues.first()
-                                .map_or(0, |issue| issue.reason as u16);
-                            let diagnostic_site = format!(
-                                "{site}-s{:x}-r{reason:x}-c{}",
-                                result.status() as u8, &contract[..12],
+                            if let Some(generated) = input.generated_selection() {
+                                // Verify generated geometry against the completed Biblio index,
+                                // retaining physical traversal EOF and exact file/line binding.
+                                let generated_coverage = input.for_each_current_member(deadline, cancelled,
+                                    &mut |meta, raw| {
+                                        if !generated.selects_claim_row(meta.path, 1)? { return Ok(()); }
+                                        let held = reader_retained_state.checked_add(raw.len())
+                                            .ok_or(tos_validation::item_budget_origin!())?;
+                                        callback_state_bytes.checked_sub(held)
+                                            .filter(|state| *state != 0).ok_or(tos_validation::item_budget_origin!())?;
+                                        input.require_callback_state(callback_state_bytes, original_operation_state, "candidate Records and Claim callback state")?;
+                                        let file_sha256 = Digest256::of_bytes(raw);
+                                        let mut checked_rows = 0u64;
+                                        for (line, _bytes) in tos_validation::source_record_selection::source_rows(raw) {
+                                            if !generated.selects_claim_row(meta.path, line)? { continue; }
+                                            require_completed_biblio_claim(
+                                                claims, meta.path,
+                                                usize::try_from(line).map_err(|_| tos_validation::item_budget_origin!())?,
+                                                file_sha256, None,
+                                            )?;
+                                            checked_rows = checked_rows.checked_add(1)
+                                                .ok_or(tos_validation::item_budget_origin!())?;
+                                        }
+                                        if checked_rows != 1 {
+                                            return Err(ItemRefusal::Source("generated Claim local owner row coverage differs".into()));
+                                        }
+                                        Ok(())
+                                    })?;
+                                if generated_coverage.membership() != fence.membership
+                                    || generated_coverage.member_count() != fence.membership.count
+                                    || generated_coverage.source_bytes_read() != fence.source_bytes
+                                {
+                                    return Err(ItemRefusal::Source("generated Claim physical owner traversal is incomplete".into()));
+                                }
+                            }
+                            let mut schema_executor =
+                                CandidateArtifactSchemaExecutor::new(&schema_worker);
+                            let mut rule_source = FoundationRuleSource::from_candidate(
+                                input,
+                                view.original_io,
+                                view.sources,
+                                &mut schema_executor,
+                                payload_reader,
+                                cancelled,
+                                reader_limits,
+                                reader_retained_state,
+                                callback_state_bytes,
+                                original_operation_state,
+                            ).map_err(|error| candidate_owner_refusal("candidate default source preparation", error))?;
+                            if let Some(history) = view.history.as_deref_mut() {
+                                rule_source = rule_source.with_history(history)
+                                    .map_err(|error| candidate_owner_refusal("candidate default history binding", error))?;
+                            }
+                            let event_state_cap = biblio_operation
+                                .state_bytes
+                                .min(biblio_operation.output_bytes);
+                            let default_rules_limits =
+                                tos_validation::source_foundation_default_rules::SourceFoundationDefaultRulesLimits {
+                                    operation: {
+                                        let mut operation = biblio_limits;
+                                        operation.max_state_bytes = available_after_biblio;
+                                        operation.max_total_bytes = after_replay_headroom;
+                                        operation
+                                    },
+                                    max_event_map_bytes: event_state_cap.min(available_after_biblio),
+                                };
+                            let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests_and_closure_links_and_closure_schema_requests(
+                                &mut rule_source,
+                                input,
+                                view.coverage,
+                                records,
+                                records_lookup,
+                                paths,
+                                default_events,
+                                claims,
+                                physical_facts,
+                                &mut replay,
+                                discovery_seen_ids,
+                                discovery_run_summaries,
+                                discovery_event_summaries,
+                                discovery_schema_requests,
+                                discovery_digest_cache,
+                                closure_links,
+                                closure_schema_requests,
+                                view.launch.arguments.require_local_payloads,
+                                default_rules_limits,
+                                stored_limits,
+                                cancelled,
+                                scope,
+                            ).map_err(|error| candidate_owner_refusal("candidate default rules receiver", error))?;
+                            let replay_cost_after_rules = replay.cost();
+                            let evidence_peak_state = replay_cost_after_rules
+                                .candidate_artifact_evidence_peak_state_bytes
+                                .max(replay_cost_after_rules.candidate_record_index_state_bytes)
+                                .max(
+                                    stored_report
+                                        .discovery
+                                        .cost
+                                        .candidate_artifact_evidence_peak_state_bytes,
+                                )
+                                .max(
+                                    stored_report
+                                        .discovery
+                                        .cost
+                                        .candidate_discovery_seen_ids_peak_workspace_state_bytes,
+                                );
+                            let evidence_peak_state = evidence_peak_state.max(
+                                stored_report
+                                    .discovery
+                                    .cost
+                                    .candidate_discovery_run_summary_peak_workspace_state_bytes,
                             );
-                            // The full source-path digest remains the cause, while
-                            // this bounded navigation prefix names the selected
-                            // contract and its owned structured reason code.
-                            if diagnostic_site.len() <= 40 {
-                                site = diagnostic_site;
-                                cause = result.path();
+                            let evidence_peak_state = evidence_peak_state.max(
+                                stored_report
+                                    .discovery
+                                    .cost
+                                    .candidate_discovery_event_summary_peak_workspace_state_bytes,
+                            );
+                            replay_state = replay_cost_after_rules
+                                .retained_state_upper_bound_bytes()
+                                .and_then(|state| state.checked_add(evidence_peak_state))
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let replay_had_skips = replay.has_skips();
+                            let worker_usage_after_discovery = worker_quota
+                                .usage()
+                                .map_err(|_| tos_validation::item_budget_origin!())?;
+                            let replay_worker_cpu = worker_usage_after_discovery
+                                .worker_cpu_micros
+                                .checked_sub(worker_usage_before_rules.worker_cpu_micros)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let replay_worker_wire = worker_usage_after_discovery
+                                .worker_wire_bytes
+                                .checked_sub(worker_usage_before_rules.worker_wire_bytes)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let replay_worker_units = worker_usage_after_discovery
+                                .worker_units
+                                .checked_sub(worker_usage_before_rules.worker_units)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            if replay_cost_after_rules.candidate_replay_worker_cpu_micros
+                                > replay_worker_cpu
+                                || replay_cost_after_rules.candidate_replay_worker_wire_bytes
+                                    > replay_worker_wire
+                                || replay_cost_after_rules.candidate_replay_worker_units
+                                    > replay_worker_units
+                            {
+                                return Err(tos_validation::item_budget_origin!());
                             }
-                        }
-                        // Return the bounded set from this same evaluation, not
-                        // just its first finding. Fingerprints preserve source
-                        // privacy while allowing the owner to correlate every
-                        // path and reason against the selected local inputs.
-                        use crate::source_admission_spooled_index::{
-                            MAX_SOURCE_CAUSE_BYTES, MAX_SOURCE_CAUSES, bounded_source_cause,
-                        };
-                        let summary = bounded_source_cause("receiver-source", &site, cause);
-                        let diagnostic_cap = MAX_SOURCE_CAUSE_BYTES.min(biblio_operation.output_bytes);
-                        let diagnostic_state = evaluated.cost.peak_additional_state_upper_bound_bytes
-                            .checked_add(diagnostic_cap + 1024)
-                            .ok_or(tos_validation::item_budget_origin!())?;
-                        if diagnostic_state > diagnostic_state_cap
-                            || summary.len() + "source-causes:".len() > diagnostic_cap {
-                            return Err(ItemRefusal::Source(summary));
-                        }
-                        let mut causes = String::with_capacity(diagnostic_cap);
-                        causes.push_str("source-causes:");
-                        causes.push_str(&summary);
-                        let findings = owner_report.labs.iter()
-                            .flat_map(|labs| labs.ordered_issues.iter().map(|(path, issue)| ("l", path.as_str(), issue.as_str())))
-                            .chain(owner_report.goldsets.iter()
-                                .flat_map(|goldsets| goldsets.ordered_issues.iter().map(|(path, issue)| ("g", path.as_str(), issue.as_str()))))
-                            .chain(owner_report.discovery.issues.iter()
-                                .map(|issue| ("d", issue.location.as_str(), issue.detail.as_str())))
-                            .chain(owner_report.closure.issues.iter()
-                                .map(|(path, issue)| ("c", path.as_str(), issue.as_str())));
-                        for (district, path, issue) in findings.take(MAX_SOURCE_CAUSES - 1) {
-                            let prefix = issue.split_once(':').map_or(issue, |(prefix, _)| prefix);
-                            let prefix = Digest256::of_bytes(prefix.as_bytes()).to_hex();
-                            let path = Digest256::of_bytes(path.as_bytes()).to_hex();
-                            let site = format!("df-{district}-{}-p{}", &prefix[..12], &path[..12]);
-                            let token = bounded_source_cause("receiver-source", &site, issue);
-                            if causes.len().checked_add(1 + token.len())
-                                .is_none_or(|bytes| bytes > diagnostic_cap) {
-                                break;
+                            rule_source.recheck_auxiliary()
+                                .map_err(|error| candidate_owner_refusal("candidate default auxiliary recheck", error))?;
+                            let reader_cost = rule_source.cost();
+                            drop(rule_source);
+                            let reader_io_after = view.original_io.snapshot();
+                            let history_usage_after_rules =
+                                view.history.as_deref().map(|history| history.usage());
+                            let history_rule_read = match (
+                                history_usage_before_rules,
+                                history_usage_after_rules,
+                            ) {
+                                (Some((before, _)), Some((after, _))) => {
+                                    after.checked_sub(before).ok_or(tos_validation::item_budget_origin!())?
+                                }
+                                _ => 0,
+                            };
+                            let history_shared_rule_read = match (
+                                history_shared_before_rules,
+                                view.history
+                                    .as_deref()
+                                    .filter(|history| history.shared_io_budget_matches(view.original_io))
+                                    .map(|history| history.shared_runtime_read_bytes_returned()),
+                            ) {
+                                (Some(before), Some(after)) => after
+                                    .checked_sub(before)
+                                    .filter(|bytes| *bytes <= history_rule_read)
+                                    .ok_or(tos_validation::item_budget_origin!())?,
+                                (None, None) => 0,
+                                _ => return Err(tos_validation::item_budget_origin!()),
+                            };
+                            let reader_shared_attempts = reader_io_after
+                                .read_attempted_bytes
+                                .checked_sub(reader_io_before.read_attempted_bytes)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let reader_external_reads = reader_cost
+                                .bytes_read
+                                .checked_sub(reader_cost.shared_read_bytes_returned)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            if history_rule_read
+                                > reader_cost
+                                    .bytes_read
+                                    .checked_add(replay_cost_after_rules.native_history_source_read_bytes)
+                                    .ok_or(tos_validation::item_budget_origin!())?
+                                || reader_cost.shared_read_bytes_returned > reader_shared_attempts
+                            {
+                                return Err(tos_validation::item_budget_origin!());
                             }
-                            causes.push('|');
-                            causes.push_str(&token);
-                        }
-                        if causes.len() > diagnostic_cap {
-                            return Err(tos_validation::item_budget_origin!());
-                        }
-                        return Err(ItemRefusal::Source(causes));
-                    }
-                    let _ordered_rule_observations = evaluated.ordered_observation_sha256();
-                    let after_defaults = view.original_io.snapshot();
-                    let candidate_read = after_defaults
-                        .read_attempted_bytes
+                            let provider_shared_history = history_shared_rule_read
+                                .saturating_sub(reader_cost.shared_read_bytes_returned);
+                            let replay_external_reads_after_rules = replay_cost_after_rules
+                                .native_history_source_read_bytes
+                                .checked_add(replay_cost_after_rules.readonly.read_bytes)
+                                .and_then(|reads| reads.checked_sub(provider_shared_history))
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            callback_external_reads.set(
+                                replay_external_reads_after_rules
+                                    .checked_add(reader_external_reads)
+                                    .ok_or(tos_validation::item_budget_origin!())?,
+                            );
+                            drop(schema_executor);
+                            drop(replay);
+                            let mut schemas = schema_worker.borrow_mut();
+                            let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
+                            // The source reader, replay and replay schema adapter have
+                            // ended above. Their peak remains evidence for the rules
+                            // phase; those allocations do not coexist with diagnostics.
+                            let common_evidence_state = biblio_state
+                                .checked_add(owner_state)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let rules_evidence_peak = common_evidence_state
+                                .checked_add(replay_state)
+                                .and_then(|state| state.checked_add(reader_cost.auxiliary_state_bytes))
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let diagnostic_state_cap = callback_workspace_state
+                                .checked_sub(common_evidence_state)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            if replay_had_skips {
+                                return Err(ItemRefusal::Source(
+                                    "candidate Artifact evidence is incomplete".into(),
+                                ));
+                            }
+                            let rule_diag_limits = SourceFoundationRuleDiagnosticsLimits {
+                                max_issues: biblio_operation.issue_count.max(1),
+                                max_output_bytes: biblio_operation.output_bytes.max(1),
+                                max_state_bytes: diagnostic_state_cap.max(1),
+                            };
+                            let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
+                                stored_report,
+                                records,
+                                page_budget,
+                                discovery_schema_requests,
+                                closure_schema_requests,
+                                &mut **schemas,
+                                schema_limits,
+                                super::foundation_rule_diagnostics::CandidateRuleDiagnosticOperationLimits {
+                                    max_checks,
+                                    max_total_instance_bytes: usize::try_from(first_worker_stream.max_total_raw_bytes)
+                                        .map_err(|_| ItemRefusal::Budget)?,
+                                },
+                                deadline,
+                                cancelled,
+                                rule_diag_limits,
+                            )
+                            .map_err(|error| {
+                                let (site, reason) = match error {
+                                    CandidateRuleDiagnosticsError::Refused { reason, .. } =>
+                                        ("default-refused", reason.to_owned()),
+                                    CandidateRuleDiagnosticsError::Incomplete { reason, .. } =>
+                                        ("default-incomplete", reason.to_owned()),
+                                };
+                                ItemRefusal::Source(
+                                    crate::source_admission_spooled_index::bounded_source_cause(
+                                        "receiver-source", site, &reason,
+                                    ),
+                                )
+                            })?;
+                            let owner_report = &evaluated.owner_report;
+                            if owner_report.scope != scope {
+                                return Err(ItemRefusal::Source("candidate default profile binding differs".into()));
+                            }
+
+                            // Preserve every failed owned predicate, without printing private
+                            // source paths, issue prose, or worker payloads. The first failed
+                            // predicate carries exact observed/expected scalar counts.
+                            let predicates = [
+                                ("default direct owner issues", owner_report.cost.direct_owner_issue_count, 0),
+                                ("default aggregate Labs coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.unimplemented.len()), 0),
+                                ("default per-lab coverage", owner_report.labs.as_ref().map_or(0, |labs| labs.results.iter().filter(|lab| !lab.unimplemented.is_empty()).count()), 0),
+                                ("default Goldset coverage", owner_report.goldsets.as_ref().map_or(0, |goldsets| goldsets.coverage_gaps.len()), 0),
+                                ("default Discovery coverage", owner_report.discovery.unsupported.len(), 0),
+                                ("default Closure coverage", owner_report.closure.unsupported.len(), 0),
+                                ("default queued execution count", evaluated.cost.schema_check_count, owner_report.cost.queued_schema_document_count),
+                                ("default resolved schema issues", evaluated.semantic_failure_count().ok_or(ItemRefusal::Budget)?, 0),
+                                ("default diagnostic live binding", usize::from(!evaluated.diagnostics_bound_to(&**schemas, scope)), 0),
+                            ];
+                            let mut failed_mask = 0u16;
+                            let mut primary = None;
+                            for (index, (label, observed, expected)) in predicates.into_iter().enumerate() {
+                                if observed != expected {
+                                    failed_mask |= 1u16 << index;
+                                    primary.get_or_insert((label, observed, expected));
+                                }
+                            }
+                            if let Some((label, observed, expected)) = primary {
+                                let issue = owner_report.labs.as_ref().and_then(|labs| labs.ordered_issues.first()).map(|(_, text)| text.as_str())
+                                    .or_else(|| owner_report.goldsets.as_ref().and_then(|goldsets| goldsets.ordered_issues.first()).map(|(_, text)| text.as_str()))
+                                    .or_else(|| owner_report.discovery.issues.first().map(|issue| issue.detail.as_str()))
+                                    .or_else(|| owner_report.closure.issues.first().map(|(_, text)| text.as_str()))
+                                    .unwrap_or(label);
+                                // 11 predicate bits and two 64-bit hex counters fit the
+                                // existing 40-byte source-cause site bound exactly.
+                                let mut site = format!("pr-{failed_mask:x}-{observed:x}-{expected:x}");
+                                let mut cause = issue;
+                                if owner_report.labs.as_ref().is_none_or(|labs| labs.ordered_issues.is_empty())
+                                    && owner_report.goldsets.as_ref().is_none_or(|goldsets| goldsets.ordered_issues.is_empty())
+                                {
+                                    let finding = owner_report.discovery.issues.first()
+                                        .map(|finding| ("d", finding.code, finding.location.as_str()))
+                                        .or_else(|| owner_report.closure.issues.first()
+                                            .map(|(path, _)| ("c", "closure", path.as_str())));
+                                    if let Some((district, code, path)) = finding {
+                                        let code = Digest256::of_bytes(code.as_bytes()).to_hex();
+                                        let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                                        let located = format!("{site}-{district}{}-p{}", &code[..12], &path[..12]);
+                                        if located.len() <= 40 {
+                                            site = located;
+                                        }
+                                    }
+                                }
+                                if let Some(diagnostic) = evaluated.first_invalid()
+                                {
+                                    let result = diagnostic.result();
+                                    let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
+                                    let reason = result.report().issues.first()
+                                        .map_or(0, |issue| issue.reason as u16);
+                                    let diagnostic_site = format!(
+                                        "{site}-s{:x}-r{reason:x}-c{}",
+                                        result.status() as u8, &contract[..12],
+                                    );
+                                    // The full source-path digest remains the cause, while
+                                    // this bounded navigation prefix names the selected
+                                    // contract and its owned structured reason code.
+                                    if diagnostic_site.len() <= 40 {
+                                        site = diagnostic_site;
+                                        cause = result.path();
+                                    }
+                                }
+                                // Return the bounded set from this same evaluation, not
+                                // just its first finding. Fingerprints preserve source
+                                // privacy while allowing the owner to correlate every
+                                // path and reason against the selected local inputs.
+                                use crate::source_admission_spooled_index::{
+                                    MAX_SOURCE_CAUSE_BYTES, MAX_SOURCE_CAUSES, bounded_source_cause,
+                                };
+                                let summary = bounded_source_cause("receiver-source", &site, cause);
+                                let diagnostic_cap = MAX_SOURCE_CAUSE_BYTES.min(biblio_operation.output_bytes);
+                                let diagnostic_state = evaluated.cost.peak_additional_state_upper_bound_bytes
+                                    .checked_add(diagnostic_cap + 1024)
+                                    .ok_or(tos_validation::item_budget_origin!())?;
+                                if diagnostic_state > diagnostic_state_cap
+                                    || summary.len() + "source-causes:".len() > diagnostic_cap {
+                                    return Err(ItemRefusal::Source(summary));
+                                }
+                                let mut causes = String::with_capacity(diagnostic_cap);
+                                causes.push_str("source-causes:");
+                                causes.push_str(&summary);
+                                let findings = owner_report.labs.iter()
+                                    .flat_map(|labs| labs.ordered_issues.iter().map(|(path, issue)| ("l", path.as_str(), issue.as_str())))
+                                    .chain(owner_report.goldsets.iter()
+                                        .flat_map(|goldsets| goldsets.ordered_issues.iter().map(|(path, issue)| ("g", path.as_str(), issue.as_str()))))
+                                    .chain(owner_report.discovery.issues.iter()
+                                        .map(|issue| ("d", issue.location.as_str(), issue.detail.as_str())))
+                                    .chain(owner_report.closure.issues.iter()
+                                        .map(|(path, issue)| ("c", path.as_str(), issue.as_str())));
+                                for (district, path, issue) in findings.take(MAX_SOURCE_CAUSES - 1) {
+                                    let prefix = issue.split_once(':').map_or(issue, |(prefix, _)| prefix);
+                                    let prefix = Digest256::of_bytes(prefix.as_bytes()).to_hex();
+                                    let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                                    let site = format!("df-{district}-{}-p{}", &prefix[..12], &path[..12]);
+                                    let token = bounded_source_cause("receiver-source", &site, issue);
+                                    if causes.len().checked_add(1 + token.len())
+                                        .is_none_or(|bytes| bytes > diagnostic_cap) {
+                                        break;
+                                    }
+                                    causes.push('|');
+                                    causes.push_str(&token);
+                                }
+                                if causes.len() > diagnostic_cap {
+                                    return Err(tos_validation::item_budget_origin!());
+                                }
+                                return Err(ItemRefusal::Source(causes));
+                            }
+                            let _ordered_rule_observations = evaluated.ordered_observation_sha256();
+                            let after_defaults = view.original_io.snapshot();
+                            let candidate_read = after_defaults
+                                .read_attempted_bytes
+                                .checked_sub(io_before_records.read_attempted_bytes)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let total_candidate_and_external = candidate_read
+                                .checked_add(callback_external_reads.get())
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            if total_candidate_and_external > records_ticket.remaining().source_read_bytes {
+                                return Err(ItemRefusal::BudgetCheck {
+                                    check: "candidate dependent source read attempts and external returns",
+                                    used: Some(total_candidate_and_external),
+                                    limit: Some(records_ticket.remaining().source_read_bytes),
+                                });
+                            }
+                            let diagnostic_evidence_peak = common_evidence_state
+                                .checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
+                                .ok_or(tos_validation::item_budget_origin!())?;
+                            let callback_evidence_state = rules_evidence_peak.max(diagnostic_evidence_peak);
+                            if callback_evidence_state > callback_workspace_state {
+                                return Err(ItemRefusal::BudgetCheck {
+                                    check: "candidate dependent evidence state upper bound",
+                                    used: u64::try_from(callback_evidence_state).ok(),
+                                    limit: u64::try_from(callback_workspace_state).ok(),
+                                });
+                            }
+                            let _ = biblio_query_rows;
+                            Ok((callback_evidence_state, callback_external_reads.get()))
+                        },
+                    );
+                    let dependent_evidence = providers_result
+                        .map_err(|error| candidate_callback_refusal("candidate default providers", error))?;
+                    let final_callback_io = view.original_io.snapshot();
+                    if final_callback_io.read_attempted_bytes
                         .checked_sub(io_before_records.read_attempted_bytes)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let total_candidate_and_external = candidate_read
-                        .checked_add(callback_external_reads.get())
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    if total_candidate_and_external > records_ticket.remaining().source_read_bytes {
-                        return Err(ItemRefusal::BudgetCheck {
-                            check: "candidate dependent source read attempts and external returns",
-                            used: Some(total_candidate_and_external),
-                            limit: Some(records_ticket.remaining().source_read_bytes),
-                        });
+                        .is_none_or(|read| read > records_ticket.remaining().source_read_bytes)
+                        || final_callback_io.write_attempted_bytes
+                            .checked_sub(io_before_records.write_attempted_bytes)
+                            .is_none_or(|write| write > remaining_write)
+                    {
+                        return Err(io::Error::other("candidate dependent owners exceeded shared IO"));
                     }
-                    let diagnostic_evidence_peak = common_evidence_state
-                        .checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
-                        .ok_or(tos_validation::item_budget_origin!())?;
-                    let callback_evidence_state = rules_evidence_peak.max(diagnostic_evidence_peak);
-                    if callback_evidence_state > callback_workspace_state {
-                        return Err(ItemRefusal::BudgetCheck {
-                            check: "candidate dependent evidence state upper bound",
-                            used: u64::try_from(callback_evidence_state).ok(),
-                            limit: u64::try_from(callback_workspace_state).ok(),
-                        });
-                    }
-                    let _ = biblio_query_rows;
-                    Ok((callback_evidence_state, callback_external_reads.get()))
+                    Ok(dependent_evidence)
                 },
-            );
-            let dependent_evidence = providers_result
-                .map_err(|error| candidate_callback_refusal("candidate default providers", error))?;
-            let final_callback_io = view.original_io.snapshot();
-            if final_callback_io.read_attempted_bytes
+            ) {
+                Ok(result) => result,
+                Err(error) => {
+                    return fail_candidate_window_with_classified_io(
+                        view.execution_limits,
+                        view.remaining_budget,
+                        records_ticket,
+                        view.original_io,
+                        io_before_records,
+                        callback_external_reads.get(),
+                        view.candidate_io_adopted,
+                        view.remaining_write_bytes,
+                        FoundationOrchestratorError::Admission(error),
+                    );
+                }
+            };
+
+            let records_cost_state = verified_records
+                .record_issue_count()
+                .checked_add(verified_records.item_issue_count())
+                .and_then(|issues| issues.checked_add(verified_records.manifest_item_id_count()))
+                .and_then(|items| items.checked_mul(std::mem::size_of::<usize>()))
+                .ok_or_else(|| incomplete("candidate Records report state overflow"))?;
+            let io_after_records = view.original_io.snapshot();
+            let records_read_delta = io_after_records
+                .read_attempted_bytes
                 .checked_sub(io_before_records.read_attempted_bytes)
-                .is_none_or(|read| read > records_ticket.remaining().source_read_bytes)
-                || final_callback_io.write_attempted_bytes
-                    .checked_sub(io_before_records.write_attempted_bytes)
-                    .is_none_or(|write| write > remaining_write)
+                .ok_or_else(|| incomplete("candidate Records IO read counter regressed"))?;
+            let records_write_delta = io_after_records
+                .write_attempted_bytes
+                .checked_sub(io_before_records.write_attempted_bytes)
+                .ok_or_else(|| incomplete("candidate Records IO write counter regressed"))?;
+            let remaining_write = remaining_write
+                .checked_sub(records_write_delta)
+                .ok_or_else(|| incomplete("candidate Records IO exceeded write reservation"))?;
+            let quota_after_records = worker_quota
+                .usage()
+                .map_err(|_| incomplete("candidate schema quota unavailable"))?;
+            let (records_cpu, records_wire) = use_delta(quota_before_records, quota_after_records)?;
+            let defaults_event_state = defaults.default_event_cost().retained_state_bytes;
+            let records_charge_state = selected_index
+                .cache_bytes
+                .checked_add(defaults_limits.cache_bytes)
+                .and_then(|state| state.checked_add(defaults_event_state))
+                .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
+                .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
+                .and_then(|state| {
+                    state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
+                })
+                .and_then(|state| {
+                    state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+                })
+                .and_then(|state| state.checked_add(records_cost_state))
+                .and_then(|state| state.checked_add(dependent_state))
+                .ok_or_else(|| incomplete("candidate Records retained-state overflow"))?;
+            let records_usage = phase_use(
+                records_read_delta
+                    .checked_add(history_rule_reads)
+                    .ok_or_else(|| incomplete("candidate Records external read cost overflow"))?,
+                records_wire,
+                records_charge_state,
+                0,
+                records_cpu,
+                0,
+                0,
+            );
+            if phase_amounts(records_usage)?.state_bytes > records_ticket.remaining().state_bytes
+                || records_read_delta
+                    .checked_add(history_rule_reads)
+                    .is_none_or(|read| read > records_ticket.remaining().source_read_bytes)
             {
-                return Err(io::Error::other("candidate dependent owners exceeded shared IO"));
+                return fail_window(
+                    view.execution_limits,
+                    view.remaining_budget,
+                    records_ticket,
+                    incomplete("candidate Records and dependent-owner report exceeds reservation"),
+                );
             }
-            Ok(dependent_evidence)
-        },
-    ) {
-        Ok(result) => result,
-        Err(error) => {
-            return fail_candidate_window_with_classified_io(
+            complete_candidate_window(
                 view.execution_limits,
                 view.remaining_budget,
                 records_ticket,
-                view.original_io,
+                records_usage,
                 io_before_records,
-                callback_external_reads.get(),
+                io_after_records,
                 view.candidate_io_adopted,
                 view.remaining_write_bytes,
-                FoundationOrchestratorError::Admission(error),
-            );
-        }
-    };
+                remaining_write,
+            )?;
 
-    let records_cost_state = verified_records
-        .record_issue_count()
-        .checked_add(verified_records.item_issue_count())
-        .and_then(|issues| issues.checked_add(verified_records.manifest_item_id_count()))
-        .and_then(|items| items.checked_mul(std::mem::size_of::<usize>()))
-        .ok_or_else(|| incomplete("candidate Records report state overflow"))?;
-    let io_after_records = view.original_io.snapshot();
-    let records_read_delta = io_after_records
-        .read_attempted_bytes
-        .checked_sub(io_before_records.read_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate Records IO read counter regressed"))?;
-    let records_write_delta = io_after_records
-        .write_attempted_bytes
-        .checked_sub(io_before_records.write_attempted_bytes)
-        .ok_or_else(|| incomplete("candidate Records IO write counter regressed"))?;
-    let remaining_write = remaining_write
-        .checked_sub(records_write_delta)
-        .ok_or_else(|| incomplete("candidate Records IO exceeded write reservation"))?;
-    let quota_after_records = worker_quota
-        .usage()
-        .map_err(|_| incomplete("candidate schema quota unavailable"))?;
-    let (records_cpu, records_wire) = use_delta(quota_before_records, quota_after_records)?;
-    let defaults_event_state = defaults.default_event_cost().retained_state_bytes;
-    let records_charge_state = selected_index
-        .cache_bytes
-        .checked_add(defaults_limits.cache_bytes)
-        .and_then(|state| state.checked_add(defaults_event_state))
-        .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
-        .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
-        .and_then(|state| {
-            state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
-        })
-        .and_then(|state| {
-            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
-        })
-        .and_then(|state| state.checked_add(records_cost_state))
-        .and_then(|state| state.checked_add(dependent_state))
-        .ok_or_else(|| incomplete("candidate Records retained-state overflow"))?;
-    let records_usage = phase_use(
-        records_read_delta
-            .checked_add(history_rule_reads)
-            .ok_or_else(|| incomplete("candidate Records external read cost overflow"))?,
-        records_wire,
-        records_charge_state,
-        0,
-        records_cpu,
-        0,
-        0,
-    );
-    if phase_amounts(records_usage)?.state_bytes > records_ticket.remaining().state_bytes
-        || records_read_delta
-            .checked_add(history_rule_reads)
-            .is_none_or(|read| read > records_ticket.remaining().source_read_bytes)
-    {
-        return fail_window(
+            (index, verified_records, records_cost_state, record_executor, remaining_write)
+        };
+
+        let catalog_ticket = open_window(
             view.execution_limits,
             view.remaining_budget,
-            records_ticket,
-            incomplete("candidate Records and dependent-owner report exceeds reservation"),
-        );
-    }
-    complete_candidate_window(
-        view.execution_limits,
-        view.remaining_budget,
-        records_ticket,
-        records_usage,
-        io_before_records,
-        io_after_records,
-        view.candidate_io_adopted,
-        view.remaining_write_bytes,
-        remaining_write,
-    )?;
-
-    // Records/defaults output is already bound and fully charged. No later
-    // phase reads its private SQLite projection. Close its sole connection
-    // and scope before compiling the native schema closure; otherwise the
-    // finished defaults cache needlessly overlaps that constructor workspace.
-    drop(defaults);
-
-    let catalog_ticket = open_window(
-        view.execution_limits,
-        view.remaining_budget,
-        "candidate-catalog-and-persisted-inputs",
-        FoundationWindowKind::CatalogAndPersisted,
-        FoundationPhaseReservation::default(),
-    )?;
-    let owner = |error| FoundationOrchestratorError::OwnerAt("candidate catalogue", error);
-    let catalog_operation = catalog_ticket.operation_limits();
-    // The physical census below already reads the original candidate ledger.
-    // Include it in this phase's observed prefix, before any source traversal.
-    let io_before_catalog = view.original_io.snapshot();
-    // The fresh tree and route reader retain their returned-byte counts on
-    // both success and refusal; no unknown whole-invocation allowance is spent.
-    let catalog_external_reads = std::cell::Cell::new(0);
-    let catalog_attempt = (|| {
-        let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
-        let catalog_state_cap = catalog_operation
-            .state_bytes
-            .checked_sub(catalog_identity_state)
-            .ok_or_else(|| incomplete("candidate catalog worker identity exceeds state"))?;
-        let mut largest_catalog_member = 0u64;
-        let mut observed_catalog_members = 0usize;
-        let mut observed_catalog_bytes = 0u64;
-        input
-            .for_each_current_member_meta(deadline, cancelled, &mut |member| {
-                // This is the physical preparation envelope, not the semantic
-                // SourceWitness census. The producer also reads declared grammar,
-                // registries and native source members from this same held input.
-                observed_catalog_members = observed_catalog_members
-                    .checked_add(1)
-                    .ok_or(tos_validation::item_budget_origin!())?;
-                largest_catalog_member = largest_catalog_member.max(member.size_bytes);
-                observed_catalog_bytes = observed_catalog_bytes
-                    .checked_add(member.size_bytes)
-                    .ok_or(tos_validation::item_budget_origin!())?;
-                Ok(())
-            })
-            .map_err(owner)?;
-        if observed_catalog_members == 0
-            || observed_catalog_members > max_members
-            || u64::try_from(observed_catalog_members).ok() != Some(view.coverage.member_count())
-            || observed_catalog_bytes != fence.source_bytes
-        {
-            return Err(incomplete("candidate catalog current-source census refused"));
-        }
-        let max_catalog_members = observed_catalog_members.min(4096).max(1);
-        let max_catalog_files = max_members.min((u64::MAX - 1) as usize).max(1) as u64;
-        let max_catalog_rows = catalog_operation.source_read_bytes.min(u64::MAX - 1).max(1);
-        let max_catalog_file_bytes = usize::try_from(
-            budgets
-                .max_member_bytes
-                .min(16 * 1024 * 1024)
-                .min(largest_catalog_member.max(1))
-                .min(catalog_operation.source_read_bytes)
-                .min((usize::MAX - 1) as u64),
-        )
-        .map_err(|_| incomplete("candidate catalog file cap range"))?;
-        let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
-        // Contract closure is aggregate retained input, independent of any one
-        // file/row. The authenticated physical census bounds all contract bytes.
-        let max_catalog_contract_bytes = usize::try_from(
-            observed_catalog_bytes
-                .min(catalog_operation.source_read_bytes)
-                .min(catalog_state_cap as u64)
-                .min(
-                    tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
-                        as u64,
-                ),
-        )
-        .map_err(|_| incomplete("candidate catalog contract cap range"))?;
-        let max_catalog_output_row_bytes = usize::try_from(
-            catalog_operation
-                .tmpfs_bytes
-                .min(4 * 1024 * 1024)
-                .min((usize::MAX - 1) as u64),
-        )
-        .map_err(|_| incomplete("candidate catalog output row cap range"))?;
-        let catalog_limits = view
-            .execution_limits
-            .catalog_limits(
-                max_catalog_files,
-                max_catalog_rows,
-                max_catalog_file_bytes,
-                max_catalog_row_bytes,
-                max_catalog_contract_bytes,
-                max_catalog_output_row_bytes,
-            )
-            .map_err(FoundationOrchestratorError::Command)?;
-        let catalog_source_limits = view
-            .execution_limits
-            .catalog_input_limits(max_catalog_members)
-            .map_err(FoundationOrchestratorError::Command)?;
-        let catalog_read_limits = view
-            .execution_limits
-            .read_limits(
-                catalog_operation,
-                max_members,
-                observed_catalog_bytes.min(catalog_operation.source_read_bytes),
-            )
-            .map_err(FoundationOrchestratorError::Command)?;
-        let max_claim_bytes = catalog_state_cap.min(128 * 1024 * 1024);
-        let max_claim_rows = (catalog_limits.max_rows.min(16_384) as usize)
-            .min(max_claim_bytes / catalog_limits.max_output_row_bytes.max(1));
-        if max_claim_rows == 0 {
-            return Err(incomplete("candidate catalog Claim cohort exceeds state reservation"));
-        }
-        let biblio_catalog_limits = view
-            .execution_limits
-            .bibliography_limits(
-                catalog_limits,
-                max_claim_rows,
-                max_claim_bytes,
-                catalog_operation.tmpfs_bytes,
-            )
-            .map_err(FoundationOrchestratorError::Command)?;
-        let stage_limits = view
-            .execution_limits
-            .stage_limits(
-                max_catalog_rows,
-                max_catalog_rows.min(1024) as usize,
-                catalog_operation.tmpfs_bytes.min(64 * 1024 * 1024),
-            )
-            .map_err(FoundationOrchestratorError::Command)?;
-        // This worker belongs to the catalog phase, whose reservation may be
-        // smaller than the schema phase. Every count dimension uses its own wire
-        // envelope rather than mixing receipts from one phase with units of another.
-        let catalog_max_checks = bounded_usize(
-            u64::try_from(max_checks)
-                .unwrap_or(u64::MAX - 1)
-                .min(catalog_operation.worker_wire_bytes),
-        )?
-        .max(1);
-        let catalog_worker_shape = FoundationCatalogWorkerShape {
-            batch: BatchBudget::laboratory(),
-            max_chunks: catalog_max_checks
-                .div_ceil(BatchBudget::laboratory().max_units)
-                .max(1) as u64,
-            max_total_units: u64::try_from(catalog_max_checks)
-                .unwrap_or(u64::MAX - 1)
-                .min(catalog_operation.worker_wire_bytes)
-                .max(1),
-            max_total_raw_bytes: catalog_operation
-                .source_read_bytes
-                .min(catalog_operation.worker_wire_bytes)
-                .min(BatchBudget::MAX_RAW_BYTES as u64)
-                .max(1),
-            max_total_wire_bytes: catalog_operation.worker_wire_bytes,
-            max_distinct_selectors: catalog_max_checks.max(1).min(1024),
-            max_receipts: catalog_max_checks.max(1),
-            max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
-        };
-        let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
-            .execution_limits
-            .catalog_worker_limits(catalog_worker_shape)
-            .map_err(FoundationOrchestratorError::Command)?;
-        // Fresh catalog files are staged bytes read back for comparison, not the
-        // final CLI receipt. Both physical and cumulative read meters still apply.
-        let max_generated_bytes = usize::try_from(
-            catalog_operation
-                .tmpfs_bytes
-                .min(catalog_operation.source_read_bytes)
-                .min((usize::MAX - 1) as u64),
-        )
-        .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
-        let max_generated_files = max_catalog_files as usize;
-        let tree_limits = DisposableCatalogTreeLimits {
-            max_total_bytes: usize::try_from(
-                catalog_operation.tmpfs_bytes.min((usize::MAX - 1) as u64),
-            )
-            .map_err(|_| incomplete("candidate catalog tmpfs byte range"))?,
-            max_file_bytes: max_catalog_output_row_bytes,
-            max_files: usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
-            max_state_bytes: catalog_state_cap,
-            max_inodes: usize::try_from(max_catalog_files)
-                .unwrap_or(usize::MAX - 4)
-                .saturating_add(4),
-        };
-        let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
-        let quota_before_catalog = worker_quota
-            .usage()
-            .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
-        let validator = tos_compiler::source_witness_catalog::SourceCatalogValidator::from_candidate_prepared(
-            worker_image.identity(),
-            catalog_executor,
-            cancelled,
-            deadline,
-            &fence,
-            &mut item_schemas
-                as &mut dyn tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<CandidateFence>,
-        )
-        .map_err(FoundationOrchestratorError::Catalog)?;
-        let catalog_result = super::foundation_catalog::compare_spooled_candidate(
-            input,
-            view.coverage,
-            view.original_epoch,
-            view.sources,
-            &candidate_catalog_path,
-            view.stage,
-            stage_limits,
-            catalog_source_limits,
-            biblio_catalog_limits,
-            &validator,
-            true,
-            // Version resolution charges repeated reads, not distinct input members.
-            bounded_usize(budgets.max_readonly_record_read_calls)?,
-            // Version resolution charges cumulative reads, not the largest member.
-            bounded_usize(catalog_operation.source_read_bytes)?,
-            max_generated_bytes,
-            max_generated_files,
-            catalog_state_cap,
-            view.isolated,
-            tree_limits,
-            &mut index,
-            cancelled,
-            &catalog_external_reads,
-        )
-        .map_err(FoundationOrchestratorError::Catalog)?;
-        let complete_catalog = match &catalog_result.outcome {
-            FoundationCatalogOutcome::Complete(result)
-                if result.issues.is_empty() && result.profiles.files().is_ok() =>
+            "candidate-catalog-and-persisted-inputs",
+            FoundationWindowKind::CatalogAndPersisted,
+            FoundationPhaseReservation::default(),
+        )?;
+        let owner = |error| FoundationOrchestratorError::OwnerAt("candidate catalogue", error);
+        let catalog_operation = catalog_ticket.operation_limits();
+        // The physical census below already reads the original candidate ledger.
+        // Include it in this phase's observed prefix, before any source traversal.
+        let io_before_catalog = view.original_io.snapshot();
+        // The fresh tree and route reader retain their returned-byte counts on
+        // both success and refusal; no unknown whole-invocation allowance is spent.
+        let catalog_external_reads = std::cell::Cell::new(0);
+        let catalog_attempt = (|| {
+            let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
+            let catalog_state_cap = catalog_operation
+                .state_bytes
+                .checked_sub(catalog_identity_state)
+                .ok_or_else(|| incomplete("candidate catalog worker identity exceeds state"))?;
+            let mut largest_catalog_member = 0u64;
+            let mut observed_catalog_members = 0usize;
+            let mut observed_catalog_bytes = 0u64;
+            input
+                .for_each_current_member_meta(deadline, cancelled, &mut |member| {
+                    // This is the physical preparation envelope, not the semantic
+                    // SourceWitness census. The producer also reads declared grammar,
+                    // registries and native source members from this same held input.
+                    observed_catalog_members = observed_catalog_members
+                        .checked_add(1)
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    largest_catalog_member = largest_catalog_member.max(member.size_bytes);
+                    observed_catalog_bytes = observed_catalog_bytes
+                        .checked_add(member.size_bytes)
+                        .ok_or(tos_validation::item_budget_origin!())?;
+                    Ok(())
+                })
+                .map_err(owner)?;
+            if observed_catalog_members == 0
+                || observed_catalog_members > max_members
+                || u64::try_from(observed_catalog_members).ok() != Some(view.coverage.member_count())
+                || observed_catalog_bytes != fence.source_bytes
             {
-                result
+                return Err(incomplete("candidate catalog current-source census refused"));
             }
-            FoundationCatalogOutcome::SchemaRejected {
-                diagnostic,
-                bibliographic_phase,
-                ..
-            } => {
-                let result = diagnostic.result();
-                let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
-                let issue = result.report().issues.first();
-                let reason = issue.map_or(0, |issue| issue.reason as u16);
-                let mut location = tos_foundation::Digest256Hasher::new();
-                if let Some(issue) = issue {
-                    for segment in &issue.instance_path {
-                        use tos_validation::executor::schema_diagnostics::PathSegment;
-                        match segment {
-                            PathSegment::Property(name) => {
-                                location.update(b"p");
-                                location.update(&(name.len() as u64).to_be_bytes());
-                                location.update(name.as_bytes());
-                            }
-                            PathSegment::Index(index) => {
-                                location.update(b"i");
-                                location.update(&index.to_be_bytes());
+            let max_catalog_members = observed_catalog_members.min(4096).max(1);
+            let max_catalog_files = max_members.min((u64::MAX - 1) as usize).max(1) as u64;
+            let max_catalog_rows = catalog_operation.source_read_bytes.min(u64::MAX - 1).max(1);
+            let max_catalog_file_bytes = usize::try_from(
+                budgets
+                    .max_member_bytes
+                    .min(16 * 1024 * 1024)
+                    .min(largest_catalog_member.max(1))
+                    .min(catalog_operation.source_read_bytes)
+                    .min((usize::MAX - 1) as u64),
+            )
+            .map_err(|_| incomplete("candidate catalog file cap range"))?;
+            let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
+            // Contract closure is aggregate retained input, independent of any one
+            // file/row. The authenticated physical census bounds all contract bytes.
+            let max_catalog_contract_bytes = usize::try_from(
+                observed_catalog_bytes
+                    .min(catalog_operation.source_read_bytes)
+                    .min(catalog_state_cap as u64)
+                    .min(
+                        tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES
+                            as u64,
+                    ),
+            )
+            .map_err(|_| incomplete("candidate catalog contract cap range"))?;
+            let max_catalog_output_row_bytes = usize::try_from(
+                catalog_operation
+                    .tmpfs_bytes
+                    .min(4 * 1024 * 1024)
+                    .min((usize::MAX - 1) as u64),
+            )
+            .map_err(|_| incomplete("candidate catalog output row cap range"))?;
+            let catalog_limits = view
+                .execution_limits
+                .catalog_limits(
+                    max_catalog_files,
+                    max_catalog_rows,
+                    max_catalog_file_bytes,
+                    max_catalog_row_bytes,
+                    max_catalog_contract_bytes,
+                    max_catalog_output_row_bytes,
+                )
+                .map_err(FoundationOrchestratorError::Command)?;
+            let catalog_source_limits = view
+                .execution_limits
+                .catalog_input_limits(max_catalog_members)
+                .map_err(FoundationOrchestratorError::Command)?;
+            let catalog_read_limits = view
+                .execution_limits
+                .read_limits(
+                    catalog_operation,
+                    max_members,
+                    observed_catalog_bytes.min(catalog_operation.source_read_bytes),
+                )
+                .map_err(FoundationOrchestratorError::Command)?;
+            let max_claim_bytes = catalog_state_cap.min(128 * 1024 * 1024);
+            let max_claim_rows = (catalog_limits.max_rows.min(16_384) as usize)
+                .min(max_claim_bytes / catalog_limits.max_output_row_bytes.max(1));
+            if max_claim_rows == 0 {
+                return Err(incomplete("candidate catalog Claim cohort exceeds state reservation"));
+            }
+            let biblio_catalog_limits = view
+                .execution_limits
+                .bibliography_limits(
+                    catalog_limits,
+                    max_claim_rows,
+                    max_claim_bytes,
+                    catalog_operation.tmpfs_bytes,
+                )
+                .map_err(FoundationOrchestratorError::Command)?;
+            let stage_limits = view
+                .execution_limits
+                .stage_limits(
+                    max_catalog_rows,
+                    max_catalog_rows.min(1024) as usize,
+                    catalog_operation.tmpfs_bytes.min(64 * 1024 * 1024),
+                )
+                .map_err(FoundationOrchestratorError::Command)?;
+            // This worker belongs to the catalog phase, whose reservation may be
+            // smaller than the schema phase. Every count dimension uses its own wire
+            // envelope rather than mixing receipts from one phase with units of another.
+            let catalog_max_checks = bounded_usize(
+                u64::try_from(max_checks)
+                    .unwrap_or(u64::MAX - 1)
+                    .min(catalog_operation.worker_wire_bytes),
+            )?
+            .max(1);
+            let catalog_worker_shape = FoundationCatalogWorkerShape {
+                batch: BatchBudget::laboratory(),
+                max_chunks: catalog_max_checks
+                    .div_ceil(BatchBudget::laboratory().max_units)
+                    .max(1) as u64,
+                max_total_units: u64::try_from(catalog_max_checks)
+                    .unwrap_or(u64::MAX - 1)
+                    .min(catalog_operation.worker_wire_bytes)
+                    .max(1),
+                max_total_raw_bytes: catalog_operation
+                    .source_read_bytes
+                    .min(catalog_operation.worker_wire_bytes)
+                    .min(BatchBudget::MAX_RAW_BYTES as u64)
+                    .max(1),
+                max_total_wire_bytes: catalog_operation.worker_wire_bytes,
+                max_distinct_selectors: catalog_max_checks.max(1).min(1024),
+                max_receipts: catalog_max_checks.max(1),
+                max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
+            };
+            let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
+                .execution_limits
+                .catalog_worker_limits(catalog_worker_shape)
+                .map_err(FoundationOrchestratorError::Command)?;
+            // Fresh catalog files are staged bytes read back for comparison, not the
+            // final CLI receipt. Both physical and cumulative read meters still apply.
+            let max_generated_bytes = usize::try_from(
+                catalog_operation
+                    .tmpfs_bytes
+                    .min(catalog_operation.source_read_bytes)
+                    .min((usize::MAX - 1) as u64),
+            )
+            .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
+            let max_generated_files = max_catalog_files as usize;
+            let tree_limits = DisposableCatalogTreeLimits {
+                max_total_bytes: usize::try_from(
+                    catalog_operation.tmpfs_bytes.min((usize::MAX - 1) as u64),
+                )
+                .map_err(|_| incomplete("candidate catalog tmpfs byte range"))?,
+                max_file_bytes: max_catalog_output_row_bytes,
+                max_files: usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
+                max_state_bytes: catalog_state_cap,
+                max_inodes: usize::try_from(max_catalog_files)
+                    .unwrap_or(usize::MAX - 4)
+                    .saturating_add(4),
+            };
+            let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
+            let quota_before_catalog = worker_quota
+                .usage()
+                .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
+            let validator = tos_compiler::source_witness_catalog::SourceCatalogValidator::from_candidate_prepared(
+                worker_image.identity(),
+                catalog_executor,
+                cancelled,
+                deadline,
+                &fence,
+                &mut item_schemas
+                    as &mut dyn tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<CandidateFence>,
+            )
+            .map_err(FoundationOrchestratorError::Catalog)?;
+            let catalog_result = super::foundation_catalog::compare_spooled_candidate(
+                input,
+                view.coverage,
+                view.original_epoch,
+                view.sources,
+                &candidate_catalog_path,
+                view.stage,
+                stage_limits,
+                catalog_source_limits,
+                biblio_catalog_limits,
+                &validator,
+                true,
+                // Version resolution charges repeated reads, not distinct input members.
+                bounded_usize(budgets.max_readonly_record_read_calls)?,
+                // Version resolution charges cumulative reads, not the largest member.
+                bounded_usize(catalog_operation.source_read_bytes)?,
+                max_generated_bytes,
+                max_generated_files,
+                catalog_state_cap,
+                view.isolated,
+                tree_limits,
+                &mut index,
+                cancelled,
+                &catalog_external_reads,
+            )
+            .map_err(FoundationOrchestratorError::Catalog)?;
+            let complete_catalog = match &catalog_result.outcome {
+                FoundationCatalogOutcome::Complete(result)
+                    if result.issues.is_empty() && result.profiles.files().is_ok() =>
+                {
+                    result
+                }
+                FoundationCatalogOutcome::SchemaRejected {
+                    diagnostic,
+                    bibliographic_phase,
+                    ..
+                } => {
+                    let result = diagnostic.result();
+                    let contract = Digest256::of_bytes(result.contract().as_bytes()).to_hex();
+                    let issue = result.report().issues.first();
+                    let reason = issue.map_or(0, |issue| issue.reason as u16);
+                    let mut location = tos_foundation::Digest256Hasher::new();
+                    if let Some(issue) = issue {
+                        for segment in &issue.instance_path {
+                            use tos_validation::executor::schema_diagnostics::PathSegment;
+                            match segment {
+                                PathSegment::Property(name) => {
+                                    location.update(b"p");
+                                    location.update(&(name.len() as u64).to_be_bytes());
+                                    location.update(name.as_bytes());
+                                }
+                                PathSegment::Index(index) => {
+                                    location.update(b"i");
+                                    location.update(&index.to_be_bytes());
+                                }
                             }
                         }
                     }
+                    let location = location.finalize().to_hex();
+                    let site = format!(
+                        "cat-b{}-s{}-r{reason:x}-c{}-i{}",
+                        u8::from(*bibliographic_phase),
+                        result.status() as u8,
+                        &contract[..12],
+                        &location[..6],
+                    );
+                    return Err(owner(ItemRefusal::Source(
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source",
+                                &site,
+                                result.path(),
+                            ),
+                    )));
                 }
-                let location = location.finalize().to_hex();
-                let site = format!(
-                    "cat-b{}-s{}-r{reason:x}-c{}-i{}",
-                    u8::from(*bibliographic_phase),
-                    result.status() as u8,
-                    &contract[..12],
-                    &location[..6],
-                );
-                return Err(owner(ItemRefusal::Source(
-                        crate::source_admission_spooled_index::bounded_source_cause(
-                            "receiver-source",
-                            &site,
-                            result.path(),
-                        ),
-                )));
+                FoundationCatalogOutcome::Complete(result) => {
+                    let refusal = if let Some((path, detail)) = result.issues.first() {
+                        let path = Digest256::of_bytes(path.as_bytes()).to_hex();
+                        owner(ItemRefusal::Source(
+                            crate::source_admission_spooled_index::bounded_source_cause(
+                                "receiver-source",
+                                &format!("cat-issues-{:x}-p{}", result.issues.len(), &path[..12]),
+                                detail,
+                            ),
+                        ))
+                    } else {
+                        incomplete("candidate catalog record profile selection incomplete")
+                    };
+                    return Err(refusal);
+                }
+            };
+            let fresh = catalog_result
+                .candidate
+                .as_ref()
+                .ok_or_else(|| incomplete("candidate catalog produced no fresh sink"))?;
+            if !fresh.eof_verified() || catalog_result.fresh_sources.is_none() {
+                return Err(incomplete("candidate fresh catalog EOF or source evidence is missing"));
             }
-            FoundationCatalogOutcome::Complete(result) => {
-                let refusal = if let Some((path, detail)) = result.issues.first() {
-                    let path = Digest256::of_bytes(path.as_bytes()).to_hex();
-                    owner(ItemRefusal::Source(
-                        crate::source_admission_spooled_index::bounded_source_cause(
-                            "receiver-source",
-                            &format!("cat-issues-{:x}-p{}", result.issues.len(), &path[..12]),
-                            detail,
-                        ),
-                    ))
-                } else {
-                    incomplete("candidate catalog record profile selection incomplete")
-                };
-                return Err(refusal);
+            let catalog_state = catalog_retained_state(&catalog_result.outcome)?
+                .checked_add(catalog_identity_state)
+                .and_then(|state| {
+                    state.checked_add(fresh.cost().fresh_rows_retained_state_upper_bound_bytes)
+                })
+                .ok_or_else(|| incomplete("candidate catalog retained-state overflow"))?;
+            let catalog_read = checked_add_u64(
+                fresh.cost().readback_bytes as u64,
+                u64::try_from(complete_catalog.generated_read_bytes)
+                    .map_err(|_| incomplete("candidate catalog generated read range"))?,
+            )?;
+            if catalog_external_reads.get() != catalog_read {
+                return Err(incomplete("candidate catalog external read observation differs"));
+            }
+            let io_after_catalog = candidate
+                .io_usage()
+                .map_err(FoundationOrchestratorError::Admission)?;
+            let catalog_candidate_read = io_after_catalog
+                .read_attempted_bytes
+                .checked_sub(io_before_catalog.read_attempted_bytes)
+                .ok_or_else(|| incomplete("candidate catalog IO read counter regressed"))?;
+            let catalog_write_delta = io_after_catalog
+                .write_attempted_bytes
+                .checked_sub(io_before_catalog.write_attempted_bytes)
+                .ok_or_else(|| incomplete("candidate catalog IO write counter regressed"))?;
+            let remaining_write = remaining_write
+                .checked_sub(catalog_write_delta)
+                .ok_or_else(|| incomplete("candidate catalog IO exceeded write reservation"))?;
+            let catalog_source_use = checked_add_u64(catalog_candidate_read, catalog_read)?;
+            let catalog_free = catalog_ticket.remaining();
+            if catalog_source_use > catalog_free.source_read_bytes
+                || catalog_state > catalog_free.state_bytes
+                || complete_catalog.issues.len() > catalog_free.issue_count
+                || fresh.cost().output_bytes as u64 > catalog_free.tmpfs_bytes
+                || fresh.cost().created_inodes as u64 > catalog_free.tmpfs_inodes
+            {
+                return Err(incomplete("candidate catalog evidence exceeds the invocation reservation"));
+            }
+            let catalog_quota_after = worker_quota
+                .usage()
+                .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
+            let (catalog_cpu, catalog_wire) = use_delta(quota_before_catalog, catalog_quota_after)?;
+            let tmpfs_before = view
+                .stage
+                .quota_usage()
+                .map_err(|_| incomplete("candidate catalog stage quota unavailable"))?;
+            let catalog_usage = phase_use(
+                catalog_source_use,
+                catalog_wire,
+                catalog_state,
+                complete_catalog.issues.len(),
+                catalog_cpu,
+                fresh.cost().output_bytes as u64,
+                fresh.cost().created_inodes as u64,
+            );
+            let _ = tmpfs_before;
+            drop(catalog_result);
+            drop(validator);
+            // The catalog owner already closes the borrowed executor before returning
+            // complete output. Verify its terminal state; a second finish is refused.
+            if !item_schemas.is_finished()
+                || item_schemas.input_identity() != input.input_identity()
+            {
+                return Err(incomplete(
+                    "candidate catalog schema worker EOF is incomplete",
+                ));
+            }
+            Ok((catalog_usage, io_after_catalog, remaining_write))
+        })();
+        let (catalog_usage, io_after_catalog, remaining_write) = match catalog_attempt {
+            Ok(result) => result,
+            Err(error) => {
+                return fail_candidate_window_with_classified_io(
+                    view.execution_limits,
+                    view.remaining_budget,
+                    catalog_ticket,
+                    view.original_io,
+                    io_before_catalog,
+                    catalog_external_reads.get(),
+                    view.candidate_io_adopted,
+                    view.remaining_write_bytes,
+                    error,
+                );
             }
         };
-        let fresh = catalog_result
-            .candidate
-            .as_ref()
-            .ok_or_else(|| incomplete("candidate catalog produced no fresh sink"))?;
-        if !fresh.eof_verified() || catalog_result.fresh_sources.is_none() {
-            return Err(incomplete("candidate fresh catalog EOF or source evidence is missing"));
-        }
-        let catalog_state = catalog_retained_state(&catalog_result.outcome)?
-            .checked_add(catalog_identity_state)
-            .and_then(|state| {
-                state.checked_add(fresh.cost().fresh_rows_retained_state_upper_bound_bytes)
-            })
-            .ok_or_else(|| incomplete("candidate catalog retained-state overflow"))?;
-        let catalog_read = checked_add_u64(
-            fresh.cost().readback_bytes as u64,
-            u64::try_from(complete_catalog.generated_read_bytes)
-                .map_err(|_| incomplete("candidate catalog generated read range"))?,
+        complete_candidate_window(
+            view.execution_limits,
+            view.remaining_budget,
+            catalog_ticket,
+            catalog_usage,
+            io_before_catalog,
+            io_after_catalog,
+            view.candidate_io_adopted,
+            view.remaining_write_bytes,
+            remaining_write,
         )?;
-        if catalog_external_reads.get() != catalog_read {
-            return Err(incomplete("candidate catalog external read observation differs"));
-        }
-        let io_after_catalog = candidate
-            .io_usage()
-            .map_err(FoundationOrchestratorError::Admission)?;
-        let catalog_candidate_read = io_after_catalog
-            .read_attempted_bytes
-            .checked_sub(io_before_catalog.read_attempted_bytes)
-            .ok_or_else(|| incomplete("candidate catalog IO read counter regressed"))?;
-        let catalog_write_delta = io_after_catalog
-            .write_attempted_bytes
-            .checked_sub(io_before_catalog.write_attempted_bytes)
-            .ok_or_else(|| incomplete("candidate catalog IO write counter regressed"))?;
-        let remaining_write = remaining_write
-            .checked_sub(catalog_write_delta)
-            .ok_or_else(|| incomplete("candidate catalog IO exceeded write reservation"))?;
-        let catalog_source_use = checked_add_u64(catalog_candidate_read, catalog_read)?;
-        let catalog_free = catalog_ticket.remaining();
-        if catalog_source_use > catalog_free.source_read_bytes
-            || catalog_state > catalog_free.state_bytes
-            || complete_catalog.issues.len() > catalog_free.issue_count
-            || fresh.cost().output_bytes as u64 > catalog_free.tmpfs_bytes
-            || fresh.cost().created_inodes as u64 > catalog_free.tmpfs_inodes
-        {
-            return Err(incomplete("candidate catalog evidence exceeds the invocation reservation"));
-        }
-        let catalog_quota_after = worker_quota
-            .usage()
-            .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
-        let (catalog_cpu, catalog_wire) = use_delta(quota_before_catalog, catalog_quota_after)?;
-        let tmpfs_before = view
-            .stage
-            .quota_usage()
-            .map_err(|_| incomplete("candidate catalog stage quota unavailable"))?;
-        let catalog_usage = phase_use(
-            catalog_source_use,
-            catalog_wire,
-            catalog_state,
-            complete_catalog.issues.len(),
-            catalog_cpu,
-            fresh.cost().output_bytes as u64,
-            fresh.cost().created_inodes as u64,
-        );
-        let _ = tmpfs_before;
-        drop(catalog_result);
-        drop(validator);
-        // The catalog owner already closes the borrowed executor before returning
-        // complete output. Verify its terminal state; a second finish is refused.
-        if !item_schemas.is_finished()
-            || item_schemas.input_identity() != input.input_identity()
-        {
-            return Err(incomplete(
-                "candidate catalog schema worker EOF is incomplete",
-            ));
-        }
-        Ok((catalog_usage, io_after_catalog, remaining_write))
-    })();
-    let (catalog_usage, io_after_catalog, remaining_write) = match catalog_attempt {
-        Ok(result) => result,
-        Err(error) => {
-            return fail_candidate_window_with_classified_io(
-                view.execution_limits,
-                view.remaining_budget,
-                catalog_ticket,
-                view.original_io,
-                io_before_catalog,
-                catalog_external_reads.get(),
-                view.candidate_io_adopted,
-                view.remaining_write_bytes,
-                error,
-            );
-        }
+        (index, verified_records, records_cost_state, record_executor, remaining_write)
     };
-    complete_candidate_window(
-        view.execution_limits,
-        view.remaining_budget,
-        catalog_ticket,
-        catalog_usage,
-        io_before_catalog,
-        io_after_catalog,
-        view.candidate_io_adopted,
-        view.remaining_write_bytes,
-        remaining_write,
-    )?;
-    // Catalog EOF and its candidate binding were verified above. Release the
-    // completed schema closure before preparing the next worker; its controller
-    // workspace must not overlap the native constructor. The cumulative ledger
-    // retains the earlier charge, and final custody checks the native worker's
-    // own candidate binding and successful EOF.
-    drop(item_schemas);
     let remaining = view
         .remaining_budget
         .remaining()

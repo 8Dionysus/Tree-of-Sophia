@@ -239,28 +239,28 @@ impl Walk {
 }
 
 fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.create_preparation_tables(r#"
-CREATE TABLE knowledge_philosophy_nodes(
+    stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+            table r#"knowledge_philosophy_nodes(
  node_id TEXT PRIMARY KEY, node_type TEXT NOT NULL, semantic_kind TEXT NOT NULL,
- source_ref TEXT NOT NULL, raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32));
-CREATE TABLE knowledge_philosophy_edges(
+ source_ref TEXT NOT NULL, raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32))"#,
+            table r#"knowledge_philosophy_edges(
  edge_id TEXT PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL,
  from_source_graph TEXT NOT NULL, to_source_graph TEXT NOT NULL,
  predicate_id TEXT NOT NULL, source_ref TEXT NOT NULL,
- raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32));
-CREATE INDEX knowledge_philosophy_edges_from ON knowledge_philosophy_edges(from_id,edge_id);
-CREATE INDEX knowledge_philosophy_edges_to ON knowledge_philosophy_edges(to_id,edge_id);
-CREATE TABLE knowledge_philosophy_edge_views(
+ raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32))"#,
+            index r#"knowledge_philosophy_edges_from ON knowledge_philosophy_edges(from_id,edge_id)"#,
+            index r#"knowledge_philosophy_edges_to ON knowledge_philosophy_edges(to_id,edge_id)"#,
+            table r#"knowledge_philosophy_edge_views(
  edge_id TEXT NOT NULL, view_id TEXT NOT NULL,
- PRIMARY KEY(edge_id,view_id));
-CREATE INDEX knowledge_philosophy_views_view ON knowledge_philosophy_edge_views(view_id,edge_id);
-CREATE TABLE knowledge_philosophy_unresolved_endpoints(
+ PRIMARY KEY(edge_id,view_id))"#,
+            index r#"knowledge_philosophy_views_view ON knowledge_philosophy_edge_views(view_id,edge_id)"#,
+            table r#"knowledge_philosophy_unresolved_endpoints(
  edge_id TEXT NOT NULL, endpoint_role TEXT NOT NULL,
  source_graph TEXT NOT NULL, native_id TEXT NOT NULL,
- PRIMARY KEY(edge_id,endpoint_role));
-CREATE INDEX knowledge_philosophy_unresolved_source
- ON knowledge_philosophy_unresolved_endpoints(source_graph,native_id,edge_id);
-"#)
+ PRIMARY KEY(edge_id,endpoint_role))"#,
+            index r#"knowledge_philosophy_unresolved_source
+ ON knowledge_philosophy_unresolved_endpoints(source_graph,native_id,edge_id)"#
+        ))
 }
 
 struct NodeIndex {
