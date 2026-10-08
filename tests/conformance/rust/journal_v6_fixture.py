@@ -51,16 +51,18 @@ def prepare(repository, root):
     private.mkdir(mode=0o700)
     # Only private rights are inputs; no old journal or authored layer is copied.
     checked_copy(BASE/'private'/PREFIX/'rights', private/PREFIX/'rights')
-    # The native owner checks every private parent before observing an absent
-    # destination file. Allocate a fresh empty package, never an old layer.
+    # Check the package ancestors, but leave the final package absent. Native
+    # selection treats any existing package as retained and checks its members.
     package = private
-    for component in Path(NEW_PACKAGE).parts:
+    components = Path(NEW_PACKAGE).parts
+    for component in components[:-1]:
         package /= component
         package.mkdir(mode=0o700, exist_ok=True)
         info = package.lstat()
         assert stat.S_ISDIR(info.st_mode) and not package.is_symlink()
         assert info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700
-    assert not list(package.iterdir())
+    package /= components[-1]
+    assert not package.exists() and not package.is_symlink()
     context = root/'v6-context.json'
     write(context, {'schema_version':'tos_owner_local_source_context_v1',
         'public_root':str(public),'private_root':str(private),'private_prefix':PREFIX,
@@ -106,8 +108,8 @@ def finish(repository, root):
     layer_path=Path(state['private'])/state['source_ref'];raw=layer_path.read_bytes();layer=json.loads(raw)
     owner=json.loads((BASE/'synthetic-own-disclosed-owner.json').read_bytes())
     owner.update(uid=os.getuid(),principal_id='test:journal-v6-read-only',
-        journal_directory=str(root/'v6-new-journal'),source_context_ref=state['context'])
-    (root/'v6-new-journal').mkdir(mode=0o700)
+        journal_directory=str(Path(state['private'])/'v6-new-journal'),source_context_ref=state['context'])
+    (Path(state['private'])/'v6-new-journal').mkdir(mode=0o700)
     selection=owner['native_text_layers'][0]
     selected=selection['binding']['text_layer']
     selected.update(layer_id=LAYER_ID,layer_version=1,record_ref=state['source_ref'],record_sha256=hashlib.sha256(raw).hexdigest())

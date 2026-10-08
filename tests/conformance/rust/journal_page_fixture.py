@@ -107,12 +107,15 @@ def prepare(repository, root):
     reference = prefix+'layers/journal-page-current/source-text-layer.v1.json'
     target = private/reference
     current = private
-    for part in Path(reference).parent.parts:
+    package_parts = Path(reference).parent.parts
+    for part in package_parts[:-1]:
         current /= part
         current.mkdir(mode=0o700,exist_ok=True)
         assert not current.is_symlink() and current.stat().st_uid == os.getuid()
         assert current.stat().st_mode & 0o777 == 0o700
-    assert not list(target.parent.iterdir())
+    package = current/package_parts[-1]
+    assert package == target.parent
+    assert not package.exists() and not package.is_symlink()
     config.update(schema_version='tos_local_text_layer_record_owner_page_ocr_v1',
         principal_id='test:journal-current-page-ocr', authority_ref='test:owned-synthetic-page-ocr-layer',
         expires_at=expiry, source_path=reference,
@@ -188,7 +191,7 @@ def finish(repository, root):
         'disclosure_access':None}
     policy = Record.from_payload('tos.policy.knowledge-assessment',3,
         json.loads((repository/'ToS/doctrine/semantic-interchange/assessment-policy.v3.json').read_bytes()))
-    journal = root/'page-new-journal';journal.mkdir(mode=0o700)
+    journal = Path(state['private'])/'page-new-journal';journal.mkdir(mode=0o700)
     owner = {'schema_version':'tos_local_assessment_owner_v6','uid':os.getuid(),
         'principal_id':'test:journal-current-page-comparison','execution_profile':None,
         'policy':{'id':policy.id,'version':policy.version,'payload':policy.payload,'origin_id':policy.origin_id},
