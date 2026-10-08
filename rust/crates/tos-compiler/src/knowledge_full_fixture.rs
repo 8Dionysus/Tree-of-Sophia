@@ -205,7 +205,7 @@ pub fn native_fixture_cold_limits(
         sqlite_cache_kib: 8192,
         max_rows,
         max_work_bytes: 100 * 1024 * 1024,
-        max_row_bytes: 1024 * 1024,
+        max_row_bytes: (1024 * 1024).max(declared.seal.max_header_bytes),
         max_metadata_bytes: ColdOpenLimits::MAX_METADATA_BYTES,
         max_sources: source_count,
     }
@@ -242,6 +242,10 @@ fn candidate() -> std::path::PathBuf {
 }
 
 pub fn build_fixture() -> FullKnowledgeFixture {
+    build_fixture_with_semantic_report(None)
+}
+
+pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullKnowledgeFixture {
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
     let relation_bytes =
@@ -408,7 +412,7 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         },
     )
     .unwrap();
-    let header = json!({
+    let mut header = json!({
         "schema":"tos_knowledge_graph_v1",
         "source_revision":"2".repeat(64),
         "normalization_binding":{
@@ -434,7 +438,12 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         },
         "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}
     });
-    finish_fixture(
+    let mut limits = native_fixture_full_limits(vocabulary.sources.len());
+    if let Some(report) = report {
+        header["counts"]["semantic_validation"] = report;
+        limits.seal.max_header_bytes = crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES;
+    }
+    finish_fixture_with_limits(
         stage,
         path,
         registry,
@@ -447,6 +456,8 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         None,
         None,
         None,
+        limits,
+        false,
     )
 }
 

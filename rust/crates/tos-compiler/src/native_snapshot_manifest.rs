@@ -268,7 +268,7 @@ pub fn portable_native_snapshot_limits(
             catalog_index: crate::CatalogIndexLimits::default(),
             search: base.search,
             seal: crate::SealLimits {
-                max_header_bytes: MAX_MANIFEST_BYTES,
+                max_header_bytes: crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES,
             },
             max_registry_bytes: 4 * 1024 * 1024,
         },

@@ -5,7 +5,7 @@
 use crate::{
     Error, KnowledgeRegistry, Result,
     d1_public_capture::{
-        CreationState, CreationStateHold, MAX_HEADER_BYTES, MAX_ROW_BYTES, PublicCapture,
+        CreationState, CreationStateHold, MAX_ROW_BYTES, PublicCapture,
         json as strict_json,
     },
     knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, WritePhase},
@@ -394,6 +394,28 @@ fn record_cardinality(
     }
     Ok(())
 }
+// This is the serialized report width, separate from the retained Value/map
+// allocation below. Counting the actual UTF-8/escape sequence avoids charging
+// every ordinary ASCII ID as if every byte required a six-byte JSON escape.
+fn semantic_gap_encoded_len(id: &str, kind: &str) -> Result<usize> {
+    #[derive(serde::Serialize)]
+    struct Gap<'a> { id: &'a str, kind: &'a str }
+    struct Count(usize);
+    impl std::io::Write for Count {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0 = self.0.checked_add(bytes.len())
+                .ok_or_else(|| std::io::Error::other("semantic gap size overflow"))?;
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+    }
+    let mut count = Count(0);
+    serde_json::to_writer(&mut count, &Gap { id, kind })
+        .map_err(|_| Error::Budget("public D1 semantic report bytes"))?;
+    // One separator per element is a conservative allowance for the array.
+    count.0.checked_add(1).ok_or(Error::Budget("public D1 semantic report bytes"))
+}
+
 fn push_gap(
     capture: &PublicCapture,
     gaps: &mut Vec<Value>,
@@ -405,17 +427,10 @@ fn push_gap(
     if let Some(state) = state {
         state.active()?;
     }
-    // Six bytes per input byte bounds JSON escaping (including \u00XX),
-    // while the fixed allowance covers the two Value strings and map slots.
-    let bytes = id
-        .len()
-        .checked_add(kind.len())
-        .and_then(|n| n.checked_mul(6))
-        .and_then(|n| n.checked_add(64))
-        .ok_or(Error::Budget("public D1 semantic report bytes"))?;
+    let bytes = semantic_gap_encoded_len(id, kind)?;
     *live_bytes = live_bytes
         .checked_add(bytes)
-        .filter(|n| *n <= MAX_HEADER_BYTES)
+        .filter(|n| *n <= crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES)
         .ok_or(Error::Budget("public D1 semantic report bytes"))?;
     capture.charge_work(bytes as u64)?;
     if let Some(state) = state {
@@ -2548,4 +2563,27 @@ fn validate_public_semantics_values(
     }
     report.insert("gaps".into(), Value::Array(gaps));
     Ok(Value::Object(report))
+}
+
+#[cfg(test)]
+mod report_tests {
+    use super::*;
+    #[test]
+    fn report_width_counts_real_json_escaping_and_keeps_all_gaps() {
+        for id in ["philosophy:edge:example", "\0\n\r\t\u{8}\u{c}\"\\", "Русский Größe 🦉\u{2028}"] {
+            let gap = json!({"id":id,"kind":"review-not-recorded"});
+            assert_eq!(semantic_gap_encoded_len(id, "review-not-recorded").unwrap(),
+                serde_json::to_vec(&gap).unwrap().len() + 1);
+        }
+        let mut bytes = 256usize;
+        let mut old_bound = 256usize;
+        for i in 0..11_692 {
+            let id = format!("philosophy:edge:candidate-relation:table-i-a001-relation-{i:05}");
+            bytes += semantic_gap_encoded_len(&id, "review-not-recorded").unwrap();
+            old_bound += (id.len() + "review-not-recorded".len()) * 6 + 64;
+        }
+        assert!(bytes > 1024 * 1024);
+        assert!(bytes < crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES);
+        assert!(old_bound > crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES);
+    }
 }

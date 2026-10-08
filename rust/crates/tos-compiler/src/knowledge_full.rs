@@ -171,6 +171,33 @@ mod tests {
     use crate::knowledge_full_fixture::build_fixture;
 
     #[test]
+    fn complete_large_semantic_report_survives_seal_cold_read_and_restore() {
+        use serde_json::json;
+        let gaps = (0..11_692).map(|i| json!({
+            "id":format!("philosophy:edge:candidate-relation:table-i-a001-relation-{i:05}"),
+            "kind":"review-not-recorded"
+        })).collect::<Vec<_>>();
+        let report = json!({"valid":true,"violations":[],"gaps":gaps});
+        let mut fixture = crate::knowledge_full_fixture::build_fixture_with_semantic_report(Some(report.clone()));
+        let read = |fixture: &crate::knowledge_full_fixture::FullKnowledgeFixture| {
+            let selected = fixture.open().unwrap();
+            let raw: Vec<u8> = selected.connection().query_row(
+                "SELECT packet FROM graph_header WHERE singleton=1", [], |r| r.get(0)).unwrap();
+            assert!(raw.len() > 1024 * 1024);
+            assert!(raw.len() < crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES);
+            let header: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+            assert_eq!(header["counts"]["semantic_validation"], report);
+            assert!(crate::knowledge_seal::canonical(&header, 1024 * 1024).is_err());
+            raw
+        };
+        let before = read(&fixture);
+        let restored = fixture.path.with_file_name("restored.sqlite3");
+        std::fs::copy(&fixture.path, &restored).unwrap();
+        fixture.path = restored;
+        assert_eq!(read(&fixture), before);
+    }
+
+    #[test]
     fn eighth_source_private_producer_opens_one_complete_selected_model() {
         let fixture = build_fixture();
         let mut selected = fixture.open().unwrap();

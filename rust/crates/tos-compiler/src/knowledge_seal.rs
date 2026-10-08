@@ -41,6 +41,11 @@ impl Write for CappedWriter {
     }
 }
 
+/// A graph header includes the complete bounded semantic gap report. It is
+/// independent of the small snapshot-manifest envelope. Cold readers admit it
+/// as a graph row under their explicit max_row_bytes, not metadata-key bytes.
+pub(crate) const MAX_GRAPH_HEADER_BYTES: usize = 2 * 1024 * 1024;
+
 #[derive(Clone, Copy, Debug)]
 pub struct SealLimits {
     pub max_header_bytes: usize,
@@ -254,7 +259,7 @@ fn seal_inner(
     search: &SearchIndexReceipt,
     limits: SealLimits,
 ) -> Result<KnowledgeSealReceipt> {
-    if limits.max_header_bytes == 0 || limits.max_header_bytes > 1024 * 1024 {
+    if limits.max_header_bytes == 0 || limits.max_header_bytes > MAX_GRAPH_HEADER_BYTES {
         return Err(Error::Budget("knowledge graph header limit"));
     }
     if registry.entity_registry_id != vocabulary.entity_registry_id
