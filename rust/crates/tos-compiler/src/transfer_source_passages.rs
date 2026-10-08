@@ -220,6 +220,7 @@ pub(super) fn visit_xml_pages(
     let mut writer: Option<Writer<Vec<u8>>> = None;
     let mut visited = 0usize;
     let mut namespace = false;
+    let mut djvu_root_seen = false;
     loop {
         ctx.tick(1)?;
         buf.clear();
@@ -230,6 +231,13 @@ pub(super) fn visit_xml_pages(
             Event::Start(e) => {
                 depth += 1;
                 ensure(depth <= 128, "source XML depth")?;
+                if !abbyy && depth == 1 {
+                    ensure(
+                        !djvu_root_seen && e.local_name().as_ref() == b"DjVuXML",
+                        "DjVuXML root drift",
+                    )?;
+                    djvu_root_seen = true;
+                }
                 if abbyy && depth == 1 {
                     namespace = e.attributes().filter_map(|a| a.ok()).any(|a| {
                         a.key.as_ref() == b"xmlns"
@@ -253,6 +261,9 @@ pub(super) fn visit_xml_pages(
                         writer = Some(Writer::new(Vec::new()))
                     }
                 }
+            }
+            Event::Empty(_) if !abbyy && depth == 0 => {
+                return Err("DjVuXML extra or empty root".into());
             }
             Event::Empty(e)
                 if e.local_name().as_ref()
@@ -314,7 +325,7 @@ pub(super) fn visit_xml_pages(
         }
     }
     ensure(
-        page == expected && visited == wanted.len() && (!abbyy || namespace),
+        page == expected && visited == wanted.len() && if abbyy { namespace } else { djvu_root_seen },
         "source XML page closure drift",
     )?;
     Ok(())

@@ -650,11 +650,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
             set(&mut map, "authority_boundary", q(LEGACY_MAP_AUTHORITY))?;
         }
         if options.generation.is_some() {
-            set(
-                &mut map,
-                "supersedes_map_ref",
-                v(&original_config["map_id"])?,
-            )?;
+            set(&mut map, "supersedes_map_ref", q(&legacy_paths["map"]))?;
         }
         let map_raw = render(&map, true)?;
         let map_hash = sha(&map_raw);

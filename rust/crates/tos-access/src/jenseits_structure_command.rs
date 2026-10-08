@@ -5,11 +5,21 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
     let command = args.first().map(String::as_str);
     let polilov = command == Some("jenseits-polilov-numbered-structure");
     let mysl = command == Some("mysl-transfer-target-structure");
-    if command != Some("jenseits-numbered-structure") && !polilov && !mysl {
+    let nietzsche = command == Some("nietzsche-transfer-source-structure");
+    if command != Some("jenseits-numbered-structure") && !polilov && !mysl && !nietzsche {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
-        let help = if mysl {
+        let help = if nietzsche {
+            HELP.replace(
+                "jenseits-numbered-structure",
+                "nietzsche-transfer-source-structure",
+            )
+            .replace(
+                "ABBYY numbered-unit map",
+                "German PDF and DjVuXML hierarchical numbered-unit maps",
+            )
+        } else if mysl {
             HELP.replace(
                 "jenseits-numbered-structure",
                 "mysl-transfer-target-structure",
@@ -85,7 +95,17 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
         };
-        if mysl {
+        if nietzsche {
+            tos_compiler::nietzsche_transfer_source_structure::run(
+                &ctx,
+                tos_compiler::nietzsche_transfer_source_structure::Options {
+                    build,
+                    input_root: Some(&input),
+                    generation,
+                    event_at: at,
+                },
+            )
+        } else if mysl {
             tos_compiler::mysl_transfer_target_structure::run(
                 &ctx,
                 tos_compiler::mysl_transfer_target_structure::Options {

@@ -1106,3 +1106,4 @@ pub mod jenseits_numbered_structure;
 pub mod jenseits_polilov_numbered_structure;
 
 pub mod mysl_transfer_target_structure;
+pub mod nietzsche_transfer_source_structure;
