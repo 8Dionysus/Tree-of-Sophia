@@ -1512,7 +1512,7 @@ original payloads and the historical generation remain unchanged.
 
 The Polilov/Mysl target uses
 `tos jenseits-polilov-numbered-structure --source-root ABS --local-input-root ABS --check`
-with the exact held PDF and its metadata. `validate-tracked` checks the retained
+with the exact held PDF and its metadata. `--check` verifies the retained
 298 proposed page anchors and their provenance. A fresh `--build` requires a
 writable selected source root, `--generation`, `--event-at` and an explicit
 `--scratch-bytes` allowance; replay compares all output bytes before writing.
