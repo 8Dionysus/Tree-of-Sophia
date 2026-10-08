@@ -3,16 +3,27 @@ use std::{io::Write, path::PathBuf};
 use tos_compiler::{lexical_derivatives, research_execution::ResearchExecution};
 const HELP: &str = "tos zarathustra-morphology-input --source-root ABS --local-input-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME] [--receipt REL] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nReconstruct the frozen exact-form census. Without a generation, check the retained private packet and historical receipt. Build requires a separate output root, a new generation and admitted bytes; its receipt commits the generation after the private mode-0600 packet. Repeating the same build verifies matching outputs and completes an interrupted generation. Conflicting outputs are refused. No morphology provider, source acceptance or rights decision.\n";
 const RECURRENCE_HELP: &str = "tos zarathustra-recurrence-projection --source-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nCompute frequency, structural range and exact rational dispersion from the hash-only lexical projection fixed by the plan. Check retains historical provenance; a fresh build requires a separate output root, generation, event time and admitted bytes. Matching retries preserve outputs; conflicts refuse. Source strings and semantic judgments are outside this projection.\n";
+const USAGE_HELP: &str = "tos zarathustra-usage-context --source-root ABS --local-input-root ABS --local-output-root ABS --check|--build [--plan REL] [--generation NAME --event-at RFC3339] [--receipt REL --provenance REL] [--scratch-bytes RESERVED_BYTES] [--max-seconds 1..600]\n\nBuild the complete page-bounded private concordance for the frozen exact-form method control. The private JSONL stays mode0600; the receipt and provenance expose only fixity, counts and source references. Checks preserve historical provenance; a new generation requires a separate output root and admitted bytes.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     let command = args.first().map(String::as_str);
     let recurrence = command == Some("zarathustra-recurrence-projection");
-    if command != Some("zarathustra-morphology-input") && !recurrence {
+    let usage = command == Some("zarathustra-usage-context");
+    if command != Some("zarathustra-morphology-input") && !recurrence && !usage {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return Some(
             if out
-                .write_all(if recurrence { RECURRENCE_HELP } else { HELP }.as_bytes())
+                .write_all(
+                    if recurrence {
+                        RECURRENCE_HELP
+                    } else if usage {
+                        USAGE_HELP
+                    } else {
+                        HELP
+                    }
+                    .as_bytes(),
+                )
                 .is_ok()
             {
                 0
@@ -30,10 +41,13 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             mut generation,
             mut at,
             mut receipt,
+            mut provenance,
             mut seconds,
             mut scratch,
             mut mode,
-        ) = (None, None, None, None, None, None, None, None, None, None);
+        ) = (
+            None, None, None, None, None, None, None, None, None, None, None,
+        );
         let mut it = args.iter().skip(1);
         while let Some(key) = it.next() {
             if matches!(key.as_str(), "--check" | "--build") {
@@ -53,6 +67,7 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
                 "--generation" => &mut generation,
                 "--event-at" => &mut at,
                 "--receipt" => &mut receipt,
+                "--provenance" => &mut provenance,
                 "--max-seconds" => &mut seconds,
                 "--scratch-bytes" => &mut scratch,
                 _ => return Err(format!("unknown option {key}")),
@@ -65,7 +80,10 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         if recurrence && (input.is_some() || receipt.is_some()) {
             return Err("recurrence does not accept private input or receipt redirection".into());
         }
-        if !recurrence && at.is_some() {
+        if !usage && provenance.is_some() {
+            return Err("provenance redirection belongs to usage context".into());
+        }
+        if !recurrence && !usage && at.is_some() {
             return Err("morphology census has no provenance timestamp option".into());
         }
         let input = if recurrence {
@@ -106,6 +124,21 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
                     plan: plan.unwrap_or(lexical_derivatives::recurrence::PLAN),
                     generation,
                     event_at: at,
+                },
+            );
+        }
+        if usage {
+            return lexical_derivatives::usage_context::run(
+                &ctx,
+                lexical_derivatives::usage_context::Options {
+                    build,
+                    input_root: &input,
+                    output_root: &output,
+                    plan: plan.unwrap_or(lexical_derivatives::usage_context::PLAN),
+                    generation,
+                    event_at: at,
+                    receipt,
+                    provenance,
                 },
             );
         }

@@ -109,14 +109,6 @@ fn row_projection(
         "source_editorial_occurrence_count":row["source_editorial_occurrence_count"],"unsectioned_occurrence_count":unsectioned,
     }))
 }
-fn load(ctx: &ResearchExecution, reference: &str, cap: u64, held: &mut Vec<Held>) -> Result<Value> {
-    let mut h = Held::open(ctx, reference, cap)?;
-    let raw = ctx.read_file(&mut h.file, cap)?;
-    let value = crate::zarathustra_lexical::parse(&raw, cap as usize)?;
-    ensure(value.is_object(), "recurrence object required")?;
-    held.push(h);
-    Ok(value)
-}
 fn validate(schemas: &tos_validation::SchemaBackendProbe, name: &str, value: &Value) -> Result<()> {
     // Source Value was decoded under PublishedStrict once. Generated values
     // contain only those checked values and typed fields from this reducer.
@@ -157,31 +149,21 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         )?;
     }
     let mut held = Vec::new();
-    let mut resources = Vec::new();
-    for name in [
-        "lexical-recurrence-plan",
-        "lexical-index-projection",
-        "lexical-recurrence-projection",
-        "provenance-event",
-    ] {
-        let reference = format!("ToS/contracts/{name}.schema.json");
-        let mut h = Held::open(ctx, &reference, META_CAP)?;
-        resources.push(tos_validation::SchemaResource {
-            uri: format!("https://tree-of-sophia.local/{reference}"),
-            raw: ctx.read_file(&mut h.file, META_CAP)?,
-        });
-        held.push(h);
-    }
-    let schemas = tos_validation::SchemaBackendProbe::new(
-        resources,
-        tos_validation::FormatProfile::AssertedSourceCandidateV1,
-    )
-    .map_err(|e| format!("recurrence schema preparation: {e:?}"))?;
-    let plan = load(ctx, options.plan, META_CAP, &mut held)?;
+    let schemas = super::schemas(
+        ctx,
+        &[
+            "lexical-recurrence-plan",
+            "lexical-index-projection",
+            "lexical-recurrence-projection",
+            "provenance-event",
+        ],
+        &mut held,
+    )?;
+    let plan = super::read_json_bounded(ctx, options.plan, META_CAP, &mut held)?;
     let plan_sha = held.last().unwrap().digest.clone();
     validate(&schemas, "lexical-recurrence-plan", &plan)?;
     let source_ref = s(&plan["source_projection"]["ref"])?;
-    let source = load(ctx, source_ref, PACKET_CAP as u64, &mut held)?;
+    let source = super::read_json_bounded(ctx, source_ref, PACKET_CAP as u64, &mut held)?;
     let source_sha = held.last().unwrap().digest.clone();
     ensure(
         source_sha == s(&plan["source_projection"]["sha256"])?,
@@ -315,7 +297,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         "authority_boundary":"This projection records deterministic hash-based exact-form recurrence observations from the selected lexical projection.",
     });
     if options.generation.is_none() {
-        let prior = load(ctx, base_output, PACKET_CAP as u64, &mut held)?;
+        let prior = super::read_json_bounded(ctx, base_output, PACKET_CAP as u64, &mut held)?;
         ensure(
             options.plan == PLAN && held.last().unwrap().digest == RETAINED_PROJECTION_SHA,
             "unknown historical recurrence projection",
@@ -342,7 +324,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         "receipt_refs":[output_ref,options.plan,research_ref],"rights_basis_ref":null,"event_version":1,"supersedes_event_ref":null,
     });
     if options.generation.is_none() {
-        let prior = load(ctx, base_event, META_CAP, &mut held)?;
+        let prior = super::read_json_bounded(ctx, base_event, META_CAP, &mut held)?;
         ensure(
             held.last().unwrap().digest == RETAINED_EVENT_SHA,
             "unknown historical recurrence event",

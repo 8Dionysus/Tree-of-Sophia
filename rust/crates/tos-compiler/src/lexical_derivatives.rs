@@ -1,6 +1,7 @@
 //! Explicit, bounded private lexical derivatives. Source strings stay in the
 //! selected local output; the receipt carries only fixity and aggregate counts.
 pub mod recurrence;
+pub mod usage_context;
 use crate::{
     jenseits_numbered_structure::Held,
     research_execution::ResearchExecution,
@@ -33,12 +34,42 @@ fn canonical(mut value: Value) -> Result<Vec<u8>> {
     Ok(raw)
 }
 fn read_json(ctx: &ResearchExecution, reference: &str, held: &mut Vec<Held>) -> Result<Value> {
-    let mut source = Held::open(ctx, reference, META_CAP)?;
-    let raw = ctx.read_file(&mut source.file, META_CAP)?;
-    let value = crate::zarathustra_lexical::parse(&raw, META_CAP as usize)?;
+    read_json_bounded(ctx, reference, META_CAP, held)
+}
+fn read_json_bounded(
+    ctx: &ResearchExecution,
+    reference: &str,
+    cap: u64,
+    held: &mut Vec<Held>,
+) -> Result<Value> {
+    ensure(cap <= PACKET_CAP as u64, "lexical JSON input byte bound")?;
+    let mut source = Held::open(ctx, reference, cap)?;
+    let raw = ctx.read_file(&mut source.file, cap)?;
+    let value = crate::zarathustra_lexical::parse(&raw, cap as usize)?;
     ensure(value.is_object(), "lexical derivative object required")?;
     held.push(source);
     Ok(value)
+}
+fn schemas(
+    ctx: &ResearchExecution,
+    names: &[&str],
+    held: &mut Vec<Held>,
+) -> Result<tos_validation::SchemaBackendProbe> {
+    let mut resources = Vec::new();
+    for name in names {
+        let reference = format!("ToS/contracts/{name}.schema.json");
+        let mut source = Held::open(ctx, &reference, META_CAP)?;
+        resources.push(tos_validation::SchemaResource {
+            uri: format!("https://tree-of-sophia.local/{reference}"),
+            raw: ctx.read_file(&mut source.file, META_CAP)?,
+        });
+        held.push(source);
+    }
+    tos_validation::SchemaBackendProbe::new(
+        resources,
+        tos_validation::FormatProfile::AssertedSourceCandidateV1,
+    )
+    .map_err(|e| format!("lexical schema preparation: {e:?}"))
 }
 fn digest_bound(
     ctx: &ResearchExecution,
@@ -219,21 +250,11 @@ pub fn morphology_input(ctx: &ResearchExecution, options: Options<'_>) -> Result
         )?;
     }
     let mut held = Vec::new();
-    let mut resources = Vec::new();
-    for name in ["morphology-evaluation-plan", "morphology-input-receipt"] {
-        let reference = format!("ToS/contracts/{name}.schema.json");
-        let mut schema = Held::open(ctx, &reference, META_CAP)?;
-        resources.push(tos_validation::SchemaResource {
-            uri: format!("https://tree-of-sophia.local/{reference}"),
-            raw: ctx.read_file(&mut schema.file, META_CAP)?,
-        });
-        held.push(schema);
-    }
-    let schemas = tos_validation::SchemaBackendProbe::new(
-        resources,
-        tos_validation::FormatProfile::AssertedSourceCandidateV1,
-    )
-    .map_err(|e| format!("schema preparation: {e:?}"))?;
+    let schemas = schemas(
+        ctx,
+        &["morphology-evaluation-plan", "morphology-input-receipt"],
+        &mut held,
+    )?;
     let plan = read_json(ctx, options.plan, &mut held)?;
     let plan_digest = held.last().unwrap().digest.clone();
     validate(&schemas, "morphology-evaluation-plan", &plan)?;
