@@ -835,7 +835,7 @@ impl StageStorageProfile {
     fn geometry(self) -> (&'static std::ffi::CStr, i64, i64) {
         match self {
             Self::Persistent => (c"PRAGMA main.page_size=4096; PRAGMA temp.page_size=4096", 4096, 4096),
-            Self::NativeProjection => (c"PRAGMA main.page_size=16384; PRAGMA temp.page_size=4096", 16384, 4096),
+            Self::NativeProjection => (c"PRAGMA main.page_size=16384; PRAGMA temp.page_size=16384", 16384, 16384),
         }
     }
 }
@@ -2040,6 +2040,7 @@ impl<'a> KnowledgeStage<'a> {
     /// retain their host isolation guard; the disposable public-build profile
     /// has no host quota and does not claim aggregate disk-spill isolation.
     /// Any callback or quota failure poisons the stage, so `finish` refuses it.
+    #[track_caller]
     pub(crate) fn with_connection<T>(
         &mut self,
         phase: WritePhase,
@@ -2048,6 +2049,7 @@ impl<'a> KnowledgeStage<'a> {
         if self.poisoned {
             return Err(Error::Invalid("stage poisoned by prior failure"));
         }
+        let operation_caller = std::panic::Location::caller();
         let mut result = (|| {
             self.check(phase)?;
             let value =
@@ -2073,7 +2075,13 @@ impl<'a> KnowledgeStage<'a> {
                 max_steps,
             });
         }
-        let result = result.map_err(|error| self.annotate_sqlite_full(phase, error));
+        let result = result.map_err(|error| {
+            let error = self.annotate_sqlite_full(phase, error);
+            if matches!(&error, Error::SqlitePhase { error: rusqlite::Error::SqliteFailure(code, _), .. } if code.code == rusqlite::ErrorCode::DiskFull) {
+                eprintln!("Native stage failed operation at {}:{}", operation_caller.file(), operation_caller.line());
+            }
+            error
+        });
         self.poisoned |= result.is_err();
         result
     }
@@ -2272,52 +2280,61 @@ impl<'a> KnowledgeStage<'a> {
             .as_deref()
             .is_some_and(|text| text.contains("stage_sqlite_full"))
         {
-            if let Some(bytes) = page_count
-                .zip(page_size)
-                .and_then(|(n, size)| n.checked_mul(size))
-            {
-                if bytes <= self.limits.sqlite.max_output_bytes
-                    && self.charge_public_work(bytes).is_ok()
+            for (schema, observed_pages, observed_size, byte_limit) in [
+                ("main", page_count, page_size, self.limits.sqlite.max_output_bytes),
+                ("temp", temp_page_count, temp_page_size, self.limits.max_temp_bytes),
+            ] {
+                if let Some(bytes) = observed_pages
+                    .zip(observed_size)
+                    .and_then(|(n, size)| n.checked_mul(size))
                 {
-                    let state = self.owned_creation_state();
-                    let hold = state.map(|state| state.hold(4096)).transpose();
-                    if let Ok(_hold) = hold {
-                        let observed = (|| -> rusqlite::Result<()> {
-                            let mut statement = self.db().prepare(
-                                "SELECT name,pageno,pgsize,payload,unused FROM dbstat WHERE aggregate=TRUE LIMIT 65",
-                            )?;
-                            let mut rows = statement.query([])?;
-                            for _ in 0..64 {
-                                if !active() {
-                                    break;
+                    if bytes <= byte_limit
+                        && self.charge_public_work(bytes).is_ok()
+                    {
+                        let state = self.owned_creation_state();
+                        let hold = state.map(|state| state.hold(4096)).transpose();
+                        if let Ok(_hold) = hold {
+                            let observed = (|| -> rusqlite::Result<()> {
+                                let mut statement = self.db().prepare(
+                                    if schema == "temp" {
+                                        "SELECT name,pageno,pgsize,payload,unused FROM dbstat('temp') WHERE aggregate=TRUE LIMIT 65"
+                                    } else {
+                                        "SELECT name,pageno,pgsize,payload,unused FROM dbstat('main') WHERE aggregate=TRUE LIMIT 65"
+                                    },
+                                )?;
+                                let mut rows = statement.query([])?;
+                                for _ in 0..64 {
+                                    if !active() {
+                                        break;
+                                    }
+                                    let Some(row) = rows.next()? else {
+                                        break;
+                                    };
+                                    let name = row.get_ref(0)?.as_str()?;
+                                    if name.len() > 128
+                                        || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                                    {
+                                        break;
+                                    }
+                                    let pages: u64 = row.get(1)?;
+                                    let allocated: u64 = row.get(2)?;
+                                    let payload: u64 = row.get(3)?;
+                                    let unused: u64 = row.get(4)?;
+                                    eprintln!(
+                                        "Native stage geometry schema={schema} table={name} pages={pages} allocated_bytes={allocated} payload_bytes={payload} unused_bytes={unused}"
+                                    );
                                 }
-                                let Some(row) = rows.next()? else {
-                                    break;
-                                };
-                                let name = row.get_ref(0)?.as_str()?;
-                                if name.len() > 128
-                                    || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
-                                {
-                                    break;
-                                }
-                                let pages: u64 = row.get(1)?;
-                                let allocated: u64 = row.get(2)?;
-                                let payload: u64 = row.get(3)?;
-                                let unused: u64 = row.get(4)?;
+                                Ok(())
+                            })();
+                            if observed.is_err() {
                                 eprintln!(
-                                    "Native stage geometry table={name} pages={pages} allocated_bytes={allocated} payload_bytes={payload} unused_bytes={unused}"
+                                    "Native stage geometry unavailable under original owner limits"
                                 );
                             }
-                            Ok(())
-                        })();
-                        if observed.is_err() {
-                            eprintln!(
-                                "Native stage geometry unavailable under original owner limits"
-                            );
                         }
                     }
                 }
-            }
+        }
         }
         let mut file_bytes = None;
         let mut fs_total_bytes = None;
@@ -6454,31 +6471,34 @@ CREATE INDEX knowledge_relations_to_id ON knowledge_relations(to_id,id);
 CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order);
 "#) }; }
 macro_rules! stage_schema_literal {
-    ($raw_location:literal) => {
+    ($raw_location:literal, $raw_storage:literal) => {
         concat!(
             "\nCREATE ",
             $raw_location,
             r#"TABLE raw_records(
  source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,
  payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,
- PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID;
-"#,
+ PRIMARY KEY(source_graph,collection,id))"#, $raw_storage, ";\n",
             normalized_schema_literal!("", " WITHOUT ROWID")
         )
     };
 }
-const SCHEMA: &str = stage_schema_literal!("");
+const SCHEMA: &str = stage_schema_literal!("", " WITHOUT ROWID");
 const SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!(""), "\0").as_bytes(),
+    concat!(stage_schema_literal!("", " WITHOUT ROWID"), "\0").as_bytes(),
 ) {
     Ok(value) => value,
     Err(_) => panic!("stage static schema contains interior NUL"),
 };
 
-// Raw Native inputs are disposable, independently of the normalized payload ABI.
-const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ");
+// Native inputs keep their exact bytes in a disposable rowid table. The 16-KiB
+// native pager keeps medium source records on leaf pages; WITHOUT ROWID would
+// spill these bytes at its much smaller index-cell threshold. All raw readers
+// retain the same composite unique key and explicit ordering. This physical
+// choice does not alter the normalized payload ABI or either byte ceiling.
+const NATIVE_SCHEMA: &str = stage_schema_literal!("TEMP ", "");
 const NATIVE_SCHEMA_C: &std::ffi::CStr = match std::ffi::CStr::from_bytes_with_nul(
-    concat!(stage_schema_literal!("TEMP "), "\0").as_bytes(),
+    concat!(stage_schema_literal!("TEMP ", ""), "\0").as_bytes(),
 ) {
     Ok(value) => value,
     Err(_) => panic!("native stage static schema contains interior NUL"),
@@ -6723,6 +6743,69 @@ mod tests {
     }
 
     #[test]
+    fn native_raw_input_pager_keeps_exact_bytes_under_temp_ceiling() {
+        let owner = Owner { checks: AtomicUsize::new(0) };
+        let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
+        let candidate = stage_path("raw-input-geometry");
+        let payload = format!("{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n", "z".repeat(1500)).into_bytes();
+        let mut hash = Digest256Hasher::new();
+        for n in 0..96 {
+            let id = format!("fixture-{n:04}");
+            hash.update(&(id.len() as u64).to_be_bytes());
+            hash.update(id.as_bytes());
+            hash.update(Digest256::of_bytes(&payload).as_bytes());
+        }
+        let mut receipt = exact_receipt(&hash.finalize().to_hex());
+        receipt.collections[0].expected_count = 96;
+        let mut selected = limits();
+        selected.sqlite.max_output_bytes = 1024 * 1024;
+        selected.max_temp_bytes = 256 * 1024;
+        selected.max_seek_bytes = 4096;
+        let mut stage = KnowledgeStage::create_captured_native_snapshot(
+            &candidate, selected, receipt, &owner, &quota,
+            Arc::new(AtomicU64::new(0)), Arc::new(AtomicU64::new(0)),
+            Arc::new(AtomicBool::new(false)), selected.sqlite.max_work_bytes,
+            Instant::now() + std::time::Duration::from_secs(60),
+        ).unwrap();
+        for n in (0..96).rev() {
+            stage.ingest_input(InputRow {
+                source_graph: "fixture.graph", collection: "fixture/raw",
+                id: &format!("fixture-{n:04}"), payload: &payload,
+            }).unwrap();
+        }
+        let mut after = None;
+        for n in 0..96 {
+            let rows = stage.scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1).unwrap();
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].id, format!("fixture-{n:04}"));
+            assert_eq!(rows[0].payload, payload);
+            assert_eq!(rows[0].payload_sha256, Digest256::of_bytes(&payload).to_hex());
+            after = Some(rows[0].id.clone());
+        }
+        assert!(stage.scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1).unwrap().is_empty());
+        assert_eq!(stage.verified_input_rows().unwrap(), 96);
+        let size: u64 = stage.db().query_row("PRAGMA temp.page_size", [], |r| r.get(0)).unwrap();
+        let pages: u64 = stage.db().query_row("PRAGMA temp.page_count", [], |r| r.get(0)).unwrap();
+        assert_eq!(size, 16384);
+        assert!(size * pages <= selected.max_temp_bytes);
+        // The same source bytes and composite key exceed this ceiling in the
+        // previous 4-KiB index-btree layout; no payload codec is involved.
+        let old = Connection::open_in_memory().unwrap();
+        old.execute_batch("PRAGMA page_size=4096; CREATE TABLE raw_records(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID").unwrap();
+        for n in (0..96).rev() {
+            old.execute("INSERT INTO raw_records VALUES(?1,?2,?3,?4,?5,?6)", params!["fixture.graph", "fixture/raw", format!("fixture-{n:04}"), payload.len(), Digest256::of_bytes(&payload).as_bytes().as_slice(), &payload]).unwrap();
+        }
+        let old_pages: u64 = old.query_row("PRAGMA page_count", [], |r| r.get(0)).unwrap();
+        assert!(old_pages * 4096 > selected.max_temp_bytes);
+        drop(old);
+        stage.close_inputs_for_full_components().unwrap();
+        assert_eq!(stage.closed_input_rows, Some(96));
+        drop(stage);
+        assert!(!candidate.exists());
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
+    }
+
+    #[test]
     fn native_preparation_keeps_main_byte_cap_and_refuses_temp_overflow() {
         let owner = Owner { checks: AtomicUsize::new(0) };
         let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
@@ -6735,7 +6818,7 @@ mod tests {
             }
             let mut selected = limits();
             selected.sqlite.max_output_bytes = 1024 * 1024;
-            selected.max_temp_bytes = 64 * 1024;
+            selected.max_temp_bytes = 256 * 1024;
             let mut stage = if native {
                 KnowledgeStage::create_captured_native_snapshot(
                     &candidate, selected, receipt, &owner, &quota,
@@ -6807,7 +6890,7 @@ mod tests {
             }
             if native {
                 let error = stage.with_connection(WritePhase::Normalized, |db| {
-                    db.execute("INSERT INTO preparation_fixture VALUES(1,zeroblob(131072))", [])?;
+                    db.execute("INSERT INTO preparation_fixture VALUES(1,zeroblob(1048576))", [])?;
                     Ok(())
                 }).unwrap_err();
                 assert!(matches!(error, Error::SqlitePhase {
