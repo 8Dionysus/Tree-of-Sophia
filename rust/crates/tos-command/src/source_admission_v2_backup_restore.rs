@@ -625,13 +625,37 @@ fn open_tree_stream(
     limits: AuthenticatedTreeLimitsV1,
     tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
     state_bytes: Option<usize>,
+    pack_set: Option<&Arc<V2SeenPackSpill>>,
+    closure_binding: Digest256,
 ) -> tos_segment_store::Result<AuthenticatedTreeRowStreamV2> {
     match state_bytes {
-        Some(maximum) => segment.stream_authenticated_tree_v2_with_io_and_state(
-            descriptor, limits, Some(tree_io), maximum,
+        Some(maximum) => segment.stream_authenticated_tree_v2_with_pack_set_and_state(
+            descriptor, limits, Some(tree_io), pack_set.ok_or_else(|| {
+                tos_segment_store::SegmentError::new(
+                    tos_segment_store::SegmentErrorCode::InvalidReceipt,
+                    "bounded cold stream requires its owned pack spill",
+                )
+            })?.clone(), closure_binding, maximum,
         ),
         None => segment.stream_authenticated_tree_v2_with_io(descriptor, limits, Some(tree_io)),
     }
+}
+
+fn finish_tree_stream(
+    stream: &mut AuthenticatedTreeRowStreamV2,
+    work: &mut Work,
+    limits: V2ImageLimits,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<()> {
+    let coverage = if work.stream_state_bytes.is_some() {
+        let mut debit = || work.shared_work().is_none_or(|budget| budget.charge(()).is_ok());
+        stream.finish_pack_verification_with_work_callback(deadline, cancel, &mut debit)
+            .map_err(invalid)?
+    } else {
+        stream.coverage().ok_or_else(|| invalid("V2 image tree EOF absent"))?
+    };
+    work.record_tree(coverage.work, coverage.entries, limits)
 }
 
 fn next_tree_row(
@@ -696,22 +720,27 @@ fn verify_closure(
     } else {
         None
     };
-    let coverage = verify_tree_v2(
-        &segment,
-        &roots.history,
-        work.tree_limits(limits)?,
-        tree_io.clone(),
-        pack_set.as_ref(),
-        closure_binding,
-        work.shared_work(),
-        work.stream_state_bytes,
-        deadline,
-        cancel,
-    )
-    .map_err(invalid)?;
-    work.record_tree(coverage.work, coverage.entries, limits)?;
+    // Cold mode authenticates physical packs at the same row walk's EOF.
+    // Compatibility retains its separately accounted full verifier.
+    if work.stream_state_bytes.is_none() {
+        let coverage = verify_tree_v2(
+            &segment,
+            &roots.history,
+            work.tree_limits(limits)?,
+            tree_io.clone(),
+            pack_set.as_ref(),
+            closure_binding,
+            work.shared_work(),
+            work.stream_state_bytes,
+            deadline,
+            cancel,
+        )
+        .map_err(invalid)?;
+        work.record_tree(coverage.work, coverage.entries, limits)?;
+    }
     let mut stream = open_tree_stream(
             &segment, &roots.history, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+            pack_set.as_ref(), closure_binding,
         )
         .map_err(invalid)?;
     let mut history = if pack_set.is_some() {
@@ -761,10 +790,7 @@ fn verify_closure(
             history.push(revision);
         }
     }
-    let coverage = stream
-        .coverage()
-        .ok_or_else(|| invalid("V2 image history EOF absent"))?;
-    work.record_tree(coverage.work, coverage.entries, limits)?;
+    finish_tree_stream(&mut stream, work, limits, deadline, cancel)?;
     drop(stream);
     if !history_cursor.current_seen {
         return Err(invalid(
@@ -894,12 +920,13 @@ fn verify_revision_closure(
     let directory =
         tos_fd_open::open_directory_at(revisions, Path::new(&revision_name)).map_err(invalid)?;
     verify_revision_artifact(&directory, revision, limits, io, deadline, cancel)?;
+    let combined = work.stream_state_bytes.is_some();
     for root in [
-        &revision.members,
-        &revision.identities,
-        &revision.dependencies,
-        &revision.retirements,
-    ] {
+        (!combined).then_some(&revision.members),
+        (!combined || revision.identity_paths.is_none()).then_some(&revision.identities),
+        Some(&revision.dependencies),
+        (!combined).then_some(&revision.retirements),
+    ].into_iter().flatten() {
         let coverage = verify_tree_v2(
             segment,
             root,
@@ -915,7 +942,7 @@ fn verify_revision_closure(
         .map_err(invalid)?;
         work.record_tree(coverage.work, coverage.entries, limits)?;
     }
-    if let Some(identity_paths) = revision.identity_paths.as_ref() {
+    if let Some(identity_paths) = revision.identity_paths.as_ref().filter(|_| !combined) {
         let coverage = verify_tree_v2(
             segment,
             identity_paths,
@@ -931,7 +958,7 @@ fn verify_revision_closure(
         .map_err(invalid)?;
         work.record_tree(coverage.work, coverage.entries, limits)?;
     }
-    if let Some(objects_root) = packed {
+    if let Some(objects_root) = packed.filter(|_| !combined) {
         let coverage = verify_tree_v2(
             segment,
             objects_root,
@@ -952,6 +979,7 @@ fn verify_revision_closure(
     if let (Some(spill), Some(identity_paths)) = (pack_set, revision.identity_paths.as_ref()) {
         let mut identities = open_tree_stream(
             &segment, &revision.identities, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+            pack_set, closure_binding,
         )
             .map_err(invalid)?;
         while let Some(row) =
@@ -966,14 +994,12 @@ fn verify_revision_closure(
             tos_foundation::RelativePath::parse(path).map_err(invalid)?;
             spill.observe_identity_binding(revision_id, &row.key, &row.value)?;
         }
-        let coverage = identities
-            .coverage()
-            .ok_or_else(|| invalid("V2 image identities EOF absent"))?;
-        work.record_tree(coverage.work, coverage.entries, limits)?;
+        finish_tree_stream(&mut identities, work, limits, deadline, cancel)?;
         drop(identities);
 
         let mut inverse = open_tree_stream(
             &segment, identity_paths, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+            pack_set, closure_binding,
         )
             .map_err(invalid)?;
         while let Some(row) =
@@ -996,14 +1022,12 @@ fn verify_revision_closure(
             }
             spill.observe_identity_path_key(revision_id, &row.key)?;
         }
-        let coverage = inverse
-            .coverage()
-            .ok_or_else(|| invalid("V2 image identity inverse EOF absent"))?;
-        work.record_tree(coverage.work, coverage.entries, limits)?;
+        finish_tree_stream(&mut inverse, work, limits, deadline, cancel)?;
         spill.finish_identity_paths_revision(revision_id, revision.identity_count)?;
     }
     let mut members = open_tree_stream(
             &segment, &revision.members, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+            pack_set, closure_binding,
         )
         .map_err(invalid)?;
     let mut source_bytes = 0u64;
@@ -1034,13 +1058,11 @@ fn verify_revision_closure(
     if source_bytes != revision.source_bytes {
         return Err(invalid("V2 image source byte count differs"));
     }
-    let coverage = members
-        .coverage()
-        .ok_or_else(|| invalid("V2 image members EOF absent"))?;
-    work.record_tree(coverage.work, coverage.entries, limits)?;
+    finish_tree_stream(&mut members, work, limits, deadline, cancel)?;
     drop(members);
     let mut retirements = open_tree_stream(
             &segment, &revision.retirements, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+            pack_set, closure_binding,
         )
         .map_err(invalid)?;
     let mut ordinal = 0u64;
@@ -1082,15 +1104,13 @@ fn verify_revision_closure(
             verify_object(objects, event_digest, event_size, io, deadline, cancel)?;
         }
     }
-    let coverage = retirements
-        .coverage()
-        .ok_or_else(|| invalid("V2 image retirement EOF absent"))?;
-    work.record_tree(coverage.work, coverage.entries, limits)?;
+    finish_tree_stream(&mut retirements, work, limits, deadline, cancel)?;
     drop(retirements);
     if let Some(objects_root) = packed {
         let spill = pack_set.ok_or_else(|| invalid("V2 packed closure spill is absent"))?;
         let mut extents = open_tree_stream(
             &segment, objects_root, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+            pack_set, closure_binding,
         )
             .map_err(invalid)?;
         let mut previous = None;
@@ -1115,10 +1135,7 @@ fn verify_revision_closure(
             }
             spill.observe_packed_extent(revision_id, digest, location)?;
         }
-        let coverage = extents
-            .coverage()
-            .ok_or_else(|| invalid("V2 packed extent EOF absent"))?;
-        work.record_tree(coverage.work, coverage.entries, limits)?;
+        finish_tree_stream(&mut extents, work, limits, deadline, cancel)?;
         spill.finish_packed_revision(revision_id)?;
     }
     Ok(())

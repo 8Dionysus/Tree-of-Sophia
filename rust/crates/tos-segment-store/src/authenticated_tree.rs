@@ -748,6 +748,52 @@ impl AuthenticatedTreeRowStreamV2 {
             .ok_or_else(|| budget("packed stream node workspace overflow"))
     }
 
+    /// Complete a row walk's physical pack verification without walking the
+    /// same tree again. Rows may be inspected privately before this succeeds;
+    /// a cold-closure receipt requires this terminal verification too.
+    pub fn finish_pack_verification_with_work_callback(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        shared_work: &mut dyn FnMut() -> bool,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
+        let result = (|| {
+            if !self.done || self.failed {
+                return Err(invalid("packed verification requires successful stream EOF"));
+            }
+            let PackCaptureV2::External(pack_set) = &self.pack_capture else {
+                return Err(invalid("packed verification requires its captured pack set"));
+            };
+            let pack_set = pack_set.clone();
+            let mut verify = |digest: Digest256| {
+                check(deadline, cancelled)?;
+                if !shared_work() {
+                    return Err(budget("authenticated tree shared work refused"));
+                }
+                let remaining = remaining_bytes(self.work, self.limits)?;
+                if remaining == 0 {
+                    return Err(budget("authenticated tree byte budget exceeded"));
+                }
+                self.check_state(AUTHENTICATED_PACK_MAX_BYTES)?;
+                let raw = self.store.read_authenticated_blob_with_io(
+                    digest,
+                    AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
+                    self.io_ledger.as_deref(),
+                    deadline,
+                    cancelled,
+                )?;
+                let frame_count = scan_packed_chunk(&raw)?;
+                self.work.charge_pack_read(raw.len(), frame_count, self.limits)
+            };
+            pack_set.verify_pending(&mut verify)?;
+            drop(verify);
+            check(deadline, cancelled)?;
+            self.coverage().ok_or_else(|| invalid("packed authenticated tree coverage unavailable"))
+        })();
+        self.failed |= result.is_err();
+        result
+    }
+
     fn check_state(&self, extra: usize) -> Result<()> {
         let Some(limit) = self.state_limit else { return Ok(()) };
         let bytes = self.stack.capacity().checked_mul(std::mem::size_of::<StreamFrameV2>())
@@ -2679,6 +2725,26 @@ impl SegmentStore {
         )
     }
 
+    /// Share one bounded row walk between semantic inspection and full cold
+    /// pack verification. The supplied spill remains bound to this store and
+    /// closure; finish_pack_verification_with_work_callback seals the walk.
+    pub fn stream_authenticated_tree_v2_with_pack_set_and_state(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
+        closure_binding: Digest256,
+        max_state_bytes: usize,
+    ) -> Result<AuthenticatedTreeRowStreamV2> {
+        pack_set.check_binding(
+            self.physical_root_identity()?, self.store_id(), self.domain_digest(), closure_binding,
+        )?;
+        self.stream_authenticated_tree_v2_with_capture(
+            descriptor, limits, io_ledger, PackCaptureV2::External(pack_set), Some(max_state_bytes),
+        )
+    }
+
     fn stream_authenticated_tree_v2_with_capture(
         &self,
         descriptor: &AuthenticatedTreeDescriptorV2,
@@ -2914,37 +2980,7 @@ impl SegmentStore {
             .next_row_with_work_callback(deadline, cancelled, shared_work)?
             .is_some()
         {}
-        let mut verify = |digest: Digest256| {
-            check(deadline, cancelled)?;
-            if !shared_work() {
-                return Err(budget("authenticated tree shared work refused"));
-            }
-            let remaining = remaining_bytes(stream.work, stream.limits)?;
-            if remaining == 0 {
-                return Err(budget("authenticated tree byte budget exceeded"));
-            }
-            stream.check_state(AUTHENTICATED_PACK_MAX_BYTES)?;
-            let raw = self.read_authenticated_blob_with_io(
-                digest,
-                AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
-                io_ledger.as_deref(),
-                deadline,
-                cancelled,
-            )?;
-            let frame_count = scan_packed_chunk(&raw)?;
-            stream
-                .work
-                .charge_pack_read(raw.len(), frame_count, stream.limits)
-        };
-        pack_set.verify_pending(&mut verify)?;
-        drop(verify);
-        check(deadline, cancelled)?;
-        stream.coverage().ok_or_else(|| {
-            SegmentError::new(
-                Code::InvalidReceipt,
-                "packed authenticated tree coverage unavailable",
-            )
-        })
+        stream.finish_pack_verification_with_work_callback(deadline, cancelled, shared_work)
     }
 }
 
