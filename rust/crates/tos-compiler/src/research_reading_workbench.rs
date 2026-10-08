@@ -670,22 +670,25 @@ fn materialize(
         inputs.push(input);
         evidence.push(e)
     }
+    // These are complete table exports. A search index matching only a prefix
+    // of ORDER BY causes random table-page rereads before the final sort. Keep
+    // the exact order, but scan each table once into the owned memory sorter.
     let source = root.open_sqlite_readonly_for_ordered_scan(&inputs[0].file)?;
     quick_check(root, &source)?;
     let contexts = query(
         root,
         &source,
-        "SELECT * FROM contexts ORDER BY language,witness_order",
+        "SELECT * FROM contexts NOT INDEXED ORDER BY language,witness_order",
     )?;
     let sentences = query(
         root,
         &source,
-        "SELECT * FROM sentences ORDER BY language,witness_ordinal",
+        "SELECT * FROM sentences NOT INDEXED ORDER BY language,witness_ordinal",
     )?;
     let surfaces = query(
         root,
         &source,
-        "SELECT * FROM surface_units ORDER BY language,witness_ordinal",
+        "SELECT * FROM surface_units NOT INDEXED ORDER BY language,witness_ordinal",
     )?;
     drop(source);
     let analysis = root.open_sqlite_readonly_for_ordered_scan(&inputs[1].file)?;
@@ -693,12 +696,12 @@ fn materialize(
     let clauses = query(
         root,
         &analysis,
-        "SELECT clause_unit_id AS clause_id,sentence_unit_ref AS sentence_id,context_unit_ref,start_offset,end_offset,exact_text,exact_sha256,boundary_status FROM clauses ORDER BY language,part,context_unit_ref,sentence_clause_ordinal",
+        "SELECT clause_unit_id AS clause_id,sentence_unit_ref AS sentence_id,context_unit_ref,start_offset,end_offset,exact_text,exact_sha256,boundary_status FROM clauses NOT INDEXED ORDER BY language,part,context_unit_ref,sentence_clause_ordinal",
     )?;
     let alignments = query(
         root,
         &analysis,
-        "SELECT * FROM translation_alignments ORDER BY alignment_id",
+        "SELECT * FROM translation_alignments NOT INDEXED ORDER BY alignment_id",
     )?;
     drop(analysis);
     let concept = root.open_sqlite_readonly_for_ordered_scan(&inputs[2].file)?;
@@ -706,7 +709,7 @@ fn materialize(
     let occurrences = query(
         root,
         &concept,
-        "SELECT * FROM exact_occurrences ORDER BY language,part,token_ordinal",
+        "SELECT * FROM exact_occurrences NOT INDEXED ORDER BY language,part,token_ordinal",
     )?;
     drop(concept);
     let policy_ref = format!("{ROUTE}/chapter-voice-policies.v1.json");
