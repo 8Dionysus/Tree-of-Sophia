@@ -200,6 +200,7 @@ where
                 max_work_bytes: limits.max_work_bytes,
             },
         )?;
+        eprintln!("Native finalize start nodes={} relations={}", roots.nodes, roots.relations);
         for table in ["knowledge_nodes", "knowledge_relations"] {
             let mut after = -1i64;
             loop {

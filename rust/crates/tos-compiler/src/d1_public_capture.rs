@@ -884,8 +884,8 @@ impl<'budget> CreationState<'budget> {
         value: &T,
         cap: usize,
     ) -> Result<Vec<u8>> {
-        let raw = self.json_encoded_result(value, cap)?;
-        self.retain(raw.capacity())?;
+        let (raw, hold) = self.json_encoded_result(value, cap)?;
+        hold.into_persistent()?;
         Ok(raw)
     }
     pub(crate) fn with_json_encoded<T: serde::Serialize + ?Sized, O>(
@@ -894,8 +894,23 @@ impl<'budget> CreationState<'budget> {
         cap: usize,
         operation: impl FnOnce(&[u8]) -> Result<O>,
     ) -> Result<O> {
-        let raw = self.json_encoded_result(value, cap)?;
-        let hold = self.hold(raw.capacity())?;
+        let (raw, hold) = self.json_encoded_result(value, cap)?;
+        let result = operation(&raw);
+        drop(raw);
+        drop(hold);
+        result
+    }
+    /// A verified carrier already declares its exact logical length. Emit once
+    /// into that admitted capacity, then check length before exposing bytes.
+    /// The consumer still authenticates the logical digest under this owner.
+    pub(crate) fn with_json_encoded_exact<T: serde::Serialize + ?Sized, O>(
+        &self,
+        value: &T,
+        exact_len: usize,
+        cap: usize,
+        operation: impl FnOnce(&[u8]) -> Result<O>,
+    ) -> Result<O> {
+        let (raw, hold) = self.json_encoded_exact_result(value, exact_len, cap)?;
         let result = operation(&raw);
         drop(raw);
         drop(hold);
@@ -905,7 +920,7 @@ impl<'budget> CreationState<'budget> {
         &self,
         value: &T,
         cap: usize,
-    ) -> Result<Vec<u8>> {
+    ) -> Result<(Vec<u8>, CreationStateHold<'_, 'budget>)> {
         struct Count<'a, 'budget> {
             owner: &'a CreationState<'budget>,
             len: usize,
@@ -916,25 +931,28 @@ impl<'budget> CreationState<'budget> {
                 self.owner
                     .charge_work(raw.len())
                     .map_err(|_| io::Error::other("owned model count work"))?;
-                self.len = self
-                    .len
-                    .checked_add(raw.len())
+                self.len = self.len.checked_add(raw.len())
                     .filter(|n| *n <= self.cap)
                     .ok_or_else(|| io::Error::other("owned model encode bytes"))?;
                 Ok(raw.len())
             }
-            fn flush(&mut self) -> io::Result<()> {
-                Ok(())
-            }
+            fn flush(&mut self) -> io::Result<()> { Ok(()) }
         }
-        let mut count = Count {
-            owner: self,
-            len: 0,
-            cap,
-        };
+        let mut count = Count { owner: self, len: 0, cap };
         serde_json::to_writer(&mut count, value)
             .map_err(|_| Error::Budget("owned model encode count"))?;
-        let hold = self.hold(count.len)?;
+        self.json_encoded_exact_result(value, count.len, cap)
+    }
+    fn json_encoded_exact_result<T: serde::Serialize + ?Sized>(
+        &self,
+        value: &T,
+        exact_len: usize,
+        cap: usize,
+    ) -> Result<(Vec<u8>, CreationStateHold<'_, 'budget>)> {
+        if exact_len == 0 || exact_len > cap {
+            return Err(Error::Budget("owned model exact encode bytes"));
+        }
+        let hold = self.hold(exact_len)?;
         struct Emit<'a, 'budget> {
             owner: &'a CreationState<'budget>,
             raw: Vec<u8>,
@@ -942,33 +960,30 @@ impl<'budget> CreationState<'budget> {
         }
         impl Write for Emit<'_, '_> {
             fn write(&mut self, raw: &[u8]) -> io::Result<usize> {
-                self.owner
-                    .charge_work(raw.len())
+                self.owner.charge_work(raw.len())
                     .map_err(|_| io::Error::other("owned model emit work"))?;
-                self.raw
-                    .len()
-                    .checked_add(raw.len())
+                self.raw.len().checked_add(raw.len())
                     .filter(|n| *n <= self.cap)
                     .ok_or_else(|| io::Error::other("owned model changed encoded size"))?;
                 self.raw.extend_from_slice(raw);
                 Ok(raw.len())
             }
-            fn flush(&mut self) -> io::Result<()> {
-                Ok(())
-            }
+            fn flush(&mut self) -> io::Result<()> { Ok(()) }
         }
-        let mut writer = Emit {
-            owner: self,
-            raw: Vec::with_capacity(count.len),
-            cap: count.len,
-        };
+        let mut raw = Vec::new();
+        raw.try_reserve_exact(exact_len)
+            .map_err(|_| Error::Budget("owned model encode allocation"))?;
+        if raw.capacity() != exact_len {
+            return Err(Error::Budget("owned model encode allocation capacity"));
+        }
+        let mut writer = Emit { owner: self, raw, cap: exact_len };
         serde_json::to_writer(&mut writer, value)
             .map_err(|_| Error::Budget("owned model encode emit"))?;
-        if writer.raw.len() != count.len {
+        if writer.raw.len() != exact_len {
             return Err(Error::Invalid("owned model encode count changed"));
         }
-        drop(hold);
-        Ok(writer.raw)
+        self.active()?;
+        Ok((writer.raw, hold))
     }
     pub(crate) fn encode_canonical<T: serde::Serialize + ?Sized>(
         &self,
@@ -7113,6 +7128,7 @@ mod construction_phase_tests {
                 .args(["--exact", "d1_public_capture::construction_phase_tests::construction_peak_transfers_only_live_value_state", "--nocapture"])
                 .env(CHILD, "1").output().unwrap();
             assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
             return;
         }
         let deadline = Instant::now() + Duration::from_secs(30);
@@ -7195,6 +7211,41 @@ mod construction_phase_tests {
         eprintln!("strict conversion measured work old={old_work} new={new_work}");
         drop(next);drop(hold);drop(old);
         assert_eq!(state.retained.get(),baseline);
+        // Exact-length carriers eliminate only the count walk. The bytes and
+        // their custody remain identical, including every refused callback.
+        let value: serde_json::Value = serde_json::from_slice(&long).unwrap();
+        let expected = serde_json::to_vec(&value).unwrap();
+        let before = work.load(Ordering::Acquire);
+        state.with_json_encoded(&value, 16384, |bytes| {
+            assert_eq!(bytes, expected);
+            assert!(state.retained.get() >= baseline + expected.len());
+            Ok(())
+        }).unwrap();
+        let counted_work = work.load(Ordering::Acquire) - before;
+        assert_eq!(state.retained.get(), baseline);
+        let before = work.load(Ordering::Acquire);
+        state.with_json_encoded_exact(&value, expected.len(), 16384, |bytes| {
+            assert_eq!(bytes, expected);
+            assert!(state.retained.get() >= baseline + expected.len());
+            Ok(())
+        }).unwrap();
+        let exact_work = work.load(Ordering::Acquire) - before;
+        assert_eq!(counted_work, 2 * exact_work);
+        assert_eq!(exact_work, expected.len() as u64);
+        assert_eq!(state.retained.get(), baseline);
+        for declared in [0, expected.len() - 1, expected.len() + 1, 16385] {
+            let mut called = false;
+            assert!(state.with_json_encoded_exact(&value, declared, 16384, |_| {
+                called = true; Ok(())
+            }).is_err());
+            assert!(!called);
+            assert_eq!(state.retained.get(), baseline);
+        }
+        assert!(state.with_json_encoded_exact(&value, expected.len(), 16384, |_| {
+            Err::<(), _>(Error::Invalid("consumer refused"))
+        }).is_err());
+        assert_eq!(state.retained.get(), baseline);
+        eprintln!("exact JSON emission work counted={counted_work} exact={exact_work}");
         let persistent = state.serde_owned_with_limits(raw, limits).unwrap();
         assert!(state.persistent.get() > 0);
         assert_eq!(state.retained.get(), baseline + state.persistent.get());

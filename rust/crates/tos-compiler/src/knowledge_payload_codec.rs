@@ -340,18 +340,22 @@ fn equal_owned(
             if a.len() != b.len() {
                 return Ok(false);
             }
-            for (key, x) in a {
-                // preserve_order maps are not sorted; find the same key by
-                // explicitly checked byte comparisons instead of opaque get.
-                let mut found = None;
-                for (other_key, other_value) in b {
-                    if bytes_equal(state, key.as_bytes(), other_key.as_bytes())? {
-                        found = Some(other_value);
-                        break;
+            for ((key, x), (ordered_key, ordered_value)) in a.iter().zip(b) {
+                // Source copies normally preserve insertion order. Compare that
+                // position first; a reordered object retains the same bounded
+                // key search and order-independent semantic equality as before.
+                let y = if bytes_equal(state, key.as_bytes(), ordered_key.as_bytes())? {
+                    ordered_value
+                } else {
+                    let mut found = None;
+                    for (other_key, other_value) in b {
+                        if bytes_equal(state, key.as_bytes(), other_key.as_bytes())? {
+                            found = Some(other_value);
+                            break;
+                        }
                     }
-                }
-                let Some(y) = found else {
-                    return Ok(false);
+                    let Some(y) = found else { return Ok(false); };
+                    y
                 };
                 if !equal_owned(state, x, y, depth + 1)? {
                     return Ok(false);
@@ -692,7 +696,7 @@ fn with_hydrated_payload_from_source<T>(
                 source: &source_value,
             },
         };
-        let result = state.with_json_encoded(&rebuilt, max_row_bytes, |logical| {
+        let result = state.with_json_encoded_exact(&rebuilt, logical_len, max_row_bytes, |logical| {
             if logical.len() != logical_len || charged_digest(state, logical)? != logical_digest {
                 return Err(Error::Invalid(
                     "carrier codec logical length or digest differs",
@@ -710,6 +714,65 @@ fn with_hydrated_payload_from_source<T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ordered_equality_preserves_reordered_objects_and_charges_less_work() {
+        use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
+        use std::{sync::{Arc, atomic::{AtomicBool, AtomicU64, Ordering}}, time::{Duration, Instant}};
+        const CHILD: &str = "TOS_CODEC_EQUALITY_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "knowledge_payload_codec::tests::ordered_equality_preserves_reordered_objects_and_charges_less_work", "--nocapture"])
+                .env(CHILD, "1").output().unwrap();
+            assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            return;
+        }
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let remaining = |n: usize| (4 * 1024 * 1024usize).checked_sub(n).ok_or(Error::Budget("equality test state"));
+        let heap = crate::sqlite_budget::DedicatedSessionSqliteHeap::establish(1024 * 1024, &remaining, deadline, &cancelled).unwrap();
+        let work = Arc::new(AtomicU64::new(0));
+        let vm = Arc::new(AtomicU64::new(0));
+        let budget = RuntimeKnowledgeOwnedBudget {
+            remaining_after_retained: &remaining, original_work: &work, original_work_limit: 4 * 1024 * 1024,
+            original_sql_vm: &vm, original_sql_vm_limit: 1_000_000, original_sqlite_heap: &heap,
+            remaining_json_visits: 100_000, owner_deadline: deadline, operation_deadline: deadline, cancelled: &cancelled,
+        };
+        let state = CreationState::from_runtime_owned_budget(&budget).unwrap();
+        let mut fields = serde_json::Map::new();
+        for i in 0..128 { fields.insert(format!("field.{i:03}"), serde_json::json!([i, "α\n", null])); }
+        let value = Value::Object(fields);
+        let before = work.load(Ordering::Acquire);
+        assert!(equal_owned(&state, &value, &value, 0).unwrap());
+        let ordered_work = work.load(Ordering::Acquire) - before;
+        // The previous top-level unordered scan, with the same recursive
+        // equality work. Its only difference is searching every key from zero.
+        let a = value.as_object().unwrap();
+        let before = work.load(Ordering::Acquire);
+        state.charge_work(2 * std::mem::size_of::<Value>()).unwrap();
+        for (key, x) in a {
+            for (other, y) in a {
+                if bytes_equal(&state, key.as_bytes(), other.as_bytes()).unwrap() {
+                    assert!(equal_owned(&state, x, y, 1).unwrap()); break;
+                }
+            }
+        }
+        let scanned_work = work.load(Ordering::Acquire) - before;
+        assert!(ordered_work * 3 < scanned_work);
+        let reversed = Value::Object(a.iter().rev().map(|(k,v)| (k.clone(),v.clone())).collect());
+        assert!(equal_owned(&state, &value, &reversed, 0).unwrap());
+        let mut different = reversed.clone();
+        different["field.001"] = Value::Null;
+        assert!(!equal_owned(&state, &value, &different, 0).unwrap());
+        different.as_object_mut().unwrap().swap_remove("field.001");
+        assert!(!equal_owned(&state, &value, &different, 0).unwrap());
+        let one: Value = serde_json::from_str("1.00").unwrap();
+        let other: Value = serde_json::from_str("1.0").unwrap();
+        assert!(!equal_owned(&state, &one, &other, 0).unwrap());
+        eprintln!("carrier equality work scanned={scanned_work} ordered={ordered_work}");
+        cancelled.store(true, Ordering::Release);
+        assert!(equal_owned(&state, &value, &value, 0).is_err());
+    }
     #[test]
     fn borrowed_hydration_preserves_exact_nested_order_numbers_and_utf8() {
         let source: Value = serde_json::from_str(r#"{"label":"声\nточные bytes","n":18446744073709551617001,"nested":{"z":[1.2500,null,true],"a":"é"}}"#).unwrap();
