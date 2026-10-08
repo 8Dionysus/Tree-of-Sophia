@@ -29,14 +29,14 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 6388,
+    "tracked_surface_count": 6387,
     "unhandled_family_count": 1
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5586,
+    "excluded_tracked_path_count": 5589,
     "human_scope": {
-      "bytes": 7329294,
+      "bytes": 7330131,
       "count": 1086,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -116,20 +116,20 @@
           "lines": 1037
         },
         "tos": {
-          "bytes": 4996285,
+          "bytes": 4997122,
           "count": 726,
-          "lines": 82401
+          "lines": 82420
         }
       },
-      "lines": 121189
+      "lines": 121208
     },
     "surface_kind_counts": {
-      "executable": 612,
+      "executable": 610,
       "human": 1086,
-      "structured": 4690
+      "structured": 4691
     },
-    "tracked_path_count": 11974,
-    "tracked_surface_count": 6388,
+    "tracked_path_count": 11976,
+    "tracked_surface_count": 6387,
     "unhandled_family_count": 1,
     "unhandled_paths": [
       ".scale-completion-r1/v2-writer-source-pin-r1.json"
@@ -175,7 +175,7 @@
         "human": 726,
         "structured": 4400
       },
-      "tracked_surface_bytes": 99541500,
+      "tracked_surface_bytes": 99542337,
       "tracked_surface_count": 5159
     },
     {
@@ -194,7 +194,7 @@
         "human": 88,
         "structured": 6
       },
-      "tracked_surface_bytes": 1103270,
+      "tracked_surface_bytes": 1103315,
       "tracked_surface_count": 94
     },
     {
@@ -236,32 +236,32 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 161,
+        "executable": 160,
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 4478240,
-      "tracked_surface_count": 165
+      "tracked_surface_bytes": 4416264,
+      "tracked_surface_count": 164
     },
     {
       "family_id": "rust",
       "surface_kind_counts": {
         "executable": 4,
         "human": 10,
-        "structured": 172
+        "structured": 173
       },
-      "tracked_surface_bytes": 2366420,
-      "tracked_surface_count": 186
+      "tracked_surface_bytes": 2379218,
+      "tracked_surface_count": 187
     },
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 121,
+        "executable": 120,
         "human": 10,
         "structured": 11
       },
-      "tracked_surface_bytes": 3814956,
-      "tracked_surface_count": 142
+      "tracked_surface_bytes": 3801724,
+      "tracked_surface_count": 141
     },
     {
       "family_id": "manifests",
@@ -295,7 +295,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "ba101a8a9904182f059749f80e8a670403938a0938fe0c2e19d16cf6cc599ed8",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "4f0fe9f42f10ec02e5c965dfc47c3acd94f4bb5d8b6ea8e8daede98adde964e1",
+  "tracked_surface_digest": "00caea7df587759e98f89af98f9551112b5152923e9cba8aff0fb2c4302ff48d",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -342,7 +342,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "a0432a61c223faec80ea33310e8b9df09debb6fabfa978a51a8aa7d6a38c5cd8",
+      "sha256": "99575b5487032e897f1786001fa6c701c19679ae918ca5fd1268397f31488f21",
       "surface_kind": "structured"
     },
     {
@@ -39194,11 +39194,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3931,
+      "bytes": 4768,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/README.md",
-      "sha256": "e9f003d4fa36b0c41975e07feafa7efabace3bd3df716f6a0b00855687be1c4d",
+      "sha256": "5db5d5e6bbdaaddc4e099bd417e245f5931a4bde30e84d2d36d251bfd71a4109",
       "surface_kind": "human"
     },
     {
@@ -44930,11 +44930,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 288672,
+      "bytes": 288717,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "3628ac9fa3ce888eb6cb45bcd7d8b38c42860c81161d6c849bff0030926c63af",
+      "sha256": "46cfc2f8a0dd85341d1ea1eb9181ce3a0688a022d549a0d29090096c9107f579",
       "surface_kind": "structured"
     },
     {
@@ -48506,6 +48506,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 12798,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/dta_technical_markup/synthetic-parity.json",
+      "sha256": "2f0423b92e90bbeea0aa390780ef55fc7ff5f1a6a3a9a5bd4b12953007ff4032",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 10825,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
@@ -49351,14 +49359,6 @@
       "family_id": "scripts",
       "path": "scripts/build_zarathustra_recurrence_projection.py",
       "sha256": "35173be8a282f0f1afbf276f652f571d3c2721a9b6b23516a3f722645144f20e",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 61976,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_zarathustra_technical_markup.py",
-      "sha256": "a04a368ecf7678148a735272d5b40c3f406b9a89559aafdf091601409f47d2fa",
       "surface_kind": "executable"
     },
     {
@@ -50850,11 +50850,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 176515,
+      "bytes": 175410,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "5a01c796ee2b465071cc354e4403abefcbb0203e789a9f8dead2ec76fa9a8ee3",
+      "sha256": "add8c6a5bd25dcd472e9434859e6a55ae28528821c00d2d1bcc4cf9de3e04e4d",
       "surface_kind": "structured"
     },
     {
@@ -51383,14 +51383,6 @@
       "family_id": "tests",
       "path": "tests/test_zarathustra_recurring_formulas.py",
       "sha256": "5fb0400a5068f4c8b76667d08f09ec05d1fa4d6305511d074865188dce4e08ef",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 12127,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tests",
-      "path": "tests/test_zarathustra_technical_markup.py",
-      "sha256": "ffd86a8434eb90e70b718380e154693cc79eebb8b39e5eee3c1c35893e16f44d",
       "surface_kind": "executable"
     },
     {
