@@ -623,12 +623,27 @@ fn event(
         })
         .collect::<Vec<_>>();
     if historical {
-        ensure(
-            e["entities"]["inputs"] == json!(inputs)
-                && e["entities"]["outputs"] == json!(out)
-                && e["entities"]["byproducts"] == json!(side),
-            "historical provenance entity membership/fixity drift",
-        )?;
+        for (kind, actual) in [
+            ("inputs", json!(inputs)),
+            ("outputs", json!(out)),
+            ("byproducts", json!(side)),
+        ] {
+            let expected = a(&e["entities"][kind])?;
+            let actual = a(&actual)?;
+            ensure(
+                expected.len() == actual.len(),
+                &format!("historical {kind} entity membership count drift"),
+            )?;
+            for (index, (left, right)) in expected.iter().zip(actual).enumerate() {
+                ensure(
+                    left == right,
+                    &format!(
+                        "historical {kind} entity {} membership/fixity drift",
+                        index + 1
+                    ),
+                )?;
+            }
+        }
         return Ok(e);
     }
     e["event_id"] = json!(event_id);
