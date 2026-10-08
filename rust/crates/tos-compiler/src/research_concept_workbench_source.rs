@@ -274,22 +274,7 @@ pub(super) fn occurrences(
     if root.hash_file(&mut dbfile, 128 * 1024 * 1024)? != expected_db_sha256 {
         return Err("German exact-occurrence database fixity drift".into());
     }
-    let db = root.open_sqlite_readonly(&dbfile)?;
-    let deadline = root.deadline();
-    db.progress_handler(1000, Some(move || std::time::Instant::now() >= deadline));
-    // The ordered readonly scan may sort. Keep temporary sorting in RAM;
-    // strict exact-FD source access must never open filesystem temp objects.
-    // The enclosing finite execution envelope owns the full RAM limit.
-    root.check()?;
-    db.execute_batch("PRAGMA temp_store=MEMORY")
-        .map_err(|e| format!("concept German readonly sorter policy: {e}"))?;
-    let temp_store: i64 = db
-        .query_row("PRAGMA temp_store", [], |row| row.get(0))
-        .map_err(|e| format!("concept German readonly sorter policy check: {e}"))?;
-    if temp_store != 2 {
-        return Err("concept German readonly sorter requires memory temp storage".into());
-    }
-    root.check()?;
+    let db = root.open_sqlite_readonly_for_ordered_scan(&dbfile)?;
     let mut stmt=db.prepare("SELECT o.occurrence_id,s.part_order,o.token_ordinal,o.exact_form,o.normalized_form,o.exact_form_sha256,o.normalized_form_sha256,o.text_node_path,o.start_offset,o.end_offset FROM occurrences o JOIN source_items s USING(item_ref) ORDER BY s.part_order,o.token_ordinal").map_err(|e|format!("concept German ordered scan prepare: {e}"))?;
     let mut rows = stmt
         .query([])

@@ -670,7 +670,7 @@ fn materialize(
         inputs.push(input);
         evidence.push(e)
     }
-    let source = root.open_sqlite_readonly(&inputs[0].file)?;
+    let source = root.open_sqlite_readonly_for_ordered_scan(&inputs[0].file)?;
     quick_check(root, &source)?;
     let contexts = query(
         root,
@@ -688,7 +688,7 @@ fn materialize(
         "SELECT * FROM surface_units ORDER BY language,witness_ordinal",
     )?;
     drop(source);
-    let analysis = root.open_sqlite_readonly(&inputs[1].file)?;
+    let analysis = root.open_sqlite_readonly_for_ordered_scan(&inputs[1].file)?;
     quick_check(root, &analysis)?;
     let clauses = query(
         root,
@@ -701,7 +701,7 @@ fn materialize(
         "SELECT * FROM translation_alignments ORDER BY alignment_id",
     )?;
     drop(analysis);
-    let concept = root.open_sqlite_readonly(&inputs[2].file)?;
+    let concept = root.open_sqlite_readonly_for_ordered_scan(&inputs[2].file)?;
     quick_check(root, &concept)?;
     let occurrences = query(
         root,

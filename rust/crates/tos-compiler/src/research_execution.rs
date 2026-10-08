@@ -590,6 +590,33 @@ impl ResearchExecution {
         )
         .map_err(|e| e.to_string())
     }
+    /// Ordered immutable scans may need a sorter. The exact-FD VFS refuses
+    /// filesystem temporary names; the operation's finite memory envelope
+    /// owns the sorter. Keep this an explicit profile of the existing reader.
+    pub fn open_sqlite_readonly_for_ordered_scan(
+        &self,
+        file: &File,
+    ) -> Result<tos_source_store::PinnedSqliteConnection, String> {
+        let db = self.open_sqlite_readonly(file)?;
+        let deadline = self.deadline();
+        let cancelled = self.cancelled.clone();
+        db.progress_handler(
+            1000,
+            Some(move || {
+                Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed)
+            }),
+        );
+        db.execute_batch("PRAGMA temp_store=MEMORY; PRAGMA mmap_size=0")
+            .map_err(|e| format!("immutable ordered scan storage profile: {e}"))?;
+        let temp_store: i64 = db
+            .query_row("PRAGMA temp_store", [], |row| row.get(0))
+            .map_err(|e| format!("immutable sorter profile check: {e}"))?;
+        if temp_store != 2 {
+            return Err("immutable ordered scan requires memory temp storage".into());
+        }
+        self.check()?;
+        Ok(db)
+    }
     pub fn sqlite_scope(
         &self,
         limits: PinnedSqliteAuxLimits,
@@ -973,6 +1000,38 @@ use std::os::unix::ffi::OsStrExt;
 mod tests {
     use super::*;
     use std::{fs, os::unix::fs::symlink};
+    #[test]
+    fn ordered_immutable_scan_sorts_within_memory_and_preserves_source() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("source.sqlite3");
+        let db = rusqlite::Connection::open(&path).unwrap();
+        db.execute_batch("CREATE TABLE source(k INTEGER, v TEXT); INSERT INTO source VALUES (3,'third'),(1,'first'),(2,'second');").unwrap();
+        db.close().unwrap();
+        let before = fs::read(&path).unwrap();
+        let ctx = ResearchExecution::new(temp.path(), 10).unwrap();
+        let file = ctx.source_file("source.sqlite3", 1024 * 1024).unwrap();
+        let read = ctx.open_sqlite_readonly_for_ordered_scan(&file).unwrap();
+        let policy: i64 = read
+            .query_row("PRAGMA temp_store", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(policy, 2);
+        let actual: Vec<String> = read
+            .prepare("SELECT v FROM source ORDER BY k")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<std::result::Result<_, _>>()
+            .unwrap();
+        assert_eq!(actual, vec!["first", "second", "third"]);
+        assert!(
+            read.execute("INSERT INTO source VALUES (4,'no')", [])
+                .is_err()
+        );
+        read.close().unwrap();
+        assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 1);
+        assert!(ctx.budget_report()["read_returned_bytes"].as_u64().unwrap() > 0);
+    }
     #[test]
     fn journal_replacement_refuses_a_stale_read_without_losing_history() {
         let root = tempfile::tempdir().unwrap();

@@ -798,22 +798,7 @@ fn german(root: &ResearchExecution, plan: &V) -> R<(V, Counts, Ranges, Surfaces)
     if root.hash_file(&mut held_db, 128 * 1024 * 1024)? != expected_digest {
         return Err("German lexical database digest drift".into());
     }
-    let db = root.open_sqlite_readonly(&held_db)?;
-    let deadline = root.deadline();
-    db.progress_handler(10_000, Some(move || std::time::Instant::now() >= deadline));
-    // This grouped readonly scan may sort. The exact-FD VFS deliberately
-    // refuses filesystem temp objects; keep its sorter in caller-owned RAM.
-    // The enclosing finite execution envelope owns the full RAM limit.
-    root.check()?;
-    db.execute_batch("PRAGMA temp_store=MEMORY")
-        .map_err(|e| format!("parallel German readonly sorter policy: {e}"))?;
-    let temp_store: i64 = db
-        .query_row("PRAGMA temp_store", [], |row| row.get(0))
-        .map_err(|e| format!("parallel German readonly sorter policy check: {e}"))?;
-    if temp_store != 2 {
-        return Err("parallel German readonly sorter requires memory temp storage".into());
-    }
-    root.check()?;
+    let db = root.open_sqlite_readonly_for_ordered_scan(&held_db)?;
     let mut stmt=db.prepare("SELECT o.normalized_form,o.exact_form,s.part_order,o.section_resource_id,count(*) FROM occurrences o JOIN source_items s USING(item_ref) GROUP BY o.normalized_form,o.exact_form,s.part_order,o.section_resource_id").map_err(|e|format!("parallel German grouped scan prepare: {e}"))?;
     let rows = stmt
         .query_map([], |r| {
