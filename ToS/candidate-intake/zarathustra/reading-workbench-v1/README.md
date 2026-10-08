@@ -17,16 +17,13 @@ The generated manifest, coverage receipt, reading census, quote ledger and gap
 ledger belong to the explicitly selected private dataset, not this source tree.
 
 ```bash
-python scripts/build_zarathustra_reading_workbench_v1.py --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
-python scripts/build_zarathustra_reading_workbench_v1.py --check --source-root /path/to/private-source-root --output-root /path/to/reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
-python scripts/build_zarathustra_reading_workbench_v1.py --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
+tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
+tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --check --source-root /path/to/private-source-root --output-root /path/to/reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
+tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
 python scripts/query_zarathustra_reading_workbench_v1.py --native-prefix /absolute/installed-prefix --data-root /path/to/private-source-root --analysis-root /path/to/reading-data --query судьбы --language ru --limit 100 --group-by speaker,formula
 ```
 
-The maintained builder dispatches `tos zarathustra-reading-workbench-v1`
-before importing its retained reference implementation. Select the installed
-binary through `TOS_NATIVE_PREPARED_CONSUMER_BIN` or `PATH`; absence or refusal
-returns an error. `--source-root` and `--output-root` select data directories,
+The installed native producer runs directly through `tos`. `--source-root` and `--output-root` select data directories,
 and build may create its separate output directory. Build and check require
 `--scratch-bytes` with the admitted remaining quota; this selector does not
 grant storage. Both directories share one original operation deadline,
@@ -49,10 +46,11 @@ schema and candidate ceilings. Its execution receipt identifies the native
 kernel separately from the historical recipe references. `--check` reconstructs
 and compares that selected dataset; `--validate-tracked` checks its existing
 tracked companions and policy binding. Neither mode accepts semantic judgments.
-The retained Python helper bodies remain reference consumers and parity oracles
-until their callers have explicit disposition. Native source readiness,
-producer parity, query consumption and installed default retirement require
-separate evidence.
+The former Python producer and discourse, voice-policy and formula helpers are
+retired. Frozen recipe digests remain historical provenance; execution uses the
+Rust kernels. Native contracts preserve 49 synthetic cases plus the exact-offset
+occurrence bridge. The full private comparison covered 189,790 rows; physical
+SQLite byte identity is not claimed across different SQLite writer versions.
 
 The maintained query CLI selects installed native code before importing the retained
 reference helpers. `--data-root` selects source data and `--analysis-root` selects
@@ -127,10 +125,9 @@ quotation conventions and Antonovsky OCR policies stay witness-local; they are
 not universal defaults for another work. Changes to evidence or a method require
 regeneration and a new checked manifest, without silently accepting the output.
 
-Focused tests live in `tests/test_zarathustra_discourse.py`,
-`tests/test_zarathustra_recurring_formulas.py`,
-`tests/test_zarathustra_reading_challenger.py`,
-`tests/test_zarathustra_reading_workbench_v1.py`,
+Native contract tests live in `rust/crates/tos-compiler/src/research_reading_discourse.rs`,
+`research_reading_formulas.rs` and `research_reading_workbench.rs`, using the retained
+synthetic `reading-contracts.v1.json` fixture. Query-specific checks remain in
 `tests/test_zarathustra_reading_query_v1.py` and `access/tests/test_reading_access.py`.
 Full source checks run only where the private material is installed; public CI
 checks the software and synthetic contracts without installing private data.

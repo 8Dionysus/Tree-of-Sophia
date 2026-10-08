@@ -664,6 +664,22 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
         let mut event = records::map_event(&d)?;
         if options.generation.is_none() {
             historical_warning(&mut event, 4, LEGACY_MAP_WARNING)?;
+            // This retained segmentation event predates the later rights revision.
+            // Current rights still own the crosswalk and every fresh generation.
+            let prior_rights = array(&events[0]["inputs"])?
+                .iter()
+                .filter(|v| v["ref"] == RIGHTS_PATH)
+                .collect::<Vec<_>>();
+            ensure(
+                prior_rights.len() == 1
+                    && prior_rights[0]["sha256"]
+                        == "4c72113047353c6148af2ef3580e4128e8a968558f45331542081d7e0e761de0",
+                "historical map rights binding differs",
+            )?;
+            let Out::Array(inputs) = field(&mut event, "inputs")? else {
+                return Err("event input array".into());
+            };
+            set(&mut inputs[3], "sha256", q(s(&prior_rights[0]["sha256"])?))?;
         }
         if options.generation.is_some() {
             native_event(

@@ -29,14 +29,14 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 6380,
+    "tracked_surface_count": 6373,
     "unhandled_family_count": 1
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5626,
+    "excluded_tracked_path_count": 5632,
     "human_scope": {
-      "bytes": 7341223,
+      "bytes": 7341302,
       "count": 1087,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -116,20 +116,20 @@
           "lines": 1037
         },
         "tos": {
-          "bytes": 4998037,
+          "bytes": 4998116,
           "count": 726,
-          "lines": 82434
+          "lines": 82431
         }
       },
-      "lines": 121380
+      "lines": 121377
     },
     "surface_kind_counts": {
-      "executable": 586,
+      "executable": 578,
       "human": 1087,
-      "structured": 4707
+      "structured": 4708
     },
-    "tracked_path_count": 12006,
-    "tracked_surface_count": 6380,
+    "tracked_path_count": 12005,
+    "tracked_surface_count": 6373,
     "unhandled_family_count": 1,
     "unhandled_paths": [
       ".scale-completion-r1/v2-writer-source-pin-r1.json"
@@ -175,7 +175,7 @@
         "human": 726,
         "structured": 4400
       },
-      "tracked_surface_bytes": 99543740,
+      "tracked_surface_bytes": 99543819,
       "tracked_surface_count": 5159
     },
     {
@@ -194,7 +194,7 @@
         "human": 88,
         "structured": 6
       },
-      "tracked_surface_bytes": 1097883,
+      "tracked_surface_bytes": 1097473,
       "tracked_surface_count": 94
     },
     {
@@ -236,32 +236,32 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 142,
+        "executable": 138,
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 3844581,
-      "tracked_surface_count": 146
+      "tracked_surface_bytes": 3767308,
+      "tracked_surface_count": 142
     },
     {
       "family_id": "rust",
       "surface_kind_counts": {
         "executable": 4,
         "human": 11,
-        "structured": 189
+        "structured": 190
       },
-      "tracked_surface_bytes": 2886355,
-      "tracked_surface_count": 204
+      "tracked_surface_bytes": 2928771,
+      "tracked_surface_count": 205
     },
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 114,
+        "executable": 110,
         "human": 10,
         "structured": 11
       },
-      "tracked_surface_bytes": 3745076,
-      "tracked_surface_count": 135
+      "tracked_surface_bytes": 3715911,
+      "tracked_surface_count": 131
     },
     {
       "family_id": "manifests",
@@ -295,7 +295,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "ba101a8a9904182f059749f80e8a670403938a0938fe0c2e19d16cf6cc599ed8",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "8408cef274b337bf010b0772b3587a4df96ba0f026e141e0dd501560907cd4a2",
+  "tracked_surface_digest": "881ab9eaeda1ac1f3f366d20391530927baf74c27b78a1eb9a36cfeb6c05835b",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -342,7 +342,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "86ce85d082680114fac8be866fa626a94ab9d1155a9335433fced8dd63a85ae3",
+      "sha256": "0608dc803e7433ce3be400497bfb6cbbae084d5a6acfc15cab497bd97e1ae0a3",
       "surface_kind": "structured"
     },
     {
@@ -890,11 +890,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9161,
+      "bytes": 9240,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
-      "sha256": "cf38cebe4afee4a096086c2d05fd6cbed77923208031966a32c8dde684d55b76",
+      "sha256": "b67eb23d978728fe0881c60e41d02e8612b91c159ce17fbddc2fe157e1af1e88",
       "surface_kind": "human"
     },
     {
@@ -44930,11 +44930,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 283191,
+      "bytes": 282781,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "c3e1c71c8559ca824c7331fad927eff3af21a802f7353a69c50da8a5335044b8",
+      "sha256": "cd9439abe0d87264e246a5d3b59947f906c918f2e38cd19135014867a9f2d00f",
       "surface_kind": "structured"
     },
     {
@@ -48586,6 +48586,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/mysl_transfer_target_structure/config.json",
+      "sha256": "34800c4dfd9644d6ad555f32d768b4a4b91c40df2d0ec14db36475dac9afd0af",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 10825,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
@@ -48714,11 +48722,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 321992,
+      "bytes": 361019,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-compiler/tests/fixtures/reading-contracts.v1.json",
-      "sha256": "fc175a74b4816c940ae3e6b76fb466b9a100818c3a362f5ae6cc583b9eb07dac",
+      "sha256": "a365d69ab7dca6f46f173117f402bc18326b78ea99b44b5e7047fed7558df9a0",
       "surface_kind": "structured"
     },
     {
@@ -49367,14 +49375,6 @@
       "family_id": "scripts",
       "path": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
       "sha256": "7c461b19feae5608734cbb7ca555df4772d93da38f1ec482251f02c5bd206de7",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 26317,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_zarathustra_reading_workbench_v1.py",
-      "sha256": "ca1f03b9127c6f4aa470c7844320dd0edddfa913f81a82ec087216b716b310d2",
       "surface_kind": "executable"
     },
     {
@@ -50191,30 +50191,6 @@
       "family_id": "scripts",
       "path": "scripts/verify_rust_web_host.py",
       "sha256": "98079745f2a3fa5c1f48cd5518aa512813a5e1c3298653642c5f3155282e922d",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 21153,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/zarathustra_discourse.py",
-      "sha256": "d2a66e5851adff49b31ffc857db4da4a0c0f702d3ed16e8c64b5552c2b061dee",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 21165,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/zarathustra_recurring_formulas.py",
-      "sha256": "cc80e480268e7916662f4a214c9f69fa3400f45eec2ac9a2a0f2cd7e21fa0e9d",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 8638,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/zarathustra_voice_policy.py",
-      "sha256": "0261e798f3697e4836f07783b433978eb3131396dd47f34e7132b32ac2763388",
       "surface_kind": "executable"
     },
     {
@@ -51250,14 +51226,6 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4380,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tests",
-      "path": "tests/test_zarathustra_discourse.py",
-      "sha256": "37290a1e7bdf3cdc464cd27009d522f6b495bfc875c1a2276b6f3d7043d40727",
-      "surface_kind": "executable"
-    },
-    {
       "bytes": 8294,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
@@ -51298,35 +51266,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6033,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tests",
-      "path": "tests/test_zarathustra_reading_challenger.py",
-      "sha256": "b89f3ea9eaf8ff9e6561a658a7b0ef6a78705bb1913e1bf1fa6af3815d07159b",
-      "surface_kind": "executable"
-    },
-    {
       "bytes": 22128,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_zarathustra_reading_query_v1.py",
       "sha256": "40927445c0ac1532635794a5cb8e81c39fc8a0d05c28766d037a7f0759ead4b7",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 6648,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tests",
-      "path": "tests/test_zarathustra_reading_workbench_v1.py",
-      "sha256": "827696ca428d4bfcb8eaeb89a24995d3f1f695c461d2e133c6ab8f86509cbcc7",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 12104,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tests",
-      "path": "tests/test_zarathustra_recurring_formulas.py",
-      "sha256": "5fb0400a5068f4c8b76667d08f09ec05d1fa4d6305511d074865188dce4e08ef",
       "surface_kind": "executable"
     },
     {
