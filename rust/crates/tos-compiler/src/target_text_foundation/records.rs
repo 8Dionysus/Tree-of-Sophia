@@ -12,7 +12,7 @@ pub(super) fn anchor(plan: &Value, plan_ref: &str, plan_digest: &str, event_id: 
     "item_id": scope["item_ref"],
     "file_id": scope["file_ref"],
     "file_sha256": scope["file_sha256"],
-    "media_type": "application/xml"
+    "media_type": "application/pdf"
     },
     "selector_payload": {
     "kind": "selector_expression",
@@ -23,14 +23,21 @@ pub(super) fn anchor(plan: &Value, plan_ref: &str, plan_digest: &str, event_id: 
     "state_type": "digest_state",
     "representation_ref": scope["source_relative_ref"],
     "representation_sha256": scope["file_sha256"],
-    "media_type": "application/xml",
+    "media_type": "application/pdf",
     "character_normalization": "none"
     },
     "selector": {
-    "type": "structural",
-    "scheme": plan["selector"]["scheme"],
-    "value": plan["selector"]["value"],
-    "conforms_to": "https://www.w3.org/TR/1999/REC-xpath-19991116/"
+    "type": "page_region",
+    "page_identity": {
+    "page_number": plan["selector"]["page_number"]
+    },
+    "x": region["x"],
+    "y": region["y"],
+    "width": region["width"],
+    "height": region["height"],
+    "coordinate_space": "points",
+    "source_width": plan["selector"]["page_width_points"],
+    "source_height": plan["selector"]["page_height_points"]
     }
     }
     }
@@ -73,7 +80,7 @@ pub(super) fn layer(
     "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json",
     "schema_version": "tos_source_text_layer_v1",
     "layer_id": ids["layer_id"],
-    "layer_role": "machine_transcription",
+    "layer_role": "raw_ocr",
     "source_binding": {
     "work_ref": scope["work_ref"],
     "expression_ref": scope["expression_ref"],
@@ -94,7 +101,7 @@ pub(super) fn layer(
     "content_sha256": content_digest,
     "media_type": "text/plain",
     "charset": "UTF-8",
-    "language": "de",
+    "language": "ru",
     "text_scope": {
     "start": 0,
     "end": text.chars().count(),
@@ -118,14 +125,14 @@ pub(super) fn layer(
     "input_layers": [],
     "maker": {
     "maker_type": "software",
-    "agent_ref": "software:tos-zarathustra-source-text-foundation-builder",
+    "agent_ref": "software:tos-zarathustra-target-text-foundation-builder",
     "method": plan["extraction_policy"]["method"],
     "version": plan["extraction_policy"]["method_version"],
     "configuration_ref": plan_ref,
     "configuration_digest": plan_digest
     },
     "preservation_goal": "source_near",
-    "loss_posture": "preservation_intended",
+    "loss_posture": "lossy_for_declared_use",
     "silent_changes_allowed": false,
     "change_payload": {
     "kind": "none"
@@ -137,22 +144,38 @@ pub(super) fn layer(
     "transcription_goal": "machine_candidate",
     "historical_language_preserved": true,
     "printing_errors_silently_corrected": false,
-    "typography_posture": "preserve",
+    "typography_posture": "encode_explicitly",
     "layout_posture": "encode_explicitly",
     "unicode_normalization": "none",
     "uncertainty_representation": "explicit-never-silent",
     "method_declared": true
     },
     "uncertainty": {
-    "status": "none",
-    "annotations": []
+    "status": "unresolved",
+    "annotations": [{
+    "annotation_id": ids["uncertainty_annotation_id"],
+    "anchor_ref": ids["anchor_id"],
+    "kind": "ambiguous_reading",
+    "alternatives": [{
+    "value_sha256": visual["embedded_token_sequence_sha256"],
+    "value_in_record": false,
+    "value": null,
+    "status": "possible"
+    }, {
+    "value_sha256": visual["visually_joined_candidate_sha256"],
+    "value_in_record": false,
+    "value": null,
+    "status": "possible"
+    }],
+    "resolution": "proposed"
+    }]
     },
     "admission": {
     "mechanical_status": "fixity_verified",
     "review_status": "unreviewed",
     "review_ref": null,
     "human_review_performed": false,
-    "human_language_competence": "blocked",
+    "human_language_competence": "not_assessed",
     "language_competence_evidence_refs": [],
     "accepted_uses": [],
     "automatic_validation_complete": true,
@@ -196,9 +219,9 @@ pub(super) fn packet(
     "file_sha256": scope["file_sha256"]
     },
     "source_layer": {
-    "text_layer_ref": layer_record_ref,
+    "text_layer_ref": plan["outputs"]["text_layer_ref"],
     "text_layer_sha256": content_digest,
-    "language": "de",
+    "language": "ru",
     "media_type": "text/plain; charset=utf-8",
     "unicode_form": "source_preserved",
     "position_unit": "unicode_code_point",
@@ -211,7 +234,7 @@ pub(super) fn packet(
     "scheme_id": ids["scheme_id"],
     "scheme_version": 1,
     "supersedes_scheme_ref": null,
-    "scheme_name": "DTA TEI lb-delimited source-layout observation",
+    "scheme_name": "Antonovsky 1911 embedded-PDF bbox source-layout observation",
     "analysis_role": "source_layout",
     "unit_kinds": ["physical_line", "whitespace"],
     "boundary_basis": "source_layout",
@@ -253,7 +276,7 @@ pub(super) fn packet(
     "competing_segmentation_refs": [],
     "maker": method,
     "status": "observed_source_structure",
-    "status_reason": "The observation covers the exact TEI lb-delimited layout of one provider-transcription paragraph; word and sentence segmentation follow their own proposals and review.",
+    "status_reason": "Only six exact embedded-PDF bbox lines are observed; word joining is the declared machine rule and no sentence, token, accepted text, or translation boundary is asserted.",
     "review_refs": [],
     "source_text_authority": false,
     "linguistic_authority": false,
@@ -300,6 +323,8 @@ pub(super) struct Provenance<'a> {
     pub argv_digest: &'a str,
     pub outputs: &'a Vec<Value>,
     pub derivations: &'a Vec<Value>,
+    pub pdftotext_version: &'a str,
+    pub pdftotext_digest: &'a str,
     pub total_output_bytes: usize,
     pub rights_binding: &'a Value,
     pub observed_at: &'a str,
@@ -320,6 +345,8 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
         argv_digest,
         outputs,
         derivations,
+        pdftotext_version,
+        pdftotext_digest,
         total_output_bytes,
         rights_binding,
         observed_at,
@@ -346,15 +373,15 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     "status": "completed_with_warnings",
     "terminal_reason": null,
     "exit_code": 0,
-    "warnings": ["The extracted layer is unreviewed provider transcription, not accepted German.", "The source and derived text remain local-only and publication is unauthorized.", "The unsigned self-recorded event proves neither execution truth nor content truth."]
+    "warnings": ["Poppler emitted seventeen Invalid Font Weight warnings while returning the frozen bbox bytes.", "The embedded text is an unreviewed raw candidate and one visual letterspacing divergence remains unresolved.", "The exact PDF, bbox intermediate, and extracted text remain local-only; publication is unauthorized.", "The unsigned self-recorded event proves neither execution truth nor source fidelity."]
     },
     "entities": {
     "inputs": [{
     "entity_ref": plan["scope"]["source_relative_ref"],
-    "role": "fixity-verified-local-dta-tei-source",
-    "sha256": source_digest,
+    "role": "fixity-verified-local-antonovsky-1911-pdf",
+    "sha256": plan["scope"]["file_sha256"],
     "size_bytes": source_len,
-    "media_type": "application/xml",
+    "media_type": "application/pdf",
     "availability": "owner_local",
     "content_disclosure": "private_content",
     "fixity_verified": true,
@@ -375,13 +402,23 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     },
     "derivations": derivations,
     "responsibility": [{
-    "agent_ref": "software:tos-zarathustra-source-text-foundation-builder",
+    "agent_ref": "software:tos-zarathustra-target-text-foundation-builder",
     "agent_kind": "software",
     "role": "executor",
     "responsibility_posture": "performed",
     "evidence_binding": {
     "ref": builder_ref,
     "sha256": builder_digest
+    },
+    "human_evidence_status": "not_applicable"
+    }, {
+    "agent_ref": "model:openai-codex",
+    "agent_kind": "model",
+    "role": "observer",
+    "responsibility_posture": "observed",
+    "evidence_binding": {
+    "ref": plan_ref,
+    "sha256": plan_digest
     },
     "human_evidence_status": "not_applicable"
     }],
@@ -402,11 +439,18 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     "sha256": plan_digest
     },
     "software_components": [{
-    "name": "Tree of Sophia Zarathustra source-text foundation builder",
+    "name": "Tree of Sophia Zarathustra target-text foundation builder",
     "version": "1",
     "role": "native-extraction-and-record-builder",
     "artifact_ref": builder_ref,
     "artifact_sha256": builder_digest,
+    "verification_status": "verified"
+    }, {
+    "name": "pdftotext",
+    "version": pdftotext_version,
+    "role": "pdf-embedded-text-bbox-extractor",
+    "artifact_ref": "runtime:pdftotext-executable",
+    "artifact_sha256": pdftotext_digest,
     "verification_status": "verified"
     }, {
     "name": runtime_name,
@@ -421,7 +465,7 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     "runtime": runtime_name,
     "runtime_version": runtime_version,
     "runtime_artifact_sha256": executable_digest,
-    "backend": "rust-quick-xml-0.41.0",
+    "backend": format!("poppler-pdftotext-{}-bbox-layout", pdftotext_version),
     "hardware_target": "cpu",
     "unicode_version": unicode_version,
     "environment_profile_binding": {
@@ -433,7 +477,7 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     "manual_changes": {
     "status": "none_declared",
     "change_receipts": [],
-    "statement": "No manual edit occurred between the exact TEI parse and the private output; the declared lb rule is executed by the tracked builder."
+    "statement": "No manual edit occurred between Poppler bbox extraction and the private raw layer; words and lines are joined only by the tracked plan's rule."
     },
     "measurements": [{
     "metric": "input_bytes",
@@ -447,7 +491,7 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     "status": "measured",
     "value": total_output_bytes,
     "unit": "bytes",
-    "method": "sum of exact serialized output entity byte counts",
+    "method": "sum of exact private and tracked output entity byte counts",
     "evidence_binding": null
     }, {
     "metric": "human_active_seconds",
@@ -462,7 +506,7 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     "signature_status": "unsigned",
     "signature_bindings": [],
     "verification_status": "mechanically_verified",
-    "producer_control_boundary": "The same local builder executed the extraction and emitted this unsigned record; independent byte checks can replay closure but cannot authenticate execution or philological truth."
+    "producer_control_boundary": "The same local builder executed extraction and emitted this unsigned record; independent byte checks can replay closure but cannot authenticate execution, the provider OCR process, or textual fidelity."
     },
     "rights_and_visibility": {
     "rights_record_bindings": [rights_binding],
@@ -473,7 +517,7 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     },
     "review_and_authority": {
     "mechanical_validation": "passed",
-    "human_review_status": "blocked",
+    "human_review_status": "not_performed",
     "review_bindings": [],
     "accepted_uses": [],
     "promotion_authorized": false,
@@ -481,8 +525,8 @@ pub(super) fn provenance(v: Provenance<'_>) -> Value {
     },
     "reproducibility": {
     "classification": "replay_ready",
-    "known_gaps": ["The receipt is unsigned and self-recorded by the transformation runner.", "No German-competent human reviewed the extracted content or boundaries.", "The exact source and extracted text are intentionally absent from Git."],
-    "replay_scope": "Exact DTA TEI digest, tracked plan and builder, bounded structural selector, declared lb rule, private output digest, tracked record digests, native executable digest, and fail-closed authority posture."
+    "known_gaps": ["The receipt is unsigned and self-recorded by the transformation runner.", "No human reviewed the embedded text or source-visible line content.", "The provider's embedded-text production history remains unknown.", "The exact source, bbox intermediate, and extracted text are absent from Git."],
+    "replay_scope": "Exact Antonovsky 1911 PDF digest, tracked plan and builder, pinned Poppler version and executable digest, page-region guards, private bbox/text digests, tracked record digests, and fail-closed authority posture."
     },
     "authority_boundary": {
     "validator_role": "mechanics_and_closure_only_not_truth",
@@ -510,7 +554,7 @@ pub(super) fn scope_anchor(
     "anchor_ref": anchor_ids[0],
     "anchor_role": "scope",
     "ordinal": 1,
-    "text_layer_ref": layer_record_ref,
+    "text_layer_ref": plan["outputs"]["text_layer_ref"],
     "text_layer_sha256": content_digest,
     "selector": {
     "type": "text_position",
@@ -519,7 +563,7 @@ pub(super) fn scope_anchor(
     "position_unit": "unicode_code_point",
     "interval": "half_open"
     },
-    "exact_sha256": sha(content),
+    "exact_sha256": content_digest,
     "source_return": {
     "required": true,
     "locator_ref": plan["outputs"]["private_content_ref"]
@@ -541,7 +585,7 @@ pub(super) fn content_anchor(
     "anchor_ref": anchor_id,
     "anchor_role": if kind == "physical_line" { "content" } else { "whitespace" },
     "ordinal": ordinal,
-    "text_layer_ref": layer_record_ref,
+    "text_layer_ref": plan["outputs"]["text_layer_ref"],
     "text_layer_sha256": content_digest,
     "selector": {
     "type": "text_position",
@@ -576,10 +620,11 @@ pub(super) fn unit(unit_id: &Value, anchor_id: &Value, kind: &str) -> Value {
     "source_text_mutated": false,
     "semantic_promotion": false,
     "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
-    "status_reason": "The unit records one exact TEI lb-delimited print line or its line-break code point and retains its proposed source-unit status."
+    "status_reason": "The unit records one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer and retains its proposed source-unit status."
     })
 }
 pub(super) fn method(
+    plan: &Value,
     plan_ref: &str,
     builder_ref: &str,
     event_id: &str,
@@ -588,13 +633,13 @@ pub(super) fn method(
 ) -> Value {
     json!({
     "maker_kind": "software",
-    "agent_ref": "software:tos-zarathustra-source-text-foundation-builder",
-    "method_name": "exact TEI lb-delimited source-layout observation",
+    "agent_ref": "software:tos-zarathustra-target-text-foundation-builder",
+    "method_name": "exact Poppler bbox source-layout observation",
     "method_version": "1",
     "software_refs": [builder_ref],
     "model_ref": null,
     "configuration_ref": plan_ref,
-    "locale": "de",
+    "locale": "ru",
     "unicode_version": unicode_version,
     "unicode_revision": null,
     "tailoring_ref": null,

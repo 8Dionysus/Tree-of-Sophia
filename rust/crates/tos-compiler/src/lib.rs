@@ -1053,6 +1053,7 @@ pub mod research_eternal_return;
 pub mod research_eternal_return_concept;
 pub mod research_execution;
 pub mod source_text_foundation;
+pub mod target_text_foundation;
 pub mod research_morphology_theme;
 pub mod research_paragraph_alignment;
 pub mod research_parallel_lexical;

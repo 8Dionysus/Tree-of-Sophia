@@ -20,18 +20,18 @@ const LEGACY_EVENT: &str = "tos.event.native-extraction.za-i-vorrede-1.dta-part-
 const OPENING: &str = "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224";
 const SELECTOR: &str = "/*[local-name()='TEI']/*[local-name()='text']/*[local-name()='body']/*[local-name()='div'][1]/*[local-name()='div'][1]/*[local-name()='p'][1]";
 const CAP: usize = 4 * 1024 * 1024;
-fn ensure(v: bool, s: &str) -> Result<()> {
+pub(super) fn ensure(v: bool, s: &str) -> Result<()> {
     if v { Ok(()) } else { Err(s.into()) }
 }
-fn sha(raw: &[u8]) -> String {
+pub(super) fn sha(raw: &[u8]) -> String {
     Digest256::of_bytes(raw).to_hex()
 }
-fn s(v: &Value) -> Result<&str> {
+pub(super) fn s(v: &Value) -> Result<&str> {
     v.as_str()
         .filter(|x| !x.is_empty())
         .ok_or("required nonempty string".into())
 }
-fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
+pub(super) fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
     let raw = serde_json::to_vec(v).map_err(|e| e.to_string())?;
     let limits = JsonLimits::new(CAP, 128, 100000, 4300).map_err(|e| e.to_string())?;
     let doc = tos_foundation::parse_json(&raw, JsonMode::PublishedStrict, limits)
@@ -51,7 +51,7 @@ fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
         tos_foundation::emit_python_compact_json(doc.root(), limits).map_err(|e| e.to_string())
     }
 }
-fn load(ctx: &ResearchExecution, r: &str) -> Result<(Vec<u8>, Value)> {
+pub(super) fn load(ctx: &ResearchExecution, r: &str) -> Result<(Vec<u8>, Value)> {
     let mut f = ctx.source_file(r, CAP as u64)?;
     let raw = ctx.read_file(&mut f, CAP as u64)?;
     tos_foundation::parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default())
@@ -60,11 +60,12 @@ fn load(ctx: &ResearchExecution, r: &str) -> Result<(Vec<u8>, Value)> {
     Ok((raw, v))
 }
 #[derive(Default)]
-struct Node {
-    name: String,
-    content: Vec<Part>,
+pub(super) struct Node {
+    pub(super) name: String,
+    pub(super) attrs: BTreeMap<String, String>,
+    pub(super) content: Vec<Part>,
 }
-enum Part {
+pub(super) enum Part {
     Text(String),
     Child(Node),
 }
@@ -76,7 +77,7 @@ impl Node {
             self.content.push(Part::Text(text.into()))
         }
     }
-    fn children(&self, name: &str) -> Vec<&Node> {
+    pub(super) fn children(&self, name: &str) -> Vec<&Node> {
         self.content
             .iter()
             .filter_map(|p| match p {
@@ -87,6 +88,34 @@ impl Node {
     }
 }
 fn xml(ctx: &ResearchExecution, raw: &[u8]) -> Result<Node> {
+    xml_with_doctype(ctx, raw, false)
+}
+pub(super) fn xml_with_doctype(
+    ctx: &ResearchExecution,
+    raw: &[u8],
+    allow_doctype: bool,
+) -> Result<Node> {
+    fn attrs(
+        e: &quick_xml::events::BytesStart<'_>,
+        decoder: quick_xml::encoding::Decoder,
+    ) -> Result<BTreeMap<String, String>> {
+        let mut values = BTreeMap::new();
+        for a in e.attributes() {
+            let a = a.map_err(|e| e.to_string())?;
+            let key = std::str::from_utf8(a.key.as_ref())
+                .map_err(|e| e.to_string())?
+                .to_owned();
+            let value = a
+                .decode_and_unescape_value(decoder)
+                .map_err(|e| e.to_string())?
+                .into_owned();
+            ensure(
+                values.len() < 128 && values.insert(key, value).is_none(),
+                "XML attribute count/duplicate",
+            )?;
+        }
+        Ok(values)
+    }
     ensure(raw.len() <= CAP, "TEI source byte bound")?;
     let text = std::str::from_utf8(raw).map_err(|e| e.to_string())?;
     let mut reader = Reader::from_str(text);
@@ -103,6 +132,7 @@ fn xml(ctx: &ResearchExecution, raw: &[u8]) -> Result<Node> {
                     name: std::str::from_utf8(e.local_name().as_ref())
                         .map_err(|e| e.to_string())?
                         .into(),
+                    attrs: attrs(&e, reader.decoder())?,
                     content: vec![],
                 });
             }
@@ -113,6 +143,7 @@ fn xml(ctx: &ResearchExecution, raw: &[u8]) -> Result<Node> {
                     name: std::str::from_utf8(e.local_name().as_ref())
                         .map_err(|e| e.to_string())?
                         .into(),
+                    attrs: attrs(&e, reader.decoder())?,
                     content: vec![],
                 }));
             }
@@ -122,11 +153,15 @@ fn xml(ctx: &ResearchExecution, raw: &[u8]) -> Result<Node> {
                 stack.last_mut().unwrap().content.push(Part::Child(child));
             }
             Event::Text(e) => {
-                let decoded = e.xml_content(quick_xml::XmlVersion::Explicit1_0).map_err(|e| e.to_string())?;
+                let decoded = e
+                    .xml_content(quick_xml::XmlVersion::Explicit1_0)
+                    .map_err(|e| e.to_string())?;
                 stack.last_mut().unwrap().text(&decoded);
             }
             Event::CData(e) => {
-                let decoded = e.xml_content(quick_xml::XmlVersion::Explicit1_0).map_err(|e| e.to_string())?;
+                let decoded = e
+                    .xml_content(quick_xml::XmlVersion::Explicit1_0)
+                    .map_err(|e| e.to_string())?;
                 stack.last_mut().unwrap().text(&decoded);
             }
             Event::GeneralRef(e) => {
@@ -136,9 +171,15 @@ fn xml(ctx: &ResearchExecution, raw: &[u8]) -> Result<Node> {
                 stack.last_mut().unwrap().text(&value);
             }
             Event::Decl(e) => {
-                ensure(e.xml_version().map_err(|e| e.to_string())? != quick_xml::XmlVersion::Explicit1_1, "source requires XML 1.0")?;
+                ensure(
+                    e.xml_version().map_err(|e| e.to_string())?
+                        != quick_xml::XmlVersion::Explicit1_1,
+                    "source requires XML 1.0",
+                )?;
             }
-            Event::DocType(_) => return Err("bounded DTA source does not allow a DTD".into()),
+            Event::DocType(_) if !allow_doctype => {
+                return Err("bounded DTA source does not allow a DTD".into());
+            }
             Event::Eof => break,
             _ => {}
         }
@@ -279,7 +320,7 @@ fn packet(plan: &Value, content: &[u8], text: &str, method: &Value) -> Result<Va
         plan, layer, content, anchors, units, method,
     ))
 }
-fn schema(ctx: &ResearchExecution, reference: &str, value: &Value) -> Result<()> {
+pub(super) fn schema(ctx: &ResearchExecution, reference: &str, value: &Value) -> Result<()> {
     use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
     let raw = ctx.read(reference)?;
     let uri = format!("https://tree-of-sophia.local/{reference}");
@@ -299,7 +340,12 @@ fn schema(ctx: &ResearchExecution, reference: &str, value: &Value) -> Result<()>
     )?;
     ctx.check()
 }
-fn metadata(ctx: &ResearchExecution, kind: &str, reference: &str, value: &Value) -> Result<()> {
+pub(super) fn metadata(
+    ctx: &ResearchExecution,
+    kind: &str,
+    reference: &str,
+    value: &Value,
+) -> Result<()> {
     use tos_validation::text_metadata_rules::*;
     let raw = encode(value, false)?;
     let limits = TextMetadataLimits {
@@ -323,7 +369,7 @@ fn metadata(ctx: &ResearchExecution, kind: &str, reference: &str, value: &Value)
         &format!("{kind} semantic checks: {:?}", report.issues),
     )
 }
-fn private_boundary(ctx: &ResearchExecution, reference: &str) -> Result<()> {
+pub(super) fn private_boundary(ctx: &ResearchExecution, reference: &str) -> Result<()> {
     use crate::owned_native_child::{CaptureLimits, capture_with_cancel};
     use std::os::fd::AsRawFd;
     ensure(
@@ -357,10 +403,10 @@ fn private_boundary(ctx: &ResearchExecution, reference: &str) -> Result<()> {
     }
     Ok(())
 }
-const LEGACY_LAYER_AUTHORITY: &str = "a source text layer is one immutable, source-returnable representation with explicit derivation, uncertainty, review, competence, rights, and use scope; mechanical validation, model output, normalization, or agreement with another layer does not make it accepted source text, translation evidence, linguistic truth, semantic evidence, graph truth, canon authority, or publication permission";
+pub(super) const LEGACY_LAYER_AUTHORITY: &str = "a source text layer is one immutable, source-returnable representation with explicit derivation, uncertainty, review, competence, rights, and use scope; mechanical validation, model output, normalization, or agreement with another layer does not make it accepted source text, translation evidence, linguistic truth, semantic evidence, graph truth, canon authority, or publication permission";
 const LEGACY_UNIT_REASON: &str = "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.";
 const LEGACY_SEGMENTATION_REASON: &str = "Only the exact TEI lb-delimited layout of one provider-transcription paragraph is observed; no word or sentence boundary is asserted.";
-fn utc_now() -> Result<String> {
+pub(super) fn utc_now() -> Result<String> {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|e| e.to_string())?
@@ -382,7 +428,11 @@ fn utc_now() -> Result<String> {
         t.tm_sec
     ))
 }
-fn fresh_or_matching(ctx: &ResearchExecution, reference: &str, bytes: &[u8]) -> Result<bool> {
+pub(super) fn fresh_or_matching(
+    ctx: &ResearchExecution,
+    reference: &str,
+    bytes: &[u8],
+) -> Result<bool> {
     // Distinguish an absent file from an unsafe/read-failed existing one before writes.
     match std::fs::symlink_metadata(ctx.root().join(reference)) {
         Ok(_) => {
@@ -414,12 +464,14 @@ fn output_entities(
     }
     json!(rows)
 }
-fn validate_event(
+pub(super) fn validate_event(
     ctx: &ResearchExecution,
     plan: &Value,
     plan_ref: &str,
     plan_raw: &[u8],
-    source: &[u8],
+    source_digest: &str,
+    source_len: usize,
+    derivation_prefix: &str,
     rights_raw: &[u8],
     event: &Value,
     entities: &Value,
@@ -439,18 +491,20 @@ fn validate_event(
         .as_array()
         .ok_or("event inputs absent")?;
     ensure(inputs.len() == 2, "foundation event input count")?;
-    for (r, raw) in [
-        (s(&plan["scope"]["source_relative_ref"])?, source),
-        (plan_ref, plan_raw),
+    for (r, digest, len) in [
+        (
+            s(&plan["scope"]["source_relative_ref"])?,
+            source_digest.to_owned(),
+            source_len,
+        ),
+        (plan_ref, sha(plan_raw), plan_raw.len()),
     ] {
         let row = inputs
             .iter()
             .find(|v| v["entity_ref"] == r)
             .ok_or("provenance input absent")?;
         ensure(
-            row["sha256"] == sha(raw)
-                && row["size_bytes"] == raw.len()
-                && row["fixity_verified"] == true,
+            row["sha256"] == digest && row["size_bytes"] == len && row["fixity_verified"] == true,
             "provenance input fixity differs",
         )?;
     }
@@ -486,11 +540,7 @@ fn validate_event(
     )?;
     for (i, (row, entity)) in rows.iter().zip(entities.as_array().unwrap()).enumerate() {
         ensure(
-            row["derivation_id"]
-                == format!(
-                    "tos.derivation.za-i-vorrede-1.source-text-foundation.{}",
-                    i + 1
-                )
+            row["derivation_id"] == format!("{derivation_prefix}.{}", i + 1)
                 && row["input_entity_ref"] == plan["scope"]["source_relative_ref"]
                 && row["output_entity_ref"] == entity["entity_ref"]
                 && row["relation"] == "selection_from"
@@ -599,6 +649,8 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let historical = existing.as_ref().is_some_and(|(_, e)| {
         e["method"]["software_components"][0]["artifact_ref"] == LEGACY_BUILDER
     });
+    let uv = std::char::UNICODE_VERSION;
+    let native_unicode = format!("{}.{}.{}", uv.0, uv.1, uv.2);
     let (builder, unicode_version, made_at) = if historical {
         ensure(
             event_id == LEGACY_EVENT,
@@ -606,7 +658,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         )?;
         (LEGACY_BUILDER, "16.0.0", s(&plan["created_at"])?)
     } else {
-        (BUILDER, "none; exact Unicode scalars", observed.as_str())
+        (BUILDER, native_unicode.as_str(), observed.as_str())
     };
     let method = records::method(opts.plan_ref, builder, &event_id, unicode_version, made_at);
     let anchor = records::anchor(&plan, opts.plan_ref, &sha(&plan_raw), &event_id);
@@ -733,7 +785,9 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         &plan,
         opts.plan_ref,
         &plan_raw,
-        &source,
+        &sha(&source),
+        source.len(),
+        "tos.derivation.za-i-vorrede-1.source-text-foundation",
         &rights_raw,
         &event,
         &entities,
@@ -791,7 +845,9 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
 mod tests {
     use super::*;
     fn wrap(p: &str) -> String {
-        format!("<TEI xmlns=\"urn:tei\"><text><body><div><div><p>{p}</p></div></div></body></text></TEI>")
+        format!(
+            "<TEI xmlns=\"urn:tei\"><text><body><div><div><p>{p}</p></div></div></body></text></TEI>"
+        )
     }
     #[test]
     fn exact_xml_layout_handles_entities_and_rejects_ambiguous_input() {
@@ -799,37 +855,106 @@ mod tests {
         let paragraph = "Ä &amp; &#x1F600;<lb/>\nB<lb/>\nC<lb/>\nD<lb/>\nE<lb/>\nF<lb/>\nG";
         let raw = wrap(paragraph);
         let node = xml(&ctx, raw.as_bytes()).unwrap();
-        assert_eq!(render_paragraph(selected_paragraph(&node).unwrap()).unwrap(), "Ä & 😀\nB\nC\nD\nE\nF\nG");
+        assert_eq!(
+            render_paragraph(selected_paragraph(&node).unwrap()).unwrap(),
+            "Ä & 😀\nB\nC\nD\nE\nF\nG"
+        );
         // This synthetic text is never accepted as the calibrated historical paragraph.
         assert!(extract(&ctx, raw.as_bytes()).is_err());
-        for modified in [paragraph.replace("<lb/>\nB", "<lb/>B"), paragraph.replace("<lb/>", "<hi/>"), paragraph.replace("<lb/>", "<lb>x</lb>")] {
+        for modified in [
+            paragraph.replace("<lb/>\nB", "<lb/>B"),
+            paragraph.replace("<lb/>", "<hi/>"),
+            paragraph.replace("<lb/>", "<lb>x</lb>"),
+        ] {
             let node = xml(&ctx, wrap(&modified).as_bytes()).unwrap();
             assert!(render_paragraph(selected_paragraph(&node).unwrap()).is_err());
         }
         let duplicate = raw.replace("</TEI>", "<text><body/></text></TEI>");
         assert!(selected_paragraph(&xml(&ctx, duplicate.as_bytes()).unwrap()).is_err());
-        assert!(xml(&ctx, format!("<!DOCTYPE TEI [<!ENTITY x 'hidden'>]>{raw}").as_bytes()).is_err());
+        assert!(
+            xml(
+                &ctx,
+                format!("<!DOCTYPE TEI [<!ENTITY x 'hidden'>]>{raw}").as_bytes()
+            )
+            .is_err()
+        );
     }
     #[test]
     fn synthetic_unicode_records_replay_frozen_previous_producer_bytes() {
-        let fixture: Value = serde_json::from_str(include_str!("source_text_foundation/synthetic-parity.json")).unwrap();
+        let fixture: Value =
+            serde_json::from_str(include_str!("source_text_foundation/synthetic-parity.json"))
+                .unwrap();
         let plan = &fixture["plan"];
         let digest = fixture["plan_digest"].as_str().unwrap();
         let text = fixture["text"].as_str().unwrap();
         let content = text.as_bytes();
         let anchor = records::anchor(plan, PLAN, digest, LEGACY_EVENT);
         let anchor_bytes = encode(&anchor, true).unwrap();
-        let layer = records::layer(plan, PLAN, digest, &sha(&anchor_bytes), fixture["rights_digest"].as_str().unwrap(), content, text, LEGACY_EVENT);
-        let method = records::method(PLAN, LEGACY_BUILDER, LEGACY_EVENT, fixture["unicode_version"].as_str().unwrap(), plan["created_at"].as_str().unwrap());
+        let layer = records::layer(
+            plan,
+            PLAN,
+            digest,
+            &sha(&anchor_bytes),
+            fixture["rights_digest"].as_str().unwrap(),
+            content,
+            text,
+            LEGACY_EVENT,
+        );
+        let method = records::method(
+            PLAN,
+            LEGACY_BUILDER,
+            LEGACY_EVENT,
+            fixture["unicode_version"].as_str().unwrap(),
+            plan["created_at"].as_str().unwrap(),
+        );
         let units = packet(plan, content, text, &method).unwrap();
         let ctx = ResearchExecution::new(&std::env::temp_dir(), 30).unwrap();
-        for (kind, key, value) in [("anchor", "anchor_ref", &anchor), ("layer", "text_layer_ref", &layer), ("units", "text_unit_packet_ref", &units)] {
+        for (kind, key, value) in [
+            ("anchor", "anchor_ref", &anchor),
+            ("layer", "text_layer_ref", &layer),
+            ("units", "text_unit_packet_ref", &units),
+        ] {
             metadata(&ctx, kind, plan["outputs"][key].as_str().unwrap(), value).unwrap();
         }
-        for (key, raw) in [("anchor", anchor_bytes), ("layer", encode(&layer, true).unwrap()), ("units", encode(&units, true).unwrap())] {
-            assert_eq!(sha(&raw), fixture["expected_sha256"][key].as_str().unwrap(), "{key}");
+        for (key, raw) in [
+            ("anchor", anchor_bytes),
+            ("layer", encode(&layer, true).unwrap()),
+            ("units", encode(&units, true).unwrap()),
+        ] {
+            assert_eq!(
+                sha(&raw),
+                fixture["expected_sha256"][key].as_str().unwrap(),
+                "{key}"
+            );
         }
         assert_eq!(units["anchors"][0]["selector"]["end"], text.chars().count());
         assert!(text.len() > text.chars().count());
+        let uv = std::char::UNICODE_VERSION;
+        let native = records::method(
+            PLAN,
+            BUILDER,
+            "tos.event.native-source-fixture",
+            &format!("{}.{}.{}", uv.0, uv.1, uv.2),
+            "2026-10-08T00:00:00Z",
+        );
+        let native_packet = packet(plan, content, text, &native).unwrap();
+        let uri =
+            "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json";
+        let probe = tos_validation::SchemaBackendProbe::new(
+            [tos_validation::SchemaResource {
+                uri: uri.into(),
+                raw: include_bytes!(
+                    "../../../../ToS/contracts/source-text-unit-packet-v1.schema.json"
+                )
+                .to_vec(),
+            }],
+            tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        assert!(
+            probe
+                .is_valid_raw(uri, &encode(&native_packet, false).unwrap())
+                .unwrap()
+        );
     }
 }

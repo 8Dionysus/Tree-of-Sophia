@@ -1,16 +1,27 @@
 //! Native explicit-source adapter for the exact DTA source-text foundation.
 use std::{io::Write, path::PathBuf};
+const TARGET_HELP: &str = "tos target-text-foundation --source-root ABS --local-input-root ABS --local-output-root ABS --build|--check [--plan REPO_PATH] [--event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nReplays exact PDF/Poppler bbox/text/address/unit bytes and retained provenance. New native builds require a separate event ID and fresh plan-selected output paths. Build requires admitted scratch bytes; local text and bbox remain Git-ignored and mode0600. Poppler is the declared native extraction backend. No textual or publication admission.\n";
 const HELP: &str = "tos source-text-foundation --source-root ABS --local-input-root ABS --local-output-root ABS --build|--check [--plan REPO_PATH] [--event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nChecks replay exact XML/text/address/unit bytes and retained provenance closure.\nNew builds require a separate event ID and fresh plan-selected output paths. Existing exact outputs may be reused; differing records are never overwritten.\n--build requires admitted remaining scratch bytes. All extracted text stays Git-ignored, mode0600 and local-only; no source or publication admission is granted.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
-    if args.first().map(String::as_str) != Some("source-text-foundation") {
+    let target = args.first().map(String::as_str) == Some("target-text-foundation");
+    if !target && args.first().map(String::as_str) != Some("source-text-foundation") {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
-        return Some(if out.write_all(HELP.as_bytes()).is_ok() {
-            0
-        } else {
-            2
-        });
+        return Some(
+            if out
+                .write_all(if target {
+                    TARGET_HELP.as_bytes()
+                } else {
+                    HELP.as_bytes()
+                })
+                .is_ok()
+            {
+                0
+            } else {
+                2
+            },
+        );
     }
     let result = (|| {
         let mut source = None;
@@ -74,19 +85,23 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             tos_compiler::research_execution::ResearchExecution::new(&root, max_seconds)?
         };
         let argv = serde_json::json!(std::env::args().collect::<Vec<_>>());
-        tos_compiler::source_text_foundation::run(
-            &ctx,
-            tos_compiler::source_text_foundation::Options {
-                plan_ref: plan
-                    .as_deref()
-                    .unwrap_or(tos_compiler::source_text_foundation::PLAN),
-                input_root: &input,
-                output_root: &output,
-                build,
-                event_id: event.as_deref(),
-                argv: &argv,
-            },
-        )
+        let opts = tos_compiler::source_text_foundation::Options {
+            plan_ref: plan.as_deref().unwrap_or(if target {
+                tos_compiler::target_text_foundation::PLAN
+            } else {
+                tos_compiler::source_text_foundation::PLAN
+            }),
+            input_root: &input,
+            output_root: &output,
+            build,
+            event_id: event.as_deref(),
+            argv: &argv,
+        };
+        if target {
+            tos_compiler::target_text_foundation::run(&ctx, opts)
+        } else {
+            tos_compiler::source_text_foundation::run(&ctx, opts)
+        }
     })();
     Some(match result {
         Ok(value) => {
