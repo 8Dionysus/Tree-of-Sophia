@@ -683,6 +683,27 @@ impl ResearchExecution {
         mode: u32,
         exclusive: bool,
     ) -> Result<(), String> {
+        self.write_captured(reference, payload, mode, exclusive, None)
+    }
+    /// Replace a retained journal only if its exact read bytes are still current
+    /// under the same parent lock used by every research writer.
+    pub fn write_replacing_exact(
+        &self,
+        reference: &str,
+        payload: &[u8],
+        mode: u32,
+        expected: &[u8],
+    ) -> Result<(), String> {
+        self.write_captured(reference, payload, mode, false, Some(expected))
+    }
+    fn write_captured(
+        &self,
+        reference: &str,
+        payload: &[u8],
+        mode: u32,
+        exclusive: bool,
+        expected: Option<&[u8]>,
+    ) -> Result<(), String> {
         self.check()?;
         if payload.len() as u64 > FILE_CAP {
             return Err("research output file cap exceeded".into());
@@ -696,6 +717,11 @@ impl ResearchExecution {
         let present = initial.is_some();
         if exclusive && present {
             return Err("research output already exists".into());
+        }
+        if let Some(expected) = expected {
+            if !present || self.read(reference)? != expected {
+                return Err("research journal changed since its captured read".into());
+            }
         }
         let serial = self.serial.get();
         self.serial.set(serial + 1);
@@ -947,6 +973,25 @@ use std::os::unix::ffi::OsStrExt;
 mod tests {
     use super::*;
     use std::{fs, os::unix::fs::symlink};
+    #[test]
+    fn journal_replacement_refuses_a_stale_read_without_losing_history() {
+        let root = tempfile::tempdir().unwrap();
+        let a = ResearchExecution::new_with_scratch(root.path(), 10, 1024 * 1024).unwrap();
+        let b = ResearchExecution::new_with_scratch(root.path(), 10, 1024 * 1024).unwrap();
+        a.write("journal", b"first\n", 0o644, true).unwrap();
+        let captured = a.read("journal").unwrap();
+        b.write_replacing_exact("journal", b"first\nsecond\n", 0o644, &captured)
+            .unwrap();
+        assert!(
+            a.write_replacing_exact("journal", b"first\nlost\n", 0o644, &captured)
+                .is_err()
+        );
+        assert_eq!(a.read("journal").unwrap(), b"first\nsecond\n");
+        assert!(
+            a.write_replacing_exact("absent", b"unexpected", 0o644, b"")
+                .is_err()
+        );
+    }
     #[test]
     fn separate_output_directory_keeps_the_original_operation_ledgers() {
         let source = tempfile::tempdir().unwrap();

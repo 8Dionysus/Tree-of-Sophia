@@ -96,3 +96,6 @@ pub mod source_projection_coverage;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod controlled_reference_health;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod transfer_metadata_command;
