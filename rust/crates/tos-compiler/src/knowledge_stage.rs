@@ -7136,7 +7136,7 @@ mod tests {
             contexts.contexts = 1; contexts.root_sha256 = root.finalize().to_hex();
             crate::knowledge_source_claims::verify_claim_context_groups(&mut stage, &contexts, claim_limits).unwrap();
             let vocabulary = crate::QueryVocabulary::parse(include_bytes!("../tests/fixtures/query-vocabulary.v1.json"), &[
-                "candidate-relation-v1","canon-node-relation-v1","declared-identity-and-source-ref-joins-v1",
+                "indexed-node-edge-v1","candidate-relation-v1","canon-node-relation-v1","declared-identity-and-source-ref-joins-v1",
                 "philosophy-node-edge-v1","reified-bibliographic-claims-v1","repository-topology-v1","source-navigation-node-edge-v1",
             ]).unwrap();
             let before = work.load(Ordering::Acquire);
