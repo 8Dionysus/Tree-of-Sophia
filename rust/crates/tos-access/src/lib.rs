@@ -114,3 +114,5 @@ pub mod transfer_source_visible_command;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod german_triangulation_command;
+
+pub mod bounded_translation_input_command;

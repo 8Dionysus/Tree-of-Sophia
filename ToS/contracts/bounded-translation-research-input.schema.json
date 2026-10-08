@@ -30,7 +30,8 @@
       "const": "tos_bounded_translation_research_input_v1"
     },
     "packet_id": {
-      "const": "tos.bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1"
+      "type": "string",
+      "pattern": "^tos\\.bounded-translation-research-input\\.za-i-vorrede-1-opening-sentence\\.[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$"
     },
     "status": {
       "const": "eligible_for_local_machine_calibration"
@@ -399,7 +400,11 @@
         }
       }
     },
-    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
+    "authority_boundary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."
+    },
     "does_not_establish": {
       "type": "array",
       "prefixItems": [

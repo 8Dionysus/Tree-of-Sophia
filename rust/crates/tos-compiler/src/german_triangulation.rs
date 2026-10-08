@@ -22,7 +22,7 @@ const SCHEMA: &str = "ToS/contracts/german-source-triangulation.schema.json";
 const BUILDER: &str = "rust/crates/tos-compiler/src/german_triangulation.rs";
 const REFERENCE: &str = "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16";
 const CAP: usize = 4 * 1024 * 1024;
-fn tokens(text: &str) -> Result<Vec<String>> {
+pub(crate) fn tokens(text: &str) -> Result<Vec<String>> {
     ensure(text.len() <= CAP, "normalization byte bound")?;
     let normalized = text.nfkc().collect::<String>();
     let folded =
@@ -50,7 +50,7 @@ fn dehyphenate(text: &str) -> String {
         })
         .collect()
 }
-fn ekgwb(ctx: &ResearchExecution, text: &str) -> Result<Vec<Vec<String>>> {
+fn ekgwb(ctx: &ResearchExecution, text: &str) -> Result<Vec<String>> {
     let start = text
         .find("id=\"eKGWB/Za-I-Vorrede-1\"")
         .ok_or("eKGWB target element absent")?;
@@ -79,7 +79,7 @@ fn ekgwb(ctx: &ResearchExecution, text: &str) -> Result<Vec<Vec<String>>> {
                 if capture == Some(depth) {
                     let t = tokens(&current)?;
                     if t.len() > 1 {
-                        paragraphs.push(t);
+                        paragraphs.push(current.clone());
                     }
                     capture = None;
                     current.clear();
@@ -99,7 +99,7 @@ fn first<'a>(node: &'a Node, name: &str) -> Result<&'a Node> {
         .copied()
         .ok_or_else(|| format!("TEI {name} absent"))
 }
-fn dta(ctx: &ResearchExecution, raw: &[u8]) -> Result<(Vec<Vec<String>>, usize)> {
+fn dta(ctx: &ResearchExecution, raw: &[u8]) -> Result<(Vec<String>, usize)> {
     let root = xml_with_doctype(ctx, raw, false)?;
     ensure(
         root.name == "TEI"
@@ -115,9 +115,9 @@ fn dta(ctx: &ResearchExecution, raw: &[u8]) -> Result<(Vec<Vec<String>>, usize)>
     for p in section.children("p") {
         let raw = node_text(p);
         raw_count += tokens(&raw)?.len();
-        let t = tokens(&dehyphenate(&raw))?;
-        if t.len() > 1 {
-            paragraphs.push(t);
+        let text = dehyphenate(&raw);
+        if tokens(&text)?.len() > 1 {
+            paragraphs.push(text);
         }
     }
     ensure(paragraphs.len() == 12, "DTA paragraph count drift")?;
@@ -169,6 +169,63 @@ fn comparison(
     Ok(
         json!({"candidate_tokens":candidate.len(),"equal_reference_tokens":ops.iter().filter(|o| o.tag=="equal").map(|o| o.i2-o.i1).sum::<usize>(),"single_token_replacements":ops.iter().filter(|o| o.tag=="replace" && o.i2-o.i1==1 && o.j2-o.j1==1).count(),"page_furniture_insertions":15,"trailing_next_section_tokens":116,"equal_run_lengths":ops.iter().filter(|o| o.tag=="equal").map(|o| o.i2-o.i1).collect::<Vec<_>>(),"exact_textual_identity":false,"translation_claimed":false}),
     )
+}
+pub(crate) fn with_witnesses<R>(
+    ctx: &ResearchExecution,
+    input_root: &Path,
+    packet: &Value,
+    use_sources: impl FnOnce(&[String], &[String], usize, &[String]) -> Result<R>,
+) -> Result<R> {
+    let local = ctx.select_directory(input_root)?;
+    let mut held = vec![];
+    let mut raw = vec![];
+    for key in ["ekgwb", "dta_tei", "naumann_auto_epub"] {
+        let w = &packet["inputs"][key];
+        let (reference, digest) = if key == "ekgwb" {
+            (
+                s(&w["local_payload_ref"])?.to_string(),
+                s(&w["payload_sha256"])?.to_owned(),
+            )
+        } else {
+            (
+                format!("ToS/source-witnesses/{}", s(&w["payload_relative_path"])?),
+                s(&w["file_sha256"])?.to_owned(),
+            )
+        };
+        private_input_boundary(ctx, &reference)?;
+        let mut file = local.source_file(&reference, 64 * 1024 * 1024)?;
+        let bytes = local.read_file(&mut file, 64 * 1024 * 1024)?;
+        ensure(sha(&bytes) == digest, "local payload fixity drift")?;
+        held.push((file, digest));
+        raw.push(bytes);
+    }
+    ensure(raw[0].len() == 180138, "eKGWB response byte size drift")?;
+    let ep = ekgwb(ctx, std::str::from_utf8(&raw[0]).map_err(|_| "eKGWB UTF8")?)?;
+    let (dp, naive) = dta(ctx, &raw[1])?;
+    let archive = OfficeArchive::open(&raw[2], &mut |n| ctx.tick(n))?;
+    let mut candidate = vec![];
+    for member in packet["results"]["naumann_ocr_comparison"]["epub_members"]
+        .as_array()
+        .ok_or("member references")?
+    {
+        let bytes = archive.read(s(&member["path"])?, &mut |n| ctx.tick(n))?;
+        ensure(
+            sha(&bytes) == s(&member["sha256"])?,
+            "Naumann member digest drift",
+        )?;
+        candidate.extend(body(
+            ctx,
+            std::str::from_utf8(&bytes).map_err(|_| "member UTF8")?,
+        )?);
+    }
+    let result = use_sources(&ep, &dp, naive, &candidate)?;
+    for (file, expected) in &mut held {
+        ensure(
+            local.hash_file(file, 64 * 1024 * 1024)? == *expected,
+            "payload changed during comparison",
+        )?;
+    }
+    Ok(result)
 }
 fn builder_sha() -> String {
     let mut h = tos_foundation::Digest256Hasher::new();
@@ -315,74 +372,34 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         event["method"]["configuration"]["native_builder_ref"] = json!(BUILDER);
     }
     if !matches!(opts.action, Action::ValidateTracked) {
-        let local = ctx.select_directory(
+        with_witnesses(
+            ctx,
             opts.input_root
                 .ok_or("explicit local input root required")?,
+            &packet,
+            |ep, dp, naive, candidate| {
+                let ep = ep.iter().map(|p| tokens(p)).collect::<Result<Vec<_>>>()?;
+                let dp = dp.iter().map(|p| tokens(p)).collect::<Result<Vec<_>>>()?;
+                let reference = ep.iter().flatten().cloned().collect::<Vec<_>>();
+                ensure(
+                    reference.len() == 261 && sha(reference.join(" ").as_bytes()) == REFERENCE,
+                    "eKGWB normalized sequence drift",
+                )?;
+                let target = dp.iter().flatten().cloned().collect::<Vec<_>>();
+                ensure(
+                    dp == ep && target == reference && naive.checked_sub(target.len()) == Some(3),
+                    "DTA source-aware comparison or false-split control drift",
+                )?;
+                let metrics = comparison(ctx, &reference, candidate)?;
+                for (k, v) in metrics.as_object().unwrap() {
+                    ensure(
+                        packet["results"]["naumann_ocr_comparison"][k] == *v,
+                        "Naumann aggregate metric drift",
+                    )?;
+                }
+                Ok(())
+            },
         )?;
-        let mut held = vec![];
-        let mut raw = vec![];
-        for key in ["ekgwb", "dta_tei", "naumann_auto_epub"] {
-            let w = &packet["inputs"][key];
-            let (reference, digest) = if key == "ekgwb" {
-                (
-                    s(&w["local_payload_ref"])?.to_string(),
-                    s(&w["payload_sha256"])?.to_owned(),
-                )
-            } else {
-                (
-                    format!("ToS/source-witnesses/{}", s(&w["payload_relative_path"])?),
-                    s(&w["file_sha256"])?.to_owned(),
-                )
-            };
-            private_input_boundary(ctx, &reference)?;
-            let mut file = local.source_file(&reference, 64 * 1024 * 1024)?;
-            let bytes = local.read_file(&mut file, 64 * 1024 * 1024)?;
-            ensure(sha(&bytes) == digest, "local payload fixity drift")?;
-            held.push((file, digest));
-            raw.push(bytes);
-        }
-        ensure(raw[0].len() == 180138, "eKGWB response byte size drift")?;
-        let ep = ekgwb(ctx, std::str::from_utf8(&raw[0]).map_err(|_| "eKGWB UTF8")?)?;
-        let reference = ep.iter().flatten().cloned().collect::<Vec<_>>();
-        ensure(
-            reference.len() == 261 && sha(reference.join(" ").as_bytes()) == REFERENCE,
-            "eKGWB normalized sequence drift",
-        )?;
-        let (dp, naive) = dta(ctx, &raw[1])?;
-        let target = dp.iter().flatten().cloned().collect::<Vec<_>>();
-        ensure(
-            dp == ep && target == reference && naive.checked_sub(target.len()) == Some(3),
-            "DTA source-aware comparison or false-split control drift",
-        )?;
-        let archive = OfficeArchive::open(&raw[2], &mut |n| ctx.tick(n))?;
-        let mut candidate = vec![];
-        for member in packet["results"]["naumann_ocr_comparison"]["epub_members"]
-            .as_array()
-            .ok_or("member references")?
-        {
-            let bytes = archive.read(s(&member["path"])?, &mut |n| ctx.tick(n))?;
-            ensure(
-                sha(&bytes) == s(&member["sha256"])?,
-                "Naumann member digest drift",
-            )?;
-            candidate.extend(body(
-                ctx,
-                std::str::from_utf8(&bytes).map_err(|_| "member UTF8")?,
-            )?);
-        }
-        let metrics = comparison(ctx, &reference, &candidate)?;
-        for (k, v) in metrics.as_object().unwrap() {
-            ensure(
-                packet["results"]["naumann_ocr_comparison"][k] == *v,
-                "Naumann aggregate metric drift",
-            )?;
-        }
-        for (file, expected) in &mut held {
-            ensure(
-                local.hash_file(file, 64 * 1024 * 1024)? == *expected,
-                "payload changed during comparison",
-            )?;
-        }
     } else {
         ensure(
             opts.input_root.is_none(),
