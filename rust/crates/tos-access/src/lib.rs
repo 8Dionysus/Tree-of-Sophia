@@ -128,3 +128,5 @@ pub mod provenance_event_lab_command;
 pub mod jenseits_label_command;
 
 pub mod nietzsche_transfer_routes_command;
+
+pub mod jenseits_structure_command;

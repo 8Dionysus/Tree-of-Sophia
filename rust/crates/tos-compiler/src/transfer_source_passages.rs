@@ -174,14 +174,17 @@ fn xml_page(node: &Node, number: usize, abbyy: bool, body_y_min: f64) -> Result<
 }
 // The compressed bytes are held by the exact file owner. The XML stream is
 // bounded independently and only requested page trees survive a page boundary.
-fn xml_pages(
+fn xml_pages(ctx: &ResearchExecution,reader:impl Read,abbyy:bool,expected:usize,wanted:&BTreeSet<usize>,body_y_min:f64)->Result<BTreeMap<usize,Value>>{
+ let mut result=BTreeMap::new();visit_xml_pages(ctx,reader,abbyy,expected,wanted,|page,node|{result.insert(page,xml_page(node,page,abbyy,body_y_min)?);Ok(())})?;Ok(result)
+}
+pub(super) fn visit_xml_pages(
     ctx: &ResearchExecution,
     reader: impl Read,
     abbyy: bool,
     expected: usize,
     wanted: &BTreeSet<usize>,
-    body_y_min: f64,
-) -> Result<BTreeMap<usize, Value>> {
+    mut visit: impl FnMut(usize, &Node) -> Result<()>,
+) -> Result<()> {
     use quick_xml::{Reader, Writer, events::Event};
     struct Bounded<'a, R> {
         inner: R,
@@ -215,7 +218,7 @@ fn xml_pages(
     let mut depth = 0usize;
     let mut page_depth = None;
     let mut writer: Option<Writer<Vec<u8>>> = None;
-    let mut result = BTreeMap::new();
+    let mut visited = 0usize;
     let mut namespace = false;
     loop {
         ctx.tick(1)?;
@@ -266,7 +269,8 @@ fn xml_pages(
                     let mut w = Writer::new(Vec::new());
                     w.write_event(event.clone()).map_err(|e| e.to_string())?;
                     let node = xml_with_doctype(ctx, &w.into_inner(), false)?;
-                    result.insert(page, xml_page(&node, page, abbyy, body_y_min)?);
+                    visit(page, &node)?;
+                    visited += 1;
                 }
             }
             Event::DocType(e) => {
@@ -301,8 +305,8 @@ fn xml_pages(
             if page_depth == Some(depth) {
                 if let Some(w) = writer.take() {
                     let node = xml_with_doctype(ctx, &w.into_inner(), false)?;
-                    let value = xml_page(&node, page, abbyy, body_y_min)?;
-                    result.insert(page, value);
+                    visit(page, &node)?;
+                    visited += 1;
                 }
                 page_depth = None;
             }
@@ -310,10 +314,10 @@ fn xml_pages(
         }
     }
     ensure(
-        page == expected && result.len() == wanted.len() && (!abbyy || namespace),
+        page == expected && visited == wanted.len() && (!abbyy || namespace),
         "source XML page closure drift",
     )?;
-    Ok(result)
+    Ok(())
 }
 fn marker(pages: &BTreeMap<usize, Value>, page: usize, unit: &str, layer: &str) -> Result<Value> {
     let p = pages.get(&page).ok_or("source boundary page absent")?;
