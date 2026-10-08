@@ -82,15 +82,6 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
         inputs.push((reference.into(), file, sha(&raw)));
         external.insert(reference.to_string(), raw);
     }
-    let contract = format!("https://tree-of-sophia.local/{}", recipe.contract);
-    let schema = SchemaBackendProbe::new(
-        [SchemaResource {
-            uri: contract.clone(),
-            raw: external[recipe.contract].clone(),
-        }],
-        FormatProfile::AssertedSourceCandidateV1,
-    )
-    .map_err(|e| format!("lab schema: {e:?}"))?;
     let mut files = BTreeMap::new();
     let mut manifest = None;
     for &(reference, raw) in recipe.files {
@@ -145,6 +136,31 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
         row["packet_sha256"] = json!(sha(files.get(reference).ok_or("variant bytes")?));
     }
     files.insert(recipe.manifest.into(), encode(&manifest, true)?);
+    validate_overlay(ctx, &files, external, BUILDER, builder, recipe.contract, recipe.lab)?;
+    Ok(Prepared {
+        files,
+        inputs,
+        manifest: recipe.manifest.into(),
+    })
+}
+pub(crate) fn validate_overlay(
+    ctx: &ResearchExecution,
+    files: &BTreeMap<String, Vec<u8>>,
+    external: BTreeMap<String, Vec<u8>>,
+    builder_ref: &str,
+    builder: &[u8],
+    contract_ref: &str,
+    lab: SourceFoundationLab,
+) -> Result<()> {
+    let contract = format!("https://tree-of-sophia.local/{}", contract_ref);
+    let schema = SchemaBackendProbe::new(
+        [SchemaResource {
+            uri: contract.clone(),
+            raw: files.get(contract_ref).or_else(|| external.get(contract_ref)).ok_or("lab contract absent")?.clone(),
+        }],
+        FormatProfile::AssertedSourceCandidateV1,
+    )
+    .map_err(|e| format!("lab schema: {e:?}"))?;
     let mut generation = tos_foundation::Digest256Hasher::new();
     for (reference, raw) in files.iter().chain(external.iter()) {
         ctx.tick((reference.len() + raw.len()) as u64)?;
@@ -154,11 +170,12 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
     }
     let mut source = Overlay {
         ctx,
-        files: &files,
+        files,
         external,
+        builder_ref,
         builder,
         schema: &schema,
-        contract: recipe.contract,
+        contract: contract_ref,
         read_bytes: 0,
         generation: generation.finalize().to_hex(),
     };
@@ -172,7 +189,7 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
     let report = inspect_source_foundation_lab(
         &mut source,
         limits,
-        recipe.lab,
+        lab,
         &files.keys().cloned().collect::<Vec<_>>(),
     )
     .map_err(|e| format!("synthetic lab closure: {e:?}"))?;
@@ -183,7 +200,7 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
     for request in report.schema_checks {
         ctx.check()?;
         ensure(
-            request.contract == recipe.contract,
+            request.contract == contract_ref,
             "unselected schema request",
         )?;
         let valid = schema
@@ -202,19 +219,16 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
             ensure(valid, "synthetic packet schema invalid")?;
         }
     }
-    Ok(Prepared {
-        files,
-        inputs,
-        manifest: recipe.manifest.into(),
-    })
+    Ok(())
 }
 struct Overlay<'a> {
     ctx: &'a ResearchExecution,
     files: &'a BTreeMap<String, Vec<u8>>,
     external: BTreeMap<String, Vec<u8>>,
-    builder: &'static [u8],
+    builder_ref: &'a str,
+    builder: &'a [u8],
     schema: &'a SchemaBackendProbe,
-    contract: &'static str,
+    contract: &'a str,
     read_bytes: u64,
     generation: String,
 }
@@ -226,7 +240,7 @@ impl LayerFamilySource for Overlay<'_> {
         deadline: Instant,
     ) -> std::result::Result<Option<Vec<u8>>, ItemRefusal> {
         self.checkpoint(deadline)?;
-        let value = if path == BUILDER {
+        let value = if path == self.builder_ref {
             Some(self.builder)
         } else {
             self.files

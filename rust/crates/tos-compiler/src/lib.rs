@@ -1093,3 +1093,5 @@ pub mod antonovsky_collation;
 pub mod synthetic_foundation_labs;
 
 pub mod authored_canon_bridge;
+
+pub mod provenance_event_lab;

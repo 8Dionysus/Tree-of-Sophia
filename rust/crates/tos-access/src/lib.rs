@@ -122,3 +122,5 @@ pub mod antonovsky_collation_command;
 pub mod synthetic_foundation_lab_command;
 
 pub mod authored_canon_bridge_command;
+
+pub mod provenance_event_lab_command;

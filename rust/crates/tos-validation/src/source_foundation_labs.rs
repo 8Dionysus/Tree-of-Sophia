@@ -3350,19 +3350,7 @@ fn inspect_provenance_v2(
                     limits,
                 )?;
             }
-            let expected_command = json!([
-                "python",
-                "scripts/build_provenance_event_v2_lab.py",
-                "--variant",
-                id
-            ]);
-            let command = event.pointer("/method/command_capture/argv");
-            if !python_optional_equal(command, Some(&expected_command))?
-                || !python_equal(
-                    row.get("captured_command").unwrap_or(&Value::Null),
-                    &expected_command,
-                )?
-            {
+            if !crate::provenance_rules::lab_command_matches(&manifest["builder"], event, row, id) {
                 state.issue(
                     event_path,
                     "captured argv differs from the executed laboratory command",
@@ -3623,11 +3611,8 @@ fn inspect_provenance_v2(
             .and_then(Value::as_str);
         let input_file_digest =
             input_ref.and_then(|input| state.member_digests.get(input).map(String::as_str));
-        let input_fixity_drift = input_file_digest.is_some_and(|digest| {
-            Some(digest)
-                != a.pointer("/entities/inputs/0/sha256")
-                    .and_then(Value::as_str)
-        });
+        // Compare the deliberately corrupted binding, not the unchanged event.
+        let input_fixity_drift = input_file_digest.is_some_and(|digest| digest != zero_digest);
         record_direct_control(
             &mut state,
             &mut controls,
@@ -3648,6 +3633,7 @@ fn inspect_provenance_v2(
                 .any(|message| *message == expected))
             };
         let mut mutated = state.clone_value_charged(&a, limits)?;
+        set_json_pointer(&mut mutated, "/method/command_capture", json!({"disclosure":"inline","argv":["synthetic-negative-command"],"argv_sha256":"0".repeat(64),"withholding_reason":null}));
         set_json_pointer(
             &mut mutated,
             "/method/command_capture/argv_sha256",
@@ -3746,6 +3732,7 @@ fn inspect_provenance_v2(
         )?;
 
         let mut mutated = state.clone_value_charged(&a, limits)?;
+        set_json_pointer(&mut mutated, "/reproducibility/classification", json!("replay_ready"));
         set_json_pointer(
             &mut mutated,
             "/method/command_capture/disclosure",

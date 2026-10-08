@@ -16,6 +16,34 @@ pub const CONTRACT: &str = "ToS/contracts/provenance-event-v2.schema.json";
 pub const LAB_MANIFEST: &str =
     "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json";
 
+/// The historical inline Python invocation and native digest-only invocation
+/// are distinct recorded forms. Neither establishes execution truth.
+pub fn lab_command_matches(builder: &Value, event: &Value, row: &Value, id: &str) -> bool {
+    let command = &event["method"]["command_capture"];
+    match builder["ref"].as_str() {
+        Some("scripts/build_provenance_event_v2_lab.py") => {
+            let expected = json!(["python", "scripts/build_provenance_event_v2_lab.py", "--variant", id]);
+            command["argv"] == expected && row["captured_command"] == expected
+        }
+        Some("rust/crates/tos-compiler/src/provenance_event_lab.rs") => {
+            let operation = match id { "A" => "identity-copy", "B" => "unicode-nfc", "C" => "ascii-strict-negative-control", _ => return false };
+            command["disclosure"] == "withheld_digest_only"
+                && command["argv"].is_null() && row["captured_command"].is_null()
+                && command["argv_sha256"].as_str().is_some_and(|d|d.len()==64 && d.bytes().all(|b|b.is_ascii_hexdigit()))
+                && command["argv_sha256"] == row["captured_command_sha256"]
+                && command["withholding_reason"].as_str().is_some_and(|r|!r.is_empty())
+                && event["method"]["procedure"]["name"] == operation
+                && event["responsibility"][0]["evidence_binding"] == *builder
+                && event["method"]["software_components"][0]["artifact_ref"] == builder["ref"]
+                && event["method"]["software_components"][0]["artifact_sha256"] == builder["sha256"]
+                && event["method"]["environment"]["runtime"] == "Rust native executable"
+                && event["method"]["environment"]["backend"] == "rust-unicode-normalization"
+                && event["reproducibility"]["classification"] == "partially_specified"
+        }
+        _ => false,
+    }
+}
+
 /// Reads use a single pinned current namespace, with no ambient checkout or
 /// payload fallback. `recorded_input` resolves the exact original ref+digest
 /// through the owner's current/retained original-path or named archive route;
@@ -344,15 +372,7 @@ impl ProvenanceRules {
             {
                 self.issue(path, "event-terminal-expectation")?;
             }
-            let command = json!([
-                "python",
-                "scripts/build_provenance_event_v2_lab.py",
-                "--variant",
-                id
-            ]);
-            if event["method"]["command_capture"]["argv"] != command
-                || variant["captured_command"] != command
-            {
+            if !lab_command_matches(&manifest["builder"], &event, variant, id) {
                 self.issue(path, "lab-captured-argv")?;
             }
             for (name, group) in [
@@ -507,10 +527,13 @@ impl ProvenanceRules {
                 a.clone()
             };
             match mutation {
-                0 => changed["method"]["command_capture"]["argv_sha256"] = json!(zero),
+                0 => {
+                    changed["method"]["command_capture"] = json!({"disclosure":"inline","argv":["synthetic-negative-command"],"argv_sha256":zero,"withholding_reason":null});
+                },
                 1 => changed["entities"]["outputs"][0]["sha256"] = json!(zero),
                 2 => changed["derivations"][0]["output_entity_ref"] = json!("outside:event-output"),
                 3 => {
+                    changed["reproducibility"]["classification"] = json!("replay_ready");
                     changed["method"]["command_capture"]["disclosure"] =
                         json!("withheld_digest_only");
                     changed["method"]["command_capture"]["argv"] = Value::Null;
