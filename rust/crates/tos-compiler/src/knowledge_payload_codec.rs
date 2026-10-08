@@ -396,8 +396,10 @@ pub(crate) fn with_factored_payload<T>(
 }
 
 /// Reuse a caller-owned normalized tree. Its admission stays live until the
-/// callback returns. The independent physical roundtrip below authenticates
-/// it against `normalized`, so a mismatched tree cannot reach SQL.
+/// callback returns. The same borrowed reference selection drives storage and
+/// exact logical reconstruction; a mismatched tree cannot reach SQL. Validate
+/// the physical envelope's strict grammar without constructing a second serde
+/// tree and resolving the references again.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn with_factored_value_payload<T>(
     state: &CreationState<'_>,
@@ -413,7 +415,6 @@ pub(crate) fn with_factored_value_payload<T>(
     cap(normalized, max_row_bytes)?;
     cap(source, max_row_bytes)?;
     let source_digest = charged_digest(state, source)?;
-    let normalized_digest = charged_digest(state, normalized)?;
     state.with_serde_owned_value_with_limits(source, source_limits, |source_value| {
         if !equal_owned(state, source_payload(logical)?, &source_value, 0)? {
             return Err(Error::Invalid("carrier codec source value differs"));
@@ -427,7 +428,7 @@ pub(crate) fn with_factored_value_payload<T>(
                 n.checked_add(
                     attrs
                         .len()
-                        .checked_mul(std::mem::size_of::<(&str, &Value)>())?,
+                        .checked_mul(2 * std::mem::size_of::<(&str, &Value)>())?,
                 )
             })
             .ok_or(Error::Budget("carrier codec reference slots"))?;
@@ -467,15 +468,20 @@ pub(crate) fn with_factored_value_payload<T>(
         // This preserves insertion order and numeric lexemes without copying
         // and then destroying a second source/normalized tree.
         let mut selected_attributes = Vec::with_capacity(attrs.len());
+        let mut restored_attributes = Vec::with_capacity(attrs.len());
         for (key, value) in attrs {
             let mut selected = value;
-            for (reference, _) in &refs {
+            let mut restored = value;
+            for (reference, pointer) in &refs {
                 if bytes_equal(state, key.as_bytes(), reference.as_bytes())? {
                     selected = &Value::Null;
+                    restored = pointer_owned(state, &source_value, pointer)?
+                        .ok_or(Error::Invalid("carrier codec selected source pointer absent"))?;
                     break;
                 }
             }
             selected_attributes.push((key.as_str(), selected));
+            restored_attributes.push((key.as_str(), restored));
         }
         let spine = BorrowedHydratedSpine {
             spine: logical
@@ -498,18 +504,22 @@ pub(crate) fn with_factored_value_payload<T>(
             spine: &spine,
         };
         state.with_json_encoded(&physical, max_row_bytes, |encoded| {
-            // Exact spelling/order/numbers are still checked before delivery.
-            with_hydrated_payload_from_source(
-                state,
-                encoded,
-                source.len(),
-                source_digest,
-                source_value,
-                stored_limits,
-                max_row_bytes,
-                normalized.len(),
-                normalized_digest,
-                |hydrated| {
+            // Preserve the declared physical grammar/depth/node/string limits
+            // and their visit budget. This tree is only a grammar witness; the
+            // serializer above and reconstruction below share the admitted
+            // spine, reference list and source. No second serde conversion or
+            // SQL source admission belongs to this logical reconstruction.
+            state.with_foundation_owned_with_limits(encoded, stored_limits, |_| Ok(()))?;
+            let rebuilt = BorrowedHydratedSpine {
+                spine: spine.spine,
+                attributes: BorrowedAttributes(&restored_attributes),
+                source_record: BorrowedSourceRecord {
+                    record: spine.source_record.record,
+                    source: &source_value,
+                },
+            };
+            state.with_json_encoded_exact(
+                &rebuilt, normalized.len(), max_row_bytes, |hydrated| {
                     if !bytes_equal(state, hydrated, normalized)? {
                         return Err(Error::Invalid("carrier codec logical bytes changed"));
                     }
