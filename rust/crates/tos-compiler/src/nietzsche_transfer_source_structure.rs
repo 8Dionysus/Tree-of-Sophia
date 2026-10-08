@@ -81,16 +81,16 @@ fn input(reference: &str, role: &str, digest: &str) -> Out {
         ("sha256", q(digest)),
     ])
 }
-struct Witness {
-    manifest: Value,
-    entry: Value,
-    inventory: Value,
-    held: Vec<Held>,
-    payload: Held,
-    profile: String,
+pub(super) struct Witness {
+    pub(super) manifest: Value,
+    pub(super) entry: Value,
+    pub(super) inventory: Value,
+    pub(super) held: Vec<Held>,
+    pub(super) payload: Held,
+    pub(super) profile: String,
 }
 impl Witness {
-    fn open(
+    pub(super) fn open(
         ctx: &ResearchExecution,
         source: &ResearchExecution,
         item: &str,
@@ -209,7 +209,7 @@ impl Witness {
             ),
         ])
     }
-    fn verify(&mut self, ctx: &ResearchExecution, source: &ResearchExecution) -> Result<()> {
+    pub(super) fn verify(&mut self, ctx: &ResearchExecution, source: &ResearchExecution) -> Result<()> {
         for h in &mut self.held {
             h.verify(ctx)?;
         }

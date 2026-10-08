@@ -18,7 +18,7 @@ pub(super) fn f(v:&Value)->Result<f64>{v.as_f64().filter(|f|f.is_finite()).ok_or
 pub(super) fn key(v:&Value)->Result<String>{match v {Value::String(s)=>Ok(s.clone()),Value::Number(_)=>Ok(n(v)?.to_string()),_=>Err("numbered-unit key type".into())}}
 pub(super) fn round(v:f64, digits:usize)->f64{format!("{v:.digits$}").parse().unwrap()}
 // Preserve insertion order and Python float spelling for the historical recipe.
-pub(super) fn encode(ctx:&ResearchExecution,v:&Value,pretty:bool)->Result<Vec<u8>>{
+pub(super) fn encode(ctx:&ResearchExecution,v:&impl serde::Serialize,pretty:bool)->Result<Vec<u8>>{
  let raw=serde_json::to_vec(v).map_err(|e|e.to_string())?;ctx.tick(raw.len() as u64)?;
  let limits=JsonLimits::new(CAP,128,200000,4300).map_err(|e|e.to_string())?;
  let doc=tos_foundation::parse_json(&raw,JsonMode::PublishedStrict,limits).map_err(|e|e.to_string())?;

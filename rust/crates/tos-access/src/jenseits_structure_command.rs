@@ -5,12 +5,23 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
     let command = args.first().map(String::as_str);
     let polilov = command == Some("jenseits-polilov-numbered-structure");
     let mysl = command == Some("mysl-transfer-target-structure");
+    let witness = command == Some("witness-structure-correspondence");
     let nietzsche = command == Some("nietzsche-transfer-source-structure");
-    if command != Some("jenseits-numbered-structure") && !polilov && !mysl && !nietzsche {
+    if command != Some("jenseits-numbered-structure") && !polilov && !mysl && !nietzsche && !witness
+    {
         return None;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
-        let help = if nietzsche {
+        let help = if witness {
+            HELP.replace(
+                "jenseits-numbered-structure",
+                "witness-structure-correspondence",
+            )
+            .replace(
+                "ABBYY numbered-unit map",
+                "DTA and Naumann structural correspondence and anchor set",
+            )
+        } else if nietzsche {
             HELP.replace(
                 "jenseits-numbered-structure",
                 "nietzsche-transfer-source-structure",
@@ -95,7 +106,17 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
             tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?
         };
-        if nietzsche {
+        if witness {
+            tos_compiler::witness_structure_correspondence::run(
+                &ctx,
+                tos_compiler::witness_structure_correspondence::Options {
+                    build,
+                    input_root: Some(&input),
+                    generation,
+                    event_at: at,
+                },
+            )
+        } else if nietzsche {
             tos_compiler::nietzsche_transfer_source_structure::run(
                 &ctx,
                 tos_compiler::nietzsche_transfer_source_structure::Options {

@@ -200,6 +200,7 @@ pub enum Out {
     Bool(bool),
     Integer(u64),
     Signed(i64),
+    Float(f64),
     String(String),
     Array(Vec<Out>),
     Object(Vec<(String, Out)>),
@@ -215,6 +216,7 @@ impl Serialize for Out {
             Self::Bool(value) => serializer.serialize_bool(*value),
             Self::Integer(value) => serializer.serialize_u64(*value),
             Self::Signed(value) => serializer.serialize_i64(*value),
+            Self::Float(value) => serializer.serialize_f64(*value),
             Self::String(value) => serializer.serialize_str(value),
             Self::Array(values) => {
                 let mut seq = serializer.serialize_seq(Some(values.len()))?;
