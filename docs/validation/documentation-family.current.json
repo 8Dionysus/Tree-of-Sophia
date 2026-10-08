@@ -34,9 +34,9 @@
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5622,
+    "excluded_tracked_path_count": 5626,
     "human_scope": {
-      "bytes": 7340755,
+      "bytes": 7341223,
       "count": 1087,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -116,19 +116,19 @@
           "lines": 1037
         },
         "tos": {
-          "bytes": 4997569,
+          "bytes": 4998037,
           "count": 726,
-          "lines": 82427
+          "lines": 82434
         }
       },
-      "lines": 121373
+      "lines": 121380
     },
     "surface_kind_counts": {
-      "executable": 587,
+      "executable": 586,
       "human": 1087,
-      "structured": 4706
+      "structured": 4707
     },
-    "tracked_path_count": 12002,
+    "tracked_path_count": 12006,
     "tracked_surface_count": 6380,
     "unhandled_family_count": 1,
     "unhandled_paths": [
@@ -175,7 +175,7 @@
         "human": 726,
         "structured": 4400
       },
-      "tracked_surface_bytes": 99543272,
+      "tracked_surface_bytes": 99543740,
       "tracked_surface_count": 5159
     },
     {
@@ -194,7 +194,7 @@
         "human": 88,
         "structured": 6
       },
-      "tracked_surface_bytes": 1097710,
+      "tracked_surface_bytes": 1097883,
       "tracked_surface_count": 94
     },
     {
@@ -236,22 +236,22 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 143,
+        "executable": 142,
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 3872385,
-      "tracked_surface_count": 147
+      "tracked_surface_bytes": 3844581,
+      "tracked_surface_count": 146
     },
     {
       "family_id": "rust",
       "surface_kind_counts": {
         "executable": 4,
         "human": 11,
-        "structured": 188
+        "structured": 189
       },
-      "tracked_surface_bytes": 2564363,
-      "tracked_surface_count": 203
+      "tracked_surface_bytes": 2886355,
+      "tracked_surface_count": 204
     },
     {
       "family_id": "tests",
@@ -295,7 +295,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "ba101a8a9904182f059749f80e8a670403938a0938fe0c2e19d16cf6cc599ed8",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "e32063df769d5eaa1326f5035537a5f95ce5d2093d152451b3c549000888f1ec",
+  "tracked_surface_digest": "8408cef274b337bf010b0772b3587a4df96ba0f026e141e0dd501560907cd4a2",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -342,7 +342,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "c4a64fc10e42a9bb5135e8b2013c131b13a4fc34fe2b19ec61c1f646da9aae32",
+      "sha256": "86ce85d082680114fac8be866fa626a94ab9d1155a9335433fced8dd63a85ae3",
       "surface_kind": "structured"
     },
     {
@@ -25162,11 +25162,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 105803,
+      "bytes": 106271,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "f330deb27e58f7cd17213486c0d335a8b7002db7bcbdc1c895451107ea8d0458",
+      "sha256": "6f815705627d31800b94aff8b0953cd1ce346fed2cf1917cc2d68d6bbb3603ba",
       "surface_kind": "human"
     },
     {
@@ -44930,11 +44930,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 283018,
+      "bytes": 283191,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "fc64025be5bad71caf6d563a0641bf5c98c967b57c5c545ba1d904347120a018",
+      "sha256": "c3e1c71c8559ca824c7331fad927eff3af21a802f7353a69c50da8a5335044b8",
       "surface_kind": "structured"
     },
     {
@@ -48714,6 +48714,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 321992,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/tests/fixtures/reading-contracts.v1.json",
+      "sha256": "fc175a74b4816c940ae3e6b76fb466b9a100818c3a362f5ae6cc583b9eb07dac",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 4240,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
@@ -49159,14 +49167,6 @@
       "family_id": "scripts",
       "path": "scripts/build_epistemic_evidence_projection.py",
       "sha256": "4d7e8054b47913c22cc92bef5a7a714d599da8476b25e17956fe693ed43cfca8",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 27804,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_jenseits_numbered_unit_structure.py",
-      "sha256": "c59771a60d546c6c439bb9a2806ddf6e0970218ed0514bb6b089ee1e1a9e9b2c",
       "surface_kind": "executable"
     },
     {

@@ -17,6 +17,23 @@ const MIN_TOKENS: usize = 4;
 const MAX_TOKENS: usize = 32;
 const MIN_OCCURRENCES: usize = 2;
 
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct FormulaSettings {
+    pub min_tokens: usize,
+    pub max_tokens: usize,
+    pub min_occurrences: usize,
+}
+impl Default for FormulaSettings {
+    fn default() -> Self {
+        Self {
+            min_tokens: MIN_TOKENS,
+            max_tokens: MAX_TOKENS,
+            min_occurrences: MIN_OCCURRENCES,
+        }
+    }
+}
+
 #[derive(Clone)]
 struct Context {
     reference: String,
@@ -680,7 +697,22 @@ pub fn build_formulas(
     contexts: &[Value],
     surfaces: &[Value],
 ) -> R<(Vec<Value>, Vec<Value>, Vec<Value>, Value)> {
-    build_formulas_owned(root, contexts, surfaces.iter().map(Surface::from_value))
+    build_formulas_with_settings(root, contexts, surfaces, FormulaSettings::default())
+}
+
+/// The maintained bounded formula profile; defaults preserve the v1 recipe.
+pub fn build_formulas_with_settings(
+    root: &ResearchExecution,
+    contexts: &[Value],
+    surfaces: &[Value],
+    settings: FormulaSettings,
+) -> R<(Vec<Value>, Vec<Value>, Vec<Value>, Value)> {
+    build_formulas_kernel(
+        root,
+        contexts,
+        surfaces.iter().map(Surface::from_value),
+        settings,
+    )
 }
 
 /// Consume the already decoded source rows instead of retaining a second JSON tree.
@@ -689,6 +721,26 @@ pub(super) fn build_formulas_owned(
     contexts: &[Value],
     surfaces: impl IntoIterator<Item = R<Surface>>,
 ) -> R<(Vec<Value>, Vec<Value>, Vec<Value>, Value)> {
+    build_formulas_kernel(root, contexts, surfaces, FormulaSettings::default())
+}
+
+fn build_formulas_kernel(
+    root: &ResearchExecution,
+    contexts: &[Value],
+    surfaces: impl IntoIterator<Item = R<Surface>>,
+    settings: FormulaSettings,
+) -> R<(Vec<Value>, Vec<Value>, Vec<Value>, Value)> {
+    let FormulaSettings {
+        min_tokens,
+        max_tokens,
+        min_occurrences,
+    } = settings;
+    if min_tokens < 4 || max_tokens < min_tokens || max_tokens > 512 {
+        return Err("require 4 <= min_tokens <= max_tokens <= 512".into());
+    }
+    if min_occurrences < 2 {
+        return Err("min_occurrences must be at least 2".into());
+    }
     root.check()?;
     let (streams, context_rows, by_ref, coverage) = validated_streams(root, contexts, surfaces)?;
 
@@ -702,13 +754,13 @@ pub(super) fn build_formulas_owned(
             .get(&first.context_ref)
             .ok_or_else(|| format!("formula context disappeared: {}", first.context_ref))?;
         let language = context_rows[context_index].language.clone();
-        if stream.len() < MIN_TOKENS {
+        if stream.len() < min_tokens {
             continue;
         }
-        for start in 0..=stream.len() - MIN_TOKENS {
+        for start in 0..=stream.len() - min_tokens {
             root.check()?;
-            root.tick(MIN_TOKENS as u64)?;
-            let forms = stream[start..start + MIN_TOKENS]
+            root.tick(min_tokens as u64)?;
+            let forms = stream[start..start + min_tokens]
                 .iter()
                 .map(|token| token.normalized_text.clone())
                 .collect();
@@ -722,13 +774,13 @@ pub(super) fn build_formulas_owned(
     let mut retained: Vec<(String, Vec<String>, Vec<Position>, bool)> = Vec::new();
     let mut candidate_count = 0usize;
     let mut suppressed_count = 0usize;
-    for length in MIN_TOKENS..=MAX_TOKENS {
+    for length in min_tokens..=max_tokens {
         root.check()?;
         let mut next_candidates: BTreeMap<CandidateKey, Vec<Position>> = BTreeMap::new();
         for ((language, forms), positions) in std::mem::take(&mut candidates) {
             root.check()?;
             let independent = independent_count(root, &positions, length)?;
-            if independent < MIN_OCCURRENCES {
+            if independent < min_occurrences {
                 continue;
             }
             candidate_count += 1;
@@ -743,17 +795,17 @@ pub(super) fn build_formulas_owned(
                 )? == independent;
             let right_extension = shared_extension(root, &streams, &positions, length, false)?
                 && independent_count(root, &positions, length + 1)? == independent;
-            if !left_extension && (!right_extension || length == MAX_TOKENS) {
+            if !left_extension && (!right_extension || length == max_tokens) {
                 retained.push((
                     language.clone(),
                     forms.clone(),
                     positions.clone(),
-                    right_extension && length == MAX_TOKENS,
+                    right_extension && length == max_tokens,
                 ));
             } else {
                 suppressed_count += 1;
             }
-            if length == MAX_TOKENS {
+            if length == max_tokens {
                 continue;
             }
             for &(stream_index, start) in &positions {
@@ -997,7 +1049,7 @@ pub(super) fn build_formulas_owned(
         .count();
     let receipt = json!({
         "method": METHOD_VERSION,
-        "settings": { "min_tokens": MIN_TOKENS, "max_tokens": MAX_TOKENS, "min_occurrences": MIN_OCCURRENCES },
+        "settings": { "min_tokens": min_tokens, "max_tokens": max_tokens, "min_occurrences": min_occurrences },
         "coverage": coverage,
         "counts": {
             "repeated_sequences_before_maximal_suppression": candidate_count,
@@ -1032,4 +1084,43 @@ pub(super) fn build_formulas_owned(
     });
     root.check()?;
     Ok((families, memberships, relations, receipt))
+}
+
+#[cfg(test)]
+mod contract_tests {
+    use super::*;
+    #[test]
+    fn retained_formula_profiles_and_boundary_cases() {
+        let fixture: Value = serde_json::from_slice(include_bytes!(
+            "../tests/fixtures/reading-contracts.v1.json"
+        ))
+        .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let root = ResearchExecution::new(dir.path(), 30).unwrap();
+        let mut count = 0;
+        for row in fixture["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row["kind"] == "formulas")
+        {
+            count += 1;
+            let parsed = serde_json::from_value::<FormulaSettings>(row["settings"].clone());
+            let result = parsed.map_err(|e| e.to_string()).and_then(|settings| {
+                build_formulas_with_settings(
+                    &root,
+                    row["contexts"].as_array().unwrap(),
+                    row["surfaces"].as_array().unwrap(),
+                    settings,
+                )
+            });
+            if row["refused"] == true {
+                assert!(result.is_err(), "{}", row["case"]);
+            } else {
+                let (a, b, c, d) = result.unwrap_or_else(|e| panic!("{}: {e}", row["case"]));
+                assert_eq!(json!([a, b, c, d]), row["expected"], "{}", row["case"]);
+            }
+        }
+        assert_eq!(count, 27);
+    }
 }

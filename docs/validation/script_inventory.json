@@ -2405,7 +2405,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_jenseits_numbered_unit_structure.py",
+      "path": "rust/crates/tos-compiler/src/jenseits_numbered_structure.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/numbered-unit-page-map.schema.json",
@@ -2420,12 +2420,12 @@
         "the exact local Naumann 1886 PDF, DjVu XML, and ABBYY XML gzip package plus its tracked resource inventory"
       ],
       "writes": [
-        "the tracked text-free Naumann 1886 numbered-unit page map, proposed whole-page source anchors, and provenance unless --check is used"
+        "An explicitly selected native generation of the text-free page map, proposed anchors and Rust provenance; read-only historical check preserves old files."
       ],
-      "side_effects": "tracked model-reviewed start-page candidates for 299 source units without OCR text or acceptance",
+      "side_effects": "tos jenseits-numbered-structure streams the exact local ABBYY payload, reconstructs 299 proposed historical addresses or creates a separate generation with current fixity, schema and source bindings; no OCR text or admission.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_witness_structure_correspondence.py",
+      "test_target": "rust/crates/tos-compiler/src/jenseits_numbered_structure.rs",
       "disposition": "keep"
     },
     {

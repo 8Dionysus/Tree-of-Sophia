@@ -1673,3 +1673,49 @@ pub fn validate_partition(
         "speaker_status_counts":speaker_status_counts
     }))
 }
+
+#[cfg(test)]
+mod contract_tests {
+    use super::*;
+    #[test]
+    fn retained_nested_voice_and_partition_boundaries() {
+        let fixture: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../tests/fixtures/reading-contracts.v1.json"
+        ))
+        .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let root = crate::research_execution::ResearchExecution::new(dir.path(), 30).unwrap();
+        let mut count = 0;
+        for row in fixture["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row["kind"] != "formulas")
+        {
+            count += 1;
+            let contexts = row["contexts"].as_array().unwrap();
+            let result = if row["kind"] == "discourse" {
+                build_discourse(
+                    &root,
+                    contexts,
+                    row["sentences"].as_array().unwrap(),
+                    &row["policies"],
+                )
+                .map(|(a, b, c)| serde_json::json!([a, b, c]))
+            } else {
+                validate_partition(&root, contexts, row["segments"].as_array().unwrap())
+            };
+            if row["refused"] == true {
+                assert!(result.is_err(), "{}", row["case"]);
+            } else {
+                assert_eq!(
+                    result.unwrap_or_else(|e| panic!("{}: {e}", row["case"])),
+                    row["expected"],
+                    "{}",
+                    row["case"]
+                );
+            }
+        }
+        assert_eq!(count, 14);
+    }
+}

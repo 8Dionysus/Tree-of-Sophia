@@ -1503,6 +1503,13 @@ printed `237.` on PDF page 189, retained locally as `237a`. The result is 299
 monotonic proposed start-page candidates for §§1–296 plus 65a, 73a, and 237a,
 with 299 whole-page proposed source anchors.
 
+`tos jenseits-numbered-structure --source-root ABS --local-input-root ABS --check`
+reconstructs that retained map through the native bounded ABBYY reader. A new
+`--build` requires `--generation NAME --event-at RFC3339 --scratch-bytes BYTES`
+and writes a separate `structure/native-NAME/` map, anchors and Rust provenance.
+The local input root names the corpus root containing `ToS/source-witnesses/`;
+original payloads and the historical generation remain unchanged.
+
 The OCR supplies proposed page starts; exact line boundaries require
 separately resolved anchors.
 The parallel German ↔ Russian map still stops at division granularity and

@@ -1148,3 +1148,62 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     root.check()?;
     Ok(receipt)
 }
+
+#[cfg(test)]
+mod contract_tests {
+    use super::*;
+    #[test]
+    fn crosswalk_uses_exact_stream_offsets_and_keeps_missing_context_gaps() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = ResearchExecution::new(dir.path(), 30).unwrap();
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE exact_occurrences(existing_occurrence_ref TEXT PRIMARY KEY,context_unit_ref TEXT,token_ordinal INTEGER,exact_form TEXT,exact_form_sha256 TEXT,language TEXT,part INTEGER,in_work_scope INTEGER) WITHOUT ROWID;").unwrap();
+        for (reference, context, ordinal, language, scope) in [
+            ("o1", Some("c"), 1, "de", Some(1)),
+            ("o2", Some("c"), 2, "de", Some(1)),
+            ("missing", None, 3, "de", None),
+            ("excluded", Some("c"), 4, "de", Some(0)),
+            ("ru", Some("c"), 5, "ru", Some(1)),
+        ] {
+            db.execute(
+                "INSERT INTO exact_occurrences VALUES(?1,?2,?3,?4,?5,?6,1,?7)",
+                rusqlite::params![
+                    reference,
+                    context,
+                    ordinal,
+                    "word",
+                    sha("word"),
+                    language,
+                    scope
+                ],
+            )
+            .unwrap();
+        }
+        let rows = legacy_occurrences(&root, &db).unwrap();
+        assert_eq!(rows.len(), 3);
+        let (mapped, gaps) = crosswalk(
+            &root,
+            &[json!({"context_unit_ref":"c","exact_text":"A word. Another word."})],
+            &[],
+            &rows,
+        )
+        .unwrap();
+        assert_eq!(
+            mapped
+                .iter()
+                .map(|r| (
+                    r["start_offset"].as_u64().unwrap(),
+                    r["end_offset"].as_u64().unwrap()
+                ))
+                .collect::<Vec<_>>(),
+            [(2, 6), (16, 20)]
+        );
+        assert!(mapped.iter().all(|r| r["surface_unit_ref"].is_null()));
+        assert_eq!(
+            gaps,
+            vec![
+                json!({"kind":"legacy_occurrence_context_unmapped","occurrence_ref":"missing","status":"deferred"})
+            ]
+        );
+    }
+}
