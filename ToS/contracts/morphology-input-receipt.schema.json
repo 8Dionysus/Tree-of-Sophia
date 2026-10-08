@@ -38,7 +38,7 @@
     },
     "plan_ref": {"$ref": "#/$defs/repoPath"},
     "plan_sha256": {"$ref": "#/$defs/digest"},
-    "generator_ref": {"$ref": "#/$defs/repoPath"},
+    "generator_ref": {"oneOf": [{"$ref": "#/$defs/repoPath"}, {"const": "rust/crates/tos-compiler/src/lexical_derivatives.rs"}]},
     "generator_sha256": {"$ref": "#/$defs/digest"},
     "source_database": {
       "type": "object",
