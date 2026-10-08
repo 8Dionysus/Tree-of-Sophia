@@ -2349,3 +2349,17 @@ producer and its source digest; existing different bytes are refused. Repeating
 the same request preserves matching bytes, and the same selection with `--check`
 verifies the new result. Neither mode reads local payloads or admits a
 translation, rights change, or canon judgment.
+
+`tos nietzsche-transfer-source-routes --source-root ABS --check` reconstructs
+both retained hierarchical label maps, target-candidate source routes and
+provenance events for Genealogie and Antichrist. The maps pair 78 and 62
+series-qualified labels respectively, preserving target order. Historical
+checks retain the frozen event wording, timestamp and Python producer
+attribution without asserting another execution. `--build --generation NAME
+--event-at RFC3339 --scratch-bytes RESERVED_BYTES` creates a separate
+`native-NAME` generation under each source-owned alignment directory, with
+new identities and Rust provenance. The same selection with `--check` verifies
+that generation. Existing different output bytes and historical outputs are
+preserved; repeated identical generation is idempotent. Inputs and source
+rights bindings are checked before any output. This route reads structural
+metadata only and keeps candidates ineligible for variant execution.

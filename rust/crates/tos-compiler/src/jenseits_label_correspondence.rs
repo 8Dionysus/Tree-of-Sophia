@@ -216,6 +216,16 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         set(&mut map, "map_version", n(1))?;
         set(&mut map, "supersedes_map_ref", q(MAP_ID))?;
     }
+    if fresh.is_none() {
+        // Frozen v3 wording predates the current producer's prose update.
+        set(
+            &mut map,
+            "authority_boundary",
+            q(
+                "mechanical pairing of identical structural number-label keys already materialized independently in two exact witness maps; no text comparison, exact passage boundary, source-to-target passage alignment, translation correspondence, equivalence or quality, semantics, rights clearance, or canon authority",
+            ),
+        )?;
+    }
     let map_raw = render(&map, true)?;
     let mut event = event_output(&digests, &map_ref, &sha(&map_raw), event_id, event_at)?;
     if fresh.is_some() {
@@ -248,6 +258,16 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         }
         set(&mut event, "event_version", n(1))?;
         set(&mut event, "supersedes_event_ref", Out::Null)?;
+    }
+    if fresh.is_none() {
+        if let Out::Array(warnings) = field(&mut event, "warnings")? {
+            warnings[2] = q(
+                "Shared numbering does not establish exact passage alignment, translation correspondence, equivalence, quality, or semantics.",
+            );
+            warnings[4] = q(
+                "The superseding event refreshes the source rights-basis digest after a layered assessment; it does not rerun payload or text comparison and does not establish rights clearance.",
+            );
+        }
     }
     let event_raw = render(&event, false)?;
     schema(
