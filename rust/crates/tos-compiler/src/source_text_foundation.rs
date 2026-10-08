@@ -303,7 +303,7 @@ fn metadata(ctx: &ResearchExecution, kind: &str, reference: &str, value: &Value)
     use tos_validation::text_metadata_rules::*;
     let raw = encode(value, false)?;
     let limits = TextMetadataLimits {
-        max_packet_bytes: CAP,
+        max_packet_bytes: 2 * 1024 * 1024,
         max_state_bytes: 32 * CAP,
         max_issues: 64,
         deadline: ctx.deadline(),
@@ -822,6 +822,10 @@ mod tests {
         let layer = records::layer(plan, PLAN, digest, &sha(&anchor_bytes), fixture["rights_digest"].as_str().unwrap(), content, text, LEGACY_EVENT);
         let method = records::method(PLAN, LEGACY_BUILDER, LEGACY_EVENT, fixture["unicode_version"].as_str().unwrap(), plan["created_at"].as_str().unwrap());
         let units = packet(plan, content, text, &method).unwrap();
+        let ctx = ResearchExecution::new(&std::env::temp_dir(), 30).unwrap();
+        for (kind, key, value) in [("anchor", "anchor_ref", &anchor), ("layer", "text_layer_ref", &layer), ("units", "text_unit_packet_ref", &units)] {
+            metadata(&ctx, kind, plan["outputs"][key].as_str().unwrap(), value).unwrap();
+        }
         for (key, raw) in [("anchor", anchor_bytes), ("layer", encode(&layer, true).unwrap()), ("units", encode(&units, true).unwrap())] {
             assert_eq!(sha(&raw), fixture["expected_sha256"][key].as_str().unwrap(), "{key}");
         }
