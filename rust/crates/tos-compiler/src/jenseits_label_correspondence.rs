@@ -152,6 +152,21 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
     }
     let digests: [String; 4] = hashes.try_into().map_err(|_| "input count")?;
     let pairs = pairings(&values[0], &values[1])?;
+    // The frozen event records its actual timestamp, which may differ from
+    // the former command's default. Read its declaration without recreating
+    // or asserting that historical execution.
+    let historical_at = if fresh.is_none() {
+        let mut file = ctx.source_file(PROVENANCE_PATH, CAP)?;
+        let event: Value =
+            serde_json::from_slice(&ctx.read_file(&mut file, CAP)?).map_err(|e| e.to_string())?;
+        ensure(
+            s(&event["event_id"])? == EVENT_ID,
+            "historical event identity differs",
+        )?;
+        s(&event["started_at"])?.to_owned()
+    } else {
+        String::new()
+    };
     let (map_ref, provenance_ref, map_id, event_id, event_at) = if let Some(selected) = &fresh {
         ensure(
             selected.directory.starts_with(ALIGNMENT_DIR)
@@ -185,7 +200,7 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
             PROVENANCE_PATH.into(),
             MAP_ID,
             EVENT_ID,
-            "2026-08-02T05:10:00-06:00",
+            historical_at.as_str(),
         )
     };
     let mut map = map_output(
@@ -262,9 +277,15 @@ pub fn run(ctx: &ResearchExecution, build: bool, fresh: Option<Selection<'_>>) -
         if build {
             writes.push(fresh_or_matching(ctx, reference, raw)?);
         } else {
+            let mut file = ctx.source_file(reference, CAP)?;
+            let retained = ctx.read_file(&mut file, CAP)?;
             ensure(
-                ctx.read(reference)? == *raw,
-                "retained numbered-label output differs",
+                retained == *raw,
+                &format!(
+                    "retained numbered-label output differs: {reference}; expected_sha256={}; retained_sha256={}",
+                    sha(raw),
+                    sha(&retained)
+                ),
             )?;
         }
     }
