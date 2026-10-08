@@ -66,7 +66,11 @@ Hydration borrows the verified source subtrees when emitting repeated logical
 fields. It preserves JSON field order and exact numeric/string encoding without
 allocating duplicate value trees. Scoped decoders reserve their complete peak
 before decoding and release decoder-only scratch when decoding returns; the
-value's retained geometry remains charged until its consumer finishes.
+value's retained geometry remains charged until its consumer finishes. Node and
+relation normalizers likewise end their constructor peak before revision and
+codec work. A checked walk tightens the existing bound to the returned value;
+scoped and persistent decoding share this transfer, without a new allowance or
+resetting work, JSON visits, deadline or cancellation.
 
 The previous CarrierOnce V1 ABI retains its raw-byte reader and exact DDL
 check. Older inline ABIs retain their original readers. A V2 frame is not

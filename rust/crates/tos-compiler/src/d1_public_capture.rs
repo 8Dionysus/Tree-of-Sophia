@@ -709,27 +709,8 @@ impl<'budget> CreationState<'budget> {
         raw: &[u8],
         limits: JsonLimits,
     ) -> Result<serde_json::Value> {
-        let document = creation_json_with_limits(self, raw, limits)?;
-        // Admit the maintained typed geometry traversal before it executes;
-        // checked serde reads charge their own later byte pass separately.
-        self.charge_work(
-            raw.len()
-                .checked_mul(2)
-                .ok_or(Error::Budget("owned serde geometry work"))?,
-        )?;
-        let upper =
-            crate::knowledge_normalization::serde_input_workspace_upper(&document, raw.len())?;
-        drop(document);
-        let temporary = crate::knowledge_normalization::serde_input_temporary_upper(raw.len())?;
-        let retained = upper
-            .checked_sub(temporary)
-            .ok_or(Error::Budget("owned serde retained geometry"))?;
-        // Admit the same full decode peak before execution. Only the actual
-        // returned tree survives: decoder scratch/frames end inside decode.
-        self.retain(retained)?;
-        let scratch = self.hold(temporary)?;
-        let value = self.decode_serde_raw(raw)?;
-        drop(scratch);
+        let (value, hold) = self.serde_scoped_with_limits(raw, limits)?;
+        hold.into_persistent()?;
         Ok(value)
     }
     #[track_caller]
@@ -751,12 +732,13 @@ impl<'budget> CreationState<'budget> {
         let retained = upper
             .checked_sub(temporary)
             .ok_or(Error::Budget("owned serde retained geometry"))?;
-        let hold = self.hold(retained)?;
+        let mut hold = self.hold(retained)?;
         let scratch = self.hold(temporary)?;
         let value = self.decode_serde_raw(raw)?;
         // Decoder scratch and recursion frames ended with decode. The returned
         // value retains only its own admitted geometry during later callbacks.
         drop(scratch);
+        hold.finish_value_construction(&value)?;
         Ok((value, hold))
     }
     #[track_caller]
@@ -1355,6 +1337,40 @@ fn creation_source_path(
     Ok(selected
         .map(Path::to_owned)
         .unwrap_or_else(|| root.join(relative)))
+}
+
+impl CreationStateHold<'_, '_> {
+    /// End constructor scratch ownership, retaining only the returned value's
+    /// bounded heap geometry. This can release an admitted peak, never grow it.
+    pub(crate) fn finish_value_construction(&mut self, value: &serde_json::Value) -> Result<()> {
+        let heap = crate::knowledge_normalization::serde_retained_heap_upper_with_check(
+            value, 0, &mut || self.owner.charge_work(1),
+        )?;
+        let upper = std::mem::size_of::<serde_json::Value>().checked_add(heap)
+            .ok_or(Error::Budget("constructed value retained state overflow"))?;
+        // Both are conservative bounds. Opaque Number storage can give the
+        // retained walk a looser bound than the original decoder admission;
+        // retain that already proved peak instead of minting more capacity.
+        let retained = self.admitted.min(upper);
+        let released = self.admitted - retained;
+        let remaining = self.owner.retained.get().checked_sub(released)
+            .ok_or(Error::Budget("constructed value state transfer mismatch"))?;
+        self.owner.active()?;
+        self.owner.retained.set(remaining);
+        self.admitted = retained;
+        Ok(())
+    }
+
+    /// Transfer already admitted state to the capture lifetime without another
+    /// reservation or a transient refund while the returned value stays live.
+    fn into_persistent(mut self) -> Result<()> {
+        let persistent = self.owner.persistent.get().checked_add(self.admitted)
+            .ok_or(Error::Budget("runtime persistent value transfer overflow"))?;
+        self.owner.active()?;
+        self.owner.persistent.set(persistent);
+        self.admitted = 0;
+        Ok(())
+    }
 }
 
 impl Drop for CreationStateHold<'_, '_> {
@@ -7027,5 +7043,91 @@ impl PublicCapture {
                 .ok_or(Error::Budget("public D1 visit rows"))?;
         }
         Ok(count)
+    }
+}
+
+
+#[cfg(test)]
+mod construction_phase_tests {
+    use super::*;
+    use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
+    use std::{sync::atomic::Ordering, time::Duration};
+
+    #[test]
+    fn construction_peak_transfers_only_live_value_state() {
+        const CHILD: &str = "TOS_CONSTRUCTION_PHASE_TEST_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            // The real dedicated initializer owns process-global SQLite state.
+            // Isolate it so this test does not change the rest of the suite.
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "d1_public_capture::construction_phase_tests::construction_peak_transfers_only_live_value_state", "--nocapture"])
+                .env(CHILD, "1").output().unwrap();
+            assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            return;
+        }
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let remaining = |bytes: usize| (4 * 1024 * 1024usize).checked_sub(bytes)
+            .ok_or(Error::Budget("test original state"));
+        let heap = sqlite_budget::DedicatedSessionSqliteHeap::establish(
+            1024 * 1024, &remaining, deadline, &cancelled,
+        ).unwrap();
+        let work = Arc::new(AtomicU64::new(0));
+        let vm = Arc::new(AtomicU64::new(0));
+        let budget = RuntimeKnowledgeOwnedBudget {
+            remaining_after_retained: &remaining, original_work: &work,
+            original_work_limit: 1_000_000, original_sql_vm: &vm,
+            original_sql_vm_limit: 1_000_000, original_sqlite_heap: &heap,
+            remaining_json_visits: 10_000, owner_deadline: deadline,
+            operation_deadline: deadline, cancelled: &cancelled,
+        };
+        let state = CreationState::from_runtime_owned_budget(&budget).unwrap();
+        let baseline = state.retained.get();
+        let mut peak = state.hold(2 * 1024 * 1024).unwrap();
+        let mut text = String::with_capacity(96 * 1024);
+        text.push_str(&"x".repeat(64 * 1024));
+        let value = serde_json::Value::String(text);
+        assert!(state.hold(3 * 1024 * 1024).is_err());
+        peak.finish_value_construction(&value).unwrap();
+        assert_eq!(peak.admitted, std::mem::size_of::<serde_json::Value>() + 96 * 1024);
+        assert_eq!(state.retained.get(), baseline + peak.admitted);
+        assert!(work.load(Ordering::Acquire) > 0);
+        drop(state.hold(3 * 1024 * 1024).unwrap());
+        drop(value); drop(peak);
+        assert_eq!(state.retained.get(), baseline);
+
+        let raw = br#"{"z":["\u0416",1.2300],"a":{"b":true}}"#;
+        let limits = JsonLimits::new(8192, 96, 10_000, 4096).unwrap();
+        let (decoded, hold) = state.serde_scoped_with_limits(raw, limits).unwrap();
+        assert_eq!(decoded["z"][0].as_str(), Some("Ж"));
+        assert_eq!(decoded["z"][1].as_number().unwrap().as_str(), "1.2300");
+        assert_eq!(decoded.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["z", "a"]);
+        assert_eq!(state.retained.get(), baseline + hold.admitted);
+        drop(decoded); drop(hold);
+        assert_eq!(state.retained.get(), baseline);
+        // A conservative Number upper bound must not introduce a new refusal.
+        let large_number = "9".repeat(256);
+        let (number, number_hold) = state.serde_scoped_with_limits(large_number.as_bytes(), limits).unwrap();
+        assert_eq!(number.as_number().unwrap().as_str(), large_number);
+        drop(number); drop(number_hold);
+        assert_eq!(state.retained.get(), baseline);
+        let persistent = state.serde_owned_with_limits(raw, limits).unwrap();
+        assert!(state.persistent.get() > 0);
+        assert_eq!(state.retained.get(), baseline + state.persistent.get());
+        drop(persistent);
+        state.transfer_persistent_to_capture().unwrap();
+        assert_eq!(state.retained.get(), baseline);
+
+        let mut interrupted = state.hold(1024).unwrap();
+        let before = state.retained.get();
+        cancelled.store(true, Ordering::Release);
+        assert!(interrupted.finish_value_construction(&serde_json::Value::Null).is_err());
+        assert_eq!(state.retained.get(), before);
+        cancelled.store(false, Ordering::Release);
+        work.store(budget.original_work_limit, Ordering::Release);
+        assert!(interrupted.finish_value_construction(&serde_json::Value::Null).is_err());
+        assert_eq!(state.retained.get(), before);
+        drop(interrupted);
+        assert_eq!(state.retained.get(), baseline);
     }
 }

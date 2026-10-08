@@ -242,6 +242,17 @@ pub(crate) fn serde_text_workspace_upper(units: usize) -> Result<usize> {
 
 /// Retained serde storage, using the same pinned container geometry as decode.
 pub(crate) fn serde_retained_heap_upper(value: &serde_json::Value, depth: usize) -> Result<usize> {
+    serde_retained_heap_upper_with_check(value, depth, &mut || Ok(()))
+}
+
+/// The constructor still owns its admitted peak while this bounded walk
+/// measures the returned tree. Original work and cutoff are checked per visit.
+pub(crate) fn serde_retained_heap_upper_with_check(
+    value: &serde_json::Value,
+    depth: usize,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<usize> {
+    check()?;
     fn add(total: &mut usize, amount: usize) -> Result<()> {
         *total = total
             .checked_add(amount)
@@ -264,15 +275,16 @@ pub(crate) fn serde_retained_heap_upper(value: &serde_json::Value, depth: usize)
                 .checked_mul(std::mem::size_of::<serde_json::Value>())
                 .ok_or(Error::Budget("serde retained array"))?;
             for row in rows {
-                add(&mut bytes, serde_retained_heap_upper(row, depth + 1)?)?;
+                add(&mut bytes, serde_retained_heap_upper_with_check(row, depth + 1, check)?)?;
             }
         }
         serde_json::Value::Object(fields) => {
             // Same pinned container geometry as original decode owner.
             bytes = serde_object_slots_upper(fields.len())?;
             for (key, item) in fields {
+                check()?;
                 add(&mut bytes, key.capacity())?;
-                add(&mut bytes, serde_retained_heap_upper(item, depth + 1)?)?;
+                add(&mut bytes, serde_retained_heap_upper_with_check(item, depth + 1, check)?)?;
             }
         }
     }

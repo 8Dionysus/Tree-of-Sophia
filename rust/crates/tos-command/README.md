@@ -237,4 +237,8 @@ Cold V2 restore partitions its original state between fixed receipt/decoder
 state, the SQLite spill and one bounded tree stream. The stream admits its live
 stack and each node decoder before allocation; cumulative traversal ceilings
 remain separate. The restored target is selected only after full physical and
-historical closure succeeds.
+historical closure succeeds. Copy holds the source lock and checks each file's
+identity and bytes for changes. The complete authenticated walk runs on the new
+copy, including packed frames, history, identities, membership and dependencies;
+no source-side verification result is reused as proof for the target. A corrupt
+copy may occupy its bounded reserved space but receives no current selector.

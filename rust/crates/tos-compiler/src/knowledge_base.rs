@@ -990,9 +990,10 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         let state = self
             .owner_state
             .ok_or(Error::Invalid("owned node normalizer state absent"))?;
-        let output_hold =
+        let mut output_hold =
             self.owned_node_output_hold(source, source_graph, canonical, overrides, state)?;
         let value = self.normalize_node_unstamped(source, source_graph, canonical, overrides)?;
+        output_hold.finish_value_construction(&value)?;
         let result = crate::knowledge_normalization::with_content_revision_owned(
             state,
             value,
@@ -1488,7 +1489,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         let state = self
             .owner_state
             .ok_or(Error::Invalid("owned relation state absent"))?;
-        let output_hold = self.owned_relation_output_hold(
+        let mut output_hold = self.owned_relation_output_hold(
             source,
             source_graph,
             identity,
@@ -1505,6 +1506,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             right_title,
             default_authority,
         )?;
+        output_hold.finish_value_construction(&value)?;
         let result = crate::knowledge_normalization::with_content_revision_owned(
             state,
             value,

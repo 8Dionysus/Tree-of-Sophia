@@ -1623,18 +1623,12 @@ pub struct V2ImageOutcome {
 }
 
 struct V2ImageColdSpillPlan {
-    source: Option<V2SeenPackSpillRequest>,
     target: Option<V2SeenPackSpillRequest>,
-    source_limits: V2SeenPackSpillLimits,
     target_limits: V2SeenPackSpillLimits,
     stream_state_bytes: usize,
 }
 
 impl V2ImageColdSpillPlan {
-    fn take_source(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits, usize)> {
-        Some((self.source.take()?, self.source_limits, self.stream_state_bytes))
-    }
-
     fn take_target(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits, usize)> {
         Some((self.target.take()?, self.target_limits, self.stream_state_bytes))
     }
@@ -1664,8 +1658,9 @@ pub fn transfer_image(
 }
 
 /// Cold closure route with separate caller-held auxiliary scratch and
-/// independent source/target SQLite requests. Each request is consumed only
-/// by its corresponding physical-store verification.
+/// the existing paired request contract. Both requests are validated; source
+/// scratch is released before copying. The fresh target owns the complete
+/// authenticated proof before its selector can be installed.
 pub fn transfer_image_with_cold_spill(
     source_path: &Path,
     fresh_target: &Path,
@@ -1681,11 +1676,12 @@ pub fn transfer_image_with_cold_spill(
     // share the original aggregate envelope: this keeps their combined usage
     // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
-    let (limits, source_limits, target_limits, stream_state_bytes) = limits.validate_cold_spill(&requests)?;
+    let (limits, _source_limits, target_limits, stream_state_bytes) = limits.validate_cold_spill(&requests)?;
+    // The legacy paired request remains checked against the original grants.
+    // Copy owns no SQLite state; only the fresh target needs a closure spill.
+    drop(requests.source);
     let plan = V2ImageColdSpillPlan {
-        source: Some(requests.source),
         target: Some(requests.target),
-        source_limits,
         target_limits,
         stream_state_bytes,
     };
@@ -1722,15 +1718,16 @@ pub(crate) fn transfer_image_with_cold_spill_at(
     // share the original aggregate envelope: this keeps their combined usage
     // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
-    let (limits, source_limits, target_limits, stream_state_bytes) = limits.validate_cold_spill(&requests)?;
+    let (limits, _source_limits, target_limits, stream_state_bytes) = limits.validate_cold_spill(&requests)?;
+    // The legacy paired request remains checked against the original grants.
+    // Copy owns no SQLite state; only the fresh target needs a closure spill.
+    drop(requests.source);
     let target_root =
         open_selected_target(target, Some(expected_target_identity), io, deadline, cancel)?;
     let target_store_identity = identity(&target_root)?;
     drop(target_root);
     let plan = V2ImageColdSpillPlan {
-        source: Some(requests.source),
         target: Some(requests.target),
-        source_limits,
         target_limits,
         stream_state_bytes,
     };
@@ -1831,17 +1828,19 @@ fn transfer_image_inner(
         let closure_binding = selection
             .rootset_sha256
             .ok_or_else(|| invalid("V2 image closure selector digest absent"))?;
-        verify_closure(
-            &source,
-            &roots,
-            limits,
-            io,
-            &mut work,
-            closure_binding,
-            cold.as_mut().and_then(V2ImageColdSpillPlan::take_source),
-            deadline,
-            cancel,
-        )?;
+        // Cold restore copies under the held source lock and per-file stamps,
+        // then proves the complete history and physical closure on the fresh
+        // target. Repeating that full proof on the source spends the same
+        // finite work twice without strengthening the restored image. The
+        // copied target stays unselected until its independent proof succeeds.
+        // Compatibility retains its established pre-copy validation route.
+        source.verify_layout()?;
+        if cold.is_none() {
+            verify_closure(
+                &source, &roots, limits, io, &mut work, closure_binding,
+                None, deadline, cancel,
+            )?;
+        }
         let (root, _, _) = source.backup_namespaces()?;
         let mut block = [0; BLOCK_BYTES];
         copy_directory(
