@@ -6720,7 +6720,7 @@ mod tests {
             for order in 0..2 {
                 let id = format!("node.{order}");
                 let logical = serde_json::to_vec(&serde_json::json!({
-                    "id": id, "attributes": {},
+                    "id": id, "source_graph": "fixture.graph", "attributes": {},
                     "metadata": "normalized words ".repeat(400),
                     "source_record": {"payload": source_value, "field_map": {}}
                 })).unwrap();
