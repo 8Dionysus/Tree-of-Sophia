@@ -136,7 +136,15 @@ fn prepare(ctx: &ResearchExecution, name: &str) -> Result<Prepared> {
         row["packet_sha256"] = json!(sha(files.get(reference).ok_or("variant bytes")?));
     }
     files.insert(recipe.manifest.into(), encode(&manifest, true)?);
-    validate_overlay(ctx, &files, external, BUILDER, builder, recipe.contract, recipe.lab)?;
+    validate_overlay(
+        ctx,
+        &files,
+        external,
+        BUILDER,
+        builder,
+        recipe.contract,
+        recipe.lab,
+    )?;
     Ok(Prepared {
         files,
         inputs,
@@ -156,7 +164,11 @@ pub(crate) fn validate_overlay(
     let schema = SchemaBackendProbe::new(
         [SchemaResource {
             uri: contract.clone(),
-            raw: files.get(contract_ref).or_else(|| external.get(contract_ref)).ok_or("lab contract absent")?.clone(),
+            raw: files
+                .get(contract_ref)
+                .or_else(|| external.get(contract_ref))
+                .ok_or("lab contract absent")?
+                .clone(),
         }],
         FormatProfile::AssertedSourceCandidateV1,
     )
@@ -266,9 +278,29 @@ impl LayerFamilySource for Overlay<'_> {
         max: usize,
         deadline: Instant,
     ) -> std::result::Result<Option<Vec<u8>>, ItemRefusal> {
-        Ok(self
+        if let Some(raw) = self
             .current(path, max, deadline)?
-            .filter(|raw| sha(raw) == digest))
+            .filter(|raw| sha(raw) == digest)
+        {
+            return Ok(Some(raw));
+        }
+        // Only explicitly selected archive bytes can establish an old binding.
+        // Current schema validation continues to use the current contract.
+        if path == self.contract
+            && digest.len() == 64
+            && digest.bytes().all(|b| b.is_ascii_hexdigit())
+        {
+            let archive = format!("ToS/contracts/history/{digest}.json");
+            return Ok(self.current(&archive, max, deadline)?.filter(|raw| {
+                sha(raw) == digest
+                    && serde_json::from_slice::<Value>(raw)
+                        .ok()
+                        .is_some_and(|schema| {
+                            schema["$id"] == format!("https://tree-of-sophia.local/{path}")
+                        })
+            }));
+        }
+        Ok(None)
     }
     fn schema(
         &mut self,

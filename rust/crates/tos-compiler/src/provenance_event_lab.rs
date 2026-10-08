@@ -319,12 +319,29 @@ pub fn finalize(ctx: &ResearchExecution, build: bool) -> Result<Value> {
                 sha(builder) == digest,
                 "retained historical builder fixity differs",
             )?;
+            let contract_digest = s(&existing["contract"]["sha256"])?;
+            ensure(
+                existing["contract"]["ref"] == CONTRACT
+                    && contract_digest.len() == 64
+                    && contract_digest.bytes().all(|b| b.is_ascii_hexdigit()),
+                "historical contract binding shape",
+            )?;
+            if sha(&selected.files[CONTRACT]) != contract_digest {
+                let archived_contract = format!("ToS/contracts/history/{contract_digest}.json");
+                selected.read(ctx, &archived_contract)?;
+                ensure(
+                    sha(&selected.files[&archived_contract]) == contract_digest
+                        && selected.json(&archived_contract)?["$id"]
+                            == format!("https://tree-of-sophia.local/{CONTRACT}"),
+                    "retained historical contract fixity or identity differs",
+                )?;
+            }
             crate::synthetic_foundation_labs::validate_overlay(
                 ctx,
                 &selected.files,
                 BTreeMap::new(),
                 HISTORICAL_BUILDER,
-                builder,
+                &selected.files[&archive],
                 CONTRACT,
                 tos_validation::source_foundation_labs::SourceFoundationLab::ProvenanceV2,
             )?;
