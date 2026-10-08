@@ -3,6 +3,7 @@ use super::*;
 pub(super) fn anchor(plan: &Value, plan_ref: &str, plan_digest: &str, event_id: &str) -> Value {
     let scope = &plan["scope"];
     let ids = &plan["opaque_ids"];
+    let region = &plan["selector"]["region_points"];
     json!({
     "$schema": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
     "schema_version": "tos_source_anchor_v2",
@@ -76,6 +77,7 @@ pub(super) fn layer(
     let scope = &plan["scope"];
     let ids = &plan["opaque_ids"];
     let content_digest = sha(content);
+    let visual = &plan["visual_check"];
     json!({
     "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json",
     "schema_version": "tos_source_text_layer_v1",
