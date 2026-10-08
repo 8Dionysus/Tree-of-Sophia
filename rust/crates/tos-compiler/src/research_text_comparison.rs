@@ -61,6 +61,15 @@ pub(crate) struct Opcode {
 /// SequenceMatcher with no junk and autojunk disabled: longest contiguous block,
 /// earliest left then right tie break, recursively matched gaps, adjacent merge.
 pub(crate) fn opcodes<T: Ord>(ctx: &ResearchExecution, a: &[T], b: &[T]) -> Result<Vec<Opcode>> {
+    opcodes_with_autojunk(ctx, a, b, false)
+}
+/// Exact SequenceMatcher default popularity handling for character edit receipts.
+pub(crate) fn opcodes_with_autojunk<T: Ord>(
+    ctx: &ResearchExecution,
+    a: &[T],
+    b: &[T],
+    autojunk: bool,
+) -> Result<Vec<Opcode>> {
     ensure(
         a.len() <= 20000 && b.len() <= 20000,
         "comparison token bound",
@@ -68,6 +77,11 @@ pub(crate) fn opcodes<T: Ord>(ctx: &ResearchExecution, a: &[T], b: &[T]) -> Resu
     let mut index = BTreeMap::<&T, Vec<usize>>::new();
     for (j, t) in b.iter().enumerate() {
         index.entry(t).or_default().push(j)
+    }
+    if autojunk && b.len() >= 200 {
+        ctx.tick(b.len() as u64)?;
+        let threshold = b.len() / 100 + 1;
+        index.retain(|_, positions| positions.len() <= threshold);
     }
     let mut queue = vec![(0, a.len(), 0, b.len())];
     let mut matches = vec![];
@@ -100,6 +114,18 @@ pub(crate) fn opcodes<T: Ord>(ctx: &ResearchExecution, a: &[T], b: &[T]) -> Resu
                 }
             }
             previous = next;
+        }
+        // No junk predicate is selected. Popular tokens cannot start a match,
+        // but extend its exact boundaries, including the empty leading match.
+        while bi > alo && bj > blo && a[bi - 1] == b[bj - 1] {
+            ctx.tick(1)?;
+            bi -= 1;
+            bj -= 1;
+            size += 1;
+        }
+        while bi + size < ahi && bj + size < bhi && a[bi + size] == b[bj + size] {
+            ctx.tick(1)?;
+            size += 1;
         }
         if size > 0 {
             matches.push((bi, bj, size));
@@ -187,6 +213,25 @@ pub(crate) fn token_diff(ctx: &ResearchExecution, a: &[String], b: &[String]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn character_receipt_autojunk_oracle() {
+        let temp = tempfile::tempdir().unwrap();
+        let ctx = ResearchExecution::new(temp.path(), 30).unwrap();
+        let rows: Value = serde_json::from_str(include_str!(
+            "authored_canon_bridge/sequence-matcher-autojunk-cases.json"
+        ))
+        .unwrap();
+        for row in rows.as_array().unwrap() {
+            let a = row["a"].as_str().unwrap().chars().collect::<Vec<_>>();
+            let b = row["b"].as_str().unwrap().chars().collect::<Vec<_>>();
+            let actual = opcodes_with_autojunk(&ctx, &a, &b, true)
+                .unwrap()
+                .iter()
+                .map(|op| json!([op.tag, op.i1, op.i2, op.j1, op.j2]))
+                .collect::<Vec<_>>();
+            assert_eq!(json!(actual), row["opcodes"]);
+        }
+    }
     #[test]
     fn exact_sequence_matcher_oracle() {
         let t = tempfile::tempdir().unwrap();

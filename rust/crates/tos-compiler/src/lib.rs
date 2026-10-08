@@ -1091,3 +1091,5 @@ pub mod bounded_translation_input;
 pub mod antonovsky_collation;
 
 pub mod synthetic_foundation_labs;
+
+pub mod authored_canon_bridge;
