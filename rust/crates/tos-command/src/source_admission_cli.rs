@@ -103,6 +103,34 @@ pub(crate) struct PublicationCommittedRefusal {
     cause: io::Error,
 }
 
+#[derive(serde::Serialize)]
+struct CommittedCausePacket {
+    schema_version: &'static str,
+    publication_state: &'static str,
+    revision: String,
+    cause_sha256: [Option<String>; 8],
+    causes_truncated: bool,
+}
+
+impl PublicationCommittedRefusal {
+    fn cause_packet(&self) -> CommittedCausePacket {
+        let mut cause_sha256 = std::array::from_fn(|_| None);
+        let mut cause: Option<&dyn std::error::Error> = Some(&self.cause);
+        for slot in &mut cause_sha256 {
+            let Some(error) = cause else { break };
+            *slot = crate::source_foundation_admission::bounded_error_sha256(error);
+            cause = error.source();
+        }
+        CommittedCausePacket {
+            schema_version: "tos_native_committed_admission_refusal_v1",
+            publication_state: "committed",
+            revision: self.revision.to_hex(),
+            cause_sha256,
+            causes_truncated: cause.is_some(),
+        }
+    }
+}
+
 impl fmt::Debug for PublicationCommittedRefusal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("PublicationCommittedRefusal")
@@ -734,7 +762,12 @@ fn run_with_cancel_owner(
                     detail
                 ),
             };
-            let _ = printed.and_then(|_| output.flush());
+            // Use the same finite writer after public committed context. Keep
+            // the actual cause identifiable without exporting private text.
+            let _ = printed
+                .and_then(|_| serde_json::to_writer(&mut output, &committed.cause_packet()).map_err(io::Error::other))
+                .and_then(|_| writeln!(output))
+                .and_then(|_| output.flush());
         } else if let Some(refusal) = error.get_ref()
             .and_then(|cause| cause.downcast_ref::<NativeSpoolRefusal>().or_else(|| cause.downcast_ref::<RetainedNativeSpoolRefusal>().map(|owner| &owner.refusal)))
         {
@@ -2535,6 +2568,31 @@ fn spooled_receipt(publication: &SpooledPublicationReceipt) -> serde_json::Value
 #[cfg(test)]
 mod validation_profile_forwarding_tests {
     use super::*;
+
+    #[test]
+    fn committed_refusal_retains_private_cause_fingerprint() {
+        let private = "private source path /private/example and private diagnostic";
+        let refusal = PublicationCommittedRefusal {
+            phase: "publication committed; selected V2 read/restore case refused",
+            revision: Digest256::of_bytes(b"committed revision"),
+            manifest_sha256: None,
+            source_artifact: None,
+            rootset_sha256: None,
+            history_proof_rootset_sha256: None,
+            batch_sha256: Digest256::of_bytes(b"batch"),
+            validator_sha256: Digest256::of_bytes(b"validator"),
+            _custody: None,
+            cause: io::Error::other(private),
+        };
+        let packet = refusal.cause_packet();
+        assert_eq!(packet.publication_state, "committed");
+        assert_eq!(packet.revision, refusal.revision.to_hex());
+        assert_eq!(packet.cause_sha256[0], Some(Digest256::of_bytes(private.as_bytes()).to_hex()));
+        assert!(!packet.causes_truncated);
+        let wire = serde_json::to_string(&packet).unwrap();
+        assert!(!wire.contains("private"));
+        assert!(wire.len() < 2048);
+    }
 
     fn identity_args(extra: &[&str]) -> Vec<OsString> {
         [

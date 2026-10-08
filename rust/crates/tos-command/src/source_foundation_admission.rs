@@ -191,7 +191,7 @@ impl From<NativeInvocationIoSnapshot> for NativeSpoolIoPacket {
 }
 // Correlate an opaque IO cause without exporting private paths or text.
 // Formatting is bounded and incomplete output never produces a fingerprint.
-fn bounded_error_sha256(error: &(impl std::fmt::Display + ?Sized)) -> Option<String> {
+pub(crate) fn bounded_error_sha256(error: &(impl std::fmt::Display + ?Sized)) -> Option<String> {
     struct Fingerprint {
         hash: tos_foundation::Digest256Hasher,
         remaining: usize,
