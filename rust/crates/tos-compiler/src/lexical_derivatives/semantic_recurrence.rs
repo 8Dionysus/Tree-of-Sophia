@@ -13,6 +13,7 @@ const BUILDER: &str = "rust/crates/tos-compiler/src/lexical_derivatives/semantic
 pub const PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-plan.v1.json";
 const RECEIPT_SHA: &str = "b50417321708d85ee6ec1dfc2225fe6e2206cd590fd043516a7d894843da438f";
 const EVENT_SHA: &str = "b56a8a6cbdeab1fa6d6c971dea6e6419582de0b16629d65b981e6f5835f310af";
+const BUNDLE_SHA: &str = "f18515cd36f6b6dd5b68c37b6fbebd8a7b3309cef8b6d1aa6c58f2e5f339d763";
 const EVENT_ID: &str = "tos.event.annotation.zarathustra-semantic-source-recurrence-v1.2026-08-10";
 const AUTHORITY: &str = "This bundle returns the complete private witness context for one preselected exact-form hash and records aggregate recurrence observations.";
 fn u(v: &Value) -> Result<u64> {
@@ -24,7 +25,7 @@ fn array(v: &Value) -> Result<&Vec<Value>> {
         .ok_or("source recurrence array required".into())
 }
 /// The stored TEI selectors are a finite child-path grammar, never arbitrary XPath.
-fn step(raw: &str) -> Result<(&str, usize)> {
+pub(super) fn step(raw: &str) -> Result<(&str, usize)> {
     let (name, index) = if let Some((name, position)) = raw.split_once('[') {
         let digits = position
             .strip_suffix(']')
@@ -282,7 +283,7 @@ fn reconstruct(
             unsectioned += 1;
         }
         editorial += u64::from(status != "witness-text");
-        occurrences.push(json!({"occurrence_id":occurrence,"item_ref":item,"part_order":part,"source_file_sha256":file,"token_ordinal":ordinal,"page_resource_id":page,"section_resource_id":section,"text_node_path":path,"start_offset":start,"end_offset":end,"editorial_status":status,"text_node_sha256":sha(node.as_bytes()),"raw_return_sha256":sha(returned.as_bytes()),"raw_return_verified":true}));
+        occurrences.push(json!({"occurrence_id":occurrence,"item_ref":item,"part_order":part,"source_file_sha256":file,"token_ordinal":ordinal,"page_resource_id":page,"section_resource_id":section,"text_node_path":path,"start_offset":start,"end_offset":end,"editorial_status":status,"text_node_sha256":sha(format!("{node}\n").as_bytes()),"raw_return_sha256":sha(returned.as_bytes()),"raw_return_verified":true}));
         ensure(
             occurrences.len() <= 1_000_000,
             "source recurrence occurrence bound",
@@ -410,6 +411,15 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
             && plan["local_output"]["occurrence_positions_local_only"] == true,
         "source recurrence private output boundary",
     )?;
+    // The frozen profile fingerprints xmllint's character-data output, whose
+    // historical carrier includes one final LF. Source offsets still refer to
+    // the original XML character data. Keep that carrier digest convention in
+    // both checks and new generations selected under this same frozen profile.
+    ensure(
+        plan["verification_policy"]["raw_source_return"]
+            == "xmllint-character-data-node-then-unicode-codepoint-offset-slice",
+        "unsupported source recurrence character-data profile",
+    )?;
     let selected = &plan["selected_source_observation"];
     ensure(
         selected["selection_reopened"] == false && selected["source_value_tracked"] == false,
@@ -514,6 +524,20 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
     )?;
     if opt.generation.is_some() {
         bundle["bundle_id"] = json!(format!("{}{suffix}", s(&bundle["bundle_id"])?));
+    }
+    if opt.generation.is_none() {
+        let prior = read_json_bounded(
+            &input,
+            s(&plan["local_output"]["ref"])?,
+            META_CAP,
+            &mut payloads,
+        )?;
+        ensure(
+            opt.plan == PLAN && payloads.last().unwrap().digest == BUNDLE_SHA,
+            "unknown retained source recurrence bundle",
+        )?;
+        bundle["authority_boundary"] = prior["authority_boundary"].clone();
+        ensure(bundle == prior, "historical source recurrence bundle drift")?;
     }
     let packet = canonical(bundle.clone())?;
     let count = &bundle["raw_offset_return_count"];
