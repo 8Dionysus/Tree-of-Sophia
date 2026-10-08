@@ -503,8 +503,7 @@ pub fn run(ctx: &ResearchExecution, options: Options<'_>) -> Result<Value> {
             ensure(members.len() == 1, "source work boundary resolution")?;
             let m = members[0];
             ensure(
-                m["start_page"] == config["represented_start_page"]
-                    && m["end_page"] == config["represented_end_page"],
+                u(&m["start_page"])? <= start && end <= u(&m["end_page"])?,
                 "source work boundary range",
             )?;
             boundary_binding = o(vec![
