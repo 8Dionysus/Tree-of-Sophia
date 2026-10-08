@@ -643,6 +643,9 @@ pub struct AuthenticatedTreeRowStreamV2 {
     io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
     _pin_lock: Arc<PinDirectoryLease>,
     stack: Vec<StreamFrameV2>,
+    state_limit: Option<usize>,
+    base_state_bytes: usize,
+    retained_node_bytes: usize,
     started: bool,
     observed: u64,
     transcript: Digest256Hasher,
@@ -739,6 +742,43 @@ impl AuthenticatedTreeRowStreamV2 {
         })
     }
 
+    fn node_workspace(&self) -> Result<usize> {
+        self.limits.max_node_bytes.checked_mul(64)
+            .and_then(|n| n.checked_add(65_536))
+            .ok_or_else(|| budget("packed stream node workspace overflow"))
+    }
+
+    fn check_state(&self, extra: usize) -> Result<()> {
+        let Some(limit) = self.state_limit else { return Ok(()) };
+        let bytes = self.stack.capacity().checked_mul(std::mem::size_of::<StreamFrameV2>())
+            .and_then(|n| n.checked_add(self.base_state_bytes))
+            .and_then(|n| n.checked_add(self.retained_node_bytes))
+            .and_then(|n| n.checked_add(extra))
+            .ok_or_else(|| budget("packed stream state overflow"))?;
+        if bytes > limit { return Err(budget("packed stream state allowance exceeded")); }
+        Ok(())
+    }
+
+    fn push_node(&mut self, loaded: LoadedTreeNodeV2) -> Result<()> {
+        let retained_state_bytes = loaded_node_retained_state(&loaded)?;
+        self.check_state(retained_state_bytes)?;
+        if self.stack.len() == self.stack.capacity() {
+            // Includes old and replacement buffers while reallocating.
+            let slots = self.stack.len().checked_add(1)
+                .and_then(|n| n.checked_mul(std::mem::size_of::<StreamFrameV2>()))
+                .and_then(|n| n.checked_add(retained_state_bytes))
+                .ok_or_else(|| budget("packed stream stack state overflow"))?;
+            self.check_state(slots)?;
+            self.stack.try_reserve_exact(1)
+                .map_err(|_| budget("packed stream stack allocation failed"))?;
+            self.check_state(retained_state_bytes)?;
+        }
+        self.retained_node_bytes = self.retained_node_bytes.checked_add(retained_state_bytes)
+            .ok_or_else(|| budget("packed stream retained state overflow"))?;
+        self.stack.push(StreamFrameV2 { loaded, next_child: 0, retained_state_bytes });
+        Ok(())
+    }
+
     fn next_row_inner(
         &mut self,
         deadline: Instant,
@@ -749,6 +789,7 @@ impl AuthenticatedTreeRowStreamV2 {
             check(deadline, cancelled)?;
             if !self.started {
                 self.started = true;
+                self.check_state(self.node_workspace()?)?;
                 if let Some(root) = descriptor_root_handle(&self.descriptor)? {
                     let loaded = load_node_v2(
                         &self.store,
@@ -765,12 +806,14 @@ impl AuthenticatedTreeRowStreamV2 {
                     if let Some(digest) = loaded.physical_pack_digest {
                         self.pack_capture.observe(digest)?;
                     }
-                    self.stack
-                        .try_reserve(1)
-                        .map_err(|_| budget("packed stream stack allocation failed"))?;
-                    self.stack.push(StreamFrameV2::new(root, loaded));
+                    drop(root);
+                    self.push_node(loaded)?;
                     continue;
                 }
+            }
+            if self.stack.last().is_some_and(|frame| frame.loaded.node.value.is_none()
+                && frame.next_child < frame.loaded.node.children.len()) {
+                self.check_state(self.node_workspace()?)?;
             }
             let Some(frame) = self.stack.last_mut() else {
                 if self.observed != self.descriptor.entries {
@@ -782,7 +825,7 @@ impl AuthenticatedTreeRowStreamV2 {
                 self.done = true;
                 return Ok(None);
             };
-            if let Some(entry) = frame.value.take() {
+            if let Some(entry) = frame.loaded.node.value.take() {
                 self.observed = self
                     .observed
                     .checked_add(1)
@@ -827,34 +870,24 @@ impl AuthenticatedTreeRowStreamV2 {
                 if let Some(digest) = loaded.physical_pack_digest {
                     self.pack_capture.observe(digest)?;
                 }
-                self.stack
-                    .try_reserve(1)
-                    .map_err(|_| budget("packed stream stack allocation failed"))?;
-                self.stack.push(StreamFrameV2::new(child_handle, loaded));
+                drop(child_handle);
+                self.push_node(loaded)?;
                 continue;
             }
-            self.stack.pop();
+            let removed = self.stack.pop().expect("checked stream frame");
+            self.retained_node_bytes = self.retained_node_bytes
+                .checked_sub(removed.retained_state_bytes)
+                .ok_or_else(|| budget("packed stream retained state regressed"))?;
         }
     }
 }
 
 struct StreamFrameV2 {
-    _handle: TreeHandleV2,
     loaded: LoadedTreeNodeV2,
-    value: Option<AuthenticatedTreeEntryV1>,
     next_child: usize,
+    retained_state_bytes: usize,
 }
 
-impl StreamFrameV2 {
-    fn new(handle: TreeHandleV2, loaded: LoadedTreeNodeV2) -> Self {
-        Self {
-            _handle: handle,
-            value: loaded.node.value.clone(),
-            loaded,
-            next_child: 0,
-        }
-    }
-}
 
 impl SegmentStore {
     /// Cold-build one immutable Patricia tree from strict raw-byte order.
@@ -2628,6 +2661,21 @@ impl SegmentStore {
             limits,
             io_ledger,
             PackCaptureV2::None,
+            None,
+        )
+    }
+
+    /// Streaming state is a slice of the caller's existing envelope. It
+    /// covers this stream's descriptor/store, actual stack and one node decode.
+    pub fn stream_authenticated_tree_v2_with_io_and_state(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        max_state_bytes: usize,
+    ) -> Result<AuthenticatedTreeRowStreamV2> {
+        self.stream_authenticated_tree_v2_with_capture(
+            descriptor, limits, io_ledger, PackCaptureV2::None, Some(max_state_bytes),
         )
     }
 
@@ -2637,12 +2685,27 @@ impl SegmentStore {
         limits: AuthenticatedTreeLimitsV1,
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         pack_capture: PackCaptureV2,
+        state_limit: Option<usize>,
     ) -> Result<AuthenticatedTreeRowStreamV2> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
         if descriptor.entries > limits.max_rows {
             return Err(budget("authenticated stream row limit exceeded"));
+        }
+        let base_state_bytes = std::mem::size_of::<AuthenticatedTreeRowStreamV2>()
+            .checked_add(self.retained_heap_state_bytes()?)
+            .and_then(|n| n.checked_add(tree_descriptor_state_bytes(descriptor).ok()?))
+            .and_then(|n| n.checked_add(4096))
+            .ok_or_else(|| budget("packed stream base state overflow"))?;
+        if let Some(maximum) = state_limit {
+            let workspace = limits.max_node_bytes.checked_mul(64)
+                .and_then(|n| n.checked_add(65_536))
+                .ok_or_else(|| budget("packed stream initial workspace overflow"))?;
+            if maximum == 0 || maximum == usize::MAX || base_state_bytes.checked_add(workspace)
+                .is_none_or(|n| n > maximum) {
+                return Err(budget("packed stream initial state allowance exceeded"));
+            }
         }
         let mut transcript = Digest256Hasher::new();
         transcript.update(b"tos-authenticated-tree-stream-v1\0");
@@ -2654,6 +2717,9 @@ impl SegmentStore {
             io_ledger,
             _pin_lock: Arc::new(self.hold_generation_pin()?),
             stack: Vec::new(),
+            state_limit,
+            base_state_bytes,
+            retained_node_bytes: 0,
             started: false,
             observed: 0,
             transcript,
@@ -2690,6 +2756,7 @@ impl SegmentStore {
             limits,
             io_ledger.clone(),
             PackCaptureV2::Local(HashSet::new()),
+            None,
         )?;
         while stream.next_row(deadline, cancelled)?.is_some() {}
         let pack_digests = stream.pack_capture.take_local()?;
@@ -2745,6 +2812,7 @@ impl SegmentStore {
             limits,
             io_ledger.clone(),
             PackCaptureV2::External(pack_set.clone()),
+            None,
         )?;
         while stream.next_row(deadline, cancelled)?.is_some() {}
         let mut verify = |digest: Digest256| {
@@ -2790,6 +2858,44 @@ impl SegmentStore {
         cancelled: &AtomicBool,
         shared_work: &mut dyn FnMut() -> bool,
     ) -> Result<AuthenticatedTreeCoverageV1> {
+        self.verify_authenticated_tree_v2_with_pack_set_controlled(
+            descriptor, limits, io_ledger, pack_set, closure_binding,
+            deadline, cancelled, shared_work, None,
+        )
+    }
+
+    /// Same full closure with preallocation admission for the live traversal
+    /// stack and decoder, under a caller-selected slice of its original state.
+    pub fn verify_authenticated_tree_v2_with_pack_set_and_work_and_state(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
+        closure_binding: Digest256,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        shared_work: &mut dyn FnMut() -> bool,
+        max_state_bytes: usize,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
+        self.verify_authenticated_tree_v2_with_pack_set_controlled(
+            descriptor, limits, io_ledger, pack_set, closure_binding,
+            deadline, cancelled, shared_work, Some(max_state_bytes),
+        )
+    }
+
+    fn verify_authenticated_tree_v2_with_pack_set_controlled(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
+        closure_binding: Digest256,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        shared_work: &mut dyn FnMut() -> bool,
+        state_limit: Option<usize>,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
         check(deadline, cancelled)?;
         pack_set.check_binding(
             self.physical_root_identity()?,
@@ -2802,6 +2908,7 @@ impl SegmentStore {
             limits,
             io_ledger.clone(),
             PackCaptureV2::External(pack_set.clone()),
+            state_limit,
         )?;
         while stream
             .next_row_with_work_callback(deadline, cancelled, shared_work)?
@@ -2816,6 +2923,7 @@ impl SegmentStore {
             if remaining == 0 {
                 return Err(budget("authenticated tree byte budget exceeded"));
             }
+            stream.check_state(AUTHENTICATED_PACK_MAX_BYTES)?;
             let raw = self.read_authenticated_blob_with_io(
                 digest,
                 AUTHENTICATED_PACK_MAX_BYTES.min(remaining),

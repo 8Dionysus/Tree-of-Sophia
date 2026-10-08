@@ -28,7 +28,7 @@ use std::{
 };
 use tos_foundation::{Digest256, SourceRevision};
 
-pub const HELP: &str = "usage: tos-native-owner-command corpus-admit --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH [--payload-source-root PATH] [--historical-capture PATH --historical-root PATH]...\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --fresh-record-owner ABSOLUTE_OWNER_CONFIG --fresh-record-id ID --fresh-record-transaction ID --fresh-record-base REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --initial-cut [--indexed-input-root PATH] --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --source-transition-base ORIGINAL_REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --validator-identity --grammar-root PATH --invocation PATH [--validation-profile ID] [--record-selection-manifest PATH] [validation selections]\n\nAdmit exact proposed source bytes through the selected complete native validator.\nThe invocation selects finite operation resources and pinned workers. No semantic admission or rights change is granted.\n";
+pub const HELP: &str = "usage: tos-native-owner-command corpus-admit --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH [--payload-source-root PATH] [--historical-capture PATH --historical-root PATH]...\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --fresh-record-owner ABSOLUTE_OWNER_CONFIG --fresh-record-id ID --fresh-record-transaction ID --fresh-record-base REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --initial-cut [--indexed-input-root PATH] --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --source-transition-base ORIGINAL_REVISION_SHA256 --grammar-root PATH --invocation PATH\n       tos-native-owner-command corpus-admit --validator-identity --grammar-root PATH --invocation PATH [--validation-profile ID] [--record-selection-manifest PATH] [validation selections]\n       tos-native-owner-command corpus-admit --store PATH --input-root PATH --verify-committed-revision REVISION_SHA256 --grammar-root PATH --invocation PATH\n\nAfter a committed read/restore refusal, use --verify-committed-revision with a fresh target and selected V2 case limits. It authenticates the existing native completion and original validator from history; it cannot create a candidate or publish. The installed reader may be newer than the original writer.\n\nAdmit exact proposed source bytes through the selected complete native validator.\nThe invocation selects finite operation resources and pinned workers. No semantic admission or rights change is granted.\n";
 pub const AUTHORED_BOOTSTRAP_HELP: &str = "usage: tos-native-owner-command authored-bootstrap --authored-bootstrap-owner ABSOLUTE_OWNER_CONFIG --store PATH --batch PATH --input-root PATH --grammar-root PATH --invocation PATH\n\nValidate the complete native-v4 candidate and publish its exact technical metadata bootstrap in the protected new private source root. The owner configuration pins the initial candidate and selects the fixed new metadata receipt; the existing transaction owner issues the ready epoch. An epoch-bound catalogue must subsequently complete under held source/currentness fences.\n";
 
 struct FreshRevisionSelection {
@@ -43,6 +43,7 @@ struct Arguments {
     authored_bootstrap_owner: Option<PathBuf>,
     fresh_revision: Option<FreshRevisionSelection>,
     source_transition_base: Option<SourceRevision>,
+    verify_committed_revision: Option<SourceRevision>,
     initial_cut: bool,
     batch: Option<PathBuf>,
     input: Option<PathBuf>,
@@ -236,6 +237,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
         authored_bootstrap_owner: None,
         fresh_revision: None,
         source_transition_base: None,
+        verify_committed_revision: None,
         initial_cut: false,
         batch: None,
         input: None,
@@ -312,7 +314,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
                 result.initial_cut = true;
                 continue;
             }
-            "--source-transition-base" => {
+            "--source-transition-base" | "--verify-committed-revision" => {
                 let value = args
                     .get(position)
                     .and_then(|value| value.to_str())
@@ -327,11 +329,12 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
                         "source transition requires exact lowercase original base SHA256",
                     ));
                 }
-                if result
-                    .source_transition_base
-                    .replace(SourceRevision(Digest256::from_hex(value).map_err(invalid)?))
-                    .is_some()
-                {
+                let slot = if option == "--verify-committed-revision" {
+                    &mut result.verify_committed_revision
+                } else {
+                    &mut result.source_transition_base
+                };
+                if slot.replace(SourceRevision(Digest256::from_hex(value).map_err(invalid)?)).is_some() {
                     return Err(invalid("duplicate source transition original base"));
                 }
                 continue;
@@ -472,6 +475,12 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
             "initial source cut cannot select JSON batch, identity-only, authored bootstrap, or fresh revision",
         ));
     }
+    if result.verify_committed_revision.is_some()
+        && (result.batch.is_some() || result.initial_cut || result.identity_only
+            || result.authored_bootstrap_owner.is_some() || result.fresh_revision.is_some()
+            || result.source_transition_base.is_some() || result.indexed_input_root.is_some()) {
+        return Err(invalid("committed verification cannot select a source publication operation"));
+    }
     let selected_scope = validation_profile
         .as_ref()
         .map(|id| {
@@ -532,6 +541,7 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
         || (result.batch.is_none()
             && result.fresh_revision.is_none()
             && result.source_transition_base.is_none()
+            && result.verify_committed_revision.is_none()
             && !result.initial_cut)
         || result.input.is_none()
     {
@@ -924,6 +934,9 @@ fn run_selected(
             );
         }
         PreparedAdmissionExecution::Resident => {
+            if args.verify_committed_revision.is_some() {
+                return Err(invalid("committed verification requires the protected spooled V2 route"));
+            }
             if args.initial_cut {
                 return Err(invalid(
                     "initial source cut requires the protected spooled V2 route",
@@ -1063,6 +1076,10 @@ fn run_spooled(
                 }
             }
             let mut receipt = recovered_receipt(&accepted);
+            if args.verify_committed_revision.is_some() {
+                receipt["verification_only"] = json!(true);
+                receipt["publication_performed"] = json!(false);
+            }
             if let Some(accountant) = &resources.v2_allocation_accountant {
                 receipt["source_new_allocated_bytes"] = json!(accountant.actual_allocated_bytes());
             }
@@ -1713,6 +1730,51 @@ fn run_spooled_inner(
     let request = &resources.request;
     if request.deadline != deadline || !Arc::ptr_eq(&request.cancelled, cancelled) {
         return Err(invalid("spooled entry resource identity changed"));
+    }
+
+    if let Some(expected_revision) = args.verify_committed_revision {
+        phase.set("explicit committed V2 verification");
+        let selected = resources.v2_case.as_ref()
+            .ok_or_else(|| invalid("committed verification requires selected V2 read/restore limits"))?;
+        let source_root = resources.v2_source_root.as_ref()
+            .filter(|root| root.path == store_path)
+            .ok_or_else(|| invalid("committed verification original source root differs"))?;
+        let profile = validator.prepared_v2_read_case_profile()?;
+        let read_limits = resources.v2_base_read_limits
+            .ok_or_else(|| invalid("committed verification read limits absent"))?;
+        // This is a new read/restore invocation. Its finite visit meter starts
+        // once here from the original read envelope and is shared by lookup,
+        // cold closure, transfer and the restored read; phases never reset it.
+        let work = crate::source_admission::AdmissionWorkBudget::new(
+            resources.candidate_limits.candidate.max_read_bytes,
+        )?;
+        let mut reader = crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_work(
+            store_path, &source_root.held, read_limits, profile.io.clone(), work.clone(),
+            deadline, cancelled.clone(),
+        )?;
+        if reader.selected_revision() != expected_revision {
+            return Err(invalid("committed verification selected revision differs"));
+        }
+        // Require an existing native completion proof. The current executable
+        // is only the reader; it never reissues the historical validator claim.
+        reader.selected_native_admission_root()?;
+        let roots = reader.current_roots();
+        let original_batch = roots.batch_sha256
+            .ok_or_else(|| invalid("committed verification original batch absent"))?;
+        let original_base = roots.base_revision;
+        let original_validator = roots.validator_sha256;
+        let accepted = reader.find_accepted_batch(
+            original_batch, original_base, original_validator,
+            resources.manifest_limits.max_manifest_bytes,
+        )?.filter(|accepted| accepted.revision == expected_revision)
+            .ok_or_else(|| invalid("committed verification exact history evidence absent"))?;
+        drop(reader);
+        let case = Some(run_selected_v2_case(
+            selected, profile, resources, store_path, expected_revision, deadline,
+            cancelled, std::mem::size_of::<crate::source_admission_v2_reader::AcceptedV2Publication>(),
+            work,
+        ));
+        return Ok(SpooledExecutionOutcome::Recovered { accepted, case });
     }
 
     let initial_profile = if args.initial_cut {
@@ -2568,6 +2630,27 @@ fn spooled_receipt(publication: &SpooledPublicationReceipt) -> serde_json::Value
 #[cfg(test)]
 mod validation_profile_forwarding_tests {
     use super::*;
+
+    #[test]
+    fn explicit_verification_rejects_publication_selectors() {
+        let revision = "1".repeat(64);
+        let base = ["--store", "/store", "--input-root", "/source",
+            "--grammar-root", "/grammar", "--invocation", "/invocation",
+            "--verify-committed-revision", revision.as_str()];
+        let args = base.iter().map(OsString::from).collect::<Vec<_>>();
+        let parsed = parse(&args).unwrap();
+        assert_eq!(parsed.verify_committed_revision.unwrap().0.to_hex(), revision);
+        assert!(parsed.batch.is_none() && !parsed.initial_cut);
+        for extra in [vec!["--batch", "/batch"], vec!["--initial-cut"],
+            vec!["--validator-identity"], vec!["--indexed-input-root", "/indexed"],
+            vec!["--source-transition-base", revision.as_str()],
+            vec!["--authored-bootstrap-owner", "/owner"],
+            vec!["--verify-committed-revision", revision.as_str()]] {
+            let mut combined = args.clone();
+            combined.extend(extra.into_iter().map(OsString::from));
+            assert!(parse(&combined).is_err());
+        }
+    }
 
     #[test]
     fn committed_refusal_retains_private_cause_fingerprint() {

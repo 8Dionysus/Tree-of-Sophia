@@ -289,7 +289,7 @@ impl V2ImageLimits {
     pub(crate) fn validate_cold_spill(
         self,
         requests: &V2SeenPackSpillRequests,
-    ) -> io::Result<(Self, V2SeenPackSpillLimits, V2SeenPackSpillLimits)> {
+    ) -> io::Result<(Self, V2SeenPackSpillLimits, V2SeenPackSpillLimits, usize)> {
         let (limits, nodes, base_state) = self.validate_layout_with_spilled_history()?;
         let retained = base_state
             .checked_add(size_of::<V2ImageColdSpillPlan>())
@@ -313,13 +313,15 @@ impl V2ImageLimits {
         let target_profile = profile(&requests.target);
         let source_charge = source_profile.state_charge()?;
         let target_charge = target_profile.state_charge()?;
-        if retained
-            .checked_add(source_charge.max(target_charge))
-            .is_none_or(|required| required > limits.max_state_bytes)
-        {
-            return Err(invalid("V2 cold spill exceeds held image state bill"));
-        }
-        Ok((limits, source_profile, target_profile))
+        // One stream is live at a time. Its owner admits the actual path
+        // stack and each decoder allocation from the remaining original state,
+        // independently of the cumulative tree-node/work ceiling.
+        let stream_state_bytes = limits.max_state_bytes
+            .checked_sub(retained)
+            .and_then(|n| n.checked_sub(source_charge.max(target_charge)))
+            .filter(|n| *n > 0)
+            .ok_or_else(|| invalid("V2 cold spill exceeds held image state bill"))?;
+        Ok((limits, source_profile, target_profile, stream_state_bytes))
     }
 
     fn validate_layout(self) -> io::Result<(Self, usize, usize)> {
@@ -395,10 +397,17 @@ impl V2ImageLimits {
                 .checked_add(decode_workspace_upper_bound(raw)?)
                 .ok_or_else(|| invalid("V2 compatibility history decode overflow"))?
         };
-        let retained = path_nodes
-            .checked_mul(self.tree.max_node_bytes)
-            .and_then(|n| n.checked_mul(64))
-            .and_then(|n| n.checked_add(history_resident))
+        let tree_state = if history_spilled {
+            // The cold stream has a runtime state owner. Do not price every
+            // possible path level as a simultaneous full decoder workspace.
+            0
+        } else {
+            path_nodes.checked_mul(self.tree.max_node_bytes)
+                .and_then(|n| n.checked_mul(64))
+                .ok_or_else(|| invalid("V2 compatibility tree state overflow"))?
+        };
+        let retained = tree_state
+            .checked_add(history_resident)
             .and_then(|n| n.checked_add(rootset_decode))
             .and_then(|n| n.checked_add(compact_decode))
             .and_then(|n| n.checked_add(compatibility_history_decode))
@@ -437,6 +446,7 @@ struct Work {
     allocated: u64,
     allocation_upper: u64,
     shared_work: Option<AdmissionWorkBudget>,
+    stream_state_bytes: Option<usize>,
 }
 
 #[derive(Default)]
@@ -557,9 +567,22 @@ fn verify_tree_v2(
     pack_set: Option<&Arc<V2SeenPackSpill>>,
     closure_binding: Digest256,
     shared_work: Option<&AdmissionWorkBudget>,
+    stream_state_bytes: Option<usize>,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> tos_segment_store::Result<AuthenticatedTreeCoverageV1> {
+    if let Some(maximum) = stream_state_bytes {
+        let pack_set: Arc<dyn AuthenticatedTreePackSetV2> = pack_set
+            .ok_or_else(|| tos_segment_store::SegmentError::new(
+                tos_segment_store::SegmentErrorCode::InvalidReceipt,
+                "bounded cold stream requires its owned pack spill",
+            ))?.clone();
+        let mut debit = || shared_work.is_none_or(|work| work.charge(()).is_ok());
+        return segment.verify_authenticated_tree_v2_with_pack_set_and_work_and_state(
+            descriptor, limits, Some(tree_io), pack_set, closure_binding,
+            deadline, cancel, &mut debit, maximum,
+        );
+    }
     if let Some(pack_set) = pack_set {
         let pack_set: Arc<dyn AuthenticatedTreePackSetV2> = pack_set.clone();
         if let Some(shared_work) = shared_work {
@@ -596,6 +619,21 @@ fn verify_tree_v2(
     }
 }
 
+fn open_tree_stream(
+    segment: &SegmentStore,
+    descriptor: &tos_segment_store::AuthenticatedTreeDescriptorV2,
+    limits: AuthenticatedTreeLimitsV1,
+    tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+    state_bytes: Option<usize>,
+) -> tos_segment_store::Result<AuthenticatedTreeRowStreamV2> {
+    match state_bytes {
+        Some(maximum) => segment.stream_authenticated_tree_v2_with_io_and_state(
+            descriptor, limits, Some(tree_io), maximum,
+        ),
+        None => segment.stream_authenticated_tree_v2_with_io(descriptor, limits, Some(tree_io)),
+    }
+}
+
 fn next_tree_row(
     stream: &mut AuthenticatedTreeRowStreamV2,
     shared_work: Option<&AdmissionWorkBudget>,
@@ -617,7 +655,7 @@ fn verify_closure(
     io: &PinnedSqliteIoBudget,
     work: &mut Work,
     closure_binding: Digest256,
-    cold_spill: Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits)>,
+    cold_spill: Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits, usize)>,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<()> {
@@ -643,7 +681,8 @@ fn verify_closure(
     if roots.history.entries > max_history_roots {
         return Err(invalid("V2 image retained history bound exceeded"));
     }
-    let pack_set = if let Some((request, mut spill_limits)) = cold_spill {
+    work.stream_state_bytes = cold_spill.as_ref().map(|(_, _, bytes)| *bytes);
+    let pack_set = if let Some((request, mut spill_limits, _)) = cold_spill {
         spill_limits.max_tree_nodes = work.tree_limits(limits)?.max_nodes;
         Some(V2SeenPackSpill::open(
             request.workspace,
@@ -665,16 +704,14 @@ fn verify_closure(
         pack_set.as_ref(),
         closure_binding,
         work.shared_work(),
+        work.stream_state_bytes,
         deadline,
         cancel,
     )
     .map_err(invalid)?;
     work.record_tree(coverage.work, coverage.entries, limits)?;
-    let mut stream = segment
-        .stream_authenticated_tree_v2_with_io(
-            &roots.history,
-            work.tree_limits(limits)?,
-            Some(tree_io.clone()),
+    let mut stream = open_tree_stream(
+            &segment, &roots.history, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
         )
         .map_err(invalid)?;
     let mut history = if pack_set.is_some() {
@@ -871,6 +908,7 @@ fn verify_revision_closure(
             pack_set,
             closure_binding,
             work.shared_work(),
+            work.stream_state_bytes,
             deadline,
             cancel,
         )
@@ -886,6 +924,7 @@ fn verify_revision_closure(
             pack_set,
             closure_binding,
             work.shared_work(),
+            work.stream_state_bytes,
             deadline,
             cancel,
         )
@@ -901,6 +940,7 @@ fn verify_revision_closure(
             pack_set,
             closure_binding,
             work.shared_work(),
+            work.stream_state_bytes,
             deadline,
             cancel,
         )
@@ -910,12 +950,9 @@ fn verify_revision_closure(
     let (_, objects, _) = store.backup_namespaces()?;
     let revision_id = *revision.revision.0.as_bytes();
     if let (Some(spill), Some(identity_paths)) = (pack_set, revision.identity_paths.as_ref()) {
-        let mut identities = segment
-            .stream_authenticated_tree_v2_with_io(
-                &revision.identities,
-                work.tree_limits(limits)?,
-                Some(tree_io.clone()),
-            )
+        let mut identities = open_tree_stream(
+            &segment, &revision.identities, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+        )
             .map_err(invalid)?;
         while let Some(row) =
             next_tree_row(&mut identities, work.shared_work(), deadline, cancel).map_err(invalid)?
@@ -935,12 +972,9 @@ fn verify_revision_closure(
         work.record_tree(coverage.work, coverage.entries, limits)?;
         drop(identities);
 
-        let mut inverse = segment
-            .stream_authenticated_tree_v2_with_io(
-                identity_paths,
-                work.tree_limits(limits)?,
-                Some(tree_io.clone()),
-            )
+        let mut inverse = open_tree_stream(
+            &segment, identity_paths, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+        )
             .map_err(invalid)?;
         while let Some(row) =
             next_tree_row(&mut inverse, work.shared_work(), deadline, cancel).map_err(invalid)?
@@ -968,11 +1002,8 @@ fn verify_revision_closure(
         work.record_tree(coverage.work, coverage.entries, limits)?;
         spill.finish_identity_paths_revision(revision_id, revision.identity_count)?;
     }
-    let mut members = segment
-        .stream_authenticated_tree_v2_with_io(
-            &revision.members,
-            work.tree_limits(limits)?,
-            Some(tree_io.clone()),
+    let mut members = open_tree_stream(
+            &segment, &revision.members, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
         )
         .map_err(invalid)?;
     let mut source_bytes = 0u64;
@@ -1008,11 +1039,8 @@ fn verify_revision_closure(
         .ok_or_else(|| invalid("V2 image members EOF absent"))?;
     work.record_tree(coverage.work, coverage.entries, limits)?;
     drop(members);
-    let mut retirements = segment
-        .stream_authenticated_tree_v2_with_io(
-            &revision.retirements,
-            work.tree_limits(limits)?,
-            Some(tree_io.clone()),
+    let mut retirements = open_tree_stream(
+            &segment, &revision.retirements, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
         )
         .map_err(invalid)?;
     let mut ordinal = 0u64;
@@ -1058,14 +1086,12 @@ fn verify_revision_closure(
         .coverage()
         .ok_or_else(|| invalid("V2 image retirement EOF absent"))?;
     work.record_tree(coverage.work, coverage.entries, limits)?;
+    drop(retirements);
     if let Some(objects_root) = packed {
         let spill = pack_set.ok_or_else(|| invalid("V2 packed closure spill is absent"))?;
-        let mut extents = segment
-            .stream_authenticated_tree_v2_with_io(
-                objects_root,
-                work.tree_limits(limits)?,
-                Some(tree_io.clone()),
-            )
+        let mut extents = open_tree_stream(
+            &segment, objects_root, work.tree_limits(limits)?, tree_io.clone(), work.stream_state_bytes,
+        )
             .map_err(invalid)?;
         let mut previous = None;
         while let Some(row) =
@@ -1584,15 +1610,16 @@ struct V2ImageColdSpillPlan {
     target: Option<V2SeenPackSpillRequest>,
     source_limits: V2SeenPackSpillLimits,
     target_limits: V2SeenPackSpillLimits,
+    stream_state_bytes: usize,
 }
 
 impl V2ImageColdSpillPlan {
-    fn take_source(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits)> {
-        Some((self.source.take()?, self.source_limits))
+    fn take_source(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits, usize)> {
+        Some((self.source.take()?, self.source_limits, self.stream_state_bytes))
     }
 
-    fn take_target(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits)> {
-        Some((self.target.take()?, self.target_limits))
+    fn take_target(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits, usize)> {
+        Some((self.target.take()?, self.target_limits, self.stream_state_bytes))
     }
 }
 
@@ -1637,12 +1664,13 @@ pub fn transfer_image_with_cold_spill(
     // share the original aggregate envelope: this keeps their combined usage
     // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
-    let (limits, source_limits, target_limits) = limits.validate_cold_spill(&requests)?;
+    let (limits, source_limits, target_limits, stream_state_bytes) = limits.validate_cold_spill(&requests)?;
     let plan = V2ImageColdSpillPlan {
         source: Some(requests.source),
         target: Some(requests.target),
         source_limits,
         target_limits,
+        stream_state_bytes,
     };
     transfer_image_inner(
         source_path,
@@ -1677,7 +1705,7 @@ pub(crate) fn transfer_image_with_cold_spill_at(
     // share the original aggregate envelope: this keeps their combined usage
     // under the selected ceiling instead of minting an independent allowance.
     requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
-    let (limits, source_limits, target_limits) = limits.validate_cold_spill(&requests)?;
+    let (limits, source_limits, target_limits, stream_state_bytes) = limits.validate_cold_spill(&requests)?;
     let target_root =
         open_selected_target(target, Some(expected_target_identity), io, deadline, cancel)?;
     let target_store_identity = identity(&target_root)?;
@@ -1687,6 +1715,7 @@ pub(crate) fn transfer_image_with_cold_spill_at(
         target: Some(requests.target),
         source_limits,
         target_limits,
+        stream_state_bytes,
     };
     transfer_image_inner(
         source_path,
@@ -1723,7 +1752,7 @@ fn transfer_image_inner(
     shared_work: Option<AdmissionWorkBudget>,
 ) -> io::Result<V2ImageOutcome> {
     let limits = if cold.is_some() {
-        limits.validate_layout()?.0
+        limits.validate_layout_with_spilled_history()?.0
     } else {
         limits.validate()?
     };
@@ -1938,4 +1967,61 @@ fn transfer_image_inner(
         custody,
         held_target_root: held_roots.map(|_| target),
     })
+}
+
+#[cfg(test)]
+mod bounded_restore_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_segment_store::{AuthenticatedTreeEntryV1, SegmentErrorCode};
+
+    #[test]
+    fn cold_stream_admits_live_path_and_refuses_resident_overflow() {
+        let root = tempfile::tempdir().unwrap();
+        let store = SegmentStore::initialize_empty(root.path(), b"bounded-cold-stream", SegmentLimits {
+            max_segment_bytes: 1024 * 1024, max_frame_bytes: 256 * 1024,
+            max_frames: 1024, max_journal_bytes: 64 * 1024,
+        }).unwrap();
+        let limits = AuthenticatedTreeLimitsV1 {
+            max_key_bytes: 4096, max_value_bytes: 16384, max_kind_bytes: 64,
+            max_node_bytes: 65536, max_children: 16, max_nodes: 32768,
+            max_total_bytes: 128 * 1024 * 1024, max_rows: 32768,
+        };
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancel = AtomicBool::new(false);
+        let rows = (1..=200).map(|n| AuthenticatedTreeEntryV1 {
+            key: vec![b'a'; n], value: vec![b'v'; 512],
+        }).collect::<Vec<_>>();
+        let descriptor = store.build_authenticated_tree_v2(
+            b"test/bounded-cold", rows.clone().into_iter().map(Ok), limits, deadline, &cancel,
+        ).unwrap();
+        let mut stream = store.stream_authenticated_tree_v2_with_io_and_state(
+            &descriptor, limits, None, 8 * 1024 * 1024,
+        ).unwrap();
+        let mut calls = 0;
+        for row in &rows {
+            let mut debit = || { calls += 1; true };
+            assert_eq!(stream.next_row_with_work_callback(deadline, &cancel, &mut debit).unwrap().as_ref(), Some(row));
+        }
+        assert!(stream.next_row(deadline, &cancel).unwrap().is_none());
+        assert_eq!(stream.coverage().unwrap().entries, rows.len() as u64);
+        assert!(calls > 0);
+        drop(stream);
+        // The decoder fits initially. A deeper live path must refuse before
+        // its next read, and refusal must poison the stream's EOF evidence.
+        let mut limited = store.stream_authenticated_tree_v2_with_io_and_state(
+            &descriptor, limits, None, 4 * 1024 * 1024 + 100_000,
+        ).unwrap();
+        let mut returned = 0;
+        loop {
+            match limited.next_row(deadline, &cancel) {
+                Ok(Some(_)) => returned += 1,
+                Ok(None) => panic!("resident path should exceed selected state"),
+                Err(error) => { assert_eq!(error.code, SegmentErrorCode::BudgetExceeded); break; }
+            }
+        }
+        assert!(returned > 0 && returned < rows.len());
+        assert!(limited.coverage().is_none());
+        assert!(limited.next_row(deadline, &cancel).is_err());
+    }
 }

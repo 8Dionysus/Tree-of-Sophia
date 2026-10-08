@@ -223,3 +223,18 @@ existing release holder, then use a matching installed Access product with
 captured-runtime Original profile; an older installed product cannot be relabeled
 as compatible. Production and cold-open success do not select a public release,
 accept source/rights/canon, or establish installed consumer acceptance.
+
+For a committed native V2 publication whose later read/restore failed, run
+`corpus-admit --store PATH --input-root PATH --verify-committed-revision SHA256
+--grammar-root PATH --invocation PATH` with a fresh restore target in the selected
+V2 case. This consumes the existing selected revision, native completion proof,
+original validator and exact history/source record. It cannot create a candidate
+or publish a new revision, including on a lookup miss. A newer installed reader
+can complete verification of an older admitted writer's result. The receipt names
+`verification_only`, `publication_performed: false` and the original validator.
+
+Cold V2 restore partitions its original state between fixed receipt/decoder
+state, the SQLite spill and one bounded tree stream. The stream admits its live
+stack and each node decoder before allocation; cumulative traversal ceilings
+remain separate. The restored target is selected only after full physical and
+historical closure succeeds.
