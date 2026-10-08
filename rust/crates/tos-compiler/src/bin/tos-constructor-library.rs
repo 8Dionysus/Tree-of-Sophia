@@ -1,5 +1,4 @@
-#[path = "../constructor_library.rs"]
-mod constructor_library;
+use tos_compiler::constructor_library;
 
 use std::{
     env,
