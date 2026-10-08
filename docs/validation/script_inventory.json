@@ -4443,7 +4443,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_technical_markup.py",
+      "path": "rust/crates/tos-compiler/src/dta_technical_markup.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/README.md",
@@ -4461,10 +4461,10 @@
       "writes": [
         "four tracked source-text-unit packets, one tracked text-free citation spine, summary and provenance, plus four ignored mode-0600 private sequential text layers unless --check or --validate-tracked is used"
       ],
-      "side_effects": "source-markup-bound German technical hierarchy and paragraph/verse citation projection only; no accepted German, editorial hierarchy, sentence or token boundary, Russian structure, translation alignment, semantics, graph/canon effect, rights clearance, publication, or runtime authority",
+      "side_effects": "Native tos dta-technical-markup with explicit source/input/output roots and admitted scratch quota. Historical bytes and provenance are retained; fresh output requires new event and fresh plan paths. Tracked validation reads no private source. No linguistic, semantic, translation, canon or publication admission.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
-      "test_target": "tests/test_zarathustra_technical_markup.py",
+      "test_target": "cargo test -p tos-compiler --lib dta_technical_markup",
       "disposition": "keep"
     },
     {

@@ -1394,6 +1394,21 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn retained_parallel_readiness_keeps_witnesses_and_authority_separate() {
+        let readiness: Value = serde_json::from_str(include_str!("../../../../ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/parallel-technical-readiness.v1.json")).unwrap();
+        assert_eq!(readiness["verification_status"], "agent_verified_complete_technical_parallel");
+        let german = &readiness["witnesses"]["german_dta_first_editions"];
+        let russian = &readiness["witnesses"]["russian_antonovsky_1911"];
+        assert_eq!(german["reading_unit_count"], 81);
+        assert_eq!(russian["reading_unit_count"], 81);
+        assert_eq!(german["reading_units_by_part"], russian["reading_units_by_part"]);
+        assert!(readiness["checks"].as_object().unwrap().values().all(|v| v == true));
+        assert_eq!(readiness["authority_boundary"]["technical_parallelism"], true);
+        for field in ["translation_alignment_created", "ordinal_equality_creates_correspondence", "linguistic_or_semantic_authority"] {
+            assert_eq!(readiness["authority_boundary"][field], false);
+        }
+    }
     fn fixture() -> Value {
         serde_json::from_str(include_str!("dta_technical_markup/synthetic-parity.json")).unwrap()
     }
