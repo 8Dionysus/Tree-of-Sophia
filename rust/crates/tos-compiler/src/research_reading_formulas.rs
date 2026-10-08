@@ -305,6 +305,8 @@ fn validated_streams(
             .push(surface);
     }
 
+    let surface_count = seen_surface_ids.len();
+    drop(seen_surface_ids);
     let mut order: Vec<usize> = (0..parsed_contexts.len()).collect();
     order.sort_by(|left, right| {
         let left = &parsed_contexts[*left];
@@ -462,7 +464,7 @@ fn validated_streams(
         .collect();
     let coverage = json!({
         "input_contexts": contexts.len(),
-        "input_surface_units": surfaces.len(),
+        "input_surface_units": surface_count,
         "lexical_surface_units": lexical_count,
         "contexts_with_lexical_units": contexts_with_lexical,
         "lexical_streams": streams.len(),
