@@ -29,7 +29,7 @@ type Result<T> = std::result::Result<T, String>;
 const CAP: usize = 4 * 1024 * 1024;
 const BUILDER: &str = "rust/crates/tos-compiler/src/transfer_source_passages.rs";
 const LEGACY_EVENT_SHA: &str = "fff2ce883dbe9db7148e5b0ab873a9e6d5a38445f7ed1f029a165f766dd54119";
-const LEGACY_BUILDER_SHA: &str = "157256907645a010e9e4244db72c242362902a3407db1b84a0a36be119d5ce4d";
+const LEGACY_BUILDER_SHA: &str = "f7fc1d941ea8a6fb7331c7a2ac9b85af7902fe3aa600d129450e7bc2cb4d6898";
 fn array(v: &Value) -> Result<&Vec<Value>> {
     v.as_array().ok_or("required array".into())
 }
