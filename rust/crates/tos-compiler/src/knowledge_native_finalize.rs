@@ -416,11 +416,6 @@ where
                                 row.source_packet.as_deref(), Digest256::of_bytes(&row.payload),
                             )?;
                         } else {
-                                stage.replace_node_logical_payload_if_current(
-                                    &row.id, raw, row.source_packet.as_deref(), previous,
-                                )?;
-                            }
-                        } else {
                             stage.charge_materialized(1, raw.len() as u64)?;
                             let sha = Digest256::of_bytes(&raw);
                             let changed = stage.with_connection(WritePhase::Finalize, |db| {
