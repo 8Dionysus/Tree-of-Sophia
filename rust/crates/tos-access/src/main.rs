@@ -88,6 +88,7 @@ fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::nietzsche_transfer_routes_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
     if let Some(code) = tos_access::jenseits_structure_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
+    if let Some(code) = tos_access::visual_result_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
     if let Some(code) = tos_access::morphology_result_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
     if let Some(code) = tos_access::lexical_derivatives_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
     if let Some(code) = tos_access::jenseits_label_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}

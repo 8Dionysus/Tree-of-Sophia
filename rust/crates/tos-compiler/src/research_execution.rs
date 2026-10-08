@@ -172,6 +172,17 @@ impl ResearchExecution {
             PinnedSqliteIoBudget::new(selected.read_cap, WRITE_CAP).map_err(|e| e.to_string())?;
         Ok(selected)
     }
+    /// Direct-visual evidence verification streams the declared model files.
+    /// It keeps the original deadline, work and write quotas while selecting
+    /// an 8 GiB single-file and 20 GiB aggregate-read envelope for hash and
+    /// revalidation passes; weights are never materialized or executed.
+    pub fn new_visual_result(root: &Path, max_seconds: u64, available_bytes: Option<u64>) -> Result<Self, String> {
+        let mut selected = Self::selected(root, max_seconds, available_bytes)?;
+        selected.file_cap = 8 * 1024 * 1024 * 1024;
+        selected.read_cap = 20 * 1024 * 1024 * 1024;
+        selected.io = PinnedSqliteIoBudget::new(selected.read_cap, WRITE_CAP).map_err(|e|e.to_string())?;
+        Ok(selected)
+    }
     /// Explicit philosophy consumer envelope. The earned f650 whole-authored
     /// producer uses PhilosophySourceLimits::default().max_work_bytes (1 GiB)
     /// and one OPS-selected original window up to 3600 seconds. This keeps

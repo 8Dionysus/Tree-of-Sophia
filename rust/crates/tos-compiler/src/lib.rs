@@ -1111,3 +1111,5 @@ pub mod nietzsche_transfer_source_structure;
 pub mod witness_structure_correspondence;
 
 pub mod lexical_derivatives;
+
+pub mod research_visual_result;

@@ -134,3 +134,5 @@ pub mod jenseits_structure_command;
 pub mod lexical_derivatives_command;
 
 pub mod morphology_result_command;
+
+pub mod visual_result_command;
