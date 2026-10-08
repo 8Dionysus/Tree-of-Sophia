@@ -1087,3 +1087,5 @@ pub mod transfer_source_visible;
 pub mod german_triangulation;
 
 pub mod bounded_translation_input;
+
+pub mod antonovsky_collation;

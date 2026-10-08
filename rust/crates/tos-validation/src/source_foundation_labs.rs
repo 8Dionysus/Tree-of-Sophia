@@ -7023,7 +7023,8 @@ fn python_contains(values: &[Value], needle: &Value) -> Result<bool, ItemRefusal
     Ok(false)
 }
 
-fn witness_text_collation_semantic_messages(packet: &Value) -> Result<Vec<String>, ItemRefusal> {
+/// Shared semantic closure for an already bounded, schema-checked collation packet.
+pub fn witness_text_collation_semantic_messages(packet: &Value) -> Result<Vec<String>, ItemRefusal> {
     let rows = |field: &str| -> Vec<&Value> {
         packet
             .get(field)

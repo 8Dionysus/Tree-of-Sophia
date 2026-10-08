@@ -116,3 +116,5 @@ pub mod transfer_source_visible_command;
 pub mod german_triangulation_command;
 
 pub mod bounded_translation_input_command;
+
+pub mod antonovsky_collation_command;
