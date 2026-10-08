@@ -113,11 +113,17 @@ struct PreparedDocument<'state, 'budget> {
     _offset_hold: Option<CreationStateHold<'state, 'budget>>,
 }
 
+#[track_caller]
 fn charge(work: &mut u64, amount: usize, limits: SearchBuildLimits) -> Result<()> {
     *work = work
         .checked_add(amount as u64)
         .ok_or(Error::Budget("search work bytes"))?;
     if *work > limits.max_work_bytes {
+        let site = std::panic::Location::caller();
+        eprintln!(
+            "Native search work refused at {}:{}: charged_bytes={} next_bytes={} work_limit={}",
+            site.file(), site.line(), *work - amount as u64, amount, limits.max_work_bytes,
+        );
         return Err(Error::Budget("search work bytes"));
     }
     Ok(())
