@@ -2379,7 +2379,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
+      "path": "rust/crates/tos-compiler/src/jenseits_polilov_numbered_structure.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/target-numbered-unit-page-map.schema.json",
@@ -2396,12 +2396,12 @@
         "the exact local Polilov/Mysl 1996 PDF, its tracked resource inventory and work boundary, plus the digest-bound source map only for explicit numbering asymmetry"
       ],
       "writes": [
-        "the tracked text-free target numbered-unit page map, proposed whole-page target anchors, and provenance unless --check is used"
+        "Three files only in an explicit new native-NAME generation; historical reconstruction and validate-tracked are read-only; identical replay changes zero files."
       ],
-      "side_effects": "tracked model-reviewed start-page candidates for 298 visible target labels without target text, cross-lingual alignment, or acceptance",
+      "side_effects": "tos jenseits-polilov-numbered-structure builds or checks298 proposed numbered start-page anchors from held PDF bytes through bounded native Poppler batches and retained page-review decisions. Historical map, anchors and provenance remain byte-exact; fresh provenance binds the Rust implementation and current rights. Source-only237a is not materialized. No translation text, exact alignment, rights or canon admission.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_witness_structure_correspondence.py",
+      "test_target": "rust/crates/tos-compiler/src/jenseits_polilov_numbered_structure.rs",
       "disposition": "keep"
     },
     {

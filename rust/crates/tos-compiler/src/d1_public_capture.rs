@@ -1858,21 +1858,22 @@ fn creation_json_with_limits<'a>(
         requested.max_integer_digits.min(4096),
     )
     .map_err(|_| Error::Budget("runtime carrier creation JSON limits"))?;
-    // Admit declared parser work before execution; failure retains both the
-    // visit ceiling and work admission. This is a declared byte+visit law.
-    checked_add(
-        &owner.work,
-        raw.len()
-            .checked_add(allowance)
-            .ok_or(Error::Budget("runtime carrier creation parse work"))?,
-        owner.work_limit,
-    )?;
+    // The parser admits actual bytes and visits before traversing them under
+    // this same owner. A maximum node allowance is a limit, not work already
+    // performed. Errors retain every admitted prefix instead of refunding it.
     let available = owner.remaining(0)?;
-    owner.json_visits.set(
-        before
-            .checked_add(allowance)
-            .ok_or(Error::Budget("runtime carrier creation JSON visits"))?,
-    );
+    let mut admit = |bytes: usize, visits: usize| {
+        let failure = || tos_foundation::FoundationError::new(
+            tos_foundation::FoundationErrorCode::BudgetExceeded,
+            "runtime carrier creation parse work/visits",
+        );
+        let total = owner.json_visits.get().checked_add(visits)
+            .filter(|n| *n <= owner.max_json_visits).ok_or_else(failure)?;
+        owner.charge_work(bytes.checked_add(visits).ok_or_else(failure)?)
+            .map_err(|_| failure())?;
+        owner.json_visits.set(total);
+        Ok(())
+    };
     let mut check = || {
         check_capture_active(Some(owner.cancelled), owner.deadline).map_err(|_| {
             tos_foundation::FoundationError::new(
@@ -1882,12 +1883,13 @@ fn creation_json_with_limits<'a>(
         })
     };
     let site = std::panic::Location::caller();
-    let parsed = parse_json_with_state_budget_and_check(
+    let parsed = tos_foundation::parse_json_with_state_budget_and_admission(
         raw,
         JsonMode::PublishedStrict,
         limits,
         available,
         &mut check,
+        &mut admit,
     )
     .map_err(|error| {
         eprintln!(
@@ -1896,11 +1898,9 @@ fn creation_json_with_limits<'a>(
         );
         foundation_json_error(error)
     })?;
-    owner.json_visits.set(
-        before
-            .checked_add(parsed.visits())
-            .ok_or(Error::Budget("runtime carrier creation JSON visits"))?,
-    );
+    if owner.json_visits.get().checked_sub(before) != Some(parsed.visits()) {
+        return Err(Error::Invalid("owned model parse visit accounting"));
+    }
     let value = parsed.into_root();
     let bytes = value
         .retained_storage_bytes()
@@ -7272,6 +7272,38 @@ mod construction_phase_tests {
         }).is_err());
         assert_eq!(state.retained.get(), baseline);
         eprintln!("exact JSON emission work counted={counted_work} exact={exact_work}");
+        // Parse work follows actual UTF8 bytes and grammar nodes. A large
+        // string is one node; a partial invalid array still consumes its paid
+        // prefix. The caller cannot reset work/visits after a refusal.
+        let parse_raw = br#"{"text":"long scalar string","values":[1,2,3]}"#;
+        let before_work = work.load(Ordering::Acquire);
+        let before_visits = state.json_visits.get();
+        let parsed = creation_json_with_limits(&state, parse_raw, limits).unwrap();
+        let used = state.json_visits.get() - before_visits;
+        assert_eq!(used, 6);
+        assert_eq!(work.load(Ordering::Acquire) - before_work, (parse_raw.len() + used) as u64);
+        drop(parsed);
+        assert_eq!(state.retained.get(), baseline);
+        let before_work = work.load(Ordering::Acquire);
+        let before_visits = state.json_visits.get();
+        let broken = br#"[1,2,"#;
+        assert!(creation_json_with_limits(&state, broken, limits).is_err());
+        assert!(state.json_visits.get() > before_visits);
+        assert!(work.load(Ordering::Acquire) >= before_work + broken.len() as u64);
+        assert_eq!(state.retained.get(), baseline);
+        // Distinct original owner with a byte-tight work cap cannot execute
+        // even the first grammar node after its UTF8 span uses the budget.
+        let limited_work = Arc::new(AtomicU64::new(0));
+        let limited_budget = RuntimeKnowledgeOwnedBudget {
+            original_work: &limited_work, original_work_limit: parse_raw.len() as u64,
+            ..budget
+        };
+        let limited_state = CreationState::from_runtime_owned_budget(&limited_budget).unwrap();
+        assert!(creation_json_with_limits(&limited_state, parse_raw, limits).is_err());
+        assert_eq!(limited_work.load(Ordering::Acquire), parse_raw.len() as u64);
+        assert_eq!(limited_state.json_visits.get(), 0);
+        assert_eq!(limited_state.retained.get(), 0);
+        drop(limited_state);
         let persistent = state.serde_owned_with_limits(raw, limits).unwrap();
         assert!(state.persistent.get() > 0);
         assert_eq!(state.retained.get(), baseline + state.persistent.get());

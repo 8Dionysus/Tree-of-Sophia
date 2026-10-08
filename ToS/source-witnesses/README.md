@@ -1510,6 +1510,15 @@ and writes a separate `structure/native-NAME/` map, anchors and Rust provenance.
 The local input root names the corpus root containing `ToS/source-witnesses/`;
 original payloads and the historical generation remain unchanged.
 
+The Polilov/Mysl target uses
+`tos jenseits-polilov-numbered-structure --source-root ABS --local-input-root ABS --check`
+with the exact held PDF and its metadata. `validate-tracked` checks the retained
+298 proposed page anchors and their provenance. A fresh `--build` requires a
+writable selected source root, `--generation`, `--event-at` and an explicit
+`--scratch-bytes` allowance; replay compares all output bytes before writing.
+Historical reconstruction preserves its original provenance and the
+unmaterialized source-only label `237a`.
+
 The OCR supplies proposed page starts; exact line boundaries require
 separately resolved anchors.
 The parallel German ↔ Russian map still stops at division granularity and

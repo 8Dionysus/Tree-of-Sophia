@@ -7,7 +7,7 @@
 
 use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::knowledge_normalization::{OwnedSourceRow, SourceRow};
-use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::knowledge_stage::{KnowledgeStage, NormalizedLogical, WritePhase};
 use crate::{Error, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::Value;
@@ -75,7 +75,7 @@ fn page(
     limits: GlobalTitleLimits,
 ) -> Result<Vec<BaseRow>> {
     let owned = stage.owned_creation_state();
-    let mut batch = stage.with_connection(WritePhase::Sort, |db| {
+    let batch = stage.with_connection(WritePhase::Sort, |db| {
         let payload = if owned.is_some() {
             "NULL"
         } else {
@@ -104,18 +104,6 @@ fn page(
         }
         Ok(out)
     })?;
-    if let Some(state) = owned {
-        for row in &mut batch {
-            let payload = &mut row.payload;
-            stage
-                .with_node_payload_owned(&row.id, limits.max_node_bytes, |_, logical| {
-                    state.charge_work(logical.len())?;
-                    *payload = logical.to_vec();
-                    Ok(())
-                })?
-                .ok_or(Error::Invalid("global title node disappeared"))?;
-        }
-    }
     Ok(batch)
 }
 
@@ -143,11 +131,11 @@ fn build_inner(
         return Err(Error::Invalid("global title complete base root"));
     }
     stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
-            table r#"knowledge_global_titles(
+        table r#"knowledge_global_titles(
              node_id TEXT PRIMARY KEY,title_len INTEGER NOT NULL,
              title_sha256 BLOB NOT NULL CHECK(length(title_sha256)=32),
              title_json BLOB NOT NULL) WITHOUT ROWID"#
-        ))?;
+    ))?;
     let mut after = -1i64;
     let mut count = 0u64;
     let mut work = 0u64;
@@ -172,40 +160,82 @@ fn build_inner(
         }
         let mut titles = Vec::with_capacity(batch.len());
         for row in batch {
-            if row.order <= after
-                || row.order < 0
-                || Digest256::of_bytes(&row.payload).as_bytes() != &row.sha
-            {
+            if row.order <= after || row.order < 0 {
                 return Err(Error::Invalid("global title base row"));
             }
             count = count
                 .checked_add(1)
                 .ok_or(Error::Budget("global title rows"))?;
-            work = work
-                .checked_add(row.payload.len() as u64)
-                .ok_or(Error::Budget("global title work"))?;
-            if count > limits.max_nodes || work > limits.max_work_bytes {
+            if count > limits.max_nodes {
                 return Err(Error::Budget("global title scan"));
             }
-            let node = SourceRow::parse_scoped_with_optional_owned_state(
-                &row.payload,
-                limits.max_node_bytes,
-                stage.owned_creation_state(),
-            )?;
-            let value = node.value();
-            if value.get("id").and_then(Value::as_str) != Some(row.id.as_str()) {
-                return Err(Error::Invalid("global title node binding"));
-            }
-            let title = value
-                .get("display")
-                .and_then(|v| v.get("title"))
-                .filter(|v| v.is_object())
-                .ok_or(Error::Invalid("global title missing display"))?;
-            let bytes =
-                serde_json::to_vec(title).map_err(|_| Error::Invalid("global title JSON"))?;
-            if bytes.len() > limits.max_title_bytes {
-                return Err(Error::Budget("global title bytes"));
-            }
+            let state = stage.owned_creation_state();
+            let mut extract = |value: &Value, logical_len: usize| -> Result<Vec<u8>> {
+                work = work
+                    .checked_add(logical_len as u64)
+                    .ok_or(Error::Budget("global title work"))?;
+                if work > limits.max_work_bytes {
+                    return Err(Error::Budget("global title scan"));
+                }
+                if value.get("id").and_then(Value::as_str) != Some(row.id.as_str()) {
+                    return Err(Error::Invalid("global title node binding"));
+                }
+                let title = value
+                    .get("display")
+                    .and_then(|v| v.get("title"))
+                    .filter(|v| v.is_object())
+                    .ok_or(Error::Invalid("global title missing display"))?;
+                if let Some(state) = state {
+                    state.with_json_encoded(title, limits.max_title_bytes, |bytes| {
+                        // The outer page owns retained title copies through its
+                        // SQL write. The complete node tree stays callback-local.
+                        state.charge_work(bytes.len())?;
+                        Ok(bytes.to_vec())
+                    })
+                } else {
+                    let bytes = serde_json::to_vec(title)
+                        .map_err(|_| Error::Invalid("global title JSON"))?;
+                    if bytes.len() > limits.max_title_bytes {
+                        return Err(Error::Budget("global title bytes"));
+                    }
+                    Ok(bytes)
+                }
+            };
+            let bytes = if let Some(state) = state {
+                stage
+                    .with_normalized_payload_decoded_owned(
+                        false,
+                        &row.id,
+                        limits.max_node_bytes,
+                        true,
+                        |_, logical, _| {
+                            let NormalizedLogical::Value {
+                                value,
+                                logical_len,
+                                digest,
+                                ..
+                            } = logical
+                            else {
+                                return Err(Error::Invalid("global title typed row absent"));
+                            };
+                            if digest.as_bytes() != &row.sha {
+                                return Err(Error::Invalid("global title base row"));
+                            }
+                            state.check_serde_structure(
+                                &value,
+                                SourceRow::json_limits(limits.max_node_bytes)?,
+                            )?;
+                            extract(&value, logical_len)
+                        },
+                    )?
+                    .ok_or(Error::Invalid("global title node disappeared"))?
+            } else {
+                if Digest256::of_bytes(&row.payload).as_bytes() != &row.sha {
+                    return Err(Error::Invalid("global title base row"));
+                }
+                let node = SourceRow::parse(&row.payload, limits.max_node_bytes)?;
+                extract(node.value(), row.payload.len())?
+            };
             work = work
                 .checked_add(bytes.len() as u64)
                 .ok_or(Error::Budget("global title work"))?;
@@ -593,7 +623,11 @@ pub fn order_native_graph_rows(
                 return Err(Error::Budget("native graph order work"));
             }
             stage.charge_materialized(count, bytes)?;
-            let location = if stage.payload_layout().uses_carriers() { "TEMP " } else { "" };
+            let location = if stage.payload_layout().uses_carriers() {
+                "TEMP "
+            } else {
+                ""
+            };
             stage.with_connection(WritePhase::Sort, |db| {
                 let tx = db.transaction()?;
                 tx.execute_batch(&format!(

@@ -6929,6 +6929,7 @@ mod tests {
                 let id = format!("node.{order}");
                 let logical = serde_json::to_vec(&serde_json::json!({
                     "id": id, "source_graph": "fixture.graph", "attributes": {}, "view_ids": [],
+                    "display": {"title": {"text": id, "language": "und"}},
                     "metadata": "normalized words ".repeat(400),
                     "source_record": {"payload": source_value, "field_map": {}}
                 })).unwrap();
@@ -7030,6 +7031,25 @@ mod tests {
                 let pending: u64 = stage.db().query_row("SELECT count(*) FROM temp.knowledge_byte_dictionary_pending", [], |row| row.get(0)).unwrap();
                 assert_eq!(pending, 2);
             }
+            let title_roots = stage.core_roots().unwrap();
+            let seal = crate::knowledge_global_titles::CompleteBaseNodes {
+                source_cut: stage.exact_receipt().unwrap().binding.source_cut.clone(),
+                node_count: title_roots.nodes, node_root_sha256: title_roots.node_sha256.clone(),
+            };
+            let before = work.load(Ordering::Acquire);
+            let titles = crate::knowledge_global_titles::prepare_global_titles(&mut stage, &seal,
+                crate::knowledge_global_titles::GlobalTitleLimits {
+                    max_nodes: 2, max_page_rows: 1, max_page_bytes: 32768,
+                    max_node_bytes: 32768, max_title_bytes: 1024, max_work_bytes: 1024 * 1024,
+                }).unwrap();
+            assert_eq!(titles.title_count, 2);
+            eprintln!("global title typed scan layout={layout:?} work={}", work.load(Ordering::Acquire) - before);
+            for order in 0..2 {
+                let id = format!("node.{order}");
+                let title = crate::knowledge_global_titles::endpoint_title(&mut stage, &titles, &id, 1024).unwrap();
+                assert_eq!(title, serde_json::json!({"text": id, "language": "und"}));
+            }
+            assert_eq!(stage.core_roots().unwrap().node_sha256, title_roots.node_sha256);
             // The actual global finalizer reads a factored, packed row, adds an
             // inherited view, stamps its revision and CAS-writes it. Compare the
             // independent scalar normalization and preserve original source bytes.
