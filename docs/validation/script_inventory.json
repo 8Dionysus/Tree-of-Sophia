@@ -2299,7 +2299,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_mysl_transfer_target_structure.py",
+      "path": "rust/crates/tos-compiler/src/mysl_transfer_target_structure.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
@@ -2318,16 +2318,16 @@
         "the exact local Mysl 1996 PDF, its tracked inventory, collection work boundaries, frozen transfer plan and candidate anchors, plus the target rights record"
       ],
       "writes": [
-        "tracked text-free hierarchical target maps, proposed whole-page anchors, target-only frozen-candidate crosswalks, and provenance for Genealogie and Antichrist unless --check is used"
+        "tracked text-free hierarchical target maps, proposed whole-page anchors, target-only frozen-candidate crosswalks, and provenance for Genealogie and Antichrist only for an explicit --build --generation; --check reconstructs historical bytes read-only"
       ],
       "side_effects": "140 proposed series-qualified target starts and 20 target-only candidate routes with no tracked prose, German parallel route, passage alignment, accepted text, translation relation, eligibility, target gold, semantics, rights clearance, or human work",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "test_target": "rust/crates/tos-compiler/src/mysl_transfer_target_structure.rs",
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_nietzsche_transfer_source_structure.py",
+      "path": "rust/crates/tos-compiler/src/nietzsche_transfer_source_structure.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
@@ -2345,12 +2345,12 @@
         "the exact local Genealogie PDF and separate Antichrist Commons DjVu plus Internet Archive DjVuXML navigation Item, all with fixity, inventory, and layered rights bindings"
       ],
       "writes": [
-        "two tracked text-free German hierarchical numbered-unit maps, 140 proposed whole-page anchors, and provenance unless --check is used"
+        "two tracked text-free German hierarchical numbered-unit maps, 140 proposed whole-page anchors, and provenance only for an explicit --build --generation; --check reconstructs historical bytes read-only"
       ],
       "side_effects": "78 Genealogie and 62 Antichrist proposed source starts with explicit OCR/visible-review basis and no accepted German, passage ends, alignment, translation, semantics, eligibility, gold, canon, or human work",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_nietzsche_transfer_source_routes.py",
+      "test_target": "rust/crates/tos-compiler/src/nietzsche_transfer_source_structure.rs",
       "disposition": "keep"
     },
     {

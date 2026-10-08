@@ -1552,6 +1552,14 @@ identities prevent repeated numerals from collapsing into a false flat unit
 namespace. The original target-only crosswalks narrow the twelve frozen pages
 to twenty possible target routes and remain unchanged as historical inputs.
 
+`tos mysl-transfer-target-structure --source-root ABS --local-input-root ABS --check`
+reconstructs both retained target maps, their anchors and frozen-page crosswalks.
+Historical events keep the input and output digests from their original revision,
+including events that predate later plan or rights changes. New `--build`
+generations bind current inputs and cite the retained scan-review decisions.
+Use `--generation NAME --event-at RFC3339 --scratch-bytes BYTES`; the producer
+checks every existing destination before writing, and matching replay writes nothing.
+
 Separate German source maps now materialize the same 140 structural labels.
 The 1892 *Genealogie* Item supplies 78 proposed PDF starts. The 1906
 *Antichrist* route preserves a stronger boundary: the 523-page Commons DjVu is
@@ -1561,6 +1569,13 @@ offset. This relation is not full-container or textual identity. A payload-free
 intersection pairs only identical `series:unit` keys, and a second composition
 gives all twelve frozen pages twenty possible German structural routes. These routes provide proposed German structural starts; passage ends and
 source-to-target correspondences remain unresolved.
+
+`tos nietzsche-transfer-source-structure --source-root ABS --local-input-root ABS --check`
+reconstructs the two retained German maps, anchors and provenance through Rust.
+It holds the PDF, DjVu and DjVuXML witnesses separately, verifies their fixity
+and keeps the declared page offset. The same explicit generation, timestamp
+and admitted-byte options create separate native generations. Numbered-page
+ranges remain inside their wider work boundary, which can also include title pages.
 
 The frozen target side now has a separate exact-layer boundary preparation
 step over the ignored Mysl PDF. It expands the twenty page candidates into

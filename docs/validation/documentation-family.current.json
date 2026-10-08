@@ -29,14 +29,14 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 6373,
+    "tracked_surface_count": 6371,
     "unhandled_family_count": 1
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 5632,
+    "excluded_tracked_path_count": 5635,
     "human_scope": {
-      "bytes": 7341302,
+      "bytes": 7342891,
       "count": 1087,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -116,20 +116,20 @@
           "lines": 1037
         },
         "tos": {
-          "bytes": 4998116,
+          "bytes": 4999705,
           "count": 726,
-          "lines": 82431
+          "lines": 82455
         }
       },
-      "lines": 121377
+      "lines": 121401
     },
     "surface_kind_counts": {
-      "executable": 578,
+      "executable": 575,
       "human": 1087,
-      "structured": 4708
+      "structured": 4709
     },
-    "tracked_path_count": 12005,
-    "tracked_surface_count": 6373,
+    "tracked_path_count": 12006,
+    "tracked_surface_count": 6371,
     "unhandled_family_count": 1,
     "unhandled_paths": [
       ".scale-completion-r1/v2-writer-source-pin-r1.json"
@@ -175,7 +175,7 @@
         "human": 726,
         "structured": 4400
       },
-      "tracked_surface_bytes": 99543819,
+      "tracked_surface_bytes": 99545408,
       "tracked_surface_count": 5159
     },
     {
@@ -194,7 +194,7 @@
         "human": 88,
         "structured": 6
       },
-      "tracked_surface_bytes": 1097473,
+      "tracked_surface_bytes": 1098021,
       "tracked_surface_count": 94
     },
     {
@@ -236,22 +236,22 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 138,
+        "executable": 135,
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 3767308,
-      "tracked_surface_count": 142
+      "tracked_surface_bytes": 3653593,
+      "tracked_surface_count": 139
     },
     {
       "family_id": "rust",
       "surface_kind_counts": {
         "executable": 4,
         "human": 11,
-        "structured": 190
+        "structured": 191
       },
-      "tracked_surface_bytes": 2928771,
-      "tracked_surface_count": 205
+      "tracked_surface_bytes": 2936167,
+      "tracked_surface_count": 206
     },
     {
       "family_id": "tests",
@@ -260,7 +260,7 @@
         "human": 10,
         "structured": 11
       },
-      "tracked_surface_bytes": 3715911,
+      "tracked_surface_bytes": 3715175,
       "tracked_surface_count": 131
     },
     {
@@ -295,7 +295,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "ba101a8a9904182f059749f80e8a670403938a0938fe0c2e19d16cf6cc599ed8",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "881ab9eaeda1ac1f3f366d20391530927baf74c27b78a1eb9a36cfeb6c05835b",
+  "tracked_surface_digest": "ce60232265334f945f6fb4987bde92a2939c4da61e9a7c849ee6f524746a549d",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -342,7 +342,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "0608dc803e7433ce3be400497bfb6cbbae084d5a6acfc15cab497bd97e1ae0a3",
+      "sha256": "0d052766ddc386eb5cd74a26f824d5315d2f3718bcfdb0bde582a65277d4adf8",
       "surface_kind": "structured"
     },
     {
@@ -25162,11 +25162,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 106271,
+      "bytes": 107860,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "6f815705627d31800b94aff8b0953cd1ce346fed2cf1917cc2d68d6bbb3603ba",
+      "sha256": "4783d68de45c7197fa593c8a15a74bb46b7b9c685e93c8391604b9c76e52524c",
       "surface_kind": "human"
     },
     {
@@ -44930,11 +44930,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 282781,
+      "bytes": 283329,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "cd9439abe0d87264e246a5d3b59947f906c918f2e38cd19135014867a9f2d00f",
+      "sha256": "fc0172556c79a546f190541e6655be4682cb8a118e80f8a2c93889477b1c6145",
       "surface_kind": "structured"
     },
     {
@@ -48594,6 +48594,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7396,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-compiler/src/nietzsche_transfer_source_structure/config.json",
+      "sha256": "6bf6cfbaff3e126d3a377913236fd3d58a6fa6905711f9eb1f913cd5f9195a75",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 10825,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
@@ -49178,14 +49186,6 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 28434,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
-      "sha256": "2cb29b8b610361690d3ef9a82ab496dd2c88a7e8d32fb1ca46b271aa1efb1c26",
-      "surface_kind": "executable"
-    },
-    {
       "bytes": 1966,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
@@ -49199,22 +49199,6 @@
       "family_id": "scripts",
       "path": "scripts/build_kag_export_legacy_oracle.py",
       "sha256": "ad3e0cc022c57c2611b2beff2195866f5302e24dd4edffdb71ef8b0b791cd939",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 44847,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_mysl_transfer_target_structure.py",
-      "sha256": "e36e8f03428d6ab08d556015c791a7c61a798d3299eabec138ee03c19214cc88",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 40434,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "scripts",
-      "path": "scripts/build_nietzsche_transfer_source_structure.py",
-      "sha256": "49042d849c6cd5f863ab4593bab6d107e2d78225ad30253864827b075435ca64",
       "surface_kind": "executable"
     },
     {
@@ -51202,11 +51186,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 15148,
+      "bytes": 14412,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_witness_structure_correspondence.py",
-      "sha256": "fb276ad4fec3294e69abf959d85663f0b2fcdd650441deb968b32e4a445e4cd5",
+      "sha256": "bc79697a47f4319eff3e7fd69a8e4b9015e1b37ccd24f9776d72b9aa7b4e4f5d",
       "surface_kind": "executable"
     },
     {
