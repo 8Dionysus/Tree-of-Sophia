@@ -547,14 +547,16 @@ pub enum KnowledgePayloadLayout {
     InlineV1,
     CarrierOnceV1,
     CarrierOnceV2,
+    CarrierOnceV3,
 }
 impl KnowledgePayloadLayout {
     pub const fn uses_carriers(self) -> bool {
-        matches!(self, Self::CarrierOnceV1 | Self::CarrierOnceV2)
+        matches!(self, Self::CarrierOnceV1 | Self::CarrierOnceV2 | Self::CarrierOnceV3)
     }
     pub const fn packed_bytes(self) -> bool {
-        matches!(self, Self::CarrierOnceV2)
+        matches!(self, Self::CarrierOnceV2 | Self::CarrierOnceV3)
     }
+    pub const fn dictionary_bytes(self) -> bool { matches!(self, Self::CarrierOnceV3) }
     /// Format selection follows an already authenticated model ABI. Callers
     /// retain their independent whole-model and component compatibility checks.
     pub fn from_model_abi(abi: &str) -> Self {
@@ -565,12 +567,14 @@ impl KnowledgePayloadLayout {
             tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2 => {
                 Self::CarrierOnceV2
             }
+            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3 => Self::CarrierOnceV3,
             _ => Self::InlineV1,
         }
     }
     pub const fn carrier_model_abi(self) -> Option<&'static str> {
         match self {
             Self::InlineV1 => None,
+            Self::CarrierOnceV3 => Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3),
             Self::CarrierOnceV1 => {
                 Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1)
             }
@@ -592,7 +596,9 @@ impl KnowledgePayloadLayout {
         expected_bytes: usize,
         max_bytes: usize,
     ) -> Result<()> {
-        if self.packed_bytes() {
+        if self.dictionary_bytes() && crate::knowledge_byte_codec::is_dictionary_frame(stored) {
+            crate::knowledge_byte_codec::dictionary_frame_metadata(stored,Some(expected_bytes),max_bytes)?;
+        } else if self.packed_bytes() {
             crate::knowledge_byte_codec::frame_metadata(stored, Some(expected_bytes), max_bytes)?;
         } else if expected_bytes == 0
             || expected_bytes > max_bytes
@@ -601,6 +607,46 @@ impl KnowledgePayloadLayout {
             return Err(Error::Invalid("legacy physical payload length"));
         }
         Ok(())
+    }
+    pub(crate) fn read_dictionary<'s,'b>(
+        self, db: &Connection, state: &'s crate::d1_public_capture::CreationState<'b>,
+        stored: &[u8], max_bytes: usize,
+    ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'s,'b>>> {
+        if crate::knowledge_byte_codec::is_dictionary_frame(stored) && !self.dictionary_bytes() {
+            return Err(Error::Invalid("dictionary frame incompatible with model ABI"));
+        }
+        if self.dictionary_bytes() { crate::knowledge_byte_dictionary::read(db,state,stored,max_bytes) } else { Ok(None) }
+    }
+    pub(crate) fn with_sql_decoded<T>(
+        self, db: &Connection, state: &crate::d1_public_capture::CreationState<'_>,
+        stored: &[u8], expected: Option<usize>, max_bytes: usize,
+        consume: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
+        let dictionary=self.read_dictionary(db,state,stored,max_bytes)?;
+        self.with_decoded_dictionary(state,stored,dictionary.as_ref().map(|d|d.as_bytes()),expected,max_bytes,consume)
+    }
+    pub(crate) fn with_decoded_dictionary<T>(
+        self, state: &crate::d1_public_capture::CreationState<'_>, stored: &[u8],
+        dictionary: Option<&[u8]>, expected: Option<usize>, max_bytes: usize,
+        consume: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
+        if self.dictionary_bytes() && crate::knowledge_byte_codec::is_dictionary_frame(stored) {
+            crate::knowledge_byte_codec::with_dictionary_decoded(state,stored,
+                dictionary.ok_or(Error::Invalid("selected byte dictionary absent"))?,expected,max_bytes,consume)
+        } else {
+            if dictionary.is_some() { return Err(Error::Invalid("unexpected byte dictionary")); }
+            self.with_decoded(state,stored,expected,max_bytes,consume)
+        }
+    }
+    pub(crate) fn with_encoded_dictionary<T>(
+        self, state: &crate::d1_public_capture::CreationState<'_>, dictionary: Option<&[u8]>,
+        raw: &[u8], max_bytes: usize, consume: impl FnOnce(&[u8]) -> Result<T>,
+    ) -> Result<T> {
+        match dictionary {
+            Some(dictionary) if self.dictionary_bytes() => crate::knowledge_byte_codec::with_dictionary_encoded(state,raw,dictionary,max_bytes,consume),
+            Some(_) => Err(Error::Invalid("dictionary encoder incompatible with model ABI")),
+            None => self.with_encoded(state,raw,max_bytes,consume),
+        }
     }
     pub(crate) fn with_decoded<T>(
         self,
@@ -3218,8 +3264,8 @@ impl<'a> KnowledgeStage<'a> {
                 let sql=match (self.payload_layout,relation) {
                     (KnowledgePayloadLayout::InlineV1,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
                     (KnowledgePayloadLayout::InlineV1,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
-                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
-                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
+                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
+                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
                 };
                 self.payload_layout.with_encoded(state, logical, cap, |physical| {
                     self.with_connection(WritePhase::Normalized,|db| {
@@ -4223,7 +4269,7 @@ impl<'a> KnowledgeStage<'a> {
                   WHERE from_id=?1 AND source_order>?2 AND length(payload)<=?3
                     AND payload_len=length(payload)
                   ORDER BY source_order,id LIMIT ?4",
-                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
                   WHERE from_id=?1 AND source_order>?2 AND payload_len<=?3 AND length(payload)<=?3+17
                   ORDER BY source_order,id LIMIT ?4",
             },
@@ -4247,7 +4293,7 @@ impl<'a> KnowledgeStage<'a> {
                   WHERE to_id=?1 AND source_order>?2 AND length(payload)<=?3
                     AND payload_len=length(payload)
                   ORDER BY source_order,id LIMIT ?4",
-                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
                   WHERE to_id=?1 AND source_order>?2 AND payload_len<=?3 AND length(payload)<=?3+17
                   ORDER BY source_order,id LIMIT ?4",
             },

@@ -111,6 +111,7 @@ mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
 mod knowledge_byte_codec;
+mod knowledge_byte_dictionary;
 mod knowledge_payload_codec;
 pub mod knowledge_payload_read;
 pub mod knowledge_philosophy_display;
