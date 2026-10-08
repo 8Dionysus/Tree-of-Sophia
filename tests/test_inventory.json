@@ -1188,21 +1188,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_golden_kernel_transfer_source_passages.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "validator_behavior",
-      "validation_lane": "source_witness_foundation",
-      "owner_surface": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
-      "protects": "35 conservative German source routes, 35 private layer-exact or exact source-visible-marker passage candidates, exact PDF/JP2 visible-marker returns, address/navigation witness separation, ignored text custody, and zero accepted German, alignment, eligibility, gold, human, semantic, or canon promotion",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_golden_kernel_transfer_source_passages.py",
-      "failure_route": "Fix the source passage candidate contract, tracked receipt, anchors, provenance, builder, or validator before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_source_text_layer_proposal.py",
       "home": "tests",
       "home_scope": "root",

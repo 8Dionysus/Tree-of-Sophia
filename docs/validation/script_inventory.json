@@ -2715,7 +2715,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_golden_kernel_transfer_source_passages.py",
+      "path": "rust/crates/tos-compiler/src/transfer_source_passages.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
@@ -2726,18 +2726,23 @@
         "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/**/items/wikimedia-commons-unc-scan-pdf/{item.manifest.json,resource-inventory.json,rights.json,forensic-report.md,payload/*}",
         "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/**/items/{wikimedia-commons-stanford-scan-djvu,internet-archive-google-stanford-djvu-xml}/{item.manifest.json,resource-inventory.json,rights.json,payload/*}",
         "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
-        "ToS/contracts/source-anchor.schema.json"
+        "ToS/contracts/source-anchor.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-anchors.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+        ".gitignore"
       ],
       "reads": [
-        "the tracked thirty-five-route target frame plus exact local German PDF image masks and bbox layers, ABBYY, DjVuXML, JP2 ZIP, and scandata layers, source maps, manifests, inventories, forensic marker reports, and separate rights records"
+        "Explicit source root, retained thirty-five target routes, exact German PDF/ABBYY/DjVuXML payloads, authored marker evidence, current rights and optional private output root. Tracked validation reads no private payload."
       ],
       "writes": [
-        "thirty-five ignored mode-0600 private German automatic-layer or exact source-visible-marker passage JSON files plus a tracked text-free candidate set, thirty-five proposed anchors, and provenance unless --check is used"
+        "Native tos transfer-source-passages --build creates fresh/matching ignored mode-0600 private files plus tracked metadata/provenance. --check and --validate-tracked are read-only."
       ],
       "side_effects": "keeps and materializes all thirty-five routes through same-layer boundaries, exact JP2/scandata marker returns, or exact same-PDF image-mask/Poppler returns; creates no diplomatic or accepted German, source-target alignment, eligibility, gold, human, semantic, canon, or publication effect",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
+      "ci_inclusion": "release",
+      "test_target": "rust/crates/tos-compiler/src/transfer_source_passages.rs",
       "disposition": "keep"
     },
     {
@@ -3087,31 +3092,6 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_nietzsche_transfer_source_routes.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_golden_kernel_transfer_source_passages.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
-      "source_truth": [
-        "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
-        "ToS/contracts/source-anchor.schema.json",
-        "ToS/contracts/provenance-event.schema.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-anchors.v1.jsonl",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
-        ".gitignore"
-      ],
-      "reads": [
-        "tracked schema, target frame, text-free source candidate closure, anchors, provenance, input digests, rights and ignore boundary; optionally the explicit private output root"
-      ],
-      "writes": [],
-      "side_effects": "validation output only; preserves exactly thirty-five private layer-exact or exact source-visible-marker routes, exact PDF and JP2 marker returns, Antichrist address/navigation non-identity, ignored private content, and zero accepted-German/alignment/eligibility/gold/human/semantic/canon effects",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
       "disposition": "keep"
     },
     {

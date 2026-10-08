@@ -2235,3 +2235,12 @@ bindings, anchors, provenance and the ignored private boundary without opening
 the PDF; an explicit output root additionally checks private fixity and mode.
 The 32 page intersections and three rejected nonintersections retain their
 candidate status and confer no alignment, accepted text, gold or publication.
+
+`tos transfer-source-passages --source-root ABS --validate-tracked` checks the
+tracked thirty-five German source passage candidates without reading private text.
+Use `--check --local-input-root ABS --local-output-root ABS` to reproduce the
+retained exact private layer bytes. The private roots contain repository-relative
+`ToS/...` paths. A fresh `--build` requires `--generation NAME --event-id ID` and
+an admitted `--scratch-bytes` quota; private output stays ignored and mode 0600.
+Native Poppler 26.01.0 extraction, streamed ABBYY/DjVuXML and authored PDF/JP2
+marker returns preserve their separate source/review and rights boundaries.
