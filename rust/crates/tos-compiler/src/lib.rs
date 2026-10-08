@@ -1076,3 +1076,5 @@ pub use native_snapshot::{
 
 pub mod transfer_target_passages;
 pub mod transfer_source_passages;
+
+pub mod transfer_candidates;

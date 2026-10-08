@@ -60,6 +60,11 @@ impl Poppler{
  ensure(start>0&&end>=start&&end-start<8&&end<=100000,"bbox page chunk bound")?;
  let pdf=format!("/proc/{}/fd/{}",std::process::id(),pdf.as_raw_fd());let r=capture_with_cancel(std::process::Command::new(&self.command).args(["-f",&start.to_string(),"-l",&end.to_string(),"-bbox-layout",&pdf,"-"]),None,CaptureLimits{max_stdin_bytes:0,max_stdout_bytes:CAP,max_stderr_bytes:16384},ctx.deadline(),ctx.cancellation_flag())?;ensure(r.status.success(),"Poppler bbox extraction failed")?;ctx.tick(r.stdout.len() as u64)?;bbox(ctx,&r.stdout,start,end)
  }
+ pub(super) fn layout_pages(&self,ctx:&ResearchExecution,pdf:&File,start:usize,end:usize)->Result<BTreeMap<usize,Vec<u8>>>{
+ use crate::owned_native_child::{CaptureLimits,capture_with_cancel};
+ ensure(start>0&&end>=start&&end-start<8&&end<=100000,"layout page chunk bound")?;
+ let pdf=format!("/proc/{}/fd/{}",std::process::id(),pdf.as_raw_fd());let r=capture_with_cancel(std::process::Command::new(&self.command).args(["-f",&start.to_string(),"-l",&end.to_string(),"-layout","-enc","UTF-8",&pdf,"-"]),None,CaptureLimits{max_stdin_bytes:0,max_stdout_bytes:CAP,max_stderr_bytes:16384},ctx.deadline(),ctx.cancellation_flag())?;ensure(r.status.success(),"Poppler layout extraction failed")?;ctx.tick(r.stdout.len() as u64)?;let mut parts=r.stdout.split(|b|*b==12).collect::<Vec<_>>();if parts.last()==Some(&b"".as_slice()){parts.pop();}ensure(parts.len()==end-start+1,"layout page count drift")?;let mut out=BTreeMap::new();for(i,raw)in parts.into_iter().enumerate(){std::str::from_utf8(raw).map_err(|_|"layout UTF-8")?;out.insert(start+i,raw.to_vec());}Ok(out)
+ }
  pub(super) fn verify(&mut self)->Result<()>{ensure(self.root.hash_file(&mut self.held,32*1024*1024)?==self.digest,"Poppler executable changed")}
 }
 fn normalized_marker(text:&str)->String{text.trim().trim_end_matches('.').trim().chars().map(|c|match c{'а'|'А'=>'a','б'=>'6',_=>c}).collect()}
