@@ -2772,7 +2772,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_witness_structure_correspondence.py",
+      "path": "rust/crates/tos-compiler/src/witness_structure_correspondence.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/witness-structure-correspondence.schema.json",
@@ -2784,15 +2784,15 @@
         "ToS/contracts/source-anchor.schema.json"
       ],
       "reads": [
-        "four fixity-verified local DTA TEIs, the local Naumann 1893 EPUB, and tracked source resource inventories"
+        "Four fixity-held DTA TEIs, the Naumann1893 EPUB and image PDF, exact member digests, witness manifests/inventories/rights and retained provenance."
       ],
       "writes": [
-        "the tracked text-free Naumann 1893 to DTA-parts structure-correspondence map, proposed structural anchor set, source-anchor records, and provenance unless --check is used"
+        "A separate native generation of the text-free correspondence map, structural anchor set,246 proposed anchor records and two provenance events; historical --check is read-only."
       ],
-      "side_effects": "tracked mechanical named-division locator candidates and stable proposed addresses without source text or acceptance",
+      "side_effects": "Native tos witness-structure-correspondence checks82 retained candidates exactly. Fresh --build requires explicit generation, event time and admitted scratch bytes; conflicts refuse before writes. Rust provenance preserves source witness identities and claims no text, semantic, translation, rights or canon admission.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_witness_structure_correspondence.py",
+      "test_target": "rust/crates/tos-compiler/src/witness_structure_correspondence.rs",
       "disposition": "keep"
     },
     {

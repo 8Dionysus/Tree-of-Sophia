@@ -1469,6 +1469,15 @@ claiming content correctness.
 
 ## Witness structure correspondence
 
+The maintained producer is `tos witness-structure-correspondence`. Supply
+`--source-root ABS --local-input-root ABS --check` to reconstruct the retained
+82 correspondence candidates and 246 proposed anchors without writes. The
+local input root is the repository-shaped payload custody root. A fresh run uses
+`--build --generation NAME --event-at RFC3339 --scratch-bytes RESERVED_BYTES`
+and creates a separate `native-NAME` directory. It verifies all six payloads,
+including the PDF, and binds native provenance to their metadata and rights.
+
+
 The tracked Naumann 1893 ↔ DTA-parts map under
 `works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/`
 uses named primary TEI division starts and exact EPUB/PDF resource locators.
