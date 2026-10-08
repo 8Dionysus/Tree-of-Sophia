@@ -979,6 +979,7 @@ fn inspect_source_anchor_v2(
                 &path,
                 &raw,
                 crate::text_rules::ANCHOR_V2_PROFILE,
+                None,
                 limits,
             )?;
             if let Some(anchor_id) = anchor.get("anchor_id").and_then(Value::as_str) {
@@ -2309,6 +2310,7 @@ fn inspect_source_text_layer(
             layer_ref,
             &raw,
             crate::text_rules::TEXT_LAYER_PROFILE,
+            None,
             limits,
         )?;
         for message in source_text_layer_semantic_issues(&layer) {
@@ -7024,7 +7026,9 @@ fn python_contains(values: &[Value], needle: &Value) -> Result<bool, ItemRefusal
 }
 
 /// Shared semantic closure for an already bounded, schema-checked collation packet.
-pub fn witness_text_collation_semantic_messages(packet: &Value) -> Result<Vec<String>, ItemRefusal> {
+pub fn witness_text_collation_semantic_messages(
+    packet: &Value,
+) -> Result<Vec<String>, ItemRefusal> {
     let rows = |field: &str| -> Vec<&Value> {
         packet
             .get(field)
@@ -9172,7 +9176,15 @@ fn check_packet_variants(
             state.set_last_rejection_reasons_slot(output.len(), limits)?;
         }
         if let Some(profile) = metadata_profile {
-            append_text_metadata(state, source, path, &raw, profile, limits)?;
+            append_text_metadata(
+                state,
+                source,
+                path,
+                &raw,
+                profile,
+                row.get("expected_semantic_valid").and_then(Value::as_bool),
+                limits,
+            )?;
         }
         let inspected = inspect(state, source, variant_id, path, &value, &raw, row)?;
         source.checkpoint(limits.deadline)?;
@@ -10162,6 +10174,7 @@ fn append_text_metadata(
     path: &str,
     raw: &[u8],
     profile: &str,
+    expected_semantic_valid: Option<bool>,
     limits: ItemLimits,
 ) -> Result<(), ItemRefusal> {
     let metadata_limits = crate::text_metadata_rules::TextMetadataLimits {
@@ -10201,8 +10214,14 @@ fn append_text_metadata(
             ));
         }
     };
-    for issue in report.issues {
-        state.issue(path, issue.message, limits)?;
+    // A declared negative fixture still runs this owner and the complete
+    // source-text semantic check below. Its expected findings are controls,
+    // not laboratory failures. The variant callback separately requires the
+    // actual semantic verdict to equal the frozen expectation.
+    if expected_semantic_valid != Some(false) {
+        for issue in report.issues {
+            state.issue(path, issue.message, limits)?;
+        }
     }
     if report.state == crate::text_metadata_rules::TextMetadataState::Unsupported {
         state.gap(

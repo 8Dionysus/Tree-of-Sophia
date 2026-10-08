@@ -18,6 +18,31 @@ const BUILDER: &str = "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs
 // The shared text-metadata owner accepts packets up to 2 MiB. The compiled
 // recipes and their selected dependencies fit this same admitted envelope.
 const CAP: usize = 2 * 1024 * 1024;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn text_lab_keeps_expected_invalid_variant_and_checks_every_control() {
+        let root = tempfile::tempdir().unwrap();
+        for (reference, bytes) in [
+            ("ToS/contracts/source-text-unit-packet-v1.schema.json", include_bytes!("../../../../ToS/contracts/source-text-unit-packet-v1.schema.json").as_slice()),
+            ("ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md", include_bytes!("../../../../ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md").as_slice()),
+        ] {
+            let path = root.path().join(reference);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, bytes).unwrap();
+        }
+        let ctx = ResearchExecution::new(root.path(), 30).unwrap();
+        let prepared = prepare(&ctx, "source-text-unit-v1").unwrap();
+        assert_eq!(prepared.files.len(), 6);
+        let manifest: Value = serde_json::from_slice(&prepared.files[&prepared.manifest]).unwrap();
+        assert_eq!(manifest["variants"][2]["variant_id"], "C");
+        assert_eq!(manifest["variants"][2]["expected_semantic_valid"], false);
+        assert!(!root.path().join(&prepared.manifest).exists());
+    }
+}
+
 struct Recipe {
     legacy: &'static str,
     manifest: &'static str,
