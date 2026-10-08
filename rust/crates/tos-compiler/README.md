@@ -46,6 +46,11 @@ Source packets and normalized payloads use bounded physical frames from
 `knowledge_byte_dictionaries` and uses raw deflate for dictionary frames.
 A dictionary contains at most 4 KiB from the first 32 packets of one producer
 family. Its preparation state belongs to TEMP and ends with normalization.
+Stage owns the physical overhead for every insert and replacement: framing,
+pending dictionary selection and published dictionary bytes. Data-row/page
+allowances stay separate from this overhead, and their combined reservation
+must fit the unchanged physical page ceiling. Source-family producers use the
+same Stage pricing, including tiny packets collected over several pages.
 The sealed dictionary never changes. Short and early packets retain V2 raw or
 zlib frames; frame selection cannot exceed the original logical-length-plus-17
 storage bound. Dictionary bytes do not own source identity, rights or membership.

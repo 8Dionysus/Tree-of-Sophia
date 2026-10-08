@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5474,
     "human_scope": {
-      "bytes": 7324304,
+      "bytes": 7324682,
       "count": 1086,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -96,9 +96,9 @@
           "lines": 3098
         },
         "rust": {
-          "bytes": 105707,
+          "bytes": 106085,
           "count": 10,
-          "lines": 1510
+          "lines": 1515
         },
         "scripts": {
           "bytes": 9478,
@@ -121,7 +121,7 @@
           "lines": 82377
         }
       },
-      "lines": 121109
+      "lines": 121114
     },
     "surface_kind_counts": {
       "executable": 624,
@@ -250,7 +250,7 @@
         "human": 10,
         "structured": 167
       },
-      "tracked_surface_bytes": 1662793,
+      "tracked_surface_bytes": 1663171,
       "tracked_surface_count": 181
     },
     {
@@ -295,7 +295,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "ba101a8a9904182f059749f80e8a670403938a0938fe0c2e19d16cf6cc599ed8",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "81b72ae9f64bfa43193236e8b5c070b1847c032b85c40911b6c68b1aa0e08ab4",
+  "tracked_surface_digest": "a7594cb7b8acaf98e9121a64387d75253515aa21bd1e81824ec24982ee2d7de8",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -48490,11 +48490,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 14581,
+      "bytes": 14959,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-compiler/README.md",
-      "sha256": "6924d8a1ec52702d9b708b0416fea6f72f6c571269cbd14fe762273f676d3555",
+      "sha256": "26dcb8e075c48beb583800cbc67b1fb728278473dea37814893f301473242c8e",
       "surface_kind": "human"
     },
     {

@@ -10,6 +10,12 @@ use rusqlite::{Connection, types::ValueRef};
 use tos_foundation::Digest256;
 use tos_source_store::PinnedBoundedStatement;
 
+// Maximum auxiliary work for one source or normalized-row write. The
+// collector and published dictionary share the same Stage transaction owner.
+pub(crate) const MAX_GRAPH_BYTES: usize = 4096;
+pub(crate) const MAX_WRITE_ROWS: usize = 2;
+pub(crate) const MAX_WRITE_BYTES: usize = DICTIONARY_BYTES + MAX_GRAPH_BYTES + 8 + 256;
+
 pub(crate) const DDL: &str = "CREATE TABLE knowledge_byte_dictionaries(dictionary_sha256 BLOB PRIMARY KEY NOT NULL CHECK(length(dictionary_sha256)=32),dictionary BLOB NOT NULL CHECK(length(dictionary) BETWEEN 1 AND 4096));";
 pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema = crate::knowledge_stage::preparation_schema!(
     table "knowledge_byte_dictionary_pending(dictionary_kind TEXT NOT NULL,source_graph TEXT NOT NULL,samples INTEGER NOT NULL CHECK(samples BETWEEN 1 AND 32),dictionary BLOB NOT NULL CHECK(length(dictionary)<=4096),dictionary_sha256 BLOB CHECK(dictionary_sha256 IS NULL OR length(dictionary_sha256)=32),PRIMARY KEY(dictionary_kind,source_graph)) WITHOUT ROWID"
@@ -103,7 +109,7 @@ pub(crate) fn prepare<'s, 'b>(
 ) -> Result<(Option<OwnedDictionary<'s, 'b>>, u64, u64)> {
     if !matches!(kind, "source" | "node" | "relation")
         || graph.is_empty()
-        || graph.len() > 4096
+        || graph.len() > MAX_GRAPH_BYTES
         || raw.is_empty()
     {
         return Err(Error::Invalid("byte dictionary producer family"));

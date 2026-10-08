@@ -6,7 +6,7 @@ use crate::knowledge_base::{BaseNodeOverrides, KnowledgeBaseNormalizer};
 use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{
-    KnowledgePayloadLayout, KnowledgeStage, NodeRow, RelationRow, WritePhase,
+    KnowledgeStage, NodeRow, RelationRow, WritePhase,
 };
 use crate::{Error, QueryVocabulary, Result};
 use rusqlite::{OptionalExtension, params};
@@ -1293,14 +1293,8 @@ fn repository_owned_write_limits(
     mut limits: TopologyLimits,
 ) -> Result<(TopologyLimits, usize)> {
     limits.validate()?;
-    let physical_rows = match stage.payload_layout() {
-        KnowledgePayloadLayout::InlineV1 => 1,
-        KnowledgePayloadLayout::CarrierOnceV1 => 2,
-        KnowledgePayloadLayout::CarrierOnceV2 => 3,
-        // Each new dictionary family may insert its pending selection and
-        // published bytes, in addition to the carrier and normalized row.
-        KnowledgePayloadLayout::CarrierOnceV3 => 6,
-    };
+    // Stage owns codec framing and dictionary overhead for every writer.
+    let physical_rows = if stage.payload_layout().uses_carriers() { 2 } else { 1 };
     let (rows, bytes) = stage.write_page_limits();
     let physical_bytes = limits
         .max_row_bytes

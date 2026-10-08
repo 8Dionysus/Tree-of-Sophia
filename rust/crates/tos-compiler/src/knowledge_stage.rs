@@ -894,11 +894,16 @@ pub struct KnowledgeStage<'a> {
     fresh_selected: Option<PathBuf>,
 }
 
+#[derive(Debug)]
 struct WritePageCharge {
     rows: u64,
     bytes: u64,
     max_rows: u64,
     max_bytes: u64,
+    representation_rows: u64,
+    representation_bytes: u64,
+    max_representation_rows: u64,
+    max_representation_bytes: u64,
 }
 
 impl<'a> KnowledgeStage<'a> {
@@ -1030,7 +1035,7 @@ impl<'a> KnowledgeStage<'a> {
         if !self.payload_layout.dictionary_bytes() { return Ok(None); }
         let state = self.owned_creation_state().ok_or(Error::Invalid("dictionary producer owner absent"))?;
         let (dictionary, rows, bytes) = crate::knowledge_byte_dictionary::prepare(self.db(), state, kind, graph, raw)?;
-        self.charge_materialized(rows, bytes)?;
+        self.charge_representation(rows, bytes)?;
         Ok(dictionary)
     }
 
@@ -1106,7 +1111,8 @@ impl<'a> KnowledgeStage<'a> {
         if !found {
             let dictionary = self.prepare_byte_dictionary("source", family, packet)?;
             layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), packet, self.limits.sqlite.max_row_bytes, |stored| {
-                self.charge_materialized(1, stored.len() as u64)?;
+                self.charge_materialized(1, packet.len() as u64)?;
+                self.charge_representation(0, stored.len().saturating_sub(packet.len()) as u64)?;
                 self.db().execute(
                     "INSERT INTO knowledge_source_carriers(packet_sha256,packet_len,packet) VALUES (?1,?2,?3)",
                     params![&digest.as_bytes()[..], packet.len() as i64, stored],
@@ -2121,10 +2127,15 @@ impl<'a> KnowledgeStage<'a> {
         })
     }
 
-    /// One already-bounded normalization/finalization page. The closure uses
+    /// One bounded page of data rows. Stage separately reserves and charges
+    /// the selected format's framing and dictionary writes; their combined
+    /// physical maximum stays inside the existing page ceiling. The caller's
+    /// data-row and byte allowance remains independently enforced.
+    /// The closure uses
     /// the same Stage methods and connection, so its reads see earlier writes
     /// in this page. Previous committed pages remain independent. A caller
     /// may not commit an ignored row error: every Stage failure poisons it.
+    #[track_caller]
     pub(crate) fn with_write_page<T>(
         &mut self,
         phase: WritePhase,
@@ -2132,6 +2143,7 @@ impl<'a> KnowledgeStage<'a> {
         max_bytes: u64,
         f: impl FnOnce(&mut Self) -> Result<T>,
     ) -> Result<T> {
+        let caller = std::panic::Location::caller();
         let result = (|| {
             if self.poisoned || self.write_page.is_some() {
                 return Err(Error::Invalid("stage write page unavailable"));
@@ -2139,10 +2151,15 @@ impl<'a> KnowledgeStage<'a> {
             if !matches!(phase, WritePhase::Normalized | WritePhase::Finalize) {
                 return Err(Error::Invalid("stage write page phase"));
             }
+            let (representation_rows, representation_bytes) = self.payload_write_overhead();
+            let max_representation_rows = max_rows.checked_mul(representation_rows)
+                .ok_or(Error::Budget("stage representation page rows"))?;
+            let max_representation_bytes = (max_rows as u64).checked_mul(representation_bytes)
+                .ok_or(Error::Budget("stage representation page bytes"))?;
             if max_rows == 0
-                || max_rows > MAX_STAGE_PAGE_ROWS
+                || max_rows.checked_add(max_representation_rows).is_none_or(|n| n > MAX_STAGE_PAGE_ROWS)
                 || max_bytes == 0
-                || max_bytes > MAX_STAGE_PAGE_BYTES
+                || max_bytes.checked_add(max_representation_bytes).is_none_or(|n| n > MAX_STAGE_PAGE_BYTES)
             {
                 return Err(Error::Budget("stage write page bounds"));
             }
@@ -2156,6 +2173,10 @@ impl<'a> KnowledgeStage<'a> {
                 bytes: 0,
                 max_rows: max_rows as u64,
                 max_bytes,
+                representation_rows: 0,
+                representation_bytes: 0,
+                max_representation_rows: max_representation_rows as u64,
+                max_representation_bytes,
             });
             let page = (|| {
                 let value = f(self)?;
@@ -2168,6 +2189,9 @@ impl<'a> KnowledgeStage<'a> {
             let value = match page {
                 Ok(value) => value,
                 Err(error) => {
+                    if matches!(&error, Error::Budget(_)) {
+                        eprintln!("Native stage page refused at {}:{} phase={phase:?} layout={:?} charges={:?}: {error}", caller.file(), caller.line(), self.payload_layout, self.write_page);
+                    }
                     let error = self.annotate_sqlite_full(phase, error);
                     // SQLite may already have aborted this transaction. Cleanup
                     // must not replace the failure that poisoned this page.
@@ -2488,6 +2512,12 @@ impl<'a> KnowledgeStage<'a> {
     /// Charge a disk-backed external-sort copy before the SQL statement that
     /// writes final rows. A later failure poisons the stage and removes it.
     pub(crate) fn charge_materialized(&mut self, rows: u64, bytes: u64) -> Result<()> {
+        self.charge_materialized_kind(rows, bytes, false)
+    }
+    fn charge_representation(&mut self, rows: u64, bytes: u64) -> Result<()> {
+        self.charge_materialized_kind(rows, bytes, true)
+    }
+    fn charge_materialized_kind(&mut self, rows: u64, bytes: u64, representation: bool) -> Result<()> {
         let result = (|| {
             self.total_rows = self
                 .total_rows
@@ -2503,7 +2533,20 @@ impl<'a> KnowledgeStage<'a> {
                 return Err(Error::Budget("stage materialized rows/work bytes"));
             }
             self.charge_public_work(bytes)?;
-            self.charge_write_page(rows, bytes)?;
+            if representation {
+                if let Some(page) = self.write_page.as_mut() {
+                    page.representation_rows = page.representation_rows.checked_add(rows)
+                        .ok_or(Error::Budget("stage representation page rows"))?;
+                    page.representation_bytes = page.representation_bytes.checked_add(bytes)
+                        .ok_or(Error::Budget("stage representation page bytes"))?;
+                    if page.representation_rows > page.max_representation_rows
+                        || page.representation_bytes > page.max_representation_bytes {
+                        return Err(Error::Budget("stage representation page rows/bytes"));
+                    }
+                }
+            } else {
+                self.charge_write_page(rows, bytes)?;
+            }
             Ok(())
         })();
         self.poisoned |= result.is_err();
@@ -2567,10 +2610,21 @@ impl<'a> KnowledgeStage<'a> {
     pub(crate) fn input_batch_limits(&self) -> (usize, u64) {
         (self.limits.max_seek_rows, self.limits.max_seek_bytes)
     }
-    /// The existing validated private-stage page ceiling, distinct from the
-    /// caller's narrower input seek limit and its actual output page budget.
+    fn payload_write_overhead(&self) -> (usize, u64) {
+        let framing = if self.payload_layout.packed_bytes() {
+            crate::knowledge_byte_codec::HEADER as u64
+        } else { 0 };
+        if self.payload_layout.dictionary_bytes() {
+            (crate::knowledge_byte_dictionary::MAX_WRITE_ROWS,
+             framing + crate::knowledge_byte_dictionary::MAX_WRITE_BYTES as u64)
+        } else { (0, framing) }
+    }
+    /// Data-row allowance after reserving format-owned physical writes. The
+    /// combined rows/bytes never exceed the unchanged private Stage ceiling.
     pub(crate) fn write_page_limits(&self) -> (usize, u64) {
-        (MAX_STAGE_PAGE_ROWS, MAX_STAGE_PAGE_BYTES)
+        let (extra_rows, extra_bytes) = self.payload_write_overhead();
+        let rows = MAX_STAGE_PAGE_ROWS / (1 + extra_rows);
+        (rows, MAX_STAGE_PAGE_BYTES - rows as u64 * extra_bytes)
     }
     /// Price a logical row and its optional exact source packet before seeking
     /// the input page. Reused packets consume less than this physical bound.
@@ -2582,14 +2636,8 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<(usize, usize, u64)> {
         let carrier = self.payload_layout.uses_carriers();
         let rows_per_input = if carrier { 2 } else { 1 };
-        let bytes_per_input = self
-            .payload_layout
-            .physical_bound(max_payload_bytes)?
-            .checked_add(if carrier {
-                self.payload_layout.physical_bound(max_source_bytes)?
-            } else {
-                0
-            })
+        let bytes_per_input = max_payload_bytes
+            .checked_add(if carrier { max_source_bytes } else { 0 })
             .filter(|bytes| *bytes > 0)
             .ok_or(Error::Budget("exact source physical row bytes"))?;
         let (write_rows, write_bytes) = self.write_page_limits();
@@ -3293,7 +3341,8 @@ impl<'a> KnowledgeStage<'a> {
                 let mut hasher=Digest256Hasher::new();
                 for part in logical.chunks(4096) {state.active()?;hasher.update(part);}
                 let digest=hasher.finalize();
-                self.charge_materialized(1,self.payload_layout.physical_bound(logical.len())? as u64)?;
+                self.charge_materialized(1,logical.len() as u64)?;
+                self.charge_representation(0, if self.payload_layout.packed_bytes() { crate::knowledge_byte_codec::HEADER as u64 } else { 0 })?;
                 let sql=match (self.payload_layout,relation) {
                     (KnowledgePayloadLayout::InlineV1,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
                     (KnowledgePayloadLayout::InlineV1,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
@@ -3380,7 +3429,8 @@ impl<'a> KnowledgeStage<'a> {
                     |stored,source_digest| {
                         let reference=self.retain_exact_source_carrier(source)?;
                         if reference.packet_sha256()!=&source_digest {return Err(Error::Invalid("carrier update source differs"));}
-                        self.charge_materialized(1,self.payload_layout.physical_bound(stored.len())? as u64)?;
+                        self.charge_materialized(1,stored.len() as u64)?;
+                        self.charge_representation(0, if self.payload_layout.packed_bytes() { crate::knowledge_byte_codec::HEADER as u64 } else { 0 })?;
                         let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
                         let dictionary = self.prepare_byte_dictionary(if relation {"relation"} else {"node"}, family, stored)?;
                         self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), stored, cap, |physical| {
@@ -3453,7 +3503,7 @@ impl<'a> KnowledgeStage<'a> {
         if let Some(state) = self.owned_creation_state() {
             let layout = self.payload_layout;
             if layout.packed_bytes() {
-                self.charge_materialized(0, crate::knowledge_byte_codec::HEADER as u64)?;
+                self.charge_representation(0, crate::knowledge_byte_codec::HEADER as u64)?;
             }
             let dictionary = self.prepare_byte_dictionary("node", row.source_graph, row.payload)?;
             layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), row.payload, self.limits.sqlite.max_row_bytes, |physical| {
@@ -3607,7 +3657,7 @@ impl<'a> KnowledgeStage<'a> {
         if let Some(state) = self.owned_creation_state() {
             let layout = self.payload_layout;
             if layout.packed_bytes() {
-                self.charge_materialized(0, crate::knowledge_byte_codec::HEADER as u64)?;
+                self.charge_representation(0, crate::knowledge_byte_codec::HEADER as u64)?;
             }
             let dictionary = self.prepare_byte_dictionary("relation", row.source_graph, row.payload)?;
             layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d| d.as_bytes()), row.payload, self.limits.sqlite.max_row_bytes, |physical| {
@@ -6597,7 +6647,10 @@ mod tests {
                     "metadata": "normalized words ".repeat(400),
                     "source_record": {"payload": source_value, "field_map": {}}
                 })).unwrap();
-                stage.with_write_page(WritePhase::Normalized, 6, 6 * 32768, |stage| {
+                let (seek, rows, bytes) = stage.exact_source_write_page_limits(1, 32768, 32768).unwrap();
+                assert_eq!(seek, 1);
+                assert_eq!(rows, 2, "caller prices data rows; Stage owns format overhead");
+                stage.with_write_page(WritePhase::Normalized, rows, bytes, |stage| {
                     stage.insert_node_with_exact_source(NodeRow {
                         id: &id, source_graph: "fixture.graph", native_id: None,
                         entity_id: None, kind_id: "kind.fixture", type_id: "type.fixture",
@@ -6618,6 +6671,38 @@ mod tests {
                 let pending: u64 = stage.db().query_row("SELECT count(*) FROM temp.knowledge_byte_dictionary_pending", [], |row| row.get(0)).unwrap();
                 assert_eq!(pending, 2);
             }
+            // Exercise the other producer path with a byte-tight inline page.
+            // Tiny packets collect over multiple pages and seal at sample 32;
+            // both insert and replacement pay framing/dictionary overhead here.
+            for order in 0..32 {
+                let id = format!("tiny.{order}");
+                let logical = serde_json::to_vec(&serde_json::json!({"id": id, "source_graph": "tiny", "value": order})).unwrap();
+                stage.with_write_page(WritePhase::Normalized, 1, logical.len() as u64, |stage| {
+                    stage.insert_node(NodeRow {
+                        id: &id, source_graph: "tiny", native_id: None, entity_id: None,
+                        kind_id: "kind.fixture", type_id: "type.fixture", source_order: order + 2,
+                        payload: &logical,
+                    })
+                }).unwrap();
+                stage.with_write_page(WritePhase::Finalize, 1, logical.len() as u64, |stage| {
+                    stage.replace_node_logical_payload_if_current(&id, &logical, None, Some(Digest256::of_bytes(&logical)))
+                }).unwrap();
+                stage.with_node_payload_source_owned(&id, 32768, |_, actual, raw| {
+                    assert_eq!(actual, logical);
+                    assert!(raw.is_none());
+                    Ok(())
+                }).unwrap().unwrap();
+            }
+            if layout.dictionary_bytes() {
+                let samples: u64 = stage.db().query_row("SELECT samples FROM temp.knowledge_byte_dictionary_pending WHERE dictionary_kind='node' AND source_graph='tiny'", [], |row| row.get(0)).unwrap();
+                assert_eq!(samples, 32);
+            }
+            // Reserved representation rows cannot hide excess data writes.
+            let refusal = stage.with_write_page(WritePhase::Normalized, 1, 1, |stage| {
+                stage.charge_materialized(2, 1)
+            });
+            assert!(matches!(refusal, Err(Error::Budget("stage write page rows/bytes"))));
+            assert!(stage.poisoned);
             // Close the actual writer before opening a distinct read connection.
             // This tests physical cold decoding; full selected-model admission
             // remains the separate installed-consumer conformance route.
