@@ -2336,3 +2336,16 @@ the plan. It records the actual native executable and invocation digest.
 This bridge preserves source/authored boundary differences and current
 rights; it performs no translation assessment, claim admission, publication
 or canon revision.
+
+`tos jenseits-label-correspondence --source-root ABS --check` reconstructs the
+retained text-free map and provenance exactly from the two numbered-unit maps
+and their rights files. It preserves the target ordering of 298 pairs and leaves
+source-only `237a` unpaired. This check does not replay the historical execution.
+
+A new build requires `--build --output-directory REL --map-id ID --event-id ID
+--event-at RFC3339 --scratch-bytes RESERVED_BYTES`. Select a new subdirectory of
+the existing Jenseits alignment directory. The separate event names the Rust
+producer and its source digest; existing different bytes are refused. Repeating
+the same request preserves matching bytes, and the same selection with `--check`
+verifies the new result. Neither mode reads local payloads or admits a
+translation, rights change, or canon judgment.

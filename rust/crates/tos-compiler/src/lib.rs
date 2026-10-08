@@ -1095,3 +1095,5 @@ pub mod synthetic_foundation_labs;
 pub mod authored_canon_bridge;
 
 pub mod provenance_event_lab;
+
+pub mod jenseits_label_correspondence;
