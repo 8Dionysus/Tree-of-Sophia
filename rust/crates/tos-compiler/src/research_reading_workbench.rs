@@ -673,6 +673,9 @@ fn materialize(
     // These are complete table exports. A search index matching only a prefix
     // of ORDER BY causes random table-page rereads before the final sort. Keep
     // the exact order, but scan each table once into the owned memory sorter.
+    // WITHOUT ROWID tables can still use a secondary index with NOT INDEXED.
+    // Unary + preserves these ordering values while preventing prefix-index
+    // selection for the two large exports that otherwise reread table pages.
     let source = root.open_sqlite_readonly_for_ordered_scan(&inputs[0].file)?;
     quick_check(root, &source)?;
     let contexts = query(
@@ -688,7 +691,7 @@ fn materialize(
     let surfaces = query(
         root,
         &source,
-        "SELECT * FROM surface_units NOT INDEXED ORDER BY language,witness_ordinal",
+        "SELECT * FROM surface_units NOT INDEXED ORDER BY +language,+witness_ordinal",
     )?;
     drop(source);
     let analysis = root.open_sqlite_readonly_for_ordered_scan(&inputs[1].file)?;
@@ -709,7 +712,7 @@ fn materialize(
     let occurrences = query(
         root,
         &concept,
-        "SELECT * FROM exact_occurrences NOT INDEXED ORDER BY language,part,token_ordinal",
+        "SELECT * FROM exact_occurrences NOT INDEXED ORDER BY +language,+part,+token_ordinal",
     )?;
     drop(concept);
     let policy_ref = format!("{ROUTE}/chapter-voice-policies.v1.json");
