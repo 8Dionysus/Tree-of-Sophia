@@ -15,7 +15,9 @@ use tos_validation::{
 };
 type Result<T> = std::result::Result<T, String>;
 const BUILDER: &str = "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs";
-const CAP: usize = 4 * 1024 * 1024;
+// The shared text-metadata owner accepts packets up to 2 MiB. The compiled
+// recipes and their selected dependencies fit this same admitted envelope.
+const CAP: usize = 2 * 1024 * 1024;
 struct Recipe {
     legacy: &'static str,
     manifest: &'static str,
