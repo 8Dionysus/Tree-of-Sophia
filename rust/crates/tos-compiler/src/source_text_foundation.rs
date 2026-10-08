@@ -370,12 +370,23 @@ pub(super) fn metadata(
     )
 }
 pub(super) fn private_boundary(ctx: &ResearchExecution, reference: &str) -> Result<()> {
-    use crate::owned_native_child::{CaptureLimits, capture_with_cancel};
-    use std::os::fd::AsRawFd;
     ensure(
         reference.contains("/local-content/"),
         "private text output must remain below local-content",
     )?;
+    ignored_untracked(ctx, reference)
+}
+pub(super) fn private_input_boundary(ctx: &ResearchExecution, reference: &str) -> Result<()> {
+    ensure(
+        reference.starts_with("ToS/source-witnesses/")
+            && (reference.contains("/payload/") || reference.contains("/local-content/")),
+        "private input must remain in its witness custody lane",
+    )?;
+    ignored_untracked(ctx, reference)
+}
+fn ignored_untracked(ctx: &ResearchExecution, reference: &str) -> Result<()> {
+    use crate::owned_native_child::{CaptureLimits, capture_with_cancel};
+    use std::os::fd::AsRawFd;
     for (args, expected) in [
         (vec!["check-ignore", "-q", "--", reference], 0),
         (vec!["ls-files", "--error-unmatch", "--", reference], 1),

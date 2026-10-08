@@ -6,7 +6,7 @@ use crate::{
     research_text_comparison::{alpha, opcodes, space},
     source_philosophy_dossier_docx::OfficeArchive,
     source_text_foundation::{
-        Node, ensure, fresh_or_matching_limit, load, private_boundary, s, schema, sha,
+        Node, ensure, fresh_or_matching_limit, load, private_input_boundary, s, schema, sha,
         xml_with_doctype,
     },
     transfer_target_passages::{encode, json_lines, jsonl, node_text, read_optional},
@@ -334,7 +334,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
                     s(&w["file_sha256"])?.to_owned(),
                 )
             };
-            private_boundary(ctx, &reference)?;
+            private_input_boundary(ctx, &reference)?;
             let mut file = local.source_file(&reference, 64 * 1024 * 1024)?;
             let bytes = local.read_file(&mut file, 64 * 1024 * 1024)?;
             ensure(sha(&bytes) == digest, "local payload fixity drift")?;

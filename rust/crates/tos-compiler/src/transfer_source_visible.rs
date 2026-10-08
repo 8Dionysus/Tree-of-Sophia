@@ -5,7 +5,8 @@ use crate::{
     research_html::anchored_text,
     research_text_comparison::{alpha_tokens, source_aware_text, token_diff},
     source_text_foundation::{
-        ensure, fresh_or_matching_limit, load, private_boundary, s, schema, sha,
+        ensure, fresh_or_matching_limit, load, private_boundary, private_input_boundary, s, schema,
+        sha,
     },
     transfer_target_passages::{n, read_optional},
 };
@@ -57,6 +58,7 @@ fn builder_sha() -> String {
         include_bytes!("research_html.rs").as_slice(),
         include_bytes!("research_html_entities.rs").as_slice(),
         include_bytes!("research_text_comparison.rs").as_slice(),
+        include_bytes!("source_text_foundation.rs").as_slice(),
     ] {
         h.update(&(b.len() as u64).to_be_bytes());
         h.update(b)
@@ -377,7 +379,7 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
         let w = &bundle[side];
         current_rights(ctx, w)?;
         let payload = s(&w["payload_ref"])?;
-        private_boundary(ctx, payload)?;
+        private_input_boundary(ctx, payload)?;
         let mut file = local.source_file(payload, 256 * 1024 * 1024)?;
         ensure(
             local.hash_file(&mut file, 256 * 1024 * 1024)? == s(&w["file_sha256"])?
