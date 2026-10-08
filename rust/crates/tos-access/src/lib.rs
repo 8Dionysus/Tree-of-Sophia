@@ -118,3 +118,5 @@ pub mod german_triangulation_command;
 pub mod bounded_translation_input_command;
 
 pub mod antonovsky_collation_command;
+
+pub mod synthetic_foundation_lab_command;
