@@ -1206,15 +1206,12 @@ fn inspect_source_foundation_goldset_root(
         let generator = receipt.value.get("generator").unwrap_or(&Value::Null);
         let generator_ref = generator.get("ref").and_then(Value::as_str);
         let generator_digest = generator.get("sha256").and_then(Value::as_str);
-        let generator_current = if let Some(reference) = generator_ref {
-            checks.current_digest(reference)?
-        } else {
-            None
-        };
-        if generator_ref.is_none()
-            || generator_current.is_none()
-            || generator_current.as_deref() != generator_digest
-        {
+        // The receipt binds a retained historical generator, not whichever
+        // implementation is currently installed at the old entrypoint.
+        let generator_matches = if let (Some(reference), Some(digest)) = (generator_ref, generator_digest) {
+            checks.recorded_digest_matches(reference, digest)?
+        } else { false };
+        if !generator_matches {
             checks.issue(
                 &receipt.path,
                 "source-visible review generator reference or digest drifted",

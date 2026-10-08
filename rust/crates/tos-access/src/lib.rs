@@ -109,3 +109,5 @@ pub mod transfer_source_passages_command;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod transfer_candidates_command;
+
+pub mod transfer_source_visible_command;

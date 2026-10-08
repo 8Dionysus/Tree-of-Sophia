@@ -1078,3 +1078,7 @@ pub mod transfer_target_passages;
 pub mod transfer_source_passages;
 
 pub mod transfer_candidates;
+
+pub mod research_html;
+mod research_text_comparison;
+pub mod transfer_source_visible;
