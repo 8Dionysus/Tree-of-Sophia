@@ -2657,7 +2657,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_golden_kernel_transfer_candidates.py",
+      "path": "rust/crates/tos-compiler/src/transfer_candidates.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/contracts/golden-kernel-transfer-plan.schema.json",
@@ -2671,15 +2671,15 @@
         "ToS/contracts/source-anchor.schema.json"
       ],
       "reads": [
-        "one exact local Mysl 1996 PDF, its unreviewed work boundaries, the blocked transfer plan, and the solo-human-plus-AI assurance contract"
+        "Explicit source/private roots, exact PDF and current rights, retained plan, boundary map and assurance contract; pinned Poppler layout extraction."
       ],
       "writes": [
-        "twenty ignored local pdftotext page candidates plus tracked ineligible candidate metadata, proposed whole-page anchors, and provenance unless --check is used"
+        "Twenty ignored mode-0600 page candidates, text-free plan, proposed whole-page anchors and append-once provenance via tos transfer-candidates --build; check, selection-only and tracked validation are read-only."
       ],
-      "side_effects": "freezes ten digest-random and ten mechanically difficult private page candidates before variant outputs; creates no target gold, semantic label, accepted sign, human debt, or execution authority",
+      "side_effects": "freezes ten digest-random and ten mechanically difficult private page candidates before variant outputs; creates no target gold, semantic label, accepted sign, human debt, or execution authority Historical bytes and provenance stay unchanged; fresh generation requires a new event and explicit source-visible review confirmation, and remains ineligible.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_witness_foundation.py",
+      "test_target": "rust/crates/tos-compiler/src/transfer_candidates.rs",
       "disposition": "keep"
     },
     {

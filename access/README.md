@@ -2244,3 +2244,14 @@ retained exact private layer bytes. The private roots contain repository-relativ
 an admitted `--scratch-bytes` quota; private output stays ignored and mode 0600.
 Native Poppler 26.01.0 extraction, streamed ABBYY/DjVuXML and authored PDF/JP2
 marker returns preserve their separate source/review and rights boundaries.
+
+`tos transfer-candidates --source-root ABS --validate-tracked` verifies the
+text-free candidate plan and provenance. `--selection-only --local-input-root
+ABS` reports the twenty selected pages and aggregate metrics. `--check` also
+requires explicit `--local-input-root ABS --local-output-root ABS` and checks
+the private page bytes. New output uses `--build --generation NAME --event-id
+ID --scratch-bytes RESERVED_BYTES --confirm-model-source-visible-review` with
+those explicit roots and a prior storage reservation. The confirmation belongs
+to the caller's actual source-visible assessment. A matching replay needs no
+new confirmation. Candidates remain ineligible; no target gold or textual
+acceptance is created. The default historical generation remains byte exact.
