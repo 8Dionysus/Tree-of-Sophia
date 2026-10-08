@@ -334,8 +334,8 @@
       "boundary_markers": ["cross-owner composition", "philosophical meaning", "canon status"],
       "on_demand_surfaces": ["stats/README.md", "stats/port.manifest.json", "stats/VALIDATION.md", "ToS/philosophy/atlas/README.md"],
       "validation_lanes": ["local_stats_port", "route_docs"],
-      "validation_paths": ["scripts/validate_local_stats_port.py", "stats/port.manifest.json"],
-      "completion_evidence": ["stats/AGENTS.md", "stats/port.manifest.json", "scripts/validate_local_stats_port.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs", "stats/port.manifest.json"],
+      "completion_evidence": ["stats/AGENTS.md", "stats/port.manifest.json", "rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs"],
       "handoff_routes": ["aoa-stats"]
     },
     {

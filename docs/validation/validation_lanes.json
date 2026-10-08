@@ -1483,11 +1483,9 @@
           "tests/test_corpus_source_validation.py",
           "tests/test_corpus_source_retirement.py",
           "tests/test_corpus_build_worker.py",
-          "tests/test_local_stats_port.py",
           "tests/test_build_kag_export.py",
           "tests/test_downstream_status.py",
           "tests/test_publish_kag_release.py",
-          "tests/test_publish_stats_release.py",
           "tests/test_software_ci.py"
         ]
       }
@@ -1603,6 +1601,21 @@
           "-m",
           "not data_release",
           "access/tests"
+        ]
+      }
+    ],
+    "local_stats_port": [
+      {
+        "label": "native stats transport and immutable local publication",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-ops-mechanics-plan",
+          "--no-default-features",
+          "--test",
+          "stats_release_native"
         ]
       }
     ]

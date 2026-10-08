@@ -795,12 +795,12 @@
       "whitespace_tokens": 734
     },
     {
-      "bytes": 14405,
+      "bytes": 14429,
       "exists": true,
       "lines": 223,
       "path": "ROADMAP.md",
       "role": "current direction and next pressure",
-      "sha256": "fbb7fb28e50f50808b4791e5b18fa9ae359c155855d12b97691551f39208fb42",
+      "sha256": "2cdf0fb5633f8f153b930e744740def7a372db3b64ea0eea08416ed3be122bdd",
       "whitespace_tokens": 1912
     },
     {
@@ -840,13 +840,13 @@
       "whitespace_tokens": 396
     },
     {
-      "bytes": 48985,
+      "bytes": 49381,
       "exists": true,
-      "lines": 1604,
+      "lines": 1623,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "326551d3ca2c8b37d5904f898f8865d15be09da667cd9777123621ef4aa4260b",
-      "whitespace_tokens": 3108
+      "sha256": "6e597ee0eca57d70aa98df4d9ac2072bbd51cb8567bc26fd4a205eefba53db10",
+      "whitespace_tokens": 3136
     },
     {
       "bytes": 9716,
@@ -894,13 +894,13 @@
       "whitespace_tokens": 1830
     },
     {
-      "bytes": 289554,
+      "bytes": 288787,
       "exists": true,
-      "lines": 4765,
+      "lines": 4743,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "80fc1407924498b499101f5c9e91998607743f3feb56291809f9f76ee5a71a63",
-      "whitespace_tokens": 17758
+      "sha256": "395474d54fe252b6730479ffc9ee305fc268676ace14f861a2b0c51acd8ef64f",
+      "whitespace_tokens": 17716
     },
     {
       "bytes": 65846,
@@ -987,7 +987,7 @@
     "near_duplicate_cards": "manual review"
   },
   "source_inventory": "docs/validation/agents_route_inventory.json",
-  "source_inventory_sha256": "2b1748f4070617f373e5b7b74a56bb42d48c66b8e36222be5124052ba8c49496",
+  "source_inventory_sha256": "cae114b433714d870b36270751ad358b4dbb34d7f9c93e6fde5fd83642e10687",
   "task_routes": [
     {
       "additional_context_tokens": 19532,
@@ -2047,7 +2047,7 @@
       ]
     },
     {
-      "additional_context_tokens": 9909,
+      "additional_context_tokens": 9937,
       "completion_evidence": [
         {
           "bytes": 6722,
@@ -2059,13 +2059,13 @@
           "whitespace_tokens": 834
         },
         {
-          "bytes": 48985,
+          "bytes": 49381,
           "exists": true,
-          "lines": 1604,
+          "lines": 1623,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "326551d3ca2c8b37d5904f898f8865d15be09da667cd9777123621ef4aa4260b",
-          "whitespace_tokens": 3108
+          "sha256": "6e597ee0eca57d70aa98df4d9ac2072bbd51cb8567bc26fd4a205eefba53db10",
+          "whitespace_tokens": 3136
         },
         {
           "bytes": 4243,
@@ -2103,13 +2103,13 @@
           "whitespace_tokens": 411
         },
         {
-          "bytes": 48985,
+          "bytes": 49381,
           "exists": true,
-          "lines": 1604,
+          "lines": 1623,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "326551d3ca2c8b37d5904f898f8865d15be09da667cd9777123621ef4aa4260b",
-          "whitespace_tokens": 3108
+          "sha256": "6e597ee0eca57d70aa98df4d9ac2072bbd51cb8567bc26fd4a205eefba53db10",
+          "whitespace_tokens": 3136
         },
         {
           "bytes": 14422,
@@ -2250,12 +2250,12 @@
           "whitespace_tokens": 2527
         },
         {
-          "bytes": 22413,
+          "bytes": 22461,
           "exists": true,
           "lines": 370,
           "path": "docs/validation/agents_route_inventory.json",
           "role": "on_demand",
-          "sha256": "2b1748f4070617f373e5b7b74a56bb42d48c66b8e36222be5124052ba8c49496",
+          "sha256": "cae114b433714d870b36270751ad358b4dbb34d7f9c93e6fde5fd83642e10687",
           "whitespace_tokens": 1457
         }
       ],
@@ -2416,7 +2416,7 @@
       ]
     },
     {
-      "additional_context_tokens": 1085,
+      "additional_context_tokens": 1120,
       "completion_evidence": [
         {
           "bytes": 2168,
@@ -2437,13 +2437,13 @@
           "whitespace_tokens": 311
         },
         {
-          "bytes": 2269,
+          "bytes": 4479,
           "exists": true,
-          "lines": 69,
-          "path": "scripts/validate_local_stats_port.py",
+          "lines": 111,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs",
           "role": "completion",
-          "sha256": "675b299dc805a91b35526a47fed35a730d7e9cbaba953d8ffa35d49bb5bfccb1",
-          "whitespace_tokens": 231
+          "sha256": "d87117b9e497733b88f4c2e1059bcfc101f049ffa1f4bcf2348374e80e29dc5c",
+          "whitespace_tokens": 309
         }
       ],
       "id": "stats_port",
@@ -2472,13 +2472,13 @@
           "whitespace_tokens": 311
         },
         {
-          "bytes": 2149,
+          "bytes": 2439,
           "exists": true,
-          "lines": 38,
+          "lines": 40,
           "path": "stats/VALIDATION.md",
           "role": "on_demand",
-          "sha256": "d4732d84bf83ff8a990617151cc3a4bc33927e3a99aaee0ffc2c8c1e19896d2c",
-          "whitespace_tokens": 270
+          "sha256": "59b54cab6d7076e4746feae6155c68dc735d2e50307de843528d47efe4b0190c",
+          "whitespace_tokens": 305
         },
         {
           "bytes": 1510,
@@ -2507,13 +2507,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 2269,
+          "bytes": 4479,
           "exists": true,
-          "lines": 69,
-          "path": "scripts/validate_local_stats_port.py",
+          "lines": 111,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs",
           "role": "validation",
-          "sha256": "675b299dc805a91b35526a47fed35a730d7e9cbaba953d8ffa35d49bb5bfccb1",
-          "whitespace_tokens": 231
+          "sha256": "d87117b9e497733b88f4c2e1059bcfc101f049ffa1f4bcf2348374e80e29dc5c",
+          "whitespace_tokens": 309
         },
         {
           "bytes": 4062,
