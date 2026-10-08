@@ -1102,7 +1102,10 @@ fn charge_packet(
 
 // Private external sort. It is never a selected component and is removed
 // before successful receipt publication. SQLite spill remains stage-owned.
-const PENDING_DDL: &str = "CREATE TABLE corpus_capture_pending(collection TEXT NOT NULL,sort0 TEXT NOT NULL,sort1 TEXT NOT NULL,encounter INTEGER NOT NULL,packet BLOB NOT NULL,packet_sha256 BLOB NOT NULL,PRIMARY KEY(collection,sort0,sort1,encounter)) WITHOUT ROWID";
+pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema =
+    crate::knowledge_stage::preparation_schema!(
+        table "corpus_capture_pending(collection TEXT NOT NULL,sort0 TEXT NOT NULL,sort1 TEXT NOT NULL,encounter INTEGER NOT NULL,packet BLOB NOT NULL,packet_sha256 BLOB NOT NULL,PRIMARY KEY(collection,sort0,sort1,encounter)) WITHOUT ROWID"
+    );
 struct PendingRow {
     collection: CorpusOriginalCollection,
     sort0: String,
@@ -1168,10 +1171,7 @@ pub fn retain_captured_corpus_original_from_capture(
             limits.originals.max_row_bytes,
             crate::legacy::PART_CAP as u64,
         )?;
-        stage.with_connection(WritePhase::Sort, |db| {
-            db.execute_batch(PENDING_DDL)?;
-            Ok(())
-        })?;
+        stage.create_preparation_tables(PREPARATION_SCHEMA)?;
         let mut page = Vec::new();
         let mut count = 1u64;
         let mut total = 0u64;

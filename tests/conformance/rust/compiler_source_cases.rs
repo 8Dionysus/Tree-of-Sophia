@@ -1462,11 +1462,11 @@ sys.stdout.write(owner.render_payload(payload))
         .sqlite
         .max_output_bytes
         .min(stage_limits.max_temp_bytes / 2);
-    // Every attempted trigram charges at least three UTF-8 bytes before SQL;
-    // per-document dedup can only reduce the resulting posting count. Derive
-    // this guard from existing work, not the current corpus's observed count.
-    let search_work_bytes = (100 * 1024 * 1024u64).min(stage_limits.sqlite.max_work_bytes);
-    let search_postings = search_work_bytes / 3;
+    // Search now charges block decoding again during final root verification.
+    // Use the caller's existing phase work envelope for that complete operation,
+    // while retaining the former independently bounded posting population.
+    let search_work_bytes = stage_limits.sqlite.max_work_bytes;
+    let search_postings = (100 * 1024 * 1024u64).min(search_work_bytes) / 3;
     let selected_isolation = NativeSelectedIsolation {
         started,
         deadline,

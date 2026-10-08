@@ -6470,6 +6470,50 @@ mod tests {
                 ).unwrap();
                 assert_eq!(count, if expected { 3 } else { 0 });
             }
+            // Exercise the real late-phase schemas: these formerly bypassed
+            // the profile and filled main despite being erased before selection.
+            for (schema, tables, indices) in [
+                (
+                    crate::knowledge_inherited_views::PREPARATION_SCHEMA,
+                    &[
+                        "knowledge_global_inherited_endpoint_evidence",
+                        "knowledge_global_inherited_views",
+                    ][..],
+                    &["knowledge_global_inherited_relation"][..],
+                ),
+                (
+                    crate::knowledge_source_navigation_relation::PREPARATION_SCHEMA,
+                    &["knowledge_navigation_relation_dependencies"][..],
+                    &["knowledge_navigation_relation_claim_seek"][..],
+                ),
+                (
+                    crate::knowledge_corpus_source::PREPARATION_SCHEMA,
+                    &["corpus_capture_pending"][..],
+                    &[][..],
+                ),
+                (
+                    crate::knowledge_ordered::PREPARATION_SCHEMA,
+                    &["knowledge_node_candidates", "knowledge_relation_candidates"][..],
+                    &[
+                        "knowledge_node_candidates_order",
+                        "knowledge_relation_candidates_order",
+                    ][..],
+                ),
+            ] {
+                stage.create_preparation_tables(schema).unwrap();
+                for (location, present) in [("main", !native), ("temp", native)] {
+                    for name in tables.iter().chain(indices) {
+                        let count: u64 = stage.db().query_row(
+                            &format!("SELECT count(*) FROM {location}.sqlite_schema WHERE name=?1"),
+                            [name], |row| row.get(0),
+                        ).unwrap();
+                        assert_eq!(count, u64::from(present), "{location}.{name}");
+                    }
+                }
+                for table in tables {
+                    stage.db().execute_batch(&format!("DROP TABLE {table}")).unwrap();
+                }
+            }
             if native {
                 let error = stage.with_connection(WritePhase::Normalized, |db| {
                     db.execute("INSERT INTO preparation_fixture VALUES(1,zeroblob(131072))", [])?;

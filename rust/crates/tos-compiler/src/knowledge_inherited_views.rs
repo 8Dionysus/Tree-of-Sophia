@@ -176,22 +176,20 @@ fn root_item(hash: &mut Digest256Hasher, id: &str, sha: &[u8; 32]) {
     hash.update(sha);
 }
 
-fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
-    stage.with_connection(WritePhase::Schema, |db| {
-        db.execute_batch(
-            r#"
-CREATE TABLE knowledge_global_inherited_endpoint_evidence(
+pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema =
+    crate::knowledge_stage::preparation_schema!(
+        table r#"knowledge_global_inherited_endpoint_evidence(
  endpoint_id TEXT NOT NULL, relation_id TEXT NOT NULL,
- PRIMARY KEY(endpoint_id,relation_id));
-CREATE INDEX knowledge_global_inherited_relation
- ON knowledge_global_inherited_endpoint_evidence(relation_id,endpoint_id);
-CREATE TABLE knowledge_global_inherited_views(
+ PRIMARY KEY(endpoint_id,relation_id))"#,
+        index r#"knowledge_global_inherited_relation
+ ON knowledge_global_inherited_endpoint_evidence(relation_id,endpoint_id)"#,
+        table r#"knowledge_global_inherited_views(
  endpoint_id TEXT NOT NULL, view_id TEXT NOT NULL,
- PRIMARY KEY(endpoint_id,view_id));
-"#,
-        )?;
-        Ok(())
-    })
+ PRIMARY KEY(endpoint_id,view_id))"#,
+    );
+
+fn create_tables(stage: &mut KnowledgeStage<'_>) -> Result<()> {
+    stage.create_preparation_tables(PREPARATION_SCHEMA)
 }
 
 fn insert_relation(
