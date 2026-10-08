@@ -308,8 +308,7 @@ fn era(text: Option<&str>) -> &'static str {
         Some(v)
             if v.eq_ignore_ascii_case("BC")
                 || v.eq_ignore_ascii_case("BCE")
-                || v.starts_with("до")
-                || v.starts_with("ДО") =>
+                || fold(v).is_ok_and(|v| v.starts_with("до")) =>
         {
             "BCE"
         }
@@ -425,7 +424,7 @@ pub fn normalize(
                 }
             }
             Value::Bool(v) => if *v { "True" } else { "False" }.into(),
-            Value::Number(v) => v.to_string(),
+            Value::Number(_) => super::string(raw)?,
             _ => return Err("unsupported raw field type".into()),
         };
         let normalized = if raw.is_null() || raw.is_string() && text.is_empty() {

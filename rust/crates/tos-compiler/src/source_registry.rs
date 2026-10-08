@@ -34,30 +34,67 @@ pub fn encoded(v: &Value) -> Result<Vec<u8>> {
     )
     .map_err(|e| e.to_string())
 }
-pub fn decoded(raw: &[u8], gzip: bool) -> Result<Value> {
-    let body = if gzip {
-        let mut out = Vec::new();
-        flate2::read::GzDecoder::new(raw)
-            .take(MAX_FILE as u64 + 1)
-            .read_to_end(&mut out)
-            .map_err(|e| e.to_string())?;
-        out
-    } else {
-        raw.to_vec()
-    };
-    if body.len() > MAX_FILE {
+pub fn decompressed(raw: &[u8]) -> Result<Vec<u8>> {
+    let mut out = Vec::new();
+    flate2::read::GzDecoder::new(raw)
+        .take(MAX_FILE as u64 + 1)
+        .read_to_end(&mut out)
+        .map_err(|e| e.to_string())?;
+    if out.len() > MAX_FILE {
         return Err("registry JSON decoded byte limit".into());
     }
-    canonical_raw_bytes_v1(
-        &body,
-        CanonicalProfile::CorpusSnapshotV1,
+    Ok(out)
+}
+pub fn decoded(raw: &[u8], gzip: bool) -> Result<Value> {
+    let unpacked;
+    let body = if gzip {
+        unpacked = decompressed(raw)?;
+        &unpacked[..]
+    } else {
+        raw
+    };
+    let document = tos_foundation::parse_json(
+        body,
+        tos_foundation::JsonMode::PublishedStrict,
         JsonLimits {
             max_bytes: MAX_FILE,
             ..JsonLimits::default()
         },
     )
     .map_err(|e| e.to_string())?;
-    serde_json::from_slice(&body).map_err(|e| e.to_string())
+    // Consume the checked tree. Do not discard it and parse the full byte
+    // stream again; number lexemes and decoded object order are retained.
+    fn convert(value: tos_foundation::JsonValue) -> Result<Value> {
+        use tos_foundation::JsonValue as J;
+        Ok(match value {
+            J::Null => Value::Null,
+            J::Bool(v) => Value::Bool(v),
+            J::Number(v) => Value::Number(
+                v.lexeme
+                    .parse::<serde_json::Number>()
+                    .map_err(|e| e.to_string())?,
+            ),
+            J::String(v) => Value::String(
+                v.as_str()
+                    .ok_or("unpaired surrogate in registry string")?
+                    .to_owned(),
+            ),
+            J::Array(v) => Value::Array(v.into_iter().map(convert).collect::<Result<_>>()?),
+            J::Object(v) => Value::Object(
+                v.into_iter()
+                    .map(|(k, v)| {
+                        Ok((
+                            k.as_str()
+                                .ok_or("unpaired surrogate in registry key")?
+                                .to_owned(),
+                            convert(v)?,
+                        ))
+                    })
+                    .collect::<Result<_>>()?,
+            ),
+        })
+    }
+    convert(document.into_root())
 }
 pub fn compressed(raw: &[u8]) -> Result<Vec<u8>> {
     let mut gzip = flate2::GzBuilder::new()
@@ -67,14 +104,10 @@ pub fn compressed(raw: &[u8]) -> Result<Vec<u8>> {
     gzip.write_all(raw).map_err(|e| e.to_string())?;
     gzip.finish().map_err(|e| e.to_string())
 }
-pub fn string(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        Value::Null => "None".into(),
-        Value::Bool(b) => if *b { "True" } else { "False" }.into(),
-        _ => v.to_string(),
-    }
+pub fn string(v: &Value) -> Result<String> {
+    crate::prepared_semantic_kernel::python_str(v).map_err(|e| e.to_string())
 }
+
 pub fn truth(v: &Value) -> bool {
     match v {
         Value::Null => false,
@@ -86,7 +119,7 @@ pub fn truth(v: &Value) -> bool {
     }
 }
 pub fn folded(v: &Value) -> Result<String> {
-    let s = values::fold(&string(v))?;
+    let s = values::fold(&string(v)?)?;
     Ok(tos_foundation::python_strip_unicode16_v1(&s, s.len())
         .map_err(|e| e.to_string())?
         .into())
@@ -114,7 +147,7 @@ pub fn canonical_url(url: &str) -> String {
     )
 }
 pub fn urls(v: &Value) -> Result<Vec<String>> {
-    let s = if truth(v) { string(v) } else { String::new() };
+    let s = if truth(v) { string(v)? } else { String::new() };
     Ok(array(&values::links(&s)?["value"])?
         .iter()
         .map(|v| text(&v["url"]).map(str::to_owned))
@@ -314,7 +347,7 @@ pub fn normalize_document(input: DocumentInput, check: Check<'_>) -> Result<Valu
         let mut names = BTreeSet::new();
         for cell in array(&header["cells"])? {
             let name = &cell["value"];
-            if !name.is_null() && name != "" && !names.insert(string(name)) {
+            if !name.is_null() && name != "" && !names.insert(string(name)?) {
                 return Err("duplicate source field header".into());
             }
             headers.insert(ooxml::column_index(text(&cell["cell"])?)?, name);
@@ -369,7 +402,7 @@ pub fn normalize_document(input: DocumentInput, check: Check<'_>) -> Result<Valu
                 .filter_map(|(k, _)| raw.iter().find(|(n, _)| n == k).map(|(_, v)| v))
                 .filter(|v| !v.is_null() && *v != "")
                 .map(string)
-                .collect::<BTreeSet<_>>();
+                .collect::<Result<BTreeSet<_>>>()?;
             if source_ids.len() > 1 {
                 return Err("conflicting source ids".into());
             }

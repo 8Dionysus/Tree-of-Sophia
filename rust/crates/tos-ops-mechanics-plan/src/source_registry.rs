@@ -90,9 +90,13 @@ fn directory(root: &Path) -> io::Result<PathBuf> {
     kag_release::directory(&root)?;
     Ok(root)
 }
-fn processor() -> Value {
-    json!({"rust/crates/tos-compiler/src/source_registry.rs":rules::digest(include_bytes!("../../tos-compiler/src/source_registry.rs")),"rust/crates/tos-compiler/src/source_registry/ooxml.rs":rules::digest(include_bytes!("../../tos-compiler/src/source_registry/ooxml.rs")),"rust/crates/tos-compiler/src/source_registry/values.rs":rules::digest(include_bytes!("../../tos-compiler/src/source_registry/values.rs")),"rust/crates/tos-compiler/src/source_philosophy_dossier_docx.rs":rules::digest(include_bytes!("../../tos-compiler/src/source_philosophy_dossier_docx.rs")),"rust/crates/tos-foundation/src/json.rs":rules::digest(include_bytes!("../../tos-foundation/src/json.rs")),"rust/crates/tos-foundation/src/unicode.rs":rules::digest(include_bytes!("../../tos-foundation/src/unicode.rs"))})
+fn processor(context: &mut Context<'_>) -> io::Result<Value> {
+    // Bind the complete native implementation, including its linked rules.
+    // The file path is deliberately omitted from portable research metadata.
+    let executable = context.read(&std::env::current_exe()?)?;
+    Ok(json!({"native/tos-source-registry": rules::digest(&executable)}))
 }
+
 fn snapshot_path(packet: &Path, pointer: &Value) -> io::Result<PathBuf> {
     let id = kag_release::hex(&pointer["snapshot_id"])?;
     Ok(packet.join("snapshots").join(id))
@@ -119,7 +123,11 @@ fn documents(
         .map(|name| context.json(&member(snapshot, name)?))
         .collect()
 }
-fn outputs_equal(context: &mut Context<'_>, path: &Path, body: &[u8]) -> io::Result<bool> {
+pub(crate) fn outputs_equal(
+    context: &mut Context<'_>,
+    path: &Path,
+    body: &[u8],
+) -> io::Result<bool> {
     let raw = context.read(path)?;
     if raw == body {
         return Ok(true);
@@ -128,12 +136,10 @@ fn outputs_equal(context: &mut Context<'_>, path: &Path, body: &[u8]) -> io::Res
         return Ok(false);
     }
     // Gzip headers and compression choices do not own snapshot identity.
-    Ok(rules::decoded(&raw, true)
-        .and_then(|v| rules::encoded(&v))
-        .map_err(invalid)?
-        == rules::decoded(body, true)
-            .and_then(|v| rules::encoded(&v))
-            .map_err(invalid)?)
+    Ok(
+        rules::decompressed(&raw).map_err(invalid)?
+            == rules::decompressed(body).map_err(invalid)?,
+    )
 }
 fn immutable(context: &mut Context<'_>, path: &Path, body: &[u8]) -> io::Result<()> {
     if path.exists() {
@@ -191,7 +197,7 @@ pub fn normalize(
             .1["processor_sha256"]
             .clone()
     } else {
-        processor()
+        processor(&mut context)?
     };
     let mut profiles = serde_json::Map::new();
     let mut originals = BTreeMap::new();

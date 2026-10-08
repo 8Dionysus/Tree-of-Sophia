@@ -224,7 +224,7 @@ fn canonical(raw: &[u8]) -> io::Result<Vec<u8>> {
     )
     .map_err(|e| bad(format!("invalid downstream JSON: {e}")))
 }
-fn now() -> io::Result<String> {
+pub fn observation_time() -> io::Result<String> {
     let mut seconds: libc::time_t = 0;
     if unsafe { libc::time(&mut seconds) } == -1 {
         return Err(io::Error::last_os_error());
@@ -445,7 +445,7 @@ impl Status {
     pub fn begin(&self, source_revision: &str) -> io::Result<String> {
         hex(source_revision, 64, "source_revision")?;
         let attempt = random_id()?;
-        let started = now()?;
+        let started = observation_time()?;
         let (directory, _guard) = self.writer()?;
         let mut state = self.read(&directory)?.unwrap_or_else(||json!({"schema_version":SCHEMA_VERSION,"consumer":self.consumer,"latest":null,"last_success":null,"previous_success":null}));
         state["latest"] = json!({"attempt_id":attempt,"source_revision":source_revision,"started_at":started,"state":"running"});
@@ -479,7 +479,7 @@ impl Status {
         let mut state = self.running(&directory, attempt)?;
         let mut record = state["latest"].clone();
         record.as_object_mut().unwrap().remove("state");
-        record["completed_at"] = json!(now()?);
+        record["completed_at"] = json!(observation_time()?);
         record["artifact_revision"] = json!(artifact_revision);
         record["artifact_manifest_sha256"] = json!(artifact_manifest_sha256);
         state["previous_success"] = state["last_success"].clone();
@@ -495,7 +495,7 @@ impl Status {
         let error: String = error.chars().take(MAX_ERROR_CHARS).collect();
         let (directory, _guard) = self.writer()?;
         let mut state = self.running(&directory, attempt)?;
-        state["latest"]["completed_at"] = json!(now()?);
+        state["latest"]["completed_at"] = json!(observation_time()?);
         state["latest"]["state"] = json!("failed");
         state["latest"]["error"] = json!(error);
         self.write(&directory, &state)
