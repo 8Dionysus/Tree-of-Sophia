@@ -4520,7 +4520,7 @@ fn build_native_snapshot_from_capture_inner(
         full,
         expectation,
         producer,
-        semantic_report: semantics,
+        semantic_report: semantics.report,
         declaration_sha256,
         source_revision,
         descriptor,

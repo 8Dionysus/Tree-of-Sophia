@@ -4,6 +4,7 @@
 
 use crate::{
     Error, KnowledgeRegistry, Result,
+    d1_public_header::{HeaderCounts, ValidatedGraphSemantics},
     d1_public_capture::{
         CreationState, CreationStateHold, MAX_ROW_BYTES, PublicCapture,
         json as strict_json,
@@ -1715,7 +1716,7 @@ pub(crate) fn validate_public_semantics(
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     relation_bytes: &[u8],
-) -> Result<Value> {
+) -> Result<ValidatedGraphSemantics> {
     if !stage.public_build() {
         return Err(Error::Invalid("public D1 stage required"));
     }
@@ -1736,7 +1737,7 @@ pub(crate) fn validate_native_snapshot_semantics(
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     relation_bytes: &[u8],
-) -> Result<Value> {
+) -> Result<ValidatedGraphSemantics> {
     if stage.public_build()
         || stage.exact_receipt()?.binding.owner_profile != "tos-native-projection-snapshot-v1"
     {
@@ -1760,7 +1761,7 @@ fn validate_public_semantics_captured(
     entity_bytes: &[u8],
     relation_bytes: &[u8],
     state: Option<&CreationState<'_>>,
-) -> Result<Value> {
+) -> Result<ValidatedGraphSemantics> {
     let registry_work = entity_bytes
         .len()
         .checked_add(relation_bytes.len())
@@ -1809,7 +1810,7 @@ fn validate_public_semantics_values(
     entity: &Value,
     relation: &Value,
     state: Option<&CreationState<'_>>,
-) -> Result<Value> {
+) -> Result<ValidatedGraphSemantics> {
     let entries_bytes = if let Some(state) = state {
         let bytes = registry_entries_owned_state(entity, "types", "type_id", state)?
             .checked_add(registry_entries_owned_state(
@@ -1852,6 +1853,7 @@ fn validate_public_semantics_values(
     let mut unmapped_relations = 0u64;
     let mut claim_count = 0u64;
     let mut cross_layer = 0u64;
+    let mut header_counts = HeaderCounts::default();
     let mut gaps = Vec::<Value>::new();
     let mut claim_gap_count = 0usize;
     let mut live_gap_bytes = 256usize;
@@ -1917,6 +1919,7 @@ fn validate_public_semantics_values(
                         state,
                         hierarchy_edges,
                     )?;
+                    header_counts.observe(0, stored_source, value, state)?;
                     let type_id = string(value, "type_id").unwrap_or("");
                     registered_nodes += u64::from(entities.contains_key(type_id));
                     unmapped_nodes += u64::from(type_id == registry.fallback_entity_type_id());
@@ -2071,6 +2074,7 @@ fn validate_public_semantics_values(
                     {
                         return Err(Error::Invalid("public D1 indexed relation identity"));
                     }
+                    header_counts.observe(1, stored_source, value, state)?;
                     let id = string(value, "id").ok_or(Error::Invalid("public D1 relation ID"))?;
                     let relation_type = string(value, "relation_type_id")
                         .ok_or(Error::Invalid("public D1 relation type"))?;
@@ -2562,7 +2566,8 @@ fn validate_public_semantics_values(
         report.insert(name.into(), Value::from(count));
     }
     report.insert("gaps".into(), Value::Array(gaps));
-    Ok(Value::Object(report))
+    if let Some(state) = state { state.retain(128 + std::mem::size_of::<crate::knowledge_stage::CoreRoots>())?; }
+    ValidatedGraphSemantics::new(Value::Object(report), header_counts, stage.core_roots()?)
 }
 
 #[cfg(test)]
