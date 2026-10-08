@@ -6756,6 +6756,7 @@ mod tests {
             hash.update(Digest256::of_bytes(&payload).as_bytes());
         }
         let mut receipt = exact_receipt(&hash.finalize().to_hex());
+        receipt.binding.owner_profile = "tos-native-projection-snapshot-v1".into();
         receipt.collections[0].expected_count = 96;
         let mut selected = limits();
         selected.sqlite.max_output_bytes = 1024 * 1024;
