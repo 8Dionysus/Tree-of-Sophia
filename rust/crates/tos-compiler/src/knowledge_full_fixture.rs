@@ -720,7 +720,12 @@ fn finish_fixture_with_limits(
 /// Claim bytes and a bounded navigation owner carrier for its exact subject.
 /// No pre-normalized Claim, time envelope or final row is a test input.
 pub fn build_native_fixture() -> FullKnowledgeFixture {
-    build_native_fixture_inner(false, None, None, None, None)
+    build_native_fixture_inner(false, false, None, None, None, None)
+}
+/// Real source preparation and finalization for synthesized grounding edges.
+#[cfg(test)]
+pub(crate) fn build_native_fixture_with_semantic_joins() -> FullKnowledgeFixture {
+    build_native_fixture_inner(true, false, None, None, None, None)
 }
 /// Existing raw producer fixture with the finite consumer's stage envelope.
 pub fn build_native_fixture_bounded(
@@ -728,12 +733,19 @@ pub fn build_native_fixture_bounded(
     deadline: std::time::Instant,
 ) -> FullKnowledgeFixture {
     assert!(std::time::Instant::now() < deadline);
-    build_native_fixture_inner(false, None, None, None, Some((stage_limits, deadline)))
+    build_native_fixture_inner(
+        false,
+        false,
+        None,
+        None,
+        None,
+        Some((stage_limits, deadline)),
+    )
 }
 /// Existing native raw fixture with one explicitly synthetic rights declaration
 /// retained through normal assembler/seal/cold-open. This grants no authority.
 pub fn build_native_fixture_with_navigation_original() -> FullKnowledgeFixture {
-    build_native_fixture_inner(true, None, None, None, None)
+    build_native_fixture_inner(false, true, None, None, None, None)
 }
 /// Caller supplies complete original owner fixture packets. They traverse the
 /// same raw ingestion, native normalization, catalog, seal and cold-open path.
@@ -744,7 +756,14 @@ pub fn build_native_fixture_with_navigation_inputs(
     edges: &[&[u8]],
     rights: &[&[u8]],
 ) -> FullKnowledgeFixture {
-    build_native_fixture_inner(true, Some((header, nodes, edges, rights)), None, None, None)
+    build_native_fixture_inner(
+        false,
+        true,
+        Some((header, nodes, edges, rights)),
+        None,
+        None,
+        None,
+    )
 }
 /// Same native navigation producer, with caller-selected finite stage caps and
 /// deadline from its already admitted installed-case profile. Family-specific
@@ -764,6 +783,7 @@ pub fn build_native_fixture_with_navigation_inputs_bounded(
         "native fixture deadline already expired"
     );
     build_native_fixture_inner(
+        false,
         true,
         Some((header, nodes, edges, rights)),
         None,
@@ -881,7 +901,7 @@ pub fn build_native_fixture_with_philosophy_inputs(
     nodes: &[&[u8]],
     edges: &[&[u8]],
 ) -> FullKnowledgeFixture {
-    build_native_fixture_inner(false, None, Some((header, nodes, edges)), None, None)
+    build_native_fixture_inner(false, false, None, Some((header, nodes, edges)), None, None)
 }
 /// Reuse a real existing software capture of unchanged public corpus inputs.
 /// Abbreviated compatibility rows are never passed off as native canon inputs.
@@ -916,6 +936,7 @@ pub fn build_native_fixture_with_captured_corpus(
     let path = tos_foundation::RelativePath::parse(source_path).unwrap();
     build_native_fixture_inner(
         false,
+        false,
         None,
         None,
         Some((&capture, &path, deadline, &cancelled)),
@@ -925,6 +946,7 @@ pub fn build_native_fixture_with_captured_corpus(
 type PhilosophyFixtureInputs<'a> = (&'a [u8], &'a [&'a [u8]], &'a [&'a [u8]]);
 type NavigationFixtureInputs<'a> = (&'a [u8], &'a [&'a [u8]], &'a [&'a [u8]], &'a [&'a [u8]]);
 fn build_native_fixture_inner(
+    semantic_joins: bool,
     retain_original: bool,
     originals: Option<NavigationFixtureInputs<'_>>,
     philosophy_originals: Option<PhilosophyFixtureInputs<'_>>,
@@ -951,8 +973,13 @@ fn build_native_fixture_inner(
             matches!(
                 source["adapter_profile"].as_str(),
                 Some("source-navigation-node-edge-v1" | "reified-bibliographic-claims-v1")
-            ) || philosophy_originals.is_some()
-                && source["adapter_profile"] == "philosophy-node-edge-v1"
+            ) || semantic_joins
+                && matches!(
+                    source["adapter_profile"].as_str(),
+                    Some("canon-node-relation-v1" | "declared-identity-and-source-ref-joins-v1")
+                )
+                || philosophy_originals.is_some()
+                    && source["adapter_profile"] == "philosophy-node-edge-v1"
         });
     let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
     let vocabulary = QueryVocabulary::parse(
@@ -962,6 +989,8 @@ fn build_native_fixture_inner(
             "reified-bibliographic-claims-v1",
             "indexed-node-edge-v1",
             "philosophy-node-edge-v1",
+            "canon-node-relation-v1",
+            "declared-identity-and-source-ref-joins-v1",
         ],
     )
     .unwrap();
@@ -982,8 +1011,11 @@ fn build_native_fixture_inner(
         .find(|node| node["node_kind"] == "claim")
         .unwrap();
     let subject_id = subject["properties"]["record_id"].as_str().unwrap();
-    let nav = json!({"node_id":subject_id,"node_kind":"identity","label":subject["properties"]["preferred_label"],
+    let mut nav = json!({"node_id":subject_id,"node_kind":"identity","label":subject["properties"]["preferred_label"],
         "source_ref":subject["source_ref"],"identity_status":subject["properties"]["identity_status"],"properties":subject["properties"]});
+    if semantic_joins {
+        nav["properties"]["source_refs"] = json!(["ToS/canon/fixture.md"]);
+    }
     let nav_edge = json!({"edge_id":"native-claim-subject","from_id":subject_id,"to_id":claim["node_id"],
         "to_source_graph":"source-claims","predicate_id":"has_claim","edge_kind":"declared-claim-navigation",
         "review_status":"source-recorded","source_refs":[subject["source_ref"]],"properties":{},"view_ids":["native-fixture"]});
@@ -1054,10 +1086,23 @@ fn build_native_fixture_inner(
             }
         }
     }
+    if semantic_joins {
+        let node = json!({"node_id":"fixture-canon", "node_type":"concept", "source_path":"ToS/canon/fixture.md", "properties":{}});
+        rows.push((
+            "canon".into(),
+            "nodes".into(),
+            "fixture-canon".into(),
+            serde_json::to_vec(&node).unwrap(),
+        ));
+    }
     let mut collections = Vec::new();
     for source in &vocabulary.sources {
         let names: &[&str] = if source.adapter_profile == "reified-bibliographic-claims-v1" {
             &["nodes", "edges", "claim_traces"]
+        } else if source.adapter_profile == "canon-node-relation-v1" {
+            &["nodes", "relation_packs", "relation_edges"]
+        } else if source.adapter_profile == "declared-identity-and-source-ref-joins-v1" {
+            &["join_scope"]
         } else {
             &["nodes", "edges"]
         };

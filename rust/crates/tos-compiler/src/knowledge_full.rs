@@ -453,6 +453,40 @@ mod tests {
     }
 
     #[test]
+    fn native_synthesized_grounding_keeps_prepared_context_through_cold_open() {
+        let fixture = crate::knowledge_full_fixture::build_native_fixture_with_semantic_joins();
+        let graph: serde_json::Value = serde_json::from_slice(&fixture.graph_input_bytes).unwrap();
+        let relation = graph["relations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| {
+                row["source_graph"] == "semantic-interchange"
+                    && row["predicate_id"] == "grounded_in"
+            })
+            .expect("declared source reference produces an actual grounding edge");
+        assert_eq!(
+            relation
+                .pointer("/source_record/payload/properties/review_status")
+                .unwrap(),
+            "source-recorded"
+        );
+        assert_eq!(
+            relation
+                .pointer("/semantics/assertion_contexts/0/fields/review_status/value")
+                .unwrap(),
+            "source-recorded"
+        );
+        assert!(relation.get("readable_context").is_some());
+        let mut selected = fixture.open().unwrap();
+        selected.check_pin().unwrap();
+        assert_eq!(
+            selected.selection().relation_count,
+            graph["relations"].as_array().unwrap().len() as u64
+        );
+    }
+
+    #[test]
     fn native_raw_claim_navigation_produces_complete_selected_graph() {
         let fixture = crate::knowledge_full_fixture::build_native_fixture();
         let graph: serde_json::Value = serde_json::from_slice(&fixture.graph_input_bytes).unwrap();

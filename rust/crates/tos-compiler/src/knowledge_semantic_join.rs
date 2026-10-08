@@ -563,6 +563,42 @@ fn verify(
     }
     Ok(())
 }
+/// A semantic relation has no raw collection row: it is derived from the
+/// complete base node closure. Keep its exact prepared material until the
+/// readable-context pass, with the same cut, identity and digest checks used
+/// while materializing it. The complete dependency root is checked before
+/// materialization and again at cleanup.
+pub(crate) fn semantic_relation_material_witness(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &SemanticJoinReceipt,
+    normalized_id: &str,
+    native_id: &str,
+    limits: TopologyLimits,
+) -> Result<Vec<u8>> {
+    limits.validate()?;
+    if receipt.source_cut != stage.exact_receipt()?.binding.source_cut
+        || normalized_id.strip_prefix(&format!("{}:", receipt.source_graph)) != Some(native_id)
+    {
+        return Err(Error::Invalid("semantic source-material binding"));
+    }
+    let (raw, sha): (Vec<u8>, Vec<u8>) = stage.with_connection(WritePhase::Finalize, |db| {
+        db.query_row(
+            "SELECT CASE WHEN typeof(material)='blob' AND material_len=length(material) AND material_len<=?2 THEN material ELSE NULL END,material_sha256 FROM knowledge_semantic_material WHERE id=?1",
+            params![native_id, limits.max_row_bytes as i64],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        ).optional()?.ok_or(Error::Invalid("semantic source-material absent"))
+    })?;
+    if sha.as_slice() != Digest256::of_bytes(&raw).as_bytes()
+        || required(
+            SourceRow::parse(&raw, limits.max_row_bytes)?.value(),
+            "edge_id",
+        )? != native_id
+    {
+        return Err(Error::Invalid("semantic source-material digest/identity"));
+    }
+    Ok(raw)
+}
+
 pub fn materialize_semantic_relations<F>(
     stage: &mut KnowledgeStage<'_>,
     receipt: &SemanticJoinReceipt,

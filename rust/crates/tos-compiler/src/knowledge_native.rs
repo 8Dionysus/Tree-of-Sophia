@@ -696,13 +696,24 @@ struct MaterializePhases<'a> {
 }
 impl<'a> MaterializePhases<'a> {
     fn new(state: Option<&'a crate::d1_public_capture::CreationState<'a>>) -> Self {
-        Self { state, name: None, started: std::time::Instant::now(), work: 0 }
+        Self {
+            state,
+            name: None,
+            started: std::time::Instant::now(),
+            work: 0,
+        }
     }
     fn finish(&mut self, success: bool) {
         if let (Some(state), Some(name)) = (self.state, self.name.take()) {
             let work = state.observed_work_bytes();
-            eprintln!("Native materialize phase={} status={} elapsed_ms={} work_bytes={} total_work_bytes={}",
-                name, if success { "passed" } else { "refused" }, self.started.elapsed().as_millis(), work.saturating_sub(self.work), work);
+            eprintln!(
+                "Native materialize phase={} status={} elapsed_ms={} work_bytes={} total_work_bytes={}",
+                name,
+                if success { "passed" } else { "refused" },
+                self.started.elapsed().as_millis(),
+                work.saturating_sub(self.work),
+                work
+            );
         }
     }
     fn next(&mut self, name: &'static str) {
@@ -1209,7 +1220,7 @@ pub fn materialize_native_sources_with_inputs(
             |stage, graph, reference| {
                 claim_context_sources(stage, &contexts, graph, reference, limits.claims)
             },
-            |stage, relation, graph, id, _native| {
+            |stage, relation, graph, id, native| {
                 if let Some((prepared, _)) = canon
                     .iter()
                     .chain(candidates.iter())
@@ -1230,6 +1241,19 @@ pub fn materialize_native_sources_with_inputs(
                         prepared,
                         relation,
                         id,
+                        additional.topology,
+                    )
+                    .map(Some);
+                }
+                if let Some(prepared) = semantic.as_ref().filter(|p| p.source_graph == graph) {
+                    if !relation {
+                        return Err(Error::Invalid("semantic source-material node"));
+                    }
+                    return crate::knowledge_semantic_join::semantic_relation_material_witness(
+                        stage,
+                        prepared,
+                        id,
+                        native,
                         additional.topology,
                     )
                     .map(Some);

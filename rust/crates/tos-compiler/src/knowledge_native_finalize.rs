@@ -314,8 +314,11 @@ where
                                 owner = Some(raw.payload);
                             }
                         }
-                        let mut owner =
-                            owner.ok_or(Error::Invalid("native ordered source witness absent"))?;
+                        let mut owner = owner.ok_or_else(|| {
+                            // Identities only; never print private source payloads.
+                            eprintln!("Native final source witness absent: table={table} source={:?} id={:?} native={:?}", row.source, row.id, native);
+                            Error::Invalid("native ordered source witness absent")
+                        })?;
                         if table == "knowledge_nodes"
                             && stage.exact_receipt()?.collections.iter().any(|entry| {
                                 entry.source_graph == row.source
