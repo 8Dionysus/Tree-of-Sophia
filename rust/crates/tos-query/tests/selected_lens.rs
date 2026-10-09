@@ -1,12 +1,15 @@
 #![cfg(not(target_arch = "wasm32"))]
-//! Entire native selected packets against the maintained independent Python engine.
+//! Native selected packets against frozen outputs from the maintained historical Python engine.
 use std::{
-    io::Write,
-    process::{Command, Stdio},
+    collections::BTreeSet,
+    io::Read,
+    path::{Component, Path, PathBuf},
+    process::Command,
     sync::{
         Arc,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
+    time::{Duration, Instant},
 };
 use tos_compiler::knowledge_full_fixture::build_native_fixture;
 use tos_foundation::{
@@ -492,6 +495,336 @@ fn canonical(v: &JsonValue) -> Vec<u8> {
     )
     .unwrap()
 }
+const HISTORICAL_ORACLE_MANIFEST_SHA256: &str =
+    "d75b5cbe97c29f0d5ac756b96e3c4530beb1380ae448ee40fc0b60234fb5eca5";
+const HISTORICAL_ORACLE_PROVENANCE: &str =
+    "bc98e9ac77b30738b768581a8644c4ce830785ccc2aeba24b1bd1c7197a3b662";
+const HISTORICAL_ORACLE_SOURCE: &str = "db15df0d2a46a3c219a8d29fc5f101228500e9bf";
+const HISTORICAL_ORACLE_TREE: &str = "553287212eca7f29c0aec8089ebfd2d7f9b3692a";
+const HISTORICAL_ORACLE_PRODUCT: &str =
+    "4392830f969983432e821449eb193eec13797bc6169923915a52b663c822118e";
+
+fn historical_oracle(name: &str) -> JsonValue {
+    let manifest_raw = include_bytes!("fixtures/selected_lens_oracles/manifest.json");
+    assert_eq!(
+        tos_foundation::Digest256::of_bytes(manifest_raw).to_hex(),
+        HISTORICAL_ORACLE_MANIFEST_SHA256,
+        "frozen historical capture manifest"
+    );
+    let manifest = parse_json(
+        manifest_raw,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    assert_eq!(
+        field(&manifest, "schema_version").as_str(),
+        Some("tos_selected_lens_historical_oracles_v1")
+    );
+    assert_eq!(field(&manifest, "capture_status").as_str(), Some("PASS"));
+    assert_eq!(field(&manifest, "capture_complete").as_bool(), Some(true));
+    assert_eq!(
+        field(&manifest, "capture_provenance_sha256").as_str(),
+        Some(HISTORICAL_ORACLE_PROVENANCE)
+    );
+    assert_eq!(
+        field(&manifest, "historical_python_commit").as_str(),
+        Some("b095824a7a7728f16ce09a9c8c213c8944bce574")
+    );
+    assert_eq!(
+        field(&manifest, "historical_python_tree").as_str(),
+        Some("2a8a3faa283030101d7728cc530d69f5a3766270")
+    );
+    assert_eq!(
+        field(&manifest, "historical_python_support_manifest_sha256").as_str(),
+        Some("ff8506375c89ab5d0d62a2a1a786815d70961d6dea966c9ae1023d2eeb681a58")
+    );
+    assert_eq!(
+        field(&manifest, "installed_access_consumer_sha256").as_str(),
+        Some("7b663723a70104ad727a45ae7de7a36dd02ac2eeaa9070677425a573305e843f")
+    );
+    assert_eq!(
+        field(&manifest, "installed_access_consumer_commit").as_str(),
+        Some("32d490242fc9391d5ae3ef59871d3403443ccf37")
+    );
+    assert_eq!(
+        field(&manifest, "installed_access_consumer_tree").as_str(),
+        Some("7d97a1f123c46252a34bb98df3ce16524e57fb29")
+    );
+    assert_eq!(
+        field(&manifest, "capture_source_commit").as_str(),
+        Some(HISTORICAL_ORACLE_SOURCE)
+    );
+    assert_eq!(
+        field(&manifest, "capture_source_tree").as_str(),
+        Some(HISTORICAL_ORACLE_TREE)
+    );
+    assert_eq!(
+        field(&manifest, "capture_source_prepost_equal").as_bool(),
+        Some(true)
+    );
+    assert_eq!(
+        field(&manifest, "native_selected_lens_product_sha256").as_str(),
+        Some(HISTORICAL_ORACLE_PRODUCT)
+    );
+    assert_eq!(
+        field(&manifest, "captured_test_functions").as_u64(),
+        Some(9)
+    );
+    assert_eq!(
+        field(&manifest, "captured_python_invocations").as_u64(),
+        Some(14)
+    );
+
+    let compressed: &[u8] = match name {
+        "lenses" => include_bytes!("fixtures/selected_lens_oracles/lenses.json.gz"),
+        "legacy-search" => include_bytes!("fixtures/selected_lens_oracles/legacy-search.json.gz"),
+        "contracts" => include_bytes!("fixtures/selected_lens_oracles/contracts.json.gz"),
+        "dossiers" => include_bytes!("fixtures/selected_lens_oracles/dossiers.json.gz"),
+        "shared-file-rights" => {
+            include_bytes!("fixtures/selected_lens_oracles/shared-file-rights.json.gz")
+        }
+        "remaining-navigation" => {
+            include_bytes!("fixtures/selected_lens_oracles/remaining-navigation.json.gz")
+        }
+        "source-gap" => include_bytes!("fixtures/selected_lens_oracles/source-gap.json.gz"),
+        "corpus-reads" => include_bytes!("fixtures/selected_lens_oracles/corpus-reads.json.gz"),
+        "philosophy-01" => include_bytes!("fixtures/selected_lens_oracles/philosophy-01.json.gz"),
+        "philosophy-02" => include_bytes!("fixtures/selected_lens_oracles/philosophy-02.json.gz"),
+        "philosophy-03" => include_bytes!("fixtures/selected_lens_oracles/philosophy-03.json.gz"),
+        "philosophy-04" => include_bytes!("fixtures/selected_lens_oracles/philosophy-04.json.gz"),
+        "philosophy-05" => include_bytes!("fixtures/selected_lens_oracles/philosophy-05.json.gz"),
+        "philosophy-06" => include_bytes!("fixtures/selected_lens_oracles/philosophy-06.json.gz"),
+        _ => panic!("unknown R4 oracle fixture {name}"),
+    };
+    let case = field(&manifest, "cases")
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| field(case, "name").as_str() == Some(name))
+        .unwrap_or_else(|| panic!("R4 oracle manifest lacks {name}"));
+    assert_eq!(
+        tos_foundation::Digest256::of_bytes(compressed).to_hex(),
+        field(case, "fixture_sha256").as_str().unwrap(),
+        "compressed R4 oracle fixture hash: {name}"
+    );
+    assert_eq!(
+        compressed.len() as u64,
+        field(case, "fixture_bytes").as_u64().unwrap(),
+        "compressed R4 oracle fixture size: {name}"
+    );
+    let mut decoded = Vec::new();
+    flate2::read::GzDecoder::new(compressed)
+        .read_to_end(&mut decoded)
+        .unwrap();
+    assert_eq!(
+        tos_foundation::Digest256::of_bytes(&decoded).to_hex(),
+        field(case, "raw_sha256").as_str().unwrap(),
+        "historical Python stdout hash: {name}"
+    );
+    assert_eq!(
+        decoded.len() as u64,
+        field(case, "raw_bytes").as_u64().unwrap(),
+        "historical Python stdout size: {name}"
+    );
+    parse_json(
+        &decoded,
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: 64 * 1024 * 1024,
+            max_visits: 20_000_000,
+            ..JsonLimits::default()
+        },
+    )
+    .unwrap()
+    .into_root()
+}
+
+const CORPUS_FIXTURE_MANIFEST_SHA256: &str =
+    "018bb2d64f28817f36fc932ebc9da0b10aac7d0ed33bfd067698a0f09a7fb600";
+
+fn verify_corpus_fixture_files(root: &Path) {
+    let manifest = std::fs::read(root.join("fixture-files.sha256")).unwrap();
+    assert_eq!(
+        tos_foundation::Digest256::of_bytes(&manifest).to_hex(),
+        CORPUS_FIXTURE_MANIFEST_SHA256,
+        "captured corpus fixture manifest"
+    );
+    let manifest = std::str::from_utf8(&manifest).unwrap();
+    let mut seen = BTreeSet::new();
+    for line in manifest.lines() {
+        let (expected_sha, relative) = line.split_once("  ").unwrap();
+        assert_eq!(expected_sha.len(), 64);
+        let relative = Path::new(relative);
+        assert!(
+            relative
+                .components()
+                .all(|part| matches!(part, Component::Normal(_)))
+        );
+        assert!(
+            seen.insert(relative.to_path_buf()),
+            "duplicate corpus fixture path"
+        );
+        let raw = std::fs::read(root.join(relative)).unwrap();
+        assert_eq!(
+            tos_foundation::Digest256::of_bytes(&raw).to_hex(),
+            expected_sha,
+            "captured corpus fixture {}",
+            relative.display()
+        );
+    }
+    assert_eq!(seen.len(), 65, "all R4 corpus fixture inputs are pinned");
+}
+
+static TEMP_FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+struct TestTempDir(PathBuf);
+impl TestTempDir {
+    fn new(prefix: &str) -> Self {
+        for _ in 0..64 {
+            let sequence = TEMP_FIXTURE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            let root =
+                std::env::temp_dir().join(format!("{prefix}-{}-{sequence}", std::process::id()));
+            match std::fs::create_dir(&root) {
+                Ok(()) => return Self(root),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("create test temporary directory: {error}"),
+            }
+        }
+        panic!("could not allocate unique test temporary directory")
+    }
+    fn path(&self) -> &Path {
+        &self.0
+    }
+}
+impl Drop for TestTempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+fn copy_fixture_tree(source: &Path, target: &Path) {
+    std::fs::create_dir_all(target).unwrap();
+    for entry in std::fs::read_dir(source).unwrap() {
+        let entry = entry.unwrap();
+        let from = entry.path();
+        let to = target.join(entry.file_name());
+        let kind = entry.file_type().unwrap();
+        if kind.is_dir() {
+            copy_fixture_tree(&from, &to);
+        } else {
+            assert!(kind.is_file(), "fixture inputs must be regular files");
+            std::fs::copy(&from, &to).unwrap();
+        }
+    }
+}
+
+fn git_output(repository: &Path, arguments: &[&str]) -> Vec<u8> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repository)
+        .args(arguments)
+        .output()
+        .unwrap_or_else(|error| panic!("run native Git fixture command {arguments:?}: {error}"));
+    assert!(
+        output.status.success(),
+        "native Git fixture command {arguments:?}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    output.stdout
+}
+
+fn native_corpus_capture(
+    source: &Path,
+    prefixes: &[String],
+    capture: &Path,
+    restored: &Path,
+) -> (String, String, String) {
+    use tos_source_store::{CaptureGitRequest, CaptureRestoreLimits, GitCaptureLimits, ReadLimits};
+
+    git_output(source, &["init", "--quiet"]);
+    let mut add = Command::new("git");
+    add.arg("-C").arg(source).args(["add", "--"]).args(prefixes);
+    let add_output = add.output().expect("start native Git add");
+    assert!(
+        add_output.status.success(),
+        "native Git add: {}",
+        String::from_utf8_lossy(&add_output.stderr)
+    );
+    git_output(
+        source,
+        &[
+            "-c",
+            "user.name=ToS Software Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "selected corpus read fixture",
+        ],
+    );
+    let commit = String::from_utf8(git_output(source, &["rev-parse", "HEAD"]))
+        .unwrap()
+        .trim()
+        .to_owned();
+    let tree = String::from_utf8(git_output(source, &["rev-parse", "HEAD^{tree}"]))
+        .unwrap()
+        .trim()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let cancelled = AtomicBool::new(false);
+    let capture_result = tos_source_store::capture_git(
+        CaptureGitRequest {
+            repository: source,
+            commit: &commit,
+            include_prefixes: prefixes,
+            exclude_prefixes: &[],
+            exclude_path_parts: &[],
+            output: capture,
+        },
+        GitCaptureLimits {
+            max_members: 512,
+            max_member_bytes: 8 * 1024 * 1024,
+            max_source_bytes: 8 * 1024 * 1024,
+            max_metadata_bytes: 2 * 1024 * 1024,
+            max_tree_bytes: 8 * 1024 * 1024,
+            max_archive_bytes: 8 * 1024 * 1024,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let selection = tos_source_store::SoftwareCaptureSelectionV1 {
+        source_git_commit: commit.clone(),
+        source_git_tree: tree.clone(),
+        capture_manifest_sha256: capture_result.manifest_sha256,
+    };
+    tos_source_store::restore_capture(
+        capture,
+        restored,
+        &selection,
+        CaptureRestoreLimits {
+            metadata: ReadLimits {
+                max_manifest_bytes: 2 * 1024 * 1024,
+                max_manifest_entries: 512,
+                max_selected_object_bytes: 8 * 1024 * 1024,
+                json: JsonLimits {
+                    max_bytes: 2 * 1024 * 1024,
+                    ..JsonLimits::default()
+                },
+            },
+            max_archive_bytes: 8 * 1024 * 1024,
+            max_decoded_bytes: 8 * 1024 * 1024,
+            max_source_bytes: 8 * 1024 * 1024,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    (commit, tree, capture_result.manifest_sha256.to_hex())
+}
+
 fn focus_request(value: &JsonValue) -> KnowledgeFocusRequest {
     let mut request = KnowledgeFocusRequest::new(field(value, "node_id").as_str().unwrap());
     if let Some(v) = value.object_get("sources") {
@@ -530,7 +863,7 @@ fn focus_request(value: &JsonValue) -> KnowledgeFocusRequest {
     request
 }
 #[test]
-fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosure() {
+fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_disclosure() {
     let fixture = build_native_fixture();
     let cold = fixture.open().unwrap();
     let bound =
@@ -546,39 +879,7 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
         tos_foundation::Digest256::of_bytes(&catalog),
         bound.selection().catalog_packet_sha256
     );
-    let mut child = Command::new("python3")
-        .arg(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tests/fixtures/selected_lens_python_oracle.py"
-        ))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("independent Python oracle");
-    let mut input = child.stdin.take().unwrap();
-    input.write_all(b"[").unwrap();
-    input.write_all(&fixture.graph_input_bytes).unwrap();
-    input.write_all(b",").unwrap();
-    input.write_all(&fixture.descriptor_bytes).unwrap();
-    input.write_all(b",").unwrap();
-    input.write_all(&canonical(&publication)).unwrap();
-    input.write_all(b",").unwrap();
-    input.write_all(&catalog).unwrap();
-    input.write_all(b"]").unwrap();
-    drop(input);
-    let output = child.wait_with_output().unwrap();
-    assert!(output.status.success(), "Python oracle failed");
-    let oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits {
-            max_bytes: 64 * 1024 * 1024,
-            max_visits: 10_000_000,
-            ..JsonLimits::default()
-        },
-    )
-    .unwrap()
-    .into_root();
+    let oracle = historical_oracle("lenses");
     let mut model = cold
         .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
         .unwrap();
@@ -788,9 +1089,9 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
 }
 
 /// Same genuine normalized producer and current-disclosure seam, narrowed to
-/// the maintained legacy search operation; no new corpus or fixture producer.
+/// the legacy search behavior; no new corpus or fixture producer.
 #[test]
-fn normalized_selected_legacy_search_matches_python_packets_and_exact_counts() {
+fn normalized_selected_legacy_search_matches_frozen_packets_and_exact_counts() {
     use tos_query::knowledge_legacy_search::{
         LEGACY_SEARCH_INTENDED_USE, LEGACY_SEARCH_OPERATION, LegacySearchBudget,
         LegacySearchRequest, SEARCH_CAPABILITIES_INTENDED_USE, SEARCH_CAPABILITIES_OPERATION,
@@ -815,68 +1116,7 @@ fn normalized_selected_legacy_search_matches_python_packets_and_exact_counts() {
         max_retained_bytes: 8_000_000,
         block_size: 16,
     };
-    let script = r#"
-import json,sys
-from pathlib import Path
-sys.path.insert(0,sys.argv[1])
-from tos_access import knowledge as k
-from tos_access.core import ToSAccessCore
-graph,descriptor=json.load(sys.stdin)
-k.KNOWLEDGE_SOURCES=tuple(s['source_graph_id'] for s in descriptor['sources'])
-first=graph['nodes'][0]
-requests=[{}, {'query':' '}, {'query':': '}, {'query':graph['source_revision']},
-          {'query':first['id']}, {'query':first['native_id'].upper()},
-          {'query':first['source_refs'][0]}, {'query':first['native_id'][:1]},
-          {'query':'\u2003'+first['native_id']+'\u001c'},
-          {'offset':1,'limit':1}, {'offset':100_000}, {'sources':[]},
-          {'sources':['',first['source_graph'],first['source_graph']]},
-          {'kind_ids':[first['kind_id'],'',first['kind_id']]},
-          {'kind_ids':['unregistered-fixture-kind']},
-          {'predicate_ids':[graph['relations'][0]['predicate_id']]},
-          {'predicate_ids':['unregistered-fixture-predicate']},
-          {'query':'x'*257}, {'offset':100_001}, {'limit':0},
-          {'sources':['unregistered-fixture-source']}]
-requests += [{'sources':[source]} for source in k.KNOWLEDGE_SOURCES]
-cases=[]
-for request in requests:
-    try: packet=k.search_knowledge_graph(graph,**request)
-    except ValueError: cases.append({'request':request,'error':'invalid'})
-    else: cases.append({'request':request,'packet':packet})
-# Exact maintained engine-selection profile; does not create a public grant.
-class SelectedEngine:
-    _prepared_reader=None
-    _data_guard=None
-    def _query_store(self): return None
-json.dump({'cases':cases,'capabilities':ToSAccessCore.knowledge_search_capabilities(SelectedEngine())},sys.stdout,ensure_ascii=False)
-"#;
-    let mut child = Command::new("python3")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let mut input = child.stdin.take().unwrap();
-    input.write_all(b"[").unwrap();
-    input.write_all(&fixture.graph_input_bytes).unwrap();
-    input.write_all(b",").unwrap();
-    input.write_all(&fixture.descriptor_bytes).unwrap();
-    input.write_all(b"]").unwrap();
-    drop(input);
-    let output = child.wait_with_output().unwrap();
-    assert!(output.status.success());
-    let oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits {
-            max_bytes: 32_000_000,
-            max_visits: 4_000_000,
-            ..JsonLimits::default()
-        },
-    )
-    .unwrap()
-    .into_root();
+    let oracle = historical_oracle("legacy-search");
     let mut model = cold
         .fork_reader_with_vm_budget(caps.inspect.max_read_vm_steps)
         .unwrap();
@@ -1014,51 +1254,7 @@ fn normalized_selected_contracts_require_exact_registry_carriers_and_current_hol
         tos_foundation::Digest256::of_bytes(raw[1]),
         bound.selection().relation_registry_sha256
     );
-    let script = r#"
-import json,sys
-from pathlib import Path
-from types import SimpleNamespace
-sys.path.insert(0,sys.argv[1])
-from tos_access import core
-raw=json.load(sys.stdin)
-selected={str(Path('/selected-owner')/core.KNOWLEDGE_CONTRACT_RELATIVE_PATHS[key]):json.loads(value)
-          for key,value in zip(('entity_type_registry','relation_type_registry'),raw)}
-original=core._read_json
-core._read_json=lambda path:selected[str(path)] if str(path) in selected else original(path)
-json.dump(core.ToSAccessCore.knowledge_contracts(SimpleNamespace(tos_root=Path('/selected-owner'),_data_guard=None)),sys.stdout,ensure_ascii=False)
-"#;
-    let mut child = Command::new("python3")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let input = JsonValue::Array(
-        raw.iter()
-            .map(|raw| {
-                JsonValue::String(tos_foundation::JsonString::from_utf8(
-                    std::str::from_utf8(raw).unwrap(),
-                ))
-            })
-            .collect(),
-    );
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(&canonical(&input))
-        .unwrap();
-    let output = child.wait_with_output().unwrap();
-    assert!(output.status.success());
-    let mut oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap()
-    .into_root();
+    let mut oracle = historical_oracle("contracts");
     adapt_historical_contract_availability(&mut oracle);
     let mut model = cold
         .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
@@ -1114,58 +1310,15 @@ json.dump(core.ToSAccessCore.knowledge_contracts(SimpleNamespace(tos_root=Path('
 }
 
 #[test]
-fn normalized_selected_dossiers_match_original_python_packets_and_hold_rights() {
+fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights() {
     use tos_compiler::knowledge_full_fixture::build_native_fixture_with_navigation_inputs;
     use tos_query::source_dossier::{
         DOSSIER_INTENDED_USE, DOSSIER_OPERATION, DossierBudget, execute_selected_dossier,
         execute_selected_source_navigation_descend, selected_source_navigation_descend_available,
     };
-    // Existing maintained full navigation fixture. No shortened PR252 nodes
+    // Existing frozen full navigation fixture. No shortened PR252 nodes
     // are padded to fit the real producer; original strings remain unchanged.
-    let script = r#"
-import json,sys,tempfile
-from pathlib import Path
-sys.path[:0]=[sys.argv[1],sys.argv[2]]
-from test_access_contract import write_fixture
-from tos_access.core import ToSAccessCore
-with tempfile.TemporaryDirectory() as d:
- root=Path(d);write_fixture(root)
- nav=json.loads((root/'ToS/derived-exports/tos_corpus_index.min.json').read_text())['source_navigation']
- core=ToSAccessCore.discover(tos_root=root)
- cases=[]
- for n in nav['nodes']:
-  if n['node_kind'] in {'work','expression','edition','item','file','link'}:
-   cases.append({'object_id':n['node_id'],'limit':300,'packet':core.source_dossier(n['node_id'],limit=300)})
- link=next(n for n in nav['nodes'] if n['node_kind']=='link')
- cases.append({'object_id':link['node_id'],'limit':1,'packet':core.source_dossier(link['node_id'],limit=1)})
- work=next(n for n in nav['nodes'] if n['node_kind']=='work')
- descends=[{'node_id':n['node_id'],'max_depth':depth,'limit':limit,'packet':core.source_descend(n['node_id'],max_depth=depth,limit=limit)} for n,depth,limit in [(work,2,3),(link,1,1)]]
-raw=lambda v:json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False)
-header={k:v for k,v in nav.items() if k not in {'nodes','edges','rights'}}
-print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[raw(v) for v in nav['edges']],'rights':[raw(v) for v in nav['rights']],'cases':cases,'descends':descends}))
-"#;
-    let output = Command::new("python3")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
-        .arg(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../../access/tests"
-        ))
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap()
-    .into_root();
+    let oracle = historical_oracle("dossiers");
     let raw_rows = |name| {
         field(&oracle, name)
             .as_array()
@@ -1311,87 +1464,10 @@ fn normalized_selected_dossiers_preserve_shared_file_membership_rights_controls(
     use tos_query::source_dossier::{
         DOSSIER_INTENDED_USE, DOSSIER_OPERATION, DossierBudget, execute_selected_dossier,
     };
-    // Reuse the maintained synthetic rights fixtures and their unique assertions.
+    // Reuse the frozen synthetic rights fixtures and their unique assertions.
     // Emit full published test rows explicitly: the abbreviated pure-query rows
     // themselves are not claimed to satisfy the compiler input contract.
-    let script = r#"
-import copy,json,sys
-sys.path[:0]=[sys.argv[1],sys.argv[2]]
-import test_source_navigation_file_rights as f
-original=f.source_dossier_query
-groups={}
-raw=lambda v:json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False)
-def selected(navigation,nodes,incoming,outgoing,rights_for,object_id,*,limit=20):
- nodes=copy.deepcopy(nodes)
- edges={e['edge_id']:copy.deepcopy(e) for rows in list(incoming.values())+list(outgoing.values()) for e in rows}
- for n in nodes.values():
-  n.setdefault('label',n['node_id']);n.setdefault('identity_status','not_applicable');n.setdefault('properties',{})
-  n.setdefault('source_ref',f.MANIFEST_B if n['node_id']==f.ITEM_B else f.MANIFEST_A if n['node_kind'] in {'file','item'} else n['node_id'].replace('tos.','')+'.json')
- for e in edges.values(): e.setdefault('review_status','not_applicable')
- rights=copy.deepcopy(rights_for(list(nodes)))
- header=dict(navigation,schema_version='tos_source_navigation_v1',counts={'nodes':len(nodes),'edges':len(edges),'rights':len(rights)})
- # Both readers see the same full test originals, not an independently padded
- # expected packet. Existing rights/manifest assertions still run below.
- ins={};outs={}
- for e in edges.values():
-  ins.setdefault(e['to_id'],[]).append(e);outs.setdefault(e['from_id'],[]).append(e)
- packet=original(header,nodes,ins,outs,lambda _ids:rights,object_id,limit=limit)
- group={'header':raw(header),'nodes':[raw(n) for n in nodes.values()],'edges':[raw(e) for e in edges.values()],'rights':[raw(r) for r in rights]}
- key=raw(group)
- if key not in groups: groups[key]=dict(group,cases=[])
- groups[key]['cases'].append({'name':active,'object_id':object_id,'limit':limit,'packet':packet})
- assert len(groups)<=32 and sum(len(g['cases']) for g in groups.values())<=64
- assert len(nodes)<=12 and len(edges)<=12 and len(rights)<=6
- return packet
-f.source_dossier_query=selected
-names=[
- 'test_shared_file_does_not_promote_one_items_rights_to_the_other',
- 'test_file_source_refs_require_the_complete_membership_edge_set',
- 'test_file_only_candidate_from_exact_source_stays_review_required',
- 'test_file_aggregate_requires_context_for_every_edge_source_ref',
- 'test_file_aggregate_rejects_duplicate_manifest_contexts',
- 'test_file_conclusion_requires_every_complete_membership_to_be_reviewed_positive',
- 'test_legacy_single_item_file_keeps_its_exact_item_scoped_rights',
- 'test_legacy_single_item_file_rejects_conflicting_unbound_rights_sources',
- 'test_legacy_shared_file_without_rights_refs_fails_closed',
- 'test_legacy_file_only_rights_scope_stays_unbound',
- 'test_ancestor_dossiers_filter_file_rights_to_reachable_memberships',
- 'test_ancestor_dossier_preserves_only_unambiguous_legacy_single_owner_rights',
-]
-for active in names: getattr(f.SharedFileRightsTests(methodName=active),active)()
-# Exact File-only layer source remains visible for File, absent from sibling Item.
-active='file-only-layer-exact-source'
-navigation,nodes,ins,outs,rights=f.navigation_fixture()
-rights.append({'rights_id':'rights-a-file-layer','assessment_kind':'layer','source_ref':f.RIGHTS_A,'scope_refs':[f.FILE_ID],'assessment_status':'copyright_undetermined','redistribution_posture':'not_authorized','review_status':'unreviewed'})
-file=selected(navigation,nodes,ins,outs,lambda _ids:rights,f.FILE_ID)
-assert [r['rights_id'] for r in file['rights']]==['rights-a','rights-a-file-layer','rights-b']
-item=selected(navigation,nodes,ins,outs,lambda _ids:rights,f.ITEM_B)
-assert [r['rights_id'] for r in item['rights']]==['rights-b']
-encoded=raw(list(groups.values())).encode();assert len(encoded)<=1048576
-print(encoded.decode())
-"#;
-    let output = Command::new("python3")
-        .args(["-B", "-c", script])
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
-        .arg(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../../access/tests"
-        ))
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    assert!(output.stdout.len() <= 1_048_576);
-    let groups = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap()
-    .into_root();
+    let groups = historical_oracle("shared-file-rights");
     let caps = DossierBudget {
         inspect: budget().inspect,
         max_candidates: budget().max_candidates,
@@ -1463,87 +1539,10 @@ fn normalized_selected_dossiers_preserve_remaining_source_navigation_boundaries(
     use tos_query::source_dossier::{
         DOSSIER_INTENDED_USE, DOSSIER_OPERATION, DossierBudget, execute_selected_dossier,
     };
-    // Reuse the maintained synthetic rights fixtures and their unique assertions.
+    // Reuse the frozen synthetic rights fixtures and their unique assertions.
     // Emit full published test rows explicitly: the abbreviated pure-query rows
     // themselves are not claimed to satisfy the compiler input contract.
-    let script = r#"
-import copy,json,sys
-sys.path[:0]=[sys.argv[1],sys.argv[2]]
-import test_source_navigation_file_rights as f
-original=f.source_dossier_query
-groups={}
-raw=lambda v:json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False)
-def selected(navigation,nodes,incoming,outgoing,rights_for,object_id,*,limit=20):
- nodes=copy.deepcopy(nodes)
- edges={e['edge_id']:copy.deepcopy(e) for rows in list(incoming.values())+list(outgoing.values()) for e in rows}
- for n in nodes.values():
-  n.setdefault('label',n['node_id']);n.setdefault('identity_status','not_applicable');n.setdefault('properties',{})
-  n.setdefault('source_ref',f.MANIFEST_B if n['node_id']==f.ITEM_B else f.MANIFEST_A if n['node_kind'] in {'file','item'} else n['node_id'].replace('tos.','')+'.json')
- for e in edges.values(): e.setdefault('review_status','not_applicable')
- rights=copy.deepcopy(rights_for(list(nodes)))
- header=dict(navigation,schema_version='tos_source_navigation_v1',counts={'nodes':len(nodes),'edges':len(edges),'rights':len(rights)})
- # Both readers see the same full test originals, not an independently padded
- # expected packet. Existing rights/manifest assertions still run below.
- ins={};outs={}
- for e in edges.values():
-  ins.setdefault(e['to_id'],[]).append(e);outs.setdefault(e['from_id'],[]).append(e)
- packet=original(header,nodes,ins,outs,lambda _ids:rights,object_id,limit=limit)
- group={'header':raw(header),'nodes':[raw(n) for n in nodes.values()],'edges':[raw(e) for e in edges.values()],'rights':[raw(r) for r in rights]}
- key=raw(group)
- if key not in groups: groups[key]=dict(group,cases=[])
- groups[key]['cases'].append({'name':active,'object_id':object_id,'limit':limit,'packet':packet})
- assert len(groups)<=16 and sum(len(g['cases']) for g in groups.values())<=24
- assert len(nodes)<=12 and len(edges)<=12 and len(rights)<=6
- return packet
-f.source_dossier_query=selected
-names=[
- 'test_positive_layer_remains_visible_but_cannot_lift_restrictive_aggregate',
- 'test_legacy_aggregate_and_layer_group_keeps_layer_out_of_clearance',
- 'test_legacy_overlapping_root_layer_pattern_fails_closed',
- 'test_legacy_multiple_non_layer_rows_for_one_source_fail_closed',
- 'test_legacy_single_manifest_edge_without_context_keeps_unique_item_scoped_rights',
- 'test_truncated_ancestor_dossier_does_not_import_sibling_file_rights',
-]
-for active in names: getattr(f.SharedFileRightsTests(methodName=active),active)()
-# The remaining basic route controls use the same synthetic authored route.
-active='tree-route-evidence-links-reviewed-rights'
-nodes={id:{'node_id':id,'node_kind':kind,'source_ref':id+'.json','properties':({'access_status':'open_download'} if kind=='link' else {})} for id,kind in [('era','era'),('planting','source_planting'),('work','work'),('expression','expression'),('link','link')]}
-edges=[{'edge_id':id,'from_id':fr,'to_id':to,'predicate_id':pred,'edge_kind':kind,'source_refs':[ref]} for id,fr,to,pred,kind,ref in [('e1','era','planting','contains','authored_branch_hierarchy','era.json'),('e2','planting','work','references_source_witness','authored_source_planting','planting.json'),('e3','work','expression','has_expression','evidence_claim','claims.jsonl'),('e4','work','link','downloadable_at','evidence_claim','links.jsonl')]]
-ins={};outs={}
-for e in edges:ins.setdefault(e['to_id'],[]).append(e);outs.setdefault(e['from_id'],[]).append(e)
-rights=[{'rights_id':'r1','assessment_kind':'aggregate','scope_refs':['work'],'assessment_status':'licensed','redistribution_posture':'authorized','review_status':'accepted','source_ref':'rights.json'}]
-for id in ['work','expression','link']:
- packet=selected({'authority_boundary':'source-owned navigation only'},nodes,ins,outs,lambda _ids:rights,id,limit=300)
- assert packet['object']['node_kind']==nodes[id]['node_kind'] and packet['tree_paths'][0]['node_ids'][-1]==id
- if id=='work':
-  assert packet['agent_summary']=={'technical_access':'downloadable','rights_posture':'reviewed_reuse_route','human_review_required':False,'can_conclude_legal_openness':True,'availability_is_license':False,'rights_scope_refs':['work'],'gaps':[]}
-  assert packet['tree_paths'][0]['node_ids']==['era','planting','work']
-  assert [e['edge_id'] for e in packet['relations']]==['e1','e2','e3','e4']
-encoded=raw(list(groups.values())).encode();assert len(encoded)<=1048576
-print(encoded.decode())
-"#;
-    let output = Command::new("python3")
-        .args(["-B", "-c", script])
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
-        .arg(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../../access/tests"
-        ))
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    assert!(output.stdout.len() <= 1_048_576);
-    let groups = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap()
-    .into_root();
+    let groups = historical_oracle("remaining-navigation");
     let caps = DossierBudget {
         inspect: budget().inspect,
         max_candidates: budget().max_candidates,
@@ -1608,7 +1607,7 @@ print(encoded.decode())
 }
 
 #[test]
-fn normalized_selected_philosophy_reads_match_original_python_packets_and_hold_projection() {
+fn normalized_selected_philosophy_reads_match_frozen_historical_packets_and_hold_projection() {
     use tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant;
     for variant in [
         PhilosophyFixtureViewVariant::ReferencesV2,
@@ -1634,7 +1633,7 @@ fn selected_philosophy_variant_parity(
         execute_selected_philosophy,
     };
     // One finite software fixture goes through the normal producer, seal and
-    // cold open. Its exact originals feed the independent maintained reader;
+    // cold open. Its exact originals feed the maintained historical reader;
     // this is not authored philosophy, source or publication admission.
     let fixture = build_native_fixture_with_philosophy_view_variant(variant);
     let mut cold = fixture.open().unwrap();
@@ -1677,68 +1676,14 @@ fn selected_philosophy_variant_parity(
         JsonValue::Array(edges),
     ));
     let projection = JsonValue::Object(projection);
-    let script = r#"
-import json,sys,tempfile
-from pathlib import Path
-sys.path.insert(0,sys.argv[1])
-from tos_access.core import ToSAccessCore
-payload=json.load(sys.stdin)
-# Independent maintained domain methods over the exact admitted originals;
-# the software oracle supplies no native current/disclosure authority.
-class OriginalProjectionCore(ToSAccessCore):
- def philosophy_projection(self):return payload
-oracle_root=tempfile.TemporaryDirectory(prefix='tos-query-phi-oracle-')
-core=OriginalProjectionCore.discover(tos_root=Path(oracle_root.name))
-left,right=payload['nodes'][0]['node_id'],payload['nodes'][1]['node_id']
-edge=payload['edges'][0]['edge_id'];view=payload['views'][0]['view_id']
-cases={
- 'node':core.philosophy_node(left),
- 'edge':core.philosophy_edge(edge),
- 'neighborhood':core.philosophy_neighborhood(left,depth=2,limit=1),
- 'path':core.philosophy_path_between(left,right,max_depth=3),
- 'path-incoming':core.philosophy_path_between(right,left,max_depth=3,direction='incoming'),
- 'path-excluded':core.philosophy_path_between(left,right,max_depth=3,direction='either',excluded_edge_ids=[edge]),
- 'view':core.philosophy_view(view,limit=1),
- 'views':core.philosophy_views(),
- 'view-full':core.philosophy_view(view,limit=1000),
- 'search':core.philosophy_search(view,limit=10),
- 'layers':core.philosophy_layers(),
- 'clusters':core.philosophy_clusters(view_id=view,limit=1),
- 'review':core.philosophy_review_packet(view),
- 'snapshot':core.philosophy_snapshot(),
- 'unresolved':core.philosophy_unresolved(view),
-}
-
-json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
-"#;
-    let mut child = Command::new("python3")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(&canonical(&projection))
-        .unwrap();
-    let output = child.wait_with_output().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let mut oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        budget().inspect.json,
-    )
-    .unwrap()
-    .into_root();
+    let oracle = historical_oracle(match variant {
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::ReferencesV2 => "philosophy-01",
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1 => "philosophy-02",
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineNodesV1 => "philosophy-03",
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineEdgesV1 => "philosophy-04",
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateInlineV1 => "philosophy-05",
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateDanglingReferencesV1 => "philosophy-06",
+    });
     if matches!(
         variant,
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateInlineV1
@@ -1941,7 +1886,7 @@ json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.
 }
 
 #[test]
-fn released_public_source_gap_packets_match_maintained_python_without_source_grants() {
+fn released_public_source_gap_packets_match_frozen_historical_outputs_without_source_grants() {
     use tos_query::source_gap::{
         PublicSourceGapRecord, SourceGapBudget, SourceGapRequest, compute_source_gap_packet,
     };
@@ -1953,53 +1898,94 @@ fn released_public_source_gap_packets_match_maintained_python_without_source_gra
     }
     // The existing declaration selects public records. No test/provider IDs or
     // source payload paths are substituted for the owner's current allowlist.
-    let script = r#"
-import json,sys,tempfile
-from pathlib import Path
-root=Path(sys.argv[1]);sys.path.insert(0,str(root/'access/src'))
-from tos_access.core import ToSAccessCore,SOURCE_GAP_LEDGER_RELATIVE_PATH
-declaration=json.loads((root/'access/contracts/runtime-data.v1.json').read_text())
-prefix=SOURCE_GAP_LEDGER_RELATIVE_PATH.as_posix()+'/'
-paths=sorted(s['source_path'] for s in declaration['subjects'] if s['source_path'].startswith(prefix) and s['source_path'].endswith('.access-request.json') and {'query-core','http-reader'} <= set(s['consumer_roles']))
-assert paths
-records=[{'source_ref':p,'raw':(root/p).read_text(encoding='utf-8')} for p in paths]
-first=json.loads(records[0]['raw'])
-queries=['',first['material']['title'],first['request_id'],'\u2003'+first['material']['responsibility']+'\u2003','\x00absent\x00']
-with tempfile.TemporaryDirectory() as d:
- target=Path(d)
- for r in records:
-  path=target/r['source_ref'];path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(r['raw'].encode('utf-8'))
- core=ToSAccessCore.discover(tos_root=target)
- cases=[{'query':q,'limit':limit,'packet':core.source_gap_search(q,limit=limit)} for q,limit in [(queries[0],1),*[(q,100) for q in queries]]]
-json.dump({'records':records,'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
-"#;
-    let output = Command::new("python3")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let oracle = parse_json(
-        &output.stdout,
+    let oracle = historical_oracle("source-gap");
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let declaration_raw =
+        std::fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
+    let declaration = parse_json(
+        &declaration_raw,
         JsonMode::PublishedStrict,
         budget().inspect.json,
     )
     .unwrap()
     .into_root();
-    let records = field(&oracle, "records")
-        .as_array()
-        .unwrap()
+    let subjects = field(&declaration, "subjects").as_array().unwrap();
+    let mut source_refs = subjects
         .iter()
-        .map(|v| PublicSourceGapRecord {
-            source_ref: field(v, "source_ref").as_str().unwrap(),
-            raw: field(v, "raw").as_str().unwrap().as_bytes(),
+        .filter_map(|subject| {
+            let source_ref = field(subject, "source_path").as_str()?;
+            let roles = field(subject, "consumer_roles").as_array()?;
+            let has_query = roles.iter().any(|role| role.as_str() == Some("query-core"));
+            let has_http = roles
+                .iter()
+                .any(|role| role.as_str() == Some("http-reader"));
+            (source_ref.starts_with(tos_query::source_gap::SOURCE_GAP_LEDGER_PREFIX)
+                && source_ref.ends_with(tos_query::source_gap::SOURCE_GAP_RECORD_SUFFIX)
+                && has_query
+                && has_http)
+                .then(|| source_ref.to_owned())
         })
         .collect::<Vec<_>>();
+    source_refs.sort();
+    assert!(
+        !source_refs.is_empty(),
+        "owner declaration selects public access-request records"
+    );
+    let historical_records = field(&oracle, "records").as_array().unwrap();
+    assert_eq!(
+        historical_records.len(),
+        source_refs.len(),
+        "R4 source owner input set is current"
+    );
+    let mut record_bytes = Vec::with_capacity(source_refs.len());
+    for (source_ref, historical) in source_refs.iter().zip(historical_records) {
+        assert_eq!(
+            field(historical, "source_ref").as_str(),
+            Some(source_ref.as_str())
+        );
+        let raw = std::fs::read(repository.join(source_ref)).unwrap();
+        assert_eq!(
+            raw,
+            field(historical, "raw").as_str().unwrap().as_bytes(),
+            "{source_ref}"
+        );
+        record_bytes.push(raw);
+    }
+    let records = source_refs
+        .iter()
+        .zip(record_bytes.iter())
+        .map(|(source_ref, raw)| PublicSourceGapRecord { source_ref, raw })
+        .collect::<Vec<_>>();
+    let first = parse_json(
+        &record_bytes[0],
+        JsonMode::PublishedStrict,
+        budget().inspect.json,
+    )
+    .unwrap()
+    .into_root();
+    let first_material = field(&first, "material");
+    let expected_queries = [
+        String::new(),
+        field(first_material, "title").as_str().unwrap().to_owned(),
+        field(&first, "request_id").as_str().unwrap().to_owned(),
+        format!(
+            "\u{2003}{}\u{2003}",
+            field(first_material, "responsibility").as_str().unwrap()
+        ),
+        "\0absent\0".to_owned(),
+    ];
+    let cases = field(&oracle, "cases").as_array().unwrap();
+    assert_eq!(cases.len(), expected_queries.len() + 1);
+    for (index, case) in cases.iter().enumerate() {
+        let expected_query = if index == 0 {
+            &expected_queries[0]
+        } else {
+            &expected_queries[index - 1]
+        };
+        let expected_limit = if index == 0 { 1 } else { 100 };
+        assert_eq!(field(case, "query").as_str(), Some(expected_query.as_str()));
+        assert_eq!(field(case, "limit").as_u64(), Some(expected_limit));
+    }
     let caps = SourceGapBudget {
         json: budget().inspect.json,
         max_work_steps: budget().inspect.max_read_vm_steps,
@@ -2068,7 +2054,7 @@ json.dump({'records':records,'cases':cases},sys.stdout,ensure_ascii=False,allow_
 }
 
 #[test]
-fn captured_selected_corpus_reads_match_maintained_packets_and_addressed_cost() {
+fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
     use tos_compiler::knowledge_full_fixture::build_native_fixture_with_captured_corpus;
     use tos_query::corpus_read::{
         CORPUS_INTENDED_USE, CorpusReadBudget, CorpusReadContext, CorpusReadRequest,
@@ -2078,105 +2064,60 @@ fn captured_selected_corpus_reads_match_maintained_packets_and_addressed_cost() 
     // capture/restore. Its independent capture identity is not an authored cut.
     // Duplicates and nonobjects protect original ordinal custody; the indexed
     // addressed read must fit below the complete component's row count.
-    let script = r#"
-import hashlib,json,subprocess,sys,tempfile
-from pathlib import Path
-repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'access/src'),str(repo/'access/tests'),str(repo/'scripts')]
-from fixture_support import write_corpus_topology_fixture
-from corpus_archive import capture_git,restore_capture
-from partitioned_projection_common import write_partitioned_payload
-from tos_access.projection_store import load_projection
-from tos_access.knowledge_compile import INPUTS,compile_knowledge_store
-from tos_access.core import ToSAccessCore
-results=[]
-for transport in ('monolithic','partitioned'):
- base=Path(tempfile.mkdtemp(prefix='tos-query-corpus-'));source=base/'source';source.mkdir()
- write_corpus_topology_fixture(source)
- source_path=INPUTS['corpus']
- index_path=source/source_path;payload=json.loads(index_path.read_text())
- if transport == 'monolithic':
-  # Reuse existing identities: plural matches and last-row resolution cannot be
-  # silently collapsed by the selected component's indexes.
-  payload['nodes'].append({**payload['nodes'][0], 'label':payload['nodes'][0]['label']+' duplicate'})
-  payload['relation_packs'].append(dict(payload['relation_packs'][-1]))
-  payload['branches']=[None, {'id':payload['relation_packs'][-1]['owner_branch'],'path':payload['relation_packs'][-1]['path']}]
-  payload['resources']=[{**payload['nodes'][0],'resource_kind':'json','owner_branch':payload['relation_packs'][-1]['owner_branch']}]
-  index_path.write_text(json.dumps(payload),encoding='utf-8')
- else:
-  write_partitioned_payload(index_path,payload)
-  # Existing explicit offline fixture recipe: corpus/bibliography share a
-  # storage mode. The legacy fixture has no input-digest entries to transport.
-  bibliography_path=source/INPUTS['bibliographic']
-  bibliography=json.loads(bibliography_path.read_text())
-  bibliography.setdefault('input_digests',{})
-  write_partitioned_payload(bibliography_path,bibliography)
- def git(*args):
-  return subprocess.check_output(['git','-C',str(source),*args],stderr=subprocess.PIPE,text=True).strip()
- prefixes=[source_path]
- if transport == 'partitioned':
-  prefixes=list(INPUTS.values())
-  prefixes.extend(str(Path(INPUTS[name]).with_suffix('.parts')) for name in ('corpus','bibliographic'))
- git('init','-q');git('add',*prefixes);git('-c','user.name=ToS Software Fixture','-c','user.email=fixture@example.invalid','commit','-qm','existing corpus read input')
- commit=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
- capture=base/'capture';restored=base/'restored'
- capture_git(source,commit,prefixes,capture);restore_capture(capture,restored)
- if transport == 'partitioned':
-  # Build once, explicitly, before opening the maintained request reader.
-  # Never rebuild implicitly, supply a marker, or bypass its snapshot checks.
-  compile_knowledge_store(restored,allow_legacy=True)
- payload=load_projection(restored/source_path)
- core=ToSAccessCore.discover(tos_root=restored)
- node=payload['nodes'][0]['node_id'];pack=payload['relation_packs'][-1]['pack_id']
- endpoint=payload['relation_edges'][0]['from_id'];kind=payload['resources'][0]['resource_kind'] if payload['resources'] else None;branch=payload['relation_packs'][-1]['owner_branch']
- cases={
-  'status':core.status(),'summary':core.summary(),
-  'search':core.search(payload['nodes'][0]['label'],limit=2),
-  'search-filtered':core.search('',limit=2,resource_kind=kind),
-  'resources':core.resources(resource_kind=kind,owner_branch=branch,limit=1),
-  'node':core.node(node),'endpoint':core.node(endpoint),'pack':core.relation_pack(pack),
-  'topology':core.graph_view('corpus-topology',limit=1),
-  'route':core.graph_view('route-graph',limit=1),
-  'promotion':core.graph_view('promotion-flow',limit=1),
-  'packet':core.packet(query=' ',view_id='route-graph',limit=1),
-  'packet-empty':core.packet(query='',view_id='',limit=1),
- }
- collections=('nodes','resources','manifests','branches','graph_views','relation_packs','relation_edges')
- originals={name:payload[name] for name in collections}
- originals['header']=[{key:value for key,value in payload.items() if key not in (*collections,'source_navigation')}]
- results.append({'transport':transport,'originals':originals,'base':str(base),'capture':str(capture),'restored':str(restored),'commit':commit,'tree':tree,
-  'manifest_sha':hashlib.sha256((capture/'capture.json').read_bytes()).hexdigest(),'source_path':source_path,
-  'source_sha':hashlib.sha256((restored/source_path).read_bytes()).hexdigest(),
-  'root':core.tos_root.as_posix(),'index':core.index_path.as_posix(),
-  'node':node,'endpoint':endpoint,'pack':pack,'query':payload['nodes'][0]['label'],'kind':kind,'branch':branch,'cases':cases})
-json.dump(results,sys.stdout,ensure_ascii=False,allow_nan=False)
-"#;
-    let output = Command::new("python3")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        budget().inspect.json,
-    )
-    .unwrap()
-    .into_root();
-    for oracle in oracle.as_array().unwrap() {
-        let s = |name| field(oracle, name).as_str().unwrap().to_owned();
+    let oracle_values = historical_oracle("corpus-reads");
+    let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/selected-corpus");
+    verify_corpus_fixture_files(&fixture_root);
+    for archived_oracle in oracle_values.as_array().unwrap() {
+        let transport = field(archived_oracle, "transport").as_str().unwrap();
+        let temporary = TestTempDir::new("tos-query-selected-corpus");
+        let source = temporary.path().join("source");
+        copy_fixture_tree(&fixture_root.join(transport), &source);
+        let source_path = field(archived_oracle, "source_path").as_str().unwrap();
+        let capture = temporary.path().join("capture");
+        let restored = temporary.path().join("restored");
+        let prefixes = if transport == "monolithic" {
+            vec!["ToS/derived-exports/tos_corpus_index.min.json".to_owned()]
+        } else {
+            vec![
+                "ToS/derived-exports/tos_corpus_index.min.json".to_owned(),
+                "ToS/derived-exports/philosophy_graph_projection.min.json".to_owned(),
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json".to_owned(),
+                "ToS/doctrine/semantic-interchange/entity-types.v1.json".to_owned(),
+                "ToS/doctrine/semantic-interchange/relation-types.v1.json".to_owned(),
+                "ToS/derived-exports/tos_corpus_index.min.parts".to_owned(),
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.parts"
+                    .to_owned(),
+            ]
+        };
+        let (commit, tree, manifest_sha) =
+            native_corpus_capture(&source, &prefixes, &capture, &restored);
+        let source_bytes = std::fs::read(restored.join(source_path)).unwrap();
+        let source_sha = tos_foundation::Digest256::of_bytes(&source_bytes).to_hex();
+        assert_eq!(
+            source_sha,
+            field(archived_oracle, "source_sha").as_str().unwrap(),
+            "{transport} corpus fixture bytes"
+        );
+        let mut oracle = archived_oracle.clone();
+        let value = |text: &str| JsonValue::String(tos_foundation::JsonString::from_utf8(text));
+        *field_mut(&mut oracle, "base") = value(temporary.path().to_string_lossy().as_ref());
+        *field_mut(&mut oracle, "capture") = value(capture.to_string_lossy().as_ref());
+        *field_mut(&mut oracle, "restored") = value(restored.to_string_lossy().as_ref());
+        *field_mut(&mut oracle, "commit") = value(&commit);
+        *field_mut(&mut oracle, "tree") = value(&tree);
+        *field_mut(&mut oracle, "manifest_sha") = value(&manifest_sha);
+        *field_mut(&mut oracle, "source_sha") = value(&source_sha);
+        *field_mut(&mut oracle, "root") = value(restored.to_string_lossy().as_ref());
+        *field_mut(&mut oracle, "index") =
+            value(restored.join(source_path).to_string_lossy().as_ref());
+        let s = |name| field(&oracle, name).as_str().unwrap().to_owned();
         let mut fixture = build_native_fixture_with_captured_corpus(
-            std::path::Path::new(&s("capture")),
-            std::path::Path::new(&s("restored")),
-            &s("commit"),
-            &s("tree"),
-            &s("manifest_sha"),
-            &s("source_path"),
+            &capture,
+            &restored,
+            &commit,
+            &tree,
+            &manifest_sha,
+            source_path,
         );
         let mut cold = fixture.open().unwrap();
         let receipt = cold.corpus_original_receipt().unwrap().clone();
@@ -2391,6 +2332,5 @@ json.dump(results,sys.stdout,ensure_ascii=False,allow_nan=False)
         fixture.expectation.model_size_bytes = u64::try_from(bytes.len()).unwrap();
         assert!(fixture.open().is_err());
         drop(fixture);
-        std::fs::remove_dir_all(s("base")).unwrap();
     }
 }

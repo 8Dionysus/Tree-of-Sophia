@@ -136,7 +136,7 @@ fn query(
     options: &QueryOptions,
 ) -> Result<Value, Box<dyn std::error::Error>> {
     validate_direct_projection_request(request)?;
-    let (_, result) = with_direct_repository_projection(request, |products| {
+    let (_, result) = with_direct_repository_projection(request, |products, _| {
         check_direct_projection_products(request, products)?;
         query_verified_projection(
             &products.bibliographic_claims,

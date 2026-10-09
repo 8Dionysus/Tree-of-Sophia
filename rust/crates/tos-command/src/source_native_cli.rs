@@ -45,7 +45,7 @@ mod object_link;
 #[path = "source_native_prepared_transport.rs"]
 mod prepared_transport;
 #[path = "source_native_private_assessment_cli.rs"]
-mod private_assessment;
+pub(crate) mod private_assessment;
 #[path = "source_native_private_cli.rs"]
 pub(crate) mod private_owner;
 #[path = "source_native_public_text_cli.rs"]
@@ -502,6 +502,7 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
                 &cut,
                 &software,
                 &components,
+                None,
                 deadline,
                 &cancelled,
             )?;

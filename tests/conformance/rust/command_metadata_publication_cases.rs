@@ -894,3 +894,465 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     }
     assert!(Instant::now() < deadline);
 }
+
+struct LoadReadinessMcp {
+    child: std::process::Child,
+    input: std::process::ChildStdin,
+    output: std::io::BufReader<std::process::ChildStdout>,
+}
+
+impl LoadReadinessMcp {
+    fn call(&mut self, value: &Value) -> (Value, Vec<u8>) {
+        use std::io::{BufRead, Write};
+        let mut raw = serde_json::to_vec(value).unwrap();
+        raw.push(b'\n');
+        self.input.write_all(&raw).unwrap();
+        self.input.flush().unwrap();
+        let mut response = Vec::new();
+        self.output.read_until(b'\n', &mut response).unwrap();
+        assert!(response.len() > 1 && response.len() <= 4_194_304);
+        assert_eq!(response.last(), Some(&b'\n'));
+        let parsed: Value = serde_json::from_slice(&response[..response.len() - 1]).unwrap();
+        (parsed, response[..response.len() - 1].to_vec())
+    }
+}
+
+impl Drop for LoadReadinessMcp {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+fn copy_load_fixture_tree(source: &Path, destination: &Path) {
+    let metadata = fs::symlink_metadata(source).unwrap();
+    assert!(!metadata.file_type().is_symlink());
+    if metadata.is_dir() {
+        fs::create_dir(destination).unwrap();
+        for entry in fs::read_dir(source).unwrap() {
+            let entry = entry.unwrap();
+            copy_load_fixture_tree(&entry.path(), &destination.join(entry.file_name()));
+        }
+    } else {
+        assert!(metadata.is_file() && metadata.len() <= 33_554_432);
+        fs::copy(source, destination).unwrap();
+    }
+    fs::set_permissions(
+        destination,
+        fs::Permissions::from_mode(metadata.mode() & 0o777),
+    )
+    .unwrap();
+}
+
+fn load_readiness_native_call(binary: &Path, invocation: &Path, request: &Value) -> Value {
+    use std::io::Write;
+    use std::process::Stdio;
+    let mut child = Command::new(binary)
+        .args(["source-commands", "--invocation"])
+        .arg(invocation)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("start exact native source-command binary");
+    let mut input = child.stdin.take().unwrap();
+    serde_json::to_writer(&mut input, request).unwrap();
+    input.write_all(b"\n").unwrap();
+    drop(input);
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        output.status.success(),
+        "native source fixture command refused: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stdout.len() <= 4_194_304 && output.stderr.len() <= 65_536);
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+fn load_readiness_mcp_process(
+    binary: &Path,
+    root: &Path,
+    inputs: &Path,
+    model: &Path,
+    binding: &Path,
+    working: &Path,
+) -> LoadReadinessMcp {
+    use std::process::Stdio;
+    let mut child = Command::new(binary)
+        .arg("--root")
+        .arg(root)
+        .arg("--source-inputs")
+        .arg(inputs)
+        .arg("--prepared-read-model")
+        .arg(model)
+        .arg("--prepared-binding")
+        .arg(binding)
+        .args(["mcp", "--transport", "stdio"])
+        .current_dir(working)
+        .env_remove("TOS_RELEASE_ROOT")
+        .env_remove("TOS_DATA_ROOT")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("start selected native MCP query product");
+    let input = child.stdin.take().unwrap();
+    let output = std::io::BufReader::new(child.stdout.take().unwrap());
+    LoadReadinessMcp {
+        child,
+        input,
+        output,
+    }
+}
+
+fn load_readiness_tool_value(response: &Value) -> Value {
+    if let Some(value) = response["result"].get("structuredContent") {
+        return value.clone();
+    }
+    let text = response["result"]["content"][0]["text"]
+        .as_str()
+        .expect("native MCP tool text result");
+    serde_json::from_str(text).expect("native MCP structured result text")
+}
+
+fn fixture_path(path: &Path) -> String {
+    path.canonicalize().unwrap().to_str().unwrap().to_owned()
+}
+
+#[test]
+fn export_protected_native_load_readiness_fixture_when_selected() {
+    use std::io::Read;
+    use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
+    use tos_foundation::Digest256;
+
+    let Some(output_value) = std::env::var_os("TOS_LOAD_READINESS_EXPORT_DIR") else {
+        return;
+    };
+    let output = PathBuf::from(output_value);
+    assert!(
+        output.is_absolute(),
+        "load-readiness export path is absolute"
+    );
+    assert!(
+        fs::symlink_metadata(&output).is_err(),
+        "load-readiness export directory must be new"
+    );
+    let mut output_builder = fs::DirBuilder::new();
+    output_builder.mode(0o700);
+    output_builder.create(&output).unwrap();
+    let output = output.canonicalize().unwrap();
+    let output_metadata = fs::metadata(&output).unwrap();
+    assert_eq!(output_metadata.uid(), unsafe { libc::geteuid() });
+    assert_eq!(output_metadata.mode() & 0o077, 0);
+    let baseline = output.join("owner-stage-baseline");
+    assert!(!baseline.exists(), "fixture baseline must be fresh");
+    fs::create_dir(&baseline).unwrap();
+    fs::set_permissions(&baseline, fs::Permissions::from_mode(0o700)).unwrap();
+
+    let query_binary = PathBuf::from(
+        std::env::var_os("TOS_LOAD_READINESS_EXPORT_QUERY_BINARY")
+            .expect("selected native tos binary for exact MCP response capture"),
+    );
+    let native = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
+            .expect("selected native source-owner command binary"),
+    );
+    assert!(query_binary.is_absolute() && native.is_absolute());
+    assert!(fs::metadata(&query_binary).unwrap().mode() & 0o111 != 0);
+    assert!(fs::metadata(&native).unwrap().mode() & 0o111 != 0);
+
+    let deadline = Instant::now() + Duration::from_secs(600);
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let metadata_fixture =
+        repository.join("tests/conformance/rust/legacy-python-oracles-v1/metadata");
+    verify_frozen_metadata_evidence(&metadata_fixture, deadline);
+    let mut packet = read_packet(&metadata_fixture.join("prepared-before.packet.json"));
+    let (source_root, model, _metadata_owner) =
+        materialize_metadata_predecessor(&metadata_fixture, &mut packet, &baseline, deadline);
+    let binding_path = source_root.join("prepared-binding.json");
+    let source_inputs_path = source_root.join("source-inputs.json");
+    private_json(&binding_path, &packet["binding"]);
+    private_json(&source_inputs_path, &packet["source_inputs"]);
+
+    let forms = baseline.join("forms");
+    fs::create_dir(&forms).unwrap();
+    fs::set_permissions(&forms, fs::Permissions::from_mode(0o700)).unwrap();
+    let source_root_forms = forms.join("source-root");
+    fs::create_dir(&source_root_forms).unwrap();
+    fs::set_permissions(&source_root_forms, fs::Permissions::from_mode(0o700)).unwrap();
+    let (mut source_files, source_owner_bytes, _) =
+        super::command_form_cases::fixture_files("composite-v1");
+    let mut owner: Value = serde_json::from_slice(&source_owner_bytes).unwrap();
+    owner["source_root"] = json!(fixture_path(&source_root_forms));
+    owner["uid"] = json!(fs::metadata(&source_root_forms).unwrap().uid());
+    for (relative, raw) in &source_files {
+        assert!(relative.starts_with("ToS/"));
+        let target = source_root_forms.join(relative);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    let owner_path = forms.join("owner.json");
+    private_json(&owner_path, &owner);
+    let store = forms.join("corpus-store");
+    let source_revision = super::validation_cut_cases::write_cut_store(&source_files, &store);
+
+    let component = "rust/crates/tos-command/src/source_forms.rs";
+    let mut software_files = BTreeMap::new();
+    software_files.insert(
+        component.to_owned(),
+        fs::read(repository.join(component)).unwrap(),
+    );
+    let (capture, _software, selected_components) =
+        super::command_record_cases::captured_components(
+            &software_files,
+            deadline,
+            &AtomicBool::new(false),
+        );
+    let capture_selection = capture.selection.clone();
+    let capture_path = forms.join("software-capture");
+    let restored_path = forms.join("software-restored");
+    copy_load_fixture_tree(&capture.capture, &capture_path);
+    copy_load_fixture_tree(&capture.restored, &restored_path);
+    drop(capture);
+    drop(_software);
+
+    let worker = super::validation_cut_cases::selected_worker_path();
+    let native_digest = super::command_text_cases::alignment_image_digest(&native);
+    let worker_digest = super::command_text_cases::alignment_image_digest(&worker);
+    let invocation = json!({
+        "schema_version":"tos_local_native_source_invocation_v1",
+        "owner_config":fixture_path(&owner_path),
+        "owner_context":null,
+        "assessment_schema_worker":null,
+        "native_executable":fixture_path(&native),
+        "native_executable_sha256":native_digest.to_prefixed(),
+        "corpus_store":fixture_path(&store),
+        "source_revision":source_revision.0.to_prefixed(),
+        "original_source_revision":source_revision.0.to_prefixed(),
+        "software_capture":fixture_path(&capture_path),
+        "software_restored_root":fixture_path(&restored_path),
+        "software_selection":{
+            "source_git_commit":capture_selection.source_git_commit,
+            "source_git_tree":capture_selection.source_git_tree,
+            "capture_manifest_sha256":capture_selection.capture_manifest_sha256.to_prefixed()
+        },
+        "software_components":selected_components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":fixture_path(&worker),"sha256":worker_digest.to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+            "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
+    });
+    let invocation_path = forms.join("invocation.json");
+    private_json(&invocation_path, &invocation);
+    let describe_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"describe"
+    });
+    let sdk_describe = load_readiness_native_call(&native, &invocation_path, &describe_request);
+    assert_eq!(sdk_describe["grants_admission"], false);
+    let described = sdk_describe["result"].clone();
+    let apply_fixture: Value = serde_json::from_slice(
+        &fs::read(repository.join("rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/apply.request.json")).unwrap(),
+    )
+    .unwrap();
+
+    // Preflight the HTTP semantic response on a separate clone. The exported
+    // baseline remains pristine and every load stage can reset by a fresh copy.
+    let preflight = output.join("preflight-forms");
+    copy_load_fixture_tree(&forms, &preflight);
+    let preflight_owner_path = preflight.join("owner.json");
+    let preflight_invocation_path = preflight.join("invocation.json");
+    let mut preflight_owner: Value =
+        serde_json::from_slice(&fs::read(&preflight_owner_path).unwrap()).unwrap();
+    preflight_owner["source_root"] = json!(fixture_path(&preflight.join("source-root")));
+    private_json(&preflight_owner_path, &preflight_owner);
+    let mut preflight_invocation: Value =
+        serde_json::from_slice(&fs::read(&preflight_invocation_path).unwrap()).unwrap();
+    preflight_invocation["owner_config"] = json!(fixture_path(&preflight_owner_path));
+    preflight_invocation["corpus_store"] = json!(fixture_path(&preflight.join("corpus-store")));
+    preflight_invocation["software_capture"] =
+        json!(fixture_path(&preflight.join("software-capture")));
+    preflight_invocation["software_restored_root"] =
+        json!(fixture_path(&preflight.join("software-restored")));
+    private_json(&preflight_invocation_path, &preflight_invocation);
+    let preflight_description = load_readiness_native_call(
+        &native,
+        &preflight_invocation_path,
+        &describe_request,
+    )["result"]
+        .clone();
+    let make_apply = |command_id: String, description: &Value| {
+        json!({
+            "schema_version":"tos_local_source_command_v1",
+            "operation":"apply",
+            "command_id":command_id,
+            "expected_source":description["source"],
+            "expected_revision":description["revision"],
+            "expected_configuration":description["owner_configuration"],
+            "changes":apply_fixture["changes"]
+        })
+    };
+    let preflight_apply = make_apply(
+        "tos-load-readiness:preflight".into(),
+        &preflight_description,
+    );
+    let first_apply =
+        load_readiness_native_call(&native, &preflight_invocation_path, &preflight_apply);
+    assert_eq!(first_apply["result"]["replayed"], false);
+    let replayed_apply =
+        load_readiness_native_call(&native, &preflight_invocation_path, &preflight_apply);
+    assert_eq!(replayed_apply["result"]["replayed"], true);
+    fs::remove_dir_all(&preflight).unwrap();
+    source_files.clear();
+
+    // Capture exact MCP JSON-RPC response bytes from the selected product. The
+    // installed streamable-HTTP route uses the same response serializer.
+    let mut mcp = load_readiness_mcp_process(
+        &query_binary,
+        &source_root,
+        &source_inputs_path,
+        &model,
+        &binding_path,
+        &output,
+    );
+    let (initialized, _) = mcp.call(&json!({
+        "jsonrpc":"2.0","id":1,"method":"initialize",
+        "params":{"protocolVersion":"2025-11-25","capabilities":{},
+            "clientInfo":{"name":"tos-load-readiness-fixture-export","version":"1"}}
+    }));
+    assert_eq!(initialized["result"]["protocolVersion"], "2025-11-25");
+    use std::io::Write;
+    mcp.input
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")
+        .unwrap();
+    mcp.input.flush().unwrap();
+    let search_request = json!({
+        "jsonrpc":"2.0","id":101,"method":"tools/call",
+        "params":{"name":"tos_knowledge_search","arguments":{"mode":"indexed","query":"untouched","limit":3}}
+    });
+    let discover_request = json!({
+        "jsonrpc":"2.0","id":102,"method":"tools/call",
+        "params":{"name":"tos_source_handle_discover","arguments":{"selector":{
+            "layer":"metadata_record","record_type":"agent","record_id":packet["record_id"]
+        }}}
+    });
+    let (search_response, search_bytes) = mcp.call(&search_request);
+    assert!(search_response.get("result").is_some());
+    let search_result = load_readiness_tool_value(&search_response);
+    assert!(
+        search_result["nodes"]
+            .as_array()
+            .is_some_and(|nodes| !nodes.is_empty()),
+        "selected indexed search returns a real synthetic metadata result"
+    );
+    let (discover_response, discover_bytes) = mcp.call(&discover_request);
+    assert!(discover_response.get("result").is_some());
+    let handle = load_readiness_tool_value(&discover_response)["handle"].clone();
+    assert!(
+        handle.is_object(),
+        "fixture discovery issues the selected source handle"
+    );
+    let read_request = json!({
+        "jsonrpc":"2.0","id":103,"method":"tools/call",
+        "params":{"name":"tos_source_read","arguments":{"handle":handle,"representation":"record"}}
+    });
+    let (read_response, read_bytes) = mcp.call(&read_request);
+    assert!(read_response.get("result").is_some());
+    assert_eq!(
+        load_readiness_tool_value(&read_response)["status"],
+        "available"
+    );
+
+    let mut secret = [0u8; 32];
+    std::fs::File::open("/dev/urandom")
+        .unwrap()
+        .read_exact(&mut secret)
+        .unwrap();
+    let token_text = secret
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let token_path = baseline.join("synthetic-http-token");
+    fs::write(&token_path, format!("{token_text}\n")).unwrap();
+    fs::set_permissions(&token_path, fs::Permissions::from_mode(0o600)).unwrap();
+
+    let ignored_receipt_paths = vec![
+        "/result/owner_configuration".to_owned(),
+        "/result/receipt/owner_configuration".to_owned(),
+        "/result/receipt/recorded_at".to_owned(),
+        "/result/receipt/command_id".to_owned(),
+        "/result/receipt/request_digest".to_owned(),
+        "/result/receipt/files/source-create-provenance.jsonl/sha256".to_owned(),
+    ];
+    let conflict_body = json!({"status":"error","code":"owner-conflict","outcome":"unconfirmed"});
+    let conflict_sha = Digest256::of_bytes(&serde_json::to_vec(&conflict_body).unwrap()).to_hex();
+    let mut sessions = Vec::with_capacity(256);
+    for index in 0..256usize {
+        let command_id = format!("tos-load-readiness:apply:{index:03}");
+        let operations = vec![
+            json!({
+                "channel":"mcp","label":"indexed-search","request":search_request,
+                "expected_status":200,"expected_sha256":Digest256::of_bytes(&search_bytes).to_hex(),
+                "expected_body":search_response
+            }),
+            json!({
+                "channel":"mcp","label":"source-handle-discovery","request":discover_request,
+                "expected_status":200,"expected_sha256":Digest256::of_bytes(&discover_bytes).to_hex(),
+                "expected_body":discover_response,
+                "reconnect_before":index==0
+            }),
+            json!({
+                "channel":"mcp","label":"exact-source-return","request":read_request,
+                "expected_status":200,"expected_sha256":Digest256::of_bytes(&read_bytes).to_hex(),
+                "expected_body":read_response
+            }),
+            json!({
+                "channel":"sdk","label":"native-owner-describe","request":describe_request,
+                "expected_status":0,"expected_body":sdk_describe,
+                "ignored_json_paths":["/result/owner_configuration"],
+                "sdk_argv":[fixture_path(&native),"source-commands","--invocation",fixture_path(&invocation_path)]
+            }),
+            json!({
+                "channel":"owner_http","label":"shared-object-apply-race",
+                "request":make_apply(command_id, &described),
+                "expected_status":200,"expected_body":replayed_apply,
+                "ignored_json_paths":ignored_receipt_paths,
+                "alternate_outcomes":[{"status":409,"body":conflict_body,"sha256":conflict_sha}],
+                "retry_same_command_id":true,"conflict_group":"synthetic-form-apply-v1",
+                "bind_expected_configuration_from_owner":true
+            }),
+        ];
+        sessions.push(json!({"id":format!("load-session-{index:03}"),"operations":operations}));
+    }
+    let schedule = json!({"schema":"tos_protocol_load_schedule_v1","sessions":sessions});
+    let schedule_path = output.join("load-readiness-schedule.json");
+    fs::write(&schedule_path, serde_json::to_vec(&schedule).unwrap()).unwrap();
+    fs::set_permissions(&schedule_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let manifest = json!({
+        "schema_version":"tos_load_readiness_fixture_export_v1",
+        "classification":"synthetic-conformance-data; no production owner authority or rights",
+        "baseline":"owner-stage-baseline",
+        "schedule":"load-readiness-schedule.json",
+        "sessions":256,
+        "operations_per_session":5,
+        "stages":[2,8,16,32,64,128,256],
+        "query_binary":fixture_path(&query_binary),
+        "owner_binary":fixture_path(&native),
+        "source_record_id":packet["record_id"],
+        "source_representation":"record",
+        "conflict_group":"synthetic-form-apply-v1",
+        "retry":"same command id and body; transport creates a fresh nonce",
+        "baseline_reset":"tos-load-readiness copies owner-stage-baseline into a fresh output for every invocation"
+    });
+    let manifest_path = output.join("load-readiness-fixture.json");
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+    fs::set_permissions(&manifest_path, fs::Permissions::from_mode(0o600)).unwrap();
+    assert!(Instant::now() < deadline);
+}

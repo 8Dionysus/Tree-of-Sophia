@@ -9,7 +9,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::ops::{Deref, DerefMut};
-use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -33,11 +33,14 @@ static STOP: AtomicBool = AtomicBool::new(false);
 struct Args {
     query_binary: PathBuf,
     owner_binary: Option<PathBuf>,
+    source_root: Option<PathBuf>,
+    source_inputs: Option<PathBuf>,
     model: PathBuf,
     binding: PathBuf,
     owner_config: Option<PathBuf>,
     invocation: Option<PathBuf>,
     token_file: Option<PathBuf>,
+    owner_stage_baseline: Option<PathBuf>,
     schedule: PathBuf,
     output: PathBuf,
     unit: String,
@@ -70,7 +73,12 @@ struct Operation {
     label: String,
     request: Value,
     expected_status: u16,
-    expected_sha256: String,
+    #[serde(default)]
+    expected_sha256: Option<String>,
+    #[serde(default)]
+    expected_body: Option<Value>,
+    #[serde(default)]
+    ignored_json_paths: Vec<String>,
     #[serde(default)]
     alternate_outcomes: Vec<ExpectedOutcome>,
     #[serde(default)]
@@ -80,14 +88,76 @@ struct Operation {
     #[serde(default)]
     conflict_group: Option<String>,
     #[serde(default)]
+    bind_expected_configuration_from_owner: bool,
+    #[serde(default)]
     sdk_argv: Vec<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct ExpectedOutcome {
     status: u16,
-    sha256: String,
+    #[serde(default)]
+    sha256: Option<String>,
+    #[serde(default)]
+    body: Option<Value>,
+    #[serde(default)]
+    ignored_json_paths: Vec<String>,
+}
+
+#[derive(Clone)]
+struct WaveGate {
+    active: Arc<Mutex<usize>>,
+    limit: usize,
+}
+
+struct WavePermit {
+    active: Arc<Mutex<usize>>,
+}
+
+impl WaveGate {
+    fn new(limit: usize) -> Self {
+        Self {
+            active: Arc::new(Mutex::new(0)),
+            limit,
+        }
+    }
+
+    fn acquire(&self, deadline: Instant) -> Result<WavePermit, String> {
+        loop {
+            if STOP.load(Ordering::Acquire) || Instant::now() >= deadline {
+                return Err("bounded operation wave deadline/cancellation".into());
+            }
+            let mut active = self
+                .active
+                .lock()
+                .map_err(|_| "bounded operation wave counter poisoned")?;
+            if *active < self.limit {
+                *active += 1;
+                return Ok(WavePermit {
+                    active: Arc::clone(&self.active),
+                });
+            }
+            drop(active);
+            thread::sleep(Duration::from_millis(2));
+        }
+    }
+}
+
+impl Drop for WavePermit {
+    fn drop(&mut self) {
+        if let Ok(mut active) = self.active.lock() {
+            *active = active.saturating_sub(1);
+        }
+    }
+}
+
+#[derive(Clone)]
+struct WorkloadGates {
+    mcp_sessions: WaveGate,
+    owner_http: WaveGate,
+    source_reads: WaveGate,
+    sdk_source_commands: WaveGate,
 }
 
 #[derive(Clone)]
@@ -164,6 +234,7 @@ struct Attempt {
     status: u16,
     bytes: usize,
     sha256: String,
+    body: Option<Vec<u8>>,
     elapsed_ms: f64,
     authenticated: Option<bool>,
 }
@@ -188,6 +259,18 @@ struct ResourceSnapshot {
     io_write_bytes: u64,
 }
 
+fn operation_error(reason: &str) -> OpResult {
+    OpResult {
+        value: json!({"event":"operation","passed":false,"transport_error":true,"error":reason}),
+        passed: false,
+        successful: false,
+        conflict: false,
+        retry_count: 0,
+        reconnect_count: 0,
+        elapsed_ms: 0.0,
+    }
+}
+
 extern "C" fn signal_handler(_: i32) {
     STOP.store(true, Ordering::Release);
 }
@@ -204,7 +287,7 @@ fn parse_args() -> Result<Args, String> {
     let mut args = std::env::args().skip(1);
     while let Some(key) = args.next() {
         if key == "--help" || key == "-h" {
-            return Err("usage: tos-load-readiness --query-binary ABS --model ABS --binding ABS --schedule ABS --output DIR --unit UNIT [--owner-binary ABS --owner-config ABS --invocation ABS --token-file ABS] [--mcp-port PORT] [--owner-port PORT] [--sessions 2|8|16|64|128|256] [--deadline-seconds N] [--request-cap-bytes N] [--response-cap-bytes N] [--schedule-cap-bytes N] [--output-cap-bytes N]".into());
+            return Err("usage: tos-load-readiness --query-binary ABS --model ABS --binding ABS --schedule ABS --output DIR --unit UNIT [--source-root ABS --source-inputs ABS] [--owner-binary ABS --owner-config ABS --invocation ABS --token-file ABS [--owner-stage-baseline ABS]] [--mcp-port PORT] [--owner-port PORT] [--sessions 2|8|16|32|64|128|256] [--deadline-seconds N] [--request-cap-bytes N] [--response-cap-bytes N] [--schedule-cap-bytes N] [--output-cap-bytes N]".into());
         }
         if !key.starts_with("--") || values.contains_key(&key) {
             return Err("invalid or duplicate option".into());
@@ -255,11 +338,17 @@ fn parse_args() -> Result<Args, String> {
         };
     let query_binary = path(&mut values, "--query-binary")?;
     let owner_binary = optional_path(&mut values, "--owner-binary")?;
+    let source_root = optional_path(&mut values, "--source-root")?;
+    let source_inputs = optional_path(&mut values, "--source-inputs")?;
+    if source_root.is_some() != source_inputs.is_some() {
+        return Err("--source-root and --source-inputs must be supplied together".into());
+    }
     let model = path(&mut values, "--model")?;
     let binding = path(&mut values, "--binding")?;
     let owner_config = optional_path(&mut values, "--owner-config")?;
     let invocation = optional_path(&mut values, "--invocation")?;
     let token_file = optional_path(&mut values, "--token-file")?;
+    let owner_stage_baseline = optional_path(&mut values, "--owner-stage-baseline")?;
     let owner_count = [
         owner_binary.is_some(),
         owner_config.is_some(),
@@ -271,6 +360,9 @@ fn parse_args() -> Result<Args, String> {
     .count();
     if owner_count != 0 && owner_count != 4 {
         return Err("owner HTTP inputs must be supplied together".into());
+    }
+    if owner_stage_baseline.is_some() && owner_count != 4 {
+        return Err("--owner-stage-baseline requires the four explicit owner HTTP inputs".into());
     }
     let schedule = path(&mut values, "--schedule")?;
     let output = path(&mut values, "--output")?;
@@ -284,8 +376,8 @@ fn parse_args() -> Result<Args, String> {
         return Err("ports must be distinct values in 1..65535".into());
     }
     let sessions = number(&mut values, "--sessions", "2")? as usize;
-    if ![2, 8, 16, 64, 128, 256].contains(&sessions) {
-        return Err("sessions must be one of 2, 8, 16, 64, 128, 256".into());
+    if ![2, 8, 16, 32, 64, 128, 256].contains(&sessions) {
+        return Err("sessions must be one of 2, 8, 16, 32, 64, 128, 256".into());
     }
     let deadline_seconds = number(&mut values, "--deadline-seconds", "120")?;
     if deadline_seconds > 3600 {
@@ -310,11 +402,14 @@ fn parse_args() -> Result<Args, String> {
     Ok(Args {
         query_binary,
         owner_binary,
+        source_root,
+        source_inputs,
         model,
         binding,
         owner_config,
         invocation,
         token_file,
+        owner_stage_baseline,
         schedule,
         output,
         unit,
@@ -334,6 +429,554 @@ fn sha(raw: &[u8]) -> String {
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()
+}
+
+const MAX_STAGE_FILES: usize = 16_384;
+const MAX_STAGE_FILE_BYTES: u64 = 33_554_432;
+const MAX_STAGE_TOTAL_BYTES: u64 = 268_435_456;
+
+fn copy_stage_tree(
+    source: &Path,
+    destination: &Path,
+    files: &mut usize,
+    bytes: &mut u64,
+) -> Result<(), String> {
+    let metadata =
+        fs::symlink_metadata(source).map_err(|e| format!("stage source metadata: {e}"))?;
+    let mode = metadata.mode() & 0o777;
+    if metadata.uid() != unsafe { libc::geteuid() } || metadata.mode() & 0o7000 != 0 {
+        return Err("owner stage contains an unowned or special-mode member".into());
+    }
+    if metadata.file_type().is_symlink() {
+        return Err("owner stage refuses symlinks".into());
+    }
+    if metadata.is_dir() {
+        fs::create_dir(destination).map_err(|e| format!("stage directory create: {e}"))?;
+        for entry in fs::read_dir(source).map_err(|e| format!("stage directory read: {e}"))? {
+            let entry = entry.map_err(|e| format!("stage directory entry: {e}"))?;
+            let name = entry.file_name();
+            if name.is_empty() || name == "." || name == ".." {
+                return Err("owner stage contains an invalid entry name".into());
+            }
+            copy_stage_tree(&entry.path(), &destination.join(name), files, bytes)?;
+        }
+        fs::set_permissions(destination, fs::Permissions::from_mode(mode))
+            .map_err(|e| format!("stage directory permissions: {e}"))?;
+        return Ok(());
+    }
+    if !metadata.is_file() || metadata.len() > MAX_STAGE_FILE_BYTES {
+        return Err("owner stage contains a non-file or oversized file".into());
+    }
+    *files = files
+        .checked_add(1)
+        .ok_or("owner stage file count overflow")?;
+    *bytes = bytes
+        .checked_add(metadata.len())
+        .filter(|total| *total <= MAX_STAGE_TOTAL_BYTES)
+        .ok_or("owner stage exceeds 256 MiB / 16384-file bound")?;
+    if *files > MAX_STAGE_FILES {
+        return Err("owner stage exceeds 256 MiB / 16384-file bound".into());
+    }
+    let mut input = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(source)
+        .map_err(|e| format!("stage source open: {e}"))?;
+    let before = input
+        .metadata()
+        .map_err(|e| format!("stage source stat: {e}"))?;
+    if before.dev() != metadata.dev()
+        || before.ino() != metadata.ino()
+        || before.len() != metadata.len()
+    {
+        return Err("owner stage member changed during selection".into());
+    }
+    let mut output = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(mode)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(destination)
+        .map_err(|e| format!("stage destination create: {e}"))?;
+    io::copy(&mut input.take(MAX_STAGE_FILE_BYTES + 1), &mut output)
+        .map_err(|e| format!("stage file copy: {e}"))?;
+    output
+        .sync_all()
+        .map_err(|e| format!("stage file sync: {e}"))?;
+    fs::set_permissions(destination, fs::Permissions::from_mode(mode))
+        .map_err(|e| format!("stage file permissions: {e}"))?;
+    let after = fs::symlink_metadata(source).map_err(|e| format!("stage source recheck: {e}"))?;
+    if after.dev() != metadata.dev()
+        || after.ino() != metadata.ino()
+        || after.len() != metadata.len()
+        || after.mtime() != metadata.mtime()
+        || after.mtime_nsec() != metadata.mtime_nsec()
+        || after.ctime() != metadata.ctime()
+        || after.ctime_nsec() != metadata.ctime_nsec()
+    {
+        return Err("owner stage member changed while copying".into());
+    }
+    Ok(())
+}
+
+fn rebase_path(path: &Path, from: &Path, to: &Path) -> Result<PathBuf, String> {
+    let canonical = path
+        .canonicalize()
+        .map_err(|e| format!("selected stage input: {e}"))?;
+    let from = from
+        .canonicalize()
+        .map_err(|e| format!("owner stage baseline: {e}"))?;
+    let to = to
+        .canonicalize()
+        .map_err(|e| format!("owner stage destination: {e}"))?;
+    match canonical.strip_prefix(&from) {
+        Ok(relative) => Ok(to.join(relative)),
+        Err(_) => Ok(canonical),
+    }
+}
+
+fn rebase_json_paths(value: &mut Value, from: &Path, to: &Path) -> Result<(), String> {
+    rebase_json_paths_at(value, None, from, to)
+}
+
+fn rebase_json_paths_at(
+    value: &mut Value,
+    key: Option<&str>,
+    from: &Path,
+    to: &Path,
+) -> Result<(), String> {
+    match value {
+        Value::String(text) => {
+            let path_field = matches!(
+                key,
+                Some(
+                    "owner_config"
+                        | "source_root"
+                        | "namespace_path"
+                        | "source_inputs_path"
+                        | "corpus_store"
+                        | "software_capture"
+                        | "software_restored_root"
+                        | "absolute_path"
+                        | "path"
+                )
+            );
+            let path = Path::new(text);
+            if path_field && path.is_absolute() {
+                if let Ok(canonical) = path.canonicalize()
+                    && let Ok(relative) = canonical.strip_prefix(from)
+                {
+                    *text = to
+                        .join(relative)
+                        .to_str()
+                        .ok_or("rebased owner stage path is not UTF-8")?
+                        .to_owned();
+                }
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                rebase_json_paths_at(item, key, from, to)?;
+            }
+        }
+        Value::Object(fields) => {
+            for (child_key, item) in fields.iter_mut() {
+                rebase_json_paths_at(item, Some(child_key), from, to)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn rebase_plan_paths(plan: &mut Plan, from: &Path, to: &Path) -> Result<(), String> {
+    for operation in plan
+        .sessions
+        .iter_mut()
+        .flat_map(|session| &mut session.operations)
+    {
+        for index in 0..operation.sdk_argv.len().saturating_sub(1) {
+            if operation.sdk_argv[index] == "--invocation" {
+                let argument = operation.sdk_argv[index + 1].clone();
+                let path = Path::new(&argument);
+                if path.is_absolute() && path.starts_with(from) {
+                    let relative = path
+                        .strip_prefix(from)
+                        .map_err(|_| "owner stage SDK invocation prefix changed")?;
+                    operation.sdk_argv[index + 1] = to
+                        .join(relative)
+                        .to_str()
+                        .ok_or("rebased owner stage SDK invocation path is not UTF-8")?
+                        .to_owned();
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn selected_sdk_owner_inputs(
+    plan: &Plan,
+    session_limit: usize,
+) -> Result<Vec<(PathBuf, PathBuf)>, String> {
+    let mut selected = BTreeMap::new();
+    for operation in plan
+        .sessions
+        .iter()
+        .take(session_limit)
+        .flat_map(|session| &session.operations)
+        .filter(|operation| operation.channel == "sdk")
+    {
+        let paths = operation
+            .sdk_argv
+            .windows(2)
+            .filter(|pair| pair[0] == "--invocation")
+            .map(|pair| PathBuf::from(&pair[1]))
+            .collect::<Vec<_>>();
+        if paths.len() != 1 || !Path::new(&operation.sdk_argv[0]).is_absolute() {
+            return Err("SDK source command requires one explicit --invocation path".into());
+        }
+        let invocation = paths[0]
+            .canonicalize()
+            .map_err(|e| format!("SDK invocation identity: {e}"))?;
+        let invocation_value = read_stage_json(&invocation)?;
+        let owner_config = invocation_value
+            .get("owner_config")
+            .and_then(Value::as_str)
+            .ok_or("SDK invocation owner_config path absent")?;
+        let owner_config = PathBuf::from(owner_config)
+            .canonicalize()
+            .map_err(|e| format!("SDK owner configuration identity: {e}"))?;
+        let previous = selected.insert(invocation, owner_config.clone());
+        if previous.is_some_and(|path| path != owner_config) {
+            return Err("SDK invocation selected conflicting owner configurations".into());
+        }
+    }
+    Ok(selected.into_iter().collect())
+}
+
+fn read_stage_json(path: &Path) -> Result<Value, String> {
+    let metadata = fs::symlink_metadata(path).map_err(|e| format!("owner stage JSON stat: {e}"))?;
+    if metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || metadata.uid() != unsafe { libc::geteuid() }
+        || metadata.mode() & 0o077 != 0
+        || metadata.len() > 1_048_576
+    {
+        return Err("owner stage configuration must be a private owned JSON file".into());
+    }
+    let raw = fs::read(path).map_err(|e| format!("owner stage JSON read: {e}"))?;
+    serde_json::from_slice(&raw).map_err(|_| "owner stage configuration JSON invalid".into())
+}
+
+fn prepare_owner_stage(
+    args: &mut Args,
+    plan: &mut Plan,
+    deadline: Instant,
+) -> Result<Option<(PathBuf, PathBuf, usize)>, String> {
+    let Some(baseline) = args.owner_stage_baseline.clone() else {
+        return Ok(None);
+    };
+    let baseline = baseline
+        .canonicalize()
+        .map_err(|e| format!("owner stage baseline: {e}"))?;
+    let baseline_metadata =
+        fs::symlink_metadata(&baseline).map_err(|e| format!("owner stage baseline stat: {e}"))?;
+    if baseline_metadata.file_type().is_symlink()
+        || !baseline_metadata.is_dir()
+        || baseline_metadata.uid() != unsafe { libc::geteuid() }
+        || baseline_metadata.mode() & 0o077 != 0
+        || args.output.starts_with(&baseline)
+        || baseline.starts_with(&args.output)
+    {
+        return Err("owner stage baseline must be a separate private owned directory".into());
+    }
+    let sdk_owner_inputs = selected_sdk_owner_inputs(plan, args.sessions)?;
+    for path in [
+        args.model.as_path(),
+        args.binding.as_path(),
+        args.source_root.as_deref().ok_or("source root absent")?,
+        args.source_inputs
+            .as_deref()
+            .ok_or("source inputs absent")?,
+        args.owner_config.as_deref().ok_or("owner config absent")?,
+        args.invocation
+            .as_deref()
+            .ok_or("owner invocation absent")?,
+        args.token_file.as_deref().ok_or("owner token absent")?,
+    ] {
+        if !path
+            .canonicalize()
+            .map_err(|e| format!("owner stage input: {e}"))?
+            .starts_with(&baseline)
+        {
+            return Err("model, binding and all owner inputs must be inside the selected owner stage baseline".into());
+        }
+    }
+    for (invocation, owner) in &sdk_owner_inputs {
+        if !invocation.starts_with(&baseline) || !owner.starts_with(&baseline) {
+            return Err("every SDK invocation and owner configuration must be inside the selected owner stage baseline".into());
+        }
+    }
+    let destination = args.output.join("owner-stage");
+    if destination.exists() || destination.is_symlink() {
+        return Err("owner stage destination must be fresh".into());
+    }
+    let mut files = 0usize;
+    let mut bytes = 0u64;
+    if let Err(error) = copy_stage_tree(&baseline, &destination, &mut files, &mut bytes) {
+        let _ = fs::remove_dir_all(&destination);
+        return Err(error);
+    }
+    let destination = destination
+        .canonicalize()
+        .map_err(|e| format!("owner stage destination: {e}"))?;
+    rebase_plan_paths(plan, &baseline, &destination)?;
+    args.model = rebase_path(&args.model, &baseline, &destination)?;
+    args.binding = rebase_path(&args.binding, &baseline, &destination)?;
+    args.source_root = Some(rebase_path(
+        args.source_root.as_deref().ok_or("source root absent")?,
+        &baseline,
+        &destination,
+    )?);
+    args.source_inputs = Some(rebase_path(
+        args.source_inputs
+            .as_deref()
+            .ok_or("source inputs absent")?,
+        &baseline,
+        &destination,
+    )?);
+    args.owner_config = Some(rebase_path(
+        args.owner_config.as_deref().ok_or("owner config absent")?,
+        &baseline,
+        &destination,
+    )?);
+    args.invocation = Some(rebase_path(
+        args.invocation
+            .as_deref()
+            .ok_or("owner invocation absent")?,
+        &baseline,
+        &destination,
+    )?);
+    args.token_file = Some(rebase_path(
+        args.token_file.as_deref().ok_or("owner token absent")?,
+        &baseline,
+        &destination,
+    )?);
+    let owner_path = args.owner_config.as_ref().unwrap().clone();
+    let invocation_path = args.invocation.as_ref().unwrap().clone();
+    let source_inputs_path = args.source_inputs.as_ref().unwrap().clone();
+    let owner_mode = fs::metadata(&owner_path)
+        .map_err(|e| format!("owner stage config metadata: {e}"))?
+        .mode()
+        & 0o777;
+    let invocation_mode = fs::metadata(&invocation_path)
+        .map_err(|e| format!("owner stage invocation metadata: {e}"))?
+        .mode()
+        & 0o777;
+    let mut owner = read_stage_json(&owner_path)?;
+    rebase_json_paths(&mut owner, &baseline, &destination)?;
+    fs::write(
+        &owner_path,
+        serde_json::to_vec(&owner).map_err(|_| "owner stage config encode failed")?,
+    )
+    .map_err(|e| format!("owner stage config write: {e}"))?;
+    fs::set_permissions(&owner_path, fs::Permissions::from_mode(owner_mode))
+        .map_err(|e| format!("owner stage config mode: {e}"))?;
+    let mut invocation = read_stage_json(&invocation_path)?;
+    rebase_json_paths(&mut invocation, &baseline, &destination)?;
+    if invocation["owner_config"]
+        != owner_path
+            .to_str()
+            .ok_or("owner config path UTF-8 required")?
+    {
+        return Err("staged invocation does not select the staged owner configuration".into());
+    }
+    fs::write(
+        &invocation_path,
+        serde_json::to_vec(&invocation).map_err(|_| "owner stage invocation encode failed")?,
+    )
+    .map_err(|e| format!("owner stage invocation write: {e}"))?;
+    fs::set_permissions(
+        &invocation_path,
+        fs::Permissions::from_mode(invocation_mode),
+    )
+    .map_err(|e| format!("owner stage invocation mode: {e}"))?;
+    let source_inputs_mode = fs::metadata(&source_inputs_path)
+        .map_err(|e| format!("owner stage source inputs metadata: {e}"))?
+        .mode()
+        & 0o777;
+    let mut source_inputs = read_stage_json(&source_inputs_path)?;
+    rebase_json_paths(&mut source_inputs, &baseline, &destination)?;
+    fs::write(
+        &source_inputs_path,
+        serde_json::to_vec(&source_inputs)
+            .map_err(|_| "owner stage source inputs encode failed")?,
+    )
+    .map_err(|e| format!("owner stage source inputs write: {e}"))?;
+    fs::set_permissions(
+        &source_inputs_path,
+        fs::Permissions::from_mode(source_inputs_mode),
+    )
+    .map_err(|e| format!("owner stage source inputs mode: {e}"))?;
+    // The exact source-input snapshot is duplicated in the prepared database.
+    // When its absolute namespace roots move with this stage clone, update only
+    // that bound row and digest so the query opens the cloned roots.
+    let source_inputs_raw = tos_foundation::canonical_raw_bytes_v1(
+        &serde_json::to_vec(&source_inputs).map_err(|_| "source inputs encode failed")?,
+        tos_foundation::CanonicalProfile::CorpusSnapshotV1,
+        tos_foundation::JsonLimits::default(),
+    )
+    .map_err(|_| "source inputs canonicalization failed")?;
+    let source_inputs_digest = sha(&source_inputs_raw);
+    let source_inputs_text =
+        std::str::from_utf8(&source_inputs_raw).map_err(|_| "source inputs UTF-8 required")?;
+    let database = rusqlite::Connection::open(&args.model)
+        .map_err(|_| "owner stage prepared database open failed")?;
+    let changed = database
+        .execute(
+            "UPDATE prepared_source_state SET inputs=?1,sha256=?2 WHERE singleton=1",
+            rusqlite::params![source_inputs_text, source_inputs_digest],
+        )
+        .map_err(|_| "owner stage prepared source state update failed")?;
+    if changed != 1 {
+        return Err("owner stage prepared source state row unavailable".into());
+    }
+    drop(database);
+    fs::write(&source_inputs_path, &source_inputs_raw)
+        .map_err(|e| format!("owner stage canonical source inputs write: {e}"))?;
+    fs::set_permissions(
+        &source_inputs_path,
+        fs::Permissions::from_mode(source_inputs_mode),
+    )
+    .map_err(|e| format!("owner stage canonical source inputs mode: {e}"))?;
+    for (source_invocation, source_owner) in sdk_owner_inputs {
+        let invocation_path = rebase_path(&source_invocation, &baseline, &destination)?;
+        let owner_path = rebase_path(&source_owner, &baseline, &destination)?;
+        let invocation_mode = fs::metadata(&invocation_path)
+            .map_err(|e| format!("SDK invocation metadata: {e}"))?
+            .mode()
+            & 0o777;
+        let owner_mode = fs::metadata(&owner_path)
+            .map_err(|e| format!("SDK owner configuration metadata: {e}"))?
+            .mode()
+            & 0o777;
+        let mut owner = read_stage_json(&owner_path)?;
+        rebase_json_paths(&mut owner, &baseline, &destination)?;
+        fs::write(
+            &owner_path,
+            serde_json::to_vec(&owner).map_err(|_| "SDK owner configuration encode failed")?,
+        )
+        .map_err(|e| format!("SDK owner configuration write: {e}"))?;
+        fs::set_permissions(&owner_path, fs::Permissions::from_mode(owner_mode))
+            .map_err(|e| format!("SDK owner configuration mode: {e}"))?;
+        let mut invocation = read_stage_json(&invocation_path)?;
+        rebase_json_paths(&mut invocation, &baseline, &destination)?;
+        if invocation["owner_config"]
+            != owner_path.to_str().ok_or("SDK owner path UTF-8 required")?
+        {
+            return Err(
+                "staged SDK invocation does not select its staged owner configuration".into(),
+            );
+        }
+        fs::write(
+            &invocation_path,
+            serde_json::to_vec(&invocation).map_err(|_| "SDK invocation encode failed")?,
+        )
+        .map_err(|e| format!("SDK invocation write: {e}"))?;
+        fs::set_permissions(
+            &invocation_path,
+            fs::Permissions::from_mode(invocation_mode),
+        )
+        .map_err(|e| format!("SDK invocation mode: {e}"))?;
+    }
+    let mut configuration_bindings = 0usize;
+    if plan
+        .sessions
+        .iter()
+        .flat_map(|session| &session.operations)
+        .any(|operation| operation.bind_expected_configuration_from_owner)
+    {
+        let owner_binary = args
+            .owner_binary
+            .as_ref()
+            .ok_or("owner configuration binding requires selected native owner binary")?;
+        let invocation = args
+            .invocation
+            .as_ref()
+            .ok_or("owner configuration binding requires staged invocation")?;
+        let preflight = Operation {
+            channel: "sdk".into(),
+            label: "owner-configuration-binding".into(),
+            request: json!({
+                "schema_version":"tos_local_source_command_v1",
+                "operation":"describe"
+            }),
+            expected_status: 0,
+            expected_sha256: None,
+            expected_body: None,
+            ignored_json_paths: Vec::new(),
+            alternate_outcomes: Vec::new(),
+            retry_same_command_id: false,
+            reconnect_before: false,
+            conflict_group: None,
+            bind_expected_configuration_from_owner: false,
+            sdk_argv: vec![
+                owner_binary
+                    .to_str()
+                    .ok_or("selected owner binary path UTF-8 required")?
+                    .to_owned(),
+                "source-commands".into(),
+                "--invocation".into(),
+                invocation
+                    .to_str()
+                    .ok_or("staged invocation path UTF-8 required")?
+                    .to_owned(),
+            ],
+        };
+        let pids = Arc::new(Mutex::new(Vec::new()));
+        let attempt = sdk_process(
+            &preflight,
+            &args.output,
+            deadline,
+            args.request_cap,
+            args.response_cap,
+            &pids,
+        )?;
+        if attempt.status != 0 {
+            return Err("selected native owner configuration describe failed".into());
+        }
+        let response: Value = serde_json::from_slice(
+            attempt
+                .body
+                .as_deref()
+                .ok_or("native owner describe body absent")?,
+        )
+        .map_err(|_| "native owner describe response is not JSON")?;
+        let digest = response
+            .pointer("/result/owner_configuration")
+            .and_then(Value::as_str)
+            .filter(|value| value.strip_prefix("sha256:").is_some_and(valid_sha))
+            .ok_or("native owner describe lacks a selected configuration digest")?
+            .to_owned();
+        for operation in plan
+            .sessions
+            .iter_mut()
+            .flat_map(|session| &mut session.operations)
+            .filter(|operation| operation.bind_expected_configuration_from_owner)
+        {
+            if operation.channel != "owner_http"
+                || operation.request.get("expected_configuration").is_none()
+            {
+                return Err(
+                    "owner configuration binding requires owner_http expected_configuration".into(),
+                );
+            }
+            operation.request["expected_configuration"] = json!(digest);
+            configuration_bindings += 1;
+        }
+    }
+    Ok(Some((baseline, destination, configuration_bindings)))
 }
 fn executable_sha256(path: &Path, deadline: Instant) -> Result<String, String> {
     const MAX_EXECUTABLE_BYTES: u64 = 536_870_912;
@@ -609,14 +1252,217 @@ fn write_lease(output: &Path, unit: &str, cap: usize) -> Result<String, String> 
         .map(str::to_owned)
         .ok_or_else(|| "output lease execution identity absent".into())
 }
+const VOLATILE_JSON_PATHS: &[&str] = &[
+    "/result/owner_configuration",
+    "/result/receipt/owner_configuration",
+    "/result/receipt/recorded_at",
+    "/result/receipt/command_id",
+    "/result/receipt/request_digest",
+    "/result/receipt/files/source-create-provenance.jsonl/sha256",
+];
+
 fn outcomes(op: &Operation) -> Vec<ExpectedOutcome> {
     let mut values = vec![ExpectedOutcome {
         status: op.expected_status,
         sha256: op.expected_sha256.clone(),
+        body: op.expected_body.clone(),
+        ignored_json_paths: op.ignored_json_paths.clone(),
     }];
     values.extend(op.alternate_outcomes.clone());
-    values.sort();
+    values.sort_by_key(|value| value.status);
     values
+}
+
+fn source_read_operation(op: &Operation) -> bool {
+    match op.channel.as_str() {
+        "mcp" => {
+            op.request["method"] == "tools/call"
+                && matches!(
+                    op.request["params"]["name"].as_str(),
+                    Some("tos_source_read_capabilities")
+                        | Some("tos_source_handle_discover")
+                        | Some("tos_source_read")
+                )
+        }
+        "sdk" => op
+            .sdk_argv
+            .windows(2)
+            .any(|pair| pair[0] == "source" && matches!(pair[1].as_str(), "discover" | "read")),
+        _ => false,
+    }
+}
+
+fn digest_value(value: &Value) -> bool {
+    value
+        .as_str()
+        .and_then(|text| text.strip_prefix("sha256:"))
+        .is_some_and(valid_sha)
+}
+
+fn valid_utc_timestamp(value: &Value) -> bool {
+    let Some(text) = value.as_str() else {
+        return false;
+    };
+    let bytes = text.as_bytes();
+    if bytes.len() < 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || !bytes[..4].iter().all(u8::is_ascii_digit)
+        || !bytes[5..7].iter().all(u8::is_ascii_digit)
+        || !bytes[8..10].iter().all(u8::is_ascii_digit)
+        || !bytes[11..13].iter().all(u8::is_ascii_digit)
+        || !bytes[14..16].iter().all(u8::is_ascii_digit)
+        || !bytes[17..19].iter().all(u8::is_ascii_digit)
+    {
+        return false;
+    }
+    let month = text[5..7].parse::<u8>().ok();
+    let day = text[8..10].parse::<u8>().ok();
+    let hour = text[11..13].parse::<u8>().ok();
+    let minute = text[14..16].parse::<u8>().ok();
+    let second = text[17..19].parse::<u8>().ok();
+    if !matches!(month, Some(1..=12))
+        || !matches!(day, Some(1..=31))
+        || !matches!(hour, Some(0..=23))
+        || !matches!(minute, Some(0..=59))
+        || !matches!(second, Some(0..=60))
+    {
+        return false;
+    }
+    if bytes.len() == 20 {
+        return bytes[19] == b'Z';
+    }
+    bytes[19] == b'.'
+        && bytes.last() == Some(&b'Z')
+        && (22..=30).contains(&bytes.len())
+        && bytes[20..bytes.len() - 1].iter().all(u8::is_ascii_digit)
+}
+
+fn ignored_value_valid(path: &str, value: &Value) -> bool {
+    match path {
+        "/result/owner_configuration"
+        | "/result/receipt/owner_configuration"
+        | "/result/receipt/request_digest"
+        | "/result/receipt/files/source-create-provenance.jsonl/sha256" => digest_value(value),
+        "/result/receipt/command_id" => value
+            .as_str()
+            .is_some_and(|text| !text.is_empty() && text.len() <= 256 && text.is_ascii()),
+        "/result/receipt/recorded_at" => valid_utc_timestamp(value),
+        _ => false,
+    }
+}
+
+fn pointer_child(path: &str, segment: &str) -> String {
+    let segment = segment.replace('~', "~0").replace('/', "~1");
+    format!("{path}/{segment}")
+}
+
+fn body_matches(
+    expected: &Value,
+    actual: &Value,
+    ignored_paths: &BTreeSet<String>,
+    path: &str,
+) -> bool {
+    if ignored_paths.contains(path) {
+        return expected.is_string() == actual.is_string()
+            && expected.is_number() == actual.is_number()
+            && expected.is_boolean() == actual.is_boolean()
+            && expected.is_null() == actual.is_null()
+            && ignored_value_valid(path, actual);
+    }
+    match (expected, actual) {
+        (Value::Object(left), Value::Object(right)) => {
+            left.len() == right.len()
+                && left.keys().all(|key| {
+                    right.get(key).is_some_and(|value| {
+                        body_matches(&left[key], value, ignored_paths, &pointer_child(path, key))
+                    })
+                })
+        }
+        (Value::Array(left), Value::Array(right)) => {
+            left.len() == right.len()
+                && left.iter().zip(right).enumerate().all(|(index, (a, b))| {
+                    body_matches(
+                        a,
+                        b,
+                        ignored_paths,
+                        &pointer_child(path, &index.to_string()),
+                    )
+                })
+        }
+        _ => expected == actual,
+    }
+}
+
+fn outcome_matches(op: &Operation, expected: &ExpectedOutcome, attempt: &Attempt) -> bool {
+    if expected.status != attempt.status
+        || expected
+            .sha256
+            .as_ref()
+            .is_some_and(|digest| digest != &attempt.sha256)
+    {
+        return false;
+    }
+    let body_matches_expected = expected.body.as_ref().is_none_or(|body| {
+        let Some(raw) = attempt.body.as_deref() else {
+            return false;
+        };
+        let Ok(actual) = serde_json::from_slice::<Value>(raw) else {
+            return false;
+        };
+        let ignored_paths = expected
+            .ignored_json_paths
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        body_matches(body, &actual, &ignored_paths, "")
+            && (!ignored_paths.contains("/result/receipt/command_id")
+                || actual.pointer("/result/receipt/command_id") == op.request.get("command_id"))
+    });
+    body_matches_expected && (expected.sha256.is_some() || expected.body.is_some())
+}
+
+fn valid_expected(value: &ExpectedOutcome, sdk: bool, response_cap: usize) -> bool {
+    let status_valid = if sdk {
+        value.status == 0
+    } else {
+        (100..=599).contains(&value.status)
+    };
+    let body_size_valid = value
+        .body
+        .as_ref()
+        .is_none_or(|body| json_bytes(body).is_ok_and(|raw| raw.len() <= response_cap));
+    status_valid
+        && (value.sha256.as_deref().is_some_and(valid_sha) || value.body.is_some())
+        && body_size_valid
+        && value.ignored_json_paths.len() <= VOLATILE_JSON_PATHS.len()
+        && value
+            .ignored_json_paths
+            .iter()
+            .all(|path| VOLATILE_JSON_PATHS.contains(&path.as_str()))
+        && value
+            .ignored_json_paths
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            == value.ignored_json_paths.len()
+        && (value.ignored_json_paths.is_empty() || value.body.is_some())
+}
+
+fn outcome_report(op: &Operation) -> Value {
+    Value::Array(outcomes(op).iter().map(outcome_summary).collect())
+}
+
+fn outcome_summary(value: &ExpectedOutcome) -> Value {
+    json!({
+        "status": value.status,
+        "sha256": value.sha256,
+        "semantic_body_expected": value.body.is_some(),
+        "ignored_json_paths": value.ignored_json_paths,
+    })
 }
 
 fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String> {
@@ -649,16 +1495,22 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             .checked_add(session.operations.len())
             .ok_or("operation count overflow")?;
         for (step, op) in session.operations.iter().enumerate() {
+            let sdk = op.channel == "sdk";
+            let primary = ExpectedOutcome {
+                status: op.expected_status,
+                sha256: op.expected_sha256.clone(),
+                body: op.expected_body.clone(),
+                ignored_json_paths: op.ignored_json_paths.clone(),
+            };
             if op.label.is_empty()
                 || op.label.len() > 64
                 || !op.label.is_ascii()
-                || !(100..=599).contains(&op.expected_status)
-                || !valid_sha(&op.expected_sha256)
+                || !valid_expected(&primary, sdk, args.response_cap)
                 || op.alternate_outcomes.len() > 1
                 || op
                     .alternate_outcomes
                     .iter()
-                    .any(|v| !(100..=599).contains(&v.status) || !valid_sha(&v.sha256))
+                    .any(|value| !valid_expected(value, false, args.response_cap))
             {
                 return Err("operation label/status/digest invalid".into());
             }
@@ -668,7 +1520,10 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     if op.retry_same_command_id {
                         return Err("MCP retry is not supported by this schedule route".into());
                     }
-                    if !op.sdk_argv.is_empty() || op.conflict_group.is_some() {
+                    if !op.sdk_argv.is_empty()
+                        || op.conflict_group.is_some()
+                        || op.bind_expected_configuration_from_owner
+                    {
                         return Err("invalid MCP operation options".into());
                     }
                     let b = json_bytes(&op.request)?;
@@ -698,6 +1553,9 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     if op.request.as_object().is_none()
                         || op.reconnect_before
                         || !op.sdk_argv.is_empty()
+                        || (op.bind_expected_configuration_from_owner
+                            && (args.owner_stage_baseline.is_none()
+                                || op.request["expected_configuration"].as_str().is_none()))
                     {
                         return Err("owner_http requires an exact source-command object and no SDK/MCP-only options".into());
                     }
@@ -706,16 +1564,46 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
                     }
                 }
                 "sdk" => {
+                    let invocation_args = op
+                        .sdk_argv
+                        .windows(2)
+                        .filter(|pair| pair[0] == "--invocation")
+                        .collect::<Vec<_>>();
+                    let command_id = op
+                        .request
+                        .get("command_id")
+                        .and_then(Value::as_str)
+                        .filter(|value| !value.is_empty() && value.len() <= 128);
+                    let read_only_describe = op.request["schema_version"]
+                        == "tos_local_source_command_v1"
+                        && op.request["operation"] == "describe"
+                        && op.request.as_object().is_some_and(|fields| {
+                            fields.len() == 2
+                                && fields.contains_key("schema_version")
+                                && fields.contains_key("operation")
+                        });
                     if op.sdk_argv.is_empty()
                         || op.sdk_argv.len() > 32
                         || op.sdk_argv[0].is_empty()
                         || !Path::new(&op.sdk_argv[0]).is_absolute()
+                        || !op.sdk_argv.iter().any(|arg| arg == "source-commands")
+                        || invocation_args.len() != 1
+                        || (command_id.is_none() && !read_only_describe)
                         || op.reconnect_before
                         || op.retry_same_command_id
                         || op.conflict_group.is_some()
-                        || op.expected_status > 255
+                        || op.bind_expected_configuration_from_owner
+                        || !op.request.is_object()
+                        || json_bytes(&op.request)?.len() > args.request_cap
                     {
-                        return Err("SDK operation requires an explicit absolute argv, process exit status and no implicit retry".into());
+                        return Err("SDK source command requires explicit native argv, one invocation and no implicit retry".into());
+                    }
+                    if let Some(command_id) = command_id {
+                        if !command_ids.insert(command_id.to_owned()) {
+                            return Err(
+                                "each scheduled source command needs a unique command_id".into()
+                            );
+                        }
                     }
                     for arg in &op.sdk_argv {
                         if arg.len() > 4096 {
@@ -1107,6 +1995,7 @@ fn owner_http(
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(0),
             sha256: String::new(),
+            body: None,
             elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
             authenticated: Some(false),
         });
@@ -1122,6 +2011,7 @@ fn owner_http(
         status: reply.status,
         bytes: reply.body.len(),
         sha256: sha(&reply.body),
+        body: Some(reply.body),
         elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
         authenticated: Some(authenticated),
     })
@@ -1283,6 +2173,7 @@ fn sdk_process(
         status: status.code().unwrap_or(255) as u16,
         bytes: output.len(),
         sha256: sha(&output),
+        body: Some(output),
         elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
         authenticated: None,
     })
@@ -1294,6 +2185,7 @@ fn run_operation(
     secret: &[u8],
     nonces: &Mutex<BTreeSet<String>>,
     pids: &Arc<Mutex<Vec<i32>>>,
+    gates: &WorkloadGates,
     deadline: Instant,
 ) -> OpResult {
     let started = Instant::now();
@@ -1302,106 +2194,131 @@ fn run_operation(
     let mut retry_count = 0usize;
     let mut attempts = Vec::new();
     let mut error = None;
-    if op.channel == "mcp" {
-        if session.id.is_none() {
-            error = Some("MCP session unavailable at native session limit".to_owned());
+    let _channel_permit = match op.channel.as_str() {
+        "mcp" => gates.mcp_sessions.acquire(deadline),
+        "owner_http" => gates.owner_http.acquire(deadline),
+        "sdk" => gates.sdk_source_commands.acquire(deadline),
+        _ => Err("unknown channel gate".into()),
+    };
+    let _source_read_permit = if source_read_operation(op) {
+        Some(gates.source_reads.acquire(deadline))
+    } else {
+        None
+    };
+    let _channel_permit = match _channel_permit {
+        Ok(permit) => Some(permit),
+        Err(reason) => {
+            error = Some(reason);
+            None
         }
-        if error.is_none() && op.reconnect_before {
-            let old = session.id.take().unwrap();
-            if let Err(e) = delete_mcp(args.mcp_port, &old, deadline, args.response_cap) {
-                error = Some(e);
+    };
+    if _source_read_permit.as_ref().is_some_and(Result::is_err) {
+        error = Some("source-read in-flight limit deadline/cancellation".into());
+    }
+    let _source_read_permit = _source_read_permit.and_then(Result::ok);
+    if error.is_none() {
+        if op.channel == "mcp" {
+            if session.id.is_none() {
+                error = Some("MCP session unavailable at native session limit".to_owned());
+            }
+            if error.is_none() && op.reconnect_before {
+                let old = session.id.take().unwrap();
+                if let Err(e) = delete_mcp(args.mcp_port, &old, deadline, args.response_cap) {
+                    error = Some(e);
+                }
+                if error.is_none() {
+                    match initialize_mcp(args.mcp_port, deadline, args.response_cap) {
+                        Ok((fresh, status, digest, elapsed)) if status == 200 => {
+                            *session = fresh;
+                            reconnect_count = 1;
+                            reconnect_observation = Some(
+                                json!({"status":status,"response_sha256":digest,"elapsed_ms":elapsed}),
+                            );
+                        }
+                        Ok((_, status, _, _)) => {
+                            error = Some(format!("MCP reconnect initialize status {status}"))
+                        }
+                        Err(e) => error = Some(e),
+                    }
+                }
             }
             if error.is_none() {
-                match initialize_mcp(args.mcp_port, deadline, args.response_cap) {
-                    Ok((fresh, status, digest, elapsed)) if status == 200 => {
-                        *session = fresh;
-                        reconnect_count = 1;
-                        reconnect_observation = Some(
-                            json!({"status":status,"response_sha256":digest,"elapsed_ms":elapsed}),
-                        );
-                    }
-                    Ok((_, status, _, _)) => {
-                        error = Some(format!("MCP reconnect initialize status {status}"))
+                let id = session.id.as_deref().unwrap();
+                match mcp_http(
+                    args.mcp_port,
+                    Some(id),
+                    &op.request,
+                    deadline,
+                    args.response_cap,
+                    "POST",
+                ) {
+                    Ok(reply) => attempts.push(Attempt {
+                        status: reply.status,
+                        bytes: reply.body.len(),
+                        sha256: sha(&reply.body),
+                        body: Some(reply.body),
+                        elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
+                        authenticated: None,
+                    }),
+                    Err(e) => error = Some(e),
+                }
+            }
+        } else if op.channel == "owner_http" {
+            let body = match json_bytes(&op.request) {
+                Ok(v) => v,
+                Err(e) => {
+                    error = Some(e);
+                    Vec::new()
+                }
+            };
+            if error.is_none() {
+                match owner_http(
+                    args.owner_port,
+                    secret,
+                    nonces,
+                    &body,
+                    deadline,
+                    args.request_cap,
+                    args.response_cap,
+                    op.retry_same_command_id,
+                ) {
+                    Ok(attempt) => {
+                        if op.retry_same_command_id {
+                            // The complete response was emitted by the owner and its headers observed; the harness deliberately closes before reading the body.
+                            attempts.push(attempt);
+                            retry_count = 1;
+                            match owner_http(
+                                args.owner_port,
+                                secret,
+                                nonces,
+                                &body,
+                                deadline,
+                                args.request_cap,
+                                args.response_cap,
+                                false,
+                            ) {
+                                Ok(replay) => attempts.push(replay),
+                                Err(e) => error = Some(e),
+                            }
+                        } else {
+                            attempts.push(attempt);
+                        }
                     }
                     Err(e) => error = Some(e),
                 }
             }
-        }
-        if error.is_none() {
-            let id = session.id.as_deref().unwrap();
-            match mcp_http(
-                args.mcp_port,
-                Some(id),
-                &op.request,
-                deadline,
-                args.response_cap,
-                "POST",
-            ) {
-                Ok(reply) => attempts.push(Attempt {
-                    status: reply.status,
-                    bytes: reply.body.len(),
-                    sha256: sha(&reply.body),
-                    elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
-                    authenticated: None,
-                }),
-                Err(e) => error = Some(e),
-            }
-        }
-    } else if op.channel == "owner_http" {
-        let body = match json_bytes(&op.request) {
-            Ok(v) => v,
-            Err(e) => {
-                error = Some(e);
-                Vec::new()
-            }
-        };
-        if error.is_none() {
-            match owner_http(
-                args.owner_port,
-                secret,
-                nonces,
-                &body,
+        } else {
+            match sdk_process(
+                op,
+                &args.output,
                 deadline,
                 args.request_cap,
                 args.response_cap,
-                op.retry_same_command_id,
+                pids,
             ) {
-                Ok(attempt) => {
-                    if op.retry_same_command_id {
-                        // The complete response was emitted by the owner and its headers observed; the harness deliberately closes before reading the body.
-                        attempts.push(attempt);
-                        retry_count = 1;
-                        match owner_http(
-                            args.owner_port,
-                            secret,
-                            nonces,
-                            &body,
-                            deadline,
-                            args.request_cap,
-                            args.response_cap,
-                            false,
-                        ) {
-                            Ok(replay) => attempts.push(replay),
-                            Err(e) => error = Some(e),
-                        }
-                    } else {
-                        attempts.push(attempt);
-                    }
-                }
+                Ok(attempt) => attempts.push(attempt),
                 Err(e) => error = Some(e),
             }
-        }
-    } else {
-        match sdk_process(
-            op,
-            &args.output,
-            deadline,
-            args.request_cap,
-            args.response_cap,
-            pids,
-        ) {
-            Ok(attempt) => attempts.push(attempt),
-            Err(e) => error = Some(e),
         }
     }
     let final_attempt = attempts.last().cloned();
@@ -1413,7 +2330,7 @@ fn run_operation(
     let matched_outcome = final_attempt.as_ref().and_then(|attempt| {
         expected
             .iter()
-            .find(|v| v.status == attempt.status && v.sha256 == attempt.sha256)
+            .find(|value| outcome_matches(op, value, attempt))
     });
     let passed = error.is_none() && auth_ok && matched_outcome.is_some();
     let status = final_attempt.as_ref().map(|a| a.status);
@@ -1430,7 +2347,9 @@ fn run_operation(
                 .is_some_and(|a| a.authenticated != Some(true)));
     let successful = passed && status.is_some_and(|s| (200..300).contains(&s));
     let attempt_values = attempts.iter().map(|a| json!({"status":a.status,"response_bytes":a.bytes,"response_sha256":a.sha256,"elapsed_ms":a.elapsed_ms,"response_authenticated":a.authenticated})).collect::<Vec<_>>();
-    let value = json!({"event":"operation","label":op.label,"channel":op.channel,"status":status,"expected_outcomes":expected,"matched_outcome":matched_outcome,"response_sha256":final_attempt.as_ref().map(|a|a.sha256.clone()),"passed":passed,"transport_error":transport_error,"error":error,"conflict_group":op.conflict_group,"conflict":conflict,"attempts":attempt_values,"retry_count":retry_count,"reconnect_count":reconnect_count,"reconnect":reconnect_observation,"elapsed_ms":started.elapsed().as_secs_f64()*1000.0});
+    let expected_report = outcome_report(op);
+    let matched_report = matched_outcome.map(outcome_summary);
+    let value = json!({"event":"operation","label":op.label,"channel":op.channel,"status":status,"expected_outcomes":expected_report,"matched_outcome":matched_report,"response_sha256":final_attempt.as_ref().map(|a|a.sha256.clone()),"passed":passed,"transport_error":transport_error,"error":error,"conflict_group":op.conflict_group,"conflict":conflict,"attempts":attempt_values,"retry_count":retry_count,"reconnect_count":reconnect_count,"reconnect":reconnect_observation,"elapsed_ms":started.elapsed().as_secs_f64()*1000.0});
     OpResult {
         value,
         passed,
@@ -1484,7 +2403,7 @@ fn emit(file: &mut File, written: &mut usize, cap: usize, value: &Value) -> Resu
 }
 fn main_result() -> Result<i32, String> {
     install_signals();
-    let args = parse_args()?;
+    let mut args = parse_args()?;
     if args.output.is_symlink() || !args.output.is_dir() {
         return Err("output must be a precreated owned directory".into());
     }
@@ -1493,9 +2412,37 @@ fn main_result() -> Result<i32, String> {
     if output_meta.uid() != unsafe { libc::geteuid() } || output_meta.mode() & 0o077 != 0 {
         return Err("output directory must be private and owned by the runner".into());
     }
+    let deadline = Instant::now() + Duration::from_secs(args.deadline_seconds);
+    let schedule_initial_stamp = file_stamp(&args.schedule, deadline)?;
+    if schedule_initial_stamp.len > args.schedule_cap as u64 {
+        return Err("schedule cap exceeded".into());
+    }
+    let mut schedule_file = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(&args.schedule)
+        .map_err(|e| format!("schedule open: {e}"))?;
+    let mut schedule_bytes = Vec::new();
+    schedule_file
+        .take(args.schedule_cap as u64 + 1)
+        .read_to_end(&mut schedule_bytes)
+        .map_err(|e| format!("schedule read: {e}"))?;
+    if schedule_bytes.len() > args.schedule_cap
+        || schedule_bytes.len() as u64 != schedule_initial_stamp.len
+        || !stamp_equal(
+            &schedule_initial_stamp,
+            &file_stamp(&args.schedule, deadline)?,
+        )
+    {
+        return Err("schedule changed between identity and read".into());
+    }
+    let schedule_sha256 = sha(&schedule_bytes);
+    let mut plan: Plan =
+        serde_json::from_slice(&schedule_bytes).map_err(|_| "invalid bounded workload schedule")?;
+    let _ = validate_plan(&plan, &args)?;
     let cgroup = cgroup_path(&args.unit)?;
     let lease_execution = write_lease(&args.output, &args.unit, args.output_cap)?;
-    let deadline = Instant::now() + Duration::from_secs(args.deadline_seconds);
+    let owner_stage = prepare_owner_stage(&mut args, &mut plan, deadline)?;
     let mut paths = vec![
         args.query_binary.clone(),
         args.model.clone(),
@@ -1509,6 +2456,7 @@ fn main_result() -> Result<i32, String> {
         ("owner_config", &args.owner_config),
         ("invocation", &args.invocation),
         ("token_file", &args.token_file),
+        ("source_inputs", &args.source_inputs),
     ] {
         if let Some(path) = path {
             let index = paths.len();
@@ -1520,30 +2468,31 @@ fn main_result() -> Result<i32, String> {
     for path in &paths {
         input_stamps.push(file_stamp(path, deadline)?);
     }
-    let schedule_size = input_stamps[schedule_index].len;
-    if schedule_size > args.schedule_cap as u64 {
-        return Err("schedule cap exceeded".into());
+    if !stamp_equal(&input_stamps[schedule_index], &schedule_initial_stamp) {
+        return Err("schedule path identity changed while preparing owner stage".into());
     }
-    let mut schedule_file = OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW)
-        .open(&args.schedule)
-        .map_err(|e| format!("schedule open: {e}"))?;
-    let mut schedule_bytes = Vec::new();
-    schedule_file
-        .take(args.schedule_cap as u64 + 1)
-        .read_to_end(&mut schedule_bytes)
-        .map_err(|e| format!("schedule read: {e}"))?;
-    if schedule_bytes.len() > args.schedule_cap {
-        return Err("schedule cap exceeded".into());
-    }
-    if schedule_bytes.len() as u64 != schedule_size {
-        return Err("schedule changed between identity and read".into());
-    }
-    let schedule_sha256 = sha(&schedule_bytes);
-    let plan: Plan =
-        serde_json::from_slice(&schedule_bytes).map_err(|_| "invalid bounded workload schedule")?;
     let (total_ops, needs_mcp, needs_owner) = validate_plan(&plan, &args)?;
+    let logical_mcp_sessions = plan
+        .sessions
+        .iter()
+        .take(args.sessions)
+        .filter(|session| session.operations.iter().any(|op| op.channel == "mcp"))
+        .count();
+    let physical_mcp_session_limit = logical_mcp_sessions.min(32);
+    let source_read_operations = plan
+        .sessions
+        .iter()
+        .take(args.sessions)
+        .flat_map(|session| &session.operations)
+        .filter(|operation| source_read_operation(operation))
+        .count();
+    let sdk_source_command_operations = plan
+        .sessions
+        .iter()
+        .take(args.sessions)
+        .flat_map(|session| &session.operations)
+        .filter(|operation| operation.channel == "sdk")
+        .count();
     let mut sdk_indexes = BTreeMap::new();
     for operation in plan
         .sessions
@@ -1558,6 +2507,18 @@ fn main_result() -> Result<i32, String> {
                 paths.push(path.clone());
                 sdk_indexes.insert(path.clone(), index);
                 input_stamps.push(file_stamp(&path, deadline)?);
+            }
+        }
+    }
+    let sdk_owner_inputs = selected_sdk_owner_inputs(&plan, args.sessions)?;
+    let mut sdk_owner_input_indexes = BTreeMap::new();
+    for (invocation, owner_config) in &sdk_owner_inputs {
+        for path in [invocation, owner_config] {
+            if !paths.contains(path) {
+                let index = paths.len();
+                paths.push(path.clone());
+                input_stamps.push(file_stamp(path, deadline)?);
+                sdk_owner_input_indexes.insert(path.clone(), index);
             }
         }
     }
@@ -1607,11 +2568,20 @@ fn main_result() -> Result<i32, String> {
             )
         })
         .collect::<BTreeMap<_, _>>();
+    let sdk_owner_input_identities = sdk_owner_input_indexes
+        .iter()
+        .map(|(path, index)| {
+            (
+                path.display().to_string(),
+                identity_json(&input_stamps[*index], None),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
     emit(
         &mut output,
         &mut written,
         args.output_cap,
-        &json!({"event":"start","identities":{"query_binary":identity_json(&input_stamps[0], executable_hashes.get(&0).map(String::as_str)),"owner_inputs":owner_input_identities,"prepared_model":identity_json(&input_stamps[1], None),"prepared_binding":identity_json(&input_stamps[2], None),"external_sdk_binaries":sdk_identities,"schedule_sha256":schedule_sha256},"limits":{"sessions":args.sessions,"deadline_seconds":args.deadline_seconds,"request_cap_bytes":args.request_cap,"response_cap_bytes":args.response_cap,"schedule_cap_bytes":args.schedule_cap,"output_cap_bytes":args.output_cap},"lease_execution":lease_execution,"scope":"finite Rust protocol measurement; not capacity acceptance"}),
+        &json!({"event":"start","identities":{"query_binary":identity_json(&input_stamps[0], executable_hashes.get(&0).map(String::as_str)),"owner_inputs":owner_input_identities,"sdk_owner_inputs":sdk_owner_input_identities,"prepared_model":identity_json(&input_stamps[1], None),"prepared_binding":identity_json(&input_stamps[2], None),"external_sdk_binaries":sdk_identities,"schedule_sha256":schedule_sha256},"owner_stage_clone":owner_stage.as_ref().map(|(baseline,destination,configuration_bindings)|json!({"baseline":baseline,"destination":destination,"rebound_expected_configuration_requests":configuration_bindings,"bounded_copy_bytes":MAX_STAGE_TOTAL_BYTES,"bounded_copy_files":MAX_STAGE_FILES})),"limits":{"logical_sessions":args.sessions,"logical_mcp_sessions":logical_mcp_sessions,"physical_mcp_sessions":physical_mcp_session_limit,"mcp_in_flight_limit":32,"source_read_in_flight_limit":32,"owner_http_in_flight_limit":4,"sdk_source_command_in_flight_limit":4,"scheduled_source_read_operations":source_read_operations,"scheduled_sdk_source_commands":sdk_source_command_operations,"deadline_seconds":args.deadline_seconds,"request_cap_bytes":args.request_cap,"response_cap_bytes":args.response_cap,"schedule_cap_bytes":args.schedule_cap,"output_cap_bytes":args.output_cap},"lease_execution":lease_execution,"scope":"finite Rust protocol measurement; not capacity acceptance"}),
     )?;
     let resources_before = resource_snapshot(&cgroup)?;
     let pids = Arc::new(Mutex::new(Vec::new()));
@@ -1635,20 +2605,41 @@ fn main_result() -> Result<i32, String> {
     let mut owner_server = None;
     if needs_mcp {
         let mut command = Command::new(&args.query_binary);
+        let mut query_args = Vec::new();
+        if let (Some(root), Some(inputs)) = (&args.source_root, &args.source_inputs) {
+            query_args.extend([
+                "--root".to_owned(),
+                root.to_str()
+                    .ok_or("source root path UTF-8 required")?
+                    .to_owned(),
+                "--source-inputs".to_owned(),
+                inputs
+                    .to_str()
+                    .ok_or("source inputs path UTF-8 required")?
+                    .to_owned(),
+            ]);
+        }
+        query_args.extend([
+            "--prepared-read-model".to_owned(),
+            args.model
+                .to_str()
+                .ok_or("model path UTF-8 required")?
+                .to_owned(),
+            "--prepared-binding".to_owned(),
+            args.binding
+                .to_str()
+                .ok_or("binding path UTF-8 required")?
+                .to_owned(),
+            "mcp".to_owned(),
+            "--transport".to_owned(),
+            "streamable-http".to_owned(),
+            "--host".to_owned(),
+            "127.0.0.1".to_owned(),
+            "--port".to_owned(),
+            args.mcp_port.to_string(),
+        ]);
         command
-            .args([
-                "--prepared-read-model",
-                args.model.to_str().ok_or("model path UTF-8 required")?,
-                "--prepared-binding",
-                args.binding.to_str().ok_or("binding path UTF-8 required")?,
-                "mcp",
-                "--transport",
-                "streamable-http",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                &args.mcp_port.to_string(),
-            ])
+            .args(query_args)
             .current_dir(&args.output)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -1738,25 +2729,37 @@ fn main_result() -> Result<i32, String> {
             &json!({"event":"owner_catalog","handler_count":handler_count,"catalog_sha256":sha(&reply.body),"authorization_status":catalog["authorization_status"]}),
         )?;
     }
-    let mut sessions = Vec::new();
-    for session in plan.sessions.iter().take(args.sessions) {
+    let mut logical_mcp_slots = vec![None; args.sessions];
+    let mut mcp_slot_count = 0usize;
+    for (logical_index, session) in plan.sessions.iter().take(args.sessions).enumerate() {
+        if session.operations.iter().any(|op| op.channel == "mcp") {
+            logical_mcp_slots[logical_index] = Some(mcp_slot_count % 32);
+            mcp_slot_count += 1;
+        }
+    }
+    let physical_mcp_sessions = mcp_slot_count.min(32);
+    let mut mcp_sessions = Vec::with_capacity(physical_mcp_sessions);
+    for slot in 0..physical_mcp_sessions {
         let started = Instant::now();
-        let mcp_needed = session.operations.iter().any(|op| op.channel == "mcp");
-        let (state, status, digest) = if mcp_needed {
+        let (state, status, digest) = {
             let (state, status, digest, _) =
                 initialize_mcp(args.mcp_port, deadline, args.response_cap)?;
             (state, Some(status), Some(digest))
-        } else {
-            (McpSession::default(), None, None)
         };
         emit(
             &mut output,
             &mut written,
             args.output_cap,
-            &json!({"event":"session_ready","session":session.id,"mcp_initialized":mcp_needed && status==Some(200),"initialize_status":status,"initialize_sha256":digest,"initialize_elapsed_ms":started.elapsed().as_secs_f64()*1000.0,"available":!mcp_needed || status==Some(200)}),
+            &json!({"event":"mcp_session_ready","slot":slot,"initialize_status":status,"initialize_sha256":digest,"initialize_elapsed_ms":started.elapsed().as_secs_f64()*1000.0,"available":status==Some(200)}),
         )?;
-        sessions.push(state);
+        mcp_sessions.push(Arc::new(Mutex::new(state)));
     }
+    let gates = WorkloadGates {
+        mcp_sessions: WaveGate::new(32),
+        owner_http: WaveGate::new(4),
+        source_reads: WaveGate::new(32),
+        sdk_source_commands: WaveGate::new(4),
+    };
     let start_metrics = Instant::now();
     let rounds = plan
         .sessions
@@ -1803,24 +2806,42 @@ fn main_result() -> Result<i32, String> {
             let secret = secret.clone();
             let pids = Arc::clone(&pids);
             let nonce_set = Arc::clone(&nonce_set);
-            let session_state = sessions[index].clone();
+            let session_state =
+                logical_mcp_slots[index].map(|slot| Arc::clone(&mcp_sessions[slot]));
+            let gates = gates.clone();
             let handle = thread::Builder::new()
                 .stack_size(256 * 1024)
                 .spawn(move || {
                     if start_rx.recv().is_err() {
                         return;
                     }
-                    let mut session = session_state;
-                    let result = run_operation(
-                        &op,
-                        &mut session,
-                        &args,
-                        &secret,
-                        &nonce_set,
-                        &pids,
-                        deadline,
-                    );
-                    let _ = tx.send((index, session_name, op, session, result));
+                    let result = if let Some(session_state) = session_state {
+                        match session_state.lock() {
+                            Ok(mut session) => run_operation(
+                                &op,
+                                &mut session,
+                                &args,
+                                &secret,
+                                &nonce_set,
+                                &pids,
+                                &gates,
+                                deadline,
+                            ),
+                            Err(_) => operation_error("MCP session pool poisoned"),
+                        }
+                    } else {
+                        run_operation(
+                            &op,
+                            &mut McpSession::default(),
+                            &args,
+                            &secret,
+                            &nonce_set,
+                            &pids,
+                            &gates,
+                            deadline,
+                        )
+                    };
+                    let _ = tx.send((index, session_name, op, result));
                 })
                 .map_err(|e| format!("bounded session worker start: {e}"))?;
             handles.push(handle);
@@ -1833,10 +2854,9 @@ fn main_result() -> Result<i32, String> {
         let mut received = 0usize;
         let mut wave_results = Vec::with_capacity(handles.len());
         while received < handles.len() {
-            let (index, session_name, op, session, result) = rx
+            let (index, session_name, op, result) = rx
                 .recv_timeout(remaining(deadline)?)
                 .map_err(|e| format!("session result deadline: {e}"))?;
-            sessions[index] = session;
             wave_results.push((index, session_name, op, result));
             received += 1;
         }
@@ -1919,8 +2939,10 @@ fn main_result() -> Result<i32, String> {
             emit(&mut output, &mut written, args.output_cap, &value)?;
         }
     }
-    for state in &sessions {
-        if let Some(id) = state.id.as_deref() {
+    for state in &mcp_sessions {
+        if let Ok(state) = state.lock()
+            && let Some(id) = state.id.as_deref()
+        {
             let _ = delete_mcp(args.mcp_port, id, deadline, args.response_cap);
         }
     }
@@ -1996,7 +3018,7 @@ fn main_result() -> Result<i32, String> {
         &mut output,
         &mut written,
         args.output_cap,
-        &json!({"event":"finish","passed":errors==0,"selected_file_metadata_unchanged":true,"schedule_unchanged":true,"scheduled":total_ops,"started":successes+errors,"failures":errors,"conflicts":conflicts,"conflict_groups":conflict_groups,"conflict_group_failures":conflict_group_failures,"retries":retries,"reconnects":reconnects,"all_operation_latency_ms":{"samples":all_latencies.len(),"p50":all_quantile(0.50),"p95":all_quantile(0.95),"p99":all_quantile(0.99),"max":all_latencies.last().copied()},"successful_latency_ms":{"samples":latencies.len(),"p50":quantile(0.50),"p95":quantile(0.95),"p99":quantile(0.99),"max":latencies.last().copied()},"elapsed_seconds":start_time.elapsed().as_secs_f64(),"operation_window_seconds":start_metrics.elapsed().as_secs_f64(),"resource_delta":resource_delta(&resources_before,&resources_after),"report_storage_bytes_before_finish":storage_bytes,"report_storage_allocated_bytes_before_finish":storage_allocated,"scope":"finite Rust protocol measurement; not capacity acceptance"}),
+        &json!({"event":"finish","passed":errors==0,"selected_file_metadata_unchanged":true,"schedule_unchanged":true,"scheduled":total_ops,"logical_sessions":args.sessions,"logical_mcp_sessions":logical_mcp_sessions,"physical_mcp_sessions":physical_mcp_session_limit,"channel_in_flight_limits":{"mcp":32,"source_reads":32,"owner_http":4,"sdk_source_commands":4},"scheduled_source_read_operations":source_read_operations,"scheduled_sdk_source_commands":sdk_source_command_operations,"started":successes+errors,"failures":errors,"conflicts":conflicts,"conflict_groups":conflict_groups,"conflict_group_failures":conflict_group_failures,"retries":retries,"reconnects":reconnects,"all_operation_latency_ms":{"samples":all_latencies.len(),"p50":all_quantile(0.50),"p95":all_quantile(0.95),"p99":all_quantile(0.99),"max":all_latencies.last().copied()},"successful_latency_ms":{"samples":latencies.len(),"p50":quantile(0.50),"p95":quantile(0.95),"p99":quantile(0.99),"max":latencies.last().copied()},"elapsed_seconds":start_time.elapsed().as_secs_f64(),"operation_window_seconds":start_metrics.elapsed().as_secs_f64(),"resource_delta":resource_delta(&resources_before,&resources_after),"report_storage_bytes_before_finish":storage_bytes,"report_storage_allocated_bytes_before_finish":storage_allocated,"scope":"finite Rust protocol measurement; not capacity acceptance"}),
     )?;
     output.sync_all().map_err(|e| format!("report sync: {e}"))?;
     Ok(if errors == 0 { 0 } else { 1 })

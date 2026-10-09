@@ -1043,7 +1043,6 @@ pub(super) const AGENT_RECORD_COMPONENTS: &[&str] = &[
     "scripts/native_text_binding.py",
     "scripts/source_owner_context.py",
     "scripts/source_witness_human_forms.py",
-    "scripts/source_metadata_snapshot.py",
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py",
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
 ];

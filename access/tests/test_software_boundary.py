@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import sys
 import signal
 import socket
@@ -25,24 +24,6 @@ sys.path.insert(0, str(ACCESS_ROOT / "src"))
 from tos_access.core import ToSAccessCore
 from tos_access.locations import data_root
 
-
-def standalone_validator():
-    spec = importlib.util.spec_from_file_location(
-        "software_boundary_validator", ACCESS_ROOT / "packaging/validate_standalone.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def copy_software_contracts(root: Path) -> None:
-    shutil.copytree(ACCESS_ROOT / "contracts", root / "access/contracts")
-    shutil.copytree(ACCESS_ROOT / "profiles", root / "access/profiles")
-    (root / "ToS/contracts").mkdir(parents=True)
-    shutil.copy2(
-        REPO_ROOT / "ToS/contracts/epistemic-evidence-projection.schema.json",
-        root / "ToS/contracts/epistemic-evidence-projection.schema.json",
-    )
 
 
 class SoftwareBoundaryTests(unittest.TestCase):
@@ -770,36 +751,6 @@ server.run(transport='streamable-http')
             NativeMCPServer('relative/software')
         with self.assertRaises(ValueError):
             NativeMCPServer('/selected/software', ['--root', 'bad\0path'])
-
-    def test_program_validation_needs_no_corpus_or_runtime(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            copy_software_contracts(root)
-            standalone_validator()._validate_contracts(root)
-            self.assertFalse((root / "ToS/derived-exports").exists())
-            self.assertFalse((root / "access/src").exists())
-
-    def test_program_validation_rejects_invalid_schema_without_a_corpus(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            copy_software_contracts(root)
-            path = root / "access/contracts/lens-spec.v1.schema.json"
-            schema = json.loads(path.read_text())
-            schema["type"] = "not-a-json-schema-type"
-            path.write_text(json.dumps(schema))
-            with self.assertRaisesRegex(RuntimeError, "invalid knowledge contract schema"):
-                standalone_validator()._validate_contracts(root)
-
-    def test_program_validation_rejects_authority_escalation(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            copy_software_contracts(root)
-            path = root / "access/contracts/epistemic-packet.v1.schema.json"
-            schema = json.loads(path.read_text())
-            schema["properties"]["authority_boundary"]["properties"]["is_canon"]["const"] = True
-            path.write_text(json.dumps(schema))
-            with self.assertRaisesRegex(RuntimeError, "authority boundary must fail closed"):
-                standalone_validator()._validate_contracts(root)
 
     def test_data_selection_does_not_discover_cwd_corpus(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ, {}, clear=True):

@@ -14,7 +14,7 @@ use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWork
 use tos_validation::operation::OperationLimits;
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
-fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) {
+pub(super) fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) {
     let repository = super::validation_cut_cases::repository();
     let packet = repository
         .join("rust/crates/tos-command/tests/fixtures/source_forms_shadow")

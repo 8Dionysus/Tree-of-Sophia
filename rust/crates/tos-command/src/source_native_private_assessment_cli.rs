@@ -17,6 +17,7 @@ use crate::source_private_assessment_sources::PrivateAssessmentSources;
 use crate::source_text_owner::OwnerTextContext;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
@@ -393,13 +394,14 @@ struct PublicV2FormSelection {
 /// This intentionally bypasses the v1-v6 command/fence route: it selects only
 /// public v2, owns a no-lock read batch, and returns nothing until both passes
 /// and all source, grammar, publication, configuration, and head guards hold.
-pub(super) fn run_public_v2_batch(
+pub(crate) fn run_public_v2_batch(
     invocation: &Value,
     request_raw: &[u8],
     _store: &CorpusReader,
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
+    expected_source_root: Option<&Path>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
@@ -433,6 +435,11 @@ pub(super) fn run_public_v2_batch(
     }
 
     let source_root = absolute(cmd::text(&hint, "source_root")?)?;
+    if expected_source_root.is_some_and(|expected| expected != source_root) {
+        return Err(SourceCommandError::Denied(
+            "assessed candidate owner source root differs from captured repository",
+        ));
+    }
     let owner =
         ProtectedAssessmentJournal::select(&configuration_path, &source_root, deadline, cancelled)?;
     budget.charge_bytes(owner.configuration_raw().len())?;

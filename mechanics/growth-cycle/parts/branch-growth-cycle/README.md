@@ -553,99 +553,54 @@ graph route below carries the result into the common reader; public snapshot
 publication and runtime connection remain separate integration work. Synthetic admitted cases test the contract’s behavior. Actual corpus admission
 depends on a real source-visible review and its competence evidence.
 
-### Local assessed graph builds
+### Local assessed graph candidates
 
-The existing bibliographic and corpus-index builders accept an explicit
-protected source-bound assessment configuration and a bounded selection of
-form IDs present on that builder's carriers. Without these flags they keep the ordinary metadata-only public
-build and its source-parity check. With them, a separate new local JSON target
-is mandatory; no standard export or other repository source can be overwritten.
+The native owner command composes the maintained corpus index, bibliographic
+claims graph, or both from one bounded repository capture. The explicit request
+pins the current native assessment-read invocation by absolute path and SHA-256,
+selects a bounded set of existing form IDs, and names a separate private JSON
+candidate target. It never writes a standard export or admits source.
 
 ```bash
-python scripts/build_source_witness_bibliographic_graph.py \
-  --assessment-owner-config /absolute/private/assessment-owner.json \
-  --native-invocation /absolute/private/assessment-native-invocation.json \
-  --assessed-form-id tos.form.example.research-hover-ru \
-  --output /absolute/private/claims-candidate.json
-python scripts/build_tos_corpus_index.py \
-  --assessment-owner-config /absolute/private/assessment-owner.json \
-  --native-invocation /absolute/private/assessment-native-invocation.json \
-  --assessed-form-id tos.form.example.research-hover-ru \
-  --output /absolute/private/corpus-candidate.json
+tos-native-owner-command corpus-assessed-candidate --request \
+  /absolute/private/assessed-candidate-request.json
 ```
 
-The paths and ID above are placeholders to replace with the actual
-owner-selected inputs. Reserve storage through the host owner before a large artifact write.
-Each output is atomically created with mode `0600` and no replacement; adding
-`--check` compares an existing candidate to current source/journal inputs and
-writes nothing. These local research candidates retain their selected owner context. Public
-export and publication require the corresponding review and owner decision. The ordinary
-source-parity query reader intentionally does not load them as standard exports.
+The request schema is `tos_native_assessed_candidate_request_v1`. Its
+`projection` field is the same exact
+`tos_native_corpus_projection_check_request_v1.projection` used by
+`corpus-projection-check`; `native_invocation` contains `{path, sha256}` for a
+protected `tos_local_native_assessment_read_invocation_v1` file;
+`assessed_form_ids` contains at most 256 distinct IDs; `output` is an absolute
+JSON path outside authored repository sources (or under `.git`). Choose
+`product` as `bibliographic`, `corpus`, or `paired`, and `operation` as
+`publish` or `check`.
 
-For overlapping metadata forms in coherent in-process assembly, create one
-`source_witness_human_forms.AssessedFormSnapshot(owner_config, form_ids,
-native_invocation=invocation_path)` and
-pass that same instance as `assessed_forms` to both existing `build_payload`
-functions (`source_witness_bibliographic_graph_common` and
-`tos_corpus_index_common`). Pass both resulting projections to the common
-`tos_access.knowledge.build_knowledge_graph`, then call `verify_current()`
-before returning or persisting the result. Separate CLI invocations are not a
-transaction across both files; common-reader carrier parity rejects a mixed
-pair. Double collection detects changes in source/configuration and committed
-per-form journals between observations; subjects retain their individual
-locks.
+`publish` stages a mode-0600 file and creates the target atomically without
+replacement. After syncing the staged bytes and immediately before linking,
+the command repeats the full native assessment batch and requires an identical
+owner snapshot and reply set, rechecks the pinned invocation and captured
+source, and then waits for the enclosing source-capture fence before committing
+the target. A refusal removes its own staging file and any just-linked target.
+`check` rebuilds the same candidate, compares the existing private file byte for
+byte, and repeats the same currentness checks without creating directories,
+temporary candidate files, or journal locks.
 
-Claim forms belong to the bibliographic projection's reified Claim nodes;
-the corpus’s source-navigation projection carries metadata forms. For a Claim-only selection, build the assessed bibliographic input
-and the ordinary corpus input, join them through the same common reader, and
-verify the assessment snapshot before returning the joint result. A selection
-not present on a builder's own carriers fails closed. This route distinction
-does not relax equality for an assessed form that actually occurs in both
-inputs, and does not authorize reading a local candidate as a public export.
+Use `paired` when one coherent candidate must carry overlapping metadata forms
+in both products. It performs one assessment batch against one source capture;
+forms present in both carriers must have identical form, subject, and source
+bindings. Claim-only forms may appear in the bibliographic graph while the
+paired corpus index remains ordinary for that selection. A form absent from the
+selected product's own source carriers fails closed. Separate single-product
+invocations remain separate transactions and can observe different snapshots.
 
-For public owner v2, production snapshots require a protected
-`--native-invocation` and use the installed native assessment reader. Its exact
-`materialize_assessed_forms` request binds at most 256 selected forms, with a
-1 MiB request bound, to their current subject and source/form paths. The owner
-returns the whole bounded reply batch only after replaying every result and
-rechecking the selected source, configuration, grammar, publication and
-journal heads. Owner configuration remains bounded to 8 MiB on this route and
-the complete reply to 16 MiB; larger selections must be narrowed, never
-silently truncated. It has no streaming callback, caller-supplied prepared
-state or cached admission.
-
-`assessment_journal.PublicSourceReadSession` remains the retained Python
-reference reader for fixtures. It is available through the explicitly named
-`AssessedFormSnapshot.for_retained_reference_fixture(owner_config, form_ids)`
-factory in source tests; production callers cannot construct a snapshot
-without the selected native invocation.
-
-Engine, journal, form and field-language validators are freshly built from a
-separately pinned bounded grammar (8 MiB total, 1 MiB per file), including an
-explicit `contract_root` when supplied. These internal grammar byte guards do
-not change the public owner snapshot hash or turn process-wide validator LRU
-entries into currentness evidence. A source, configuration, grammar, epoch or
-observed history change fails the whole read; a failed or closed session never
-refreshes itself into another snapshot. Public v1/v3 keep their existing
-single-command route, and confidential v4-v6 gain no public reader. Append
-continues through the unchanged journal lock/replay/commit-edge checks.
-
-Both existing Python builders reuse this same instance when the caller passes
-it explicitly; separate CLI processes do not share a cache. Candidate writing
-rechecks the assembly after staging-file fsync immediately before the atomic
-no-replace link, as well as before staging. These checks establish observed currentness at the read and publication edges.
-Journals, sources and output files retain their separate transactions.
-Focused synthetic regression belongs to
-`mechanics/growth-cycle/tests/test_assessment_read_batch.py`; preparation-count
-bounds protect the reuse mechanism without treating timing as authority.
-
-Selected forms must resolve exactly once on each projection's existing source
-carrier, with matching source/form refs and owner-selected paths. Current
-policy admission governs wording; pending, withdrawn or restricted forms stay
-nonready without blocking unrelated source copies. The full source context and
-assessment observation travel together under the existing output limits. See
-the [source contract](../../../../ToS/doctrine/HUMAN_FORMS.md#local-assessed-research-snapshots)
-for budgets and consumer compatibility.
+These local research candidates retain their selected owner context. Public
+export and publication require the corresponding review and owner decision. The
+ordinary source-parity query reader intentionally does not load candidates as
+standard exports. The route preserves the existing 64 KiB per-form materialized
+packet ceiling, 256 KiB complete form-set limit, 1 MiB request limit, and 16 MiB
+native assessment reply limit; narrow larger selections rather than truncating
+them. `check` does not turn a local candidate into an authority source.
 
 ### Source-bound configuration v2
 

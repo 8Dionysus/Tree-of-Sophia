@@ -24,6 +24,7 @@ unicode-normalization = "=0.1.24"
 unicode-general-category = "=1.1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
 
 [lib]

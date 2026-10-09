@@ -71,6 +71,10 @@ pub(crate) mod source_item_inventory;
 pub mod source_operation;
 mod source_private_assessment_layers;
 mod source_private_assessment_sources;
+#[cfg(feature = "conformance-owner-local-source-resolver")]
+pub use source_private_assessment_sources::{
+    NativeTextUnitResolutionForConformance, resolve_native_text_units_for_conformance,
+};
 pub mod source_revisions;
 mod source_serialization;
 mod source_sign;

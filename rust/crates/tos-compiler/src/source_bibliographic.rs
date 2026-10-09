@@ -980,6 +980,48 @@ pub fn validate_supplied_catalogue_attribution(claim: &Value) -> Result<()> {
     Ok(())
 }
 
+fn retained_object_link_context(
+    claim: &Value,
+    source_ref: &str,
+    predicate: &str,
+    subject: &Value,
+    object: &Value,
+    source_line: &Value,
+    source_sha256: &Value,
+) -> Result<Value> {
+    if source_ref != "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl"
+        || claim["schema_version"] != "tos_object_link_claim_v1"
+        || !matches!(
+            predicate,
+            "described_by" | "metadata_at" | "downloadable_at" | "rights_statement_at"
+        )
+        || !source_line.as_u64().is_some_and(|line| line > 0)
+        || source_sha256.as_str().is_none()
+        || !matches!(
+            subject
+                .pointer("/properties/identity_kind")
+                .and_then(Value::as_str),
+            Some("work" | "expression" | "edition" | "collection" | "item")
+        )
+        || object
+            .pointer("/properties/identity_kind")
+            .and_then(Value::as_str)
+            != Some("link")
+    {
+        return Err(Error::Invalid(
+            "bibliographic retained object-Link exact domains",
+        ));
+    }
+    Ok(json!({
+        "source_claim": claim,
+        "source_claim_file_ref": source_ref,
+        "source_claim_line": source_line,
+        "source_sha256": source_sha256,
+        "source_schema_ref": "ToS/contracts/object-link-claim.schema.json",
+        "source_adapter": "retained-object-link-v1",
+    }))
+}
+
 fn claim_cohort<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     id: &str,
@@ -1114,29 +1156,15 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
         )?;
     }
     let legacy_context = if legacy_link {
-        if claim["schema_version"] != "tos_object_link_claim_v1"
-            || !matches!(
-                predicate,
-                "described_by" | "metadata_at" | "downloadable_at" | "rights_statement_at"
-            )
-            || !matches!(
-                subject
-                    .pointer("/properties/identity_kind")
-                    .and_then(Value::as_str),
-                Some("work" | "expression" | "edition" | "collection" | "item")
-            )
-            || object
-                .pointer("/properties/identity_kind")
-                .and_then(Value::as_str)
-                != Some("link")
-        {
-            return Err(Error::Invalid(
-                "bibliographic retained object-Link exact domains",
-            ));
-        }
-        Some(
-            json!({"source_claim":claim,"source_claim_file_ref":source_ref,"source_claim_line":entry["source_claim_line"],"source_sha256":entry["claim_sha256"],"source_schema_ref":"ToS/contracts/object-link-claim.schema.json","source_adapter":"retained-object-link-v1"}),
-        )
+        Some(retained_object_link_context(
+            &claim,
+            source_ref,
+            predicate,
+            &subject,
+            &object,
+            &entry["source_claim_line"],
+            &entry["claim_sha256"],
+        )?)
     } else {
         None
     };
@@ -1750,6 +1778,136 @@ pub fn clear_bibliographic_graph(
 #[cfg(test)]
 mod descriptor_limit_tests {
     use super::*;
+
+    #[test]
+    fn retained_object_link_returns_all_five_source_rows_without_invented_fields() {
+        const SOURCE_REF: &str =
+            "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl";
+        let raw = include_str!(
+            "../../../../ToS/source-witnesses/relations/object-link/object-link-claims.jsonl"
+        );
+        let mut seen = std::collections::BTreeSet::new();
+        let mut count = 0;
+        for (index, line) in raw.lines().enumerate() {
+            let claim: Value = serde_json::from_str(line).unwrap();
+            let id = claim["claim_id"].as_str().unwrap();
+            assert!(seen.insert(id.to_owned()), "duplicate source row {id}");
+            let subject_kind = claim["subject_ref"]
+                .as_str()
+                .unwrap()
+                .split('.')
+                .nth(1)
+                .unwrap();
+            let subject = json!({"properties":{"identity_kind":subject_kind}});
+            let object = json!({"properties":{"identity_kind":"link"}});
+            let source_line = json!(index + 1);
+            let source_sha256 = json!(digest(&claim, 1024 * 1024).unwrap());
+            let context = retained_object_link_context(
+                &claim,
+                SOURCE_REF,
+                claim["predicate"].as_str().unwrap(),
+                &subject,
+                &object,
+                &source_line,
+                &source_sha256,
+            )
+            .unwrap();
+
+            assert_eq!(context["source_claim"], claim);
+            assert_eq!(context["source_claim_file_ref"], SOURCE_REF);
+            assert_eq!(context["source_claim_line"], source_line);
+            assert_eq!(context["source_sha256"], source_sha256);
+            assert_eq!(
+                context["source_schema_ref"],
+                "ToS/contracts/object-link-claim.schema.json"
+            );
+            assert_eq!(context["source_adapter"], "retained-object-link-v1");
+            assert_eq!(claim["reviews"], json!([]));
+            for field in [
+                "statement",
+                "statement_language",
+                "assessment_refs",
+                "human_forms",
+            ] {
+                assert!(claim.get(field).is_none(), "unexpected field {field}");
+            }
+            count += 1;
+        }
+        assert_eq!(count, 5);
+    }
+
+    #[test]
+    fn retained_object_link_preserves_unknown_qualifiers_and_rejects_domain_drift() {
+        let raw = include_str!(
+            "../../../../ToS/source-witnesses/relations/object-link/object-link-claims.jsonl"
+        );
+        let mut claim: Value = serde_json::from_str(raw.lines().next().unwrap()).unwrap();
+        claim["qualifiers"]["uninterpreted_source_limit"] =
+            json!({"scope":null,"explicit":false,"gaps":[]});
+        let source_ref = "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl";
+        let subject = json!({"properties":{"identity_kind":"work"}});
+        let object = json!({"properties":{"identity_kind":"link"}});
+        let source_line = json!(1);
+        let source_sha256 = json!(digest(&claim, 1024 * 1024).unwrap());
+        for kind in ["work", "expression", "edition", "collection", "item"] {
+            let endpoint = json!({"properties":{"identity_kind":kind}});
+            let context = retained_object_link_context(
+                &claim,
+                source_ref,
+                claim["predicate"].as_str().unwrap(),
+                &endpoint,
+                &object,
+                &source_line,
+                &source_sha256,
+            )
+            .unwrap();
+            assert_eq!(context["source_claim"], claim);
+            assert_eq!(
+                context["source_claim"]["qualifiers"]["uninterpreted_source_limit"],
+                json!({"scope":null,"explicit":false,"gaps":[]})
+            );
+        }
+
+        for (bad_ref, bad_predicate, bad_subject, bad_object) in [
+            (
+                "ToS/other/object-link-claims.jsonl",
+                claim["predicate"].as_str().unwrap(),
+                subject.clone(),
+                object.clone(),
+            ),
+            (
+                source_ref,
+                "unknown_predicate",
+                subject.clone(),
+                object.clone(),
+            ),
+            (
+                source_ref,
+                claim["predicate"].as_str().unwrap(),
+                json!({"properties":{"identity_kind":"agent"}}),
+                object.clone(),
+            ),
+            (
+                source_ref,
+                claim["predicate"].as_str().unwrap(),
+                subject.clone(),
+                json!({"properties":{"identity_kind":"work"}}),
+            ),
+        ] {
+            assert!(
+                retained_object_link_context(
+                    &claim,
+                    bad_ref,
+                    bad_predicate,
+                    &bad_subject,
+                    &bad_object,
+                    &source_line,
+                    &source_sha256,
+                )
+                .is_err()
+            );
+        }
+    }
 
     #[test]
     fn retained_object_link_refuses_cross_carrier_slot_rebinding() {

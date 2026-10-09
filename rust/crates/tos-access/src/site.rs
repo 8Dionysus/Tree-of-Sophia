@@ -1034,4 +1034,145 @@ mod mcp_maintained_tests {
             "same absent name under a substituted directory must refuse"
         );
     }
+
+    #[test]
+    fn cloudflare_tunnel_assets_keep_native_origin_and_external_credentials() {
+        use std::process::Command;
+
+        let deploy = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../access/deploy/cloudflare-tunnel");
+        let launcher = deploy.join("run-origin.sh");
+        let syntax = Command::new("sh")
+            .arg("-n")
+            .arg(&launcher)
+            .status()
+            .expect("POSIX shell is required to validate the maintained launcher");
+        assert!(
+            syntax.success(),
+            "origin launcher must remain valid POSIX shell"
+        );
+        let source = std::fs::read_to_string(&launcher).unwrap();
+        assert!(source.contains("TOS_ACCESS_BIN"));
+        assert!(source.contains("exec \"${TOS_ACCESS_BIN}\""));
+        assert!(source.contains("--root \"${TOS_SITE_ROOT}\" serve"));
+        assert!(source.contains("127.0.0.1:${tos_port}"));
+        assert!(!source.contains("python3"));
+        assert!(!source.contains("-m tos_access"));
+        assert!(!source.contains("abyss-stack"));
+
+        let example = std::fs::read_to_string(deploy.join("site.env.example")).unwrap();
+        assert!(example.contains("TOS_ACCESS_BIN=/absolute/fresh-prefix/bin/tos"));
+        assert!(!example.contains("TOS_PYTHON"));
+
+        let origin =
+            std::fs::read_to_string(deploy.join("systemd/tos-access-origin.service")).unwrap();
+        assert!(origin.contains("EnvironmentFile=%h/.config/tree-of-sophia/site.env"));
+        assert!(origin.contains("installed native access origin"));
+
+        let unit =
+            std::fs::read_to_string(deploy.join("systemd/tos-cloudflare-tunnel.service")).unwrap();
+        assert!(unit.contains("LoadCredential=cloudflare-tunnel-token:"));
+        assert!(unit.contains("--token-file %d/cloudflare-tunnel-token"));
+        assert!(!unit.contains("--token "));
+        assert!(!unit.contains("TUNNEL_TOKEN="));
+        assert!(unit.contains("Requires=tos-access-origin.service"));
+        assert!(unit.contains("After=network-online.target tos-access-origin.service"));
+    }
+
+    #[test]
+    fn cloudflare_origin_launcher_forwards_to_installed_native_tos_on_loopback() {
+        use std::{os::unix::fs::PermissionsExt, process::Command};
+
+        let deploy = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../access/deploy/cloudflare-tunnel");
+        let root = std::env::temp_dir().join(format!(
+            "tos-origin-native-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(root.join("ToS/derived-exports")).unwrap();
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(root.clone());
+        for path in [
+            "AGENTS.md",
+            "ToS/source_home.manifest.json",
+            "ToS/derived-exports/tos_corpus_index.min.json",
+            "ToS/derived-exports/philosophy_graph_projection.min.json",
+        ] {
+            std::fs::write(root.join(path), b"fixture").unwrap();
+        }
+        let binary = root.join("native-tos-stub");
+        std::fs::write(
+            &binary,
+            br#"#!/bin/sh
+printf '%s\n' "$@" > "$TOS_ORIGIN_CAPTURE_ARGS"
+"#,
+        )
+        .unwrap();
+        let mut permissions = std::fs::metadata(&binary).unwrap().permissions();
+        permissions.set_mode(0o700);
+        std::fs::set_permissions(&binary, permissions).unwrap();
+        let args_path = root.join("native-tos-args.txt");
+        let output = Command::new("sh")
+            .arg(deploy.join("run-origin.sh"))
+            .env("TOS_SITE_ROOT", &root)
+            .env("TOS_ACCESS_BIN", &binary)
+            .env("TOS_SITE_PORT", "5439")
+            .env("TOS_ORIGIN_CAPTURE_ARGS", &args_path)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "native origin launcher failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let args = std::fs::read_to_string(args_path).unwrap();
+        let mut expected = vec![
+            "--root".to_owned(),
+            root.to_string_lossy().into_owned(),
+            "serve".to_owned(),
+            "127.0.0.1:5439".to_owned(),
+        ];
+        expected.push(String::new());
+        assert_eq!(args, expected.join("\n"));
+    }
+
+    #[test]
+    fn cloudflare_origin_launcher_refuses_a_non_tos_root() {
+        use std::process::Command;
+
+        let deploy = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../access/deploy/cloudflare-tunnel");
+        let root = std::env::temp_dir().join(format!(
+            "tos-origin-root-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(root.clone());
+        let output = Command::new("sh")
+            .arg(deploy.join("run-origin.sh"))
+            .env("TOS_SITE_ROOT", &root)
+            .env("TOS_ACCESS_BIN", "/bin/true")
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+    }
 }

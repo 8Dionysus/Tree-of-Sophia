@@ -914,24 +914,41 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
     );
 }
 
-#[test]
-fn native_text_layer_extracts_private_epub_and_cold_replays() {
-    let repository = super::validation_cut_cases::repository()
-        .canonicalize()
-        .unwrap();
-    let deadline = Instant::now() + Duration::from_secs(240);
-    let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::Builder::new()
-        .permissions(fs::Permissions::from_mode(0o700))
-        .tempdir()
-        .unwrap();
-    let fixture_capture = text_fixture(temporary.path());
+pub(super) struct NativeTextUnitSeed {
+    pub(super) fixture_capture: NativePythonFixture,
+    pub(super) public_root: PathBuf,
+    pub(super) private_root: PathBuf,
+    pub(super) owner_context: PathBuf,
+    pub(super) initial_layer_owner: PathBuf,
+    pub(super) unit_owner: PathBuf,
+    pub(super) source_ref: String,
+    pub(super) unit_source_ref: String,
+    pub(super) source_binding: Value,
+    pub(super) unit_owner_config: Value,
+    pub(super) layer_record: Value,
+    pub(super) unit_record: Value,
+    pub(super) initial_layer_package: PathBuf,
+    pub(super) initial_layer_content: Vec<u8>,
+    pub(super) cut: tos_source_store::CorpusCutReader,
+    pub(super) software: tos_source_store::SoftwareCaptureReader,
+    pub(super) components: tos_source_store::SoftwareComponentSelectionV1,
+    pub(super) worker_image: tos_validation::executor::VerifiedWorkerImageHandle,
+    _software_capture: super::source_cut_cases::SoftwareCaptureFixture,
+}
+
+pub(super) fn native_text_unit_seed(
+    repository: &Path,
+    root: &Path,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> NativeTextUnitSeed {
+    let fixture_capture = text_fixture(root);
     let fixture = fixture_capture.packets.get("factory").unwrap();
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let private = PathBuf::from(fixture["private"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
-    let source_ref = fixture["source_ref"].as_str().unwrap();
+    let source_ref = fixture["source_ref"].as_str().unwrap().to_owned();
     let authored = authored_text_files(&public);
     let mut captured = authored.clone();
     for reference in &fixture_capture
@@ -943,7 +960,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     }
     let (_capture, software, components) =
         super::command_record_cases::captured_components(&captured, deadline, &cancelled);
-    let store = temporary.path().join("source-cut");
+    let store = root.join("source-cut");
     let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
     let cut = super::command_form_cases::open_cut(&store, selected, deadline, &cancelled);
     let mut worker_image_budget = ExecutorBudget::laboratory();
@@ -990,7 +1007,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     drop(create_worker);
     assert!(!created.replayed);
     assert!(!created.grants_admission);
-    let package = private.join(source_ref).parent().unwrap().to_path_buf();
+    let package = private.join(&source_ref).parent().unwrap().to_path_buf();
     let retained = fs::read(package.join("content.txt")).unwrap();
     assert_eq!(
         retained.len(),
@@ -1004,7 +1021,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         fs::metadata(&package).unwrap().uid(),
         fs::metadata(&private).unwrap().uid()
     );
-    assert!(!public.join(source_ref).exists());
+    assert!(!public.join(&source_ref).exists());
     let saved: BTreeMap<_, _> = fs::read_dir(&package)
         .unwrap()
         .map(|entry| {
@@ -1043,14 +1060,14 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     unit_config["source_binding"] = serde_json::json!({
         "schema_version":"tos_native_text_layer_binding_v1",
         "text_layer":{
-            "record_ref":source_ref,
+            "record_ref":source_ref.as_str(),
             "record_sha256":Digest256::of_bytes(&layer_raw).to_hex(),
             "layer_id":layer["layer_id"],
             "layer_version":layer["layer_version"]
         },
         "source_record_refs":fixture["config"]["source_record_refs"]
     });
-    let unit_owner = temporary.path().join("unit-layer-owner.json");
+    let unit_owner = root.join("unit-layer-owner.json");
     fs::write(&unit_owner, serde_json::to_vec(&unit_config).unwrap()).unwrap();
     fs::set_permissions(&unit_owner, fs::Permissions::from_mode(0o600)).unwrap();
     let unit_proposal = fixture["unit_proposal"].clone();
@@ -1114,6 +1131,71 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     drop(unit_replay_worker);
     assert!(unit_replay.replayed);
     assert_eq!(unit_created.receipt, unit_replay.receipt);
+
+    let unit_record: Value =
+        serde_json::from_slice(&fs::read(private.join(&unit_preview.source_path)).unwrap())
+            .unwrap();
+    NativeTextUnitSeed {
+        fixture_capture,
+        public_root: public,
+        private_root: private,
+        owner_context: context,
+        initial_layer_owner: owner,
+        unit_owner,
+        source_ref,
+        unit_source_ref: unit_preview.source_path,
+        source_binding: unit_config["source_binding"].clone(),
+        unit_owner_config: unit_config,
+        layer_record: layer,
+        unit_record,
+        initial_layer_package: package,
+        initial_layer_content: retained,
+        cut,
+        software,
+        components,
+        worker_image,
+        _software_capture: _capture,
+    }
+}
+
+#[test]
+fn native_text_layer_extracts_private_epub_and_cold_replays() {
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = AtomicBool::new(false);
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
+    let seed = native_text_unit_seed(&repository, temporary.path(), deadline, &cancelled);
+    assert!(seed.fixture_capture.packets.contains_key("factory"));
+    assert!(seed.initial_layer_owner.is_file());
+    assert!(seed.unit_owner.is_file());
+    assert_eq!(
+        seed.unit_owner_config["source_binding"],
+        seed.source_binding
+    );
+    assert_eq!(
+        seed.source_binding["text_layer"]["record_ref"].as_str(),
+        Some(seed.source_ref.as_str())
+    );
+    assert_eq!(
+        seed.layer_record["layer_id"].as_str(),
+        seed.source_binding["text_layer"]["layer_id"].as_str()
+    );
+    assert!(seed.unit_record.is_object());
+    assert!(seed.private_root.join(&seed.unit_source_ref).is_file());
+    let public = &seed.public_root;
+    let private = &seed.private_root;
+    let context = &seed.owner_context;
+    let cut = &seed.cut;
+    let software = &seed.software;
+    let components = &seed.components;
+    let worker_image = &seed.worker_image;
+    let package = &seed.initial_layer_package;
+    let retained = seed.initial_layer_content.as_slice();
     let derived_capture = derived_fixture(temporary.path(), "normalize");
     let derived = derived_capture.packets.get("factory").unwrap();
     let derived_owner = PathBuf::from(derived["owner"].as_str().unwrap());
@@ -1168,7 +1250,10 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         Digest256::of_bytes(&normalized).to_hex(),
         derived["expected_sha256"].as_str().unwrap()
     );
-    assert_eq!(fs::read(package.join("content.txt")).unwrap(), retained);
+    assert_eq!(
+        fs::read(package.join("content.txt")).unwrap().as_slice(),
+        retained
+    );
     let mut derived_replay_worker =
         text_worker_with_image(&cut, &worker_image, deadline, &cancelled);
     let derived_replay = execute_derived_text_layer_from_captures(
@@ -1273,7 +1358,10 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         drop(retry_worker);
         assert!(retry.replayed);
         assert_eq!(retry.receipt, created.receipt);
-        assert_eq!(fs::read(package.join("content.txt")).unwrap(), retained);
+        assert_eq!(
+            fs::read(package.join("content.txt")).unwrap().as_slice(),
+            retained
+        );
         assert!(!public.join(source_ref).exists());
     }
 }

@@ -3794,11 +3794,10 @@ fn implementation_digests(
         "rust/crates/tos-command/src/source_text_owner.rs",
         "rust/crates/tos-command/src/source_forms.rs",
         "rust/crates/tos-command/src/source_private_assessment_sources.rs",
-        "scripts/source_owner_record_profiles.py",
-        "scripts/source_record_profiles.py",
-        "scripts/source_owner_context.py",
-        "scripts/native_text_binding.py",
-        "scripts/source_witness_human_forms.py",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
+        "rust/crates/tos-command/src/source_creation_store.rs",
+        "rust/crates/tos-command/src/source_work_transaction.rs",
+        "rust/crates/tos-command/src/source_native_private_cli.rs",
         "ToS/contracts/human-form.schema.json",
         "ToS/contracts/human-form-set.schema.json",
         "ToS/contracts/human-form-template.schema.json",
@@ -3806,7 +3805,6 @@ fn implementation_digests(
         "rust/crates/tos-command/src/source_private_claim.rs",
         "rust/crates/tos-command/src/source_claims.rs",
         "rust/crates/tos-command/src/source_claim_publication.rs",
-        "scripts/source_owner_claim_profiles.py",
     ];
     if components.capture() != software.selection() {
         return Err(SourceCommandError::Conflict(

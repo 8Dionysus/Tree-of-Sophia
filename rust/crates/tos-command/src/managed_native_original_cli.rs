@@ -162,11 +162,63 @@ pub(crate) struct DirectRepositoryProjectionRequest {
     pub limits: DirectRepositoryProjectionLimits,
 }
 
+pub(crate) struct DirectRepositoryProjectionContext<'a> {
+    pub cut: &'a CorpusCutReader,
+    pub software: &'a SoftwareCaptureReader,
+    pub components: &'a SoftwareComponentSelectionV1,
+    pub recheck: &'a dyn Fn() -> tos_compiler::Result<()>,
+    pub deadline: Instant,
+    pub cancelled: &'a AtomicBool,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DirectRepositoryProjectionCheckInput {
     schema_version: String,
     projection: DirectRepositoryProjectionRequest,
+}
+
+const ASSESSED_CANDIDATE_REQUEST_SCHEMA: &str = "tos_native_assessed_candidate_request_v1";
+const ASSESSED_CANDIDATE_RESULT_SCHEMA: &str = "tos_native_assessed_candidate_result_v1";
+const MAX_ASSESSED_CANDIDATE_REQUEST_BYTES: usize = 1024 * 1024;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AssessedCandidateRequest {
+    schema_version: String,
+    operation: String,
+    product: String,
+    projection: DirectRepositoryProjectionRequest,
+    native_invocation: PinnedAssessmentInvocation,
+    assessed_form_ids: Vec<String>,
+    output: PathBuf,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PinnedAssessmentInvocation {
+    path: PathBuf,
+    sha256: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct AssessedCarrierSelection {
+    form_ref: Value,
+    subject_ref: Value,
+    source_path: String,
+    form_path: String,
+}
+
+struct SelectedAssessmentInvocation {
+    path: PathBuf,
+    raw: Vec<u8>,
+    sha256: Digest256,
+    stamp: Stamp,
+    value: Value,
+    store: CorpusReader,
+    software: SoftwareCaptureReader,
+    components: SoftwareComponentSelectionV1,
+    source_revision: String,
 }
 
 #[derive(Debug)]
@@ -708,6 +760,831 @@ fn no_symlink_path(path: &Path) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn json_exact(value: &Value, keys: &[&str]) -> Result<()> {
+    let object = value
+        .as_object()
+        .ok_or(Refusal("assessed candidate selected JSON object"))?;
+    if object.len() != keys.len() || object.keys().any(|key| !keys.contains(&key.as_str())) {
+        return Err(Refusal("assessed candidate selected JSON fields differ").into());
+    }
+    Ok(())
+}
+
+fn json_text<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| Refusal("assessed candidate selected text field").into())
+}
+
+fn json_positive(value: &Value, key: &str, max: u64) -> Result<u64> {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .filter(|value| *value > 0 && *value <= max)
+        .ok_or_else(|| Refusal("assessed candidate selected budget").into())
+}
+
+fn selected_assessment_invocation(
+    pinned: &PinnedAssessmentInvocation,
+    projection: &DirectRepositoryProjectionRequest,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<SelectedAssessmentInvocation> {
+    let uid = rustix::process::getuid().as_raw();
+    let path_text = pinned
+        .path
+        .to_str()
+        .ok_or(Refusal("assessed candidate invocation path UTF-8"))?;
+    if !absolute_bounded(path_text) {
+        return Err(Refusal("assessed candidate invocation path invalid").into());
+    }
+    let raw = crate::source_text_owner::read_absolute(
+        &pinned.path,
+        uid,
+        true,
+        1_048_576,
+        deadline,
+        cancelled,
+    )?;
+    let (mut file, stamp) = open_regular(&pinned.path, 1_048_576, uid)?;
+    let mut held_raw = Vec::with_capacity(raw.len());
+    (&mut file).take(1_048_577).read_to_end(&mut held_raw)?;
+    if held_raw != raw
+        || Stamp::from(&file.metadata()?) != stamp
+        || Stamp::from(&fs::symlink_metadata(&pinned.path)?) != stamp
+    {
+        return Err(Refusal("assessed candidate invocation custody differs").into());
+    }
+    let sha256 = Digest256::from_prefixed(&pinned.sha256)
+        .map_err(|_| Refusal("assessed candidate invocation SHA-256 invalid"))?;
+    if Digest256::of_bytes(&raw) != sha256 {
+        return Err(Refusal("assessed candidate invocation pin differs").into());
+    }
+    let parsed = parse_json(
+        &raw,
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: 1_048_576,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| Refusal("assessed candidate invocation JSON"))?;
+    let value: Value = serde_json::from_slice(&raw)
+        .map_err(|_| Refusal("assessed candidate invocation transport JSON"))?;
+    let _ = parsed;
+    json_exact(
+        &value,
+        &[
+            "schema_version",
+            "owner_config",
+            "native_executable",
+            "native_executable_sha256",
+            "corpus_store",
+            "source_revision",
+            "original_source_revision",
+            "software_capture",
+            "software_restored_root",
+            "software_selection",
+            "software_components",
+            "schema_worker",
+            "assessment_schema_worker",
+            "budgets",
+        ],
+    )?;
+    if json_text(&value, "schema_version")? != "tos_local_native_assessment_read_invocation_v1" {
+        return Err(
+            Refusal("assessed candidate requires the native assessment read invocation").into(),
+        );
+    }
+    for field in [
+        "owner_config",
+        "native_executable",
+        "corpus_store",
+        "software_capture",
+        "software_restored_root",
+    ] {
+        let path = Path::new(json_text(&value, field)?);
+        if !path.is_absolute() || path.as_os_str().len() > 4096 {
+            return Err(Refusal("assessed candidate invocation path field").into());
+        }
+    }
+    let source_revision = json_text(&value, "source_revision")?.to_owned();
+    let revision = Digest256::from_prefixed(&source_revision)
+        .map_err(|_| Refusal("assessed candidate invocation source revision"))?;
+    if json_text(&value, "original_source_revision")? != source_revision {
+        return Err(Refusal("assessed candidate original source selection differs").into());
+    }
+    let selection = value
+        .get("software_selection")
+        .ok_or(Refusal("assessed candidate invocation software selection"))?;
+    json_exact(
+        selection,
+        &[
+            "source_git_commit",
+            "source_git_tree",
+            "capture_manifest_sha256",
+        ],
+    )?;
+    if json_text(selection, "source_git_commit")? != projection.software_git_commit
+        || json_text(selection, "source_git_tree")? != projection.software_git_tree
+    {
+        return Err(Refusal("assessed candidate native software selection differs").into());
+    }
+    Digest256::from_prefixed(json_text(selection, "capture_manifest_sha256")?)
+        .map_err(|_| Refusal("assessed candidate software manifest digest"))?;
+    for field in ["schema_worker", "assessment_schema_worker"] {
+        let worker = value
+            .get(field)
+            .ok_or(Refusal("assessed candidate selected schema worker"))?;
+        json_exact(worker, &["absolute_path", "sha256"])?;
+        let worker_path = Path::new(json_text(worker, "absolute_path")?);
+        if !worker_path.is_absolute() || worker_path.as_os_str().len() > 4096 {
+            return Err(Refusal("assessed candidate schema worker path").into());
+        }
+        Digest256::from_prefixed(json_text(worker, "sha256")?)
+            .map_err(|_| Refusal("assessed candidate schema worker digest"))?;
+    }
+    let budgets = value
+        .get("budgets")
+        .ok_or(Refusal("assessed candidate invocation budgets"))?;
+    json_exact(
+        budgets,
+        &[
+            "max_revisions",
+            "max_members",
+            "max_total_bytes",
+            "max_member_bytes",
+            "max_schema_receipts",
+            "max_schema_receipt_bytes",
+            "worker_cpu_seconds",
+            "worker_address_space_bytes",
+        ],
+    )?;
+    for (field, max) in [
+        ("max_revisions", 4),
+        ("max_members", 2048),
+        ("max_total_bytes", 33_554_432),
+        ("max_member_bytes", 8_388_608),
+        ("max_schema_receipts", 128),
+        ("max_schema_receipt_bytes", 262_144),
+        ("worker_cpu_seconds", 3),
+        ("worker_address_space_bytes", 1_073_741_824),
+    ] {
+        json_positive(budgets, field, max)?;
+    }
+    if crate::source_serialization::executable(deadline, cancelled)?
+        != Digest256::from_prefixed(json_text(&value, "native_executable_sha256")?)
+            .map_err(|_| Refusal("assessed candidate native executable digest"))?
+    {
+        return Err(Refusal(
+            "assessed candidate invocation does not pin the running native command",
+        )
+        .into());
+    }
+    let components_raw = value
+        .get("software_components")
+        .and_then(Value::as_array)
+        .filter(|items| !items.is_empty() && items.len() <= 128)
+        .ok_or(Refusal("assessed candidate invocation software components"))?;
+    let mut component_paths = Vec::with_capacity(components_raw.len());
+    let mut seen_components = BTreeSet::new();
+    for item in components_raw {
+        let path = item
+            .as_str()
+            .ok_or(Refusal("assessed candidate software component path"))?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| Refusal("assessed candidate software component path"))?;
+        if !seen_components.insert(path.to_owned()) {
+            return Err(Refusal("assessed candidate duplicate software component").into());
+        }
+        component_paths.push(relative);
+    }
+    let read_limits = ReadLimits {
+        max_manifest_bytes: 4_194_304,
+        max_manifest_entries: 2048,
+        max_selected_object_bytes: 8_388_608,
+        json: JsonLimits::default(),
+    };
+    let store =
+        CorpusReader::open_existing(Path::new(json_text(&value, "corpus_store")?), read_limits)
+            .map_err(|_| Refusal("assessed candidate native corpus store"))?;
+    let current = store
+        .select_current()
+        .map_err(|_| Refusal("assessed candidate native corpus current pointer"))?
+        .ok_or(Refusal(
+            "assessed candidate native corpus current revision absent",
+        ))?;
+    if current.0 != revision {
+        return Err(Refusal("assessed candidate native corpus revision changed").into());
+    }
+    let selection = SoftwareCaptureSelectionV1 {
+        source_git_commit: json_text(selection, "source_git_commit")?.to_owned(),
+        source_git_tree: json_text(selection, "source_git_tree")?.to_owned(),
+        capture_manifest_sha256: Digest256::from_prefixed(json_text(
+            selection,
+            "capture_manifest_sha256",
+        )?)
+        .map_err(|_| Refusal("assessed candidate software manifest digest"))?,
+    };
+    let software = SoftwareCaptureReader::open(
+        Path::new(json_text(&value, "software_capture")?),
+        Path::new(json_text(&value, "software_restored_root")?),
+        selection,
+        read_limits,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| Refusal("assessed candidate selected software capture"))?;
+    let components = software
+        .select_components(&component_paths)
+        .map_err(|_| Refusal("assessed candidate selected software components"))?;
+    Ok(SelectedAssessmentInvocation {
+        path: pinned.path.clone(),
+        raw,
+        sha256,
+        stamp,
+        value,
+        store,
+        software,
+        components,
+        source_revision,
+    })
+}
+
+impl SelectedAssessmentInvocation {
+    fn verify_current(&self, deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
+        let uid = rustix::process::getuid().as_raw();
+        let raw = crate::source_text_owner::read_absolute(
+            &self.path, uid, true, 1_048_576, deadline, cancelled,
+        )?;
+        let (_, stamp) = open_regular(&self.path, 1_048_576, uid)?;
+        let revision = Digest256::from_prefixed(&self.source_revision)
+            .map_err(|_| Refusal("assessed candidate source revision pin"))?;
+        let current = self
+            .store
+            .select_current()
+            .map_err(|_| Refusal("assessed candidate native corpus current pointer"))?
+            .ok_or(Refusal(
+                "assessed candidate native corpus current revision absent",
+            ))?;
+        if raw != self.raw
+            || Digest256::of_bytes(&raw) != self.sha256
+            || stamp != self.stamp
+            || current.0 != revision
+            || crate::source_serialization::executable(deadline, cancelled)?
+                != Digest256::from_prefixed(json_text(&self.value, "native_executable_sha256")?)
+                    .map_err(|_| Refusal("assessed candidate native executable pin"))?
+        {
+            return Err(Refusal("assessed candidate invocation or selected source changed").into());
+        }
+        Ok(())
+    }
+}
+
+fn read_assessed_candidate_request(mut input: impl Read) -> Result<AssessedCandidateRequest> {
+    let mut raw = Vec::new();
+    input
+        .by_ref()
+        .take((MAX_ASSESSED_CANDIDATE_REQUEST_BYTES + 1) as u64)
+        .read_to_end(&mut raw)?;
+    if raw.len() > MAX_ASSESSED_CANDIDATE_REQUEST_BYTES {
+        return Err(Refusal("assessed candidate request byte limit").into());
+    }
+    parse_assessed_candidate_request(&raw)
+}
+
+fn parse_assessed_candidate_request(raw: &[u8]) -> Result<AssessedCandidateRequest> {
+    parse_json(
+        raw,
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: MAX_ASSESSED_CANDIDATE_REQUEST_BYTES,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| Refusal("assessed candidate request JSON"))?;
+    let request: AssessedCandidateRequest = serde_json::from_slice(raw)
+        .map_err(|_| Refusal("assessed candidate request transport JSON"))?;
+    if request.schema_version != ASSESSED_CANDIDATE_REQUEST_SCHEMA
+        || !matches!(request.operation.as_str(), "publish" | "check")
+        || !matches!(
+            request.product.as_str(),
+            "bibliographic" | "corpus" | "paired"
+        )
+        || request.assessed_form_ids.is_empty()
+        || request.assessed_form_ids.len() > 256
+        || !absolute_bounded(
+            request
+                .output
+                .to_str()
+                .ok_or(Refusal("assessed candidate output path UTF-8"))?,
+        )
+    {
+        return Err(Refusal("assessed candidate request selection differs").into());
+    }
+    let mut seen = BTreeSet::new();
+    for identity in &request.assessed_form_ids {
+        let mut parts = identity.split('.');
+        if parts.next() != Some("tos")
+            || parts.next() != Some("form")
+            || parts.next().is_none()
+            || identity.len() > 256
+            || identity.bytes().any(|byte| {
+                !(byte.is_ascii_lowercase()
+                    || byte.is_ascii_digit()
+                    || byte == b'.'
+                    || byte == b'-')
+            })
+            || identity.split('.').any(str::is_empty)
+            || !seen.insert(identity.clone())
+        {
+            return Err(Refusal(
+                "assessed candidate form IDs must be distinct ToS form identities",
+            )
+            .into());
+        }
+    }
+    validate_direct_projection_request(&request.projection)?;
+    Ok(request)
+}
+
+fn read_assessed_candidate_request_file(path: &Path) -> Result<AssessedCandidateRequest> {
+    if !path.is_absolute() {
+        return Err(Refusal("assessed candidate request file must be absolute").into());
+    }
+    let uid = rustix::process::getuid().as_raw();
+    let (mut file, stamp) = open_regular(path, MAX_ASSESSED_CANDIDATE_REQUEST_BYTES as u64, uid)?;
+    let mut raw = Vec::with_capacity(
+        usize::try_from(stamp.size)
+            .map_err(|_| Refusal("assessed candidate request size range"))?,
+    );
+    (&mut file)
+        .take((MAX_ASSESSED_CANDIDATE_REQUEST_BYTES as u64).saturating_add(1))
+        .read_to_end(&mut raw)?;
+    if raw.len() as u64 != stamp.size
+        || Stamp::from(&file.metadata()?) != stamp
+        || Stamp::from(&fs::symlink_metadata(path)?) != stamp
+    {
+        return Err(Refusal("assessed candidate request file changed while reading").into());
+    }
+    parse_assessed_candidate_request(&raw)
+}
+
+fn validate_candidate_target(target: &Path, repository_root: &Path) -> Result<()> {
+    let text = target
+        .to_str()
+        .ok_or(Refusal("assessed candidate target path UTF-8"))?;
+    if !absolute_bounded(text)
+        || target.extension().and_then(|value| value.to_str()) != Some("json")
+        || target.file_name().is_none()
+    {
+        return Err(Refusal("assessed candidate target must be normalized absolute JSON").into());
+    }
+    if let Ok(relative) = target.strip_prefix(repository_root) {
+        if relative
+            .components()
+            .next()
+            .and_then(|part| part.as_os_str().to_str())
+            != Some(".git")
+        {
+            return Err(Refusal(
+                "assessed candidate target must be outside authored repository sources",
+            )
+            .into());
+        }
+    }
+    if target == repository_root.join(manifest::CORPUS_INDEX_PATH)
+        || target == repository_root.join(manifest::CLAIM_GRAPH_PATH)
+    {
+        return Err(Refusal("assessed candidate cannot replace a standard product").into());
+    }
+    Ok(())
+}
+
+fn validate_record_reference(reference: &Value) -> Result<()> {
+    json_exact(reference, &["id", "version", "digest"])?;
+    if json_text(reference, "id")?.is_empty() {
+        return Err(Refusal("assessed candidate record reference identity").into());
+    }
+    let digest = json_text(reference, "digest")?;
+    if Digest256::from_prefixed(digest).is_err() {
+        return Err(Refusal("assessed candidate record reference digest").into());
+    }
+    if !reference["version"].is_string() && !reference["version"].is_number() {
+        return Err(Refusal("assessed candidate record reference version").into());
+    }
+    Ok(())
+}
+
+fn selections_from_nodes(
+    nodes: &[Value],
+    wanted: &BTreeSet<String>,
+) -> Result<BTreeMap<String, AssessedCarrierSelection>> {
+    let mut selected = BTreeMap::new();
+    for node in nodes {
+        let properties = node
+            .get("properties")
+            .and_then(Value::as_object)
+            .ok_or(Refusal("assessed candidate node properties"))?;
+        let Some(forms) = properties.get("human_forms").and_then(Value::as_array) else {
+            continue;
+        };
+        for packet in forms {
+            let Some(identity) = packet
+                .get("form")
+                .and_then(|form| form.get("id"))
+                .and_then(Value::as_str)
+            else {
+                continue;
+            };
+            if !wanted.contains(identity) {
+                continue;
+            }
+            let has_source = properties.contains_key("source_record");
+            let has_claim = properties.contains_key("source_claim");
+            if has_source == has_claim {
+                return Err(
+                    Refusal("assessed candidate form requires one exact source carrier").into(),
+                );
+            }
+            let form_ref = packet
+                .get("form")
+                .ok_or(Refusal("assessed candidate form reference"))?;
+            let subject_ref = packet
+                .get("subject")
+                .ok_or(Refusal("assessed candidate subject reference"))?;
+            validate_record_reference(form_ref)?;
+            validate_record_reference(subject_ref)?;
+            if json_text(form_ref, "id")? != identity {
+                return Err(Refusal("assessed candidate form identity differs").into());
+            }
+            let source_path = node
+                .get("source_ref")
+                .and_then(Value::as_str)
+                .filter(|value| !value.is_empty())
+                .ok_or(Refusal("assessed candidate source path"))?
+                .to_owned();
+            let form_path = properties
+                .get("human_forms_source_ref")
+                .and_then(Value::as_str)
+                .filter(|value| !value.is_empty())
+                .ok_or(Refusal("assessed candidate form-set path"))?
+                .to_owned();
+            let subject_digest = json_text(subject_ref, "digest")?
+                .strip_prefix("sha256:")
+                .ok_or(Refusal("assessed candidate subject digest prefix"))?;
+            let carrier_digest = node
+                .get("source_sha256")
+                .or_else(|| properties.get("source_sha256"))
+                .and_then(Value::as_str)
+                .ok_or(Refusal("assessed candidate source digest"))?;
+            if carrier_digest != subject_digest {
+                return Err(
+                    Refusal("assessed candidate source body and subject digest disagree").into(),
+                );
+            }
+            let selection = AssessedCarrierSelection {
+                form_ref: form_ref.clone(),
+                subject_ref: subject_ref.clone(),
+                source_path,
+                form_path,
+            };
+            if selected.insert(identity.to_owned(), selection).is_some() {
+                return Err(
+                    Refusal("assessed candidate form must have one exact source carrier").into(),
+                );
+            }
+        }
+    }
+    Ok(selected)
+}
+
+fn native_assessed_batch_request(selections: &[AssessedCarrierSelection]) -> Result<Vec<u8>> {
+    let request = json!({
+        "schema_version":"tos_local_assessed_forms_materialization_request_v1",
+        "operation":"materialize_assessed_forms",
+        "selections": selections.iter().map(|selection| json!({
+            "form_ref": selection.form_ref,
+            "subject_ref": selection.subject_ref,
+            "source_path": selection.source_path,
+            "form_path": selection.form_path,
+        })).collect::<Vec<_>>(),
+    });
+    let raw = serde_json::to_vec(&request)?;
+    if raw.is_empty() || raw.len() > 1_048_576 {
+        return Err(Refusal("assessed candidate native batch request budget").into());
+    }
+    Ok(raw)
+}
+
+fn assessed_packets(
+    batch: &Value,
+    expected: &[AssessedCarrierSelection],
+) -> Result<BTreeMap<String, Value>> {
+    if batch.get("schema_version").and_then(Value::as_str)
+        != Some("tos_local_assessed_forms_materialization_result_v1")
+    {
+        return Err(Refusal("assessed candidate native batch result schema").into());
+    }
+    let snapshot = json_text(batch, "owner_snapshot")?.to_owned();
+    Digest256::from_prefixed(&snapshot)
+        .map_err(|_| Refusal("assessed candidate owner snapshot digest"))?;
+    let replies = batch
+        .get("replies")
+        .and_then(Value::as_array)
+        .filter(|rows| rows.len() == expected.len())
+        .ok_or(Refusal("assessed candidate native batch reply count"))?;
+    let mut packets = BTreeMap::new();
+    for (selection, reply) in expected.iter().zip(replies) {
+        if reply.get("schema_version").and_then(Value::as_str)
+            != Some("tos_local_assessment_result_v1")
+            || reply.get("owner_snapshot").and_then(Value::as_str) != Some(snapshot.as_str())
+            || reply.get("authentication").and_then(Value::as_str) != Some("local-unix-account")
+        {
+            return Err(Refusal("assessed candidate native reply envelope").into());
+        }
+        let result = reply
+            .get("result")
+            .ok_or(Refusal("assessed candidate native reply result"))?;
+        let packet = result
+            .get("materialization")
+            .filter(|packet| {
+                packet.get("schema_version").and_then(Value::as_str)
+                    == Some("tos_human_form_materialization_v1")
+            })
+            .ok_or(Refusal("assessed candidate materialization packet"))?;
+        if packet.get("form") != Some(&selection.form_ref)
+            || packet.get("subject") != Some(&selection.subject_ref)
+        {
+            return Err(
+                Refusal("assessed candidate returned materialization binding differs").into(),
+            );
+        }
+        let mut candidate_packet = packet.clone();
+        let mut assessment_snapshot = Map::new();
+        assessment_snapshot.insert("owner_snapshot".into(), Value::String(snapshot.clone()));
+        assessment_snapshot.insert(
+            "journal_revision".into(),
+            result
+                .get("revision")
+                .cloned()
+                .ok_or(Refusal("assessed candidate journal revision"))?,
+        );
+        assessment_snapshot.insert(
+            "journal_batches".into(),
+            result
+                .get("batch_count")
+                .cloned()
+                .ok_or(Refusal("assessed candidate journal batch count"))?,
+        );
+        assessment_snapshot.insert("publication_authorized".into(), Value::Bool(false));
+        assessment_snapshot.insert("current_runtime_grant".into(), Value::Bool(false));
+        if candidate_packet.get("subject_assessment").is_some() {
+            assessment_snapshot.insert("subject_assessment_required".into(), Value::Bool(true));
+        }
+        candidate_packet
+            .as_object_mut()
+            .ok_or(Refusal("assessed candidate materialization object"))?
+            .insert(
+                "assessment_snapshot".into(),
+                Value::Object(assessment_snapshot),
+            );
+        if serde_json::to_vec(&candidate_packet)?.len() > 65_536 {
+            return Err(Refusal("assessed candidate materialization packet byte limit").into());
+        }
+        if packets
+            .insert(
+                json_text(&selection.form_ref, "id")?.to_owned(),
+                candidate_packet,
+            )
+            .is_some()
+        {
+            return Err(Refusal("assessed candidate duplicate returned form").into());
+        }
+    }
+    Ok(packets)
+}
+
+fn apply_assessed_packets(
+    nodes: &mut [Value],
+    packets: &BTreeMap<String, Value>,
+    max_bytes: usize,
+) -> Result<()> {
+    let mut seen = BTreeSet::new();
+    for node in nodes {
+        let Some(forms) = node
+            .get_mut("properties")
+            .and_then(Value::as_object_mut)
+            .and_then(|properties| properties.get_mut("human_forms"))
+            .and_then(Value::as_array_mut)
+        else {
+            continue;
+        };
+        for packet in forms {
+            let Some(identity) = packet
+                .get("form")
+                .and_then(|form| form.get("id"))
+                .and_then(Value::as_str)
+            else {
+                continue;
+            };
+            if let Some(replacement) = packets.get(identity) {
+                if !seen.insert(identity.to_owned()) {
+                    return Err(Refusal(
+                        "assessed candidate duplicate form carrier during rendering",
+                    )
+                    .into());
+                }
+                *packet = replacement.clone();
+            }
+        }
+        let encoded = serde_json::to_vec(forms)?;
+        if encoded.len() > max_bytes {
+            return Err(Refusal("assessed candidate complete form set byte limit").into());
+        }
+    }
+    if seen.len() != packets.len() {
+        return Err(Refusal("assessed candidate rendered form coverage differs").into());
+    }
+    Ok(())
+}
+
+fn render_candidate(value: &Value, max_bytes: u64) -> Result<Vec<u8>> {
+    let mut raw = serde_json::to_vec_pretty(value)?;
+    raw.push(b'\n');
+    if raw.is_empty() || raw.len() as u64 > max_bytes {
+        return Err(Refusal("assessed candidate output byte limit").into());
+    }
+    Ok(raw)
+}
+
+struct CandidatePublication {
+    directory: File,
+    leaf: String,
+    target: PathBuf,
+    device: u64,
+    inode: u64,
+    committed: bool,
+}
+
+impl CandidatePublication {
+    fn commit(mut self) -> PathBuf {
+        self.committed = true;
+        self.target.clone()
+    }
+}
+
+impl Drop for CandidatePublication {
+    fn drop(&mut self) {
+        if self.committed {
+            return;
+        }
+        let opened: std::io::Result<File> = rustix::fs::openat(
+            &self.directory,
+            self.leaf.as_str(),
+            rustix::fs::OFlags::RDONLY
+                | rustix::fs::OFlags::NOFOLLOW
+                | rustix::fs::OFlags::CLOEXEC
+                | rustix::fs::OFlags::NONBLOCK,
+            rustix::fs::Mode::empty(),
+        )
+        .map(File::from)
+        .map_err(io::Error::from);
+        if opened.is_ok_and(|file| {
+            file.metadata()
+                .is_ok_and(|metadata| metadata.dev() == self.device && metadata.ino() == self.inode)
+        }) {
+            let _ = rustix::fs::unlinkat(
+                &self.directory,
+                self.leaf.as_str(),
+                rustix::fs::AtFlags::empty(),
+            );
+            let _ = self.directory.sync_all();
+        }
+    }
+}
+
+pub(crate) fn write_assessed_candidate_with_hook(
+    target: &Path,
+    rendered: &[u8],
+    after_stage_fsync: impl FnOnce() -> Result<()>,
+) -> Result<CandidatePublication> {
+    if !target.is_absolute()
+        || target
+            .components()
+            .any(|part| matches!(part, Component::CurDir | Component::ParentDir))
+        || target.extension().and_then(|value| value.to_str()) != Some("json")
+        || rendered.is_empty()
+        || rendered.len() > 512 * 1024 * 1024
+    {
+        return Err(Refusal("assessed candidate target or output bytes invalid").into());
+    }
+    let parent = target
+        .parent()
+        .ok_or(Refusal("assessed candidate target parent absent"))?;
+    fs::create_dir_all(parent)?;
+    no_symlink_path(parent)?;
+    let directory = tos_fd_open::open_absolute_directory(parent)
+        .map_err(|_| Refusal("assessed candidate target parent custody"))?;
+    let directory_metadata = directory.metadata()?;
+    if !directory_metadata.is_dir()
+        || directory_metadata.uid() != rustix::process::getuid().as_raw()
+    {
+        return Err(Refusal("assessed candidate target parent ownership").into());
+    }
+    let leaf = target
+        .file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .ok_or(Refusal("assessed candidate target filename"))?
+        .to_owned();
+    static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+    let temporary = format!(
+        ".tos-assessed-{}-{}",
+        std::process::id(),
+        TEMP_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    );
+    let mut stage: File = rustix::fs::openat(
+        &directory,
+        temporary.as_str(),
+        rustix::fs::OFlags::WRONLY
+            | rustix::fs::OFlags::CREATE
+            | rustix::fs::OFlags::EXCL
+            | rustix::fs::OFlags::NOFOLLOW
+            | rustix::fs::OFlags::CLOEXEC,
+        rustix::fs::Mode::from_raw_mode(0o600),
+    )
+    .map(File::from)
+    .map_err(io::Error::from)?;
+    struct StageCleanup<'a> {
+        directory: &'a File,
+        name: &'a str,
+    }
+    impl Drop for StageCleanup<'_> {
+        fn drop(&mut self) {
+            let _ = rustix::fs::unlinkat(self.directory, self.name, rustix::fs::AtFlags::empty());
+            let _ = self.directory.sync_all();
+        }
+    }
+    let _cleanup = StageCleanup {
+        directory: &directory,
+        name: &temporary,
+    };
+    let stage_metadata = stage.metadata()?;
+    if !stage_metadata.is_file()
+        || stage_metadata.uid() != rustix::process::getuid().as_raw()
+        || stage_metadata.mode() & 0o077 != 0
+        || stage_metadata.len() != 0
+    {
+        return Err(Refusal("assessed candidate staging file custody").into());
+    }
+    for chunk in rendered.chunks(64 * 1024) {
+        stage.write_all(chunk)?;
+    }
+    stage.sync_all()?;
+    if stage.metadata()?.len() != rendered.len() as u64 {
+        return Err(Refusal("assessed candidate staging byte count differs").into());
+    }
+    after_stage_fsync()?;
+    let (device, inode) = {
+        let metadata = stage.metadata()?;
+        (metadata.dev(), metadata.ino())
+    };
+    rustix::fs::linkat(
+        &directory,
+        temporary.as_str(),
+        &directory,
+        leaf.as_str(),
+        rustix::fs::AtFlags::empty(),
+    )
+    .map_err(|error| {
+        if error == rustix::io::Errno::EXIST {
+            Refusal("assessed candidate output already exists; refusing replacement")
+        } else {
+            Refusal("assessed candidate atomic no-replace link failed")
+        }
+    })?;
+    let publication = CandidatePublication {
+        directory: directory.try_clone()?,
+        leaf,
+        target: target.to_path_buf(),
+        device,
+        inode,
+        committed: false,
+    };
+    publication.directory.sync_all()?;
+    drop(stage);
+    rustix::fs::unlinkat(
+        &publication.directory,
+        temporary.as_str(),
+        rustix::fs::AtFlags::empty(),
+    )
+    .map_err(|_| Refusal("assessed candidate staging cleanup failed"))?;
+    publication.directory.sync_all()?;
+    Ok(publication)
 }
 
 fn open_regular(path: &Path, cap: u64, uid: u32) -> Result<(File, Stamp)> {
@@ -2209,7 +3086,10 @@ fn compare_direct_projection_product(
 /// same bounded source window.
 pub(crate) fn with_direct_repository_projection<T>(
     request: &DirectRepositoryProjectionRequest,
-    consume: impl FnOnce(&crate::source_corpus_index_projection::NativeCorpusIndexProducts) -> Result<T>,
+    consume: impl FnOnce(
+        &crate::source_corpus_index_projection::NativeCorpusIndexProducts,
+        DirectRepositoryProjectionContext<'_>,
+    ) -> Result<T>,
 ) -> Result<(
     crate::source_corpus_index_projection::NativeCorpusIndexProducts,
     T,
@@ -2576,7 +3456,17 @@ pub(crate) fn with_direct_repository_projection<T>(
                         deadline,
                         &cancelled,
                     )?;
-                    let consumed = consume(&products)?;
+                    let consumed = consume(
+                        &products,
+                        DirectRepositoryProjectionContext {
+                            cut,
+                            software: &software,
+                            components: &components,
+                            recheck: &recheck,
+                            deadline,
+                            cancelled,
+                        },
+                    )?;
                     Ok((products, consumed))
                 })();
                 callback_result.map_err(|error| {
@@ -2592,7 +3482,7 @@ pub(crate) fn with_direct_repository_projection<T>(
 pub(crate) fn compose_direct_repository_projection(
     request: &DirectRepositoryProjectionRequest,
 ) -> Result<crate::source_corpus_index_projection::NativeCorpusIndexProducts> {
-    with_direct_repository_projection(request, |_| Ok(())).map(|(products, ())| products)
+    with_direct_repository_projection(request, |_, _| Ok(())).map(|(products, ())| products)
 }
 
 pub(crate) fn check_direct_projection_products(
@@ -2621,7 +3511,7 @@ pub(crate) fn check_direct_projection_products(
 fn check_direct_repository_projection(
     request: &DirectRepositoryProjectionRequest,
 ) -> Result<Value> {
-    let (products, value) = with_direct_repository_projection(request, |products| {
+    let (products, value) = with_direct_repository_projection(request, |products, _| {
         check_direct_projection_products(request, products)
     })?;
     Ok(json_object([
@@ -2656,6 +3546,407 @@ fn check_direct_repository_projection(
         ("grants_source_admission", json!(false)),
         ("products", value),
     ]))
+}
+
+fn graph_nodes_mut(value: &mut Value) -> Result<&mut [Value]> {
+    value
+        .get_mut("nodes")
+        .and_then(Value::as_array_mut)
+        .map(Vec::as_mut_slice)
+        .ok_or_else(|| Refusal("assessed candidate graph nodes are absent").into())
+}
+
+fn graph_nodes(value: &Value) -> Result<&[Value]> {
+    value
+        .get("nodes")
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .ok_or_else(|| Refusal("assessed candidate graph nodes are absent").into())
+}
+
+fn requested_selections(
+    product: &str,
+    wanted: &BTreeSet<String>,
+    corpus: &Value,
+    bibliographic: &Value,
+) -> Result<(
+    BTreeMap<String, AssessedCarrierSelection>,
+    BTreeMap<String, AssessedCarrierSelection>,
+    Vec<AssessedCarrierSelection>,
+)> {
+    let corpus_selected = selections_from_nodes(graph_nodes(corpus)?, wanted)?;
+    let bibliographic_selected = selections_from_nodes(graph_nodes(bibliographic)?, wanted)?;
+    let require_all = |selected: &BTreeMap<String, AssessedCarrierSelection>| -> Result<()> {
+        if selected.len() != wanted.len() {
+            return Err(
+                Refusal("assessed candidate form ID is absent from its product carriers").into(),
+            );
+        }
+        Ok(())
+    };
+    let mut union = BTreeMap::new();
+    match product {
+        "corpus" => {
+            require_all(&corpus_selected)?;
+            union.extend(corpus_selected.clone());
+        }
+        "bibliographic" => {
+            require_all(&bibliographic_selected)?;
+            union.extend(bibliographic_selected.clone());
+        }
+        "paired" => {
+            if corpus_selected.is_empty() && bibliographic_selected.is_empty() {
+                return Err(
+                    Refusal("assessed candidate forms are absent from paired products").into(),
+                );
+            }
+            for (identity, selection) in &corpus_selected {
+                union.insert(identity.clone(), selection.clone());
+            }
+            for (identity, selection) in &bibliographic_selected {
+                if let Some(corpus_selection) = union.get(identity) {
+                    if corpus_selection != selection {
+                        return Err(Refusal("paired assessed form carrier bindings differ").into());
+                    }
+                } else {
+                    union.insert(identity.clone(), selection.clone());
+                }
+            }
+            if union.len() != wanted.len() {
+                return Err(
+                    Refusal("assessed candidate form ID is absent from paired carriers").into(),
+                );
+            }
+        }
+        _ => return Err(Refusal("assessed candidate product selection differs").into()),
+    }
+    let expected = union.into_values().collect::<Vec<_>>();
+    Ok((corpus_selected, bibliographic_selected, expected))
+}
+
+fn read_candidate_bytes(target: &Path, max_bytes: u64) -> Result<Vec<u8>> {
+    let (mut file, stamp) = open_regular(target, max_bytes, rustix::process::getuid().as_raw())?;
+    if stamp.mode & 0o077 != 0 {
+        return Err(Refusal("assessed candidate existing output is not private").into());
+    }
+    let mut raw = Vec::with_capacity(
+        usize::try_from(stamp.size).map_err(|_| Refusal("assessed candidate output size range"))?,
+    );
+    (&mut file)
+        .take(max_bytes.saturating_add(1))
+        .read_to_end(&mut raw)?;
+    if raw.len() as u64 != stamp.size
+        || Stamp::from(&file.metadata()?) != stamp
+        || Stamp::from(&fs::symlink_metadata(target)?) != stamp
+    {
+        return Err(Refusal("assessed candidate existing output changed while reading").into());
+    }
+    Ok(raw)
+}
+
+fn execute_assessed_candidate(request: AssessedCandidateRequest) -> Result<Value> {
+    validate_direct_projection_request(&request.projection)?;
+    let canonical_root = request.projection.repository_root.canonicalize()?;
+    if canonical_root != request.projection.repository_root {
+        return Err(Refusal("assessed candidate repository root must be canonical").into());
+    }
+    validate_candidate_target(&request.output, &canonical_root)?;
+    let wanted = request
+        .assessed_form_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let (products, prepared) = with_direct_repository_projection(
+        &request.projection,
+        |products, context| {
+            let source_revision = context.cut.current().revision().0.to_prefixed();
+            let selected = selected_assessment_invocation(
+                &request.native_invocation,
+                &request.projection,
+                context.deadline,
+                context.cancelled,
+            )?;
+            if selected.source_revision != source_revision {
+                return Err(Refusal(
+                    "assessed candidate invocation source revision differs from direct capture",
+                )
+                .into());
+            }
+            let mut corpus_value = products.corpus.value().clone();
+            let mut bibliographic_value: Value =
+                serde_json::from_slice(&products.bibliographic_claims)
+                    .map_err(|_| Refusal("assessed candidate bibliographic graph JSON"))?;
+            let (corpus_selected, bibliographic_selected, expected) = requested_selections(
+                &request.product,
+                &wanted,
+                &corpus_value,
+                &bibliographic_value,
+            )?;
+            if expected.is_empty() || expected.len() > 256 {
+                return Err(Refusal("assessed candidate selected form count differs").into());
+            }
+            let batch_request = native_assessed_batch_request(&expected)?;
+            selected.verify_current(context.deadline, context.cancelled)?;
+            let batch = crate::source_native_cli::private_assessment::run_public_v2_batch(
+                &selected.value,
+                &batch_request,
+                &selected.store,
+                context.cut,
+                &selected.software,
+                &selected.components,
+                Some(&request.projection.repository_root),
+                context.deadline,
+                context.cancelled,
+            )
+            .map_err(|_| Refusal("selected native assessment batch refused"))?;
+            let packets = assessed_packets(&batch, &expected)?;
+            let corpus_packets = packets
+                .iter()
+                .filter(|(identity, _)| corpus_selected.contains_key(*identity))
+                .map(|(identity, packet)| (identity.clone(), packet.clone()))
+                .collect::<BTreeMap<_, _>>();
+            let bibliographic_packets = packets
+                .iter()
+                .filter(|(identity, _)| bibliographic_selected.contains_key(*identity))
+                .map(|(identity, packet)| (identity.clone(), packet.clone()))
+                .collect::<BTreeMap<_, _>>();
+            if matches!(request.product.as_str(), "corpus" | "paired") {
+                apply_assessed_packets(
+                    graph_nodes_mut(&mut corpus_value)?,
+                    &corpus_packets,
+                    256 * 1024,
+                )?;
+            }
+            if matches!(request.product.as_str(), "bibliographic" | "paired") {
+                apply_assessed_packets(
+                    graph_nodes_mut(&mut bibliographic_value)?,
+                    &bibliographic_packets,
+                    256 * 1024,
+                )?;
+            }
+            let candidate = match request.product.as_str() {
+                "corpus" => corpus_value,
+                "bibliographic" => bibliographic_value,
+                "paired" => json!({
+                    "schema_version": "tos_native_assessed_paired_candidate_v1",
+                    "source_revision": source_revision,
+                    "source_membership_sha256": products.bibliographic_receipt.source_membership_sha256,
+                    "corpus_index": corpus_value,
+                    "bibliographic_claim_graph": bibliographic_value,
+                }),
+                _ => return Err(Refusal("assessed candidate product selection differs").into()),
+            };
+            let rendered =
+                render_candidate(&candidate, request.projection.limits.max_output_bytes)?;
+            let output_sha256 = Digest256::of_bytes(&rendered).to_hex();
+            let snapshot = json_text(&batch, "owner_snapshot")?.to_owned();
+            let revision = json_text(&batch, "owner_snapshot")?.to_owned();
+            let check = request.operation == "check";
+            if check {
+                let existing = read_candidate_bytes(
+                    &request.output,
+                    request.projection.limits.max_output_bytes,
+                )?;
+                if existing != rendered {
+                    return Err(Refusal(
+                        "assessed candidate existing output does not match current projection",
+                    )
+                    .into());
+                }
+                verify_assessed_replay(
+                    &selected,
+                    &batch_request,
+                    &batch,
+                    context.cut,
+                    context.software,
+                    context.components,
+                    &request.projection.repository_root,
+                    context.recheck,
+                    context.deadline,
+                    context.cancelled,
+                )?;
+                return Ok((
+                    json!({
+                        "schema_version": ASSESSED_CANDIDATE_RESULT_SCHEMA,
+                        "operation": "check",
+                        "product": request.product,
+                        "output": request.output,
+                        "output_bytes": rendered.len(),
+                        "output_sha256": output_sha256,
+                        "source_revision": source_revision,
+                        "source_membership_sha256": products.bibliographic_receipt.source_membership_sha256,
+                        "owner_snapshot": snapshot,
+                        "assessed_form_ids": request.assessed_form_ids,
+                        "matches": true,
+                        "persistent_write_performed": false,
+                        "grants_source_admission": false,
+                    }),
+                    None,
+                ));
+            }
+            let publication =
+                write_assessed_candidate_with_hook(&request.output, &rendered, || {
+                    verify_assessed_replay(
+                        &selected,
+                        &batch_request,
+                        &batch,
+                        context.cut,
+                        context.software,
+                        context.components,
+                        &request.projection.repository_root,
+                        context.recheck,
+                        context.deadline,
+                        context.cancelled,
+                    )
+                })?;
+            let receipt = json!({
+                "schema_version": ASSESSED_CANDIDATE_RESULT_SCHEMA,
+                "operation": "publish",
+                "product": request.product,
+                "output": request.output,
+                "output_bytes": rendered.len(),
+                "output_sha256": output_sha256,
+                "source_revision": source_revision,
+                "source_membership_sha256": products.bibliographic_receipt.source_membership_sha256,
+                "owner_snapshot": snapshot,
+                "assessed_form_ids": request.assessed_form_ids,
+                "persistent_write_performed": true,
+                "grants_source_admission": false,
+            });
+            let _ = revision;
+            Ok((receipt, Some(publication)))
+        },
+    )?;
+    let _ = products;
+    if let Some(publication) = prepared.1 {
+        publication.commit();
+    }
+    Ok(prepared.0)
+}
+
+fn verify_assessed_replay(
+    selected: &SelectedAssessmentInvocation,
+    batch_request: &[u8],
+    expected: &Value,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    expected_source_root: &Path,
+    recheck: &dyn Fn() -> tos_compiler::Result<()>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    selected.verify_current(deadline, cancelled)?;
+    let replay = crate::source_native_cli::private_assessment::run_public_v2_batch(
+        &selected.value,
+        batch_request,
+        &selected.store,
+        cut,
+        &selected.software,
+        &selected.components,
+        Some(expected_source_root),
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| Refusal("selected native assessment replay refused"))?;
+    if replay != *expected {
+        return Err(Refusal(
+            "selected native assessment replay changed before candidate publication",
+        )
+        .into());
+    }
+    selected.verify_current(deadline, cancelled)?;
+    for component in components.members() {
+        let raw = software
+            .read_selected_component(&components, &component.path, 131_072, deadline, cancelled)
+            .map_err(|_| {
+                Refusal("direct selected software component changed before candidate publication")
+            })?;
+        if raw.len() as u64 != component.size_bytes || Digest256::of_bytes(&raw) != component.sha256
+        {
+            return Err(Refusal(
+                "direct selected software component changed before candidate publication",
+            )
+            .into());
+        }
+    }
+    recheck()
+        .map_err(|_| Refusal("direct captured source changed before candidate publication"))?;
+    Ok(())
+}
+
+fn report_assessed_candidate(
+    result: Result<Value>,
+    output: &mut impl Write,
+    diagnostics: &mut impl Write,
+) -> i32 {
+    match result {
+        Ok(value) => match serde_json::to_vec(&value) {
+            Ok(raw) if raw.len() <= MAX_RESULT_BYTES => {
+                if output.write_all(&raw).is_err() || output.write_all(b"\n").is_err() {
+                    let _ = diagnostics.write_all(b"native assessed candidate output failed\n");
+                    2
+                } else {
+                    0
+                }
+            }
+            _ => {
+                let _ = diagnostics
+                    .write_all(b"native assessed candidate receipt exceeded output cap\n");
+                2
+            }
+        },
+        Err(error) => {
+            let _ = writeln!(diagnostics, "native assessed candidate refused: {error}");
+            2
+        }
+    }
+}
+
+/// Build or byte-check a private assessed graph candidate from one captured
+/// source projection and the explicitly pinned native public-v2 assessment
+/// invocation. `check` is read-only; `publish` commits by no-replace link only
+/// after the staged file is synced and the full assessment/source fence passes.
+pub fn run_corpus_assessed_candidate(
+    input: impl Read,
+    output: &mut impl Write,
+    diagnostics: &mut impl Write,
+) -> i32 {
+    let result = read_assessed_candidate_request(input).and_then(execute_assessed_candidate);
+    report_assessed_candidate(result, output, diagnostics)
+}
+
+pub fn run_corpus_assessed_candidate_args(
+    args: &[OsString],
+    output: &mut impl Write,
+    diagnostics: &mut impl Write,
+) -> i32 {
+    if args.len() == 1 && matches!(args[0].to_str(), Some("--help" | "-h")) {
+        let usage = b"usage: tos-native-owner-command corpus-assessed-candidate --request ABS_JSON\n       tos-native-owner-command corpus-assessed-candidate < REQUEST_JSON\n\nRequest operation is publish or check; product is bibliographic, corpus or paired. The request includes the source projection and an absolute path+SHA-256 pin to the native assessment-read invocation. Publish creates one private no-replace candidate; check reads and compares an existing candidate without writing. Neither route admits source or publishes a standard export.\n";
+        return if output.write_all(usage).is_ok() {
+            0
+        } else {
+            2
+        };
+    }
+    let result = if args.is_empty() {
+        read_assessed_candidate_request(std::io::stdin().lock())
+    } else if args.len() == 2 && args[0].to_str() == Some("--request") {
+        let path = args[1]
+            .to_str()
+            .filter(|value| absolute_bounded(value))
+            .map(Path::new)
+            .ok_or(Refusal(
+                "assessed candidate request path must be absolute UTF-8",
+            ));
+        path.and_then(read_assessed_candidate_request_file)
+    } else {
+        Err(Refusal(
+            "assessed candidate CLI requires --request ABS_JSON or stdin",
+        ))
+    }
+    .and_then(execute_assessed_candidate);
+    report_assessed_candidate(result, output, diagnostics)
 }
 
 fn execute(mut request: Request) -> Result<Value> {

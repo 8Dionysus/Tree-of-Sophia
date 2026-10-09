@@ -2259,9 +2259,8 @@ assert files(journal)==journal_before and nodes==original
 # Grant and publication changes at that point cannot expose a candidate.
 import os
 from unittest.mock import patch
-import source_metadata_snapshot as publication
 owner_before=owner.read_bytes()
-control=Path(manifest['source_root'])/publication.CONTROL_REF
+control=Path(manifest['source_root'])/'ToS/source-witnesses/.metadata-publication.json'
 control_before=control.read_bytes() if control.exists() else None
 post_sync_target=owner.parent/'native-post-fsync-candidate.json'
 original_fsync=os.fsync
@@ -2277,17 +2276,17 @@ for mutation in ('grant','pending','ready-epoch'):
             config['subjects'][ids[0]]['access_allowed']=False
             owner.write_text(json.dumps(config))
         else:
-            state={'schema_version':publication.STATE_SCHEMA,'generation':1,
+            state={'schema_version':'tos_source_metadata_publication_v1','generation':1,
                 'transition_id':'1'*32,'phase':'pending' if mutation=='pending' else 'ready',
                 'transaction_id':'sha256:'+'1'*64,'manifest_sha256':'sha256:'+'2'*64,
                 'outcome':None if mutation=='pending' else 'rolled-back','recovery_authorization':None}
-            state['token']=publication._digest(publication._canonical(state))
+            state['token']='sha256:'+hashlib.sha256(json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode('utf-8')).hexdigest()
             control.write_text(json.dumps(state))
     try:
         with patch.object(os,'fsync',sync_then_change):
             try:
                 write_assessed_candidate(post_sync_target,json.dumps(actual),native)
-            except (ValueError,PermissionError,JournalConflict,publication.PublicationStateError):
+            except (ValueError,PermissionError,JournalConflict):
                 pass
             else:
                 raise AssertionError('post-fsync drift escaped native final currentness: '+mutation)

@@ -10,7 +10,7 @@ use std::{
 };
 const BASELINE_ENV: &str = "TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT";
 const INTRO_ENV: &str = "TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION";
-const READER: &str = "scripts/source_record_profiles.py";
+const READER: &str = "rust/crates/tos-command/src/source_private_profile.rs";
 const REFS: [&str; 4] = [
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",

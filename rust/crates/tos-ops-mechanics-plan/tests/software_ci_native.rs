@@ -549,7 +549,6 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/provenance.jsonl",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json",
-        "tests/oracles/acquisition/acquisition_batch.py",
         "tests/oracles/acquisition/acquisition_handoff_adapter.py",
         "tests/oracles/acquisition/source_payload_custody.py",
     ]);

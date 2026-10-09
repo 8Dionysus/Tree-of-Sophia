@@ -1690,6 +1690,7 @@ dependencies = [
 name = "tos-query"
 version = "0.0.0"
 dependencies = [
+ "flate2",
  "regex",
  "rusqlite",
  "serde_json",

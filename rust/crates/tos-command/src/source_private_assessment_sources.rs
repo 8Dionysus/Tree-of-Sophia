@@ -2398,3 +2398,134 @@ pub(crate) fn select_owner_local_sources(
         transport,
     })
 }
+
+/// Exact metadata retained by the private native-text resolver for conformance
+/// tests. This type is compiled only by an explicit test feature and carries no
+/// journal, write, admission, or publication authority.
+#[cfg(feature = "conformance-owner-local-source-resolver")]
+pub struct NativeTextUnitResolutionForConformance {
+    pub native_records: Vec<JsonValue>,
+    pub native_summaries: Vec<JsonValue>,
+}
+
+/// Exercise the same protected owner-context and exact-source resolver used by
+/// private assessment. The caller supplies only the already selected native
+/// TextUnit rows; this helper reads the owner-context and assessment contracts
+/// from the current source cut and returns the resolver's actual metadata.
+#[cfg(feature = "conformance-owner-local-source-resolver")]
+pub fn resolve_native_text_units_for_conformance(
+    context_path: &Path,
+    native_text_units: &JsonValue,
+    cut: &CorpusCutReader,
+    worker_path: &Path,
+    worker_sha256: Digest256,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeTextUnitResolutionForConformance> {
+    const OWNER_CONTEXT_SCHEMA_FOR_CONFORMANCE: &str =
+        "ToS/contracts/owner-local-source-context.schema.json";
+
+    if native_text_units
+        .as_array()
+        .is_none_or(|selections| selections.is_empty())
+    {
+        return Err(SourceCommandError::Invalid(
+            "conformance resolver requires an explicit native TextUnit selection",
+        ));
+    }
+    let mut worker_budget = tos_validation::executor::ExecutorBudget::laboratory();
+    worker_budget.execution_wall = deadline.saturating_duration_since(std::time::Instant::now());
+    worker_budget.cpu_seconds = 3;
+    worker_budget.address_space_bytes = 1_073_741_824;
+    let mut worker = CutWorkerSchemaExecutor::from_cut(
+        cut,
+        tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        tos_validation::executor::ExactWorkerIdentity {
+            absolute_path: worker_path.to_path_buf(),
+            sha256: worker_sha256,
+        },
+        worker_budget,
+        tos_validation::source_cut::CutWorkerLimits {
+            max_receipts: 128,
+            max_receipt_bytes: 262_144,
+        },
+        deadline,
+        cancelled,
+    )?;
+
+    let contract_paths = std::iter::once(OWNER_CONTEXT_SCHEMA_FOR_CONFORMANCE)
+        .chain(OWNER_ASSESSMENT_FORM_CONTRACTS.iter().copied());
+    let mut files = Vec::new();
+    let mut selected_context_schema = None;
+    for reference in contract_paths {
+        let logical = RelativePath::parse(reference)
+            .map_err(|_| SourceCommandError::Invalid("conformance assessment contract path"))?;
+        let member = cut
+            .read_member(
+                cut.current().revision(),
+                &logical,
+                MAX_SELECTED_FILE_BYTES as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| {
+                SourceCommandError::Conflict(
+                    "conformance assessment contract is outside the selected source cut",
+                )
+            })?;
+        if reference == OWNER_CONTEXT_SCHEMA_FOR_CONFORMANCE {
+            if worker.contract_digest(reference) != Some(Digest256::of_bytes(&member.raw)) {
+                return Err(SourceCommandError::Conflict(
+                    "conformance owner-context schema differs from selected worker",
+                ));
+            }
+            selected_context_schema = Some(member.raw.clone());
+        }
+        files.push(crate::source_command::SourceFile {
+            path: logical,
+            raw: member.raw,
+        });
+    }
+    let selected_context_schema = selected_context_schema.ok_or(SourceCommandError::Invalid(
+        "conformance owner-context schema selection is absent",
+    ))?;
+    let context = CommandContext {
+        base_revision: cut.current().revision().clone(),
+        configuration_raw: Vec::new(),
+        request_raw: Vec::new(),
+        recorded_at: "conformance-only source resolution; not a receipt".into(),
+        effective_uid: u64::from(rustix::process::geteuid().as_raw()),
+        files,
+    };
+    context.check()?;
+
+    let (owner, selected_context) = OwnerTextContext::select(
+        context_path,
+        &selected_context_schema,
+        &mut worker,
+        deadline,
+        cancelled,
+    )?;
+    let empty = JsonValue::Array(Vec::new());
+    let selected = select_owner_local_sources(
+        &owner,
+        &selected_context,
+        &empty,
+        native_text_units,
+        None,
+        &context,
+        cut,
+        &mut worker,
+        deadline,
+        cancelled,
+    )?;
+    let native_records = selected
+        .native_records
+        .into_iter()
+        .map(|record| cmd::parse(&record.envelope))
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    Ok(NativeTextUnitResolutionForConformance {
+        native_records,
+        native_summaries: selected.native_summaries,
+    })
+}

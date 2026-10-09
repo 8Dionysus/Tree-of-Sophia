@@ -29,7 +29,7 @@ const SCHEMAS: [&str; 2] = [
     "ToS/contracts/semantic-entity-type-registry.schema.json",
     "ToS/contracts/semantic-relation-type-registry.schema.json",
 ];
-const READER: &str = "scripts/source_record_profiles.py";
+const READER: &str = "rust/crates/tos-command/src/source_private_profile.rs";
 const MEMBER_BYTES: usize = 1_048_576;
 const STATE_BYTES: usize = 64 * 1_048_576;
 const TOTAL_GIT_BYTES: usize = 16 * 1_048_576;

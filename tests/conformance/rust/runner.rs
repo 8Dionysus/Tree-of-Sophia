@@ -2159,3 +2159,4 @@ mod command_owner_text_cases;
 mod command_private_claim_cases;
 #[path = "command_private_profile_cases.rs"]
 mod command_private_profile_cases;
+mod native_public_assessment_fixture;

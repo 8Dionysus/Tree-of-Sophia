@@ -237,55 +237,28 @@ fn selected_capture(
     let temporary = tempfile::tempdir().unwrap();
     let capture = temporary.path().join("software-capture");
     let restored = temporary.path().join("software-restored");
-    let tool = temporary.path().join("corpus_archive.py");
-    let program = capture_process(
-        Command::new("git")
-            .arg("-C")
-            .arg(repository)
-            .arg("show")
-            .arg(format!("{commit}:scripts/corpus_archive.py")),
-        deadline,
-    );
-    fs::write(&tool, program).unwrap();
-    let wrapper = "import resource,runpy,sys;resource.setrlimit(resource.RLIMIT_CPU,(20,20));resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name='__main__')";
-    let mut command = Command::new(crate::maintained_python());
-    command
-        .args(["-c", wrapper])
-        .arg(&tool)
-        .arg("capture")
-        .arg("--repo-root")
-        .arg(repository)
-        .arg("--commit")
-        .arg(&commit)
-        .arg("--output")
-        .arg(&capture);
-    for name in names
+    let prefixes = names
         .iter()
         .filter(|name| selected_software_source(name.as_str()))
-    {
-        command.arg("--include-prefix").arg(name);
-    }
-    capture_process(&mut command, deadline);
-    capture_process(
-        Command::new(crate::maintained_python())
-            .args(["-c", wrapper])
-            .arg(&tool)
-            .arg("restore")
-            .arg("--capture")
-            .arg(&capture)
-            .arg("--output")
-            .arg(&restored),
-        deadline,
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let cancelled = AtomicBool::new(false);
+    let selection = super::source_cut_cases::capture_software_archive(
+        repository, &commit, &prefixes, &capture, deadline, &cancelled,
+    );
+    super::source_cut_cases::restore_software_archive(
+        &capture, &restored, &selection, deadline, &cancelled,
     );
     assert!(fs::metadata(capture.join("capture.json")).unwrap().len() <= 1_048_576);
     let raw = fs::read(capture.join("capture.json")).unwrap();
     let manifest: Value = serde_json::from_slice(&raw).unwrap();
     assert_eq!(manifest["source_git_commit"], commit);
-    let selection = tos_source_store::SoftwareCaptureSelectionV1 {
-        source_git_commit: commit,
-        source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
-        capture_manifest_sha256: Digest256::of_bytes(&raw),
-    };
+    assert_eq!(selection.source_git_commit, commit);
+    assert_eq!(
+        selection.source_git_tree,
+        manifest["source_git_tree"].as_str().unwrap()
+    );
+    assert_eq!(selection.capture_manifest_sha256, Digest256::of_bytes(&raw));
     let fixture = super::source_cut_cases::SoftwareCaptureFixture {
         temporary,
         capture,
@@ -316,7 +289,7 @@ fn selected_capture(
     (fixture, components)
 }
 
-fn fixture(repository: &Path, root: &Path, deadline: Instant) -> Value {
+fn fixture(_repository: &Path, root: &Path, _deadline: Instant) -> Value {
     let script = r#"
 import json,sys,stat,resource
 resource.setrlimit(resource.RLIMIT_CPU,(90,90))
@@ -461,59 +434,19 @@ print(json.dumps({'public':str(case.local.public),'private':str(case.local.priva
     'inspected':inspected,'after':after,'current_record':current_record,
     'current_forms':current_forms,'oracle_calls':oracle_calls},ensure_ascii=False,allow_nan=False))
 "#;
-    let mut output = tempfile::tempfile().unwrap();
-    let mut errors = tempfile::tempfile().unwrap();
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .process_group(0)
-        .stdout(Stdio::from(output.try_clone().unwrap()))
-        .stderr(Stdio::from(errors.try_clone().unwrap()))
-        .spawn()
-        .unwrap();
-    let step = deadline.min(Instant::now() + Duration::from_secs(90));
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        let deadline_reached = Instant::now() >= step;
-        let output_bytes = output.metadata().unwrap().len();
-        let error_bytes = errors.metadata().unwrap().len();
-        if deadline_reached || output_bytes > 8_388_608 || error_bytes > 1_048_576 {
-            let _ = Command::new("/usr/bin/kill")
-                .args(["-KILL", "--", &format!("-{}", child.id())])
-                .status();
-            let _ = child.kill();
-            let status = child.wait().unwrap();
-            errors.seek(SeekFrom::Start(0)).unwrap();
-            let mut error = Vec::new();
-            errors.take(1_048_576).read_to_end(&mut error).unwrap();
-            panic!(
-                "bounded maintained private Claim fixture refused: deadline_reached={deadline_reached} output_bytes={output_bytes} stderr_bytes={error_bytes} post_kill_status={status}; {}",
-                String::from_utf8_lossy(&error)
-            );
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < step);
-    assert!(output.metadata().unwrap().len() <= 8_388_608);
-    assert!(errors.metadata().unwrap().len() <= 1_048_576);
-    output.seek(SeekFrom::Start(0)).unwrap();
-    errors.seek(SeekFrom::Start(0)).unwrap();
-    let mut raw = Vec::new();
-    let mut error = Vec::new();
-    output.read_to_end(&mut raw).unwrap();
-    errors.read_to_end(&mut error).unwrap();
-    assert!(
-        status.success(),
-        "private Claim fixture ({status}): {}",
-        String::from_utf8_lossy(&error)
+    let native_owner_paths = [
+        "rust/crates/tos-command/src/source_private_claim.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
+        "rust/crates/tos-command/src/source_native_private_cli.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+    ];
+    let captured = super::native_python_fixture(
+        "private-claim",
+        &[("private-root", root)],
+        &native_owner_paths,
     );
-    serde_json::from_slice(&raw).unwrap()
+    super::assert_native_python_fixture(&captured, script, &native_owner_paths);
+    captured.packets.get("factory").unwrap().clone()
 }
 
 fn private_snapshot(root: &Path, deadline: Instant) -> BTreeMap<String, (Vec<u8>, u32)> {
@@ -598,34 +531,6 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         .canonicalize()
         .unwrap();
     let mut names = vec![
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_profile_commands.py"
-            .to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py".to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py".to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py"
-            .to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py".to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py"
-            .to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_claim_commands.py"
-            .to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py"
-            .to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py"
-            .to_owned(),
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py".to_owned(),
-        "scripts/source_owner_record_profiles.py".to_owned(),
-        "scripts/source_record_profiles.py".to_owned(),
-        "scripts/source_owner_context.py".to_owned(),
-        "scripts/native_text_binding.py".to_owned(),
-        "scripts/source_witness_human_forms.py".to_owned(),
-        "scripts/source_owner_claim_profiles.py".to_owned(),
-        "scripts/corpus_archive.py".to_owned(),
-        "mechanics/growth-cycle/tests/test_source_owner_claim_commands.py".to_owned(),
-        "mechanics/growth-cycle/tests/test_occurrence_growth.py".to_owned(),
-        "tests/test_source_owner_claim_profiles.py".to_owned(),
-        "tests/test_source_owner_record_profiles.py".to_owned(),
-        "tests/test_native_text_binding.py".to_owned(),
         "rust/crates/tos-command/src/source_native_cli.rs".to_owned(),
         "rust/crates/tos-command/src/source_command.rs".to_owned(),
         "rust/crates/tos-command/src/source_claims.rs".to_owned(),
@@ -635,8 +540,16 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         "rust/crates/tos-command/src/source_creation_store.rs".to_owned(),
         "rust/crates/tos-command/src/source_legacy_claim_store.rs".to_owned(),
         "rust/crates/tos-command/src/source_native_private_cli.rs".to_owned(),
+        "rust/crates/tos-source-store/src/archive.rs".to_owned(),
+        "rust/crates/tos-source-store/src/chunked_file.rs".to_owned(),
+        "rust/crates/tos-source-store/src/git_capture.rs".to_owned(),
+        "rust/crates/tos-source-store/src/lib.rs".to_owned(),
+        "rust/crates/tos-command/src/source_forms_publication.rs".to_owned(),
+        "rust/crates/tos-command/src/source_work_transaction.rs".to_owned(),
         "rust/crates/tos-command/src/source_private_profile.rs".to_owned(),
         "rust/crates/tos-command/src/source_private_claim.rs".to_owned(),
+        "rust/crates/tos-command/src/source_private_assessment_sources.rs".to_owned(),
+        "rust/crates/tos-command/src/source_claim_publication.rs".to_owned(),
         "rust/crates/tos-command/src/source_private_owner_store.rs".to_owned(),
         "rust/crates/tos-command/src/source_private_serialization.rs".to_owned(),
         "rust/crates/tos-command/src/source_text_owner.rs".to_owned(),
@@ -893,12 +806,14 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         provenance["rights_and_visibility"]["content_visibility"],
         "local_only"
     );
-    assert!(provenance["method"]["software_components"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|component| component["artifact_ref"]
-            == "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_claim_commands.py"));
+    assert!(
+        provenance["method"]["software_components"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|component| component["artifact_ref"]
+                == "rust/crates/tos-command/src/source_private_claim.rs")
+    );
 
     let after_create = private_snapshot(&private, deadline);
     let create_replay = call(&creation_request, &mut native_calls);

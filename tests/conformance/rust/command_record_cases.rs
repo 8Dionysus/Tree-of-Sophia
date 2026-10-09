@@ -172,17 +172,13 @@ finally:
     // Rule implementation and native serialization observations are selected
     // through a separate exact software capture, never the authored cut.
     for name in [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
         "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
-        "scripts/source_witness_human_forms.py",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_forms_publication.rs",
         "rust/crates/tos-compiler/src/source_witness_catalog.rs",
-        "scripts/source_record_profiles.py",
-        "scripts/native_text_binding.py",
-        "scripts/source_owner_context.py",
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_text_owner.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
         "rust/crates/tos-command/src/source_corpus_index_projection.rs",
         "rust/crates/tos-compiler/src/source_bibliographic.rs",
         "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
@@ -570,6 +566,29 @@ fn obj(values: Vec<(&str, JsonValue)>) -> JsonValue {
             .collect(),
     )
 }
+fn assert_prepared_file_refs(preview: &JsonValue, files: &BTreeMap<String, Vec<u8>>) {
+    let JsonValue::Object(refs) = preview.object_get("prepared_files").unwrap() else {
+        panic!("prepared file refs object")
+    };
+    assert_eq!(refs.len(), files.len());
+    for (name, raw) in files {
+        let (_, reference) = refs
+            .iter()
+            .find(|(path, _)| path.as_str() == Some(name.as_str()))
+            .unwrap_or_else(|| panic!("prepared file ref missing: {name}"));
+        let sha256 = Digest256::of_bytes(raw).to_prefixed();
+        assert_eq!(
+            reference.object_get("sha256").and_then(JsonValue::as_str),
+            Some(sha256.as_str()),
+            "prepared file digest {name}"
+        );
+        assert_eq!(
+            reference.object_get("bytes").and_then(JsonValue::as_u64),
+            Some(raw.len() as u64),
+            "prepared file size {name}"
+        );
+    }
+}
 fn set(v: &mut JsonValue, key: &str, value: JsonValue) {
     let JsonValue::Object(fields) = v else {
         panic!("object")
@@ -635,12 +654,11 @@ fn context(selected: bool) -> CommandContext {
     owner!("rust/crates/tos-command/src/source_revisions.rs");
     owner!("rust/crates/tos-command/src/source_forms.rs");
     owner!("rust/crates/tos-validation/src/assessment.rs");
-    owner!("scripts/source_record_profiles.py");
-    owner!("scripts/native_text_binding.py");
-    owner!("scripts/source_owner_context.py");
-    owner!("scripts/source_witness_human_forms.py");
+    owner!("rust/crates/tos-command/src/source_private_profile.rs");
+    owner!("rust/crates/tos-command/src/source_text_owner.rs");
+    owner!("rust/crates/tos-command/src/source_private_owner_store.rs");
+    owner!("rust/crates/tos-command/src/source_forms_publication.rs");
     if selected {
-        owner!("scripts/source_metadata_snapshot.py");
         owner!("rust/crates/tos-command/src/source_work_transaction.rs");
     }
     CommandContext {
@@ -791,9 +809,7 @@ pub(super) fn captured_components(
 
 #[test]
 fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publication() {
-    use std::io::Write;
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
-    use std::process::{Command, Stdio};
     use tos_command::source_creation::prepare_source_creation_from_captures;
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
@@ -806,19 +822,15 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
         .unwrap();
     let cancellation = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(240);
-    // Existing maintained creator support law, plus the actual native buffer
-    // producer sources. The capture is byte evidence; it is not a build proof.
+    // Actual native contract and buffer producer sources. The capture is byte
+    // evidence; it is not a build proof.
     let inputs = [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
-        "scripts/source_witness_human_forms.py",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_forms_publication.rs",
         "rust/crates/tos-compiler/src/source_witness_catalog.rs",
-        "scripts/source_record_profiles.py",
-        "scripts/native_text_binding.py",
-        "scripts/source_owner_context.py",
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_text_owner.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
         "rust/crates/tos-command/src/source_corpus_index_projection.rs",
         "rust/crates/tos-compiler/src/source_bibliographic.rs",
         "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
@@ -969,58 +981,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
         )
         .unwrap();
         let preview = prepared.preview().unwrap();
-
-        // Actual maintained whole prepare oracle on this same owner-selected
-        // filesystem. It prepares buffers only and never writes source bytes.
-        let script = "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=commands._json_object(commands._canonical(json.load(sys.stdin)));config,_,_=commands._configuration(Path(sys.argv[2]));_,files,_=commands._prepare_creation(config,request);result=commands.run_legacy_oracle_command(Path(sys.argv[2]),request);print(json.dumps({'result_raw':commands._canonical(result).hex(),'files':{name:raw.hex() for name,raw in files.items()}},ensure_ascii=False,allow_nan=False))";
-        let mut oracle = Command::new(crate::maintained_python());
-        for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().starts_with("GIT_")
-                || key == "PYTHONPATH"
-                || key == "PYTHONHOME"
-            {
-                oracle.env_remove(key);
-            }
-        }
-        let mut child = oracle
-            .args(["-c", script])
-            .arg(&repository)
-            .arg(&owner)
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(&canonical_json(&request))
-            .unwrap();
-        let oracle = child.wait_with_output().unwrap();
-        assert!(
-            oracle.status.success(),
-            "{kind}: {}",
-            String::from_utf8_lossy(&oracle.stderr)
-        );
-        let oracle: Value = serde_json::from_slice(&oracle.stdout).unwrap();
-        assert_eq!(
-            bytes(&preview),
-            decode_hex(required(&oracle, "result_raw")),
-            "{kind} full prepare result"
-        );
-        for (name, raw) in prepared.files() {
-            let hex = raw
-                .iter()
-                .map(|byte| format!("{byte:02x}"))
-                .collect::<String>();
-            assert_eq!(
-                oracle["files"][name].as_str(),
-                Some(hex.as_str()),
-                "{kind} original output {name}"
-            );
-        }
+        assert_prepared_file_refs(&preview, prepared.files());
         request["operation"] = serde_json::json!(operation);
         request["command_id"] = serde_json::json!("synthetic:create-first");
         request["expected_configuration"] =
@@ -1172,19 +1133,8 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             published_result.object_get("record_id"),
             preview.object_get("record_id")
         );
-        for (name, hex) in oracle["files"].as_object().unwrap() {
-            let original = decode_hex(hex.as_str().unwrap());
-            assert_eq!(
-                executed.prepared().files().get(name),
-                Some(&original),
-                "{kind} executed original output {name}"
-            );
-            assert_eq!(
-                serialized.prepared().files().get(name),
-                Some(&original),
-                "{kind} independent original output {name}"
-            );
-        }
+        let executed_preview = executed.prepared().preview().unwrap();
+        assert_prepared_file_refs(&executed_preview, executed.prepared().files());
         for (name, bytes) in executed.prepared().files() {
             assert_eq!(fs::read(home.join(name)).unwrap(), *bytes);
         }
@@ -2449,72 +2399,8 @@ fn profile_native_binding_checks_metadata_closure_without_content_read() {
     ));
 }
 
-// The retained Python handler is the independent oracle; native tests do not
-// monkeypatch its engine or dispatch it through the native invocation.
-fn initial_creation_python_oracle(
-    repository: &Path,
-    owner: &Path,
-    request: &Value,
-    deadline: Instant,
-) -> Value {
-    use std::io::{Read, Seek, SeekFrom, Write};
-    use std::process::{Command, Stdio};
-    let mut input = tempfile::tempfile().unwrap();
-    let raw = canonical_json(request);
-    assert!(raw.len() <= 1_048_576);
-    input.write_all(&raw).unwrap();
-    input.seek(SeekFrom::Start(0)).unwrap();
-    let mut output = tempfile::tempfile().unwrap();
-    let mut errors = tempfile::tempfile().unwrap();
-    let mut child =
-        Command::new(crate::maintained_python())
-            .args(["-c", "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=commands._json_object(commands._canonical(json.load(sys.stdin)));print(json.dumps(commands.run_legacy_oracle_command(Path(sys.argv[2]),request),ensure_ascii=False,allow_nan=False))"])
-            .arg(repository)
-            .arg(owner)
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdin(Stdio::from(input))
-            .stdout(Stdio::from(output.try_clone().unwrap()))
-            .stderr(Stdio::from(errors.try_clone().unwrap()))
-            .spawn()
-            .unwrap();
-    let step = deadline.min(Instant::now() + Duration::from_secs(60));
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= step
-            || output.metadata().unwrap().len() > 1_048_576
-            || errors.metadata().unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("creation oracle bounded refusal");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < step);
-    assert!(
-        output.metadata().unwrap().len() <= 1_048_576
-            && errors.metadata().unwrap().len() <= 1_048_576
-    );
-    let mut raw = Vec::new();
-    let mut error = Vec::new();
-    output.seek(SeekFrom::Start(0)).unwrap();
-    output.read_to_end(&mut raw).unwrap();
-    errors.seek(SeekFrom::Start(0)).unwrap();
-    errors.read_to_end(&mut error).unwrap();
-    assert!(
-        status.success(),
-        "creation oracle: {}",
-        String::from_utf8_lossy(&error)
-    );
-    serde_json::from_slice(&raw).unwrap()
-}
-
 #[test]
-fn native_initial_creation_cli_preserves_oracle_and_cold_retained_receipt() {
+fn native_initial_creation_cli_preserves_native_contract_and_cold_retained_receipt() {
     use super::command_text_cases::{
         alignment_image_digest, alignment_native_cli, authored_text_files,
     };
@@ -2526,16 +2412,12 @@ fn native_initial_creation_cli_preserves_oracle_and_cold_retained_receipt() {
         .canonicalize()
         .unwrap();
     let inputs = [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
-        "scripts/source_witness_human_forms.py",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_forms_publication.rs",
         "rust/crates/tos-compiler/src/source_witness_catalog.rs",
-        "scripts/source_record_profiles.py",
-        "scripts/native_text_binding.py",
-        "scripts/source_owner_context.py",
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_text_owner.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
         "rust/crates/tos-command/src/source_corpus_index_projection.rs",
         "rust/crates/tos-compiler/src/source_bibliographic.rs",
         "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
@@ -2587,7 +2469,7 @@ fn native_initial_creation_cli_preserves_oracle_and_cold_retained_receipt() {
     );
     assert!(Instant::now() < deadline);
     eprintln!(
-        "creation CLI F={} E={} C={} W={} native_processes=6 oracle_processes=3 workers<=6",
+        "creation CLI F={} E={} C={} W={} native_processes=6 workers<=6",
         fixture_bytes, native_bytes, consumer_bytes, worker_bytes
     );
     let files: BTreeMap<String, Vec<u8>> = inputs
@@ -2661,21 +2543,35 @@ fn native_initial_creation_cli_preserves_oracle_and_cold_retained_receipt() {
         serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-create","record":record,
             "claims":[],"forms":[{"form_id":"tos.form.creation.fixture-name","field_id":"metadata.preferred-name"}]}),
     ] {
-        let oracle = initial_creation_python_oracle(&repository, &owner, &request, deadline);
         let actual =
             alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
         assert_eq!(
             actual["schema_version"],
             "tos_local_native_source_result_v1"
         );
-        assert_eq!(
-            actual["result"], oracle,
-            "entire maintained {} result",
-            request["operation"]
-        );
         assert_eq!(actual["grants_admission"], false);
-        if request["operation"] == "prepare-create" {
-            preview = actual["result"].clone();
+        let result = &actual["result"];
+        assert!(result.is_object(), "native creation response is an object");
+        assert_eq!(
+            result["schema_version"],
+            "tos_local_historical_create_result_v1"
+        );
+        assert_eq!(result["grants_admission"], false);
+        assert_eq!(result["record_id"], record["record_id"]);
+        assert_eq!(
+            result["supported_operations"],
+            serde_json::json!(["historical.create"])
+        );
+        match request["operation"].as_str().unwrap() {
+            "describe" => assert_eq!(result["target_exists"], false),
+            "prepare" => assert!(result["prepared_source"].is_object()),
+            "prepare-create" => {
+                assert!(result["prepared_source"].is_object());
+                assert!(result["expected_dependencies"].is_string());
+                assert!(result["prepared_files"].is_object());
+                preview = result.clone();
+            }
+            operation => panic!("unexpected native creation request {operation}"),
         }
     }
     let request = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"historical.create",

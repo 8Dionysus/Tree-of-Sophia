@@ -48,10 +48,12 @@ const DEPENDENCIES: &[&str] = &[
     "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_forms.rs",
     "rust/crates/tos-validation/src/assessment.rs",
-    "scripts/source_record_profiles.py",
-    "scripts/native_text_binding.py",
-    "scripts/source_owner_context.py",
-    "scripts/source_witness_human_forms.py",
+    "rust/crates/tos-command/src/source_private_profile.rs",
+    "rust/crates/tos-command/src/source_private_claim.rs",
+    "rust/crates/tos-command/src/source_private_owner_store.rs",
+    "rust/crates/tos-command/src/source_text_owner.rs",
+    "rust/crates/tos-command/src/source_creation_store.rs",
+    "rust/crates/tos-command/src/source_work_transaction.rs",
     "ToS/contracts/human-form.schema.json",
     "ToS/contracts/human-form-set.schema.json",
     "ToS/contracts/human-form-template.schema.json",
@@ -1872,8 +1874,8 @@ fn dependencies(
             JsonString::from_utf8("native_binding_implementation"),
             JsonValue::Object(
                 [
-                    "scripts/native_text_binding.py",
-                    "scripts/source_owner_context.py",
+                    "rust/crates/tos-command/src/source_text_owner.rs",
+                    "rust/crates/tos-command/src/source_private_owner_store.rs",
                 ]
                 .iter()
                 .map(|name| {

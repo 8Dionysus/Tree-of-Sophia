@@ -264,12 +264,13 @@ their authorized review routes.
 
 ## Retained object-Link v1 context
 
-The retained `relations/object-link/object-link-claims.jsonl` stream has an
-explicit read-only adapter in `scripts/source_object_link_read.py`. It reads
-the unchanged `tos_object_link_claim_v1` contract: Work, Expression, Edition,
-Collection or Item as subject, Link as object, and the four declared access
-predicates. The newer six-kind native v2 write route has its own contract; legacy v1
-retains the subject domain and read-only adapter stated here.
+The retained `relations/object-link/object-link-claims.jsonl` stream is returned
+as source context by the Rust bibliographic projection in
+`tos-compiler::source_bibliographic`. It reads the unchanged
+`tos_object_link_claim_v1` contract: Work, Expression, Edition, Collection or
+Item as subject, Link as object, and the four declared access predicates. The
+newer six-kind native v2 write route has its own contract; legacy v1 retains
+the subject domain and read-only projection stated here.
 
 Every retained Claim has both its existing direct navigation edge and an
 additive reified source-claim carrier. Both preserve the exact raw Claim,
@@ -278,10 +279,11 @@ empty reviews, version and supersession return through ordinary core/agent
 inspection. The existing Link navigation body remains unchanged; its second source-claims endpoint carries the same declared Link ID in reified
 Claim topology.
 
-The adapter preserves the legacy record’s available wording, language, Forms,
-assessments and history. Missing Forms remain explicit missing roles. A Link
-returns the recorded observation; acquisition, rights clearance and content
-assessment use their respective owner routes. The portable consumer checks exact
+The projection returns the complete source Claim, including unknown qualifier
+members and explicit empty or false values, without fabricating wording,
+language, Forms, assessments or history. A Link returns the recorded
+observation; acquisition, rights clearance and content assessment use their
+respective owner routes. The portable consumer checks exact
 body/digest/endpoint agreement and rejects conflicting marked carriers; source validation and export authentication remain independent checks. Older
 unmarked projections retain their absent-context state.
 

@@ -86,7 +86,7 @@ acceptance of the currently ignored tests or this patch.
 | `test_source_native_metadata_commands.py` | `source_revisions.rs` | `command_record_cases.rs` | native selected current topology and historical retry with current software grammar |
 | `test_source_owner_claim_commands.py` | `source_private_claim.rs` | `command_private_claim_cases.rs` | private Claim lifecycle, current delegated scope and physical replay |
 | `test_source_owner_profile_commands.py` | `source_private_profile.rs` | `command_private_profile_cases.rs` | private profile lifecycle, occurrence bindings and retained materialization replay |
-| `test_source_prepared_transition.py` | `source_revision_observation.rs` | `command_metadata_publication_cases.rs` | detached exact before/after, current committed transaction and reverify before derived publication |
+| committed selected-record observation | `source_revision_observation.rs` | `command_metadata_publication_cases.rs` | detached exact before/after, current committed transaction and reverify before derived publication |
 | `test_source_public_native_commands.py` | `source_public_text_owner.rs` | `command_public_text_cases.rs` | public current-rights/current-assessment create/replay and complete exact fixtures |
 | `test_source_responsibility_commands.py` | `source_expression_responsibility.rs` | `command_responsibility_cases.rs` | qualified responsibility endpoints, external rights and retained replay |
 | `test_source_revisions.py` | `source_revisions.rs` | `command_record_cases.rs` | flat/profile/native exact predecessor chain and independent current authority |
