@@ -1241,10 +1241,9 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
             # Internal fixed TextLayer adapter only. In particular annotation
             # of supplied OCR bytes must never fabricate an OCR execution.
             native_operation = native_inputs['native_derivation']
-            owner_ocr = native_operation in {'text-layer.record-owner-ocr', 'text-layer.record-owner-page-ocr'}
             supplied = native_operation in {'text-layer.record-ocr', 'text-layer.record-transcription'}
             if native_operation not in {'text-layer.correct', 'text-layer.normalize',
-                                        'text-layer.record-ocr', 'text-layer.record-transcription', 'text-layer.record-owner-ocr', 'text-layer.record-owner-page-ocr'}:
+                                        'text-layer.record-ocr', 'text-layer.record-transcription'}:
                 raise ValueError('unsupported internal native derivation capture')
             event['activity']['warnings'][0] = (
                 'Exact source File and supplied result fixity verified; result recorded without executing '
@@ -1264,27 +1263,9 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
             event['reproducibility']['replay_scope'] = (
                 'Exact retained source/result/configuration/implementation and immutable layer construction; '
                 'no replay or attestation of an upstream provider, and no inherited quality or deterministic timestamps.')
-            if owner_ocr:
-                event['activity']['warnings'][0] = (
-                    'Existing-key signed abyss-stack execution receipt and exact source/output bindings independently verified; '
-                    'the observed OCR result is recorded here, not executed, retried or assessed by this ToS command.')
-                event['method']['procedure']['purpose'] = (
-                    'Record one separately granted authenticated owner OCR result and copied signed evidence as an '
-                    'immutable unreviewed TextLayer; runtime authority remains with abyss-stack and abyss-machine.')
-                event['reproducibility']['known_gaps'][0] = (
-                    'The owner receipt authenticates observed local execution, not source-visible fidelity, linguistic '
-                    'competence, accepted use, rights, translation or canon. No quality is inherited.')
-                event['reproducibility']['replay_scope'] = (
-                    'Exact retained signed execution metadata, result bytes and ToS recording inputs; '
-                    'retry/recovery verifies the recorded result and never invokes OCR again.')
-                if native_operation == 'text-layer.record-owner-page-ocr':
-                    event['activity']['warnings'].append(
-                        'Original acquired PDF and consumed retained PNG are distinct; the whole-page source anchor is exact. '
-                        'The new owner verification/capture event does not claim fresh rendering or authenticate the historical unsigned render receipt.')
             for relation in event['derivations']:
                 if relation['relation'] == 'selection_from':
-                    relation['description'] = ('Authenticated earlier owner OCR execution/result dependency for this distinct recording event; not textual fidelity.'
-                        if owner_ocr else 'Exact source/result dependency for additive layer construction, not provider execution or textual fidelity.')
+                    relation['description'] = 'Exact source/result dependency for additive layer construction, not provider execution or textual fidelity.'
             for group in event['entities'].values():
                 for item in group:
                     if item['entity_ref'].endswith('/content.txt'):

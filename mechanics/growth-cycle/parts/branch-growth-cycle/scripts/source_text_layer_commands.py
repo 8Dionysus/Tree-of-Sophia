@@ -28,8 +28,6 @@ from source_owner_context import OwnerLocalSourceContext, _absolute, _open, _rea
 from native_text_binding import NativeTextBindingResolver
 from source_revisions import _file_refs
 from source_text_layer_proposal import DERIVE_CONFIG, DERIVE_OPERATIONS, MAX_DERIVED_TEXT_BYTES
-from native_owner_ocr import (OWNER_OCR_CONFIG, OWNER_OCR_OPERATION, OWNER_PAGE_OCR_CONFIG, OWNER_PAGE_OCR_OPERATION,
-    OWNER_OCR_PROFILES, validate_material, validate_page_anchor, verify_owner_ocr, evidence_bytes)
 
 
 CONFIG = 'tos_local_text_layer_create_owner_v1'
@@ -390,7 +388,7 @@ def _prepare(config, *, deadline, exclude=None):
         'entities': entities, 'event_type': 'native_extraction'}
 
 
-def derive_configuration(config, *, owner_config, _owner_ocr=False, _retained_page=False):
+def derive_configuration(config, *, owner_config):
     """Separate protected v1 grant; extraction grants cannot authorize this path."""
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'authority_ref', 'expires_at',
         'source_context_ref', 'source_path', 'allowed_operations', 'source_scope', 'source_record_refs',
@@ -400,11 +398,8 @@ def derive_configuration(config, *, owner_config, _owner_ocr=False, _retained_pa
     if source._json_object(raw) != config:
         raise source.JournalConflict('native derivation grant changed while selecting it')
     operations = config['allowed_operations']
-    owner_schema = OWNER_PAGE_OCR_CONFIG if _retained_page else OWNER_OCR_CONFIG
-    owner_operation = OWNER_PAGE_OCR_OPERATION if _retained_page else OWNER_OCR_OPERATION
-    if (_retained_page and not _owner_ocr
-            or config['schema_version'] != (owner_schema if _owner_ocr else DERIVE_CONFIG) or type(config['uid']) is not int or config['uid'] != os.getuid()
-            or type(operations) is not list or len(operations) != 1 or not isinstance(operations[0], str) or operations[0] not in ({owner_operation} if _owner_ocr else DERIVE_OPERATIONS)
+    if (config['schema_version'] != DERIVE_CONFIG or type(config['uid']) is not int or config['uid'] != os.getuid()
+            or type(operations) is not list or len(operations) != 1 or not isinstance(operations[0], str) or operations[0] not in DERIVE_OPERATIONS
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))):
         raise PermissionError('native layer derivation is not currently delegated')
@@ -414,7 +409,7 @@ def derive_configuration(config, *, owner_config, _owner_ocr=False, _retained_pa
     if type(policy) is not dict or policy != derivation_policy(operation, unicode_form=policy.get('unicode_normalization'),
             transcription_method=policy.get('method') if operation == 'text-layer.record-transcription' else 'manual_transcription'):
         raise ValueError('native derivation needs its exact supported policy version')
-    supplied = operation in {'text-layer.record-transcription', 'text-layer.record-ocr', *OWNER_OCR_PROFILES}
+    supplied = operation in {'text-layer.record-transcription', 'text-layer.record-ocr'}
     context = OwnerLocalSourceContext.load(config['source_context_ref'])
     path = context.path(config['source_path'])
     if (context.role(config['source_path']) != 'owner-local-root' or path.name != 'source-text-layer.v1.json'
@@ -460,7 +455,7 @@ def derive_configuration(config, *, owner_config, _owner_ocr=False, _retained_pa
     source._keys(config['input'], {'kind', 'anchor'} if supplied else {'kind', 'binding'})
     resolver = NativeTextBindingResolver(context.public_root, owner_context=context, read_bytes=source._read)
     if supplied:
-        if config['input']['kind'] != ('retained_pdf_page' if _retained_page else 'acquired_file'):
+        if config['input']['kind'] != 'acquired_file':
             raise ValueError('supplied transcription requires its exact original File')
         source._keys(config['input']['anchor'], {'anchor_id', 'record_ref', 'record_sha256'})
         anchor = config['input']['anchor']
@@ -474,13 +469,7 @@ def derive_configuration(config, *, owner_config, _owner_ocr=False, _retained_pa
         if payload_root.is_relative_to(context.private_root) or context.private_root.is_relative_to(payload_root):
             raise PermissionError('native source and output roots must be disjoint')
         material = config['material']
-        if _owner_ocr:
-            validate_material(material, retained_page=_retained_page)
-            _grant(material, set(material) - {'authority_ref', 'expires_at'})
-            if config['maker']['maker_type'] != 'software' or config['language'] not in {'de', 'deu', 'ru', 'rus'}:
-                raise ValueError('owner OCR recording needs software maker and one supported exact language')
-        else:
-            _supplied_material(config, context, path, policy)
+        _supplied_material(config, context, path, policy)
     else:
         if config['input']['kind'] != 'text_layer':
             raise ValueError('native correction/normalization requires one exact existing layer')
@@ -499,14 +488,6 @@ def derive_configuration(config, *, owner_config, _owner_ocr=False, _retained_pa
         'context': context.snapshot(), 'contracts': resolver.schema_digests,
         'payload_root_pins': deposit._pins(payload_root / 'root-pin') if supplied else None}))
     return config, digest, path
-
-
-def owner_ocr_configuration(config, *, owner_config):
-    return derive_configuration(config, owner_config=owner_config, _owner_ocr=True)
-
-
-def owner_page_ocr_configuration(config, *, owner_config):
-    return derive_configuration(config, owner_config=owner_config, _owner_ocr=True, _retained_page=True)
 
 
 def _supplied_material(config, context, path, policy):
@@ -529,14 +510,11 @@ def _prepare_derivation(config, *, deadline, exclude=None):
     from source_text_layer_proposal import build_derived_text_layer
     from validate_source_witness_foundation import _source_text_layer_semantic_issues, _anchor_v2_semantic_issues
     operation = config['allowed_operations'][0]
-    supplied = operation in {'text-layer.record-transcription', 'text-layer.record-ocr', *OWNER_OCR_PROFILES}
-    owner_ocr = operation in OWNER_OCR_PROFILES
-    retained_page = operation == OWNER_PAGE_OCR_OPERATION
-    owner_files = {}
+    supplied = operation in {'text-layer.record-transcription', 'text-layer.record-ocr'}
     context = OwnerLocalSourceContext.load(config['source_context_ref'])
     resolver = NativeTextBindingResolver(context.public_root, owner_context=context, read_bytes=source._read,
                                          max_content_bytes=2 * MAX_DERIVED_TEXT_BYTES)
-    entry = _metadata(config, resolver, payload_media_types=('application/pdf',) if retained_page else (
+    entry = _metadata(config, resolver, payload_media_types=(
         'application/epub+zip', 'application/pdf', 'image/png', 'image/jpeg', 'image/tiff', 'image/webp') if supplied else None)
     inventory = units._identity_snapshot(context, config, exclude=exclude, identities=list(config['identities'].values()))
     scope = config['source_scope']
@@ -554,8 +532,6 @@ def _prepare_derivation(config, *, deadline, exclude=None):
                 or anchor['target']['file_id'] != scope['file_ref'] or anchor['target']['file_sha256'] != scope['file_sha256']
                 or anchor['target']['media_type'] != entry['media_type'] or _anchor_v2_semantic_issues(anchor)):
             raise ValueError('supplied text anchor does not address its exact source File')
-        if retained_page:
-            validate_page_anchor(anchor, config['material']['input_representation'], scope)
         source_binding = {key: scope[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
         source_binding.update(source_file_ref=scope['file_ref'], source_file_sha256=scope['file_sha256'],
             anchor_contract='tos_source_anchor_v2', anchors=[{'anchor_id': target['anchor_id'],
@@ -567,22 +543,15 @@ def _prepare_derivation(config, *, deadline, exclude=None):
             'availability': 'owner_local', 'content_disclosure': 'private_content', 'fixity_verified': True,
             'fixity_verified_at': datetime.now(timezone.utc).isoformat()})
         material = config['material']
-        if owner_ocr:
-            raw = verify_owner_ocr(material, source_scope=scope, language=config['language'], retained_page=retained_page)
-            owner_files = evidence_bytes(material)
-        else:
-            raw = resolver._read(material['content_ref'], expected=material['content_sha256'], content=True)
+        raw = resolver._read(material['content_ref'], expected=material['content_sha256'], content=True)
         if len(raw) != material['byte_size']:
             raise source.JournalConflict('supplied transcription byte size differs from its independent grant')
         try:
             supplied_text = raw.decode('utf-8')
         except UnicodeError:
             raise ValueError('supplied transcription is not exact strict UTF-8') from None
-        entities.append(entity((Path(config['source_path']).parent / 'content.txt').as_posix() if owner_ocr else material['content_ref'], raw,
-            'authenticated-owner-ocr-result' if owner_ocr else 'supplied-unverified-' + config['policy']['method'] + '-result'))
-        if owner_ocr:
-            entities.append(entity((Path(config['source_path']).parent / 'owner-ocr-receipt.json').as_posix(),
-                owner_files['owner-ocr-receipt.json'], 'authenticated-owner-ocr-execution-receipt', 'application/json'))
+        entities.append(entity(material['content_ref'], raw,
+            'supplied-unverified-' + config['policy']['method'] + '-result'))
     else:
         binding = config['input']['binding']
         # Source/new-layer rights were checked above; predecessor rights are
@@ -617,7 +586,7 @@ def _prepare_derivation(config, *, deadline, exclude=None):
         'implementation': {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES)) for ref in IMPLEMENTATIONS},
         'runtime': _runtime()}
     files = {'source-text-layer.v1.json': _encoded(output['layer']), 'derivation-policy.json': _encoded(output['policy']),
-        'content.txt': output['content'], CONFIG_FILE: _encoded(config), INPUT_FILE: _encoded(inputs), **owner_files}
+        'content.txt': output['content'], CONFIG_FILE: _encoded(config), INPUT_FILE: _encoded(inputs)}
     dependencies = source._digest(source._canonical({'source_snapshot': resolver.snapshot(),
         'inputs': source._digest(files[INPUT_FILE]), 'identity_inventory': inventory}))
     if sum(map(len, files.values())) > MAX_PACKAGE_BYTES:
@@ -628,7 +597,7 @@ def _prepare_derivation(config, *, deadline, exclude=None):
 
 
 def _prepare_selected(config, **kwargs):
-    return (_prepare_derivation if config['schema_version'] in {DERIVE_CONFIG, *OWNER_OCR_PROFILES.values()} else _prepare)(config, **kwargs)
+    return (_prepare_derivation if config['schema_version'] == DERIVE_CONFIG else _prepare)(config, **kwargs)
 
 
 def _private_package(context, directory):
@@ -819,7 +788,7 @@ def run_command(owner_config, config, configuration_digest, path, request):
     deadline = time.monotonic() + config['limits']['max_seconds']
     target = path.parent
     def result(receipt=None, *, replayed=False):
-        return {'schema_version': 'tos_local_text_layer_derive_result_v1' if config['schema_version'] in {DERIVE_CONFIG, *OWNER_OCR_PROFILES.values()} else 'tos_local_text_layer_create_result_v1',
+        return {'schema_version': 'tos_local_text_layer_derive_result_v1' if config['schema_version'] == DERIVE_CONFIG else 'tos_local_text_layer_create_result_v1',
             'authentication': 'local-unix-account', 'owner_configuration': configuration_digest,
             'target_exists': os.path.lexists(target), 'expected_source': None, 'expected_revision': None,
             'supported_operations': [delegated_operation], 'command_operations': ['describe', 'prepare-create', delegated_operation],
@@ -853,7 +822,7 @@ def run_command(owner_config, config, configuration_digest, path, request):
             raise source.JournalConflict('prepared native extraction dependencies changed')
         source._capture_creation_provenance({**config, 'source_root': str(context.public_root),
                 'provenance_event_id': config['identities']['provenance_event_id']}, request, files, started_at, started_ns,
-            procedure_name='exact-native-text-layer-' + delegated_operation.removeprefix('text-layer.') if config['schema_version'] in {DERIVE_CONFIG, *OWNER_OCR_PROFILES.values()} else 'exact-native-text-layer-structural-extraction',
+            procedure_name='exact-native-text-layer-' + delegated_operation.removeprefix('text-layer.') if config['schema_version'] == DERIVE_CONFIG else 'exact-native-text-layer-structural-extraction',
             additional_software_refs=IMPLEMENTATIONS[-1:] + IMPLEMENTATIONS[-4:-3], native_inputs=inputs)
         layer = source._json_object(files[path.name])
         subject = source.Record.from_payload(layer['layer_id'], layer['layer_version'], layer)
@@ -897,24 +866,4 @@ def command_handlers():
             profile_selection='One protected grant selects one operation, exact inputs, method, output identity and separate reading/derivation rights.',
             preconditions=('Grant-free discovery and describe never open source or supplied text.',
                 'Supplied OCR/transcription has no observed provider execution or automatic source-fidelity assessment.',
-                'New layers never inherit predecessor accepted uses; exact-source assessment is a separate downstream route.')),
-        contract.Handler('owner-local-text-layer-record-owner-ocr', (OWNER_OCR_CONFIG,), (contract.describe(),
-            contract.operation('prepare-create', definition='Verify separately granted exact signed owner OCR evidence.', grants=(OWNER_OCR_OPERATION,)),
-            contract.operation(OWNER_OCR_OPERATION, contract.COMMIT_KEYS,
-                definition='Record authenticated owner OCR output as an immutable unreviewed private TextLayer; never execute or retry OCR.',
-                mutation='private_text_layer_package', grants=(OWNER_OCR_OPERATION,))), run_command,
-            'Distinct signed-owner OCR recording, not supplied OCR or runtime execution.',
-            configure=owner_ocr_configuration, typed_handles=(LAYER_SCHEMA, ANCHOR_SCHEMA, units.PROVENANCE_SCHEMA),
-            profile_selection='Separate exact source-read, layer-derivation and authenticated evidence-read grants.',
-            preconditions=('A pinned clean abyss-stack verifier must authenticate the existing-key receipt and exact source/output identity.',
-                'No runtime execution on prepare, commit, retry, recovery or metadata read; OCR quality remains unreviewed.')),
-        contract.Handler('owner-local-text-layer-record-owner-page-ocr', (OWNER_PAGE_OCR_CONFIG,), (contract.describe(),
-            contract.operation('prepare-create', definition='Verify exact original-PDF and retained-page signed owner OCR evidence.', grants=(OWNER_PAGE_OCR_OPERATION,)),
-            contract.operation(OWNER_PAGE_OCR_OPERATION, contract.COMMIT_KEYS,
-                definition='Record authenticated retained-page OCR with original PDF/page source return; no rendering or OCR execution.',
-                mutation='private_text_layer_package', grants=(OWNER_PAGE_OCR_OPERATION,))), run_command,
-            'Distinct retained-PDF-page OCR recording; original File and input representation remain separate.',
-            configure=owner_page_ocr_configuration, typed_handles=(LAYER_SCHEMA, ANCHOR_SCHEMA, units.PROVENANCE_SCHEMA),
-            profile_selection='A separate protected grant pins original PDF, one-based whole-page anchor, retained PNG, plan/render digests and signed capture.',
-            preconditions=('Current source and new-layer rights precede original PDF and authenticated result reads.',
-                "The old render receipt remains unsigned. This capture verifies its retained output; rendering and source-visible assessment retain their original event identities.")))
+                'New layers never inherit predecessor accepted uses; exact-source assessment is a separate downstream route.')))

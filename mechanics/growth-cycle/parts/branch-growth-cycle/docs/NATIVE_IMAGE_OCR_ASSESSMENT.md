@@ -2,11 +2,13 @@
 
 The confidential assessment-owner v6 profile adds one method-specific image
 comparison to the existing [quality journal](NATIVE_TEXT_LAYER_ASSESSMENT.md).
-It does not broaden the EPUB-only v5 profile. `native_page_ocr_assessment.py`
-is read-only: it invokes the fixed owner **receipt verifier**, never Tesseract,
-a PDF renderer, a model, or a remote service. Authentication still belongs to
-the exact clean `abyss-stack` adapter; runtime admission remains with
-`abyss-machine`. Comparison availability is not a quality verdict.
+It does not broaden the EPUB-only v5 profile. The native Rust owner in
+`rust/crates/tos-command/src/source_private_assessment_layers.rs` is read-only:
+it selects the fixed owner **receipt verifier**, never Tesseract, a PDF renderer,
+a model, or a remote service. Authentication still belongs to the exact clean
+`abyss-stack` adapter; runtime admission remains with `abyss-machine`. The
+Python `assessment_journal.py` path no longer accepts v6. Comparison
+availability is not a quality verdict.
 
 ## Independently selected profiles
 

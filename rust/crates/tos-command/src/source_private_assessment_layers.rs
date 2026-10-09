@@ -3875,3 +3875,329 @@ fn compare_page_ocr(
         ))?;
     Ok((comparison, pins, layer_snapshot, contracts, input_cost))
 }
+
+#[cfg(test)]
+mod owner_page_ocr_preflight_tests {
+    use super::*;
+    use serde_json::{Value, json};
+    use std::os::unix::fs::PermissionsExt;
+    use std::sync::atomic::AtomicBool;
+    use std::time::Duration;
+
+    const LAYER_ID: &str = "tos.text-layer.sid-cccccccccccccccccccccccccccccccc";
+    const RETAINED: &str = "tos_retained_page_ocr_image_comparison_v1";
+    const SYNTHETIC: &str = "tos_operator_synthetic_png_ocr_image_comparison_v1";
+
+    fn source(value: &Value) -> JsonValue {
+        cmd::parse(&serde_json::to_vec(value).expect("encode source test value"))
+            .expect("parse source test value")
+    }
+
+    fn selection(profile: &str, metadata_only: bool, disclose: bool) -> Value {
+        let record_sha = "a".repeat(64);
+        let source_sha = "1".repeat(64);
+        let image_sha = if profile == SYNTHETIC {
+            source_sha.clone()
+        } else {
+            "2".repeat(64)
+        };
+        let file_ref = format!("tos.file.sha256.{source_sha}");
+        let image = if metadata_only {
+            Value::Null
+        } else {
+            json!({
+                "read_scope": "exact_retained_page",
+                "access_allowed": true,
+                "authority_ref": "test:exact-image",
+                "expires_at": "2099-01-01T00:00:00Z",
+                "path": "/tmp/native-page-ocr-test.png",
+                "byte_size": 33,
+                "sha256": image_sha,
+                "page_number": if profile == SYNTHETIC { 1 } else { 44 },
+                "source_file_ref": file_ref,
+                "source_file_sha256": source_sha,
+                "processing_boundary": "local_only",
+                "width_pixels": 3,
+                "height_pixels": 2
+            })
+        };
+        let disclosure = if metadata_only || !disclose {
+            Value::Null
+        } else {
+            json!({
+                "allowed": true,
+                "authority_ref": "test:exact-disclosure",
+                "expires_at": "2099-01-01T00:00:00Z",
+                "read_scope": "exact_source_image_and_ocr",
+                "basis": "operator_created_synthetic_source",
+                "processing_boundary": "current_assistant_session",
+                "source_file_ref": file_ref,
+                "source_file_sha256": source_sha,
+                "image_sha256": image_sha,
+                "layer_record_sha256": record_sha
+            })
+        };
+        let record_ref = format!(
+            "ToS/source-witnesses/owner-local/sid-{}/layers/layer-cccc/source-text-layer.v1.json",
+            "1".repeat(32)
+        );
+        json!({
+            "binding": {
+                "schema_version": "tos_native_text_layer_binding_v1",
+                "text_layer": {
+                    "record_ref": record_ref,
+                    "record_sha256": record_sha,
+                    "layer_id": LAYER_ID,
+                    "layer_version": 1
+                },
+                "source_record_refs": {
+                    "work": "ToS/source-witnesses/owner-local/sid-11111111111111111111111111111111/work.json",
+                    "expression": "ToS/source-witnesses/owner-local/sid-11111111111111111111111111111111/expression.json",
+                    "edition": "ToS/source-witnesses/owner-local/sid-11111111111111111111111111111111/edition.json",
+                    "item": "ToS/source-witnesses/owner-local/sid-11111111111111111111111111111111/item.json"
+                }
+            },
+            "origin_id": "synthetic-page-ocr-comparison",
+            "source_access": {
+                "read_scope": if metadata_only { "metadata_only" } else { "exact_owner_local" },
+                "access_allowed": true,
+                "authority_ref": "test:source-metadata"
+            },
+            "payload_access": if metadata_only { Value::Null } else { json!({
+                "read_scope": "exact_acquired_file",
+                "access_allowed": true,
+                "authority_ref": "test:exact-original",
+                "expires_at": "2099-01-01T00:00:00Z",
+                "payload_root": "/tmp/native-page-ocr-payload",
+                "byte_size": 100
+            }) },
+            "comparison_profile": profile,
+            "image_access": image,
+            "disclosure_access": disclosure
+        })
+    }
+
+    fn preflight(
+        selection: Value,
+        schema_version: &str,
+    ) -> SourceCommandResult<OwnerLocalLayerPreflight> {
+        let record_sha = "a".repeat(64);
+        let subjects = json!({ (LAYER_ID): {
+            "record": {"id": LAYER_ID, "version": 1, "digest": format!("sha256:{record_sha}")},
+            "assertion_layer": "textual_observation",
+            "risk": "low",
+            "languages": ["de"],
+            "maker_id": "test:ocr-maker",
+            "requested_use": "text-layer:citation",
+            "access_allowed": true
+        }});
+        let config = json!({
+            "schema_version": schema_version,
+            "subjects": subjects,
+            "native_text_layers": [selection],
+            "quality_dependencies": {}
+        });
+        preflight_owner_local_layers(&source(&config), &source(&subjects), schema_version)
+    }
+
+    #[test]
+    fn retained_comparison_keeps_original_and_page_separate_without_disclosure() {
+        let selected = selection(RETAINED, false, false);
+        assert_ne!(
+            selected["image_access"]["source_file_sha256"],
+            selected["image_access"]["sha256"]
+        );
+        let checked = preflight(selected, "tos_local_assessment_owner_v6")
+            .expect("retained page with no disclosure is admissible");
+        assert!(checked.layer_ids.contains(LAYER_ID));
+        assert!(
+            page_comparison_limits(RETAINED)
+                .iter()
+                .any(|limit| limit.contains("no model/server disclosure"))
+        );
+    }
+
+    #[test]
+    fn synthetic_positive_comparison_accepts_only_its_own_exact_disclosure_grant() {
+        let selected = selection(SYNTHETIC, false, true);
+        assert_eq!(
+            selected["image_access"]["source_file_sha256"],
+            selected["image_access"]["sha256"]
+        );
+        preflight(selected, "tos_local_assessment_owner_v6")
+            .expect("exact current synthetic image and OCR disclosure is admissible");
+        assert!(
+            preflight(
+                selection(SYNTHETIC, false, false),
+                "tos_local_assessment_owner_v6"
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn retained_historical_disclosure_is_refused_in_preflight() {
+        assert!(
+            preflight(
+                selection(RETAINED, false, true),
+                "tos_local_assessment_owner_v6"
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn exact_disclosure_and_image_grant_mismatches_fail_in_preflight() {
+        let base = selection(SYNTHETIC, false, true);
+        for (section, key, invalid) in [
+            ("disclosure_access", "allowed", json!(false)),
+            (
+                "disclosure_access",
+                "expires_at",
+                json!("2000-01-01T00:00:00Z"),
+            ),
+            ("disclosure_access", "image_sha256", json!("f".repeat(64))),
+            (
+                "disclosure_access",
+                "layer_record_sha256",
+                json!("e".repeat(64)),
+            ),
+            (
+                "disclosure_access",
+                "basis",
+                json!("public_domain_reviewed"),
+            ),
+            ("image_access", "access_allowed", json!(false)),
+            ("image_access", "expires_at", json!("2000-01-01T00:00:00Z")),
+        ] {
+            let mut candidate = base.clone();
+            candidate[section][key] = invalid;
+            assert!(preflight(candidate, "tos_local_assessment_owner_v6").is_err());
+        }
+    }
+
+    #[test]
+    fn metadata_only_preflight_never_admits_payload_image_or_disclosure_access() {
+        preflight(
+            selection(RETAINED, true, false),
+            "tos_local_assessment_owner_v6",
+        )
+        .expect("metadata-only selection has no image or content grants");
+        let mut selected = selection(RETAINED, true, false);
+        selected["image_access"] = selection(RETAINED, false, false)["image_access"].clone();
+        assert!(preflight(selected, "tos_local_assessment_owner_v6").is_err());
+
+        let mut selected = selection(RETAINED, true, false);
+        selected["payload_access"] = selection(RETAINED, false, false)["payload_access"].clone();
+        assert!(preflight(selected, "tos_local_assessment_owner_v6").is_err());
+
+        let mut selected = selection(RETAINED, true, false);
+        selected["disclosure_access"] =
+            selection(RETAINED, false, true)["disclosure_access"].clone();
+        assert!(preflight(selected, "tos_local_assessment_owner_v6").is_err());
+    }
+
+    #[test]
+    fn exact_png_reader_rechecks_current_bytes_and_grant_expiry() {
+        let directory = tempfile::tempdir().expect("temporary protected PNG directory");
+        let path = directory.path().join("image.png");
+        let mut png = vec![0u8; 33];
+        png[..8].copy_from_slice(b"\x89PNG\r\n\x1a\n");
+        png[8..12].copy_from_slice(&13u32.to_be_bytes());
+        png[12..16].copy_from_slice(b"IHDR");
+        png[16..20].copy_from_slice(&3u32.to_be_bytes());
+        png[20..24].copy_from_slice(&2u32.to_be_bytes());
+        png[24..26].copy_from_slice(&[8, 2]);
+        std::fs::write(&path, &png).expect("write exact synthetic PNG header");
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+            .expect("protect synthetic PNG");
+        let sha = Digest256::of_bytes(&png).to_hex();
+        let mut image = selection(SYNTHETIC, false, false)["image_access"].clone();
+        image["path"] = json!(path.to_str().expect("UTF-8 temp path"));
+        image["byte_size"] = json!(png.len());
+        image["sha256"] = json!(sha);
+        let input = source(&json!({"input_sha256": sha, "width_pixels": 3, "height_pixels": 2}));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let cancelled = AtomicBool::new(false);
+        assert!(
+            read_exact_png(
+                &source(&image),
+                &input,
+                rustix::process::geteuid().as_raw(),
+                deadline,
+                &cancelled
+            )
+            .is_ok()
+        );
+
+        png[32] = 1;
+        std::fs::write(&path, &png).expect("change same-sized PNG");
+        assert!(
+            read_exact_png(
+                &source(&image),
+                &input,
+                rustix::process::geteuid().as_raw(),
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        png[32] = 0;
+        std::fs::write(&path, &png).expect("restore exact PNG bytes");
+        image["expires_at"] = json!("2000-01-01T00:00:00Z");
+        assert!(
+            read_exact_png(
+                &source(&image),
+                &input,
+                rustix::process::geteuid().as_raw(),
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn v5_epub_profile_refuses_v6_image_comparison_fields() {
+        assert!(
+            preflight(
+                selection(SYNTHETIC, false, false),
+                "tos_local_assessment_owner_v5"
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn current_native_comparison_is_bounded_and_never_grants_publication_or_canon() {
+        let selected = selection(SYNTHETIC, false, true);
+        let checked = preflight(selected.clone(), "tos_local_assessment_owner_v6")
+            .expect("current synthetic comparison preflight");
+        assert_eq!(checked.layer_ids.len(), 1);
+        let config = json!({
+            "schema_version": "tos_local_assessment_owner_v6",
+            "subjects": {(LAYER_ID): {
+                "record": {"id": LAYER_ID, "version": 1, "digest": format!("sha256:{}", "a".repeat(64))},
+                "assertion_layer": "textual_observation", "risk": "low", "languages": ["de"],
+                "maker_id": "test:ocr-maker", "requested_use": "text-layer:citation", "access_allowed": true
+            }},
+            "native_text_layers": [selected.clone(), selected],
+            "quality_dependencies": {}
+        });
+        let subjects = config["subjects"].clone();
+        assert!(
+            preflight_owner_local_layers(
+                &source(&config),
+                &source(&subjects),
+                "tos_local_assessment_owner_v6"
+            )
+            .is_err()
+        );
+        let limits = page_comparison_limits(SYNTHETIC);
+        assert!(
+            limits
+                .iter()
+                .any(|limit| limit.contains("no publication or canon authority"))
+        );
+    }
+}

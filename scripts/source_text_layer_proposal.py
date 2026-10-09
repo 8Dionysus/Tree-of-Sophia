@@ -516,7 +516,6 @@ def build_public_utf8_layer(*, source_text, source_selector, source_media_type,
 # A separate additive construction profile. These ceilings bound both content
 # and the explicit in-record edit evidence; no quadratic diff is computed.
 DERIVE_CONFIG = "tos_local_text_layer_derive_owner_v1"
-from native_owner_ocr import OWNER_OCR_CONFIG, OWNER_OCR_OPERATION, OWNER_OCR_PROFILES
 MAX_DERIVED_TEXT_BYTES = 131_072
 MAX_EDITS = 128
 DERIVE_OPERATIONS = {
@@ -529,7 +528,7 @@ DERIVE_OPERATIONS = {
 
 def derivation_policy(operation, *, unicode_form="none", transcription_method="manual_transcription"):
     """Apply the exact versioned transformation rules selected by the owner."""
-    if operation not in {*DERIVE_OPERATIONS, *OWNER_OCR_PROFILES}:
+    if operation not in DERIVE_OPERATIONS:
         _fail("unsupported native TextLayer operation")
     normalize = operation == "text-layer.normalize"
     if unicode_form not in ({"NFC", "NFD", "NFKC", "NFKD"} if normalize else {"none"}):
@@ -537,8 +536,8 @@ def derivation_policy(operation, *, unicode_form="none", transcription_method="m
     if transcription_method not in ({"manual_transcription", "model_transcription"}
                                     if operation == "text-layer.record-transcription" else {"manual_transcription"}):
         _fail("unsupported supplied transcription method")
-    observed = operation in OWNER_OCR_PROFILES
-    supplied = operation in {"text-layer.record-transcription", "text-layer.record-ocr", *OWNER_OCR_PROFILES}
+    observed = False
+    supplied = operation in {"text-layer.record-transcription", "text-layer.record-ocr"}
     return {
         "schema_version": "tos_native_text_layer_derivation_policy_v1",
         "operation": operation, "method": transcription_method if operation == "text-layer.record-transcription" else "ocr" if observed else DERIVE_OPERATIONS[operation],
@@ -624,7 +623,7 @@ def build_derived_text_layer(*, config, refs, source_binding, predecessor=None,
     """
     operation = config["allowed_operations"][0]
     normalize = operation == "text-layer.normalize"
-    supplied = operation in {"text-layer.record-transcription", "text-layer.record-ocr", *OWNER_OCR_PROFILES}
+    supplied = operation in {"text-layer.record-transcription", "text-layer.record-ocr"}
     expected_policy = derivation_policy(operation, unicode_form=config["policy"]["unicode_normalization"],
         transcription_method=config['policy']['method'] if operation == 'text-layer.record-transcription' else 'manual_transcription')
     if config["policy"] != expected_policy:
@@ -674,7 +673,7 @@ def build_derived_text_layer(*, config, refs, source_binding, predecessor=None,
     layer = {
         "$schema": LAYER_SCHEMA, "schema_version": "tos_source_text_layer_v1",
         "layer_id": config["identities"]["layer_id"], "layer_version": version, "supersedes_layer_ref": supersedes,
-        "layer_role": "normalized_text" if normalize else "raw_ocr" if operation in {"text-layer.record-ocr", *OWNER_OCR_PROFILES} else
+        "layer_role": "normalized_text" if normalize else "raw_ocr" if operation == "text-layer.record-ocr" else
                       "machine_transcription" if expected_policy['method'] == 'model_transcription' else "diplomatic_transcription",
         "source_binding": source_binding,
         "representation": {"content_file_id": "tos.file.sha256." + digest, "content_ref": refs["content_ref"],

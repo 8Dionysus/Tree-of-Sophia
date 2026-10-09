@@ -308,7 +308,9 @@ owner OCR route, plus exact `material.input_representation` binding to the
 retained image, one-based page, frozen render manifest/sample plan and unsigned
 historical receipt. The fixed `abyss-stack` retained-page verifier authenticates
 the new OCR execution and honest current input-verification capture. ToS never
-runs a renderer or OCR provider through this recording operation.
+runs a renderer or OCR provider through this recording operation. This profile
+is served only by the native Rust command; Python layer construction and
+metadata readers do not accept owner-OCR configurations.
 
 The immutable 12-file package includes copied signed receipt, signature and
 public key. Metadata-only source resolution authenticates these three files

@@ -16,10 +16,12 @@ enumerated baseline and is not used as a rule.
 The retained `test*.py` assertions contain native operational predicates,
 Python adapter/API predicates, synthetic fixture/oracle mechanisms and semantic
 assessment boundaries. Each follows its actual owner route below. Python APIs and
-reference fixtures remain explicit comparison surfaces; they do not gate native
-execution merely by existing. Native operational failures stay executable in the
-source-owned native pipeline, and no reference assertion is retired by changing
-the default executor. Native source-unit,
+reference fixtures remain explicit comparison surfaces where their owners still
+retain them; they do not gate native execution merely by existing. Retire a
+Python assertion set only after its operation has moved to the native owner and
+its unique bounded behavior has an active native route or a clearly scoped
+external-evidence limit. Native operational failures stay executable in the
+source-owned native pipeline. Native source-unit,
 Conformance, installed invocation and actual consumer results keep their individual
 scope. Selected Public, OCR or HTTP success does not accept sibling assertions.
 
@@ -27,6 +29,27 @@ The table names the shortest existing owner route for completing each unresolved
 assertion set. “Native candidate” means source inspection found relevant code; it
 does not claim that every negative control or lifecycle is covered. Reuse these
 owners and existing cases before proposing a new engine or broad test cohort.
+
+The Python owner-OCR callers and v6 assessment journal entry are retired. Owner
+signed recording and comparison remain on the native Rust route; the external
+abyss-stack verifier retains cryptographic authority. The eight
+`owner_page_ocr_preflight_tests` and four `source_text_owner_ocr::tests` are
+synthetic Rust unit checks. They make no claim about a live owner process or
+source-visible assessment. The two signed `command_owner_text_cases.rs`
+comparisons remain ignored until their retained producer inputs and admitted
+native products are selected.
+
+Historical execution evidence remains separately scoped: the specialrun PASS E
+`ASSESS` record in
+`/home/dionysus/Documents/Codex/2026-09-23/tos-rust-migration-execution/evidence/baseline/EXECUTION-COVERAGE.json`
+at `functions[id=ASSESS].evidence_refs[conformance_bee9bdd_special_route]`; its
+exact route receipt is
+`/srv/abyss-machine/storage/artifacts/tos-conformance-bee9bddbbfb-runtime-prep-r2/route.json`,
+which records destination
+`/srv/abyss-machine/storage/artifacts/tos-conformance-bee9bddbbfb-runtime-r2`.
+That run covered source fix `93f00913` in 22.39 seconds with native test count 0
+and exact source PREPOST. It is historical evidence for that selected run, not
+acceptance of the currently ignored tests or this patch.
 
 | Reference assertion source (`tests/`) | Native candidate (`tos-command/src/`) | Existing conformance candidate | Review or completion still needed |
 | --- | --- | --- | --- |
@@ -39,7 +62,8 @@ owners and existing cases before proposing a new engine or broad test cohort.
 | `test_knowledge_assessment.py` | `source_assessment_journal.rs` | `command_owner_text_cases.rs` | all journal replay/conflict/currentness and reviewer revocation predicates |
 | `test_metadata_version_reader.py` | `source_read_owner.rs` | `command_record_cases.rs` | every current/historical semantic family and complete-chain negative controls |
 | `test_native_layer_quality_journal.py` | `source_private_assessment_layers.rs` | `command_owner_text_cases.rs` | quality closure, own dependencies, renewed basis, deferred form refs and reviewer revocation |
-| `test_native_page_ocr_assessment.py` | `source_private_assessment_layers.rs` | `command_owner_text_cases.rs` | retained image disclosure, synthetic positives and original PNG/derived OCR separation |
+| retired `test_native_page_ocr_assessment.py` | `source_private_assessment_layers.rs::owner_page_ocr_preflight_tests` | `command_owner_text_cases.rs::native_private_assessment_v6_retained_signed_ocr_comparison_preserves_source` and `native_retained_page_ocr_assessment_comparison_preserves_original_and_signed_capture` | eight active pure Rust cases cover exact image/disclosure grants, metadata-only refusal, image fixity drift, and the v5 boundary; signed end-to-end comparison remains ignored without retained producer inputs and admitted native products |
+| retired owner-OCR bridge cases from `test_source_text_layer_commands.py` | `source_text_owner_ocr.rs::tests` | the same two signed owner-OCR comparisons above | four active pure Rust cases cover exact UTF-8 result and source/receipt binding, metadata-only replay without content disclosure, and retained-page capture posture; external abyss-stack code remains the signature authority |
 | `test_native_text_assessment.py` | `source_private_assessment_layers.rs` | `command_owner_text_cases.rs` | initial extraction comparison, source-language scope and retained text mismatch |
 | `test_native_text_layer_assessment.py` | `source_private_assessment_layers.rs` | `command_owner_text_cases.rs` | derived lineage comparison and exact current quality withdrawal |
 | `test_occurrence_assessment_guard.py` | `source_private_assessment_sources.rs` | `command_private_claim_cases.rs` | native occurrence bound-source quality and late withdrawal |
@@ -67,7 +91,7 @@ owners and existing cases before proposing a new engine or broad test cohort.
 | `test_source_responsibility_commands.py` | `source_expression_responsibility.rs` | `command_responsibility_cases.rs` | qualified responsibility endpoints, external rights and retained replay |
 | `test_source_revisions.py` | `source_revisions.rs` | `command_record_cases.rs` | flat/profile/native exact predecessor chain and independent current authority |
 | `test_source_selected_revisions.py` | `source_revisions.rs` | `command_metadata_publication_cases.rs` | selected-file history/current publication, retained receipt and reaper/recovery |
-| `test_source_text_layer_commands.py` | `source_text_owner.rs` | `command_text_cases.rs` | text construction/derivation and OCR lineage grant/rights/current package |
+| `test_source_text_layer_commands.py` | `source_text_owner.rs` | `command_text_cases.rs` | structural extraction, correction, normalization and supplied OCR/transcription grants; owner-signed recording has its native Rust and external-verifier route above |
 | `test_source_text_unit_commands.py` | `source_text_owner.rs` | `command_text_cases.rs` | private unit bootstrap, scopes, exact original retry and retention |
 
 ## Completion route

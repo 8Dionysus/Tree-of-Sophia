@@ -627,3 +627,171 @@ pub(crate) fn validate_page_anchor(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{Value, json};
+
+    fn source_value(value: &Value) -> JsonValue {
+        cmd::parse(&serde_json::to_vec(value).expect("encode synthetic OCR value"))
+            .expect("parse synthetic OCR value")
+    }
+
+    fn page_binding() -> Value {
+        let source_sha = "1".repeat(64);
+        let input_sha = "5".repeat(64);
+        json!({
+            "schema_version": "tos_retained_pdf_page_input_binding_v1",
+            "source_file_ref": format!("tos.file.sha256.{source_sha}"),
+            "source_file_sha256": source_sha,
+            "page_number": 44,
+            "page_index_origin": 1,
+            "render_id": "synthetic-render",
+            "sample_id": "synthetic-page-44",
+            "render_manifest_sha256": "2".repeat(64),
+            "render_receipt_sha256": "3".repeat(64),
+            "sample_plan_sha256": "4".repeat(64),
+            "input_file_ref": format!("tos.file.sha256.{input_sha}"),
+            "input_sha256": input_sha,
+            "input_bytes": 100,
+            "media_type": "image/png",
+            "width_pixels": 10,
+            "height_pixels": 20,
+            "renderer": "poppler-pdftoppm",
+            "renderer_version": "26.01.0",
+            "resolution_dpi": 300,
+            "render_execution": "retained-not-observed-this-run",
+            "historical_receipt_signature": "absent"
+        })
+    }
+
+    fn fixture(
+        page: bool,
+    ) -> (
+        JsonValue,
+        JsonValue,
+        BTreeMap<String, Vec<u8>>,
+        Value,
+        Vec<u8>,
+    ) {
+        let content = b"Exact OCR: Gr\xc3\xbc\n".to_vec();
+        let scope_value = json!({
+            "work_ref": "tos.work.synthetic-ocr",
+            "expression_ref": "tos.expression.synthetic-ocr",
+            "edition_ref": "tos.edition.synthetic-ocr",
+            "item_ref": "tos.item.synthetic-ocr",
+            "file_ref": format!("tos.file.sha256.{}", "1".repeat(64)),
+            "file_sha256": "1".repeat(64)
+        });
+        let scope = source_value(&scope_value);
+        let content_sha = Digest256::of_bytes(&content).to_hex();
+        let owner_source_ref = format!("commit:{}", "a".repeat(40));
+        let adapter_sha = "b".repeat(64);
+        let signature_sha = "c".repeat(64);
+        let public_key_sha = "d".repeat(64);
+        let input = page_binding();
+        let receipt = if page {
+            json!({
+                "schema_version": "tos_retained_pdf_page_ocr_execution_v1",
+                "owner": {"source_ref": owner_source_ref, "adapter_sha256": adapter_sha},
+                "source_scope": scope_value,
+                "language": "deu",
+                "output_sha256": content_sha,
+                "output_bytes": content.len(),
+                "input_representation": input,
+                "input_verification": {
+                    "render_execution": "not_performed",
+                    "historical_receipt_signature": "absent"
+                }
+            })
+        } else {
+            json!({
+                "schema_version": "tos_operator_synthetic_png_ocr_execution_v1",
+                "owner": {"source_ref": owner_source_ref, "adapter_sha256": adapter_sha},
+                "source_scope": scope_value,
+                "language": "deu",
+                "output_sha256": content_sha,
+                "output_bytes": content.len()
+            })
+        };
+        let receipt_raw = serde_json::to_vec(&receipt).expect("encode synthetic receipt");
+        let receipt_sha = Digest256::of_bytes(&receipt_raw).to_hex();
+        let mut material_value = json!({
+            "receipt_sha256": receipt_sha,
+            "signature_sha256": signature_sha,
+            "public_key_sha256": public_key_sha,
+            "owner_source_ref": owner_source_ref,
+            "adapter_sha256": adapter_sha,
+            "content_sha256": content_sha,
+            "byte_size": content.len()
+        });
+        if page {
+            material_value["input_representation"] = input.clone();
+        }
+        let material = source_value(&material_value);
+        let mut response = json!({
+            "ok": true,
+            "receipt": receipt,
+            "receipt_sha256": receipt_sha,
+            "signature_sha256": signature_sha,
+            "public_key_sha256": public_key_sha,
+            "content_base64": base64::engine::general_purpose::STANDARD.encode(&content)
+        });
+        let copied = BTreeMap::from([("owner-ocr-receipt.json".to_owned(), receipt_raw)]);
+        (material, scope, copied, response, content)
+    }
+
+    #[test]
+    fn synthetic_result_keeps_exact_utf8_content_and_receipt_binding() {
+        let (material, scope, copied, mut response, content) = fixture(false);
+        let raw = serde_json::to_vec(&response).expect("encode synthetic verifier result");
+        assert_eq!(
+            checked_result(&raw, &material, &scope, "de", false, &copied, true).unwrap(),
+            Some(content)
+        );
+        response["receipt"]["source_scope"]["item_ref"] = json!("tos.item.other");
+        let raw = serde_json::to_vec(&response).expect("encode unbound synthetic result");
+        assert!(checked_result(&raw, &material, &scope, "de", false, &copied, true).is_err());
+    }
+
+    #[test]
+    fn metadata_replay_accepts_receipt_only_and_refuses_disclosed_text() {
+        let (material, scope, copied, mut response, _) = fixture(false);
+        response.as_object_mut().unwrap().remove("content_base64");
+        let raw = serde_json::to_vec(&response).expect("encode metadata result");
+        assert_eq!(
+            checked_result(&raw, &material, &scope, "de", false, &copied, false).unwrap(),
+            None
+        );
+        response["content_base64"] = json!("ZXhhY3Q=");
+        let raw = serde_json::to_vec(&response).expect("encode disclosing metadata result");
+        assert!(checked_result(&raw, &material, &scope, "de", false, &copied, false).is_err());
+    }
+
+    #[test]
+    fn retained_page_result_requires_current_page_and_capture_posture() {
+        let (material, scope, copied, mut response, content) = fixture(true);
+        let binding = cmd::field(&material, "input_representation").unwrap();
+        validate_page_binding(binding).unwrap();
+        let raw = serde_json::to_vec(&response).expect("encode retained page result");
+        assert_eq!(
+            checked_result(&raw, &material, &scope, "de", true, &copied, true).unwrap(),
+            Some(content)
+        );
+        response["receipt"]["input_verification"]["render_execution"] = json!("performed");
+        let raw = serde_json::to_vec(&response).expect("encode false render posture");
+        assert!(checked_result(&raw, &material, &scope, "de", true, &copied, true).is_err());
+    }
+
+    #[test]
+    fn retained_page_binding_rejects_renderer_and_source_identity_drift() {
+        let mut binding = page_binding();
+        validate_page_binding(&source_value(&binding)).unwrap();
+        binding["renderer"] = json!("unselected-renderer");
+        assert!(validate_page_binding(&source_value(&binding)).is_err());
+        binding["renderer"] = json!("poppler-pdftoppm");
+        binding["input_file_ref"] = json!(format!("tos.file.sha256.{}", "6".repeat(64)));
+        assert!(validate_page_binding(&source_value(&binding)).is_err());
+    }
+}
