@@ -78,6 +78,9 @@ fn cut_eof(
     Ok(json!({"members":expected.count,"membership_sha256":expected.digest.to_hex()}))
 }
 fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
+    if args.get(1).map(String::as_str) == Some("validate-tracked") {
+        return validate_tracked(args, stdout);
+    }
     let mode = args.get(1).ok_or("lexical-index needs build or validate")?;
     if !["build", "validate", "validate-legacy"].contains(&mode.as_str()) {
         return Err("unsupported lexical-index action".into());
@@ -310,6 +313,78 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
     writeln!(stdout, "{report}").map_err(|e| e.to_string())?;
     Ok(())
 }
+
+fn validate_tracked(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
+    let mut options = BTreeMap::new();
+    let mut it = args.iter().skip(2);
+    while let Some(key) = it.next() {
+        if ![
+            "--source-root",
+            "--derived-input-root",
+            "--local-output-root",
+            "--max-seconds",
+        ]
+        .contains(&key.as_str())
+        {
+            return Err(format!("unknown tracked lexical option: {key}"));
+        }
+        let value = it.next().ok_or("tracked lexical option needs value")?;
+        if options.insert(key.clone(), value.clone()).is_some() {
+            return Err(format!("duplicate tracked lexical option: {key}"));
+        }
+    }
+    let root = path(&options, "--source-root")?;
+    let derived = options
+        .get("--derived-input-root")
+        .map(|_| path(&options, "--derived-input-root"))
+        .transpose()?
+        .unwrap_or_else(|| root.clone());
+    let local = options
+        .get("--local-output-root")
+        .map(|_| path(&options, "--local-output-root"))
+        .transpose()?;
+    let seconds: u64 = options
+        .get("--max-seconds")
+        .map(String::as_str)
+        .unwrap_or("180")
+        .parse()
+        .map_err(|_| "invalid lexical seconds")?;
+    if !(1..=600).contains(&seconds) {
+        return Err("lexical max seconds must be 1..600".into());
+    }
+    let deadline = Instant::now() + Duration::from_secs(seconds);
+    let cancelled = AtomicBool::new(false);
+    let mut capture = LexicalCapture::new(&root, LexicalLimits::maintained())?;
+    capture.set_derived_root(&derived)?;
+    let mut schema = tos_compiler::zarathustra_lexical_schema::TrackedLexicalSchema::new(
+        &root, deadline, &cancelled,
+    )?;
+    let report = tos_compiler::zarathustra_lexical_validate::validate_with_capture(
+        &root,
+        &derived.join(tos_compiler::zarathustra_lexical_validate::PROJECTION_REF),
+        local.as_deref(),
+        None,
+        &mut capture,
+        &mut schema,
+        deadline,
+        &cancelled,
+    )?;
+    let schemas = schema.finish()?;
+    capture.revalidate()?;
+    writeln!(
+        stdout,
+        "{}",
+        json!({
+            "schema": "tos_native_lexical_validation_receipt_v1",
+            "status": "validated-tracked-observation",
+            "validation": report,
+            "schema_execution": schemas,
+            "source_inputs": capture.member_digests(),
+            "authority_boundary": lexical::AUTHORITY,
+        })
+    )
+    .map_err(|e| e.to_string())
+}
 pub fn run_if_requested(
     args: &[String],
     stdout: &mut dyn Write,
@@ -317,6 +392,9 @@ pub fn run_if_requested(
 ) -> Option<i32> {
     if args.first().is_none_or(|s| s != "lexical-index") {
         return None;
+    }
+    if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
+        return Some(if writeln!(stdout, "tos lexical-index validate-tracked --source-root ABS [--derived-input-root ABS] [--local-output-root ABS] [--max-seconds 1..600]\nRead-only lexical, usage-context and morphology source closure; optional local SQLite fixity. Missing inputs refuse; no corpus discovery or source admission.\nOther actions: build, validate, validate-legacy with explicit source cut, schema worker and limits.").is_ok() { 0 } else { 2 });
     }
     Some(match run(args, stdout) {
         Ok(()) => 0,
