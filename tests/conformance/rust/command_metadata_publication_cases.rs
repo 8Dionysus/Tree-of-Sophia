@@ -294,6 +294,7 @@ fn materialize_metadata_predecessor(
     let source_root = source_root.canonicalize().unwrap();
     let db_path = source_root.join("derived/prepared.sqlite");
     let owner_path = source_root.join("metadata-addition-owner.json");
+    let frozen_source_inputs = packet["source_inputs"].clone();
     let roots = packet["source_inputs"]["roots"].as_object_mut().unwrap();
     for role in [
         "bibliographic-claims",
@@ -356,7 +357,17 @@ fn materialize_metadata_predecessor(
     );
     let mut dependencies: Value = serde_json::from_str(&dependency_raw).unwrap();
     assert_eq!(canonical_lf(&dependencies), dependency_raw.as_bytes());
-    assert_eq!(dependencies["source_inputs_sha256"], old_source_sha);
+    assert_eq!(
+        Digest256::of_bytes(&canonical_lf(&frozen_source_inputs)).to_hex(),
+        old_source_sha
+    );
+    // The immutable historical export rebased prepared_source_state to its
+    // portable /__tos_fixture__ root but retained this original dependency
+    // reference. Rebind that known fixture artifact here, before execution.
+    assert_eq!(
+        dependencies["source_inputs_sha256"],
+        "f2123f65b518e6bd2dddde1e6fc0276c556aaab2ea1cfd5d92064718850b16c3"
+    );
     dependencies["source_inputs_sha256"] = json!(source_inputs_sha);
     let dependency_bytes = canonical_lf(&dependencies);
     connection.execute_batch("BEGIN IMMEDIATE").unwrap();

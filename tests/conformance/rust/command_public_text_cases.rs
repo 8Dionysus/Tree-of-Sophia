@@ -465,11 +465,11 @@ finally:
     let (status, out, err) =
         native_owner_cli_observation(&repository, &owner, &invocation_path, &request, deadline);
     assert_eq!(status.code(), Some(2));
-    // The maintained Python transport wraps nonzero native exits in ValueError.
-    // Require the exact Rust cause as well, so unrelated refusals cannot pass.
+    // The native transport preserves the typed conflict category. Require
+    // its exact cause as well, so unrelated refusals cannot pass.
     assert_eq!(
         serde_json::from_slice::<Value>(&out).unwrap()["error"],
-        "ValueError"
+        "JournalConflict"
     );
     assert!(
         String::from_utf8_lossy(&err).contains("Conflict(\"public Text input declaration\")"),
