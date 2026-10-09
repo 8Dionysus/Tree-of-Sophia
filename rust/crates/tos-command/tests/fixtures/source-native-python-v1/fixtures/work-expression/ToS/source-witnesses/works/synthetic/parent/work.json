@@ -1,0 +1,33 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.synthetic.parent",
+  "record_version": 4,
+  "preferred_label": "Synthetic parent",
+  "variant_labels": [],
+  "identity_status": "verified",
+  "source_refs": [
+    "https://example.invalid/source"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "expression_claim_refs": [],
+  "responsibility_claim_refs": [
+    "tos.claim.synthetic.authorship"
+  ],
+  "chronology_claim_refs": [
+    "tos.claim.synthetic.chronology"
+  ],
+  "supersedes_ref": null,
+  "notes": "Synthetic qualified wording, preserved by the compound operation.",
+  "field_languages": {
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  }
+}

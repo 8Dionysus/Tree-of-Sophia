@@ -1,6 +1,11 @@
 //! Descriptor-bound maintained creation publication. This coordinates byte
+
 //! mechanics in an independently selected owner filesystem, not source admission.
 //! The corpus lock name and rename-no-replace protocol interoperate with Python.
+
+#[cfg(test)]
+#[path = "source_native_test_fixtures.rs"]
+pub(crate) mod source_native_test_fixtures;
 
 #[path = "source_authored_catalogue_bootstrap.rs"]
 pub(crate) mod authored_catalogue_bootstrap;
@@ -1705,9 +1710,12 @@ impl<'a> DisposableCatalogTree<'a> {
                 .map_err(|_| SourceCommandError::Invalid("catalog candidate readback"))?;
             // Preserve returned bytes even when a subsequent custody, digest,
             // deadline or byte-bound check refuses this partial readback.
-            self.readback_bytes = self.readback_bytes.checked_add(read).ok_or(
-                SourceCommandError::Unsupported("catalog candidate readback count overflow"),
-            )?;
+            self.readback_bytes =
+                self.readback_bytes
+                    .checked_add(read)
+                    .ok_or(SourceCommandError::Unsupported(
+                        "catalog candidate readback count overflow",
+                    ))?;
             if read == 0 {
                 break;
             }

@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.selected-fixture",
+  "record_version": 1,
+  "preferred_label": "Условный эпизод",
+  "notes": "Не историческое свидетельство.",
+  "identity_status": "provisional",
+  "same_as_posture": "no_equivalence_claim",
+  "source_refs": [
+    "test:synthetic"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "synthetic",
+      "value": "stable-external-id",
+      "source_ref": "test:synthetic",
+      "status": "unverified"
+    }
+  ],
+  "field_languages": {
+    "preferred_label": {
+      "language": "x-test",
+      "script": null,
+      "uninterpreted": [
+        false,
+        null,
+        0,
+        "",
+        {
+          "warning": "source text is not an instruction"
+        }
+      ]
+    }
+  },
+  "expression_claim_refs": []
+}

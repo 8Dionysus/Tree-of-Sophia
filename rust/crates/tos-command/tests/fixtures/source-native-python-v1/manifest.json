@@ -1,0 +1,2906 @@
+{
+  "capture": {
+    "capture_script_sha256": "40cc2e18ae8b1120822a523497332dcfbdfb37945052ebd8de7c32e7437df698",
+    "captured_repo_head": "5a51a1295ecc75f57e1f5565cc0d2429eabd46e6",
+    "fixture_execution_scope": "test fixture construction only; not acceptance of native owner behavior",
+    "fixture_root_rebase": {
+      "only_request_field_refreshed_after_rebase": "expected_configuration",
+      "owner_config_field": "source_root",
+      "refresh_source": "native command describe for record revisions; Rust owner configuration digest for the internal Work plan",
+      "runtime_value": "absolute isolated-root path selected by the Rust test",
+      "stored_placeholder": "$TOS_FIXTURE_ROOT"
+    },
+    "method": "one root-owned bounded execution of the pre-retirement Python fixture factories"
+  },
+  "capture_count": 8,
+  "captures": [
+    {
+      "files": [
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/contracts/historical-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/historical-record.schema.json",
+          "repository_path_sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "size": 3705
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/source-witnesses/history/synthetic/episode/historical-event.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-event.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "a30faa8c6e2ef796666dfa0fc6b5bdce1c27433d21782d96836e56459ad427ec",
+          "size": 3501
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/source-witnesses/history/synthetic/episode/historical-event.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-event.json",
+          "repository_path_sha256": null,
+          "sha256": "ed948647e81912ae70a46f1dcf942470336fa5aa3a978e6225e8fd6c94558134",
+          "size": 796
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "repository_path_sha256": null,
+          "sha256": "491760cc0c755bc2a8aa147b0f0de6a2cb56de4a91e2d5e6b77c443d7963289a",
+          "size": 20
+        },
+        {
+          "artifact_path": "fixtures/record-family-0/owner.json",
+          "capture_sha256": "ce8e409222e667c2d2db2a347a62fb41ed6ff20dbc063474dad8f9b905519837",
+          "capture_size": 678,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "owner.json",
+          "repository_path_sha256": null,
+          "sha256": "a6348c326a18ea18bada9464822c7d5d9f4e955f54e3459e0d188a7df2ffa94c",
+          "size": 588
+        }
+      ],
+      "id": "record-family-0",
+      "owner_ref": "owner.json",
+      "proposal": {
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "prepare-revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "record": {
+        "extensions": {
+          "uninterpreted": [
+            false,
+            null,
+            {
+              "x": 3
+            }
+          ]
+        },
+        "external_identifiers": [],
+        "identity_status": "provisional",
+        "notes": "Не историческое свидетельство.",
+        "preferred_label": "Условный эпизод",
+        "record_id": "tos.historical-event.revision-fixture",
+        "record_type": "historical-event",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_historical_record_v1",
+        "source_refs": [
+          "test:synthetic"
+        ],
+        "visibility": "public_metadata_only"
+      },
+      "request": {
+        "command_id": "native:revision-family-0",
+        "expected_configuration": "sha256:73eec85c2ca81dfdd85eeb062d32f5d2ac7da888f3b14c4e7f2db1c7e9ce15e4",
+        "expected_dependencies": "sha256:d6506a0e9f268fc895537ad185a3928327f16ce5c2e1670eaf9993c784a90028",
+        "expected_revision": "sha256:1556019eb776abde486ef86c7fc3971e591d30d27f7cf6df46327af618f61015",
+        "expected_source": {
+          "digest": "sha256:764388b639e124118e12aff29048738aa6245cd28c7467189af993f1775e519c",
+          "id": "tos.historical-event.revision-fixture",
+          "version": 1
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "root_bytes": 324062,
+      "source_path": "ToS/source-witnesses/history/synthetic/episode/historical-event.json",
+      "untouched": [
+        "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+        "ToS/source-witnesses/history/synthetic/episode/unrecognized.json"
+      ]
+    },
+    {
+      "files": [
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/document-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/document-record.schema.json",
+          "repository_path_sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef",
+          "sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef",
+          "size": 1602
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/historical-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/historical-record.schema.json",
+          "repository_path_sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "size": 3705
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/contracts/source-metadata-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/source-metadata-record.schema.json",
+          "repository_path_sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4",
+          "sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4",
+          "size": 2779
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/source-witnesses/history/synthetic/episode/letter.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/letter.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "232b7d80ba970215ac21e519cb65de29a56afe3cefa60f3b8f98bb02be455f54",
+          "size": 3411
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/source-witnesses/history/synthetic/episode/letter.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/letter.json",
+          "repository_path_sha256": null,
+          "sha256": "2b92c43f12fb7edb62fd1736a39ee5db353786e34b53c676b7302ea272fe38e3",
+          "size": 774
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "repository_path_sha256": null,
+          "sha256": "491760cc0c755bc2a8aa147b0f0de6a2cb56de4a91e2d5e6b77c443d7963289a",
+          "size": 20
+        },
+        {
+          "artifact_path": "fixtures/record-family-1/owner.json",
+          "capture_sha256": "20231dc5844d0c04017f30538ac55d1b0b7d118d9a27b28ba1d999c6a9d91cde",
+          "capture_size": 701,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "owner.json",
+          "repository_path_sha256": null,
+          "sha256": "05f213a4530f0e3df7aff4eba275d733834ee9bfa50fe2dfe320f45fcb1433e4",
+          "size": 611
+        }
+      ],
+      "id": "record-family-1",
+      "owner_ref": "owner.json",
+      "proposal": {
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "prepare-revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "record": {
+        "extensions": {
+          "uninterpreted": [
+            false,
+            null,
+            {
+              "x": 3
+            }
+          ]
+        },
+        "external_identifiers": [],
+        "identity_status": "provisional",
+        "notes": "Не историческое свидетельство.",
+        "preferred_label": "Условный эпизод",
+        "record_id": "tos.letter.revision-fixture",
+        "record_type": "letter",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_document_record_v1",
+        "source_refs": [
+          "test:synthetic"
+        ],
+        "visibility": "public_metadata_only"
+      },
+      "request": {
+        "command_id": "native:revision-family-1",
+        "expected_configuration": "sha256:dff9833d960ce6f9a7d29d46248521679e06cc799bb5944e604de17091e4d95a",
+        "expected_dependencies": "sha256:95ddf0a7816327ec2d0ff8c2f2e892122e7d52747cba97025c1788daa0149b3c",
+        "expected_revision": "sha256:1fb645ea5b4b459a13ddad319d22e0ac2e10450e82e46f8fd820e1a7984308a9",
+        "expected_source": {
+          "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa",
+          "id": "tos.letter.revision-fixture",
+          "version": 1
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "root_bytes": 328354,
+      "source_path": "ToS/source-witnesses/history/synthetic/episode/letter.json",
+      "untouched": [
+        "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+        "ToS/source-witnesses/history/synthetic/episode/unrecognized.json"
+      ]
+    },
+    {
+      "files": [
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/document-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/document-record.schema.json",
+          "repository_path_sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef",
+          "sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef",
+          "size": 1602
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/historical-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/historical-record.schema.json",
+          "repository_path_sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "size": 3705
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/contracts/source-metadata-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/source-metadata-record.schema.json",
+          "repository_path_sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4",
+          "sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4",
+          "size": 2779
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/source-witnesses/history/synthetic/episode/letter.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/letter.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "232b7d80ba970215ac21e519cb65de29a56afe3cefa60f3b8f98bb02be455f54",
+          "size": 3411
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/source-witnesses/history/synthetic/episode/letter.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/letter.json",
+          "repository_path_sha256": null,
+          "sha256": "2b92c43f12fb7edb62fd1736a39ee5db353786e34b53c676b7302ea272fe38e3",
+          "size": 774
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "repository_path_sha256": null,
+          "sha256": "491760cc0c755bc2a8aa147b0f0de6a2cb56de4a91e2d5e6b77c443d7963289a",
+          "size": 20
+        },
+        {
+          "artifact_path": "fixtures/record-family-2/owner.json",
+          "capture_sha256": "c3bd3927e71cc65dd0fd5d7a5278bcc8310b8b963a167cc5f2f4969c49ca958a",
+          "capture_size": 701,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "owner.json",
+          "repository_path_sha256": null,
+          "sha256": "9d2981be6ce92a50362b3aa15e616271419da8dc45b7334ea50110a5866d28a0",
+          "size": 611
+        }
+      ],
+      "id": "record-family-2",
+      "owner_ref": "owner.json",
+      "proposal": {
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "prepare-revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "record": {
+        "extensions": {
+          "uninterpreted": [
+            false,
+            null,
+            {
+              "x": 3
+            }
+          ]
+        },
+        "external_identifiers": [],
+        "identity_status": "provisional",
+        "notes": "Не историческое свидетельство.",
+        "preferred_label": "Условный эпизод",
+        "record_id": "tos.letter.revision-fixture",
+        "record_type": "letter",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_document_record_v1",
+        "source_refs": [
+          "test:synthetic"
+        ],
+        "visibility": "public_metadata_only"
+      },
+      "request": {
+        "command_id": "native:revision-family-2",
+        "expected_configuration": "sha256:3be642bb26aceb2f3dad94403fce1b5b8ce37cd1491b57c61b353cf70d06309c",
+        "expected_dependencies": "sha256:95ddf0a7816327ec2d0ff8c2f2e892122e7d52747cba97025c1788daa0149b3c",
+        "expected_revision": "sha256:1fb645ea5b4b459a13ddad319d22e0ac2e10450e82e46f8fd820e1a7984308a9",
+        "expected_source": {
+          "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa",
+          "id": "tos.letter.revision-fixture",
+          "version": 1
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "root_bytes": 328354,
+      "source_path": "ToS/source-witnesses/history/synthetic/episode/letter.json",
+      "untouched": [
+        "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+        "ToS/source-witnesses/history/synthetic/episode/unrecognized.json"
+      ]
+    },
+    {
+      "files": [
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/contracts/historical-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/historical-record.schema.json",
+          "repository_path_sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "size": 3705
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/source-witnesses/history/synthetic/episode/agent.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/agent.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "062ffb994a6104f3d1d1736b615cf11fe4146efd55309954fa9279abfc9c4a3b",
+          "size": 3742
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/source-witnesses/history/synthetic/episode/agent.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/agent.json",
+          "repository_path_sha256": null,
+          "sha256": "f80440ede6bc435c326f61f4b0f423f3739eacb4ea2766f43750f5b5af74f6b6",
+          "size": 1082
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "repository_path_sha256": null,
+          "sha256": "491760cc0c755bc2a8aa147b0f0de6a2cb56de4a91e2d5e6b77c443d7963289a",
+          "size": 20
+        },
+        {
+          "artifact_path": "fixtures/record-family-3/owner.json",
+          "capture_sha256": "5ecbdec78e13039d78ee8bb620736148cbc64e9437cbb4c4bd3c1c78710d3a19",
+          "capture_size": 682,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "owner.json",
+          "repository_path_sha256": null,
+          "sha256": "c47c74592821c7302b3bb2e868d4ecf37f650ed05a3093ee99f4ff014b38459a",
+          "size": 592
+        }
+      ],
+      "id": "record-family-3",
+      "owner_ref": "owner.json",
+      "proposal": {
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "prepare-revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "record": {
+        "external_identifiers": [
+          {
+            "scheme": "synthetic",
+            "source_ref": "test:synthetic",
+            "status": "unverified",
+            "value": "stable-external-id"
+          }
+        ],
+        "field_languages": {
+          "preferred_label": {
+            "language": "x-test",
+            "script": null,
+            "uninterpreted": [
+              false,
+              null,
+              0,
+              "",
+              {
+                "warning": "source text is not an instruction"
+              }
+            ]
+          }
+        },
+        "identity_status": "provisional",
+        "notes": "Не историческое свидетельство.",
+        "preferred_label": "Условный эпизод",
+        "record_id": "tos.agent.revision-fixture",
+        "record_type": "agent",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_refs": [
+          "test:synthetic"
+        ]
+      },
+      "request": {
+        "command_id": "native:revision-family-3",
+        "expected_configuration": "sha256:d8c88696aa3f7fcfe2e1dba753a1af821e4d842f428d73b441b2d549e60a4123",
+        "expected_dependencies": "sha256:e7dac22b7240c4465bf330bd59a83019fd5501ac32cef980a10d393e7a1af1e9",
+        "expected_revision": "sha256:b33e4af497843d2da1c070aba56f869bd11f780dcdaa3bf8995971bd712cd5b1",
+        "expected_source": {
+          "digest": "sha256:f7982e076f71076cc308debe1bafcec61eb513da7bb715f55a545b6d66a89dff",
+          "id": "tos.agent.revision-fixture",
+          "version": 1
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "root_bytes": 324593,
+      "source_path": "ToS/source-witnesses/history/synthetic/episode/agent.json",
+      "untouched": [
+        "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+        "ToS/source-witnesses/history/synthetic/episode/unrecognized.json"
+      ]
+    },
+    {
+      "files": [
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/contracts/historical-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/historical-record.schema.json",
+          "repository_path_sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "size": 3705
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/source-witnesses/history/synthetic/episode/expressions/untouched/payload/private.bin",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/expressions/untouched/payload/private.bin",
+          "repository_path_sha256": null,
+          "sha256": "c4355dc4dcf570499f2f3000d5341bb99261d7af4ff272f8271213501fc4dc7d",
+          "size": 27
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "repository_path_sha256": null,
+          "sha256": "491760cc0c755bc2a8aa147b0f0de6a2cb56de4a91e2d5e6b77c443d7963289a",
+          "size": 20
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/source-witnesses/history/synthetic/episode/work.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/work.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "f2c9894423fe5c997cbc1e9870d60e5b7609b97810ee73c97c2b36f5b8fbf731",
+          "size": 3302
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/ToS/source-witnesses/history/synthetic/episode/work.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/work.json",
+          "repository_path_sha256": null,
+          "sha256": "4148aaa00760f3616807e3cb15119cebf18945d093b7b67ecd8b7bec2ac0f60d",
+          "size": 871
+        },
+        {
+          "artifact_path": "fixtures/record-family-4/owner.json",
+          "capture_sha256": "4d025668fa6e6e7a31b22254da604a2beb0f6ab55b9dbbbdc7894a0a0461c724",
+          "capture_size": 701,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "owner.json",
+          "repository_path_sha256": null,
+          "sha256": "289ac3ac32b69e1a7a7d9524a07b9ee0e336c2cbcfda8a42935c34c44025c41f",
+          "size": 611
+        }
+      ],
+      "id": "record-family-4",
+      "owner_ref": "owner.json",
+      "proposal": {
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "prepare-revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "record": {
+        "expression_claim_refs": [],
+        "external_identifiers": [
+          {
+            "scheme": "synthetic",
+            "source_ref": "test:synthetic",
+            "status": "unverified",
+            "value": "stable-external-id"
+          }
+        ],
+        "field_languages": {
+          "preferred_label": {
+            "language": "x-test",
+            "script": null,
+            "uninterpreted": [
+              false,
+              null,
+              0,
+              "",
+              {
+                "warning": "source text is not an instruction"
+              }
+            ]
+          }
+        },
+        "identity_status": "provisional",
+        "notes": "Не историческое свидетельство.",
+        "preferred_label": "Условный эпизод",
+        "record_id": "tos.work.selected-fixture",
+        "record_type": "work",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_refs": [
+          "test:synthetic"
+        ]
+      },
+      "request": {
+        "command_id": "native:revision-family-4",
+        "expected_configuration": "sha256:9c18b97551d34248e92650d7071779aab207f6a5fccd972c52b81fd876b7d23e",
+        "expected_dependencies": "sha256:a56f15401ac3594f674401b911f044d3b71d78daf724955bde4e54a00c0f8f60",
+        "expected_publication": null,
+        "expected_revision": "sha256:ab8f86d6944916d8cde7d5233ec9950c54a84e5b4d01cd45119bbaf5eaadd823",
+        "expected_source": {
+          "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446",
+          "id": "tos.work.selected-fixture",
+          "version": 1
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "root_bytes": 323988,
+      "source_path": "ToS/source-witnesses/history/synthetic/episode/work.json",
+      "untouched": [
+        "ToS/source-witnesses/history/synthetic/episode/expressions/untouched/payload/private.bin",
+        "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+        "ToS/source-witnesses/history/synthetic/episode/unrecognized.json"
+      ]
+    },
+    {
+      "files": [
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/contracts/historical-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/historical-record.schema.json",
+          "repository_path_sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+          "size": 3705
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/source-witnesses/history/synthetic/episode/expressions/untouched/payload/private.bin",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/expressions/untouched/payload/private.bin",
+          "repository_path_sha256": null,
+          "sha256": "c4355dc4dcf570499f2f3000d5341bb99261d7af4ff272f8271213501fc4dc7d",
+          "size": 27
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/unrecognized.json",
+          "repository_path_sha256": null,
+          "sha256": "491760cc0c755bc2a8aa147b0f0de6a2cb56de4a91e2d5e6b77c443d7963289a",
+          "size": 20
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/source-witnesses/history/synthetic/episode/work.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/work.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "f2c9894423fe5c997cbc1e9870d60e5b7609b97810ee73c97c2b36f5b8fbf731",
+          "size": 3302
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/ToS/source-witnesses/history/synthetic/episode/work.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/history/synthetic/episode/work.json",
+          "repository_path_sha256": null,
+          "sha256": "4148aaa00760f3616807e3cb15119cebf18945d093b7b67ecd8b7bec2ac0f60d",
+          "size": 871
+        },
+        {
+          "artifact_path": "fixtures/record-family-5/owner.json",
+          "capture_sha256": "5f1e1978a1b777d027f86ce8930a7cef5271e448c3660d840c3fbf0695ebe5a6",
+          "capture_size": 701,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "owner.json",
+          "repository_path_sha256": null,
+          "sha256": "a951a32b43adaca6ac5f2bcfad85d9903540d95b8762d71b0ed9d1064a7a5b7f",
+          "size": 611
+        }
+      ],
+      "id": "record-family-5",
+      "owner_ref": "owner.json",
+      "proposal": {
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "prepare-revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "record": {
+        "expression_claim_refs": [],
+        "external_identifiers": [
+          {
+            "scheme": "synthetic",
+            "source_ref": "test:synthetic",
+            "status": "unverified",
+            "value": "stable-external-id"
+          }
+        ],
+        "field_languages": {
+          "preferred_label": {
+            "language": "x-test",
+            "script": null,
+            "uninterpreted": [
+              false,
+              null,
+              0,
+              "",
+              {
+                "warning": "source text is not an instruction"
+              }
+            ]
+          }
+        },
+        "identity_status": "provisional",
+        "notes": "Не историческое свидетельство.",
+        "preferred_label": "Условный эпизод",
+        "record_id": "tos.work.selected-fixture",
+        "record_type": "work",
+        "record_version": 1,
+        "same_as_posture": "no_equivalence_claim",
+        "schema_version": "tos_corpus_record_v1",
+        "source_refs": [
+          "test:synthetic"
+        ]
+      },
+      "request": {
+        "command_id": "native:revision-family-5",
+        "expected_configuration": "sha256:6f4a9739c9c01eb3b8ad84ec802673c520e300f7a4ca57e82f8b9961b24480db",
+        "expected_dependencies": "sha256:a56f15401ac3594f674401b911f044d3b71d78daf724955bde4e54a00c0f8f60",
+        "expected_publication": null,
+        "expected_revision": "sha256:ab8f86d6944916d8cde7d5233ec9950c54a84e5b4d01cd45119bbaf5eaadd823",
+        "expected_source": {
+          "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446",
+          "id": "tos.work.selected-fixture",
+          "version": 1
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "Уточнённая условная запись, всё ещё не свидетельство."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.revision-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.revision-note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Synthetic correction and explicit field language.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "root_bytes": 323988,
+      "source_path": "ToS/source-witnesses/history/synthetic/episode/work.json",
+      "untouched": [
+        "ToS/source-witnesses/history/synthetic/episode/expressions/untouched/payload/private.bin",
+        "ToS/source-witnesses/history/synthetic/episode/historical-claims.jsonl",
+        "ToS/source-witnesses/history/synthetic/episode/unrecognized.json"
+      ]
+    },
+    {
+      "files": [
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/contracts/artifact-source-witness.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/artifact-source-witness.schema.json",
+          "repository_path_sha256": "1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f",
+          "sha256": "1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f",
+          "size": 11046
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/source-witnesses/artifacts/synthetic/fixture/artifact-witness.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/artifacts/synthetic/fixture/artifact-witness.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "af5b43fbe95d52a1bc94af7bf13bee6d014559e401454a3f5e42dd792c0be523",
+          "size": 3329
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/source-witnesses/artifacts/synthetic/fixture/artifact-witness.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/artifacts/synthetic/fixture/artifact-witness.json",
+          "repository_path_sha256": null,
+          "sha256": "1fc36dda7955a6da9519804a10518b59306c8ee5ee3c0b94fa583a32c2101e78",
+          "size": 8253
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/source-witnesses/artifacts/synthetic/fixture/provenance.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/artifacts/synthetic/fixture/provenance.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "5a013a76ffdbe4f6d6d071a260879bfd5034a0d6dc844ecf0e03a90600724883",
+          "size": 60
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/source-witnesses/artifacts/synthetic/fixture/representations/private/payload/untouched.bin",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/artifacts/synthetic/fixture/representations/private/payload/untouched.bin",
+          "repository_path_sha256": null,
+          "sha256": "2263d2e7b2a0f5b16cbe891ad02d7f950f0a7c7b4beca81193378bba21c65a4a",
+          "size": 22
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/source-witnesses/catalog/artifacts.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/catalog/artifacts.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "ce88a5ae250db743fa6a5d9c5287231e0ce246e29bd5d3858e31600d7c472a2f",
+          "size": 490
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/source-witnesses/catalog/catalog.manifest.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
+          "repository_path_sha256": null,
+          "sha256": "aa402170ba0ff17c40963fcbb6dbfe787c4449fa2fdf2e705ddfef47b67d284c",
+          "size": 182
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/ToS/source-witnesses/catalog/claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/catalog/claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/record-family-6/owner.json",
+          "capture_sha256": "2607a3a144461f472235826dcd9285e662ac181a4cc76ad4191f118cd8b72a49",
+          "capture_size": 862,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "owner.json",
+          "repository_path_sha256": null,
+          "sha256": "e0484a2ba5376f9ec673b211270797ac3ca42f1e69accfa4f21e1533aa794439",
+          "size": 772
+        }
+      ],
+      "id": "record-family-6",
+      "owner_ref": "owner.json",
+      "proposal": {
+        "fields": {
+          "path_identity": {
+            "basis": "repository_identity",
+            "note": "Synthetic descriptive correction.",
+            "provider_independent": true
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.native-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.native-note"
+          }
+        ],
+        "operation": "prepare-revise",
+        "reason": "Synthetic serialization test only.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "record": {
+        "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+        "artifact_id": "tos.artifact.native-synthetic",
+        "artifact_kind": "clay_tablet",
+        "authority": {
+          "canon_authority": false,
+          "evidence_status": "metadata_witness",
+          "graph_authority": false,
+          "publication_authority": false,
+          "review_status": "unreviewed",
+          "semantic_authority": false,
+          "source_text_admitted": false,
+          "visibility": "public_metadata_only"
+        },
+        "bibliography": [
+          {
+            "citation": "Langdon, Stephen H. The Epic of Gilgamish, PBS 10/3 (1917).",
+            "role": "primary_publication",
+            "source_ref": "https://etana.org/sites/default/files/coretexts/14909.pdf"
+          },
+          {
+            "citation": "Jastrow, Morris Jr., and Albert T. Clay. An Old Babylonian Version of the Gilgamesh Epic (1920).",
+            "role": "catalog_publication",
+            "source_ref": "https://www.gutenberg.org/ebooks/11000"
+          },
+          {
+            "citation": "George, Andrew R. The Babylonian Gilgamesh Epic: Introduction, Critical Edition and Cuneiform Texts (2003), pp. 172-192 and pls. 1-3 as reported by eBL.",
+            "role": "established_control",
+            "source_ref": "https://soas-repository.worktribe.com/output/446254/the-babylonian-gilgamesh-epic-introduction-critical-edition-and-cuneiform-texts"
+          },
+          {
+            "citation": "Electronic Babylonian Literature, Poem of Gilgameš, Old Babylonian II manuscript record, live state checked 2026-08-22.",
+            "role": "current_control",
+            "source_ref": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts"
+          }
+        ],
+        "composite_layer": {
+          "external_refs": [
+            {
+              "scheme": "Penn-reported CDLI composite",
+              "source_ref": "https://www.penn.museum/collections/object/245958",
+              "value": "Q002873.nn"
+            },
+            {
+              "scheme": "eBL text and chapter",
+              "source_ref": "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts",
+              "value": "L/1/4 / Old Babylonian II"
+            }
+          ],
+          "is_physical_artifact_identity": false,
+          "relationship": "The tablet is one physical witness represented in modern composite and synoptic routes. Neither the Penn/CDLI Q-label nor the eBL chapter makes the tablet identical to a reconstructed composition, fixed reading, translation, or complete Old Babylonian poem.",
+          "status": "linked"
+        },
+        "created_at": "2026-08-23T00:05:00-06:00",
+        "custody": {
+          "current_repository": "Penn Museum, Babylonian Section",
+          "inventory_numbers": [
+            "CBS7771",
+            "CBS 07771",
+            "B7771"
+          ],
+          "source_ref": "https://www.penn.museum/collections/object/245958"
+        },
+        "dating": {
+          "certainty": "reported",
+          "display_date": "ca. 1650 BCE",
+          "period_label": "Old Babylonian",
+          "period_stage_separation_required": true,
+          "source_ref": "https://www.penn.museum/collections/object/245958"
+        },
+        "digital_catalog_record": {
+          "api_url": "https://cdli.earth/artifacts/262784/json",
+          "checked_at": "2026-08-22T23:30:25-06:00",
+          "mutable": true,
+          "provider": "Cuneiform Digital Library Initiative",
+          "record_id": "P262784",
+          "record_url": "https://cdli.earth/artifacts/262784",
+          "response_fingerprints": [
+            {
+              "byte_size": 12753,
+              "captured": false,
+              "sha256": "c6f3388f9023e082d9dbd3d9dbc25d38fc94ede218654c9c34330fde9df6bb91",
+              "surface": "https://cdli.earth/artifacts/262784/json"
+            },
+            {
+              "byte_size": 80375,
+              "captured": false,
+              "sha256": "ce3261d978198dccbecebf343e5ab42938c40d746a55a60a26004f64d85e8bf0",
+              "surface": "https://cdli.earth/artifacts/262784"
+            }
+          ]
+        },
+        "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json",
+        "find_context": {
+          "documentation_limit": "The conflicting provider statements were not reconciled by excavation documentation. None is promoted to an exact findspot, composition place, scribal school, or ancient circulation route.",
+          "excavation_numbers": [],
+          "findspot": null,
+          "site": null,
+          "source_note": "Penn reports Iraq, Warka (uncertain), while its description preserves a CBS Register note naming Sippar. CDLI reports Nippur; eBL reports the broader Babylonia label.",
+          "source_ref": "https://www.penn.museum/collections/object/245958"
+        },
+        "identifiers": [
+          {
+            "scheme": "Penn Museum object number",
+            "source_ref": "https://www.penn.museum/collections/object/245958",
+            "value": "CBS7771"
+          },
+          {
+            "scheme": "Penn Museum other number",
+            "source_ref": "https://www.penn.museum/collections/object/245958",
+            "value": "CBS 07771"
+          },
+          {
+            "scheme": "Penn Museum old museum number",
+            "source_ref": "https://www.penn.museum/collections/object/245958",
+            "value": "B7771"
+          },
+          {
+            "scheme": "CDLI",
+            "source_ref": "https://cdli.earth/artifacts/262784",
+            "value": "P262784"
+          },
+          {
+            "scheme": "eBL museum number",
+            "source_ref": "https://www.ebl.lmu.de/api/fragments/CBS.7771",
+            "value": "CBS.7771"
+          }
+        ],
+        "inscription_layer": {
+          "availability": "available_not_acquired",
+          "language_status": "reported",
+          "normalized_language_code": "akk",
+          "provider_language_code": "akk",
+          "script": "cuneiform",
+          "source_refs": [
+            "https://cdli.earth/artifacts/262784",
+            "https://www.ebl.lmu.de/api/fragments/CBS.7771"
+          ],
+          "translation_stored": false,
+          "transliteration_stored": false
+        },
+        "layer_separation": {
+          "artifact_is_philosophy": false,
+          "catalog_record_is_inscription": false,
+          "inscription_is_composite": false,
+          "physical_artifact_is_catalog_record": false,
+          "sign_has_fixed_translation": false,
+          "visual_is_artifact": false
+        },
+        "maker": {
+          "agent_ref": "model:codex",
+          "human_review_performed": false,
+          "maker_type": "model"
+        },
+        "path_identity": {
+          "basis": "repository_identity",
+          "note": "The path follows the stable Penn Museum CBS 07771 repository identity and intentionally uses uncertain because Penn, the CBS register note, CDLI, and eBL do not report one reconciled locality.",
+          "provider_independent": true
+        },
+        "philosophy_planting_refs": [
+          "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/old-babylonian-gilgamesh-fragments/source-planting.json"
+        ],
+        "physical_description": {
+          "height_mm": 185,
+          "material": "clay",
+          "source_ref": "https://www.penn.museum/collections/object/245958",
+          "thickness_mm": 24,
+          "width_mm": 165
+        },
+        "provenance_event_ref": "tos.event.discovery.old-babylonian-gilgamesh-fragments.2026-08-22",
+        "record_version": 1,
+        "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_OLD_BABYLONIAN_GILGAMESH_FRAGMENTS_SOURCE_PLANTING_RESEARCH_2026-08-22.md",
+        "rights_ref": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json",
+        "schema_version": "tos_artifact_source_witness_v1",
+        "scholarly_classification": {
+          "classification_is_interpretive": true,
+          "corpus_labels": [
+            "Gilgamesh II",
+            "Pennsylvania tablet",
+            "Old Babylonian unit II"
+          ],
+          "genre": "Akkadian literary tablet; Old Babylonian Gilgamesh witness",
+          "source_refs": [
+            "https://www.penn.museum/collections/object/245958",
+            "https://cdli.earth/artifacts/262784",
+            "https://www.ebl.lmu.de/api/texts/L/1/4/chapters/Old%20Babylonian/II/manuscripts"
+          ]
+        },
+        "visual_layers": [
+          {
+            "availability": "visible",
+            "content_stored": false,
+            "layer_kind": "photograph",
+            "rights_note": "Penn excludes images from its CC BY 4.0 metadata dataset and provides a separate publication-permission route; no photograph was acquired.",
+            "source_ref": "https://www.penn.museum/collections/object/245958"
+          },
+          {
+            "availability": "visible",
+            "content_stored": false,
+            "layer_kind": "line_art",
+            "rights_note": "CDLI links or renders scholarly line art under source-specific contributor terms; no drawing was acquired or authorized for publication.",
+            "source_ref": "https://cdli.earth/artifacts/262784"
+          }
+        ]
+      },
+      "request": {
+        "command_id": "test:native-correction",
+        "expected_configuration": "sha256:2b86e7d2eb9e1c0f8b02d4f23930f07c04c9c33c9fefc761a90d018a1d9a92d6",
+        "expected_dependencies": "sha256:6f55b4bd4e0c734b91c08db2c83c5cc584daf4aa56a11498b092cbe7381c6f13",
+        "expected_publication": null,
+        "expected_revision": "sha256:d729e9a1f4f913cb7e1e2492e34441edb044bb3d2ca801ee9caad46e385b4420",
+        "expected_source": {
+          "digest": "sha256:ebd064965089da9dbb278eea3cf9612a2717f6bd2dbb4f59e9a2f899942d8b21",
+          "id": "tos.artifact.native-synthetic",
+          "version": 1
+        },
+        "fields": {
+          "path_identity": {
+            "basis": "repository_identity",
+            "note": "Synthetic descriptive correction.",
+            "provider_independent": true
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.native-name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.native-note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Synthetic serialization test only.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "root_bytes": 339606,
+      "source_path": "ToS/source-witnesses/artifacts/synthetic/fixture/artifact-witness.json",
+      "untouched": [
+        "ToS/source-witnesses/artifacts/synthetic/fixture/provenance.jsonl",
+        "ToS/source-witnesses/artifacts/synthetic/fixture/representations/private/payload/untouched.bin"
+      ]
+    },
+    {
+      "expression_ref": "ToS/source-witnesses/works/synthetic/parent/expressions/first/expression.json",
+      "files": [
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/claim-packet.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/claim-packet.schema.json",
+          "repository_path_sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd",
+          "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd",
+          "size": 5632
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/corpus-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "repository_path_sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+          "size": 8744
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/human-form-set.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "repository_path_sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+          "size": 2486
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/human-form-template.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "repository_path_sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+          "size": 1527
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/human-form.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/human-form.schema.json",
+          "repository_path_sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+          "size": 16342
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/knowledge-assessment.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "repository_path_sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+          "size": 5043
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/provenance-event-v2.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/provenance-event-v2.schema.json",
+          "repository_path_sha256": "bc56f527b580e3c4728fcb2ebe8cfa333b75a7db56922226d1eaec6de0557ae0",
+          "sha256": "bc56f527b580e3c4728fcb2ebe8cfa333b75a7db56922226d1eaec6de0557ae0",
+          "size": 34901
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/semantic-entity-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "repository_path_sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+          "size": 16948
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/semantic-relation-type-registry.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
+          "repository_path_sha256": "6b977aa01ac54172ee7d50618867edc75cefa395f22767cd4450211ca2c39894",
+          "sha256": "6b977aa01ac54172ee7d50618867edc75cefa395f22767cd4450211ca2c39894",
+          "size": 19804
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/source-claim-record.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/source-claim-record.schema.json",
+          "repository_path_sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7",
+          "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7",
+          "size": 4297
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/contracts/source-relation-claim.schema.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/contracts/source-relation-claim.schema.json",
+          "repository_path_sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe",
+          "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe",
+          "size": 604
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+          "repository_path_sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+          "size": 264272
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/doctrine/semantic-interchange/relation-types.v1.json",
+          "matches_repository_path": true,
+          "mode": "0600",
+          "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+          "repository_path_sha256": "462d75fe3a22567e88c6c0f14b40fae5a83db244333c66acd406e9dca9c5ab4c",
+          "sha256": "462d75fe3a22567e88c6c0f14b40fae5a83db244333c66acd406e9dca9c5ab4c",
+          "size": 335626
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/source-witnesses/catalog/catalog.manifest.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
+          "repository_path_sha256": null,
+          "sha256": "4423e961c705a01e5f3e7ccd30926a56032301459414df6e725d4a45d2ab799d",
+          "size": 265
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/source-witnesses/catalog/claims.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/catalog/claims.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/source-witnesses/catalog/expressions.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/catalog/expressions.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/source-witnesses/catalog/works.jsonl",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/catalog/works.jsonl",
+          "repository_path_sha256": null,
+          "sha256": "d1064ae490dd816513a13f0c926673adcaadb08cc956863a0b6caf1c40cd5260",
+          "size": 354
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/source-witnesses/works/synthetic/parent/expressions/untouched/editions/child/item.txt",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/works/synthetic/parent/expressions/untouched/editions/child/item.txt",
+          "repository_path_sha256": null,
+          "sha256": "997f0de35338053ece3756f4158d174b2395152cd8eae92d93aeb828640e0f7b",
+          "size": 31
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/source-witnesses/works/synthetic/parent/work.human-forms.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/works/synthetic/parent/work.human-forms.json",
+          "repository_path_sha256": null,
+          "sha256": "d233fd9bb26f787ff3619a4809bd1c598f20735d911f4ef71dde1867a5669d61",
+          "size": 3610
+        },
+        {
+          "artifact_path": "fixtures/work-expression/ToS/source-witnesses/works/synthetic/parent/work.json",
+          "matches_repository_path": false,
+          "mode": "0600",
+          "path": "ToS/source-witnesses/works/synthetic/parent/work.json",
+          "repository_path_sha256": null,
+          "sha256": "29c373cc76aed2112230ab03661f72ef1cd44cdeed6eb8f95ddb1e8e6b69b145",
+          "size": 831
+        },
+        {
+          "artifact_path": "fixtures/work-expression/compound-owner.json",
+          "capture_sha256": "d9f983cd76c138dd842af77d5a9e86ebcaa854024b6bbd290203bdb588462fca",
+          "capture_size": 1035,
+          "matches_repository_path": false,
+          "mode": "0600",
+          "normalization": "source_root replaced by $TOS_FIXTURE_ROOT; test rebases it to its private isolated root",
+          "path": "compound-owner.json",
+          "repository_path_sha256": null,
+          "sha256": "289e29ab6957d62b0cd6e86aea5a0b75b679e0528af44eee82903a066b24a6db",
+          "size": 1019
+        }
+      ],
+      "id": "work-expression",
+      "owner_ref": "compound-owner.json",
+      "proposal": {
+        "claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "assessment_refs": [],
+          "claim_id": "tos.claim.synthetic.first",
+          "claim_type": "relation",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "ToS/source-witnesses/works/synthetic/parent/work.json",
+            "ToS/source-witnesses/works/synthetic/parent/expressions/first/expression.json"
+          ],
+          "maker": {
+            "agent_ref": "model:synthetic",
+            "maker_type": "model"
+          },
+          "object": "tos.expression.synthetic.first",
+          "polarity": "positive",
+          "predicate": "has_expression",
+          "provenance_event_ref": "tos.event.synthetic.first",
+          "qualifiers": {
+            "statement": "The synthetic records declare this link, without textual equivalence.",
+            "statement_language": "en",
+            "statement_script": "Latn",
+            "unknown_qualification": {
+              "flag": false,
+              "missing": null,
+              "text": "Keep this context."
+            }
+          },
+          "review_status": "unreviewed",
+          "schema_version": "tos_source_relation_claim_v1",
+          "subject_ref": "tos.work.synthetic.parent",
+          "visibility": "public_metadata_only"
+        },
+        "claim_forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.synthetic.first.statement"
+          }
+        ],
+        "expression_forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.synthetic.first.name"
+          }
+        ],
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.synthetic.parent.name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.synthetic.parent.note"
+          }
+        ],
+        "operation": "prepare-create",
+        "reason": "Synthetic exact typed child addition; no admission.",
+        "record": {
+          "derivation_claim_refs": [],
+          "embodiment_claim_refs": [],
+          "expression_role": "translation",
+          "external_identifiers": [],
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            },
+            "preferred_label": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "identity_status": "provisional",
+          "language": "en",
+          "notes": "Synthetic qualified wording, preserved by the compound operation.",
+          "preferred_label": "Синтетическое английское выражение",
+          "record_id": "tos.expression.synthetic.first",
+          "record_type": "expression",
+          "record_version": 1,
+          "responsibility_claim_refs": [],
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "https://example.invalid/source"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [],
+          "work_ref": "tos.work.synthetic.parent"
+        },
+        "schema_version": "tos_local_work_expression_command_v1"
+      },
+      "request": {
+        "claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "assessment_refs": [],
+          "claim_id": "tos.claim.synthetic.first",
+          "claim_type": "relation",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "ToS/source-witnesses/works/synthetic/parent/work.json",
+            "ToS/source-witnesses/works/synthetic/parent/expressions/first/expression.json"
+          ],
+          "maker": {
+            "agent_ref": "model:synthetic",
+            "maker_type": "model"
+          },
+          "object": "tos.expression.synthetic.first",
+          "polarity": "positive",
+          "predicate": "has_expression",
+          "provenance_event_ref": "tos.event.synthetic.first",
+          "qualifiers": {
+            "statement": "The synthetic records declare this link, without textual equivalence.",
+            "statement_language": "en",
+            "statement_script": "Latn",
+            "unknown_qualification": {
+              "flag": false,
+              "missing": null,
+              "text": "Keep this context."
+            }
+          },
+          "review_status": "unreviewed",
+          "schema_version": "tos_source_relation_claim_v1",
+          "subject_ref": "tos.work.synthetic.parent",
+          "visibility": "public_metadata_only"
+        },
+        "claim_forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.synthetic.first.statement"
+          }
+        ],
+        "command_id": "tos.expression.synthetic.first",
+        "expected_configuration": "sha256:1690679a1454efc64e1b2a913dad57d88141afda8041000ffee05db8a2636ca4",
+        "expected_dependencies": "sha256:0b26c1af304161ab0381061e6ca1ecd2e889d546b144fe282222bec867f35881",
+        "expected_publication": null,
+        "expected_revision": "sha256:ba285c9dd4fecec5e120cdd7cd6a45d2bb30d9c24de8b89aae0481d5aff64a26",
+        "expected_source": {
+          "digest": "sha256:f2953565f64872b69696d757d4166310ac3d934c0ac2692ec80166b525d9a1e4",
+          "id": "tos.work.synthetic.parent",
+          "version": 4
+        },
+        "expression_forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.synthetic.first.name"
+          }
+        ],
+        "fields": {
+          "expression_claim_refs": [
+            "tos.claim.synthetic.first"
+          ]
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.synthetic.parent.name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.synthetic.parent.note"
+          }
+        ],
+        "operation": "work.expression.create",
+        "reason": "Synthetic exact typed child addition; no admission.",
+        "record": {
+          "derivation_claim_refs": [],
+          "embodiment_claim_refs": [],
+          "expression_role": "translation",
+          "external_identifiers": [],
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            },
+            "preferred_label": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "identity_status": "provisional",
+          "language": "en",
+          "notes": "Synthetic qualified wording, preserved by the compound operation.",
+          "preferred_label": "Синтетическое английское выражение",
+          "record_id": "tos.expression.synthetic.first",
+          "record_type": "expression",
+          "record_version": 1,
+          "responsibility_claim_refs": [],
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "https://example.invalid/source"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": [],
+          "work_ref": "tos.work.synthetic.parent"
+        },
+        "schema_version": "tos_local_work_expression_command_v1"
+      },
+      "root_bytes": 722352,
+      "untouched_ref": "ToS/source-witnesses/works/synthetic/parent/expressions/untouched/editions/child/item.txt",
+      "work_ref": "ToS/source-witnesses/works/synthetic/parent/work.json"
+    }
+  ],
+  "elapsed_seconds": 2.257,
+  "fixture_payload_bytes": 3015297,
+  "provenance": {
+    "captured_at_utc": "2026-10-09T10:33:19.190353+00:00",
+    "distributions": {
+      "jsonpointer": "2.4",
+      "protobuf": "3.20.3"
+    },
+    "host_path_redaction": "loaded_path and host-specific interpreter paths omitted; project-relative paths, Git blob IDs, and content hashes retained",
+    "imported_sources": [
+      {
+        "git_head_blob": null,
+        "loaded_sha256": "40cc2e18ae8b1120822a523497332dcfbdfb37945052ebd8de7c32e7437df698",
+        "matches_working_tree": false,
+        "module": "__main__",
+        "origin": "external-project-import-root",
+        "project_path_hint": "managed-scratch/capture_source_native_fixtures.py",
+        "working_tree_sha256": null
+      },
+      {
+        "git_head_blob": "f3f04de0c92a5c0c87713978659502137bce1816",
+        "loaded_sha256": "53b98ef7372d342aaad76982e17da370232ad7d36347928629a2de7d273f0ee4",
+        "matches_working_tree": true,
+        "module": "acquisition_native",
+        "origin": "repository",
+        "project_path_hint": "scripts/acquisition_native.py",
+        "working_tree_sha256": "53b98ef7372d342aaad76982e17da370232ad7d36347928629a2de7d273f0ee4"
+      },
+      {
+        "git_head_blob": "0ee37ab9151defb6f47ef651bb15a74764319c95",
+        "loaded_sha256": "364561c250d15236328f129d9b80aa1b998620500637b766aa738db38e58e4c3",
+        "matches_working_tree": true,
+        "module": "assessment_journal",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
+        "working_tree_sha256": "364561c250d15236328f129d9b80aa1b998620500637b766aa738db38e58e4c3"
+      },
+      {
+        "git_head_blob": "7d445673b393ca2b84db178bf9ad31306570eabb",
+        "loaded_sha256": "31988286af420be8524230b0bd5618665ecc1de3e17e580cc8a4a126d2412023",
+        "matches_working_tree": true,
+        "module": "build_source_resource_inventories",
+        "origin": "repository",
+        "project_path_hint": "scripts/build_source_resource_inventories.py",
+        "working_tree_sha256": "31988286af420be8524230b0bd5618665ecc1de3e17e580cc8a4a126d2412023"
+      },
+      {
+        "git_head_blob": "ea0144f173304305d338200929d7956a3d6a471f",
+        "loaded_sha256": "cf46896daa378930fc666727606836ceb7aa2a8a7be95b4eb3f22ad1255bacfd",
+        "matches_working_tree": true,
+        "module": "build_source_witness_catalog",
+        "origin": "repository",
+        "project_path_hint": "scripts/build_source_witness_catalog.py",
+        "working_tree_sha256": "cf46896daa378930fc666727606836ceb7aa2a8a7be95b4eb3f22ad1255bacfd"
+      },
+      {
+        "git_head_blob": "56ff1cf54ed56b6813c69a930fe8d8debd03219f",
+        "loaded_sha256": "2c87ecfba5e93892cdab9ed5f698393e390f6fe7246cb3ff992b6dea2f5b1afc",
+        "matches_working_tree": true,
+        "module": "claim_navigation",
+        "origin": "repository",
+        "project_path_hint": "scripts/claim_navigation.py",
+        "working_tree_sha256": "2c87ecfba5e93892cdab9ed5f698393e390f6fe7246cb3ff992b6dea2f5b1afc"
+      },
+      {
+        "git_head_blob": "8685e5543f75202c00ca7d7e25a85bf4059b4eed",
+        "loaded_sha256": "0348b69120a20875582790b10690c462b80b02331581eeba79acce54aac5368a",
+        "matches_working_tree": true,
+        "module": "claim_revisions",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
+        "working_tree_sha256": "0348b69120a20875582790b10690c462b80b02331581eeba79acce54aac5368a"
+      },
+      {
+        "git_head_blob": "2321253ecb5bbf7901af25ae7c682eae8ff71228",
+        "loaded_sha256": "8dcecb87f4ac91dd7bb94e1f9491d4deff1f3ad26857c4468cd0b00f64784bcd",
+        "matches_working_tree": true,
+        "module": "claim_version_reader",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py",
+        "working_tree_sha256": "8dcecb87f4ac91dd7bb94e1f9491d4deff1f3ad26857c4468cd0b00f64784bcd"
+      },
+      {
+        "git_head_blob": "80609fbb41789f6f92ab28a997f76bc6d516b4b2",
+        "loaded_sha256": "58503c14ba1da445ae2547485ce5e559053e397d8967bf81fc029eb1b7c2c619",
+        "matches_working_tree": true,
+        "module": "corpus_archive",
+        "origin": "repository",
+        "project_path_hint": "scripts/corpus_archive.py",
+        "working_tree_sha256": "58503c14ba1da445ae2547485ce5e559053e397d8967bf81fc029eb1b7c2c619"
+      },
+      {
+        "git_head_blob": "3de4a7ec777369fad459d326ac783426a31601f0",
+        "loaded_sha256": "c0e23044d76b4a2e67015ddef3b4af0beef3fb8e1fdde0a99a50649f6b5ba340",
+        "matches_working_tree": true,
+        "module": "human_forms",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+        "working_tree_sha256": "c0e23044d76b4a2e67015ddef3b4af0beef3fb8e1fdde0a99a50649f6b5ba340"
+      },
+      {
+        "git_head_blob": "df849cfb8a8d072c34baaec906db25664e1d61a4",
+        "loaded_sha256": "4ff5546d71f6230c13fd39d29bbc3d9de261cdd18dc4d7eac43401f7319600e8",
+        "matches_working_tree": true,
+        "module": "knowledge_assessment",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "working_tree_sha256": "4ff5546d71f6230c13fd39d29bbc3d9de261cdd18dc4d7eac43401f7319600e8"
+      },
+      {
+        "git_head_blob": "bc6bde62c91ebb285b2624ffc5547b83f92bc531",
+        "loaded_sha256": "d3e7afafeceb187d411b1cdd8b101c7a87b02383ef3d3fad7c698ee546c35659",
+        "matches_working_tree": true,
+        "module": "material_discovery_semantics",
+        "origin": "repository",
+        "project_path_hint": "scripts/material_discovery_semantics.py",
+        "working_tree_sha256": "d3e7afafeceb187d411b1cdd8b101c7a87b02383ef3d3fad7c698ee546c35659"
+      },
+      {
+        "git_head_blob": "039f2d4eed9dd642c7f484cd4a741ac4f74358ce",
+        "loaded_sha256": "6562e1d16e99d38f6b47035f70650ee3d32dbab3838532db0d196043330f4fb0",
+        "matches_working_tree": true,
+        "module": "metadata_version_reader",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py",
+        "working_tree_sha256": "6562e1d16e99d38f6b47035f70650ee3d32dbab3838532db0d196043330f4fb0"
+      },
+      {
+        "git_head_blob": "a2f8bf2e9768252c3927aba5d76f279e2071f1eb",
+        "loaded_sha256": "84113ed2ea0334cb9b5ce44baa940b7199893ab5389cabb78659cdcd1b2d058a",
+        "matches_working_tree": true,
+        "module": "native_text_binding",
+        "origin": "repository",
+        "project_path_hint": "scripts/native_text_binding.py",
+        "working_tree_sha256": "84113ed2ea0334cb9b5ce44baa940b7199893ab5389cabb78659cdcd1b2d058a"
+      },
+      {
+        "git_head_blob": "0eb6b673dadafb7a110fa5d62d102769594181a1",
+        "loaded_sha256": "fd1f3a55e3b0c10f2d60490d605abcd221725107ce8a029010f68e62bcfc5010",
+        "matches_working_tree": true,
+        "module": "partitioned_projection_common",
+        "origin": "repository",
+        "project_path_hint": "scripts/partitioned_projection_common.py",
+        "working_tree_sha256": "fd1f3a55e3b0c10f2d60490d605abcd221725107ce8a029010f68e62bcfc5010"
+      },
+      {
+        "git_head_blob": "35a5c0ef6bd79a40066741885464d4de4b5d8416",
+        "loaded_sha256": "8c71f251a502b343f7db0ad49912bebb62a8e64ef67ae7142099c9af7d548e13",
+        "matches_working_tree": true,
+        "module": "source_alignment_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_alignment_commands.py",
+        "working_tree_sha256": "8c71f251a502b343f7db0ad49912bebb62a8e64ef67ae7142099c9af7d548e13"
+      },
+      {
+        "git_head_blob": "1331ff3ea646d4f02fbe01261691a7bf4437a8af",
+        "loaded_sha256": "6bfebbccb61bbf6622709f6cd8192b5355327633c00fb47a3057219f5f436326",
+        "matches_working_tree": true,
+        "module": "source_artifact_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py",
+        "working_tree_sha256": "6bfebbccb61bbf6622709f6cd8192b5355327633c00fb47a3057219f5f436326"
+      },
+      {
+        "git_head_blob": "408f65869527a19d1fc80376bae5ea02cd11bf9d",
+        "loaded_sha256": "5d81df0aee99385c5af5def6ab455f75ac957dec8076c07cf535e9fb631524fc",
+        "matches_working_tree": true,
+        "module": "source_bibliographic_responsibility",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_bibliographic_responsibility.py",
+        "working_tree_sha256": "5d81df0aee99385c5af5def6ab455f75ac957dec8076c07cf535e9fb631524fc"
+      },
+      {
+        "git_head_blob": "6627df41d41bf28bf758c50f02e7a5008ae9c832",
+        "loaded_sha256": "a0317de42284ab3e5111d79d08f5a4504877a62a8fe389c6615f680f9327359c",
+        "matches_working_tree": true,
+        "module": "source_bibliographic_topology",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_bibliographic_topology.py",
+        "working_tree_sha256": "a0317de42284ab3e5111d79d08f5a4504877a62a8fe389c6615f680f9327359c"
+      },
+      {
+        "git_head_blob": "f4abb29427bdb9de35e582b9288b523bb6c793f0",
+        "loaded_sha256": "09e2582c47715efe7c985409907ab4f44de784ef21d459f52d9ed6be20c57337",
+        "matches_working_tree": true,
+        "module": "source_claim_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
+        "working_tree_sha256": "09e2582c47715efe7c985409907ab4f44de784ef21d459f52d9ed6be20c57337"
+      },
+      {
+        "git_head_blob": "4cd9e00e32078e781559340ecdb4211b5bab8874",
+        "loaded_sha256": "b06fea4f2aa3ba4d19a1429eb6f17ac258bee51aa2372214b27e3dad7eb268ab",
+        "matches_working_tree": true,
+        "module": "source_collection_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_collection_commands.py",
+        "working_tree_sha256": "b06fea4f2aa3ba4d19a1429eb6f17ac258bee51aa2372214b27e3dad7eb268ab"
+      },
+      {
+        "git_head_blob": "91786931dfe0e408b554a2244e14d070f8c7cdd2",
+        "loaded_sha256": "b3a8b38f95371f45b2cc4eacaec2f9c0e37cd5a6677a1724d4a64164f2ff384f",
+        "matches_working_tree": true,
+        "module": "source_command_contracts",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+        "working_tree_sha256": "b3a8b38f95371f45b2cc4eacaec2f9c0e37cd5a6677a1724d4a64164f2ff384f"
+      },
+      {
+        "git_head_blob": "307ace0dd314c64897a4fe2c9860706b7e030f90",
+        "loaded_sha256": "b21d8f9ab8e78d2bfd7bdc9c09aee8af206d2bcfdbf439a6d06f99458ef69ce7",
+        "matches_working_tree": true,
+        "module": "source_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+        "working_tree_sha256": "b21d8f9ab8e78d2bfd7bdc9c09aee8af206d2bcfdbf439a6d06f99458ef69ce7"
+      },
+      {
+        "git_head_blob": "26fc98c371af0ee9ab0908b7112df86b015b3b14",
+        "loaded_sha256": "092230f8ddec3d8ea40c15dc40f920f023e7c16602a014daeabf633142e23a21",
+        "matches_working_tree": true,
+        "module": "source_compound_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_compound_commands.py",
+        "working_tree_sha256": "092230f8ddec3d8ea40c15dc40f920f023e7c16602a014daeabf633142e23a21"
+      },
+      {
+        "git_head_blob": "d7d4b2bc5da33f7e3ebe0bde8da39136bc97e285",
+        "loaded_sha256": "ec109209caf59f299c185ecd7de1089e31610b77eb3cda604f083151bade2670",
+        "matches_working_tree": true,
+        "module": "source_document_catalogue",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_document_catalogue.py",
+        "working_tree_sha256": "ec109209caf59f299c185ecd7de1089e31610b77eb3cda604f083151bade2670"
+      },
+      {
+        "git_head_blob": "4b863d4d4c54709d001a1f3b28caff9279960bd3",
+        "loaded_sha256": "f09dda39ca22571050bb537ec76a0650718573176e3c48cec8445edb68f36cf9",
+        "matches_working_tree": true,
+        "module": "source_edition_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_edition_commands.py",
+        "working_tree_sha256": "f09dda39ca22571050bb537ec76a0650718573176e3c48cec8445edb68f36cf9"
+      },
+      {
+        "git_head_blob": "b2fc254c68c56b0cc744591633fdcee25da59bf8",
+        "loaded_sha256": "8d7af9c7adbe2ffbce4a1e75d9cc03eafcaf3098a47a6b9cbd353ef83dd92541",
+        "matches_working_tree": true,
+        "module": "source_expression_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py",
+        "working_tree_sha256": "8d7af9c7adbe2ffbce4a1e75d9cc03eafcaf3098a47a6b9cbd353ef83dd92541"
+      },
+      {
+        "git_head_blob": "3b6777e40bc5de4dd0ce2247ddc73ee73bb27034",
+        "loaded_sha256": "87840e826b3e948aadcae48a5687bc1c7f75328e072b4e3fc51a76bb960d8640",
+        "matches_working_tree": true,
+        "module": "source_historical_claims",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+        "working_tree_sha256": "87840e826b3e948aadcae48a5687bc1c7f75328e072b4e3fc51a76bb960d8640"
+      },
+      {
+        "git_head_blob": "7c4c5c96ffb82624a1891ac4e232fdbc08e50175",
+        "loaded_sha256": "96539b59a4c86175b868bb8ff6a0ee2d7d9663ff9987ca4e378d0d0a995a813a",
+        "matches_working_tree": true,
+        "module": "source_identity_proposals",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_identity_proposals.py",
+        "working_tree_sha256": "96539b59a4c86175b868bb8ff6a0ee2d7d9663ff9987ca4e378d0d0a995a813a"
+      },
+      {
+        "git_head_blob": "521bdd55935b0f1842575a931dcbd14d43ffdc7a",
+        "loaded_sha256": "c8d1c0759664e4ae18dd3c314795b2319f2b83b58ff48cf511187faf27e5b365",
+        "matches_working_tree": true,
+        "module": "source_item_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_item_commands.py",
+        "working_tree_sha256": "c8d1c0759664e4ae18dd3c314795b2319f2b83b58ff48cf511187faf27e5b365"
+      },
+      {
+        "git_head_blob": "67223a716e0631c235a1c99e6cf81697736fef71",
+        "loaded_sha256": "d63144209099d9daaeef088cd33aadad4d6390c9924eed1c3f30af97c0583534",
+        "matches_working_tree": true,
+        "module": "source_item_deposit",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_item_deposit.py",
+        "working_tree_sha256": "d63144209099d9daaeef088cd33aadad4d6390c9924eed1c3f30af97c0583534"
+      },
+      {
+        "git_head_blob": "c1c73c766c2b73be7e905ff60bacb833d27565c3",
+        "loaded_sha256": "71703b8b59c6cd5a5b46f5efe0f15dc9d633d1115dae7355f80dc24a10836df0",
+        "matches_working_tree": true,
+        "module": "source_link_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_link_commands.py",
+        "working_tree_sha256": "71703b8b59c6cd5a5b46f5efe0f15dc9d633d1115dae7355f80dc24a10836df0"
+      },
+      {
+        "git_head_blob": "b459329d68d381ebbe6a6b9901bab0154ba68808",
+        "loaded_sha256": "3632d442f3fda3dcd4c29598597852f84e2edbd2ad9171c4352de73ebabd4f1b",
+        "matches_working_tree": true,
+        "module": "source_metadata_snapshot",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_metadata_snapshot.py",
+        "working_tree_sha256": "3632d442f3fda3dcd4c29598597852f84e2edbd2ad9171c4352de73ebabd4f1b"
+      },
+      {
+        "git_head_blob": "9764713753a9de856cba685ce18298d701bceb9b",
+        "loaded_sha256": "2fd95544e81f15a56616d6beef8489242b2b7c62b352b623ed0c90af3998f086",
+        "matches_working_tree": true,
+        "module": "source_metadata_transactions",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py",
+        "working_tree_sha256": "2fd95544e81f15a56616d6beef8489242b2b7c62b352b623ed0c90af3998f086"
+      },
+      {
+        "git_head_blob": "b8cc2e8c444bfddfdf7ebeb698e7be3c231b782e",
+        "loaded_sha256": "1a925885c1083c11ccd09cb3f0dab543182162462d810dde5e20cfe6b41019f7",
+        "matches_working_tree": true,
+        "module": "source_native_metadata_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_native_metadata_commands.py",
+        "working_tree_sha256": "1a925885c1083c11ccd09cb3f0dab543182162462d810dde5e20cfe6b41019f7"
+      },
+      {
+        "git_head_blob": "e092f415c3531bae3b69c2d1dc0c4154e9815486",
+        "loaded_sha256": "e7421c9882f2c4bc198176a0c768109af6d61e3a5f351bbe8086a205706902e5",
+        "matches_working_tree": true,
+        "module": "source_object_link_read",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_object_link_read.py",
+        "working_tree_sha256": "e7421c9882f2c4bc198176a0c768109af6d61e3a5f351bbe8086a205706902e5"
+      },
+      {
+        "git_head_blob": "ed9b54f501036f51aaf73a1cdee2790d2642a6c9",
+        "loaded_sha256": "e03cad4d706a4f8629ccc7f003e2f7504c1faf1192929f39bb2dff491228d199",
+        "matches_working_tree": true,
+        "module": "source_owner_claim_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_claim_commands.py",
+        "working_tree_sha256": "e03cad4d706a4f8629ccc7f003e2f7504c1faf1192929f39bb2dff491228d199"
+      },
+      {
+        "git_head_blob": "10a63c54af8a0d036f94a7eb80113a6f9e35a893",
+        "loaded_sha256": "4cec627126f35cc3975efe965ea1177be3d63d32055bb6779172b7030930469b",
+        "matches_working_tree": true,
+        "module": "source_owner_claim_profiles",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_owner_claim_profiles.py",
+        "working_tree_sha256": "4cec627126f35cc3975efe965ea1177be3d63d32055bb6779172b7030930469b"
+      },
+      {
+        "git_head_blob": "1ece65cbeb5a0d7977d0e704d05a609ed9bd9496",
+        "loaded_sha256": "0bb984830b5bc234f97b9e17b17a3f94d5360e17889a32ea1e10a1ffc60e2b2d",
+        "matches_working_tree": true,
+        "module": "source_owner_context",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_owner_context.py",
+        "working_tree_sha256": "0bb984830b5bc234f97b9e17b17a3f94d5360e17889a32ea1e10a1ffc60e2b2d"
+      },
+      {
+        "git_head_blob": "00a4e4332b2df38016f1a4a4ca7aaec4e5c683b8",
+        "loaded_sha256": "be69d6981594da89857823c70ae3bdb2aef0ae0742266779cbccdd66c5584088",
+        "matches_working_tree": true,
+        "module": "source_owner_profile_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_profile_commands.py",
+        "working_tree_sha256": "be69d6981594da89857823c70ae3bdb2aef0ae0742266779cbccdd66c5584088"
+      },
+      {
+        "git_head_blob": "df973818942e5949b086df8d04fe8030249db206",
+        "loaded_sha256": "29e920f3c172bfc55310ad79a5669787d015e05cf33497853fc4aae2ac3ee7da",
+        "matches_working_tree": true,
+        "module": "source_owner_record_profiles",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_owner_record_profiles.py",
+        "working_tree_sha256": "29e920f3c172bfc55310ad79a5669787d015e05cf33497853fc4aae2ac3ee7da"
+      },
+      {
+        "git_head_blob": "1112acbe81f83357b8afb2b4a9db69a8416f5720",
+        "loaded_sha256": "0705384b2982be92b6074bfd122491613bb861da8653bf3a8dbc423c7bcdc77d",
+        "matches_working_tree": true,
+        "module": "source_payload_custody",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_payload_custody.py",
+        "working_tree_sha256": "0705384b2982be92b6074bfd122491613bb861da8653bf3a8dbc423c7bcdc77d"
+      },
+      {
+        "git_head_blob": "a1dbd28bdba20647e6fea519d1a0c00db95e6026",
+        "loaded_sha256": "30f3e000621ecdf32cac395a4564ae078784b14c9eb9a14567fec70fa1bdc2a2",
+        "matches_working_tree": true,
+        "module": "source_public_native_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_public_native_commands.py",
+        "working_tree_sha256": "30f3e000621ecdf32cac395a4564ae078784b14c9eb9a14567fec70fa1bdc2a2"
+      },
+      {
+        "git_head_blob": "7226e3534db0557c64ebe09dab09aa8304f3ef32",
+        "loaded_sha256": "87703622c296bf1d5b87775f2b4a9ec2c70d7083aca62b2500475dcec341e2a9",
+        "matches_working_tree": true,
+        "module": "source_record_profiles",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_record_profiles.py",
+        "working_tree_sha256": "87703622c296bf1d5b87775f2b4a9ec2c70d7083aca62b2500475dcec341e2a9"
+      },
+      {
+        "git_head_blob": "b0d07e5b235462773bb058c31d3990be98b9189f",
+        "loaded_sha256": "17f0e7958bdfc751aa54cd7dcbf546316f98f64afb07125d9392dd1846041296",
+        "matches_working_tree": true,
+        "module": "source_responsibility_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_responsibility_commands.py",
+        "working_tree_sha256": "17f0e7958bdfc751aa54cd7dcbf546316f98f64afb07125d9392dd1846041296"
+      },
+      {
+        "git_head_blob": "56295d0c2b74bb69ff0dac2bc431a5691aac4cfc",
+        "loaded_sha256": "a7821f3fa4260b8b383209e22b083bb4cd773b938942ebc07946b774e4bd231b",
+        "matches_working_tree": true,
+        "module": "source_revisions",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
+        "working_tree_sha256": "a7821f3fa4260b8b383209e22b083bb4cd773b938942ebc07946b774e4bd231b"
+      },
+      {
+        "git_head_blob": "fe9361361085f0c76223e3160b396e812034cbc8",
+        "loaded_sha256": "2edd94be32ab6a203c903da0dc9656c70aa6dd09e76ea8fe0ee9bf25f785269e",
+        "matches_working_tree": true,
+        "module": "source_selected_revisions",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
+        "working_tree_sha256": "2edd94be32ab6a203c903da0dc9656c70aa6dd09e76ea8fe0ee9bf25f785269e"
+      },
+      {
+        "git_head_blob": "56b3f48f4031a3c745bc6323971a760a62309285",
+        "loaded_sha256": "0ae40ae1158f43c737d02bf09d95836dcecad643e39d860c10e0750ab5b9f096",
+        "matches_working_tree": true,
+        "module": "source_text_layer_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_layer_commands.py",
+        "working_tree_sha256": "0ae40ae1158f43c737d02bf09d95836dcecad643e39d860c10e0750ab5b9f096"
+      },
+      {
+        "git_head_blob": "6650d80521c09a256021da124637f2a2a66f80bb",
+        "loaded_sha256": "f1a6687874269a1b6aa96cdedf263be2a421c7ecd92bbb8715532e0d82fc1c0c",
+        "matches_working_tree": true,
+        "module": "source_text_layer_proposal",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_text_layer_proposal.py",
+        "working_tree_sha256": "f1a6687874269a1b6aa96cdedf263be2a421c7ecd92bbb8715532e0d82fc1c0c"
+      },
+      {
+        "git_head_blob": "d95ee44a583c2f61310611c64ce2f70327f0c5fc",
+        "loaded_sha256": "38dec6768bd771572d604bc3cee7e877e3d6f2d4ec506e6e3ff613866c934a9a",
+        "matches_working_tree": true,
+        "module": "source_text_unit_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py",
+        "working_tree_sha256": "38dec6768bd771572d604bc3cee7e877e3d6f2d4ec506e6e3ff613866c934a9a"
+      },
+      {
+        "git_head_blob": "0bbdb03fcc4b06a2e0380d02b848d6559589f9e1",
+        "loaded_sha256": "4dde53fbdccc07b47b1fb048736ec7ee1383a82cba18d44de15e6e220599e87b",
+        "matches_working_tree": true,
+        "module": "source_text_unit_proposal",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_text_unit_proposal.py",
+        "working_tree_sha256": "4dde53fbdccc07b47b1fb048736ec7ee1383a82cba18d44de15e6e220599e87b"
+      },
+      {
+        "git_head_blob": "e969480d7b552c8208eb8eea6bf4b86f41dc12df",
+        "loaded_sha256": "00b09e31a53d3f17d318be353ac7a3a06061c0e6a16cca5810514dbd0ed5bb23",
+        "matches_working_tree": true,
+        "module": "source_witness_bibliographic_graph_common",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_witness_bibliographic_graph_common.py",
+        "working_tree_sha256": "00b09e31a53d3f17d318be353ac7a3a06061c0e6a16cca5810514dbd0ed5bb23"
+      },
+      {
+        "git_head_blob": "34baf4e5941131d5ba266e3fd1db49c1ac9ab113",
+        "loaded_sha256": "59f6bb4c09fed4c5b2649b9ff71aa3fd66e5f131a806b2481fd44e84b57c880b",
+        "matches_working_tree": true,
+        "module": "source_witness_human_forms",
+        "origin": "repository",
+        "project_path_hint": "scripts/source_witness_human_forms.py",
+        "working_tree_sha256": "59f6bb4c09fed4c5b2649b9ff71aa3fd66e5f131a806b2481fd44e84b57c880b"
+      },
+      {
+        "git_head_blob": "92e1681cc2beaf27f6a68da25d69cc5c80be37da",
+        "loaded_sha256": "ed39d2de169cd06be8d43267082a42368cd548da57a09da3776028fe6e423a92",
+        "matches_working_tree": true,
+        "module": "test_source_expression_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/tests/test_source_expression_commands.py",
+        "working_tree_sha256": "ed39d2de169cd06be8d43267082a42368cd548da57a09da3776028fe6e423a92"
+      },
+      {
+        "git_head_blob": "153126882d7e0bcabacffebcd36188526bc62907",
+        "loaded_sha256": "d08e4ddf8fdba5d11e06d9ae848d90f9dab503ce79d05882ae91af9058b1058f",
+        "matches_working_tree": true,
+        "module": "test_source_native_metadata_commands",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/tests/test_source_native_metadata_commands.py",
+        "working_tree_sha256": "d08e4ddf8fdba5d11e06d9ae848d90f9dab503ce79d05882ae91af9058b1058f"
+      },
+      {
+        "git_head_blob": "3bc10df48941162c3e9981b412b4a9d191d51908",
+        "loaded_sha256": "d24ebf8ab43b141d2d77064cf42ee1bc908967dc1d3c81dc6d7ef2fe874f72a2",
+        "matches_working_tree": true,
+        "module": "test_source_revisions",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/tests/test_source_revisions.py",
+        "working_tree_sha256": "d24ebf8ab43b141d2d77064cf42ee1bc908967dc1d3c81dc6d7ef2fe874f72a2"
+      },
+      {
+        "git_head_blob": "2e2b6aabf2a660e2cc34a304a99679b860e56823",
+        "loaded_sha256": "de71156ceeae2db5dc04d2424a161c6b14ac595d4ad2a4d4e4c27fbcdef71ec8",
+        "matches_working_tree": true,
+        "module": "test_source_selected_revisions",
+        "origin": "repository",
+        "project_path_hint": "mechanics/growth-cycle/tests/test_source_selected_revisions.py",
+        "working_tree_sha256": "de71156ceeae2db5dc04d2424a161c6b14ac595d4ad2a4d4e4c27fbcdef71ec8"
+      },
+      {
+        "git_head_blob": "22a4e47bc70051cc6cc420de795b1e2b3b073703",
+        "loaded_sha256": "22a52fe6a2b75ecbb5f3aeb2d3d994eccb7883656862b8221b8f43729ba0bfdc",
+        "matches_working_tree": true,
+        "module": "tos_access",
+        "origin": "repository",
+        "project_path_hint": "access/src/tos_access/__init__.py",
+        "working_tree_sha256": "22a52fe6a2b75ecbb5f3aeb2d3d994eccb7883656862b8221b8f43729ba0bfdc"
+      },
+      {
+        "git_head_blob": "d8dcce803fd47bbda9fb1731232fddf01d3051d8",
+        "loaded_sha256": "26d8f3f6307f5f724eacc909bd19e0b3da2bd2752ebb853d98677db0d34cd22b",
+        "matches_working_tree": true,
+        "module": "tos_access.disk_collections",
+        "origin": "repository",
+        "project_path_hint": "access/src/tos_access/disk_collections.py",
+        "working_tree_sha256": "26d8f3f6307f5f724eacc909bd19e0b3da2bd2752ebb853d98677db0d34cd22b"
+      },
+      {
+        "git_head_blob": "3d968e958486524d8e4c74f267d057661a861658",
+        "loaded_sha256": "92ab0066bc2e0b936b68f7b253fd86765789a37550ef29a4aec062c1338fb4d6",
+        "matches_working_tree": true,
+        "module": "tos_access.projection_store",
+        "origin": "repository",
+        "project_path_hint": "access/src/tos_access/projection_store.py",
+        "working_tree_sha256": "92ab0066bc2e0b936b68f7b253fd86765789a37550ef29a4aec062c1338fb4d6"
+      },
+      {
+        "git_head_blob": "c3ba7b4121d80988ef02c9fc650ea0bba5198c7f",
+        "loaded_sha256": "effd2ee4341e9b8b640c251adff39a4aed2533f17afb640eecde11b5917d7ef0",
+        "matches_working_tree": true,
+        "module": "validate_source_witness_foundation",
+        "origin": "repository",
+        "project_path_hint": "scripts/validate_source_witness_foundation.py",
+        "working_tree_sha256": "effd2ee4341e9b8b640c251adff39a4aed2533f17afb640eecde11b5917d7ef0"
+      },
+      {
+        "git_head_blob": null,
+        "loaded_sha256": "1ee19b93b438769d91a9abe1fe778ade22682f08393b4408fffe2316795ded1f",
+        "matches_working_tree": false,
+        "module": "validate_tree_node_contracts",
+        "origin": "repository",
+        "project_path_hint": "scripts/validate_tree_node_contracts.py",
+        "working_tree_sha256": null
+      }
+    ],
+    "python_implementation": "CPython",
+    "python_version": "3.14.8",
+    "repository_head": "5a51a1295ecc75f57e1f5565cc0d2429eabd46e6",
+    "repository_inputs": [
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/artifact-source-witness.schema.json",
+        "sha256": "1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f",
+        "size": 11046
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/claim-packet.schema.json",
+        "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd",
+        "size": 5632
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/corpus-record.schema.json",
+        "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851",
+        "size": 8744
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/document-record.schema.json",
+        "sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef",
+        "size": 1602
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/historical-record.schema.json",
+        "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2",
+        "size": 3705
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/human-form-set.schema.json",
+        "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2",
+        "size": 2486
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/human-form-template.schema.json",
+        "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e",
+        "size": 1527
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/human-form.schema.json",
+        "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980",
+        "size": 16342
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/knowledge-assessment.schema.json",
+        "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298",
+        "size": 5043
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/provenance-event-v2.schema.json",
+        "sha256": "bc56f527b580e3c4728fcb2ebe8cfa333b75a7db56922226d1eaec6de0557ae0",
+        "size": 34901
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29",
+        "size": 16948
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
+        "sha256": "6b977aa01ac54172ee7d50618867edc75cefa395f22767cd4450211ca2c39894",
+        "size": 19804
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/source-claim-record.schema.json",
+        "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7",
+        "size": 4297
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/source-metadata-record.schema.json",
+        "sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4",
+        "size": 2779
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/contracts/source-relation-claim.schema.json",
+        "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe",
+        "size": 604
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+        "size": 264272
+      },
+      {
+        "captured_as": "unchanged fixture-root byte",
+        "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "sha256": "462d75fe3a22567e88c6c0f14b40fae5a83db244333c66acd406e9dca9c5ab4c",
+        "size": 335626
+      },
+      {
+        "captured_as": "source sample read and transformed by the fixture factory",
+        "path": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json",
+        "sha256": "60c5c31c846c1e38eeb6e571dc15c85aa4f3cbb26a31edeaa8fd70bc47a2b6ef",
+        "size": 7780
+      }
+    ],
+    "runtime_rebase": {
+      "all_other_request_and_proposal_fields_are_frozen": true,
+      "owner_config_digest_request_field": "expected_configuration",
+      "owner_source_root_field": "source_root",
+      "recompute_after_root_rebase_from": "native describe"
+    }
+  },
+  "repository_head": "5a51a1295ecc75f57e1f5565cc0d2429eabd46e6",
+  "schema_version": "tos_source_native_fixture_capture_v1",
+  "source_revision_family_count": 7,
+  "work_expression_count": 1
+}

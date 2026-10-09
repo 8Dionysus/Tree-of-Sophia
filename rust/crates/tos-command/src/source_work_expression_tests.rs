@@ -26,27 +26,6 @@ fn repository() -> PathBuf {
         .unwrap()
 }
 
-fn bounded_child(mut child: std::process::Child, out: &Path, err: &Path, deadline: Instant) {
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(out).unwrap().len() > 1_048_576
-            || fs::metadata(err).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Work setup refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < deadline);
-    assert!(fs::metadata(out).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(err).unwrap().len() <= 1_048_576);
-    assert!(status.success(), "maintained Work setup failed");
-}
-
 fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut directories = vec![root.join("ToS")];
     let mut files = BTreeMap::new();
@@ -339,44 +318,10 @@ fn real_pending_refuses_changed_dependency_then_resumes_or_rolls_back() {
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-        let fixture = r#"
-import json,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_expression_commands as fixture
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=fixture.tempfile.TemporaryDirectory
-fixture.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=fixture.NativeExpressionTests(methodName='runTest')
-    case.setUp()
-finally:
-    fixture.tempfile.TemporaryDirectory=original
-print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
-    'expression_ref':case.config['expression_source_path']},ensure_ascii=False,separators=(',',':')))
-"#;
-        let out = temporary.path().join("fixture.stdout");
-        let err = temporary.path().join("fixture.stderr");
-        bounded_child(
-            Command::new("python3")
-                .args(["-c", fixture])
-                .arg(&repository)
-                .arg(isolated.path())
-                .env_remove("PYTHONPATH")
-                .env_remove("PYTHONHOME")
-                .env("PYTHONDONTWRITEBYTECODE", "1")
-                .stdout(Stdio::from(fs::File::create(&out).unwrap()))
-                .stderr(Stdio::from(fs::File::create(&err).unwrap()))
-                .spawn()
-                .unwrap(),
-            &out,
-            &err,
-            deadline,
+        let fixture = crate::source_creation_store::source_native_test_fixtures::work_expression(
+            &repository,
+            isolated.path(),
         );
-        let fixture: serde_json::Value = serde_json::from_slice(&fs::read(&out).unwrap()).unwrap();
         let owner = isolated.path().join("compound-owner.json");
         let owner_raw = fs::read(&owner).unwrap();
         fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
@@ -397,10 +342,14 @@ print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
             deadline,
             &cancelled,
         );
+        let config = cmd::parse(&owner_raw).unwrap();
+        let mut request = fixture["request"].clone();
+        request["expected_configuration"] =
+            serde_json::json!(cmd::record_digest(&config).unwrap().to_prefixed());
         let context = CommandContext {
             base_revision: revision,
             configuration_raw: owner_raw,
-            request_raw: serde_json::to_vec(&fixture["request"]).unwrap(),
+            request_raw: serde_json::to_vec(&request).unwrap(),
             recorded_at: "2026-01-01T12:34:56+00:00".to_owned(),
             effective_uid: fs::metadata(isolated.path()).unwrap().uid().into(),
             files: files
@@ -661,44 +610,10 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-        let fixture_script = r#"
-import json,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_expression_commands as fixture
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=fixture.tempfile.TemporaryDirectory
-fixture.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=fixture.NativeExpressionTests(methodName='runTest')
-    case.setUp()
-finally:
-    fixture.tempfile.TemporaryDirectory=original
-print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref':case.work_ref,
-    'expression_ref':case.config['expression_source_path'],'untouched_ref':str(case.untouched.relative_to(root))},ensure_ascii=False,separators=(',',':')))
-"#;
-        let out = temporary.path().join("fixture.stdout");
-        let err = temporary.path().join("fixture.stderr");
-        bounded_child(
-            Command::new("python3")
-                .args(["-c", fixture_script])
-                .arg(&repository)
-                .arg(isolated.path())
-                .env_remove("PYTHONPATH")
-                .env_remove("PYTHONHOME")
-                .env("PYTHONDONTWRITEBYTECODE", "1")
-                .stdout(Stdio::from(fs::File::create(&out).unwrap()))
-                .stderr(Stdio::from(fs::File::create(&err).unwrap()))
-                .spawn()
-                .unwrap(),
-            &out,
-            &err,
-            deadline,
+        let fixture = crate::source_creation_store::source_native_test_fixtures::work_expression(
+            &repository,
+            isolated.path(),
         );
-        let fixture: serde_json::Value = serde_json::from_slice(&fs::read(&out).unwrap()).unwrap();
         let owner = isolated.path().join("compound-owner.json");
         fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
         let owner_raw = fs::read(&owner).unwrap();

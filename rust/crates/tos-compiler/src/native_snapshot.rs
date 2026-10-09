@@ -116,10 +116,10 @@ impl NativeSnapshotOutput<'_> {
             Self::Reused(value) => value.expectation(),
         }
     }
-    pub fn producer(&self) -> &crate::knowledge_native::NativeProducerReceipt {
+    pub fn corpus_original(&self) -> Option<&crate::CorpusOriginalReceipt> {
         match self {
-            Self::Built(value) => value.producer(),
-            Self::Reused(value) => value.producer(),
+            Self::Built(value) => value.producer().corpus_original.as_ref(),
+            Self::Reused(value) => value.selection().producer().corpus_original.as_ref(),
         }
     }
     pub fn artifact_path(&self) -> &Path {
@@ -183,9 +183,6 @@ impl ReusedNativeSnapshot {
     }
     pub fn expectation(&self) -> &KnowledgeSelectedExpectation {
         self.cache.selection().expectation()
-    }
-    pub fn producer(&self) -> &crate::knowledge_native::NativeProducerReceipt {
-        self.cache.selection().producer()
     }
     pub fn artifact_path(&self) -> &Path {
         self.cache.model_path()
@@ -3750,7 +3747,7 @@ impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
             self.capture.cancellation(),
         )?;
         let capture = self.capture;
-        let result = capture.with_owned_operation_deadline_and_limits(
+        capture.with_owned_operation_deadline_and_limits(
             operation_deadline,
             Some((cold.max_work_bytes, cold.max_vm_steps)),
             || {
@@ -3781,7 +3778,7 @@ impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
             },
         )?;
         self.state.active()?;
-        result
+        Ok(())
     }
 
     /// Checked Evidence delivery borrowing the Whole writer's authentic state.

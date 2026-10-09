@@ -939,16 +939,12 @@ fn runtime_source_bindings(
 }
 
 fn source_bindings(
-    producer: &tos_compiler::NativeProducerReceipt,
+    corpus: &tos_compiler::CorpusOriginalReceipt,
     captured_members: &[manifest::NativeCapturedMember],
     selected_bindings: &BTreeMap<String, String>,
     deadline: Instant,
 ) -> Result<BTreeMap<String, String>> {
     let result = selected_bindings.clone();
-    let corpus = producer
-        .corpus_original
-        .as_ref()
-        .ok_or(Refusal("native corpus Original receipt absent"))?;
     if corpus.origin.profile != "captured-runtime-projection-v1"
         || corpus.origin.source_path != manifest::CORPUS_INDEX_PATH
         || result.get(&corpus.origin.source_path).map(String::as_str)
@@ -1089,7 +1085,7 @@ impl SelectedSource {
 
     fn source_bindings(
         &self,
-        producer: &tos_compiler::NativeProducerReceipt,
+        corpus: &tos_compiler::CorpusOriginalReceipt,
         captured_members: &[manifest::NativeCapturedMember],
         deadline: Instant,
     ) -> Result<BTreeMap<String, String>> {
@@ -1097,7 +1093,7 @@ impl SelectedSource {
             Self::Historical { census, profile } => runtime_source_bindings(census, profile),
             Self::Current { census, .. } => census.source_bindings().clone(),
         };
-        source_bindings(producer, captured_members, &bindings, deadline)
+        source_bindings(corpus, captured_members, &bindings, deadline)
     }
 
     fn raw_source_bindings(&self) -> BTreeMap<String, String> {
@@ -1590,23 +1586,20 @@ fn prepare_source_only_runtime(
         sha256: Digest256::from_hex(&source.schema_worker_sha256)
             .map_err(|_| Refusal("native selected schema worker SHA invalid"))?,
     };
-    let worker_capture_bytes = software.read_selected_component(
+    // Verify captured worker source independently; `worker` names the exact
+    // selected executable image that the schema executor pins and measures.
+    drop(software.read_selected_component(
         &components,
         &worker_relative,
         source.max_member_bytes,
         deadline,
         cancelled,
-    )?;
-    if Digest256::of_bytes(&worker_capture_bytes) != worker.sha256
-        || Path::new(&source.schema_worker_absolute_path)
-            != Path::new(&source.software_restored_root).join(worker_relative.as_str())
-    {
-        return Err(Refusal("native schema worker path does not match selected capture").into());
-    }
+    )?);
     let software_binding = manifest::NativeSelectedSoftwareBinding::from_capture(
         &software,
         &components,
         &source.schema_worker_path,
+        &source.schema_worker_sha256,
     )?;
     let profile =
         manifest::NativeSelectedRuntimeSourceProfile::from_current_cut(&cut, software_binding)?;
@@ -2170,11 +2163,11 @@ fn execute(mut request: Request) -> Result<Value> {
     let consume = |snapshot_output: &native_snapshot::NativeSnapshotOutput<'_>, loan| {
         let mut finish = || -> Result<Value> {
             let captured_members = selected_source.validate_capture_closure(&capture, deadline)?;
-            let source_bindings = selected_source.source_bindings(
-                snapshot_output.producer(),
-                &captured_members,
-                deadline,
-            )?;
+            let corpus_original = snapshot_output
+                .corpus_original()
+                .ok_or(Refusal("native corpus Original receipt absent"))?;
+            let source_bindings =
+                selected_source.source_bindings(corpus_original, &captured_members, deadline)?;
             capture.verify_inputs(limits.capture)?;
             selected_source.recheck(&request, deadline, cancelled.as_ref())?;
             let fingerprint_after_build = manifest::fingerprint_native_compiler_source(deadline)?;

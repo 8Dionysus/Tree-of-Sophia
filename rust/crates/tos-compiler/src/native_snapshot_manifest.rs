@@ -118,10 +118,6 @@ const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 23] = [
         include_bytes!("../../tos-command/src/bin/tos-native-owner-command.rs"),
     ),
     (
-        "rust/crates/tos-command/src/corpus_build_cli.rs",
-        include_bytes!("../../tos-command/src/corpus_build_cli.rs"),
-    ),
-    (
         "rust/crates/tos-command/src/source_corpus_index_projection.rs",
         include_bytes!("../../tos-command/src/source_corpus_index_projection.rs"),
     ),
@@ -209,8 +205,11 @@ pub struct NativeSelectedSoftwareBinding {
     pub source_git_tree: String,
     pub capture_manifest_sha256: String,
     pub components: Vec<NativeSourceMemberBinding>,
+    /// Captured source path and digest for the worker's authored implementation.
     pub schema_worker_path: String,
     pub schema_worker_sha256: String,
+    /// Digest of the separately selected and held executable image.
+    pub schema_worker_image_sha256: String,
 }
 
 impl NativeSelectedSoftwareBinding {
@@ -218,6 +217,7 @@ impl NativeSelectedSoftwareBinding {
         reader: &tos_source_store::SoftwareCaptureReader,
         components: &tos_source_store::SoftwareComponentSelectionV1,
         schema_worker_path: &str,
+        schema_worker_image_sha256: &str,
     ) -> Result<Self> {
         if components.capture() != reader.selection() {
             return Err(Error::Invalid(
@@ -235,27 +235,33 @@ impl NativeSelectedSoftwareBinding {
                 sha256: member.sha256.to_hex(),
             })
             .collect::<Vec<_>>();
-        let worker = members
+        let worker_sha256 = members
             .iter()
             .find(|member| member.path == worker_path.as_str())
+            .map(|member| member.sha256.clone())
             .ok_or(Error::Invalid(
                 "native selected schema worker is not a captured component",
             ))?;
+        let worker_image_sha256 = Digest256::from_hex(schema_worker_image_sha256)
+            .map_err(|_| Error::Invalid("native selected schema worker image digest invalid"))?
+            .to_hex();
         Ok(Self {
             source_git_commit: reader.selection().source_git_commit.clone(),
             source_git_tree: reader.selection().source_git_tree.clone(),
             capture_manifest_sha256: reader.selection().capture_manifest_sha256.to_hex(),
             components: members,
             schema_worker_path: worker_path.as_str().to_owned(),
-            schema_worker_sha256: worker.sha256.clone(),
+            schema_worker_sha256: worker_sha256,
+            schema_worker_image_sha256: worker_image_sha256,
         })
     }
 }
 
 /// In-memory source-only profile derived from an opened current CorpusCut and
 /// one selected software capture. Its canonical digest covers exact ordered
-/// source membership, software capture/component identity and the schema
-/// worker; the SourceBinding is supplied to the source projection owners.
+/// source membership, software capture/component identity, captured worker source,
+/// and separately selected executable image; the SourceBinding is supplied to
+/// the source projection owners.
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct NativeSelectedRuntimeSourceProfile {
@@ -385,7 +391,11 @@ impl NativeSelectedRuntimeSourceProfile {
         )?;
         sha_text(
             &software.schema_worker_sha256,
-            "native selected schema worker digest invalid",
+            "native selected schema worker source digest invalid",
+        )?;
+        sha_text(
+            &software.schema_worker_image_sha256,
+            "native selected schema worker image digest invalid",
         )?;
         if !software.components.iter().any(|component| {
             component.path == software.schema_worker_path
@@ -522,6 +532,7 @@ impl NativeSelectedRuntimeSourceProfile {
             .and_then(|n| n.checked_add(self.software.capture_manifest_sha256.capacity()))
             .and_then(|n| n.checked_add(self.software.schema_worker_path.capacity()))
             .and_then(|n| n.checked_add(self.software.schema_worker_sha256.capacity()))
+            .and_then(|n| n.checked_add(self.software.schema_worker_image_sha256.capacity()))
             .and_then(|n| n.checked_add(self.products.len().checked_mul(row)?))
             .and_then(|n| n.checked_add(self.profile_sha256.capacity()))
             .ok_or(Error::Budget("native selected source profile state"))
@@ -3073,7 +3084,7 @@ pub fn write_reused_native_data_manifest(
     selection: &NativeKnowledgeSelection,
     limits: NativeDataManifestLimits,
 ) -> Result<NativeDataManifestReceipt> {
-    let producer = reused.producer();
+    let producer = reused.selection().producer();
     let corpus = producer
         .corpus_original
         .as_ref()
@@ -3142,11 +3153,12 @@ mod selected_snapshot_tests {
             components: vec![NativeSourceMemberBinding {
                 path: "scripts/schema_worker.py".into(),
                 mode: 0o755,
-                size_bytes: 6,
-                sha256: Digest256::of_bytes(b"worker").to_hex(),
+                size_bytes: b"worker source".len() as u64,
+                sha256: Digest256::of_bytes(b"worker source").to_hex(),
             }],
             schema_worker_path: "scripts/schema_worker.py".into(),
-            schema_worker_sha256: Digest256::of_bytes(b"worker").to_hex(),
+            schema_worker_sha256: Digest256::of_bytes(b"worker source").to_hex(),
+            schema_worker_image_sha256: Digest256::of_bytes(b"worker image").to_hex(),
         };
         let profile = NativeSelectedRuntimeSourceProfile::new(
             Digest256::of_bytes(b"source-revision").to_hex(),
@@ -3162,6 +3174,17 @@ mod selected_snapshot_tests {
             profile.source_binding().projection_root_sha256,
             profile.profile_sha256
         );
+        let mut other_worker_image = profile.software.clone();
+        other_worker_image.schema_worker_image_sha256 =
+            Digest256::of_bytes(b"another worker image").to_hex();
+        let other_worker_profile = NativeSelectedRuntimeSourceProfile::new(
+            profile.source_revision.clone(),
+            profile.membership_root.clone(),
+            profile.members.clone(),
+            other_worker_image,
+        )
+        .unwrap();
+        assert_ne!(other_worker_profile.profile_sha256, profile.profile_sha256);
 
         let mut tampered = profile.clone();
         tampered.products[0].sha256 = Digest256::of_bytes(b"different product").to_hex();

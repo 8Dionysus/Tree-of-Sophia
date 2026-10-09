@@ -25,27 +25,6 @@ fn repository() -> PathBuf {
         .unwrap()
 }
 
-fn bounded_child(mut child: std::process::Child, out: &Path, err: &Path, deadline: Instant) {
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(out).unwrap().len() > 1_048_576
-            || fs::metadata(err).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Work setup refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < deadline);
-    assert!(fs::metadata(out).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(err).unwrap().len() <= 1_048_576);
-    assert!(status.success(), "maintained Work setup failed");
-}
-
 fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut directories = vec![root.join("ToS")];
     let mut files = BTreeMap::new();
@@ -492,73 +471,10 @@ fn revision_cli_observe(
     (true, response["result"].clone())
 }
 
-fn fixture(
-    repository: &Path,
-    root: &Path,
-    scratch: &Path,
-    scenario: usize,
-    deadline: Instant,
-) -> serde_json::Value {
-    // The maintained factories own subject shapes, form construction and grants.
-    // Redirect their TemporaryDirectory before construction, not after delegation.
-    let script = r#"
-import json,sys,unittest
-from pathlib import Path
-repo,root=map(Path,sys.argv[1:3]); scenario=int(sys.argv[3]); family=4 if scenario in (7,8) else min(scenario,6)
-sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repo/'scripts'),str(repo/'tests')]
-import test_source_revisions as fixtures
-import test_source_selected_revisions as selected
-import test_source_native_metadata_commands as native
-import source_commands as source
-import source_revisions as revisions
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-old=fixtures.tempfile.TemporaryDirectory
-fixtures.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    if family==6:
-        case=unittest.TestCase(); f=native.NativeFixture(case,'artifact')
-    elif family in (4,5) or scenario in (7,8):
-        case=selected.SelectedSourceRevisionTests(); case.setUp(); f=case.fixture
-    else:
-        cls={0:fixtures.SourceRevisionTests,1:fixtures.ProfileSourceRevisionTests,2:fixtures.ProfileSourceRevisionTests,3:fixtures.NativeSourceRevisionTests}.get(family,fixtures.SourceRevisionTests)
-        f=cls(); f.setUp()
-finally:
-    fixtures.tempfile.TemporaryDirectory=old
-if scenario==9:
-    # A separate legacy fixture supplies an exact retry, not a recover grant.
-    raise AssertionError('legacy scenario uses family zero argument')
-if family==2: f.config['schema_version']=source.PROFILE_SCOPE_REVISION_CONFIG
-if family==5: f.config['schema_version']=source.CORPUS_COMPLETE_REVISION_CONFIG
-f.owner.write_bytes(revisions._encode(f.config)); f.owner.chmod(0o600)
-for ref in ('ToS/contracts/knowledge-assessment.schema.json','ToS/contracts/human-form.schema.json','ToS/contracts/human-form-set.schema.json','ToS/contracts/human-form-template.schema.json'):
-    path=root/ref;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((repo/ref).read_bytes())
-request=f.request() if family==6 else (case.request('native:revision-family-'+str(scenario)) if family in (4,5) else f.request('native:revision-family-'+str(scenario)))
-proposal={k:v for k,v in request.items() if k not in ('command_id','expected_configuration','expected_source','expected_revision','expected_dependencies','expected_publication')}
-proposal['operation']='prepare-revise'
-print(json.dumps({'owner':str(f.owner),'source_path':f.relative,'record':f.record,'proposal':proposal,'request':request,'untouched':[str(p.relative_to(root)) for p in f.path.parent.rglob('*') if p.is_file() and p not in (f.path,f.formpath)]},ensure_ascii=False,separators=(',',':')))
-"#;
-    let out = scratch.join("fixture.stdout");
-    let err = scratch.join("fixture.stderr");
-    bounded_child(
-        Command::new("python3")
-            .args(["-c", script])
-            .arg(repository)
-            .arg(root)
-            .arg(scenario.to_string())
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdout(Stdio::from(fs::File::create(&out).unwrap()))
-            .stderr(Stdio::from(fs::File::create(&err).unwrap()))
-            .spawn()
-            .unwrap(),
-        &out,
-        &err,
-        deadline,
-    );
-    serde_json::from_slice(&fs::read(out).unwrap()).unwrap()
+fn fixture(repository: &Path, root: &Path, scenario: usize) -> serde_json::Value {
+    crate::source_creation_store::source_native_test_fixtures::record_revision(
+        repository, root, scenario,
+    )
 }
 
 const IMPLEMENTATIONS: &[&str] = &[
@@ -783,14 +699,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-        let family = if scenario == 9 { 0 } else { scenario };
-        let fixture = fixture(
-            &repository,
-            isolated.path(),
-            temporary.path(),
-            family,
-            deadline,
-        );
+        let fixture = fixture(&repository, isolated.path(), scenario);
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         let owner_raw = fs::read(&owner).unwrap();
         let config: serde_json::Value = serde_json::from_slice(&owner_raw).unwrap();
@@ -892,7 +801,10 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             preview["owner_configuration"],
             described["owner_configuration"]
         );
-        let oracle = &fixture["request"];
+        // The only request field rebased from the captured root is the owner
+        // configuration digest, refreshed by this native describe response.
+        let mut oracle = fixture["request"].clone();
+        oracle["expected_configuration"] = described["owner_configuration"].clone();
         for (field, prepared) in [
             ("expected_configuration", "owner_configuration"),
             ("expected_source", "source"),
