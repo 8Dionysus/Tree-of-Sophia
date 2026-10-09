@@ -19,7 +19,7 @@ Software and explicit data/integration release expectations route to
 uses its explicit baseline; software CI does not accept source semantics.
 
 TOS-D-0062 separates software checks from corpus and downstream releases.
-Changed paths select software checks through `scripts/software_ci.py` and the
+Changed paths select software checks through `tos-software-ci` and the
 table in `docs/RELEASING.md`. The selector and documentation check must succeed.
 Selected jobs must succeed; only explicitly unselected jobs may be skipped.
 Unknown/shared paths and manual full-release runs select all software checks.

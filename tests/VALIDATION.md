@@ -3,7 +3,7 @@
 Software behavior runs on bounded fixtures:
 
 ```sh
-python scripts/release_check.py --phase tests
+tos-release-check --repo-root "$PWD" --phase tests
 ```
 
 For a changed source builder or validator, run the affected owner test module.

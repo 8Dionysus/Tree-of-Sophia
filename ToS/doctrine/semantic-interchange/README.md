@@ -391,7 +391,7 @@ authorizes publication of source contents.
 The blocking `semantic_registry_transition` lane compares current working-tree
 registries with an explicitly selected pre-change commit. Set
 `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID` before
-`python scripts/validation_lanes.py --run semantic_registry_transition`;
+`tos-validation-lanes --repo-root "$PWD" --run semantic_registry_transition`;
 the direct validator also accepts `--baseline-commit`. This source-contract
 operation has its own result under
 [the independent release boundaries](../../../docs/RELEASING.md#registry-source-contract-changes).

@@ -46,8 +46,8 @@ decision route.
 | output | bounded artifact, parity result, route diagnostic, or validation signal |
 | owner | exact source surface; inventory entries provide optional navigation |
 | next route | source owner -> script -> generated companion/validator -> review or release lane |
-| tools | local Python, schema, manifest, unittest, and generated-parity checks |
-| check | nearest lane first; use `scripts/release_check.py` for release-visible changes |
+| tools | native command, schema, manifest, focused test, and generated-parity checks |
+| check | nearest lane first; use `tos-release-check` for release-visible changes |
 
 ## Route by pressure
 
@@ -71,7 +71,7 @@ in the owner-controlled storage route; tracked companions must state their
 fixity, provenance, rights posture, uncertainty, and semantic ceiling when
 those facts affect admission.
 
-Do not hide command order in Python. `scripts/release_check.py` runs the
+Keep command order in the lane manifest. `tos-release-check` runs the
 `release_check` sequence from `docs/validation/validation_lanes.json`.
 `docs/validation/script_inventory.json` describes owner routes and side effects.
 Under TOS-D-0062, software validation follows executable code and tests.

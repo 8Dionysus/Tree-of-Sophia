@@ -123,14 +123,12 @@ installed executable via `TOS_MECHANICS_TEST_EXECUTABLE`; without the variable
 it targets Cargo's built CLI. This compares the installed candidate using the
 same lifecycle/ordering risks, without another test framework.
 
-`tos-software-ci` is the next explicit candidate for the maintained
-`scripts/software_ci.py` whole selector. `plan --repo-root PATH --base REF`
+`tos-software-ci` owns software check selection and result aggregation. `plan --repo-root PATH --base REF`
 reads the actual Git no-renames changed paths, validates only new local Markdown
 links and merge markers, and emits the same v2 selection and optional
 `GITHUB_OUTPUT` fields. `--full` and unknown/shared changes require all checks.
 `gate` reads `CI_NEEDS` and rejects missing, failed, cancelled and unexpectedly
-skipped jobs. It cannot run checks or accept a release. The existing Python command entry
-selects this native consumer; the `.github` workflow retains its command route.
+skipped jobs. It cannot run checks or accept a release. The `.github` workflow invokes this native command directly.
 
 Git capture uses the existing dedicated Linux pidfd/subreaper boundary, capped
 at 30 seconds per command and 120 seconds for the plan. Input is limited to

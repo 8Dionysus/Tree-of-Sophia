@@ -95,17 +95,17 @@ fn receiving_cli_preserves_record_validation_and_all_seven_generated_bytes() {
     assert!(f.native(false, false).status.success());
     assert!(f.native(true, true).status.success());
     let expected: &[&[u8]] = &[
-        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/README.md"),
-        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-number.md"),
-        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-date.md"),
-        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-surface.md"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/README.md.txt"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-number.md.txt"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-date.md.txt"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-surface.md.txt"),
         include_bytes!(
-            "../../../../tests/fixtures/decision_records_oracle/expected/by-tos-layer.md"
+            "../../../../tests/fixtures/decision_records_oracle/expected/by-tos-layer.md.txt"
         ),
         include_bytes!(
-            "../../../../tests/fixtures/decision_records_oracle/expected/by-tree-class.md"
+            "../../../../tests/fixtures/decision_records_oracle/expected/by-tree-class.md.txt"
         ),
-        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-guard.md"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-guard.md.txt"),
     ];
     f.clear_indexes();
     let native = f.native(true, false);

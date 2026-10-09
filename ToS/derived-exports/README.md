@@ -168,7 +168,7 @@ Use:
 - `python scripts/build_tos_corpus_index.py --check`
 - `python scripts/validate_tos_corpus_index.py`
 - `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`
-- `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`
+- `tos lexical-index validate-tracked --source-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`
 - `python scripts/build_philosophy_atlas_projection.py --check`
 - `python scripts/validate_philosophy_atlas_projection.py`
 - `python scripts/build_philosophy_graph_views.py --check`

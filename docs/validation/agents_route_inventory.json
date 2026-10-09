@@ -281,15 +281,15 @@
     {
       "id": "release_validation",
       "prompt": "Run or repair the release and validation route, preserving command authority, generated parity, and CI evidence.",
-      "target": "scripts/release_check.py",
+      "target": "rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs",
       "owner_route": "scripts/AGENTS.md",
       "required_scopes": ["lane authority", "ordered command sequence", "generated parity", "CI/PR evidence"],
       "required_markers": ["release_check", "validation_lanes.json", "script_inventory.json", "generated"],
       "boundary_markers": ["source-owned", "release", "runtime"],
       "on_demand_surfaces": ["VALIDATION.md", "docs/validation/validation_lanes.json", "docs/validation/SCRIPT_TOPOLOGY.md", "docs/RELEASING.md", ".github/workflows/repo-validation.yml"],
       "validation_lanes": ["validation_authority", "release", "route_docs"],
-      "validation_paths": ["scripts/validation_lanes.py", "scripts/release_check.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
-      "completion_evidence": ["scripts/AGENTS.md", "docs/validation/validation_lanes.json", "scripts/release_check.py", ".github/workflows/repo-validation.yml"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/validation_lanes_main.rs", "rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
+      "completion_evidence": ["scripts/AGENTS.md", "docs/validation/validation_lanes.json", "rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs", ".github/workflows/repo-validation.yml"],
       "handoff_routes": [".github/AGENTS.md", "docs/RELEASING.md"]
     },
     {

@@ -29,7 +29,7 @@ a retained Python step currently requires `--python EXACT_INTERPRETER`.
 | public entry or local KAG provider | `public_entry` or `local_kag_provider` |
 | owner-local statistics | `local_stats_port` |
 | cross-family documentation | `cross_corpus_documentation` |
-| standalone software | `release` through `scripts/release_check.py`; `software_browser` for browser behavior after the software build |
+| standalone software | `release` through `tos-release-check`; `software_browser` for browser behavior after the software build |
 | Rust workspace and crates | `rust_workspace` with the pinned toolchain, WASM target and matching wasm-bindgen CLI; it verifies only implemented Rust packages and generated WEB.1 Node host bindings |
 | data or historical integration | select the affected owner operation in `docs/RELEASING.md`; no combined integration gate |
 
@@ -54,7 +54,7 @@ Execute the full software contracts and fixture-based behavior route locally
 (CI selects affected checks as described in `docs/RELEASING.md`):
 
 ```bash
-python scripts/release_check.py
+tos-release-check --repo-root "$PWD"
 ```
 
 Run the narrowest relevant route first. A green command proves only its named

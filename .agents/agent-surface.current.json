@@ -1,5 +1,5 @@
 {
-  "builder": "scripts/build_agent_surface_currentness.py",
+  "builder": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
   "legacy_projection": {
     "entry_count": 25,
     "legacy_ids": [
@@ -30,7 +30,7 @@
       "aoa-tdd-slice"
     ]
   },
-  "manifest_sha256": "2a08e0cbcfcefee2f8af71164ee9911513619faedf7d150fda947a5b31b41357",
+  "manifest_sha256": "2674f3376b922bbdb469cc70444e1f0849d72070dfc651fe4ba5ee76c06cbcda",
   "owner_ports": [
     {
       "id": "eval_port",
@@ -159,9 +159,9 @@
           "sha256": "2dc41fe34854f4e80323be557c9188be5cb0ff35f83a422fbb2ee51060d4332b"
         },
         {
-          "bytes": 4062,
+          "bytes": 4084,
           "path": "stats/port.manifest.json",
-          "sha256": "733089f2ee84ee4be4bb627ce894584a8447c021c7c7c73cab5ba4872b551ac7"
+          "sha256": "1f843bc09524dbe02cbf61227bffd7f03f301c081775a30edd3960b1c108133c"
         },
         {
           "bytes": 2435,
@@ -169,9 +169,9 @@
           "sha256": "86af031ab31a74f81cb888f8de8544680c6f552e528dbb69a316334017ebea29"
         },
         {
-          "bytes": 2504,
+          "bytes": 2526,
           "path": "stats/packets/table-i-prepared-dossier-route-ratio.reference.json",
-          "sha256": "dac59301912b4c455d0ac3596b46dc021f5e3235f678f12decc53e5a9f0128bb"
+          "sha256": "eaea2368dcd1877677ad05c728d583c5ef40cdf6ebab575681953e7b9d0fac08"
         },
         {
           "bytes": 223514,

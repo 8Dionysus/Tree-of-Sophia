@@ -1,14 +1,14 @@
 {
   "cards": [
     {
-      "bytes": 1660,
+      "bytes": 1647,
       "inheritance_stack": [
         "AGENTS.md",
         ".agents/AGENTS.md"
       ],
       "lines": 44,
       "path": ".agents/AGENTS.md",
-      "sha256": "db9ab1e395dc66c5de56b2f328a7291b7bf80febcfb72626294249268074f01e",
+      "sha256": "43c667a026ffe2f39f9b913df10854e17353e8267ed1dda6125d9364bfcd01ab",
       "tracked": true,
       "whitespace_tokens": 221
     },
@@ -48,7 +48,7 @@
       "whitespace_tokens": 688
     },
     {
-      "bytes": 1787,
+      "bytes": 1831,
       "inheritance_stack": [
         "AGENTS.md",
         "ToS/AGENTS.md",
@@ -56,12 +56,12 @@
       ],
       "lines": 38,
       "path": "ToS/candidate-intake/AGENTS.md",
-      "sha256": "3f51d60c07557ea3ad00a1659bfb5d87c0e92e2f2ace74e48ccc0060f31ed124",
+      "sha256": "d3a8aee27a1bc13d241b01de8f50ed350cc721b0a98072f8c64f9b1676bc0649",
       "tracked": true,
       "whitespace_tokens": 245
     },
     {
-      "bytes": 1844,
+      "bytes": 1857,
       "inheritance_stack": [
         "AGENTS.md",
         "ToS/AGENTS.md",
@@ -69,7 +69,7 @@
       ],
       "lines": 40,
       "path": "ToS/canon/AGENTS.md",
-      "sha256": "ae142ac2037697d810477f0d9e98f92190b9ef0fa7d788b23ef78c98ffc459c4",
+      "sha256": "fccfdac57b5a5537a9a4d816df604fb4315650ab006eeff6f6f14949b9e7e5a2",
       "tracked": true,
       "whitespace_tokens": 241
     },
@@ -225,7 +225,7 @@
       "whitespace_tokens": 237
     },
     {
-      "bytes": 2837,
+      "bytes": 2859,
       "inheritance_stack": [
         "AGENTS.md",
         "ToS/AGENTS.md",
@@ -233,7 +233,7 @@
       ],
       "lines": 51,
       "path": "ToS/philosophy/AGENTS.md",
-      "sha256": "7631207ba6df2e2213cd55213d5d15b198a7a875976bccbdd642b14b9e69c767",
+      "sha256": "76fa170ee5fecd2f2aa987eaa8a05399690ad6fc4b978aebd21485d4a39593c4",
       "tracked": true,
       "whitespace_tokens": 365
     },
@@ -321,7 +321,7 @@
       "whitespace_tokens": 246
     },
     {
-      "bytes": 1285,
+      "bytes": 1323,
       "inheritance_stack": [
         "AGENTS.md",
         "ToS/AGENTS.md",
@@ -329,7 +329,7 @@
       ],
       "lines": 34,
       "path": "ToS/review-ledger/AGENTS.md",
-      "sha256": "9cb76c7834f483401c7092be2074f1a08ee45e6ff2941ece3546de0b777babc1",
+      "sha256": "9bc72ad16d89ebd1942bfa330f58501ae961b08fb25f06ac6de69a4f7fbf165e",
       "tracked": true,
       "whitespace_tokens": 176
     },
@@ -347,7 +347,7 @@
       "whitespace_tokens": 995
     },
     {
-      "bytes": 3805,
+      "bytes": 3875,
       "inheritance_stack": [
         "AGENTS.md",
         "ToS/AGENTS.md",
@@ -355,12 +355,12 @@
       ],
       "lines": 69,
       "path": "ToS/zarathustra/AGENTS.md",
-      "sha256": "a9a9ca019a49d6d572625cd6429e8da2fde59199c211ee26eac1f0324edf9496",
+      "sha256": "6e870bc7929e1569dcf761f0388df10ed69627ce60ec415518ceb250d766bd3b",
       "tracked": true,
       "whitespace_tokens": 489
     },
     {
-      "bytes": 2628,
+      "bytes": 2644,
       "inheritance_stack": [
         "AGENTS.md",
         "ToS/AGENTS.md",
@@ -369,7 +369,7 @@
       ],
       "lines": 53,
       "path": "ToS/zarathustra/lived-witness/AGENTS.md",
-      "sha256": "ef5193683eb97a6731172d6ba7339a49a978fdc82a3cc9d7e7ab9c18a25098e2",
+      "sha256": "e8af5b0c42973264e02868a4d22f6a8db220808cbf76e6985d7b8037ff31186c",
       "tracked": true,
       "whitespace_tokens": 361
     },
@@ -729,7 +729,7 @@
       "release_validation": 7000
     }
   },
-  "generated_by": "scripts/build_agents_route_currentness.py",
+  "generated_by": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
   "influencing_surfaces": [
     {
       "bytes": 7624,
@@ -741,12 +741,12 @@
       "whitespace_tokens": 981
     },
     {
-      "bytes": 6007,
+      "bytes": 6031,
       "exists": true,
       "lines": 136,
       "path": "DESIGN.AGENTS.md",
       "role": "authored route-card shape and progressive-loading guidance",
-      "sha256": "741890a1a270250ca4dd88f2f2b4e2f243938a50a368fff2f0dc995858edccb6",
+      "sha256": "f2c2c8c4c43ea3353c82551e025e16c6773966ae1e92a7ab27ef9b026db6c820",
       "whitespace_tokens": 877
     },
     {
@@ -804,13 +804,13 @@
       "whitespace_tokens": 1912
     },
     {
-      "bytes": 8685,
+      "bytes": 8721,
       "exists": true,
       "lines": 180,
       "path": "docs/AGENTS_ROOT_REFERENCE.md",
       "role": "preserved root-law provenance used only for audit",
-      "sha256": "cfb369c667a367898957c7537b504ccf7ee69c155b8ac4621f97aebd141a8ced",
-      "whitespace_tokens": 1152
+      "sha256": "d7f44c661739a8db6d0b0cc87582c1928d8143fa60499aca03ceafadfba67a3e",
+      "whitespace_tokens": 1156
     },
     {
       "bytes": 7024,
@@ -822,94 +822,85 @@
       "whitespace_tokens": 1024
     },
     {
-      "bytes": 34573,
+      "bytes": 34619,
       "exists": true,
       "lines": 898,
       "path": ".agents/agent-surface.manifest.json",
       "role": "skill, owner-port, carrier, and task-probe map",
-      "sha256": "2a08e0cbcfcefee2f8af71164ee9911513619faedf7d150fda947a5b31b41357",
+      "sha256": "2674f3376b922bbdb469cc70444e1f0849d72070dfc651fe4ba5ee76c06cbcda",
       "whitespace_tokens": 2527
     },
     {
-      "bytes": 7855,
+      "bytes": 7868,
       "exists": true,
       "lines": 246,
       "path": ".agents/agent-surface.current.json",
       "role": "generated skill/port currentness read model",
-      "sha256": "0c97ed3b4e1cdd01cd9973f62d3bac0024bed5e36abbda1e9dee3d90a7155daf",
+      "sha256": "42678d8d9353e8f436cc6c664f9430e81e469fc451ab819c9d0637650eaccf3d",
       "whitespace_tokens": 376
     },
     {
-      "bytes": 49394,
+      "bytes": 49952,
       "exists": true,
-      "lines": 1631,
+      "lines": 1662,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "4dc25f651b39712eb069f95c2d6ad7c39bbf8fa06052a06460d5e5bf82491cf9",
-      "whitespace_tokens": 3138
+      "sha256": "447189d4b116e0c7564938f7ebe790bd12a6129a1eb742a195186ff56176806c",
+      "whitespace_tokens": 3169
     },
     {
-      "bytes": 9716,
+      "bytes": 133831,
       "exists": true,
-      "lines": 260,
-      "path": "scripts/build_agents_route_currentness.py",
-      "role": "deterministic generated currentness builder for route-card hashes and stacks",
-      "sha256": "590fde5ae9f3cd75e9a5b202c3701c44e80a50e3f75452c2f0935e88fb968506",
-      "whitespace_tokens": 771
+      "lines": 3602,
+      "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
+      "role": "native currentness builder and structural, inheritance, reference validator",
+      "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+      "whitespace_tokens": 10979
     },
     {
-      "bytes": 23288,
+      "bytes": 16960,
       "exists": true,
-      "lines": 610,
-      "path": "scripts/validate_nested_agents.py",
-      "role": "structural, inheritance, reference, and currentness validator",
-      "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-      "whitespace_tokens": 1929
-    },
-    {
-      "bytes": 11658,
-      "exists": true,
-      "lines": 292,
-      "path": "scripts/agents_route_harness.py",
+      "lines": 424,
+      "path": "rust/crates/tos-ops-mechanics-plan/src/route_harness.rs",
       "role": "deterministic representative task-route and context-budget harness",
-      "sha256": "aa4698e2c50ae7410840389206f1573dc01521e2e0e0e23aec3ad6c723172340",
-      "whitespace_tokens": 858
+      "sha256": "28b762660f7d49ce06bd5dbbc9b8277b0fb43654cd157fb53f9e54dca3f5ad00",
+      "whitespace_tokens": 1365
     },
     {
-      "bytes": 16470,
-      "exists": true,
-      "lines": 331,
-      "path": "tests/test_nested_agents.py",
-      "role": "focused positive and negative controls for route-card guard families",
-      "sha256": "2006f1214bde2ade13e217d40e9771ba5d085601eed957cdd2bca1bf6fd2e2ca",
-      "whitespace_tokens": 945
-    },
-    {
-      "bytes": 14422,
+      "bytes": 11550,
       "exists": true,
       "lines": 247,
+      "path": "rust/crates/tos-ops-mechanics-plan/tests/route_cards_native.rs",
+      "role": "focused positive and negative controls for route-card guard families",
+      "sha256": "b7e54751a7707bef02d729276936dfbc56e98a406fc8bd96c2cffa446213c9fd",
+      "whitespace_tokens": 726
+    },
+    {
+      "bytes": 14893,
+      "exists": true,
+      "lines": 254,
       "path": "docs/validation/SCRIPT_TOPOLOGY.md",
       "role": "script ownership, inventory, and command-plane boundary",
-      "sha256": "4eaebc6147be2b2767252beb94a47016e7b730c20107be61b92efee94971e39c",
-      "whitespace_tokens": 1830
+      "sha256": "709347cc90fcfaa2e75e7e1c4e5f103a0bc0812da8efbd23aa5055790eee24c8",
+      "whitespace_tokens": 1880
     },
     {
-      "bytes": 283610,
+      "bytes": 257901,
       "exists": true,
-      "lines": 4601,
+      "lines": 4000,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "341853ab7c8811a791c835754b01059d851010ae7d28c89f88b6dc45fc3ec570",
-      "whitespace_tokens": 17588
+      "sha256": "f741d617947004365ca8cd580db1c33ba220e3d4882730dcb6be5d5be8853f0b",
+      "whitespace_tokens": 16278
     },
     {
-      "bytes": 66829,
+      "bytes": 67228,
       "exists": true,
       "lines": 832,
       "path": ".github/workflows/repo-validation.yml",
       "role": "CI execution of the release lane",
-      "sha256": "9b05e024f32b7c81e5314bddee9baf200a62664e8819bbc27a9d520f0a31ced7",
-      "whitespace_tokens": 2136
+      "sha256": "4307c69e0881508930eccdbe7e3f117a8bf73eb6f29453d37bcf79e04c4e2892",
+      "whitespace_tokens": 2162
     },
     {
       "bytes": 1111,
@@ -923,22 +914,22 @@
   ],
   "preserved_non_cards": [
     {
-      "bytes": 6007,
+      "bytes": 6031,
       "exists": true,
       "lines": 136,
       "path": "DESIGN.AGENTS.md",
       "role": "agent-surface shape reference; not an inherited route card",
-      "sha256": "741890a1a270250ca4dd88f2f2b4e2f243938a50a368fff2f0dc995858edccb6",
+      "sha256": "f2c2c8c4c43ea3353c82551e025e16c6773966ae1e92a7ab27ef9b026db6c820",
       "whitespace_tokens": 877
     },
     {
-      "bytes": 8685,
+      "bytes": 8721,
       "exists": true,
       "lines": 180,
       "path": "docs/AGENTS_ROOT_REFERENCE.md",
       "role": "preserved historical root law; not active inheritance or competing root",
-      "sha256": "cfb369c667a367898957c7537b504ccf7ee69c155b8ac4621f97aebd141a8ced",
-      "whitespace_tokens": 1152
+      "sha256": "d7f44c661739a8db6d0b0cc87582c1928d8143fa60499aca03ceafadfba67a3e",
+      "whitespace_tokens": 1156
     }
   ],
   "route_card_counts": {
@@ -987,7 +978,7 @@
     "near_duplicate_cards": "manual review"
   },
   "source_inventory": "docs/validation/agents_route_inventory.json",
-  "source_inventory_sha256": "cae114b433714d870b36270751ad358b4dbb34d7f9c93e6fde5fd83642e10687",
+  "source_inventory_sha256": "8d9b723a957a7d3ff80b06ed60e7b9bb73ddda446427c4815c860b209d299ca0",
   "task_routes": [
     {
       "additional_context_tokens": 19853,
@@ -1073,13 +1064,13 @@
           "whitespace_tokens": 47036
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
@@ -1261,13 +1252,13 @@
           "whitespace_tokens": 47036
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
@@ -1355,13 +1346,13 @@
           "whitespace_tokens": 47036
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
@@ -1369,40 +1360,40 @@
       "additional_context_tokens": 7100,
       "completion_evidence": [
         {
-          "bytes": 1787,
+          "bytes": 1831,
           "exists": true,
           "lines": 38,
           "path": "ToS/candidate-intake/AGENTS.md",
           "role": "completion",
-          "sha256": "3f51d60c07557ea3ad00a1659bfb5d87c0e92e2f2ace74e48ccc0060f31ed124",
+          "sha256": "d3a8aee27a1bc13d241b01de8f50ed350cc721b0a98072f8c64f9b1676bc0649",
           "whitespace_tokens": 245
         },
         {
-          "bytes": 1285,
+          "bytes": 1323,
           "exists": true,
           "lines": 34,
           "path": "ToS/review-ledger/AGENTS.md",
           "role": "completion",
-          "sha256": "9cb76c7834f483401c7092be2074f1a08ee45e6ff2941ece3546de0b777babc1",
+          "sha256": "9bc72ad16d89ebd1942bfa330f58501ae961b08fb25f06ac6de69a4f7fbf165e",
           "whitespace_tokens": 176
         },
         {
-          "bytes": 1844,
+          "bytes": 1857,
           "exists": true,
           "lines": 40,
           "path": "ToS/canon/AGENTS.md",
           "role": "completion",
-          "sha256": "ae142ac2037697d810477f0d9e98f92190b9ef0fa7d788b23ef78c98ffc459c4",
+          "sha256": "fccfdac57b5a5537a9a4d816df604fb4315650ab006eeff6f6f14949b9e7e5a2",
           "whitespace_tokens": 241
         },
         {
-          "bytes": 24585,
+          "bytes": 27948,
           "exists": true,
-          "lines": 608,
-          "path": "scripts/validate_intake_pack.py",
+          "lines": 901,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs",
           "role": "completion",
-          "sha256": "f56bba64b1e17068e7274b54d8e0562833b8bc5e090b4d6922d39c072f9fa708",
-          "whitespace_tokens": 1798
+          "sha256": "df1af072ee9a638fcc31130126111539276582b366b8e1c941af3733a72ae6e2",
+          "whitespace_tokens": 2269
         }
       ],
       "id": "semantic_claim_review_canon",
@@ -1432,32 +1423,32 @@
           "whitespace_tokens": 4687
         },
         {
-          "bytes": 1285,
+          "bytes": 1323,
           "exists": true,
           "lines": 34,
           "path": "ToS/review-ledger/AGENTS.md",
           "role": "on_demand",
-          "sha256": "9cb76c7834f483401c7092be2074f1a08ee45e6ff2941ece3546de0b777babc1",
+          "sha256": "9bc72ad16d89ebd1942bfa330f58501ae961b08fb25f06ac6de69a4f7fbf165e",
           "whitespace_tokens": 176
         },
         {
-          "bytes": 1844,
+          "bytes": 1857,
           "exists": true,
           "lines": 40,
           "path": "ToS/canon/AGENTS.md",
           "role": "on_demand",
-          "sha256": "ae142ac2037697d810477f0d9e98f92190b9ef0fa7d788b23ef78c98ffc459c4",
+          "sha256": "fccfdac57b5a5537a9a4d816df604fb4315650ab006eeff6f6f14949b9e7e5a2",
           "whitespace_tokens": 241
         }
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 1787,
+        "bytes": 1831,
         "exists": true,
         "lines": 38,
         "path": "ToS/candidate-intake/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "3f51d60c07557ea3ad00a1659bfb5d87c0e92e2f2ace74e48ccc0060f31ed124",
+        "sha256": "d3a8aee27a1bc13d241b01de8f50ed350cc721b0a98072f8c64f9b1676bc0649",
         "whitespace_tokens": 245
       },
       "owner_handoff_context_tokens": 0,
@@ -1467,31 +1458,31 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 24585,
+          "bytes": 27948,
           "exists": true,
-          "lines": 608,
-          "path": "scripts/validate_intake_pack.py",
+          "lines": 901,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs",
           "role": "validation",
-          "sha256": "f56bba64b1e17068e7274b54d8e0562833b8bc5e090b4d6922d39c072f9fa708",
-          "whitespace_tokens": 1798
+          "sha256": "df1af072ee9a638fcc31130126111539276582b366b8e1c941af3733a72ae6e2",
+          "whitespace_tokens": 2269
         },
         {
-          "bytes": 6040,
+          "bytes": 10549,
           "exists": true,
-          "lines": 163,
-          "path": "scripts/validate_tree_node_contracts.py",
+          "lines": 241,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs",
           "role": "validation",
-          "sha256": "1ee19b93b438769d91a9abe1fe778ade22682f08393b4408fffe2316795ded1f",
-          "whitespace_tokens": 555
+          "sha256": "4c6c4c7b286e2f1c93d37468f3874756074e94a2367d609bb363c132e381fe17",
+          "whitespace_tokens": 632
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
@@ -1499,12 +1490,12 @@
       "additional_context_tokens": 2610,
       "completion_evidence": [
         {
-          "bytes": 2837,
+          "bytes": 2859,
           "exists": true,
           "lines": 51,
           "path": "ToS/philosophy/AGENTS.md",
           "role": "completion",
-          "sha256": "7631207ba6df2e2213cd55213d5d15b198a7a875976bccbdd642b14b9e69c767",
+          "sha256": "76fa170ee5fecd2f2aa987eaa8a05399690ad6fc4b978aebd21485d4a39593c4",
           "whitespace_tokens": 365
         },
         {
@@ -1517,13 +1508,13 @@
           "whitespace_tokens": 332
         },
         {
-          "bytes": 27119,
+          "bytes": 43507,
           "exists": true,
-          "lines": 542,
-          "path": "scripts/validate_philosophy_topology.py",
+          "lines": 1124,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/philosophy_topology.rs",
           "role": "completion",
-          "sha256": "24da39a4502f4b22b4000ea963bcfe448748e285913471bb1590877715a181c3",
-          "whitespace_tokens": 2016
+          "sha256": "442990faa999074ca5fcfaa774551603a6cb7a1ffe6c6f31fd2a8fb2bfddaddc",
+          "whitespace_tokens": 3397
         }
       ],
       "id": "philosophy_graph_workbench",
@@ -1598,13 +1589,13 @@
           "whitespace_tokens": 280
         },
         {
-          "bytes": 27119,
+          "bytes": 43507,
           "exists": true,
-          "lines": 542,
-          "path": "scripts/validate_philosophy_topology.py",
+          "lines": 1124,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/philosophy_topology.rs",
           "role": "validation",
-          "sha256": "24da39a4502f4b22b4000ea963bcfe448748e285913471bb1590877715a181c3",
-          "whitespace_tokens": 2016
+          "sha256": "442990faa999074ca5fcfaa774551603a6cb7a1ffe6c6f31fd2a8fb2bfddaddc",
+          "whitespace_tokens": 3397
         }
       ]
     },
@@ -1709,45 +1700,45 @@
           "whitespace_tokens": 7840
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
     {
-      "additional_context_tokens": 2195,
+      "additional_context_tokens": 2224,
       "completion_evidence": [
         {
-          "bytes": 3805,
+          "bytes": 3875,
           "exists": true,
           "lines": 69,
           "path": "ToS/zarathustra/AGENTS.md",
           "role": "completion",
-          "sha256": "a9a9ca019a49d6d572625cd6429e8da2fde59199c211ee26eac1f0324edf9496",
+          "sha256": "6e870bc7929e1569dcf761f0388df10ed69627ce60ec415518ceb250d766bd3b",
           "whitespace_tokens": 489
         },
         {
-          "bytes": 6389,
+          "bytes": 6719,
           "exists": true,
-          "lines": 139,
+          "lines": 143,
           "path": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
           "role": "completion",
-          "sha256": "6e543163cfa0e45193953b01e4541c601a6f9cb5e24df083f2dc0040cd6ed190",
-          "whitespace_tokens": 742
+          "sha256": "8b217098edacad3c6bbd75e0d6c714f115206d2252440781a5c4559440343f79",
+          "whitespace_tokens": 771
         },
         {
-          "bytes": 12681,
+          "bytes": 18940,
           "exists": true,
-          "lines": 310,
-          "path": "scripts/validate_tiny_entry_route.py",
+          "lines": 497,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs",
           "role": "completion",
-          "sha256": "12bdbf7e95e1c4cbbb5ffc2062b3bbe413d1873a835b7525fd7b500b240552d1",
-          "whitespace_tokens": 996
+          "sha256": "b013385e8fcfb7729505237cf19f5b38fe0c9ec4287a81ce69bcd358cd9443dc",
+          "whitespace_tokens": 1362
         }
       ],
       "id": "zarathustra_public_entry",
@@ -1768,13 +1759,13 @@
           "whitespace_tokens": 959
         },
         {
-          "bytes": 6389,
+          "bytes": 6719,
           "exists": true,
-          "lines": 139,
+          "lines": 143,
           "path": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
           "role": "on_demand",
-          "sha256": "6e543163cfa0e45193953b01e4541c601a6f9cb5e24df083f2dc0040cd6ed190",
-          "whitespace_tokens": 742
+          "sha256": "8b217098edacad3c6bbd75e0d6c714f115206d2252440781a5c4559440343f79",
+          "whitespace_tokens": 771
         },
         {
           "bytes": 4225,
@@ -1788,12 +1779,12 @@
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 3805,
+        "bytes": 3875,
         "exists": true,
         "lines": 69,
         "path": "ToS/zarathustra/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "a9a9ca019a49d6d572625cd6429e8da2fde59199c211ee26eac1f0324edf9496",
+        "sha256": "6e870bc7929e1569dcf761f0388df10ed69627ce60ec415518ceb250d766bd3b",
         "whitespace_tokens": 489
       },
       "owner_handoff_context_tokens": 0,
@@ -1803,13 +1794,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 12681,
+          "bytes": 18940,
           "exists": true,
-          "lines": 310,
-          "path": "scripts/validate_tiny_entry_route.py",
+          "lines": 497,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs",
           "role": "validation",
-          "sha256": "12bdbf7e95e1c4cbbb5ffc2062b3bbe413d1873a835b7525fd7b500b240552d1",
-          "whitespace_tokens": 996
+          "sha256": "b013385e8fcfb7729505237cf19f5b38fe0c9ec4287a81ce69bcd358cd9443dc",
+          "whitespace_tokens": 1362
         },
         {
           "bytes": 1098,
@@ -1853,13 +1844,13 @@
           "whitespace_tokens": 519
         },
         {
-          "bytes": 22336,
+          "bytes": 47657,
           "exists": true,
-          "lines": 532,
-          "path": "scripts/validate_mechanics_topology.py",
+          "lines": 1433,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs",
           "role": "completion",
-          "sha256": "815d97d83c4f0c9950cdee377bd668aa4c5978d2b19d0e4f94393b16170e4627",
-          "whitespace_tokens": 1818
+          "sha256": "6e94330589674c03d82b8ec2d9406c76e70cd3b1bc7e4b59a794bfc964eeca83",
+          "whitespace_tokens": 3900
         }
       ],
       "id": "mechanics_package_change",
@@ -1915,27 +1906,27 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 22336,
+          "bytes": 47657,
           "exists": true,
-          "lines": 532,
-          "path": "scripts/validate_mechanics_topology.py",
+          "lines": 1433,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs",
           "role": "validation",
-          "sha256": "815d97d83c4f0c9950cdee377bd668aa4c5978d2b19d0e4f94393b16170e4627",
-          "whitespace_tokens": 1818
+          "sha256": "6e94330589674c03d82b8ec2d9406c76e70cd3b1bc7e4b59a794bfc964eeca83",
+          "whitespace_tokens": 3900
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
     {
-      "additional_context_tokens": 927,
+      "additional_context_tokens": 934,
       "completion_evidence": [
         {
           "bytes": 3159,
@@ -1947,22 +1938,22 @@
           "whitespace_tokens": 431
         },
         {
-          "bytes": 1158,
+          "bytes": 1180,
           "exists": true,
           "lines": 36,
           "path": "docs/decisions/indexes/index_contract.yaml",
           "role": "completion",
-          "sha256": "7095134402e060807b8221a117cb98cf242a03a1f94308997c9db2f0d917f2e6",
+          "sha256": "2cc02ab5077b5de2f31808be47773e15da469521036a6a4ff8b526f351e560ee",
           "whitespace_tokens": 91
         },
         {
-          "bytes": 2224,
+          "bytes": 27541,
           "exists": true,
-          "lines": 62,
-          "path": "scripts/validate_decision_records.py",
+          "lines": 820,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs",
           "role": "completion",
-          "sha256": "cf84dbe8935bb0e132de93e1e48b4f5c7a768f9bf8d77a835f7614c7ba28612e",
-          "whitespace_tokens": 206
+          "sha256": "4ebddc00056a5c352db5b7dfab70f4826e68aefcbb446527a83bb67a29d9d67b",
+          "whitespace_tokens": 2653
         }
       ],
       "id": "decision_rationale",
@@ -1974,13 +1965,13 @@
       "inherited_context_tokens": 1741,
       "on_demand_surfaces": [
         {
-          "bytes": 4593,
+          "bytes": 4659,
           "exists": true,
           "lines": 98,
           "path": "docs/decisions/README.md",
           "role": "on_demand",
-          "sha256": "52737b7ae2dde395c1170cbf8fab7fd614915646ac3f83b7c7c8890d59043335",
-          "whitespace_tokens": 592
+          "sha256": "d5cdefa32680bce02aabac376ae51ca3df824cb364ed41a9eb0406f495c7778b",
+          "whitespace_tokens": 599
         },
         {
           "bytes": 1167,
@@ -2001,12 +1992,12 @@
           "whitespace_tokens": 82
         },
         {
-          "bytes": 1158,
+          "bytes": 1180,
           "exists": true,
           "lines": 36,
           "path": "docs/decisions/indexes/index_contract.yaml",
           "role": "on_demand",
-          "sha256": "7095134402e060807b8221a117cb98cf242a03a1f94308997c9db2f0d917f2e6",
+          "sha256": "2cc02ab5077b5de2f31808be47773e15da469521036a6a4ff8b526f351e560ee",
           "whitespace_tokens": 91
         }
       ],
@@ -2027,27 +2018,18 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 19291,
+          "bytes": 27541,
           "exists": true,
-          "lines": 485,
-          "path": "scripts/generate_decision_indexes.py",
+          "lines": 820,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs",
           "role": "validation",
-          "sha256": "f27ef790ba112b74ed12fb37d4cddbcbb308c83546260d04460ce0f0dde39b21",
-          "whitespace_tokens": 1617
-        },
-        {
-          "bytes": 2224,
-          "exists": true,
-          "lines": 62,
-          "path": "scripts/validate_decision_records.py",
-          "role": "validation",
-          "sha256": "cf84dbe8935bb0e132de93e1e48b4f5c7a768f9bf8d77a835f7614c7ba28612e",
-          "whitespace_tokens": 206
+          "sha256": "4ebddc00056a5c352db5b7dfab70f4826e68aefcbb446527a83bb67a29d9d67b",
+          "whitespace_tokens": 2653
         }
       ]
     },
     {
-      "additional_context_tokens": 10002,
+      "additional_context_tokens": 10120,
       "completion_evidence": [
         {
           "bytes": 6722,
@@ -2059,31 +2041,27 @@
           "whitespace_tokens": 834
         },
         {
-          "bytes": 49394,
+          "bytes": 49952,
           "exists": true,
-          "lines": 1631,
+          "lines": 1662,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "4dc25f651b39712eb069f95c2d6ad7c39bbf8fa06052a06460d5e5bf82491cf9",
-          "whitespace_tokens": 3138
+          "sha256": "447189d4b116e0c7564938f7ebe790bd12a6129a1eb742a195186ff56176806c",
+          "whitespace_tokens": 3169
         },
         {
-          "bytes": 4243,
-          "exists": true,
-          "lines": 110,
+          "exists": false,
           "path": "scripts/release_check.py",
-          "role": "completion",
-          "sha256": "46beb7ac0ae389c0f1d9f23725ae2a5794dfde2301e771a78b2cad48eaa9b577",
-          "whitespace_tokens": 389
+          "role": "completion"
         },
         {
-          "bytes": 66829,
+          "bytes": 67228,
           "exists": true,
           "lines": 832,
           "path": ".github/workflows/repo-validation.yml",
           "role": "completion",
-          "sha256": "9b05e024f32b7c81e5314bddee9baf200a62664e8819bbc27a9d520f0a31ced7",
-          "whitespace_tokens": 2136
+          "sha256": "4307c69e0881508930eccdbe7e3f117a8bf73eb6f29453d37bcf79e04c4e2892",
+          "whitespace_tokens": 2162
         }
       ],
       "id": "release_validation",
@@ -2103,40 +2081,40 @@
           "whitespace_tokens": 411
         },
         {
-          "bytes": 49394,
+          "bytes": 49952,
           "exists": true,
-          "lines": 1631,
+          "lines": 1662,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "4dc25f651b39712eb069f95c2d6ad7c39bbf8fa06052a06460d5e5bf82491cf9",
-          "whitespace_tokens": 3138
+          "sha256": "447189d4b116e0c7564938f7ebe790bd12a6129a1eb742a195186ff56176806c",
+          "whitespace_tokens": 3169
         },
         {
-          "bytes": 14422,
+          "bytes": 14893,
           "exists": true,
-          "lines": 247,
+          "lines": 254,
           "path": "docs/validation/SCRIPT_TOPOLOGY.md",
           "role": "on_demand",
-          "sha256": "4eaebc6147be2b2767252beb94a47016e7b730c20107be61b92efee94971e39c",
-          "whitespace_tokens": 1830
+          "sha256": "709347cc90fcfaa2e75e7e1c4e5f103a0bc0812da8efbd23aa5055790eee24c8",
+          "whitespace_tokens": 1880
         },
         {
-          "bytes": 20820,
+          "bytes": 20850,
           "exists": true,
-          "lines": 333,
+          "lines": 331,
           "path": "docs/RELEASING.md",
           "role": "on_demand",
-          "sha256": "6e1bb679f4d1987721d2c62052715e83d475f371725b79f5e97dc70eb7e6fe78",
-          "whitespace_tokens": 2487
+          "sha256": "8016d926161337c72d22733a273af59cdb8775ba2b04982d89c3325e777c03ad",
+          "whitespace_tokens": 2498
         },
         {
-          "bytes": 66829,
+          "bytes": 67228,
           "exists": true,
           "lines": 832,
           "path": ".github/workflows/repo-validation.yml",
           "role": "on_demand",
-          "sha256": "9b05e024f32b7c81e5314bddee9baf200a62664e8819bbc27a9d520f0a31ced7",
-          "whitespace_tokens": 2136
+          "sha256": "4307c69e0881508930eccdbe7e3f117a8bf73eb6f29453d37bcf79e04c4e2892",
+          "whitespace_tokens": 2162
         }
       ],
       "owner_exists": true,
@@ -2153,75 +2131,67 @@
       "owner_in_inheritance_stack": true,
       "owner_route": "scripts/AGENTS.md",
       "target": "scripts/release_check.py",
-      "target_exists": true,
+      "target_exists": false,
       "validation_paths": [
         {
-          "bytes": 15997,
-          "exists": true,
-          "lines": 386,
+          "exists": false,
           "path": "scripts/validation_lanes.py",
-          "role": "validation",
-          "sha256": "3b42a7ce132bdd791d1b22d8bcdf536c65193a2b660343424e1c8334dfa4dbc9",
-          "whitespace_tokens": 1366
+          "role": "validation"
         },
         {
-          "bytes": 4243,
-          "exists": true,
-          "lines": 110,
+          "exists": false,
           "path": "scripts/release_check.py",
-          "role": "validation",
-          "sha256": "46beb7ac0ae389c0f1d9f23725ae2a5794dfde2301e771a78b2cad48eaa9b577",
-          "whitespace_tokens": 389
+          "role": "validation"
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
     {
-      "additional_context_tokens": 5008,
+      "additional_context_tokens": 4995,
       "completion_evidence": [
         {
-          "bytes": 1660,
+          "bytes": 1647,
           "exists": true,
           "lines": 44,
           "path": ".agents/AGENTS.md",
           "role": "completion",
-          "sha256": "db9ab1e395dc66c5de56b2f328a7291b7bf80febcfb72626294249268074f01e",
+          "sha256": "43c667a026ffe2f39f9b913df10854e17353e8267ed1dda6125d9364bfcd01ab",
           "whitespace_tokens": 221
         },
         {
-          "bytes": 34573,
+          "bytes": 34619,
           "exists": true,
           "lines": 898,
           "path": ".agents/agent-surface.manifest.json",
           "role": "completion",
-          "sha256": "2a08e0cbcfcefee2f8af71164ee9911513619faedf7d150fda947a5b31b41357",
+          "sha256": "2674f3376b922bbdb469cc70444e1f0849d72070dfc651fe4ba5ee76c06cbcda",
           "whitespace_tokens": 2527
         },
         {
-          "bytes": 7855,
+          "bytes": 7868,
           "exists": true,
           "lines": 246,
           "path": ".agents/agent-surface.current.json",
           "role": "completion",
-          "sha256": "0c97ed3b4e1cdd01cd9973f62d3bac0024bed5e36abbda1e9dee3d90a7155daf",
+          "sha256": "42678d8d9353e8f436cc6c664f9430e81e469fc451ab819c9d0637650eaccf3d",
           "whitespace_tokens": 376
         },
         {
-          "bytes": 135974,
+          "bytes": 43687,
           "exists": true,
-          "lines": 3063,
-          "path": "scripts/validate_agent_surface.py",
+          "lines": 1328,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
           "role": "completion",
-          "sha256": "cbc7f1298a8aa848a1c503d46ee031e296574d2e8269313fa17e83f585d0f03d",
-          "whitespace_tokens": 10690
+          "sha256": "4c02bfb6888525267ca47466f0bac99d30fd66f1d0a20657e500cdd4b126f6b9",
+          "whitespace_tokens": 3188
         }
       ],
       "id": "agent_profile",
@@ -2241,32 +2211,32 @@
           "whitespace_tokens": 1024
         },
         {
-          "bytes": 34573,
+          "bytes": 34619,
           "exists": true,
           "lines": 898,
           "path": ".agents/agent-surface.manifest.json",
           "role": "on_demand",
-          "sha256": "2a08e0cbcfcefee2f8af71164ee9911513619faedf7d150fda947a5b31b41357",
+          "sha256": "2674f3376b922bbdb469cc70444e1f0849d72070dfc651fe4ba5ee76c06cbcda",
           "whitespace_tokens": 2527
         },
         {
-          "bytes": 22461,
+          "bytes": 22853,
           "exists": true,
-          "lines": 370,
+          "lines": 366,
           "path": "docs/validation/agents_route_inventory.json",
           "role": "on_demand",
-          "sha256": "cae114b433714d870b36270751ad358b4dbb34d7f9c93e6fde5fd83642e10687",
-          "whitespace_tokens": 1457
+          "sha256": "8d9b723a957a7d3ff80b06ed60e7b9bb73ddda446427c4815c860b209d299ca0",
+          "whitespace_tokens": 1444
         }
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 1660,
+        "bytes": 1647,
         "exists": true,
         "lines": 44,
         "path": ".agents/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "db9ab1e395dc66c5de56b2f328a7291b7bf80febcfb72626294249268074f01e",
+        "sha256": "43c667a026ffe2f39f9b913df10854e17353e8267ed1dda6125d9364bfcd01ab",
         "whitespace_tokens": 221
       },
       "owner_handoff_context_tokens": 0,
@@ -2276,31 +2246,31 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 19289,
+          "bytes": 20516,
           "exists": true,
-          "lines": 508,
-          "path": "scripts/build_agent_surface_currentness.py",
+          "lines": 561,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
           "role": "validation",
-          "sha256": "be090ba273d8b1405188e13b22ce650821142168a991642c37b7d649de256ee1",
-          "whitespace_tokens": 1569
+          "sha256": "f349b283cfc131b96e5cbcfa141b469195e850d747b076bb043355fb1c833b06",
+          "whitespace_tokens": 1628
         },
         {
-          "bytes": 135974,
+          "bytes": 43687,
           "exists": true,
-          "lines": 3063,
-          "path": "scripts/validate_agent_surface.py",
+          "lines": 1328,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
           "role": "validation",
-          "sha256": "cbc7f1298a8aa848a1c503d46ee031e296574d2e8269313fa17e83f585d0f03d",
-          "whitespace_tokens": 10690
+          "sha256": "4c02bfb6888525267ca47466f0bac99d30fd66f1d0a20657e500cdd4b126f6b9",
+          "whitespace_tokens": 3188
         },
         {
-          "bytes": 23288,
+          "bytes": 133831,
           "exists": true,
-          "lines": 610,
-          "path": "scripts/validate_nested_agents.py",
+          "lines": 3602,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
           "role": "validation",
-          "sha256": "995856fa607c3df30567c0dbe7770139f28b7e19051979581120ae127bfc4de0",
-          "whitespace_tokens": 1929
+          "sha256": "f9a69ecfcda9a2bd62ea4e8cc738cb8b0e83bc7bda0b6ca4e31bf0e03aea3913",
+          "whitespace_tokens": 10979
         }
       ]
     },
@@ -2428,12 +2398,12 @@
           "whitespace_tokens": 301
         },
         {
-          "bytes": 4062,
+          "bytes": 4084,
           "exists": true,
           "lines": 116,
           "path": "stats/port.manifest.json",
           "role": "completion",
-          "sha256": "733089f2ee84ee4be4bb627ce894584a8447c021c7c7c73cab5ba4872b551ac7",
+          "sha256": "1f843bc09524dbe02cbf61227bffd7f03f301c081775a30edd3960b1c108133c",
           "whitespace_tokens": 311
         },
         {
@@ -2463,12 +2433,12 @@
           "whitespace_tokens": 336
         },
         {
-          "bytes": 4062,
+          "bytes": 4084,
           "exists": true,
           "lines": 116,
           "path": "stats/port.manifest.json",
           "role": "on_demand",
-          "sha256": "733089f2ee84ee4be4bb627ce894584a8447c021c7c7c73cab5ba4872b551ac7",
+          "sha256": "1f843bc09524dbe02cbf61227bffd7f03f301c081775a30edd3960b1c108133c",
           "whitespace_tokens": 311
         },
         {
@@ -2516,12 +2486,12 @@
           "whitespace_tokens": 309
         },
         {
-          "bytes": 4062,
+          "bytes": 4084,
           "exists": true,
           "lines": 116,
           "path": "stats/port.manifest.json",
           "role": "validation",
-          "sha256": "733089f2ee84ee4be4bb627ce894584a8447c021c7c7c73cab5ba4872b551ac7",
+          "sha256": "1f843bc09524dbe02cbf61227bffd7f03f301c081775a30edd3960b1c108133c",
           "whitespace_tokens": 311
         }
       ]

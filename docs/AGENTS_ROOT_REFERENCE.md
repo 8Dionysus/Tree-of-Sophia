@@ -173,7 +173,7 @@ When the task falls outside that narrow validator seam:
 - use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py`
 - if you change the current tiny-entry route, run `tos-ops-mechanics-plan --repo-root ROOT --tiny-entry-validate`
-- if you add durable route, boundary, validator, export, or source-discipline rationale, run `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`
+- if you add durable route, boundary, validator, export, or source-discipline rationale, run `tos-ops-mechanics-plan --repo-root ROOT --decision-index-build --check` and `tos-ops-mechanics-plan --repo-root ROOT --decision-records-validate`
 - if you change export inputs or generation logic, select an accepted CorpusStore revision and follow the explicit native build/verify route in `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`, then run the `public_entry` lane, and then `python -m pytest -q -p no:cacheprovider --durations=20 tests`
 - if the task is mainly interpretive or structural outside the current validator perimeter, say that manual review was used instead of pretending automatic proof exists
 

@@ -12,7 +12,7 @@
 | owner | `mechanics/release-support/` |
 | stronger route | root release docs and scripts own release commands |
 | next route | [Artifact Bundles](parts/artifact-bundles/README.md) or [Source Release Gate](parts/source-release-gate/README.md) |
-| validation | `python scripts/release_check.py` |
+| validation | `tos-release-check --repo-root "$PWD"` |
 
 ## Active Route
 
