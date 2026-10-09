@@ -2408,7 +2408,7 @@
       ],
       "side_effects": "tracked aggregate comparison counts and one-way fingerprints only; no source text, German acceptance, critical-edition admission, translation lane, semantics, or promotion",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "native-software-tests",
+      "ci_inclusion": "focused-tests",
       "test_target": "rust/crates/tos-compiler/src/german_triangulation.rs",
       "disposition": "keep"
     },
@@ -2439,7 +2439,7 @@
       ],
       "side_effects": "admits exactly one DTA-derived source artifact to local blind machine-method calibration only and seals pre-existing authored translation surfaces; no German acceptance, accepted translation lane, comparator reveal, canon revalidation, semantics, rights clearance, publication, graph, or promotion",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "native-software-tests",
+      "ci_inclusion": "focused-tests",
       "test_target": "rust/crates/tos-compiler/src/bounded_translation_input.rs",
       "disposition": "keep"
     },
@@ -2471,7 +2471,7 @@
       ],
       "side_effects": "one question-scoped same-language witness correspondence proposal only; no repeated human work, attestation, review, gold, accepted text or boundary, preferred reading, textual equivalence, Edition genealogy, Expression derivation, translation, lexical or semantic identity, projection, graph/canon effect, redistribution, or publication",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "native-software-tests",
+      "ci_inclusion": "focused-tests",
       "test_target": "rust/crates/tos-compiler/src/antonovsky_collation.rs",
       "disposition": "keep"
     },
@@ -2501,7 +2501,7 @@
       ],
       "side_effects": "representation and inventory reconciliation only; preserves competing DTA/authored boundaries and the existing canon, with no accepted German or translation, modern human attestation, claim/evidence or semantic closure, graph/canon promotion, human task, publication, server transfer, or bulk migration",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "native-software-tests",
+      "ci_inclusion": "focused-tests",
       "test_target": "rust/crates/tos-compiler/src/authored_canon_bridge.rs",
       "disposition": "keep"
     },
@@ -3377,7 +3377,7 @@
       "writes": [],
       "side_effects": "export integrity verification only; no ambient checkout or sibling discovery",
       "validation_lane": "local_kag_provider",
-      "ci_inclusion": "explicit downstream artifact validation",
+      "ci_inclusion": "inventory-only",
       "test_target": "tests/test_build_kag_export.py",
       "disposition": "keep"
     },
@@ -3992,7 +3992,7 @@
       ],
       "side_effects": "Public synthetic laboratory fixtures only; no private source, actual human review, semantic admission or canon effect",
       "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "native-software-tests",
+      "ci_inclusion": "focused-tests",
       "test_target": "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs",
       "disposition": "keep"
     }
