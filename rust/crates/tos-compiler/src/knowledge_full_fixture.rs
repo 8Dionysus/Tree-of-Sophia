@@ -288,7 +288,8 @@ fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool, final_s
         "content_revision":"0".repeat(64),
         "display":{"kind_label":{"default":"Owner kind"},"title":{"default":"Example"},
             "summary_state":"source","provenance":{"source_summary_available":true}},
-        "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
+        "epistemic":if final_semantics.is_some(){json!({"review_posture":"not-recorded"})}else{json!({})},
+        "attributes":{},"semantics":if final_semantics.is_some(){json!({"type_ancestors":["tos.entity.thing"]})}else{json!({})},"graph_layers":[],"view_ids":[],
         "source_refs":["owner:record-1"]
     }))
     .unwrap();
@@ -300,7 +301,8 @@ fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool, final_s
             "content_revision":"0".repeat(64),
             "display":{"kind_label":{"default":"Owner kind"},"title":{"default":title},
                 "summary_state":"source","provenance":{"source_summary_available":true}},
-            "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
+            "epistemic":if final_semantics.is_some(){json!({"review_posture":"not-recorded"})}else{json!({})},
+        "attributes":{},"semantics":if final_semantics.is_some(){json!({"type_ancestors":["tos.entity.thing"]})}else{json!({})},"graph_layers":[],"view_ids":[],
             "source_refs":["owner:record-1"]
         }))
         .unwrap()
@@ -327,7 +329,8 @@ fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool, final_s
         "content_revision":"1".repeat(64),
         "display":{"label":{"default":"Owner relation"},"explanation_state":"source",
             "provenance":{"source_explanation_available":true}},
-        "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],
+        "epistemic":if final_semantics.is_some(){json!({"review_posture":"not-recorded"})}else{json!({})},
+        "attributes":{},"semantics":if final_semantics.is_some(){json!({"type_ancestors":["tos.entity.thing"]})}else{json!({})},"graph_layers":[],
         "view_ids":if final_semantics.is_some(){json!(["route-graph"])}else{json!([])},
         "source_refs":["owner:record-1"]
     }))
