@@ -12,7 +12,16 @@ use tos_foundation::{CanonicalProfile, Digest256Hasher, JsonLimits, canonical_ra
 pub const SCHEMA: &str = "tos_kag_integration_v1";
 pub const PRIMARY: &str =
     "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json";
-pub const PROGRAM_PATHS: [&str; 4] = [
+pub const PROGRAM_PATHS: [&str; 5] = [
+    "scripts/build_repo_local_kag_release.py",
+    "scripts/query_repo_local_kag.py",
+    "scripts/validate_repo_local_kag_family.py",
+    "scripts/validators/local_kag_subtree.py",
+    "scripts/validators/repo_local_kag_index.py",
+];
+// Published v1 integrations made before the owner exposed its probe CLI bind
+// these four programs. Reading those immutable releases needs no interpreter.
+const HISTORICAL_PROGRAM_PATHS: [&str; 4] = [
     "scripts/build_repo_local_kag_release.py",
     "scripts/query_repo_local_kag.py",
     "scripts/validators/local_kag_subtree.py",
@@ -482,19 +491,23 @@ pub fn verify_integration(root: &Path, expected_revision: &str) -> io::Result<Va
     let programs = integration["programs"]
         .as_array()
         .ok_or_else(|| invalid("program bindings must be list"))?;
-    if programs.len() != PROGRAM_PATHS.len() {
-        return Err(invalid("program membership differs"));
-    }
-    for (entry, path) in programs.iter().zip(PROGRAM_PATHS) {
+    let paths: &[&str] = match programs.len() {
+        5 => &PROGRAM_PATHS,
+        4 => &HISTORICAL_PROGRAM_PATHS,
+        _ => return Err(invalid("program membership differs")),
+    };
+    for (entry, path) in programs.iter().zip(paths) {
         keys(entry, &["path", "sha256"])?;
         hex(&entry["sha256"])?;
-        if entry["path"] != path {
+        if entry["path"] != *path {
             return Err(invalid("program path differs"));
         }
     }
     let export = crate::kag_corpus_export::verify_export(&root.join("export"))?;
     if export["corpus_revision"] != expected_revision
         || export["export_revision"] != integration["export_revision"]
+        || export["primary_source"]["sha256"]
+            != integration["primary_source"]["identity"]["content_hash"]
     {
         return Err(invalid("export binding differs"));
     }
@@ -660,8 +673,6 @@ pub fn build_release(
         fs::create_dir(&temporary)?;
         let stage = temporary.join("stage");
         fs::create_dir(&stage)?;
-        let probe_adapter = repo.join("scripts/kag_owner_probe.py");
-        let probe_before = digest(&probe_adapter)?;
         let export_root = stage.join("export");
         let export = crate::kag_corpus_export::build_export(&repo, &store, revision, &export_root)?;
         let provider = stage.join("provider/Tree-of-Sophia");
@@ -691,11 +702,14 @@ pub fn build_release(
             &kag,
             vec![
                 python.to_string_lossy().into_owned(),
-                "-I".into(),
-                probe_adapter.to_string_lossy().into_owned(),
-                kag.to_string_lossy().into_owned(),
+                kag.join("scripts/validate_repo_local_kag_family.py")
+                    .to_string_lossy().into_owned(),
+                "--repo-root".into(),
                 provider.to_string_lossy().into_owned(),
+                "--artifact-root".into(),
                 artifacts.to_string_lossy().into_owned(),
+                "--no-shadow-git".into(),
+                "--probe-source".into(),
                 PRIMARY.into(),
             ],
             deadline,
@@ -721,7 +735,7 @@ pub fn build_release(
             return Err(invalid("KAG probe primary source mismatch"));
         }
         identity_safe(&probe)?;
-        if program_manifest(&kag)? != programs || digest(&probe_adapter)? != probe_before {
+        if program_manifest(&kag)? != programs {
             return Err(invalid("selected KAG programs changed during publication"));
         }
         let repeated = crate::kag_corpus_export::verify_export(&export_root)?;
