@@ -1606,7 +1606,7 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
             }
         }
         let independent = maintained_oracle(
-            "claim-revision-collection-history",
+            &format!("claim-revision-identity-history-{version}"),
             &oracle_files,
             &revision_owner,
             &correction,

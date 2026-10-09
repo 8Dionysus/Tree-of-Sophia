@@ -1711,18 +1711,30 @@ sys.stdout.write(owner.render_payload(payload))
     let selected_path = selected_dir.join("knowledge.sqlite3");
     // Keep the actual SQLite allocation compatible with the existing final
     // VACUUM's two-database temp reserve. This narrows output, not host quota.
+    let selected_logical_bytes = selected_rows
+        .values()
+        .flat_map(|rows| rows.values())
+        .try_fold(0u64, |total, raw| {
+            total.checked_add(u64::try_from(raw.len()).ok()?)
+        })
+        .expect("selected search input byte count");
+    const SEARCH_WORK_BYTES_PER_SELECTED_BYTE: u64 = 128;
+    const MAX_SELECTED_SEARCH_WORK_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+    let search_work_bytes = selected_logical_bytes
+        .checked_mul(SEARCH_WORK_BYTES_PER_SELECTED_BYTE)
+        .expect("selected search work byte budget")
+        .min(MAX_SELECTED_SEARCH_WORK_BYTES);
     let mut selected_stage_limits = stage_limits;
-    // The selected fixture is bounded independently from the source producer:
-    // permit the complete 320 MiB selected-model/search work ceiling.
-    selected_stage_limits.sqlite.max_work_bytes = 320 * 1024 * 1024;
+    // This independent fixture stage has a finite ceiling of 128 times the
+    // selected rows' logical bytes, capped at 2 GiB. It covers document
+    // materialization, trigram probes/rehash/sort, posting writes and merges,
+    // and final root verification under separate row/posting/temp limits. This
+    // is a fixture work ceiling, not a measured total or a production limit.
+    selected_stage_limits.sqlite.max_work_bytes = search_work_bytes;
     selected_stage_limits.sqlite.max_output_bytes = stage_limits
         .sqlite
         .max_output_bytes
         .min(stage_limits.max_temp_bytes / 2);
-    // Search now charges block decoding again during final root verification.
-    // Use the caller's existing phase work envelope for that complete operation,
-    // while retaining the former independently bounded posting population.
-    let search_work_bytes = selected_stage_limits.sqlite.max_work_bytes;
     let search_postings = (100 * 1024 * 1024u64).min(search_work_bytes) / 3;
     let selected_isolation = NativeSelectedIsolation {
         started,
