@@ -235,10 +235,11 @@ geographic referents.
 `tos.relation.claim-counterevidenced-by` preserves the existing source-claims
 `counterevidenced_by` edge as a separate Claim → Evidence role: the Claim cites
 that Evidence as counterevidence. Its inverse reads “cited as counterevidence
-by claim”. This derived edge records the Claim’s explicit counterevidence role. The
-[bibliographic producer](../../../scripts/source_witness_bibliographic_graph_common.py)
-derives this edge only from the Claim's explicit `counterevidence_refs` and
-retains its exact source, version, qualified context and recorded review state.
+by claim”. This derived edge records the Claim’s explicit counterevidence role.
+The native Rust bibliographic projection composes this edge only from the
+Claim's explicit `counterevidence_refs` and retains its exact source, version,
+qualified context and recorded review state. Its tracked parity route is the
+native `corpus-projection-check` owner.
 Counterevidence is optional; absence does not establish that a search was done.
 The same Evidence may support the qualified Claim while limiting an overreading,
 as in `tos.claim.jgb21-conception-inversion`; the two roles retain their own meaning, with judgment and admission supplied

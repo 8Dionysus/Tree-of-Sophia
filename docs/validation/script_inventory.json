@@ -2967,7 +2967,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_antonovsky_1911_technical_markup.py",
+      "path": "rust/crates/tos-compiler/src/antonovsky_structural/technical_markup.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/README.md",
@@ -2981,19 +2981,19 @@
         "ToS/contracts/source-text-unit-packet-v1.schema.json"
       ],
       "reads": [
-        "the exact local Antonovsky 1911 PDF, its page-resource inventory and layered-rights record, the witness-local page-side region plan, the fixed Poppler method contract, and the stable opaque identity issuance"
+        "exact local Antonovsky 1911 PDF, page-resource inventory, layered-rights record, witness-local page/panel plan, fixed Poppler contract, stable opaque identity issuance, and retained historical recipe bytes"
       ],
       "writes": [
-        "one tracked source-text-unit packet, text-free citation, region and heading candidate projections, summary and provenance, plus ignored mode-0600 private sequential text and full bbox layers unless --check or --validate-tracked is used"
+        "native `tos technical-markup --build` creates the tracked page/panel/block packet and candidates, receipts and private layers; `--check` reconstructs exact parity and `--validate-tracked` reads tracked metadata only"
       ],
-      "side_effects": "exact-PDF-page and proposed midpoint-panel/layout-block count foundation only; blocks remain unreviewed paragraph candidates, headings and region spans remain proposals, and no accepted Russian, German correspondence, translation alignment, semantics, graph/canon effect, rights clearance, publication, server transfer, or runtime authority is created",
+      "side_effects": "text-free layout/candidate projections and separately protected private source layers only; all candidate, semantic, translation, rights, publication and canon limits remain unchanged",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_antonovsky_1911_technical_markup.py",
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_antonovsky_1911_structural_paragraph_v2.py",
+      "path": "rust/crates/tos-compiler/src/antonovsky_structural.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/README.md",
@@ -3005,12 +3005,12 @@
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf"
       ],
       "reads": [
-        "the exact frozen Antonovsky PDF and v1 Poppler observation, the complete witness-local structure census, the one-time opaque identity issuance, and the fixed full-boundary challenger projection"
+        "exact bound Antonovsky PDF and v1 Poppler observation, complete witness-local structure census, stable opaque identity issuance, fixed full-boundary challenger projection, and retained source layer"
       ],
       "writes": [
-        "text-free physical-line, logical-row, structure, paragraph, continuous-verse, conflict, comparison, contradiction, coverage, verification, provenance, summary, and manifest projections unless --check or --validate-tracked is used"
+        "native `tos structural-paragraph --build` writes the text-free physical-line, logical-row, structure, paragraph, verse, conflict, comparison, coverage, verification, provenance, summary and manifest projections; `--check` reconstructs exact parity and `--validate-tracked` reads tracked metadata only"
       ],
-      "side_effects": "complete agent-verified witness-local technical segmentation only; no accepted Russian text, editorial or linguistic paragraph truth, German/Russian alignment, semantics, graph/canon effect, rights clearance, publication, or runtime authority",
+      "side_effects": "complete witness-local technical projection only; no accepted Russian text, editorial or linguistic truth, German/Russian alignment, semantics, graph/canon effect, rights clearance, publication or runtime authority",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_antonovsky_1911_structural_paragraph_v2.py",

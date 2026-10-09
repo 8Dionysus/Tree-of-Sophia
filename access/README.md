@@ -30,6 +30,15 @@ pairs use the native `--release-root` interface. No path searches parent
 directories for another dataset. Data compilation/admission remains a separate
 operation and software builds never claim corpus data.
 
+Rust compiler checks replace the retired Python full/incremental query-store
+builder suite: [full-model seal, cold read and restore](../rust/crates/tos-compiler/src/knowledge_full.rs),
+[staged-input atomicity, quotas and private-candidate refusal](../rust/crates/tos-compiler/src/knowledge_stage.rs),
+[partitioned navigation custody and publication](../rust/crates/tos-compiler/tests/navigation.rs),
+and [compressed-search bootstrap and rollback](../rust/crates/tos-compiler/tests/compressed_search_writer.rs).
+The old Python cache/delta scheduler and its test harness are not active runtime
+contracts; the native compiler publishes its owned full candidate and native
+search writers own their separate bounded bootstrap/delta routes.
+
 The installed `tos` command is loopback-only for HTTP by default and uses stdio
 for MCP unless an explicit loopback-only HTTP transport is selected. The
 software-only archive route lives in [RELEASING](../docs/RELEASING.md).
@@ -244,16 +253,12 @@ depending on browser-owned view logic. A LensSpec can select sources, start
 from nodes or relations, filter, traverse, close relation endpoints, group,
 sort, and provide presentation hints under explicit resource limits.
 
-Native and offline catalogs share one exact contribution/renderer implementation.
-The [offline catalog index](EXACT_CATALOG_INDEX.md) supports caller-transaction
-bootstrap and addressed deltas, retaining reversible counts, source-ordered
-representatives/examples and affected entity-route closure. It does not publish
-prepared metadata or activate a reader. The explicit `prepared_catalog` join
-updates catalog, full carriers, search and lenses in the same caller transaction;
-source/semantic admission, commit and reader activation remain owner operations.
-The [joined semantic maintenance API](PREPARED_MAINTENANCE.md) additionally
-computes the exact semantic report and verifies that the final publication
-contains the identical checked changes, under a combined SQL mutation budget.
+The native Rust compiler owns exact catalog and semantic-index materialization.
+`tos prepare --attach-maintenance` can add those bounded indexes to the same
+private snapshot; it neither admits source meaning nor selects a consumer. The
+former Python catalog, semantic and prepared transaction APIs are retired. See
+the [native preparation route](OFFLINE_PREPARED_BOOTSTRAP.md) and the
+[Rust catalog owner](../rust/crates/tos-query/src/knowledge_catalog.rs).
 
 Registered properties can be queried without knowing their internal paths.
 For example, `{"property_id":"tos.property.time-role","op":"eq","value":"historical-time"}`
@@ -624,12 +629,11 @@ source update. Its explicit `--attach-maintenance` option adds the exact catalog
 and auxiliary semantic indexes before completion, under separate write budgets
 and unchanged reader binding; attachment remains disabled by default.
 
-The [local prepared publisher](LOCAL_PREPARED_PUBLICATION.md) also provides an
-explicit offline, one-file full-row/catalog/lens/compressed-search profile and
-addressed storage deltas. It accepts normalized owner inputs, has its own local
-schema, and installs no public route or edge deployment.
+The native [`tos prepare` command](OFFLINE_PREPARED_BOOTSTRAP.md) creates the
+local full-row/catalog/lens/search snapshot. Explicit selection remains a
+separate consumer action; it installs no public route or edge deployment.
 
-Python callers can opt into the published SQLite read model already emitted by
+SDK callers can opt into the published SQLite read model already emitted by
 the edge producer, using both `ToSAccessCore.discover(...,
 published_read_model_path=..., published_read_model_expected=...)` arguments.
 The expected value is an independently owner-selected snapshot binding framed
@@ -638,7 +642,7 @@ source/data revisions, normalization binding, small-header checksum, and the
 actual `knowledge_exploration_clock` epoch. Merely trusting the database's own
 header does not establish current source or policy authority.
 
-This first prepared slice supports catalog and full node/relation inspect,
+The native prepared route supports catalog and full node/relation inspect,
 including identity aliases, exact incident counts and endpoint closure. It opens
 read-only query transactions, verifies the small header and selected-row emitted
 JSON checksums, and never builds a graph, normalizes sources, or creates an
@@ -648,10 +652,10 @@ unknown fields and typed false/zero values. No compact response substitutes for
 the full inspected record. Checksums detect accidental byte drift; they do not
 authenticate a writer holding the same producer/filesystem authority.
 
-Prepared temporal comparison uses the same transport-neutral computation as
-the source-backed reader, over at most six exact Claim/value/document-subject
+Prepared temporal comparison uses the native Rust computation as the
+source-backed reader, over at most six exact Claim/value/document-subject
 lookups in one selected read snapshot. It has no identifier-alias fallback.
-Selected full rows retain `source_canonical_json` and Python JSON number types;
+Selected full rows retain `source_canonical_json` and exact JSON number types;
 source/content revision conflicts, missing Claims, damaged carriers and read
 budgets remain explicit refusals. Missing or unsupported date evidence retains
 the shared `undetermined` or `unsupported` states. Comparison does not adjudicate dates or
@@ -683,8 +687,8 @@ Compressed search is available only through explicit `mode=compressed` on this
 local profile; [its contract](COMPRESSED_SEARCH_V3.md#local-adapters) covers
 capability discovery, bounded work, continuation and full-carrier joins.
 Lens/focus and exploration use the prepared services described below.
-The default, without these two arguments,
-retains the existing compatibility route. This is not completion of the broader
+Without these paired selectors, the SDK retains its native source-backed route.
+This is not completion of the broader
 cold-reader or addressed-source publication work, nor a production activation.
 
 The executable accepts the same explicit selection, including HTTP and MCP:
@@ -769,8 +773,7 @@ native MCP/HTTP owner; query planning, bounds, ordering, continuation,
 publication binding, and packet construction remain in that owner.
 No standalone Python lens or search service is shipped.
 
-`PublishedExplorationService(reader, ...)` provides native-v6
-exploration over the same pinned reader. Each page uses bounded identity and
+The native v6 exploration operation uses the same pinned reader. Each page uses bounded identity and
 two-sided adjacency keyset windows; it does not load the catalog, build a graph,
 count the whole neighborhood or use offset scans. Its full stream preserves
 native query, ordering, work units, page limits, v2 origin closure and terminal

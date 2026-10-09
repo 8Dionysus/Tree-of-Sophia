@@ -4409,6 +4409,66 @@ mod tests {
         );
     }
     #[test]
+    fn scoped_member_topology_refuses_invalid_order_and_collection_bindings() {
+        let base = json!({
+            "subject_ref":"tos.artifact.whole",
+            "object":{"kind":"physical-part-composition",
+                "members":["tos.artifact.a","tos.artifact.b"],
+                "ordering":{"mode":"total","precedes":[["tos.artifact.a","tos.artifact.b"]]}}
+        });
+        let cases = [
+            ("unordered-with-edge", json!({"kind":"physical-part-composition","members":["tos.artifact.a","tos.artifact.b"],"ordering":{"mode":"unordered","precedes":[["tos.artifact.a","tos.artifact.b"]]}}), "structure-unordered-precedence"),
+            ("duplicate-edge", json!({"kind":"physical-part-composition","members":["tos.artifact.a","tos.artifact.b"],"ordering":{"mode":"partial","precedes":[["tos.artifact.a","tos.artifact.b"],["tos.artifact.a","tos.artifact.b"]]}}), "structure-duplicate-precedence"),
+            ("outside-member", json!({"kind":"physical-part-composition","members":["tos.artifact.a","tos.artifact.b"],"ordering":{"mode":"partial","precedes":[["tos.artifact.a","tos.artifact.outside"]]}}), "structure-precedence-outside-members"),
+            ("subject-as-member", json!({"kind":"physical-part-composition","members":["tos.artifact.whole","tos.artifact.b"],"ordering":{"mode":"unordered","precedes":[]}}), "structure-subject-member"),
+            ("total-incomparable", json!({"kind":"physical-part-composition","members":["tos.artifact.a","tos.artifact.b"],"ordering":{"mode":"total","precedes":[]}}), "structure-total-incomparable"),
+            ("cycle", json!({"kind":"physical-part-composition","members":["tos.artifact.a","tos.artifact.b"],"ordering":{"mode":"partial","precedes":[["tos.artifact.a","tos.artifact.b"],["tos.artifact.b","tos.artifact.a"]]}}), "structure-cycle"),
+        ];
+        for (name, object, code) in cases {
+            let mut selected = base.clone();
+            selected["object"] = object;
+            let cancelled = AtomicBool::new(false);
+            let mut rules = rules(&cancelled);
+            member_structure(&selected, &mut rules, name).unwrap();
+            assert!(rules.shadow.issues.iter().any(|issue| issue.code == code), "{name}: {:?}", rules.shadow.issues);
+        }
+
+        let exact = |id: &str| json!({"id":id,"version":1,"digest":format!("sha256:{}","00".repeat(32))});
+        let order = json!({"subject_ref":"tos.collection.c", "object":{"kind":"collection-member-order",
+            "members":["tos.work.a","tos.work.b"],"ordering":{"mode":"total","precedes":[["tos.work.a","tos.work.b"]]},
+            "collection_version":exact("tos.collection.c"),"membership_versions":[exact("tos.claim.a"),exact("tos.claim.b")]}});
+        for name in [
+            "wrong-collection",
+            "duplicate-membership",
+            "wrong-membership-kind",
+            "boolean-version",
+        ] {
+            let mut selected = order.clone();
+            match name {
+                "wrong-collection" => selected["object"]["collection_version"]["id"] = json!("tos.collection.other"),
+                "duplicate-membership" => selected["object"]["membership_versions"][1] = exact("tos.claim.a"),
+                "wrong-membership-kind" => selected["object"]["membership_versions"][1] = exact("tos.work.b"),
+                "boolean-version" => selected["object"]["collection_version"]["version"] = json!(true),
+                _ => unreachable!(),
+            }
+            let cancelled = AtomicBool::new(false);
+            let mut rules = rules(&cancelled);
+            member_structure(&selected, &mut rules, name).unwrap();
+            assert!(rules.shadow.issues.iter().any(|issue| issue.code == "collection-order-exact-basis-shape"), "{name}: {:?}", rules.shadow.issues);
+        }
+    }
+
+    #[test]
+    fn scoped_member_topology_bounds_large_order_inputs() {
+        let members = (0..=128).map(|index| format!("tos.artifact.{index}")).collect::<Vec<_>>();
+        let claim = json!({"subject_ref":"tos.artifact.whole", "object":{"kind":"physical-part-composition",
+            "members":members,"ordering":{"mode":"unordered","precedes":[]}}});
+        let cancelled = AtomicBool::new(false);
+        let mut rules = rules(&cancelled);
+        assert!(member_structure(&claim, &mut rules, "over-bound").is_err());
+    }
+
+    #[test]
     fn scoped_order_and_identity_plan_preserve_declared_topology() {
         let cancelled = AtomicBool::new(false);
         let structure = json!({"subject_ref":"tos.artifact.whole","object":{"kind":"physical-part-composition","members":["tos.artifact.a","tos.artifact.b"],"ordering":{"mode":"total","precedes":[["tos.artifact.a","tos.artifact.b"]]}}});

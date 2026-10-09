@@ -78,16 +78,18 @@ those registries reproduce the selected catalog and semantic report. Attachment
 refuses if they do not; it never reconstructs stronger inputs from a catalog or
 rewrites registry values to force success.
 
-After base publication commits, a separate `BEGIN IMMEDIATE` transaction invokes
-the existing `bootstrap_prepared_maintenance_transaction` kernel. It receives
+After base publication commits, the native maintenance owner adds the auxiliary
+indexes in a separate transaction. It receives
 the same on-demand portable row stream in an additional pass, not another full
 normalized graph. Source state and selected publication binding are checked
 before and after attachment; the kernel verifies exact catalog and semantic
 report reproduction. This bootstrap only creates auxiliary maintenance state:
 it does not change header, rows, catalog, search, epoch or independent reader
 binding, verify a source transition, select a consumer, or grant semantic
-acceptance. See [catalog index](EXACT_CATALOG_INDEX.md) and
-[semantic index](SEMANTIC_INDEX.md) for the unchanged kernel contracts.
+acceptance. The implementation is in Rust's
+[`prepared_catalog_index.rs`](../rust/crates/tos-compiler/src/prepared_catalog_index.rs),
+[`prepared_catalog_semantics.rs`](../rust/crates/tos-compiler/src/prepared_catalog_semantics.rs)
+and [`prepared_maintenance.rs`](../rust/crates/tos-compiler/src/prepared_maintenance.rs).
 
 `--maintenance-max-mutations` requires the flag and defaults to two million. It
 is a separate allowance for the attachment transaction's combined catalog and
@@ -154,8 +156,8 @@ the normal prepared reader/CLI selection documented in [README](README.md):
 ```
 
 Keep the independent binding with the selected snapshot. No receipt-reader
-integration or implicit fallback is installed. Subsequent addressed storage
-deltas and stale binding refusal belong to [local prepared publication](LOCAL_PREPARED_PUBLICATION.md).
+integration or implicit fallback is installed. Subsequent reads recheck the
+exact selected binding under the [native selected-snapshot contract](contracts/native-selected-snapshot-profile.v1.md).
 The completed marker records bootstrap completion only; it must not be treated
 as a refreshed binding after a later mutation.
 

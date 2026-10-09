@@ -14,8 +14,10 @@ derived-export owners remain stronger than every packet emitted here.
 
 ## Boundary
 
-- `rust/crates/tos-access/` owns runtime query, source-read and managed-release
-  semantics. `src/tos_access/core.py` is the thin imported SDK bridge to the
+- `rust/crates/tos-query/` owns query planning, normalization, presentation,
+  search and exploration semantics. `rust/crates/tos-access/` owns source-read,
+  managed-release, transport and installed-product integration. The Python
+  `src/tos_access/core.py` surface is a thin imported SDK bridge to the
   installed native product; it contains no query, HTTP, or source-reading
   engine.
 - Installed CLI, HTTP, MCP, and browser actions route to the native owner.

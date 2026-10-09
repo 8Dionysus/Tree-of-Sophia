@@ -37,6 +37,23 @@ fn main() {
         std::process::exit(code);
     }
 
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "corpus-projection-query")
+    {
+        let args = std::env::args_os().skip(2).take(22).collect::<Vec<_>>();
+        if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
+            println!("usage: tos-native-owner-command corpus-projection-query --request ABS_JSON (--claim-ref REF | --subject-ref REF | --object-ref REF | --normalized-ref REF | --predicate ID | --review-status STATUS | --visibility VISIBILITY) [SELECTOR ...] [--limit 1..100] [--pretty]");
+            return;
+        }
+        let code = tos_command::source_bibliographic_query_cli::run_args(
+            args,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        std::process::exit(code);
+    }
+
     if std::env::args_os().nth(1).is_some_and(|arg| arg == "http") {
         let args = std::env::args_os()
             .skip(2)
@@ -71,6 +88,24 @@ fn main() {
             .is_some_and(|a| a == "acquisition")
     {
         std::process::exit(tos_command::source_acquisition_cli::run());
+    }
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "corpus-r2")
+    {
+        if std::env::args_os().len() == 3
+            && std::env::args_os()
+                .nth(2)
+                .is_some_and(|arg| arg == "--help" || arg == "-h")
+        {
+            print!("{}", tos_command::corpus_r2_cli::HELP);
+            return;
+        }
+        if std::env::args_os().len() != 2 {
+            eprintln!("native corpus-r2 refused: request must be supplied on stdin");
+            std::process::exit(2);
+        }
+        std::process::exit(tos_command::corpus_r2_cli::run());
     }
     if std::env::args_os()
         .nth(1)
@@ -223,7 +258,7 @@ fn main() {
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command http --help\n       tos-native-owner-command foundation --help\n       tos-native-owner-command source-catalog --help\n       tos-native-owner-command corpus-admit --help\n       tos-native-owner-command corpus-build < REQUEST_JSON\n       tos-native-owner-command corpus-projection-check --repo-root ABS --software-commit HEAD --schema-worker-env NAME --limits-profile repo-validation-v1\n       tos-native-owner-command corpus-projection-check --request ABS_JSON\n       tos-native-owner-command capacity-fixture --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nUse source-commands --discover [--handler HANDLER_ID] for implementation-only discovery without source or owner access.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command http --help\n       tos-native-owner-command foundation --help\n       tos-native-owner-command source-catalog --help\n       tos-native-owner-command corpus-admit --help\n       tos-native-owner-command corpus-build < REQUEST_JSON\n       tos-native-owner-command corpus-r2 < REQUEST_JSON\n       tos-native-owner-command corpus-projection-check --repo-root ABS --software-commit HEAD --schema-worker-env NAME --limits-profile repo-validation-v1\n       tos-native-owner-command corpus-projection-check --request ABS_JSON\n       tos-native-owner-command corpus-projection-query --request ABS_JSON --claim-ref REF [SELECTOR ...] [--limit 1..100] [--pretty]\n       tos-native-owner-command capacity-fixture --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nUse source-commands --discover [--handler HANDLER_ID] for implementation-only discovery without source or owner access.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
         );
         return;
     }

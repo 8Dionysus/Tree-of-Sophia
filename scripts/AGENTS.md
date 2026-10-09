@@ -53,7 +53,7 @@ decision route.
 
 | Pressure | Stronger owner and script route |
 | --- | --- |
-| corpus identity, provenance, rights, or source witness | `ToS/source-witnesses/` and `ToS/doctrine/CORPUS_FOUNDATION.md`; use the source-witness builder/validator pair named by the source-foundation lane |
+| corpus identity, provenance, rights, or source witness | `ToS/source-witnesses/` and `ToS/doctrine/CORPUS_FOUNDATION.md`; use the native `source_witness_foundation` lane and native source-catalog command |
 | text units, segmentation, translation alignment, or semantic proposals | `ToS/contracts/`, research packets, candidate intake, review ledger, and canon; use the corresponding contract validator or laboratory route |
 | philosophy tree or graph workbench | `ToS/philosophy/`; use the topology, graph-view, projection, and review routes in the validation manifest |
 | Zarathustra public entry or golden kernel | `ToS/zarathustra/`; use tiny-entry, source-home, lived-witness, and KAG-export checks as applicable |

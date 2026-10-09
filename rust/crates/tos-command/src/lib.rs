@@ -164,6 +164,7 @@ mod source_foundation_admission;
 mod source_foundation_admission_history;
 mod source_foundation_admission_identity;
 
+pub mod corpus_r2_cli;
 pub mod source_acquisition_batch;
 pub mod source_acquisition_cli;
 pub mod source_acquisition_contract;
@@ -172,5 +173,7 @@ pub mod source_payload_custody;
 pub mod source_registry_acquisition;
 
 pub mod managed_native_original_cli;
+pub mod source_bibliographic_query;
+pub mod source_bibliographic_query_cli;
 
 pub mod source_command_http;

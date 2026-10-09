@@ -99,11 +99,11 @@ execution, lane loading, mechanics-local discovery, and shared helpers. Root scr
 may be mechanics-owned by `owner_surface`, but a root location does not make the
 script repository-wide truth.
 
-The source-witness pair is deliberately split: `build_source_witness_catalog.py`
-projects tracked corpus identity records into a navigational catalog, while
-`validate_source_witness_foundation.py` checks schemas, reference closure,
-companions, catalog parity, and any locally present payload bytes. Neither tool
-can certify bibliographic truth, OCR quality, rights clearance, translation,
+The source-witness foundation audit and generated catalog parity run through the
+native `source_witness_foundation` lane. Corpus-index and bibliographic-graph
+build/check routes use the native corpus-projection owner and retain separate
+source, snapshot, and publication boundaries. These mechanical checks cannot
+certify bibliographic truth, OCR quality, rights clearance, translation,
 semantics, or human acceptance.
 
 The Antonovsky 2007/1911 collation builder is an explicit-local source
@@ -197,24 +197,22 @@ normalized identity, Edition reference, evidence, and provenance in exact
 closure. This mechanics cannot promote an authority match, equate a publisher
 with a printer or successor, or turn a statement date into public release.
 
-The source-witness bibliographic graph pair materializes and checks the
-downstream claim graph. Its builder and validator read the public-safe
-catalog plus exact claim, evidence, anchor, and provenance records, keep every
-assertion reified as a claim node, and reject any edge that loses source return.
-Every edge retains its reified Claim and source qualification. Graph runtime
-behavior belongs to the selected consumer.
+The native corpus-projection owner materializes and checks the whole-corpus
+index and downstream claim graph from one bounded source cut. The graph keeps
+every assertion reified as a claim node and every edge returns to its claim
+and source qualification. Graph runtime behavior belongs to the selected
+consumer.
 
 Normalized provision participants are emitted only as claim-originating
 `has_normalized_place` or `has_normalized_agent` edges. Querying one of those
 identities remains source-return navigation through the reified claim, not an
 Edition-to-identity fact assertion.
 
-The companion bibliographic graph query script is a deterministic, read-only
-stdout reader. It verifies a complete source-backed rebuild before applying
-explicit AND selectors and returns the exact source claim plus complete trace
-bundle. It rejects selector-free requests and silent truncation; it does not
-write query artifacts or create review, relation, runtime, or service
-authority.
+The native `corpus-projection-query` command is a deterministic, read-only
+stdout reader. It verifies exact source-backed parity before applying explicit
+AND selectors and returns the exact source claim plus complete trace bundle.
+It rejects selector-free requests and silent truncation; it does not write
+query artifacts or create review, relation, runtime, or service authority.
 
 The current mechanics-local homes are:
 

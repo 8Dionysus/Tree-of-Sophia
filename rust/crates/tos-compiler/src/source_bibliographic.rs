@@ -170,12 +170,12 @@ pub fn supplied_bibliographic_identity(
 }
 
 use crate::source_witness_catalog::{
-    self as catalog, BIBLIOGRAPHIC_FILES, CATALOG_SOURCE, CONTRACT_FILES, SOURCE_FILES,
-    SourceCatalogLimits, SourceCatalogReceipt, SourceCatalogValidator,
+    self as catalog, SourceCatalogLimits, SourceCatalogReceipt, SourceCatalogValidator,
+    BIBLIOGRAPHIC_FILES, CATALOG_SOURCE, CONTRACT_FILES, SOURCE_FILES,
 };
 use crate::{Error, Result};
-use rusqlite::{OptionalExtension, params};
-use serde_json::{Value, json};
+use rusqlite::{params, OptionalExtension};
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{Digest256, Digest256Hasher};
 const SCHEMA: &str = "ToS/contracts/source-witness-bibliographic-graph.schema.json";
@@ -430,6 +430,30 @@ pub(crate) fn slot(
         return Err(Error::Invalid("bibliographic slot canonical digest"));
     }
     Ok(Some((value, location.clone())))
+}
+
+/// Keep independently projected Claim carriers bound to the same retained
+/// source slot. `slot` authenticates the bytes; this check binds the selected
+/// row identity, source address, canonical body and the second carrier's
+/// expected digest to that exact slot.
+pub(crate) fn validate_claim_slot_binding(
+    id: &str,
+    claim: &Value,
+    source_ref: &str,
+    source_line: u64,
+    expected_sha256: &str,
+    location: &Value,
+    max_row_bytes: usize,
+) -> Result<()> {
+    if claim.get("claim_id").and_then(Value::as_str) != Some(id)
+        || location.get("source_ref").and_then(Value::as_str) != Some(source_ref)
+        || location.get("source_line").and_then(Value::as_u64) != Some(source_line)
+        || location.get("canonical_sha256").and_then(Value::as_str) != Some(expected_sha256)
+        || digest(claim, max_row_bytes)? != expected_sha256
+    {
+        return Err(Error::Invalid("bibliographic retained Claim slot binding"));
+    }
+    Ok(())
 }
 fn identity(
     stage: &mut KnowledgeStage<'_>,
@@ -972,14 +996,20 @@ fn claim_cohort<B: catalog::CatalogInputBinding>(
     let entry = &row["entry"];
     let (claim, location) = slot(stage, "claim", id, l)?
         .ok_or(Error::Invalid("bibliographic source Claim slot missing"))?;
-    if entry["claim_sha256"] != location["canonical_sha256"]
-        || entry["source_claim_file_ref"] != location["source_ref"]
-        || entry["source_claim_line"] != location["source_line"]
-        || claim["claim_id"] != id
-    {
-        return Err(Error::Invalid("bibliographic Claim entry/slot binding"));
-    }
     let source_ref = text(entry, "source_claim_file_ref")?;
+    let source_line = entry["source_claim_line"]
+        .as_u64()
+        .ok_or(Error::Invalid("bibliographic Claim entry line"))?;
+    let source_sha256 = text(entry, "claim_sha256")?;
+    validate_claim_slot_binding(
+        id,
+        &claim,
+        source_ref,
+        source_line,
+        source_sha256,
+        &location,
+        l.catalog.max_row_bytes,
+    )?;
     let predicate = text(&claim, "predicate")?;
     if !matches!(
         claim["claim_type"].as_str(),
@@ -1720,6 +1750,54 @@ pub fn clear_bibliographic_graph(
 #[cfg(test)]
 mod descriptor_limit_tests {
     use super::*;
+
+    #[test]
+    fn retained_object_link_refuses_cross_carrier_slot_rebinding() {
+        const SOURCE_REF: &str =
+            "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl";
+        let raw = include_str!(
+            "../../../../ToS/source-witnesses/relations/object-link/object-link-claims.jsonl"
+        );
+        let claim: Value = serde_json::from_str(raw.lines().next().unwrap()).unwrap();
+        let id = claim["claim_id"].as_str().unwrap();
+        let source_sha = digest(&claim, 1024 * 1024).unwrap();
+        let location = json!({
+            "source_ref": SOURCE_REF,
+            "source_line": 1,
+            "canonical_sha256": source_sha,
+        });
+        validate_claim_slot_binding(
+            id,
+            &claim,
+            SOURCE_REF,
+            1,
+            &source_sha,
+            &location,
+            1024 * 1024,
+        )
+        .unwrap();
+
+        let mut altered = claim.clone();
+        altered["qualifiers"]["link_role"] = json!("cross-carrier substitution");
+        let altered_sha = digest(&altered, 1024 * 1024).unwrap();
+        let zero_sha = "0".repeat(64);
+        for (path, line, sha, body) in [
+            (SOURCE_REF, 2, source_sha.as_str(), &claim),
+            (
+                "ToS/another/object-link-claims.jsonl",
+                1,
+                source_sha.as_str(),
+                &claim,
+            ),
+            (SOURCE_REF, 1, zero_sha.as_str(), &claim),
+            (SOURCE_REF, 1, altered_sha.as_str(), &altered),
+        ] {
+            assert!(
+                validate_claim_slot_binding(id, body, path, line, sha, &location, 1024 * 1024,)
+                    .is_err()
+            );
+        }
+    }
 
     #[test]
     fn literal_bounds_source_separately_from_emitted_row() {

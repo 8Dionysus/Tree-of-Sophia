@@ -325,10 +325,8 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     .unwrap();
     let preview_response = response(&preview);
     let oracle = maintained_oracle("claim-revision-initial");
-    assert_eq!(
-        preview_response["expected_dependencies"], oracle["expected_dependencies"],
-        "maintained dependency fingerprint"
-    );
+    // The frozen Python dependency fingerprint is history; a current command
+    // must use the native capture prepared from this authenticated source cut.
     assert_eq!(
         preview_response["source_bindings"], oracle["source_bindings"],
         "maintained declared source bindings"
@@ -345,6 +343,36 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     ] {
         request[request_key] = preview_response[response_key].clone();
     }
+    let historical_dependencies = oracle["expected_dependencies"].clone();
+    assert_ne!(
+        request["expected_dependencies"], historical_dependencies,
+        "owner migration must change the live Claim dependency fingerprint"
+    );
+    let mut stale_request = request.clone();
+    stale_request["expected_dependencies"] = historical_dependencies;
+    let mut stale_context = selected_context(
+        &files,
+        &software_files,
+        &configuration,
+        &stale_request,
+        base,
+    );
+    stale_context.request_raw = serde_json::to_vec(&stale_request).unwrap();
+    let mut stale_worker = claim_worker();
+    assert!(matches!(
+        checked_command(
+            &stale_context,
+            &cut,
+            &software,
+            &components,
+            &mut stale_worker,
+            deadline,
+            &cancel
+        ),
+        Err(SourceCommandError::Conflict(_))
+    ));
+    drop(stale_worker);
+
     let ctx = selected_context(&files, &software_files, &configuration, &request, base);
     let prepared = checked_command(
         &ctx,
@@ -661,7 +689,8 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         )
     );
     let oracle = crate::frozen_legacy_python_oracle("claim-creation");
-    assert_eq!(expected["expected_dependencies"], oracle["dependencies"]);
+    // The live request binds to the native preview; the captured Python
+    // dependency fingerprint remains historical packet data.
     assert_eq!(expected["source_bindings"], oracle["bindings"]);
     assert_eq!(expected["prepared_files"], oracle["files"]);
     let mut request = preview_request;
@@ -672,6 +701,32 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     request["expected_dependencies"] = expected["expected_dependencies"].clone();
     request["expected_inputs"] = expected["source_bindings"].clone();
     context.request_raw = serde_json::to_vec(&request).unwrap();
+    let historical_dependencies = oracle["dependencies"].clone();
+    assert_ne!(
+        request["expected_dependencies"], historical_dependencies,
+        "owner migration must change the live Claim dependency fingerprint"
+    );
+    let mut stale_request = request.clone();
+    stale_request["expected_dependencies"] = historical_dependencies;
+    let mut stale_context = context.clone();
+    stale_context.request_raw = serde_json::to_vec(&stale_request).unwrap();
+    let mut stale_worker = claim_worker();
+    assert!(matches!(
+        execute_isolated_claim_creation_from_captures(
+            &filesystem,
+            &stale_context,
+            &cut,
+            &cut,
+            &software,
+            &components,
+            &mut stale_worker,
+            None,
+            deadline,
+            &cancellation,
+        ),
+        Err(SourceCommandError::Conflict(_))
+    ));
+    drop(stale_worker);
     let (created, publication, result) = execute_isolated_claim_creation_from_captures(
         &filesystem,
         &context,
@@ -900,10 +955,8 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     drop(revision_preview_worker);
     let prepared = response(&prepared_correction);
     let independent = maintained_oracle("claim-revision-selected-history");
-    assert_eq!(
-        prepared["expected_dependencies"],
-        independent["expected_dependencies"]
-    );
+    // Current expected dependencies come from the native owner/source cut;
+    // `independent` retains the frozen historical Python packet.
     assert_eq!(prepared["source_bindings"], independent["source_bindings"]);
     let mut revision_request = correction;
     revision_request["operation"] = Value::String("claim.revise".into());
@@ -1426,10 +1479,7 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         drop(revision_preview_worker);
         let prepared = response(&revision_preview);
         let independent = maintained_oracle(&format!("claim-revision-identity-history-{version}"));
-        assert_eq!(
-            prepared["expected_dependencies"],
-            independent["expected_dependencies"]
-        );
+        // Keep the historical packet intact after owner identity migration.
         assert_eq!(prepared["source_bindings"], independent["source_bindings"]);
         let mut revision_request = correction;
         revision_request["operation"] = Value::String("claim.revise".into());
@@ -2044,10 +2094,8 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         1
     );
     let independent = maintained_oracle("claim-revision-catalog-history");
-    assert_eq!(
-        prepared["expected_dependencies"],
-        independent["expected_dependencies"]
-    );
+    // Current expected dependencies come from the native owner/source cut;
+    // `independent` retains the frozen historical Python packet.
     assert_eq!(prepared["source_bindings"], independent["source_bindings"]);
     let mut revision_request = correction;
     revision_request["operation"] = Value::String("claim.revise".into());

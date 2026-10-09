@@ -58,6 +58,13 @@ for reference in implementations:
 print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementations':implementations,
     'edition_ref':case.edition_ref,'owner':str(case.owner),'input':str(case.input)},ensure_ascii=False,separators=(',',':')))
 "#;
+const NATIVE_OWNER_PATHS: &[&str] = &[
+    "rust/crates/tos-command/src/source_item_adoption.rs",
+    "rust/crates/tos-command/src/source_item_deposit.rs",
+    "rust/crates/tos-command/src/source_item_inventory.rs",
+    "rust/crates/tos-command/src/source_item_inventory_extended.rs",
+    "rust/crates/tos-command/src/source_native_cli.rs",
+];
 // Cheap admission for this finite fixture's frozen runtime recipe, before any
 // Git capture or native CLI. These are setup bounds, not Item owner policy.
 fn fixture_preflight(root: &Path, recovery: &Path, fixture: &Value) {
@@ -226,14 +233,13 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
     let recovery = temporary.path().join("item-private-recovery");
     fs::create_dir(&recovery).unwrap();
     fs::set_permissions(&recovery, fs::Permissions::from_mode(0o700)).unwrap();
-    let fixture = python(
-        &repository,
-        isolated.path(),
-        &recovery,
-        FACTORY,
-        None,
-        deadline,
+    let captured = super::native_python_fixture(
+        "item-base",
+        &[("source-root", isolated.path()), ("recovery-root", &recovery)],
+        NATIVE_OWNER_PATHS,
     );
+    super::assert_native_python_fixture(&captured, FACTORY, NATIVE_OWNER_PATHS);
+    let fixture = captured.packets.get("factory").unwrap();
     fixture_preflight(isolated.path(), &recovery, &fixture);
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let input = PathBuf::from(fixture["input"].as_str().unwrap());
@@ -247,8 +253,8 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
     .unwrap();
     let authored = super::command_work_cases::authored_work_files(isolated.path());
     let mut capture_files = authored.clone();
-    for reference in fixture["implementations"].as_array().unwrap() {
-        let reference = reference.as_str().unwrap();
+    for reference in NATIVE_OWNER_PATHS {
+        let reference = *reference;
         assert!(
             capture_files
                 .insert(
@@ -407,27 +413,29 @@ case.select_item('opaque');case.owner.chmod(0o600);case.rebuild()
 p=supplied['proposal'];p['record'].update(record_id=case.config['item_id'],item_manifest_ref=str(Path(case.config['item_source_path']).with_name('item.manifest.json')));p['claim'].update(claim_id=case.config['claim_id'],object=case.config['item_id'],provenance_event_ref=case.config['provenance_event_id'],evidence_refs=[case.edition_ref,case.config['item_source_path']]);p['rights'].update(rights_id=case.config['rights_id'],scope_refs=[case.config['item_id'],case.config['file_id']]);p['item_forms'][0]['form_id']=case.config['allowed_item_form_ids'][0];p['claim_forms'][0]['form_id']=case.config['allowed_claim_form_ids'][0]
 print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ensure_ascii=False,separators=(',',':')))
 "#;
-    let second_fixture = python(
-        &repository,
-        isolated.path(),
-        &recovery,
-        second,
-        Some(&fixture),
-        deadline,
+    let opaque_root = temporary.path().join("item-opaque-root");
+    fs::create_dir(&opaque_root).unwrap();
+    fs::set_permissions(&opaque_root, fs::Permissions::from_mode(0o700)).unwrap();
+    let opaque_recovery = temporary.path().join("item-opaque-recovery");
+    fs::create_dir(&opaque_recovery).unwrap();
+    fs::set_permissions(&opaque_recovery, fs::Permissions::from_mode(0o700)).unwrap();
+    let opaque_capture = super::native_python_fixture(
+        "item-opaque",
+        &[("source-root", &opaque_root), ("recovery-root", &opaque_recovery)],
+        NATIVE_OWNER_PATHS,
     );
+    super::assert_native_python_fixture(&opaque_capture, second, NATIVE_OWNER_PATHS);
+    let second_fixture = opaque_capture.packets.get("factory").unwrap();
+    let owner = opaque_root.join("item-owner.json");
     config = second_fixture["config"].clone();
-    let before_second = fs::read(
-        isolated
-            .path()
-            .join(fixture["edition_ref"].as_str().unwrap()),
-    )
-    .unwrap();
-    let after_catalog = super::command_work_cases::authored_work_files(isolated.path());
+    let before_second = fs::read(opaque_root.join(fixture["edition_ref"].as_str().unwrap())).unwrap();
+    let after_catalog = super::command_work_cases::authored_work_files(&opaque_root);
     let second_revision = super::validation_cut_cases::write_cut_store_on_base(
         &after_catalog,
         &store,
         Some(current_revision),
     );
+    invocation["owner_config"] = json!(owner);
     invocation["source_revision"] = json!(second_revision.0.to_prefixed());
     invocation["original_source_revision"] = Value::Null;
     freeze_invocation(&invocation_path, &invocation);
@@ -452,19 +460,9 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
     );
     assert_eq!(bytes_only["deposit"]["metadata_committed"], false);
     assert!(bytes_only["receipt"].is_null());
-    assert!(
-        !isolated
-            .path()
-            .join(config["item_source_path"].as_str().unwrap())
-            .exists()
-    );
+    assert!(!opaque_root.join(config["item_source_path"].as_str().unwrap()).exists());
     assert_eq!(
-        fs::read(
-            isolated
-                .path()
-                .join(fixture["edition_ref"].as_str().unwrap())
-        )
-        .unwrap(),
+        fs::read(opaque_root.join(fixture["edition_ref"].as_str().unwrap())).unwrap(),
         before_second
     );
     config["allowed_operations"] = json!(["item.adoption.recover"]);
@@ -518,14 +516,13 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
         let recovery = branch.path().join("item-private-recovery");
         fs::create_dir(&recovery).unwrap();
         fs::set_permissions(&recovery, fs::Permissions::from_mode(0o700)).unwrap();
-        let fixture = python(
-            &repository,
-            selected_root.path(),
-            &recovery,
-            FACTORY,
-            None,
-            deadline,
+        let captured = super::native_python_fixture(
+            "item-base",
+            &[("source-root", selected_root.path()), ("recovery-root", &recovery)],
+            NATIVE_OWNER_PATHS,
         );
+        super::assert_native_python_fixture(&captured, FACTORY, NATIVE_OWNER_PATHS);
+        let fixture = captured.packets.get("factory").unwrap();
         fixture_preflight(selected_root.path(), &recovery, &fixture);
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         let mut config = fixture["config"].clone();
@@ -541,8 +538,8 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
         .unwrap();
         let authored = super::command_work_cases::authored_work_files(selected_root.path());
         let mut files = authored.clone();
-        for reference in fixture["implementations"].as_array().unwrap() {
-            let reference = reference.as_str().unwrap();
+        for reference in NATIVE_OWNER_PATHS {
+            let reference = *reference;
             files.insert(
                 reference.into(),
                 fs::read(selected_root.path().join(reference)).unwrap(),

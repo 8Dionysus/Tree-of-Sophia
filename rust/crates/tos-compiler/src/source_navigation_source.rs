@@ -15,7 +15,7 @@ use crate::source_witness_catalog::{
     self as catalog, SourceCatalogReceipt, SourceCatalogValidator,
 };
 use crate::{Error, Result};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub use crate::source_navigation_storage::NavigationStorageLimits;
@@ -693,16 +693,26 @@ fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBin
                             crate::source_bibliographic::slot(stage, "claim", id, l)?.ok_or(
                                 Error::Invalid("navigation retained object-link slot absent"),
                             )?;
-                        if bound != claim
-                            || location["source_ref"] != json!(path)
-                            || location["source_line"] != json!(line)
-                        {
+                        if bound != claim {
                             return Err(Error::Invalid(
                                 "navigation retained object-link source binding",
                             ));
                         }
+                        let source_sha = crate::source_bibliographic_render::digest(
+                            &claim,
+                            l.catalog.max_row_bytes,
+                        )?;
+                        crate::source_bibliographic::validate_claim_slot_binding(
+                            id,
+                            &claim,
+                            &path,
+                            line,
+                            &source_sha,
+                            &location,
+                            l.catalog.max_row_bytes,
+                        )?;
                         projected["properties"] = json!({"source_claim":claim,"source_claim_file_ref":path,
-                            "source_claim_line":line,"source_sha256":crate::source_bibliographic_render::digest(&claim,l.catalog.max_row_bytes)?,
+                            "source_claim_line":line,"source_sha256":source_sha,
                             "source_schema_ref":"ToS/contracts/object-link-claim.schema.json","source_adapter":"retained-object-link-v1"});
                     }
                     projection.edge(projected)?;

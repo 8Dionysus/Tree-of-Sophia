@@ -84,6 +84,13 @@ opaque bytes and never executes it. Current contract validation and the exact
 historical contract binding remain separate checks. Fresh execution belongs to
 `rust/crates/tos-compiler/src/provenance_event_lab.rs`.
 
+The retired source-witness, corpus-index, catalog, admission and bibliographic
+query Python entrypoints are retained at their exact source SHA-256 paths below
+their original script stems. The native source-foundation reader can resolve a
+recorded retired script from this archive when its logical `scripts/*.py` path
+is absent from the selected software capture. These files are opaque historical
+bytes only: they are not imported or executed as producer fallbacks.
+
 The eight former philosophy-product Python build/validate entrypoints are also
 retained under their original logical names with their exact pre-retirement
 bytes and SHA-256 paths. They remain nonexecuted historical recipes; the active

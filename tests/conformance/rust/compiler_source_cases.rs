@@ -911,10 +911,11 @@ fn actual_native_corpus_composition_with_retained_claim_matches_maintained_pytho
     native_corpus_composition_case(false);
 }
 
-/// Required installed-native stage of the same authored recipe. OPS admits
-/// this Linux kernel/product boundary independently from pure selected reads.
+/// Required installed-native producer and consumer stage of the same authored
+/// recipe. OPS admits this Linux kernel/product boundary independently from
+/// pure selected reads.
 #[test]
-#[ignore = "requires admitted Linux fs-verity and installed native consumer binary"]
+#[ignore = "requires admitted Linux private-stage ticket, fs-verity, and native owner/consumer binaries"]
 fn actual_native_corpus_managed_installed_consumer() {
     native_corpus_composition_case(true);
 }
@@ -988,6 +989,11 @@ fn native_corpus_composition_case(installed: bool) {
         .canonicalize()
         .unwrap();
     let (mut files, _) = sources();
+    let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
+    files.insert(
+        vocabulary_path.into(),
+        fs::read(repository.join(vocabulary_path)).unwrap(),
+    );
     for name in ["entity-types.v1.json", "relation-types.v1.json"] {
         let path = format!("ToS/doctrine/semantic-interchange/{name}");
         files.insert(path.clone(), fs::read(repository.join(path)).unwrap());
@@ -1030,6 +1036,11 @@ fn native_corpus_composition_case(installed: bool) {
     // beside the authored ToS cut; neither one becomes the other's authority.
     let compiler = "rust/crates/tos-compiler/src/lib.rs";
     captured.insert(compiler.into(), fs::read(repository.join(compiler)).unwrap());
+    let worker_source = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
+    captured.insert(
+        worker_source.into(),
+        fs::read(repository.join(worker_source)).unwrap(),
+    );
     let declaration_raw =
         fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
     let declaration: Value = serde_json::from_slice(&declaration_raw).unwrap();
@@ -1060,6 +1071,7 @@ fn native_corpus_composition_case(installed: bool) {
             "--",
             "ToS",
             "rust/crates/tos-compiler/src/lib.rs",
+            "rust/crates/tos-validation/src/bin/tos-schema-worker.rs",
             "access/contracts/runtime-data.v1.json",
         ],
     );
@@ -1088,6 +1100,7 @@ fn native_corpus_composition_case(installed: bool) {
         &[
             "ToS",
             "rust/crates/tos-compiler/src/lib.rs",
+            "rust/crates/tos-validation/src/bin/tos-schema-worker.rs",
             "access/contracts",
         ],
     );
@@ -1888,6 +1901,15 @@ fn native_corpus_composition_case(installed: bool) {
             &output_path,
             &files,
             &packets,
+        );
+        native_managed_corpus_consumer::exercise_native_corpus_build(
+            &selected,
+            &projection,
+            &repository,
+            &store,
+            revision,
+            &capture,
+            &super::validation_cut_cases::selected_worker_path(),
         );
     }
 }

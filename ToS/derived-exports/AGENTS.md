@@ -17,7 +17,7 @@ ToS authority.
 | output | generated export payloads and compact read models |
 | owner | `ToS/derived-exports/AGENTS.md` for route law; Rust compiler and native operation modules for philosophy payload construction |
 | next route | source-owned input or generator -> regenerate -> validate export |
-| tools | KAG export generator/validator, corpus-index builder/validator, lexical-index builder/validator, native `tos-ops-mechanics-plan --philosophy-product atlas, views, graph, audit` route, source-witness bibliographic graph builder/validator/query reader, source validators |
+| tools | KAG export generator/validator, native corpus-projection check/query and source-catalog commands, lexical-index builder/validator, native `tos-ops-mechanics-plan --philosophy-product atlas, views, graph, audit` route, source validators |
 | check | generated parity and export validation |
 
 ## Boundary Routes
@@ -46,17 +46,17 @@ ToS authority.
   review posture. Work→Expression, Expression→Edition, and Edition→Item must
   remain reified claim routes rather than direct fact edges, and embodiment
   must not be widened into textual equivalence.
-- Let the repository-local bibliographic query reader verify exact
-  source-backed parity before returning deterministic stdout bundles. It must
-  require an explicit selector, fail rather than silently truncate, write no
-  state, and create no review, relation, runtime, or service authority.
+- Let the native corpus-projection query verify exact source-backed parity
+  before returning deterministic bundles. It requires an explicit selector,
+  fails rather than silently truncating, writes no state, and creates no
+  review, relation, runtime, or service authority.
 
 ## Validation
 
-Use the relevant builder `--check` and validator for the export touched:
-KAG export, root-entry map, corpus index, lexical index, native philosophy
-products (`tos-ops-mechanics-plan --philosophy-product <id> --mode check or validate`),
-public mirror sync, source-witness bibliographic graph, or tiny-entry route.
+Use the relevant native check/query command or owner lane for the export
+touched: KAG export, root-entry map, corpus projection, lexical index, native
+philosophy products (`tos-ops-mechanics-plan --philosophy-product <id> --mode
+check or validate`), public mirror sync, or tiny-entry route.
 For release-facing generated readmodels, also run the OS Abyss artifact bundle
 route `tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT`, owned by
 `mechanics/release-support/parts/artifact-bundles/`.

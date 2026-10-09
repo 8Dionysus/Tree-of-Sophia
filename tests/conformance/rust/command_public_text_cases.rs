@@ -1,10 +1,9 @@
-//! One installed-consumer case. Python authors synthetic source inputs and the
-//! explicit partition oracle only; every command traverses the actual selected
-//! native executable. No builder, fallback executable, or inferred grant exists.
+//! One installed-consumer case. Its complete source input is a hash-pinned
+//! retained fixture; every command traverses the actual selected native
+//! executable. No builder, fallback executable, or inferred grant exists.
 use super::*;
 use std::collections::BTreeMap;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
-use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
@@ -61,7 +60,6 @@ fn public_text_native_cli_preserves_whole_public_closure_and_cold_replay() {
         alignment_image_digest, alignment_native_cli as base_alignment_native_cli,
         authored_text_files, native_owner_cli_observation,
     };
-    use std::io::{Read, Seek, SeekFrom};
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancellation = AtomicBool::new(false);
     let repository = super::validation_cut_cases::repository()
@@ -103,7 +101,7 @@ fn public_text_native_cli_preserves_whole_public_closure_and_cold_replay() {
     }
     assert!(f <= 33_554_432 && Instant::now() < deadline);
     eprintln!(
-        "public Text CLI preflight F={f} E={e} C={c} W={w} native_processes=9 fixture_processes=1 protected_python_max_bytes=67108864 whole_seconds=240 outer_proposed_seconds=260"
+        "public Text CLI preflight F={f} E={e} C={c} W={w} native_processes=9 fixture_processes=0 retained_fixture_tree_cap=180MiB whole_seconds=240 outer_proposed_seconds=260"
     );
     let mut temporary = PublicTextFailureFixture::new();
     let isolated = tos_command::source_creation_store::IsolatedCreationRoot::create(
@@ -112,11 +110,6 @@ fn public_text_native_cli_preserves_whole_public_closure_and_cold_replay() {
         &cancellation,
     )
     .unwrap();
-    let root = isolated.path().join("source");
-    let recovery = isolated.path().join("recovery");
-    fs::create_dir(&root).unwrap();
-    fs::create_dir(&recovery).unwrap();
-    fs::set_permissions(&recovery, fs::Permissions::from_mode(0o700)).unwrap();
     let factory = r#"
 import hashlib,json,os,stat,sys,sysconfig,shutil,time
 from pathlib import Path
@@ -191,56 +184,23 @@ try:
 finally:
     test.doCleanups()
 "#;
-    let mut stdout = tempfile::tempfile().unwrap();
-    let mut stderr = tempfile::tempfile().unwrap();
-    let python =
-        std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter");
-    let mut child = Command::new(python)
-        .args(["-c", factory])
-        .arg(&repository)
-        .arg(&root)
-        .arg(&recovery)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .env_remove("TOS_PUBLIC_TEXT_PYTHON_RECEIPT")
-        .env("TOS_PUBLIC_TEXT_FACTORY", factory)
-        .stdout(Stdio::from(stdout.try_clone().unwrap()))
-        .stderr(Stdio::from(stderr.try_clone().unwrap()))
-        .spawn()
-        .unwrap();
-    let step = deadline.min(Instant::now() + Duration::from_secs(60));
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= step
-            || stdout.metadata().unwrap().len() > 2_097_152
-            || stderr.metadata().unwrap().len() > 262_144
-        {
-            let _ = child.kill();
-            let _ = child.wait();
-            panic!("bounded public Text fixture deadline or output refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(
-        stdout.metadata().unwrap().len() <= 2_097_152
-            && stderr.metadata().unwrap().len() <= 262_144
+    let native_owner_paths = [
+        "rust/crates/tos-command/src/source_public_text_owner.rs",
+        "rust/crates/tos-command/src/source_native_public_text_cli.rs",
+        "rust/crates/tos-command/src/source_public_text_entry.rs",
+        "rust/crates/tos-command/src/source_public_text_proposal.rs",
+        "rust/crates/tos-command/src/source_text_identity.rs",
+    ];
+    let captured = super::native_python_fixture(
+        "public-text-base",
+        &[("workspace", isolated.path())],
+        &native_owner_paths,
     );
-    stdout.seek(SeekFrom::Start(0)).unwrap();
-    stderr.seek(SeekFrom::Start(0)).unwrap();
-    let mut out = Vec::new();
-    let mut err = Vec::new();
-    stdout.read_to_end(&mut out).unwrap();
-    stderr.read_to_end(&mut err).unwrap();
-    assert!(
-        status.success(),
-        "public Text fixture {}",
-        String::from_utf8_lossy(&err)
-    );
+    super::assert_native_python_fixture(&captured, factory, &native_owner_paths);
+    let root = isolated.path().join("source");
+    let recovery = isolated.path().join("recovery");
     physical_bytes(temporary.path(), 180 * 1024 * 1024);
-    let oracle: Value = serde_json::from_slice(&out).unwrap();
+    let oracle = captured.packets.get("factory").unwrap();
     let owner = PathBuf::from(oracle["owner"].as_str().unwrap());
     let source_path = oracle["source_path"].as_str().unwrap();
     let home = root.join(source_path).parent().unwrap().to_path_buf();

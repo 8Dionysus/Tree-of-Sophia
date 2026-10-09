@@ -170,14 +170,17 @@ fn native_responsibility_cli_preserves_qualified_union_cold_replay_and_retained_
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-        let fixture = python(
-            &repository,
-            isolated.path(),
-            isolated.path(),
-            FACTORY,
-            None,
-            deadline,
+        let native_owner_paths = [
+            "rust/crates/tos-command/src/source_expression_responsibility.rs",
+            "rust/crates/tos-command/src/source_native_responsibility_cli.rs",
+        ];
+        let captured = super::native_python_fixture(
+            "responsibility-base",
+            &[("source-root", isolated.path())],
+            &native_owner_paths,
         );
+        super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
+        let fixture = captured.packets.get("factory").unwrap();
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         assert!(fs::metadata(&owner).unwrap().len() <= 4096);
         let responsibility = isolated
@@ -201,8 +204,8 @@ fn native_responsibility_cli_preserves_qualified_union_cold_replay_and_retained_
                 && authored.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024
         );
         let mut capture_files = authored.clone();
-        for reference in fixture["implementations"].as_array().unwrap() {
-            let reference = reference.as_str().unwrap();
+        for reference in &native_owner_paths {
+            let reference = *reference;
             assert!(
                 capture_files
                     .insert(

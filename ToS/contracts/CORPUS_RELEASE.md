@@ -161,12 +161,15 @@ exclusion from a remote copy is never reported as complete remote preservation.
 Git commit/tree, member Git blob IDs, SHA-256, sizes and modes. Restore verifies
 the archive and complete manifest before and during extraction. The bounded
 `tos-source-store::ChunkedFileTransportV1` protocol owns content-addressed chunk
-and manifest fixity. The separate private R2 byte transport remains in
-`scripts/source_payload_r2.py`; it moves bytes without owning the chunk
-integrity contract. Existing objects and every new upload are freshly read
-back; the complete manifest is published last. A failed or unavailable remote
-copy remains incomplete. It does not block software work or authorize deletion
-of the local source.
+and manifest fixity. `tos-native-owner-command corpus-r2` supplies the explicit
+Wrangler or REST byte adapter and keeps raw object upload/readback and chunked
+upload/restore at the same external-platform boundary. Raw upload probes an
+existing object, refuses mismatched bytes, and verifies exact readback after a
+new put; neither transport offers a remote compare-and-swap, so the local lock
+does not claim cross-host write exclusion. Chunk uploads verify every reused or
+new object and publish the complete manifest last. A failed or unavailable
+remote copy remains incomplete. It does not block software work or authorize
+deletion of the local source.
 
 Historical Git refs and corpus object locators retain their exact byte identity.
 A source-return locator never substitutes a mutable `latest` path for a recorded

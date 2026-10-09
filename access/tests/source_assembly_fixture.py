@@ -134,15 +134,3 @@ class SourceAssemblyFixture:
                 return build_payload(root)
 
             yield root, history, real, claims, rebuild
-
-    def historical_knowledge(self, root: Path, projection):
-        access_src = self.code_root / "access/src"
-        if str(access_src) not in sys.path:
-            sys.path.insert(0, str(access_src))
-        from tos_access.knowledge import build_knowledge_graph
-
-        entities, relations = [
-            json.loads((root / "ToS/doctrine/semantic-interchange" / name).read_text())
-            for name in ("entity-types.v1.json", "relation-types.v1.json")
-        ]
-        return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations

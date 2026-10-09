@@ -31,11 +31,11 @@ tos-fd-open = { path = "../tos-fd-open" }
 rustix = { version = "=1.1.5", features = ["fs", "process"] }
 unicode-normalization = "=0.1.24"
 xml = "=1.4.0"
+tempfile = "3"
 
 [dev-dependencies]
 tos-access = { path = "../tos-access" }
 tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
-tempfile = "3"
 
 [lib]
 name = "tos_command"

@@ -165,3 +165,234 @@ pub fn provision_temporal_issues(activity: &Value) -> Vec<&'static str> {
         _ => Vec::new(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        SourceFileMembershipIndex, opening_sentence_plan_binding_issues, provision_temporal_issues,
+    };
+    use serde_json::{Value, json};
+
+    #[test]
+    fn source_file_membership_retains_all_members_and_first_descriptor() {
+        let mut index = SourceFileMembershipIndex::default();
+        let item_a = json!("tos.item.a");
+        let item_b = json!("tos.item.b");
+        let item_c = json!("tos.item.c");
+        let sha = json!("a".repeat(64));
+        let file = json!(format!("tos.file.sha256.{}", sha.as_str().unwrap()));
+        let media = json!("text/plain");
+        let original_size = json!(1);
+
+        assert!(index
+            .add(&item_a, &file, &sha, &original_size, &media)
+            .unwrap()
+            .is_empty());
+        // Maintained Python equality treats an integral JSON float and integer
+        // as the same descriptor value.
+        assert!(index
+            .add(&item_b, &file, &sha, &json!(1.0), &media)
+            .unwrap()
+            .is_empty());
+        assert!(index.contains(&item_a, &file));
+        assert!(index.contains(&item_b, &file));
+        assert!(!index.contains(&item_c, &file));
+        assert_eq!(Some(&sha), index.sha256_for(&file));
+
+        let conflicting_sha = json!("b".repeat(64));
+        let conflicts = index
+            .add(
+                &item_c,
+                &file,
+                &conflicting_sha,
+                &json!(2),
+                &json!("application/json"),
+            )
+            .unwrap();
+        assert_eq!(
+            vec!["sha256", "byte_size", "media_type", "file_id_sha256"],
+            conflicts
+        );
+        // Conflicting evidence still records the observed relation, but cannot
+        // replace the first descriptor used by downstream checks.
+        assert!(index.contains(&item_c, &file));
+        assert_eq!(Some(&sha), index.sha256_for(&file));
+    }
+
+    fn anchor(
+        anchor_ref: &str,
+        start: u64,
+        end: u64,
+        sentence_sha256: &str,
+        text_layer_ref: &str,
+        text_layer_sha256: &str,
+        locator_ref: &str,
+    ) -> Value {
+        json!({
+            "anchor_ref": anchor_ref,
+            "selector": {
+                "type": "text_position",
+                "start": start,
+                "end": end,
+                "position_unit": "unicode_code_point",
+                "interval": "half_open"
+            },
+            "exact_sha256": sentence_sha256,
+            "text_layer_ref": text_layer_ref,
+            "text_layer_sha256": text_layer_sha256,
+            "source_return": {"locator_ref": locator_ref}
+        })
+    }
+
+    #[test]
+    fn opening_sentence_plan_binding_rejects_both_sides_and_owner_views_drift() {
+        let plan = json!({
+            "source": {
+                "sentence_start": 4,
+                "sentence_end": 10,
+                "sentence_sha256": "source-sentence-sha",
+                "text_layer_ref": "source-layer",
+                "text_layer_sha256": "source-layer-sha",
+                "private_content_ref": "source-locator"
+            },
+            "target": {
+                "sentence_start": 8,
+                "sentence_end": 15,
+                "sentence_sha256": "target-sentence-sha",
+                "text_layer_ref": "target-layer",
+                "text_layer_sha256": "target-layer-sha",
+                "private_content_ref": "target-locator"
+            },
+            "opaque_ids": {
+                "source_sentence_anchor_id": "source-anchor",
+                "target_sentence_anchor_id": "target-anchor"
+            }
+        });
+        let source_anchor = anchor(
+            "source-anchor",
+            4,
+            10,
+            "source-sentence-sha",
+            "source-layer",
+            "source-layer-sha",
+            "source-locator",
+        );
+        let target_anchor = anchor(
+            "target-anchor",
+            8,
+            15,
+            "target-sentence-sha",
+            "target-layer",
+            "target-layer-sha",
+            "target-locator",
+        );
+        let source_packet = json!({"anchors": [source_anchor.clone()]});
+        let target_packet = json!({"anchors": [target_anchor.clone()]});
+        let alignment = json!({
+            "source_side": {"anchors": [source_anchor]},
+            "target_side": {"anchors": [target_anchor]}
+        });
+
+        assert!(opening_sentence_plan_binding_issues(
+            &plan,
+            &source_packet,
+            &target_packet,
+            &alignment
+        )
+        .unwrap()
+        .is_empty());
+
+        let fields = [
+            "anchor_ref",
+            "selector",
+            "exact_sha256",
+            "text_layer_ref",
+            "text_layer_sha256",
+            "locator_ref",
+        ];
+        for label in ["source", "target"] {
+            for owner in ["packet", "alignment"] {
+                for field in fields {
+                    let mut source_packet = source_packet.clone();
+                    let mut target_packet = target_packet.clone();
+                    let mut alignment = alignment.clone();
+                    let selected_anchor = if owner == "packet" {
+                        let packet = if label == "source" {
+                            &mut source_packet
+                        } else {
+                            &mut target_packet
+                        };
+                        &mut packet["anchors"][0]
+                    } else {
+                        let side = format!("{label}_side");
+                        &mut alignment[side.as_str()]["anchors"][0]
+                    };
+                    match field {
+                        "anchor_ref" => selected_anchor["anchor_ref"] = json!("drifted-anchor"),
+                        "selector" => selected_anchor["selector"]["start"] = json!(0),
+                        "exact_sha256" => {
+                            selected_anchor["exact_sha256"] = json!("drifted-digest")
+                        }
+                        "text_layer_ref" => {
+                            selected_anchor["text_layer_ref"] = json!("drifted-layer")
+                        }
+                        "text_layer_sha256" => {
+                            selected_anchor["text_layer_sha256"] = json!("drifted-layer-digest")
+                        }
+                        "locator_ref" => {
+                            selected_anchor["source_return"]["locator_ref"] =
+                                json!("drifted-locator")
+                        }
+                        _ => unreachable!(),
+                    }
+                    let issues = opening_sentence_plan_binding_issues(
+                        &plan,
+                        &source_packet,
+                        &target_packet,
+                        &alignment,
+                    )
+                    .unwrap();
+                    let owner_name = if owner == "packet" {
+                        "sentence-unit packet"
+                    } else {
+                        "alignment side"
+                    };
+                    let message = match (owner, field) {
+                        ("packet", "anchor_ref") => "sentence anchor is absent",
+                        (_, "anchor_ref") => "sentence anchor identity drifted",
+                        (_, "selector") => "sentence selector drifted from plan",
+                        (_, "exact_sha256") => "sentence digest drifted from plan",
+                        (_, "text_layer_ref") => "text-layer ref drifted from plan",
+                        (_, "text_layer_sha256") => "text-layer digest drifted from plan",
+                        (_, "locator_ref") => "source-return locator drifted from plan",
+                        _ => unreachable!(),
+                    };
+                    assert_eq!(
+                        vec![format!("{label} {owner_name} {message}")],
+                        issues,
+                        "{label} {owner} {field}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn provision_temporal_interval_rejects_reversed_year_bounds_only() {
+        let reversed = json!({
+            "temporal": {"kind": "interval", "start": "1909", "end": "1908"}
+        });
+        assert_eq!(
+            vec!["provision-activity interval starts after it ends"],
+            provision_temporal_issues(&reversed)
+        );
+        assert!(provision_temporal_issues(&json!({
+            "temporal": {"kind": "interval", "start": "1908", "end": "1909"}
+        }))
+        .is_empty());
+        assert!(provision_temporal_issues(&json!({
+            "temporal": {"kind": "date", "value": "1909"}
+        }))
+        .is_empty());
+    }
+}

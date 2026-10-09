@@ -7,6 +7,14 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+const OWNER_TEXT_NATIVE_OWNER_PATHS: &[&str] = &[
+    "rust/crates/tos-command/src/source_text_layer_native.rs",
+    "rust/crates/tos-command/src/source_text_owner.rs",
+    "rust/crates/tos-command/src/source_text_unit_native.rs",
+    "rust/crates/tos-command/src/source_text_layer_entry.rs",
+    "rust/crates/tos-command/src/source_text_unit_entry.rs",
+];
+
 fn assert_authored_text_unchanged(root: &Path, expected: &BTreeMap<String, Vec<u8>>) {
     let actual = super::command_text_cases::authored_text_files(root);
     let paths = actual
@@ -23,13 +31,7 @@ fn assert_authored_text_unchanged(root: &Path, expected: &BTreeMap<String, Vec<u
     );
 }
 
-fn text_fixture(
-    repository: &Path,
-    root: &Path,
-    output: &Path,
-    errors: &Path,
-    deadline: Instant,
-) -> Value {
+fn text_fixture(root: &Path) -> Value {
     let script = r#"
 import json,sys
 from pathlib import Path
@@ -55,7 +57,14 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),
     'unit_layer_schema':unit.native.LAYER_CONFIG,
     'implementations':sorted(set(layer.layers.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
 "#;
-    fixture_json(repository, root, output, errors, deadline, script)
+    let native_owner_paths = OWNER_TEXT_NATIVE_OWNER_PATHS;
+    let captured = super::native_python_fixture(
+        "owner-text-base",
+        &[("source-root", root)],
+        &native_owner_paths,
+    );
+    super::assert_native_python_fixture(&captured, script, &native_owner_paths);
+    captured.packets.get("factory").unwrap().clone()
 }
 
 fn fixture_json(
@@ -942,13 +951,7 @@ fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
         )
     };
     let before_images: Vec<_> = images.iter().map(|p| custody(p)).collect();
-    let fixture = text_fixture(
-        &repository,
-        temporary.path(),
-        &temporary.path().join("fixture.stdout"),
-        &temporary.path().join("fixture.stderr"),
-        deadline,
-    );
+    let fixture = text_fixture(temporary.path());
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let private = PathBuf::from(fixture["private"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
@@ -960,8 +963,8 @@ fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
     let context_raw = fs::read(&context).unwrap();
     let authored = super::command_text_cases::authored_text_files(&public);
     let mut captured = authored.clone();
-    for reference in fixture["implementations"].as_array().unwrap() {
-        let reference = reference.as_str().unwrap();
+    for reference in OWNER_TEXT_NATIVE_OWNER_PATHS {
+        let reference = *reference;
         let path = repository.join(reference);
         assert!(path.symlink_metadata().unwrap().is_file());
         assert!(fs::metadata(&path).unwrap().len() <= 8_388_608);
@@ -1375,9 +1378,7 @@ fn assessment_feature_sources() -> [&'static str; 13] {
 }
 
 fn native_layer_journal_fixture(
-    repository: &Path,
     root: &Path,
-    deadline: Instant,
     derived: bool,
 ) -> Value {
     let template = r#"
@@ -1445,14 +1446,21 @@ print(json.dumps(result,ensure_ascii=False,separators=(',',':')))
         "JOURNAL_DERIVED_METHOD",
         if derived { "True" } else { "False" },
     );
-    fixture_json(
-        repository,
-        root,
-        &root.join("layer-fixture.stdout"),
-        &root.join("layer-fixture.stderr"),
-        deadline,
-        &script,
-    )
+    let native_owner_paths = [
+        "rust/crates/tos-command/src/source_text_owner.rs",
+        "rust/crates/tos-command/src/source_assessment_journal.rs",
+        "rust/crates/tos-command/src/source_private_assessment_layers.rs",
+        "rust/crates/tos-command/src/source_private_assessment_sources.rs",
+        "rust/crates/tos-command/src/source_text_layer_native.rs",
+    ];
+    let id = if derived {
+        "owner-text-derived-journal"
+    } else {
+        "owner-text-journal"
+    };
+    let captured = super::native_python_fixture(id, &[("journal-root", root)], &native_owner_paths);
+    super::assert_native_python_fixture(&captured, &script, &native_owner_paths);
+    captured.packets.get("factory").unwrap().clone()
 }
 
 fn native_layer_journal_case(derived: bool) {
@@ -1466,7 +1474,7 @@ fn native_layer_journal_case(derived: bool) {
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
-    let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline, derived);
+    let fixture = native_layer_journal_fixture(temporary.path(), derived);
     eprintln!(
         "native layer journal cost: phase=fixture elapsed_ms={}",
         started.elapsed().as_millis()

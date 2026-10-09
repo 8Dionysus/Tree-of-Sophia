@@ -142,9 +142,10 @@ still run against digest-verified native rows; budgets and packet semantics
 are unchanged. This does not make broad non-indexed property filters cheap.
 
 The native lens reader can also consume explicitly installed, versioned compact
-seeds and exact `view_ids`/`graph_layers` membership indexes. Their offline owner
-API and transaction rules are in
-[`LOCAL_PREPARED_PUBLICATION.md`](../../LOCAL_PREPARED_PUBLICATION.md).
+seeds and exact `view_ids`/`graph_layers` membership indexes. Their offline
+preparation now uses the native route in
+[`OFFLINE_PREPARED_BOOTSTRAP.md`](../../OFFLINE_PREPARED_BOOTSTRAP.md); the
+former Python writer API is retired.
 The extension binds the complete v9 publication header and epoch. Missing
 optional stores retain the bounded full-row path; stale or incompatible installed
 stores return 503, and invalidation observed during a read returns 409. Native
@@ -753,9 +754,10 @@ Counts are discoveries, not global totals; an empty paused page may still advanc
 past excluded edges. Runtime-specific cursors cannot be transferred to local
 HTTP/native MCP. Ordinary LensSpec delivery pagination remains stateless.
 
-The native tests compare full-stream selected carriers against the actual
-`PublishedExplorationService` on the same tiny SQLite file and compare each
-page scene against frozen reference outcomes. They preserve original raw numbers through actual
+The native tests compare full-stream selected carriers against hash-pinned
+outputs from the retired `PublishedExplorationService` on the same tiny SQLite
+file and compare each page scene against frozen reference outcomes. The capture
+helper never executes Python. They preserve original raw numbers through actual
 Worker HTTP and real D1 restart/concurrent replay. Page boundaries, work units,
 snapshot hashes and tokens remain runtime-specific. The D1 1 MiB replay ceiling and post-statement rows-read guard bound this
 route independently of any former in-memory reference limits. This is not a whole-corpus or

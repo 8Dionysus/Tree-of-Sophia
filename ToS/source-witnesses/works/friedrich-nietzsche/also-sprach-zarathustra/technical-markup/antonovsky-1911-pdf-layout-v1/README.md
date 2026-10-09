@@ -81,14 +81,14 @@ not authorized for publication or transfer.
 
 Initial identity issuance is an explicit one-time action:
 
-- `python scripts/build_antonovsky_1911_technical_markup.py --build --issue-identities`
+- `tos technical-markup --source-root /absolute/source --build --issue-identities --scratch-bytes N`
 
 Normal operations:
 
-- rebuild: `python scripts/build_antonovsky_1911_technical_markup.py --build`
-- full local parity: `python scripts/build_antonovsky_1911_technical_markup.py --check`
-- tracked-only validation: `python scripts/build_antonovsky_1911_technical_markup.py --validate-tracked`
-- focused tests: `python -m unittest tests.test_antonovsky_1911_technical_markup`
+- rebuild: `tos technical-markup --source-root /absolute/source --build --scratch-bytes N`
+- full local parity: `tos technical-markup --source-root /absolute/source --check`
+- tracked-only validation: `tos technical-markup --source-root /absolute/source --validate-tracked`
+- focused native caller tests: `python -m unittest tests.test_antonovsky_1911_technical_markup`
 
 Any source-locator set, source digest, Poppler version, bbox digest, warning
 surface, region boundary, or expected count drift fails closed. A real-human
@@ -116,22 +116,22 @@ root/source custody, exact Poppler extraction, XML observation, resource budgets
 and Python-compatible JSON primitives with v2. V2 paragraph/verse output is not
 a replacement for these v1 units.
 
-The historical Python builder bytes remain the provenance binding and parity
-oracle; the native route never executes them. Historical event authorship,
-dates and method labels are retained artifact data, not a claim of native
-execution. A changed packet-schema digest requires explicit review of the
-bounded large-array schema adapter before it can run.
+The exact historical Python builder bytes remain provenance and parity
+evidence only; the native route never executes them. Historical event
+authorship, dates and method labels are retained artifact data, not a claim of
+native execution. A changed packet-schema digest requires explicit review of
+the bounded large-array schema adapter before it can run.
 
-The current maintained recipe is builder digest
+The current retained recipe binding is
 `4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb`.
-The retained historical capture binds
+The older frozen capture binds
 `82452bce0c1599925e18ffd08c5d963d1a872da532d9a7aef72b155087aefcb9`;
 five provenance warning strings and the method digest evolved, while extraction
-and unit algorithms did not. Build/check require the current source binding.
-Compare against current Python oracle outputs in separate admitted private
-scratch on the same genuine primitives; keep the historical capture unchanged
-and report its known provenance differences separately. Tracked validation can
-validate the historical packet without extraction or producer execution.
+and unit algorithms did not. Native Build/Check verify the retained recipe
+binding and current tracked projection. The earlier Python parity capture stays
+frozen evidence; archived source is never executed to regenerate it. Tracked
+validation can validate the historical packet without extraction or producer
+execution.
 
 Installed `360c7e344e8c9a2a83291d96c8ab5ac0c19ac382` passed the current
 `4c806831` recipe's eleven-output byte/mode/count comparison and installed checks.
@@ -141,12 +141,11 @@ bounded continuation passed initial issuance, tracked validation and root/privat
 symlink refusals. This composite mechanical acceptance preserves the original
 capture and never reclassifies outputs from interrupted issuance as parity data.
 
-The Python executable entry now delegates every supported v1 mode to installed
-`tos technical-markup`, selected by `TOS_NATIVE_PREPARED_CONSUMER_BIN` or `tos`
-on PATH. There is no Python producer fallback. `--repo-root` remains the
-compatibility spelling for `--source-root`; writes additionally require an
-explicit admitted `--scratch-bytes` budget. The maintained test caller consumes
-the native command directly. The original 4c source bytes are retained in
+The maintained executable route is the installed `tos technical-markup`
+owner, selected directly by the caller. The Python builder is retired; there is
+no Python producer or compatibility fallback. Writes require an explicit
+admitted `--scratch-bytes` budget. The maintained test caller consumes the
+native command directly. The original 4c source bytes are retained in
 `ToS/research-packets/retained-builder-inputs/build_antonovsky_1911_technical_markup/`;
 Build/Check resolve only those exact recipe bytes, not the changed facade digest.
 The source reference/digest identify the recipe; the installed image and runtime
@@ -160,11 +159,9 @@ The original archive remained nonexecuted and all selected input/output bytes
 were restored and checked. This closes the standalone v1 caller cutover in the
 same technical scope as the earlier composite eleven-output acceptance.
 
-The v2 standalone producer and maintained caller have also passed their scoped
-native checks. Four research producers still import v2 read-only reconstruction
-helpers, which in turn import extraction helpers from this active v1 module.
-Those helper definitions remain retained until each research producer's native
-parity and downstream caller acceptance closes; their native replacements are
-already owned by the research routes. The whole Python helper family is not
-retired. These mechanics accept no text, segmentation, semantic claim, rights
-clearance or publication.
+The v2 standalone producer and maintained caller use the Rust owner and have
+passed their scoped native checks. The retired Python builders are preserved
+only as digest-addressed historical source bytes where provenance requires
+them; no current producer or research consumer imports or executes them. These
+mechanics accept no text, segmentation, semantic claim, rights clearance or
+publication.

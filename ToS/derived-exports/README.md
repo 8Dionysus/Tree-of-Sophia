@@ -55,26 +55,16 @@ may lack this optional binding; new snapshots must travel with their matching
 corpus schema and pass source-backed parity. Ambiguous duplicate/empty headers
 and unnamed surplus cells are rejected rather than silently dropped.
 
-The owner library `scripts/tos_corpus_index_common.py` exposes
-`read_exact_edge_row(path, source_file_sha256=..., source_row=...,
-source_record=...)` for an explicitly selected index row. It verifies the
-unchanged regular file and every parsed cell, returning the original CSV record
-(including its delimiter), byte offset, row byte count and raw-record SHA-256.
-Multiline cells do not change logical row numbering. Default file/record read
-budgets are 8 MiB/1 MiB; stale hashes, wrong rows, malformed CSV and exceeded
-budgets refuse without rewriting source or index. This helper does **not**
-admit a caller path, establish selected-index membership or grant publication
-rights. `scripts/authored_corpus_source_read.py` supplies the optional addressed
-adapter: explicit bootstrap verifies all rows of each selected tracked pack
-against the existing corpus index and writes an unselected immutable root.
-Selecting that root as `authored-corpus` in the source vector enables exact
-`authored_csv_record` handles through the common source-read contract. This
-changes the vector revision; old prepared readers cannot acquire the root by
-silent attachment. Source files and canon/intake posture remain unchanged.
-Serving looks up one selected pack/edge member and then rechecks its exact CSV
-bytes, without a corpus scan or accepting a caller path. Bootstrap is bounded
-to 4,096 packs, 65,536 rows and 64 MiB of selected input; a larger bootstrap
-requires an explicitly designed owner route, not raised serving budgets.
+Authored relation CSV provenance is exposed only through the selected
+`authored-corpus` native source-read route. Exact `authored_csv_record` targets
+bind pack/edge identity, logical source row, source-file SHA-256, and canonical
+parsed-cell content revision; the retained native source model preserves
+original string/null cells and raw-row provenance. Native inspection, source
+handles, and the human/MCP readers use the same selected-source operations.
+Availability depends on the captured/published source vector and managed
+native release; old vectors without the selected corpus route remain
+unsupported. This access preserves source and canon/intake posture and grants
+neither semantic assessment nor publication rights.
 
 The philosophy atlas projection turns `ToS/philosophy/atlas/` into a first
 reviewable tree/graph read model for visualization and graph switching.
@@ -136,11 +126,12 @@ object/claim catalog into a claim-reified graph. Every edge returns to the
 claim packet, evidence, maker, provenance event, review posture, exact source
 line, and digest; it contains no unqualified subject-to-object edge and does
 not widen the atlas projection into a bibliographic owner. The local
-`scripts/query_source_witness_bibliographic_graph.py` reader verifies a fresh
-source-backed rebuild before answering exact claim, subject, identity-object,
+The native `corpus-projection-query` owner verifies source-backed parity
+before answering exact claim, subject, identity-object, normalized identity,
 predicate, review-status, or visibility selectors. It returns deterministic
-stdout JSON with the exact source claim and full trace, writes no state, and
-fails rather than truncate an over-limit match set.
+JSON with the exact source claim and full trace, writes no state, and refuses
+an over-limit match set. The native request route is documented in
+[`Data and corpus operations`](../../docs/RELEASING.md#data-and-corpus-operations).
 The lexical projection is a source-withholding, non-sequential companion over
 four local DTA TEIs: form hashes, counts, and TEI page/division refs only. Its
 source-bearing SQLite/FTS5 sibling remains gitignored. The hashes are
@@ -165,8 +156,7 @@ Use:
 - `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT`
 - `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-build --check --kag-export EXPORT`
 - `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-validate --kag-export EXPORT`
-- `python scripts/build_tos_corpus_index.py --check`
-- `python scripts/validate_tos_corpus_index.py`
+- Native tracked corpus-index and bibliographic-graph parity: see [`Data and corpus operations`](../../docs/RELEASING.md#data-and-corpus-operations).
 - `tos lexical-index validate-tracked --source-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`
 - `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode check`
 - `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode validate`
@@ -190,6 +180,5 @@ command owns and removes one fresh SQLite directory. The explicit
 companion atomically only while its captured prior bytes remain current. An
 explicit `--output ABSOLUTE_PATH` chooses another generated destination.
 The Rust compiler is the only implementation; native failure has no fallback.
-- `python scripts/build_source_witness_bibliographic_graph.py --check`
-- `python scripts/validate_source_witness_bibliographic_graph.py`
+- The corpus-projection owner recomposes and compares the tracked graph as part of its source-backed parity check.
 - `tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT`

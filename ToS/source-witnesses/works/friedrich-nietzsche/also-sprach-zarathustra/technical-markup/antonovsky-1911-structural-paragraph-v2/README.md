@@ -40,27 +40,24 @@ Writing modes still require the source owner's authority and host storage
 admission. `--issue-identities` and `--import-challenger ABS_DIRECTORY` retain
 the existing refusal to replace their once-issued inputs.
 
-The supported Python command path is now a compatibility entry that executes
-installed `tos structural-paragraph` with the same five actions and an explicit
-absolute source root (`--repo-root ABS_SOURCE_HOME`). It has no Python producer
-fallback. The maintained validation and rebuild tests call the native command
-directly. `--private-model` is an explicitly requested private consumer route.
+The native validation and rebuild tests call `tos structural-paragraph`
+directly with an explicit absolute source root. The retired Python builder has
+no producer fallback. `--private-model` is an explicitly requested private
+consumer route.
 
-The current recipe source (`fa3cd89b6cad07aa2f63dad6cc84707902586b2b262db4a98128d5def9261a01`)
-is retained as nonexecuted digest-addressed source bytes. Native production does
+The current recipe source
+(`fa3cd89b6cad07aa2f63dad6cc84707902586b2b262db4a98128d5def9261a01`) is
+retained as nonexecuted digest-addressed source bytes. Native production does
 not execute that archive. Actual installed native acceptance covers all fourteen
 original generated files against captured bytes and the current independent
 oracle, full private-model value equality, and controlled issuance/import and
 symlink refusals. This does not accept the source text or historical prototype
 artifact equivalence.
 
-Four research producers still import read-only reconstruction helpers:
-parallel lexical candidates, paragraph alignment, concept workbench, and eternal
-return review preparation. Their native consumer migration and actual acceptance
-belong to those research producers; until it closes, the helper definitions and
-v1 extraction dependency remain retained. Their independent authenticated old
-oracle inputs stay separate from the native compatibility entry. The standalone
-Python producer is displaced; the entire Python helper family is not retired.
+Parallel lexical candidates, paragraph alignment, concept workbench and eternal
+return review preparation consume the Rust reconstruction/projection owners.
+Their independent authenticated old oracle inputs stay separate from native
+production. The Python builder source remains historical provenance only.
 
 Opaque IDs were issued once and are source-binding independent. The builder
 refuses to remint them or replace the challenger input.

@@ -2340,7 +2340,9 @@ pub(crate) fn with_direct_repository_projection<T>(
         .into_iter()
         .map(|path| {
             RelativePath::parse(path)
-                .map_err(|_| Refusal("native direct projection component path invalid"))
+                .map_err(|_| -> Box<dyn StdError> {
+                    Box::new(Refusal("native direct projection component path invalid"))
+                })
         })
         .collect::<Result<Vec<_>>>()?;
     let components = software.select_components(&component_paths)?;
@@ -2398,196 +2400,203 @@ pub(crate) fn with_direct_repository_projection<T>(
             capture_limits,
             deadline,
             &cancelled,
-            |captured: &AuthoredDiagnosticCapture<'_>| -> Result<_> {
-                let cut = captured.cut();
-                if cut.current().member_count() as u64 > limits.max_source_members {
-                    return Err(Refusal("native direct authored member cap exceeded").into());
-                }
-                let source_bytes = cut.current().members().try_fold(0u64, |sum, member| {
-                    sum.checked_add(member.size_bytes)
-                        .filter(|bytes| *bytes <= limits.max_source_bytes)
-                        .ok_or(Refusal("native direct authored byte cap exceeded"))
-                })?;
-                if source_bytes > limits.max_source_bytes
-                    || cut.current().members().any(|member| {
-                        member.size_bytes > limits.max_member_bytes
-                    })
-                {
-                    return Err(Refusal("native direct authored member budget exceeded").into());
-                }
-                let vocabulary_path = RelativePath::parse(QUERY_VOCABULARY_PATH)
-                    .map_err(|_| Refusal("native query vocabulary path invalid"))?;
-                let source_vocabulary = cut
-                    .current()
-                    .member(&vocabulary_path)
-                    .ok_or(Refusal("native direct source vocabulary absent"))?;
-                let captured_vocabulary = components
-                    .member(&vocabulary_path)
-                    .ok_or(Refusal("native selected software vocabulary absent"))?;
-                if source_vocabulary.sha256 != captured_vocabulary.sha256
-                    || source_vocabulary.size_bytes != captured_vocabulary.size_bytes
-                    || source_vocabulary.mode != captured_vocabulary.mode
-                {
-                    return Err(Refusal("native source and software vocabulary differ").into());
-                }
-                let software_binding = manifest::NativeSelectedSoftwareBinding::from_capture(
-                    &software,
-                    &components,
-                    SCHEMA_WORKER_SOURCE_PATH,
-                    &request.schema_worker_sha256,
-                )?;
-                let profile =
-                    manifest::NativeSelectedRuntimeSourceProfile::from_current_cut(
-                        cut,
-                        software_binding,
-                    )?;
-                let revision = cut.current().revision();
-                let source_home_path = RelativePath::parse("ToS/source_home.manifest.json")
-                    .map_err(|_| Refusal("native source-home manifest path invalid"))?;
-                let source_home = cut.read_member(
-                    revision,
-                    &source_home_path,
-                    limits.max_member_bytes,
-                    deadline,
-                    &cancelled,
-                )?;
-                let source_home_value: Value = serde_json::from_slice(&source_home.raw)?;
-                let identity_id = source_home_value
-                    .get("owner_repo")
-                    .and_then(Value::as_str)
-                    .filter(|value| *value == "Tree-of-Sophia")
-                    .ok_or(Refusal("native direct source-home identity invalid"))?;
-                let source_home_sha = Digest256::of_bytes(&source_home.raw).to_hex();
-                let binding = profile.source_binding();
-                let root_input = tos_compiler::RepositoryRootInput {
-                    source_cut: &binding.source_cut,
-                    material: &source_home.raw,
-                    material_sha256: &source_home_sha,
-                    identity_id,
-                };
-                let projection_source = NativeSourceOnlyRequest {
-                    corpus_store: String::new(),
-                    source_revision: profile.source_revision.clone(),
-                    max_revisions: 1,
-                    max_members: limits.max_source_members,
-                    max_total_bytes: limits.max_source_bytes,
-                    max_member_bytes: limits.max_member_bytes,
-                    software_capture: software_capture_path.display().to_string(),
-                    software_restored_root: software_restored_root.display().to_string(),
-                    source_git_commit: request.software_git_commit.clone(),
-                    source_git_tree: request.software_git_tree.clone(),
-                    capture_manifest_sha256: capture.manifest_sha256.to_hex(),
-                    software_components: vec![
-                        QUERY_VOCABULARY_PATH.to_owned(),
-                        SCHEMA_WORKER_SOURCE_PATH.to_owned(),
-                    ],
-                    schema_worker_path: SCHEMA_WORKER_SOURCE_PATH.to_owned(),
-                    schema_worker_absolute_path: request
-                        .schema_worker_absolute_path
-                        .display()
-                        .to_string(),
-                    schema_worker_sha256: request.schema_worker_sha256.clone(),
-                    max_schema_receipts: limits.max_schema_receipts,
-                    max_schema_receipt_bytes: limits.max_schema_receipt_bytes,
-                    worker_cpu_seconds: limits.worker_cpu_seconds,
-                    worker_address_space_bytes: limits.worker_address_space_bytes,
-                };
-                let projection_request = Request {
-                    schema_version: CORPUS_PROJECTION_CHECK_REQUEST_SCHEMA.to_owned(),
-                    mode: Some("check".to_owned()),
-                    comparison_root: Some(request.repository_root.display().to_string()),
-                    selected_snapshot: None,
-                    source_only: None,
-                    tmpfs_quota_bytes: limits.tmpfs_quota_bytes,
-                    tmpfs_inode_limit: limits.tmpfs_inode_limit,
-                    working_ram_bytes: limits.working_ram_bytes,
-                    max_state_bytes: limits.max_state_bytes,
-                    max_json_visits: limits.max_json_visits,
-                    max_work_bytes: limits.max_work_bytes,
-                    persistent_write_cap_bytes: limits.max_output_bytes,
-                    max_build_seconds: limits.max_build_seconds,
-                    cold_open: limits.cold_open,
-                    process_limits: limits.process_limits,
-                    data_directory: "projection-check-data".to_owned(),
-                    private_release_directory: "projection-check-release".to_owned(),
-                    evidence_refs: Vec::new(),
-                    previous_native_snapshot: None,
-                };
-                let projection_limits =
-                    source_projection_limits(&projection_source, &projection_request, deadline)?;
-                let recheck = || -> tos_compiler::Result<()> {
-                    if cancelled.load(std::sync::atomic::Ordering::Relaxed)
-                        || Instant::now() >= deadline
-                        || cut.current().revision() != revision
-                        || cut
-                            .stream(revision)
-                            .map_err(|error| tos_compiler::Error::Source(error.to_string()))?
-                            .expectation()
-                            .digest
-                            .to_hex()
-                            != profile.membership_root
-                        || software.selection().source_git_commit
-                            != request.software_git_commit
-                        || software.selection().source_git_tree != request.software_git_tree
-                        || software.selection().capture_manifest_sha256
-                            != capture.manifest_sha256
-                    {
-                        return Err(tos_compiler::Error::Invalid(
-                            "native direct repository source selection changed",
-                        ));
+            |captured: &AuthoredDiagnosticCapture<'_>| {
+                let callback_result = (|| -> Result<_> {
+                    let cut = captured.cut();
+                    if cut.current().member_count() as u64 > limits.max_source_members {
+                        return Err(Refusal("native direct authored member cap exceeded").into());
                     }
-                    captured.recheck().map_err(|_| {
-                        tos_compiler::Error::Invalid(
-                            "native direct repository authored source changed",
-                        )
+                    let source_bytes = cut.current().members().try_fold(0u64, |sum, member| {
+                        sum.checked_add(member.size_bytes)
+                            .filter(|bytes| *bytes <= limits.max_source_bytes)
+                            .ok_or(Refusal("native direct authored byte cap exceeded"))
                     })?;
-                    for component in components.members() {
-                        let bytes = software
-                            .read_selected_component(
-                                &components,
-                                &component.path,
-                                SOFTWARE_SOURCE_BYTES,
-                                deadline,
-                                &cancelled,
-                            )
-                            .map_err(|_| {
-                                tos_compiler::Error::Invalid(
-                                    "native direct selected software component changed",
-                                )
-                            })?;
-                        if bytes.len() as u64 != component.size_bytes
-                            || Digest256::of_bytes(&bytes) != component.sha256
+                    if source_bytes > limits.max_source_bytes
+                        || cut.current().members().any(|member| {
+                            member.size_bytes > limits.max_member_bytes
+                        })
+                    {
+                        return Err(Refusal("native direct authored member budget exceeded").into());
+                    }
+                    let vocabulary_path = RelativePath::parse(QUERY_VOCABULARY_PATH)
+                        .map_err(|_| Refusal("native query vocabulary path invalid"))?;
+                    let source_vocabulary = cut
+                        .current()
+                        .member(&vocabulary_path)
+                        .ok_or(Refusal("native direct source vocabulary absent"))?;
+                    let captured_vocabulary = components
+                        .member(&vocabulary_path)
+                        .ok_or(Refusal("native selected software vocabulary absent"))?;
+                    if source_vocabulary.sha256 != captured_vocabulary.sha256
+                        || source_vocabulary.size_bytes != captured_vocabulary.size_bytes
+                        || source_vocabulary.mode != captured_vocabulary.mode
+                    {
+                        return Err(Refusal("native source and software vocabulary differ").into());
+                    }
+                    let software_binding = manifest::NativeSelectedSoftwareBinding::from_capture(
+                        &software,
+                        &components,
+                        SCHEMA_WORKER_SOURCE_PATH,
+                        &request.schema_worker_sha256,
+                    )?;
+                    let profile =
+                        manifest::NativeSelectedRuntimeSourceProfile::from_current_cut(
+                            cut,
+                            software_binding,
+                        )?;
+                    let revision = cut.current().revision();
+                    let source_home_path = RelativePath::parse("ToS/source_home.manifest.json")
+                        .map_err(|_| Refusal("native source-home manifest path invalid"))?;
+                    let source_home = cut.read_member(
+                        revision,
+                        &source_home_path,
+                        limits.max_member_bytes,
+                        deadline,
+                        &cancelled,
+                    )?;
+                    let source_home_value: Value = serde_json::from_slice(&source_home.raw)?;
+                    let identity_id = source_home_value
+                        .get("owner_repo")
+                        .and_then(Value::as_str)
+                        .filter(|value| *value == "Tree-of-Sophia")
+                        .ok_or(Refusal("native direct source-home identity invalid"))?;
+                    let source_home_sha = Digest256::of_bytes(&source_home.raw).to_hex();
+                    let binding = profile.source_binding();
+                    let root_input = tos_compiler::RepositoryRootInput {
+                        source_cut: &binding.source_cut,
+                        material: &source_home.raw,
+                        material_sha256: &source_home_sha,
+                        identity_id,
+                    };
+                    let projection_source = NativeSourceOnlyRequest {
+                        corpus_store: String::new(),
+                        source_revision: profile.source_revision.clone(),
+                        max_revisions: 1,
+                        max_members: limits.max_source_members,
+                        max_total_bytes: limits.max_source_bytes,
+                        max_member_bytes: limits.max_member_bytes,
+                        software_capture: software_capture_path.display().to_string(),
+                        software_restored_root: software_restored_root.display().to_string(),
+                        source_git_commit: request.software_git_commit.clone(),
+                        source_git_tree: request.software_git_tree.clone(),
+                        capture_manifest_sha256: capture.manifest_sha256.to_hex(),
+                        software_components: vec![
+                            QUERY_VOCABULARY_PATH.to_owned(),
+                            SCHEMA_WORKER_SOURCE_PATH.to_owned(),
+                        ],
+                        schema_worker_path: SCHEMA_WORKER_SOURCE_PATH.to_owned(),
+                        schema_worker_absolute_path: request
+                            .schema_worker_absolute_path
+                            .display()
+                            .to_string(),
+                        schema_worker_sha256: request.schema_worker_sha256.clone(),
+                        max_schema_receipts: limits.max_schema_receipts,
+                        max_schema_receipt_bytes: limits.max_schema_receipt_bytes,
+                        worker_cpu_seconds: limits.worker_cpu_seconds,
+                        worker_address_space_bytes: limits.worker_address_space_bytes,
+                    };
+                    let projection_request = Request {
+                        schema_version: CORPUS_PROJECTION_CHECK_REQUEST_SCHEMA.to_owned(),
+                        mode: Some("check".to_owned()),
+                        comparison_root: Some(request.repository_root.display().to_string()),
+                        selected_snapshot: None,
+                        source_only: None,
+                        tmpfs_quota_bytes: limits.tmpfs_quota_bytes,
+                        tmpfs_inode_limit: limits.tmpfs_inode_limit,
+                        working_ram_bytes: limits.working_ram_bytes,
+                        max_state_bytes: limits.max_state_bytes,
+                        max_json_visits: limits.max_json_visits,
+                        max_work_bytes: limits.max_work_bytes,
+                        persistent_write_cap_bytes: limits.max_output_bytes,
+                        max_build_seconds: limits.max_build_seconds,
+                        cold_open: limits.cold_open,
+                        process_limits: limits.process_limits,
+                        data_directory: "projection-check-data".to_owned(),
+                        private_release_directory: "projection-check-release".to_owned(),
+                        evidence_refs: Vec::new(),
+                        previous_native_snapshot: None,
+                    };
+                    let projection_limits =
+                        source_projection_limits(&projection_source, &projection_request, deadline)?;
+                    let recheck = || -> tos_compiler::Result<()> {
+                        if cancelled.load(std::sync::atomic::Ordering::Relaxed)
+                            || Instant::now() >= deadline
+                            || cut.current().revision() != revision
+                            || cut
+                                .stream(revision)
+                                .map_err(|error| tos_compiler::Error::Source(error.to_string()))?
+                                .expectation()
+                                .digest
+                                .to_hex()
+                                != profile.membership_root
+                            || software.selection().source_git_commit
+                                != request.software_git_commit
+                            || software.selection().source_git_tree != request.software_git_tree
+                            || software.selection().capture_manifest_sha256
+                                != capture.manifest_sha256
                         {
                             return Err(tos_compiler::Error::Invalid(
-                                "native direct selected software fixity changed",
+                                "native direct repository source selection changed",
                             ));
                         }
-                    }
-                    verify_direct_worker_image(&worker, limits.max_worker_image_bytes).map_err(
-                        |_| {
+                        captured.recheck().map_err(|_| {
                             tos_compiler::Error::Invalid(
-                                "native direct selected schema worker image changed",
+                                "native direct repository authored source changed",
                             )
-                        },
+                        })?;
+                        for component in components.members() {
+                            let bytes = software
+                                .read_selected_component(
+                                    &components,
+                                    &component.path,
+                                    SOFTWARE_SOURCE_BYTES,
+                                    deadline,
+                                    &cancelled,
+                                )
+                                .map_err(|_| {
+                                    tos_compiler::Error::Invalid(
+                                        "native direct selected software component changed",
+                                    )
+                                })?;
+                            if bytes.len() as u64 != component.size_bytes
+                                || Digest256::of_bytes(&bytes) != component.sha256
+                            {
+                                return Err(tos_compiler::Error::Invalid(
+                                    "native direct selected software fixity changed",
+                                ));
+                            }
+                        }
+                        verify_direct_worker_image(&worker, limits.max_worker_image_bytes).map_err(
+                            |_| {
+                                tos_compiler::Error::Invalid(
+                                    "native direct selected schema worker image changed",
+                                )
+                            },
+                        )?;
+                        Ok(())
+                    };
+                    let stage_root = workspace.path();
+                    let products = crate::source_corpus_index_projection::project(
+                        cut,
+                        &software,
+                        &binding,
+                        root_input,
+                        worker.clone(),
+                        projection_limits,
+                        &isolation,
+                        stage_root,
+                        &recheck,
+                        deadline,
+                        &cancelled,
                     )?;
-                    Ok(())
-                };
-                let stage_root = workspace.path();
-                let products = crate::source_corpus_index_projection::project(
-                    cut,
-                    &software,
-                    &binding,
-                    root_input,
-                    worker.clone(),
-                    projection_limits,
-                    &isolation,
-                    stage_root,
-                    &recheck,
-                    deadline,
-                    &cancelled,
-                )?;
-                let consumed = consume(&products)?;
-                Ok((products, consumed))
+                    let consumed = consume(&products)?;
+                    Ok((products, consumed))
+                })();
+                callback_result.map_err(|error| {
+                    crate::source_command::SourceCommandError::DeniedWithReason(format!(
+                        "native direct projection failed: {error}"
+                    ))
+                })
             },
         )?;
     Ok((products, consumed))

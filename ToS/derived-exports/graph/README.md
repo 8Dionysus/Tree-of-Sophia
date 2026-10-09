@@ -53,25 +53,16 @@ projection. Public-safety clearance, artifact admission and runtime publication
 remain separate; the source-parity query route below still reads the ordinary
 metadata-only projection.
 
-`scripts/query_source_witness_bibliographic_graph.py` is the repository-local
-stdout query route. Before returning a result it validates the tracked graph,
-checks its projection fingerprint, rebuilds it from the exact source-owned
-catalog and claim packets, and requires byte-equivalent canonical parity.
-
-The current exact selectors are `claim-ref`, `subject-ref`, identity-valued
-`object-ref`, `predicate`, `review-status`, and `visibility`. Combined
-selectors use AND semantics. Every match returns:
-
-- the exact source claim object, repository-relative JSONL file, line, and
-  canonical digest;
-- the reified claim, subject, and identity-or-literal object nodes;
-- evidence, counterevidence, maker, provenance event, and actual review nodes;
-- every claim-centered edge and the unchanged trace packet.
-
-At least one selector is mandatory. The route returns an explicit `no_match`
-result for an empty result set and fails instead of silently truncating when
-the result count exceeds the declared limit. It writes no query result,
-database, cache, review, or accepted relation.
+The native `tos-native-owner-command corpus-projection-query --request ABS_JSON`
+route returns exact claim bundles only after it composes the current source
+projection and verifies both tracked products against the same source cut. It
+preserves the exact selector flags `--claim-ref`, `--subject-ref`, `--object-ref`,
+`--normalized-ref`, `--predicate`, `--review-status`, and `--visibility`, with
+AND semantics and a bounded `--limit 1..100` (default 20); `--pretty` keeps the
+optional indented output form. Each match carries the exact source claim, return path,
+line, digest, claim trace, reified nodes, and claim-centered edges. The route
+fails instead of truncating. Its native request contract is in
+[`Data and corpus operations`](../../../docs/RELEASING.md#data-and-corpus-operations).
 
 ## Boundaries
 
@@ -89,7 +80,7 @@ atlas and its views; bibliographic Claims retain their own source owner.
 
 ## Verify
 
-Use the graph parity and validation entries owned by the
-[scripts route card](../../../scripts/AGENTS.md) and the repository
-`release_check` lane. The focused regression owner is
-`tests/test_source_witness_bibliographic_graph.py`.
+Use the native corpus-projection check and query commands documented in
+[`Data and corpus operations`](../../../docs/RELEASING.md#data-and-corpus-operations).
+The focused Rust regressions live with the native projection and query owners
+in `rust/crates/tos-command/`.

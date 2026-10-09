@@ -339,14 +339,17 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
         );
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-        let fixture = python(
-            &repository,
-            isolated.path(),
-            isolated.path(),
-            FACTORY,
-            None,
-            deadline,
+        let native_owner_paths = [
+            "rust/crates/tos-command/src/source_object_link.rs",
+            "rust/crates/tos-command/src/source_native_object_link_cli.rs",
+        ];
+        let captured = super::native_python_fixture(
+            "object-link-base",
+            &[("source-root", isolated.path())],
+            &native_owner_paths,
         );
+        super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
+        let fixture = captured.packets.get("factory").unwrap();
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         let config = &fixture["config"];
         let subject = isolated
@@ -356,8 +359,8 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
         let sentinel = subject.parent().unwrap().join("payload/opaque.bin");
         let private_before = fs::read(&sentinel).unwrap();
         let mut files = authored_text_files(isolated.path());
-        for name in fixture["implementations"].as_array().unwrap() {
-            let name = name.as_str().unwrap();
+        for name in &native_owner_paths {
+            let name = *name;
             files.insert(name.into(), fs::read(repository.join(name)).unwrap());
         }
         files.insert(
@@ -512,14 +515,16 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
             }
             let oracle =
                 IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-            python(
-                &repository,
-                oracle.path(),
-                oracle.path(),
-                FACTORY,
-                None,
-                deadline,
+            let native_owner_paths = [
+                "rust/crates/tos-command/src/source_object_link.rs",
+                "rust/crates/tos-command/src/source_native_object_link_cli.rs",
+            ];
+            let captured = super::native_python_fixture(
+                "object-link-base",
+                &[("source-root", oracle.path())],
+                &native_owner_paths,
             );
+            super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
             let oracle_result = python(
                 &repository,
                 oracle.path(),

@@ -48,7 +48,7 @@ is implicit. Bare legacy `YYYY[-MM[-DD]]` strings retain proleptic-Gregorian,
 astronomical shorthand. Relative and unknown dating assertions remain
 addressable without absolute order keys. Numeric filters select proposed
 values, not accepted historical facts; assertion contexts still govern their
-reading. These fields are materialized by the Python producer and transported
+reading. These fields are materialized by the native Rust producer and transported
 unchanged to D1; existing read snapshots require regeneration to gain this
 correction. Processor dependency digests invalidate affected normalization
 cache entries, not source history.
@@ -56,7 +56,7 @@ cache entries, not source history.
 `normalization_binding` identifies the producer and configuration of a normalized
 snapshot. The Rust snapshot binds its compiled projection recipe and captured
 source cut, with configuration derived from the exact query-vocabulary and two
-registry inputs. Python Reference retains its own processor and configuration
+registry inputs. The captured Python reference retains its own processor and configuration
 fingerprints. A change of implementation therefore need not preserve
 `processor_digest` or `configuration_digest`; copying the predecessor's hashes
 would misstate provenance. Cross-implementation compatibility checks verify each
@@ -143,7 +143,7 @@ Lens language preferences accept those keys. Safe display filters, sorts and
 groups accept `display.<field>.<language>` for the declared node or relation
 display fields. The catalog's `human_languages` section lists observed fields
 and nonempty availability counts without claiming semantic readiness. Local
-Python and the Worker/D1 reader share this grammar; changing preferences never
+The native Rust and Worker/D1 readers share this grammar; changing preferences never
 alters corpus identity or imports new knowledge.
 
 Lens results additionally return `display_selection` per carrier. Selection
@@ -202,7 +202,7 @@ roles. Equal-priority packets retain the seven-role order above; `auto` and
 `original` also retain that order. An oversized matching packet is not replaced
 with a different-language form. Language preferences are bounded at 128 characters independently
 of whether the current query finds Forms. This is a request budget, not a
-closed language vocabulary. Local Python and Worker/D1 run the same selection
+closed language vocabulary. The native Rust and Worker/D1 paths run the same selection
 contract; actual UI consumption remains a separate integration requirement.
 
 `semantics.assertion_contexts` preserves source-declared claim fields in both
@@ -269,7 +269,7 @@ compatible read-model build. Discover availability on the actual target.
 410 means lost/expired checkpoint; 409 means changed snapshot. The access README
 defines replay, work budgets, count scopes and context-node upsert semantics.
 D1 may pause earlier for its SQL-query budget, so page partitions and snapshot
-digests need not match Python. Ordered discoveries and relation emission agree;
+digests need not match the local Rust runtime. Ordered discoveries and relation emission agree;
 cursors are backend-specific. D1 413 requires narrowing the request, and 503
 means the migration or compatible data metadata is missing.
 

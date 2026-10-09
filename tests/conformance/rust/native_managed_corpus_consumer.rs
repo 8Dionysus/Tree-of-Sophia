@@ -6,7 +6,7 @@ use std::{
     io::{Read, Write},
     net::{TcpListener, TcpStream},
     path::Path,
-    process::{Child, Command, Stdio},
+    process::{Child, Command, Output, Stdio},
     thread,
     time::{Duration, Instant},
 };
@@ -20,6 +20,36 @@ use tos_foundation::{
     canonical_bytes_v1, parse_json,
 };
 use tos_query::corpus_read::CorpusReadRequest as R;
+
+fn run_native_corpus_build(binary: &Path, request: &serde_json::Value) -> Output {
+    let address_space_bytes = request["process_limits"]["address_space_bytes"]
+        .as_u64()
+        .expect("finite owner address-space cap");
+    let file_size_bytes = request["process_limits"]["file_size_bytes"]
+        .as_u64()
+        .expect("finite owner file-size cap");
+    let mut command = Command::new("prlimit");
+    command
+        .args([
+            format!("--as={address_space_bytes}"),
+            format!("--fsize={file_size_bytes}"),
+            "--".into(),
+        ])
+        .arg(binary)
+        .arg("corpus-build")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .env_remove("TOS_RELEASE_ROOT");
+    let mut child = command.spawn().expect("admitted native owner binary starts");
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(request).unwrap())
+        .unwrap();
+    child.wait_with_output().unwrap()
+}
 fn canonical(value: &serde_json::Value) -> Vec<u8> {
     let raw = serde_json::to_vec(value).unwrap();
     let doc = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
@@ -585,4 +615,249 @@ pub(super) fn exercise_managed_native_corpus(
         .unwrap();
     assert_eq!(refusal.status.code(), Some(3));
     assert!(refusal.stdout.is_empty());
+}
+
+/// Exercise the actual native source-cut producer under the already admitted
+/// private-stage ticket, then verify only its disposable candidate through the
+/// existing managed reader. This route never writes the production pointer.
+pub(super) fn exercise_native_corpus_build(
+    selected: &FullKnowledgeFixture,
+    projection: &NativeCorpusProjection,
+    repository: &Path,
+    source_store: &Path,
+    source_revision: tos_foundation::SourceRevision,
+    software: &super::super::source_cut_cases::SoftwareCaptureFixture,
+    worker_path: &Path,
+) {
+    use serde_json::json;
+    let owner = std::env::var_os("TOS_NATIVE_OWNER_COMMAND_BIN")
+        .map(std::path::PathBuf::from)
+        .expect("OPS must provide the exact admitted native owner binary");
+    assert!(owner.is_absolute() && owner.is_file());
+    let consumer = std::env::var_os("TOS_NATIVE_MANAGED_CONSUMER_BIN")
+        .map(std::path::PathBuf::from)
+        .expect("OPS must provide the exact admitted native consumer binary");
+    assert!(consumer.is_absolute() && consumer.is_file());
+    assert!(worker_path.is_absolute() && worker_path.is_file());
+
+    // Read exact finite limits from the normal admitted ticket rather than
+    // inventing a larger request envelope in this controller.
+    let stage = tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::select_issued_from_environment()
+        .expect("OPS must issue the native producer private tmpfs ticket");
+    let (quota_bytes, inode_limit, working_ram_bytes) = stage.resource_limits();
+    let persistent_store = stage
+        .persistent_store()
+        .expect("OPS must admit the candidate's bounded persistent store")
+        .to_owned();
+    drop(stage);
+
+    let process_limits = tos_compiler::NativeProcessLimits {
+        address_space_bytes: NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS
+            .address_space_bytes
+            .min(working_ram_bytes),
+        file_size_bytes: NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS.file_size_bytes,
+    };
+    assert!(process_limits.address_space_bytes >= 512 * 1024 * 1024);
+    let worker_source = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
+    let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
+    let worker_address_space_bytes = working_ram_bytes.min(1024 * 1024 * 1024);
+    let source_selection = json!({
+        "corpus_store": source_store.display().to_string(),
+        "source_revision": source_revision.0.to_hex(),
+        "max_revisions": 1,
+        "max_members": 512,
+        "max_total_bytes": 16 * 1024 * 1024,
+        "max_member_bytes": 2 * 1024 * 1024,
+        "software_capture": software.capture.display().to_string(),
+        "software_restored_root": software.restored.display().to_string(),
+        "source_git_commit": software.selection.source_git_commit,
+        "source_git_tree": software.selection.source_git_tree,
+        "capture_manifest_sha256": software.selection.capture_manifest_sha256.to_hex(),
+        "software_components": [vocabulary_path, worker_source],
+        "schema_worker_path": worker_source,
+        "schema_worker_absolute_path": worker_path.display().to_string(),
+        "schema_worker_sha256": hash_file(worker_path).to_hex(),
+        "max_schema_receipts": 4096,
+        "max_schema_receipt_bytes": 4 * 1024 * 1024,
+        "worker_cpu_seconds": 60,
+        "worker_address_space_bytes": worker_address_space_bytes,
+    });
+    let build_request = json!({
+        "schema_version": "tos_native_corpus_build_request_v1",
+        "mode": "build",
+        "tmpfs_quota_bytes": quota_bytes,
+        "tmpfs_inode_limit": inode_limit,
+        "working_ram_bytes": working_ram_bytes,
+        "max_state_bytes": 512 * 1024 * 1024,
+        "max_json_visits": 8_000_000,
+        "max_work_bytes": 8 * 1024 * 1024 * 1024u64,
+        "persistent_write_cap_bytes": 512 * 1024 * 1024u64,
+        "max_build_seconds": 600,
+        "cold_open": serde_json::to_value(selected.cold_limits()).unwrap(),
+        "process_limits": serde_json::to_value(process_limits).unwrap(),
+        "data_directory": "native-corpus-build-candidate",
+        "private_release_directory": "native-corpus-build-unused-release",
+        "source_only": source_selection,
+    });
+    let built = run_native_corpus_build(&owner, &build_request);
+    assert!(
+        built.status.success(),
+        "native corpus build refused: {}",
+        String::from_utf8_lossy(&built.stderr)
+    );
+    assert!(built.stdout.len() <= 1_048_576);
+    let built: serde_json::Value = serde_json::from_slice(&built.stdout).unwrap();
+    assert_eq!(built["current_release_promoted"], false);
+    assert_eq!(built["private_release_root_created"], false);
+    assert_eq!(built["installed_access_mcp_accepted"], false);
+    assert_eq!(built["cold_witness"]["actual_cold_open_completed"], true);
+    assert_eq!(built["authority"]["source_admission"], false);
+    assert_eq!(built["authority"]["publication"], false);
+    assert_eq!(built["native_model_reused"], false);
+    let data_root = Path::new(built["data_root"].as_str().unwrap());
+    assert!(data_root.is_absolute() && data_root.is_dir());
+    assert!(
+        !persistent_store
+            .join("native-corpus-build-unused-release")
+            .exists()
+    );
+
+    let data = data_root.join("data");
+    let manifest_raw = fs::read(data.join("manifest.json")).unwrap();
+    let manifest: serde_json::Value = serde_json::from_slice(&manifest_raw).unwrap();
+    let members = manifest["members"].as_array().unwrap();
+    let declaration: serde_json::Value = serde_json::from_slice(
+        &fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap(),
+    )
+    .unwrap();
+    let product_path = |subject: &str| -> String {
+        let rows = declaration["subjects"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row["subject_id"] == subject)
+            .collect::<Vec<_>>();
+        assert_eq!(rows.len(), 1, "runtime product {subject}");
+        rows[0]["source_path"].as_str().unwrap().to_owned()
+    };
+    let corpus_path = product_path("tos-corpus-index");
+    let claims_path = product_path("tos-source-witness-bibliographic-claim-graph");
+    let corpus_file = data.join(&corpus_path);
+    let claims_file = data.join(&claims_path);
+    let corpus_bytes = fs::read(&corpus_file).unwrap();
+    let claims_bytes = fs::read(&claims_file).unwrap();
+    assert_eq!(
+        projection.receipt().source_revision,
+        source_revision.0.to_hex(),
+        "producer and existing five-class projection use the same source cut"
+    );
+    for (path, raw) in [(&corpus_path, &corpus_bytes), (&claims_path, &claims_bytes)] {
+        let member = members
+            .iter()
+            .find(|row| row["path"] == format!("data/{path}"))
+            .expect("generated runtime product is admitted as a data member");
+        assert_eq!(member["size_bytes"].as_u64(), Some(raw.len() as u64));
+        let expected_sha = Digest256::of_bytes(raw).to_hex();
+        assert_eq!(member["sha256"].as_str(), Some(expected_sha.as_str()));
+    }
+    assert!(!claims_bytes.is_empty());
+
+    // Check mode recomputes the same six products and is read-only. The
+    // negative case uses a separate disposable copy so the candidate stays
+    // intact for the reader admission below.
+    let check_data_name = "native-corpus-check-unused-data";
+    let check_release_name = "native-corpus-check-unused-release";
+    let mut check_request = build_request.clone();
+    check_request["mode"] = json!("check");
+    check_request["comparison_root"] = json!(data.display().to_string());
+    check_request["data_directory"] = json!(check_data_name);
+    check_request["private_release_directory"] = json!(check_release_name);
+    let checked = run_native_corpus_build(&owner, &check_request);
+    assert!(
+        checked.status.success(),
+        "native corpus parity check refused: {}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    let checked: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert_eq!(checked["mode"], "check");
+    assert_eq!(checked["persistent_write_performed"], false);
+    let products = checked["products"].as_array().unwrap();
+    assert_eq!(products.len(), 6);
+    assert!(products.iter().any(|row| row["path"] == corpus_path));
+    assert!(products.iter().any(|row| row["path"] == claims_path));
+    for row in products {
+        assert_eq!(row["matches"], true);
+    }
+    assert!(!persistent_store.join(check_data_name).exists());
+    assert!(!persistent_store.join(check_release_name).exists());
+
+    let compare = tempfile::tempdir().unwrap();
+    for row in products {
+        let relative = row["path"].as_str().unwrap();
+        let raw = fs::read(data.join(relative)).unwrap();
+        assert_eq!(Digest256::of_bytes(&raw).to_hex(), row["sha256"].as_str().unwrap());
+        let target = compare.path().join(relative);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, raw).unwrap();
+    }
+    let mut negative_request = check_request.clone();
+    negative_request["comparison_root"] = json!(compare.path().display().to_string());
+    let damaged = compare.path().join(&claims_path);
+    let mut damaged_bytes = fs::read(&damaged).unwrap();
+    damaged_bytes[0] ^= 1;
+    fs::write(&damaged, damaged_bytes).unwrap();
+    let refused = run_native_corpus_build(&owner, &negative_request);
+    assert!(!refused.status.success(), "changed product must fail parity");
+    assert!(refused.stdout.is_empty());
+    assert!(!persistent_store.join(check_data_name).exists());
+    assert!(!persistent_store.join(check_release_name).exists());
+
+    // Admit the disposable output through the current Rust native reader. This
+    // pair lives only under the test TempDir, never at an installed current
+    // pointer or production release root.
+    let selection_path = data.join("native-selection.json");
+    let selection_raw = fs::read(&selection_path).unwrap();
+    let descriptor = fs::read(data.join(vocabulary_path)).unwrap();
+    let entities = fs::read(data.join("ToS/doctrine/semantic-interchange/entity-types.v1.json"))
+        .unwrap();
+    let relations = fs::read(data.join("ToS/doctrine/semantic-interchange/relation-types.v1.json"))
+        .unwrap();
+    let selection = NativeKnowledgeSelection::decode(
+        &selection_raw,
+        &descriptor,
+        &entities,
+        &relations,
+        tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+        1_048_576,
+    )
+    .unwrap();
+    let receipt = selection
+        .producer()
+        .corpus_original
+        .as_ref()
+        .expect("native producer must retain corpus Original receipt");
+    assert_eq!(
+        receipt.source_cut,
+        built["selected_source"]["native_projection_source_cut"]
+            .as_str()
+            .unwrap()
+    );
+    let base = software.temporary.path().join("native-corpus-build-readback");
+    fs::create_dir(&base).unwrap();
+    let release_root = base.join("release");
+    publish_snapshot(&release_root, data_root, &consumer, &manifest, hash_file(&consumer));
+    assert_eq!(
+        hash_file(&data.join("manifest.json")).to_hex(),
+        built["data_manifest"]["sha256"].as_str().unwrap(),
+        "fixture-only release admission must preserve the native writer manifest"
+    );
+    let release = tos_access::release_state::ManagedRelease::open(&release_root).unwrap();
+    let mut hold = release.acquire().unwrap();
+    let (context, guards) = hold
+        .admit_corpus_members(receipt, selected.cold_limits().max_work_bytes as usize)
+        .unwrap();
+    assert_eq!(context.index_path, corpus_file.to_str().unwrap());
+    assert_eq!(context.tos_root, data.to_str().unwrap());
+    hold.retain_member_guards(&guards).unwrap();
+    hold.recheck().unwrap();
 }

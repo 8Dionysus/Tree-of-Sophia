@@ -161,9 +161,11 @@ hidden corrupt index entry is not proven absent by positive selected-row checks.
 Raw request integer fields use Python JSON integer kinds, not integral floats;
 legacy focus whitespace and predicate ordering use Python Unicode semantics.
 
-Focused tests use the actual `PublishedExplorationService` over the same SQLite
-publication, comparing full-traversal selection unions, complete retained source
-values/member order/numeric kinds, and each page's scene against Python. Real D1
+Focused tests compare the actual Worker path over the same SQLite publication
+with hash-pinned outputs captured from the retired
+`PublishedExplorationService`. The oracle helper validates captured code/input
+hashes and never executes Python. Checks cover full-traversal selection unions,
+retained source values/member order/numeric kinds, and each page's scene. Real D1
 raw HTTP restart/concurrent replay and ABA tests cover the storage boundary.
 Runtime-specific page scheduling, work counts, snapshot hashes and opaque tokens
 are deliberately not asserted equal. D1's 1 MiB replay cap can refuse a packet
@@ -207,8 +209,8 @@ native execution/response budgets are 413, missing selected Claims 404 and
 stale source/content/publication revisions 409. Binding inconsistencies remain
 ordinary `undetermined`/`unsupported` comparison packets rather than errors.
 
-The actual published Python reader and raw Worker HTTP differential cover the
-same selected SQLite rows. The D1 plan's post-statement rows-read guard, native
+Hash-pinned outputs from the retired published Python reader and the raw Worker
+HTTP differential cover the same selected SQLite rows. The D1 plan's post-statement rows-read guard, native
 aggregate writer depth/visit limits and SQL pre-delivery byte checks remain
 explicit bounds, not a universal equivalence claim for Python VM exhaustion or
 arbitrarily large/corrupt publications. Local prepared runtime, corpus readiness,
@@ -326,8 +328,9 @@ rows and lens metadata, 1 KiB digests, 128 KiB chunks and 256 chunks maximum.
 The reader/header check does not execute inspection, broaden lens admission
 beyond v9, or alter v7 execution, cursors, traversal or index-name policy.
 Search retains its independent selected-source string/document checks.
-Actual published Python lens and Worker HTTP tests share the same SQLite
-publication; exact-limit/one-byte-over, native continuation, malformed framing,
+Worker HTTP tests compare the actual D1 publication with hash-pinned lens
+outputs captured from the retired Python reader; Python is not executed by the
+tests. Exact-limit/one-byte-over, native continuation, malformed framing,
 Unicode and ABA checks establish this bounded contract, not universal runtime
 parity. D1 rows-read accounting still cannot emulate SQLite VM/hard limits.
 
@@ -388,8 +391,8 @@ From `access/deploy/cloudflare-worker`, run the host resource route with a
 node --experimental-strip-types --test test/native-semantics.test.mjs test/native-packet.test.mjs test/native-lens.test.mjs test/native-inspection.test.mjs
 ```
 
-Thirteen tests compare actual Python str/repr/truthiness on fixed edge cases and
-5000 deterministic random finite-float attempts, mixed int/float/bool and nested
+Thirteen tests compare against hash-pinned captured Python str/repr/truthiness
+outputs on fixed edge cases and 5000 deterministic random finite-float attempts, mixed int/float/bool and nested
 equality, full Unicode scalar lower/printability digests, contextual final
 sigma, source-key/number preservation, composed Python-emitted wire values and
 decoded number kinds, immutable boundaries, malformed/cyclic data, context loss
@@ -399,14 +402,16 @@ float mismatch was reproduced on the tested Node/V8 runtime, so the formatter
 was not changed. The current [ECMAScript shortest exponential conversion](https://tc39.es/ecma262/multipage/numbers-and-dates.html#sec-number.prototype.toexponential)
 specifies an even significand when shortest alternatives tie. These are bounded
 assertions, not a proof over all IEEE values, every JS runtime or whole lenses.
-The lens tests use tiny Python-normalized and producer-serialized rows in a
-real in-memory SQLite D1 facade. They compare complete Python-decoded wire
-packets, numeric kinds, source member order and fingerprints; the actual Worker
-HTTP handler is bundled for raw-body and refusal checks. Legacy fixtures use an
+The lens tests use tiny fixtures from former Python-normalized and
+producer-serialized rows in a real in-memory SQLite D1 facade. They compare the
+native Worker packets with complete captured Python wire packets, numeric
+kinds, source member order and fingerprints; the actual Worker HTTP handler is
+bundled for raw-body and refusal checks. Legacy fixtures use an
 explicit test-only v9 publisher. No test here imports the complete corpus or
 proves production Cloudflare runtime acceptance.
-Inspection tests compare against the actual `PublishedKnowledgeReadModel` on
-the same tiny SQLite publication, not a reconstructed lens or JS oracle. They
-cover raw HTTP, source number kinds/unsafe integers/member order, exact/entity/
+Inspection tests compare against hash-pinned outputs from the retired
+`PublishedKnowledgeReadModel` on the same tiny SQLite publication, not a
+reconstructed lens or JS oracle. The oracle helper does not execute Python.
+They cover raw HTTP, source number kinds/unsafe integers/member order, exact/entity/
 native aliases, refusal boundaries and publication/ABA guards, plus an actual
 Miniflare D1 smoke test. Temporary test databases stay under the host TMPDIR.

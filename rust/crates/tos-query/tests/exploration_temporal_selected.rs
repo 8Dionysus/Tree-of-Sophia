@@ -3,25 +3,25 @@
 use std::{
     collections::BTreeMap,
     sync::{
-        Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
     },
 };
 use tos_compiler::knowledge_full_fixture::build_native_fixture;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, canonical_bytes_v1,
-    parse_json,
+    canonical_bytes_v1, parse_json, CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString,
+    JsonValue,
 };
 use tos_query::knowledge_exploration::{
-    EXPLORATION_INTENDED_USE, EXPLORATION_OPERATION, ExplorationBudget, ExplorationCheckpoint,
-    ExplorationCheckpoints, ExplorationState, PreparedExplorationCheckpoint,
-    execute_selected_exploration,
+    execute_selected_exploration, ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints,
+    ExplorationState, PreparedExplorationCheckpoint, EXPLORATION_INTENDED_USE,
+    EXPLORATION_OPERATION,
 };
 use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
 use tos_query::{
-    AbortProbe, AbortReason, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget,
-    InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
-    bind_verified_knowledge, compare_temporal_operands, execute_selected_temporal,
+    bind_verified_knowledge, compare_temporal_operands, execute_selected_temporal, AbortProbe,
+    AbortReason, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget, InspectCurrentAuthority,
+    InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
 };
 fn get<'a>(v: &'a JsonValue, key: &str) -> &'a JsonValue {
     v.object_get(key).unwrap()
@@ -381,6 +381,21 @@ fn genuine_native_temporal_and_exploration_preserve_checkpoint_admission() {
         Some("tos.claim.jenseits-1886-commission.date"),
         "the fixture must keep its named reported commissioning Claim"
     );
+    let claim_attributes = get(claim_nodes[0], "attributes");
+    let source_claim = get(claim_attributes, "source_claim");
+    let source_object = get(source_claim, "object");
+    let expected_wording = object(vec![
+        ("language", text("de")),
+        ("text", text("03. 06.1886")),
+    ]);
+    assert_eq!(get(source_object, "source_wording"), &expected_wording);
+    let source_claim_digest = Digest256::of_bytes(&canonical(source_claim)).to_hex();
+    let literal_digest = Digest256::of_bytes(&canonical(source_object)).to_hex();
+    assert_eq!(
+        get(claim_attributes, "source_sha256").as_str(),
+        Some(source_claim_digest.as_str()),
+        "the native Claim digest must cover the exact source record"
+    );
 
     let cold = fixture.open().unwrap();
     let bound =
@@ -417,6 +432,28 @@ fn genuine_native_temporal_and_exploration_preserve_checkpoint_admission() {
     assert_eq!(
         get(get(&packet, "comparison"), "relation").as_str(),
         Some("equal")
+    );
+    let left = get(&packet, "left");
+    let returned_claim = get(left, "claim");
+    let returned_value = get(left, "value");
+    let normalized_time = get(left, "normalized_time");
+    assert_eq!(
+        get(get(returned_claim, "attributes"), "source_claim"),
+        source_claim
+    );
+    assert_eq!(
+        get(get(returned_value, "attributes"), "value"),
+        source_object
+    );
+    assert_eq!(get(normalized_time, "raw"), source_object);
+    assert_eq!(
+        get(normalized_time, "source_wording"),
+        get(source_object, "source_wording")
+    );
+    assert_eq!(
+        get(get(returned_value, "attributes"), "value_sha256").as_str(),
+        Some(literal_digest.as_str()),
+        "the selected temporal value digest must cover its canonical raw literal"
     );
     assert_eq!(
         get(get(&packet, "authority_boundary"), "creates_inferred_claim"),
@@ -975,13 +1012,11 @@ fn genuine_catalogue_temporal_source_profile_bytes_and_line_are_exact() {
         "comparison-year-numbering-unavailable",
         "absolute-date-envelope-unavailable",
     ] {
-        assert!(
-            get(get(&result, "comparison"), "reasons")
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|reason| get(reason, "code").as_str() == Some(code))
-        );
+        assert!(get(get(&result, "comparison"), "reasons")
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| get(reason, "code").as_str() == Some(code)));
     }
 
     let mut drifted_value = value;
@@ -1005,12 +1040,10 @@ fn genuine_catalogue_temporal_source_profile_bytes_and_line_are_exact() {
         get(get(&result, "comparison"), "status").as_str(),
         Some("undetermined")
     );
-    assert!(
-        get(get(&result, "comparison"), "reasons")
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|reason| get(reason, "code").as_str()
-                == Some("document-catalogue-exact-source-binding-inconsistent"))
-    );
+    assert!(get(get(&result, "comparison"), "reasons")
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|reason| get(reason, "code").as_str()
+            == Some("document-catalogue-exact-source-binding-inconsistent")));
 }

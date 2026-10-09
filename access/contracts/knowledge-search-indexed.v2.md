@@ -21,17 +21,15 @@ that same selected descriptor. No Rust or transport allowlist of today's
 seven source IDs is an authority.
 
 This indexed response contract does not change the direct API's default
-legacy search mode, Python/Worker indexed cursor formats, graph v1 packets,
+legacy search mode, native Rust/Worker indexed cursor formats, graph v1 packets,
 LensSpec v1, exploration v1/v2, or protected exact-source access. An eighth
 source may pass this *structural* schema after owner registration, but public
 compatibility remains gated on the full CMP/QRY selected registry closure,
 exact packet differential, and each consumer adapter's migration. In
-particular, the existing Python and Worker seven-source readers do not
+particular, the existing native Rust and Worker seven-source readers do not
 acquire eighth-source support from this schema file.
 
-`access/tests/test_indexed_search_contract.py` checks that a real synthetic
-graph node and relation pass the indexed v2 structural schema with their
-current source, that the changed source is refused by frozen graph v1, and
-that the indexed v2 schema retains the new source as a nonempty string. The
-test is deliberately structural; CMP/QRY owner tests must prove selected
-descriptor membership and complete indexed publication at compile/open.
+The Rust query tests exercise indexed packets against their selected query
+vocabulary. Those checks are deliberately structural at this contract layer;
+CMP/QRY owner tests must prove selected descriptor membership and complete
+indexed publication at compile/open.
