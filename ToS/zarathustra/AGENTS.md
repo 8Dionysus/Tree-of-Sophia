@@ -59,8 +59,8 @@ review posture and route the pressure to doctrine/contracts.
 
 ## Validation
 
-Use `rust/crates/tos-ops-mechanics-plan/src/source_home.rs`, `scripts/validate_lived_witness_route.py`,
-`scripts/validate_tiny_entry_route.py`,
+Use `rust/crates/tos-ops-mechanics-plan/src/source_home.rs`, `rust/crates/tos-ops-mechanics-plan/src/lived_witness.rs`,
+`rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs`,
 `scripts/validate_local_kag_provider.py` for an explicitly selected export,
 and `rust/crates/tos-ops-mechanics-plan/src/route_cards.rs` when this branch changes. Use the ToS
 review checklist for source/interpretation, lived-witness, method-transfer, and

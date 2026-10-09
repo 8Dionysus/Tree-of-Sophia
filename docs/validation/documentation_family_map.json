@@ -672,7 +672,7 @@
         "mechanics/README.md",
         "mechanics/VALIDATION.md",
         "mechanics/topology.json",
-        "scripts/validate_mechanics_topology.py"
+        "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs"
       ],
       "next_organ": [
         "nearest package/part card",
@@ -1381,8 +1381,8 @@
       "id": "broken_markdown_route",
       "kind": "link_and_fragment",
       "reuses": [
-        "scripts/validate_mechanics_topology.py",
-        "scripts/validate_tiny_entry_route.py"
+        "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs"
       ]
     },
     {
@@ -1390,7 +1390,7 @@
       "kind": "command_and_script_reference",
       "reuses": [
         "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
-        "scripts/validate_mechanics_topology.py",
+        "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs",
         "docs/validation/script_inventory.json"
       ]
     },

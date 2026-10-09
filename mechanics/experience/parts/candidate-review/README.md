@@ -10,7 +10,7 @@
 | owner | `mechanics/experience/parts/candidate-review/` |
 | next route | `ToS/` review or stronger owner handoff |
 | tools | docs, schemas, examples |
-| check | `python scripts/validate_mechanics_topology.py` |
+| check | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
 
 ## Payload
 

@@ -1338,7 +1338,7 @@ print(json.dumps({'owner':str(fx.owner),'source_root':str(fx.root),
         let mut captured = authored.clone();
         for reference in assessment_feature_sources().into_iter().chain([
             "scripts/source_witness_human_forms.py",
-            "scripts/validate_tree_node_contracts.py",
+            "rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs",
             "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
             "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
             "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",

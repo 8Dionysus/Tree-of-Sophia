@@ -10,7 +10,7 @@
 | owner | `mechanics/experience/parts/write-guards/` |
 | next route | owning source or runtime layer |
 | tools | docs, schemas, examples |
-| check | `python scripts/validate_mechanics_topology.py` |
+| check | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
 
 ## Payload
 

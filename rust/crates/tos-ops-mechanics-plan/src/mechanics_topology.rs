@@ -1283,8 +1283,7 @@ fn documentation_references(
 }
 
 /// Complete, read-only mechanics topology and route-document validation.
-/// Python remains the independent lane oracle until source, cost and actual
-/// native execution have been accepted by the owner.
+/// Authored topology and exact tracked documentation remain the inputs.
 pub fn validate(root: &Path) -> io::Result<Vec<Issue>> {
     static NEVER_CANCEL: AtomicI32 = AtomicI32::new(0);
     let deadline = Instant::now()

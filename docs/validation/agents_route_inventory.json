@@ -204,8 +204,8 @@
       "boundary_markers": ["candidate", "review", "canon", "derived"],
       "on_demand_surfaces": ["ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md", "ToS/contracts/CORPUS_CONTRACTS.md", "ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md"],
       "validation_lanes": ["intake_contracts", "canon_contracts", "route_docs"],
-      "validation_paths": ["scripts/validate_intake_pack.py", "scripts/validate_tree_node_contracts.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
-      "completion_evidence": ["ToS/candidate-intake/AGENTS.md", "ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md", "scripts/validate_intake_pack.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs", "rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
+      "completion_evidence": ["ToS/candidate-intake/AGENTS.md", "ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md", "rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs"],
       "handoff_routes": ["ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md", "ToS/public-compatibility/AGENTS.md"]
     },
     {
@@ -246,8 +246,8 @@
       "boundary_markers": ["source witness", "canon", "derived export"],
       "on_demand_surfaces": ["ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md", "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
       "validation_lanes": ["public_entry", "route_docs"],
-      "validation_paths": ["scripts/validate_tiny_entry_route.py", "scripts/validate_local_kag_provider.py"],
-      "completion_evidence": ["ToS/zarathustra/AGENTS.md", "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "scripts/validate_tiny_entry_route.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs", "scripts/validate_local_kag_provider.py"],
+      "completion_evidence": ["ToS/zarathustra/AGENTS.md", "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs"],
       "handoff_routes": ["ToS/public-compatibility/AGENTS.md", "ToS/derived-exports/AGENTS.md"]
     },
     {
@@ -260,8 +260,8 @@
       "boundary_markers": ["ToS", "runtime", "canon"],
       "on_demand_surfaces": ["mechanics/README.md", "mechanics/boundary-bridge/PARTS.md", "mechanics/boundary-bridge/PROVENANCE.md"],
       "validation_lanes": ["mechanics_topology", "mechanics_local", "route_docs"],
-      "validation_paths": ["scripts/validate_mechanics_topology.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
-      "completion_evidence": ["mechanics/AGENTS.md", "mechanics/boundary-bridge/AGENTS.md", "mechanics/topology.json", "scripts/validate_mechanics_topology.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
+      "completion_evidence": ["mechanics/AGENTS.md", "mechanics/boundary-bridge/AGENTS.md", "mechanics/topology.json", "rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs"],
       "handoff_routes": ["mechanics/boundary-bridge/parts/derived-kag-seam/README.md"]
     },
     {

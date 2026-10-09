@@ -10,7 +10,7 @@
 | owner | `mechanics/agon/parts/landing-handoff/` |
 | next route | `Agents-of-Abyss` for center Agon law; `ToS/` for authored meaning |
 | tools | handoff doc and package provenance |
-| check | `python scripts/validate_mechanics_topology.py` |
+| check | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
 
 ## Payload
 

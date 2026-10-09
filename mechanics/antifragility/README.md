@@ -12,7 +12,7 @@
 | owner | `mechanics/antifragility/` |
 | stronger route | `ToS/` owns source meaning and canon |
 | next route | [Source Resilience](parts/source-resilience/README.md) |
-| validation | `python scripts/validate_mechanics_topology.py` |
+| validation | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
 
 ## Active Route
 

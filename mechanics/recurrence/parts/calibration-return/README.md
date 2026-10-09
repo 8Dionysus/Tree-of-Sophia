@@ -10,4 +10,4 @@
 | owner | `mechanics/recurrence/parts/calibration-return/` |
 | next route | `ToS/doctrine/CALIBRATION_AXIS.md` or the owning ToS branch |
 | tools | `ToS/doctrine/CALIBRATION_AXIS.md`, tiny-entry validator |
-| check | `python scripts/validate_tiny_entry_route.py` |
+| check | `python rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs` |

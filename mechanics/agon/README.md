@@ -15,7 +15,7 @@ home without gaining canon-write authority.
 | owner | `mechanics/agon/AGENTS.md`, `PARTS.md`, and active part routes |
 | stronger route | `ToS/` owns authored philosophy and canon; `Agents-of-Abyss` owns center Agon law |
 | next route | active part first; ToS canon review only through ToS-owned authority |
-| validation | `python scripts/run_mechanics_local_tests.py`; `python scripts/validate_mechanics_topology.py` |
+| validation | `python scripts/run_mechanics_local_tests.py`; `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
 
 ## Active Route
 

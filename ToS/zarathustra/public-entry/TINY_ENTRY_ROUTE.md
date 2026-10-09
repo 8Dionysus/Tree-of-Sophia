@@ -133,7 +133,7 @@ See
 [ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md](../prologue-1/TRILINGUAL_ENTRY.md),
 `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-build --check --kag-export EXPORT`,
 `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-validate --kag-export EXPORT`,
-`python scripts/validate_tiny_entry_route.py`,
+`python rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs`,
 [the selected KAG export validation route](../../../kag/VALIDATION.md), and
 [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md](../../../mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
 for the current validator and manual-review route for this bounded seam.

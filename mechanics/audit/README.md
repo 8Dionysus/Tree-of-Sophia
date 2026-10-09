@@ -12,7 +12,7 @@
 | owner | `mechanics/audit/` |
 | stronger route | `ToS/` owns source meaning; `aoa-evals` owns proof verdicts |
 | next route | [Review Ledger Route](parts/review-ledger-route/README.md) |
-| validation | `python scripts/validate_mechanics_topology.py` |
+| validation | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
 
 ## Active Route
 

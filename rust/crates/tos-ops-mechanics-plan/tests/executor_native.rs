@@ -217,111 +217,22 @@ esac
     fs::remove_dir_all(root).unwrap();
 }
 
-// Existing controlled consumer now enters through installed Python wrappers.
-// Exact adapters guard exec replacement/argv/environment; the original tiny
-// validation sequence retains command-authority order and first-failure stop.
+// Native validation sequences preserve command order and first-failure stop.
 #[cfg(target_os = "linux")]
 #[test]
-fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure() {
-    use std::fs;
-    use std::os::unix::fs::PermissionsExt;
-    use std::process::Command;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    let root = std::env::temp_dir().join(format!(
-        "tos-validation-lanes-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+fn native_validation_sequences_preserve_order_and_first_failure() {
+    use std::{fs, process::Command, time::{SystemTime, UNIX_EPOCH}};
+    let root = std::env::temp_dir().join(format!("tos-validation-lanes-{}-{}",std::process::id(),SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
     fs::create_dir_all(root.join("docs/validation")).unwrap();
-    fs::create_dir_all(root.join("scripts")).unwrap();
-    for (name, source) in [
-        (
-            "validate_mechanics_topology.py",
-            include_str!("../../../../scripts/validate_mechanics_topology.py"),
-        ),
-    ] {
-        fs::write(root.join("scripts").join(name), source).unwrap();
-    }
-    fs::create_dir(root.join("bin")).unwrap();
-    let selected = root.join("bin/selected native");
-    fs::write(&selected, "#!/usr/bin/python3\nimport json,os,sys\nprint(json.dumps({'argv':sys.argv,'pid':os.getpid(),'sentinel':os.environ['WRAPPER_SENTINEL'],'pytest':os.environ['PYTEST_DISABLE_PLUGIN_AUTOLOAD'],'needs':os.environ['CI_NEEDS'],'github':os.environ['GITHUB_OUTPUT']},ensure_ascii=False))\nraise SystemExit(17)\n").unwrap();
-    fs::set_permissions(&selected, fs::Permissions::from_mode(0o700)).unwrap();
-    let inspect =
-        |script: &str, key: &str, args: &[&str], expected: Vec<String>, path_lookup: bool| {
-            let mut command = Command::new("/usr/bin/python3");
-            command
-                .arg("-B")
-                .arg(root.join("scripts").join(script))
-                .args(args)
-                .env(
-                    key,
-                    if path_lookup {
-                        ""
-                    } else {
-                        selected.to_str().unwrap()
-                    },
-                )
-                .env("PATH", root.join("bin"))
-                .env("WRAPPER_SENTINEL", "source literal $value, пробел")
-                .env("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "0")
-                .env("CI_NEEDS", "{\"fixture\":true}")
-                .env("GITHUB_OUTPUT", root.join("caller-output"))
-                .stdout(std::process::Stdio::piped())
-                .stderr(std::process::Stdio::piped());
-            let child = command.spawn().unwrap();
-            let pid = child.id();
-            let output = child.wait_with_output().unwrap();
-            assert_eq!(
-                output.status.code(),
-                Some(17),
-                "{}",
-                String::from_utf8_lossy(&output.stderr)
-            );
-            assert!(output.stderr.is_empty());
-            let trace: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-            assert_eq!(
-                trace["pid"], pid,
-                "wrapper must exec rather than spawn a second owner"
-            );
-            assert_eq!(trace["argv"], serde_json::json!(expected));
-            assert_eq!(trace["sentinel"], "source literal $value, пробел");
-            assert_eq!(trace["pytest"], "0");
-            assert_eq!(trace["needs"], "{\"fixture\":true}");
-            assert_eq!(
-                trace["github"],
-                root.join("caller-output").to_str().unwrap()
-            );
-            assert!(!root.join("caller-output").exists());
-        };
-    let base = |tail: &[&str]| {
-        let mut argv = vec![
-            selected.to_str().unwrap().to_owned(),
-            "--repo-root".into(),
-            root.to_str().unwrap().into(),
-        ];
-        argv.extend(tail.iter().map(|v| (*v).to_owned()));
-        argv
-    };
-    inspect(
-        "validate_mechanics_topology.py",
-        "TOS_OPS_MECHANICS_EXECUTOR",
-        &["legacy ignored argument"],
-        base(&["--mechanics-topology-validate"]),
-        false,
-    );
     fs::write(
         root.join("docs/validation/validation_lanes.json"),
-        r#"{"command_sequences":{"sample":[{"label":"first","command":["python","-B","adapter.py","first"]},{"label":"failing","command":["python","-B","adapter.py","fail"]},{"label":"later","command":["python","-B","adapter.py","later"]}],"rust_workspace":[{"label":"budgeted slow","command":["python","-B","adapter.py","slow"],"command_timeout_ms":500},{"label":"never after timeout","command":["python","-B","adapter.py","later"]}]}}"#,
+        r#"{"command_sequences":{"sample":[{"label":"first","command":["/bin/sh","adapter.sh","first"]},{"label":"failing","command":["/bin/sh","adapter.sh","fail"]},{"label":"later","command":["/bin/sh","adapter.sh","later"]}],"rust_workspace":[{"label":"budgeted slow","command":["/bin/sh","adapter.sh","slow"],"command_timeout_ms":500},{"label":"never after timeout","command":["/bin/sh","adapter.sh","later"]}]}}"#,
     )
     .unwrap();
-    let adapter = root.join("adapter.py");
+    let adapter = root.join("adapter.sh");
     fs::write(
         &adapter,
-        "import pathlib,sys,time\nwith pathlib.Path('trace').open('a') as trace: trace.write(sys.argv[1]+'\\n')\nif sys.argv[1]=='slow': time.sleep(5)\nraise SystemExit(17 if sys.argv[1]=='fail' else 0)\n",
+        "printf '%s\\n' \"$1\" >> trace\n[ \"$1\" = slow ] && /bin/sleep 5\n[ \"$1\" = fail ] && exit 17\nexit 0\n",
     )
     .unwrap();
     let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
@@ -329,7 +240,7 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     let output = Command::new(&executable)
         .arg("--repo-root")
         .arg(&root)
-        .args(["--python", "/usr/bin/python3"])
+        .args(["--python", "/no-python-executable"])
         .args(["--sequence", "sample", "--run", "sample"])
         .output()
         .unwrap();
@@ -339,9 +250,9 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
         "first\nfail\n"
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("first: /usr/bin/python3 -B adapter.py first\n"));
+    assert!(stdout.contains("first: /bin/sh adapter.sh first\n"));
     assert!(stdout.contains("[ok] first\n"));
-    assert!(stdout.contains("[run] failing: /usr/bin/python3 -B adapter.py fail\n"));
+    assert!(stdout.contains("[run] failing: /bin/sh adapter.sh fail\n"));
     assert!(!stdout.contains("[run] later:"));
     assert!(
         String::from_utf8(output.stderr)
@@ -353,13 +264,13 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     let output = Command::new(&executable)
         .arg("--repo-root")
         .arg(&root)
-        .args(["--python", "/usr/bin/python3"])
+        .args(["--python", "/no-python-executable"])
         .args(["--run", "rust_workspace"])
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(1));
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("[run] budgeted slow: /usr/bin/python3 -B adapter.py slow\n"));
+    assert!(stdout.contains("[run] budgeted slow: /bin/sh adapter.sh slow\n"));
     assert!(
         stdout
             .contains("[budget] budgeted slow: command_timeout_ms=500 lane_wall_cap_ms=3600000\n")

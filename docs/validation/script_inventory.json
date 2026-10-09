@@ -3363,25 +3363,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/validate_intake_pack.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/candidate-intake/AGENTS.md",
-      "source_truth": [
-        "ToS/candidate-intake/**",
-        "ToS/doctrine/TABULAR_BASE_CONTRACT.md"
-      ],
-      "reads": [
-        "ToS/candidate-intake/**"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "intake_contracts",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_intake_pack_validation.py",
-      "disposition": "keep"
-    },
-    {
       "path": "scripts/validate_local_kag_provider.py",
       "family": "source_validator",
       "organ_lane": "source/topology",
@@ -3398,29 +3379,6 @@
       "validation_lane": "local_kag_provider",
       "ci_inclusion": "explicit downstream artifact validation",
       "test_target": "tests/test_build_kag_export.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_mechanics_topology.py",
-      "family": "source_validator",
-      "organ_lane": "mechanics/package",
-      "owner_surface": "mechanics/topology.json",
-      "source_truth": [
-        "mechanics/topology.json",
-        "mechanics/README.md",
-        "mechanics/*/PARTS.md",
-        "docs/validation/script_inventory.json"
-      ],
-      "reads": [
-        "mechanics/topology.json",
-        "mechanics/**",
-        "docs/validation/script_inventory.json"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "mechanics_topology",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_mechanics_route_docs.py",
       "disposition": "keep"
     },
     {
@@ -3462,24 +3420,6 @@
       "validation_lane": "questbook_surface",
       "ci_inclusion": "release",
       "test_target": "mechanics/questbook/tests/test_validate_questbook_surface.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_tiny_entry_route.py",
-      "family": "source_validator",
-      "organ_lane": "public-compatibility",
-      "owner_surface": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-      "source_truth": [
-        "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
-      ],
-      "reads": [
-        "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "public_entry",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_validate_tiny_entry_route.py",
       "disposition": "keep"
     },
     {
@@ -3616,25 +3556,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/validate_tree_node_contracts.py",
-      "family": "source_validator",
-      "organ_lane": "source/canon-contract",
-      "owner_surface": "ToS/contracts/tos-node-contract.schema.json",
-      "source_truth": [
-        "ToS/contracts/tos-node-contract.schema.json",
-        "ToS/canon/**"
-      ],
-      "reads": [
-        "ToS/canon/**"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "canon_contracts",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_validate_tree_node_contracts.py",
-      "disposition": "keep"
-    },
-    {
       "path": "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py",
       "family": "source_validator",
       "organ_lane": "mechanics/part-owned",
@@ -3645,7 +3566,7 @@
         "ToS/canon/relations/**",
         "ToS/canon/registries/**",
         "ToS/doctrine/RELATION_PACK_CONTRACT.md",
-        "scripts/validate_intake_pack.py"
+        "rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs"
       ],
       "reads": [
         "ToS/candidate-intake/**",
@@ -3657,28 +3578,6 @@
       "validation_lane": "canon_contracts",
       "ci_inclusion": "release",
       "test_target": "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_lived_witness_route.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/zarathustra/lived-witness/AGENTS.md",
-      "source_truth": [
-        "ToS/zarathustra/lived-witness/CAPTURE_PROTOCOL.md",
-        "ToS/zarathustra/lived-witness/CAPTURE_FORM.md",
-        "ToS/contracts/lived-witness-packet.schema.json",
-        ".gitignore"
-      ],
-      "reads": [
-        "lived-witness route documents and schemas",
-        "Git ignore and tracked-path state for the private capture boundary"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "source_home",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_lived_witness_route.py",
       "disposition": "keep"
     },
     {

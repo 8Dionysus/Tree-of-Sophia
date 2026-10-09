@@ -16,7 +16,7 @@ interpretation, or canon.
 | `CAPTURE_FORM.md` | the short human-facing form used one section at a time rather than as a clerical checklist |
 | `local-content/` | ignored private packets and raw capture artifacts |
 | `ToS/contracts/lived-witness-packet.schema.json` | machine-checkable packet shape |
-| `scripts/validate_lived_witness_route.py` | structural and privacy-boundary check only |
+| `rust/crates/tos-ops-mechanics-plan/src/lived_witness.rs` | structural and privacy-boundary check only |
 
 ## Invocation
 
