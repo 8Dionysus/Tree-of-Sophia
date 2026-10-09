@@ -1192,7 +1192,7 @@ fn selections_from_nodes(
         let Some(forms) = properties.get("human_forms").and_then(Value::as_array) else {
             continue;
         };
-        for packet in forms.iter_mut() {
+        for packet in forms {
             let Some(identity) = packet
                 .get("form")
                 .and_then(|form| form.get("id"))
@@ -1465,6 +1465,20 @@ impl Drop for CandidatePublication {
             let _ = self.directory.sync_all();
         }
     }
+}
+
+/// Test-only access to the real staged/no-replace candidate writer. The callback
+/// runs after staging fsync and before visibility, exactly as the production
+/// currentness guard does; no source or assessment authority is created.
+#[cfg(feature = "conformance-owner-local-source-resolver")]
+pub fn conformance_write_assessed_candidate(
+    target: &Path,
+    rendered: &[u8],
+    after_stage_fsync: impl FnOnce() -> std::result::Result<(), Box<dyn StdError>>,
+) -> std::result::Result<(), Box<dyn StdError>> {
+    let publication = write_assessed_candidate_with_hook(target, rendered, after_stage_fsync)?;
+    drop(publication);
+    Ok(())
 }
 
 pub(crate) fn write_assessed_candidate_with_hook(
@@ -3942,9 +3956,7 @@ pub fn run_corpus_assessed_candidate_args(
         path.map_err(|error| -> Box<dyn StdError> { Box::new(error) })
             .and_then(read_assessed_candidate_request_file)
     } else {
-        Err(Refusal(
-            "assessed candidate CLI requires --request ABS_JSON or stdin",
-        ).into())
+        Err(Refusal("assessed candidate CLI requires --request ABS_JSON or stdin").into())
     }
     .and_then(execute_assessed_candidate);
     report_assessed_candidate(result, output, diagnostics)

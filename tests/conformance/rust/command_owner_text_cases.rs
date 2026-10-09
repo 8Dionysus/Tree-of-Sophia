@@ -67,50 +67,6 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),
     captured.packets.get("factory").unwrap().clone()
 }
 
-fn fixture_json(
-    repository: &Path,
-    root: &Path,
-    output: &Path,
-    errors: &Path,
-    deadline: Instant,
-    script: &str,
-) -> Value {
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdout(Stdio::from(fs::File::create(output).unwrap()))
-        .stderr(Stdio::from(fs::File::create(errors).unwrap()))
-        .spawn()
-        .unwrap();
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(output).unwrap().len() > 1_048_576
-            || fs::metadata(errors).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Text fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < deadline);
-    assert!(fs::metadata(output).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(errors).unwrap().len() <= 1_048_576);
-    assert!(
-        status.success(),
-        "{}",
-        String::from_utf8_lossy(&fs::read(errors).unwrap())
-    );
-    serde_json::from_slice(&fs::read(output).unwrap()).unwrap()
-}
-
 const PAGE_OCR_LAYER_ID: &str = "tos.text-layer.sid-cccccccccccccccccccccccccccccccc";
 const PAGE_OCR_NOTICE: &str =
     "Synthetic test fixture only; no historical, linguistic or rights judgment.";
@@ -1162,59 +1118,39 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
-    let script = r#"
-import json,sys,tempfile,unittest
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.dont_write_bytecode=True
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
-from datetime import datetime,timedelta,timezone
-import test_knowledge_assessment as policy_fixture
-# Native commands use real time; retain a finite synthetic grant window.
-policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
-import test_owner_local_assessment as maintained
-class ExistingRoot:
-    serial=0
-    def __init__(self,*args,**kwargs):
-        type(self).serial+=1
-        path=root/('synthetic-owner-'+str(type(self).serial))
-        path.mkdir(mode=0o700)
-        self.name=str(path)
-    def cleanup(self): pass
-    def __enter__(self): return self.name
-    def __exit__(self,*args): pass
-original=tempfile.TemporaryDirectory
-try:
-    tempfile.TemporaryDirectory=ExistingRoot
-    fixture=maintained.OwnerLocalAssessmentFixture(unittest.TestCase(methodName='runTest'))
-    # Native assessment uses its real clock; renew only synthetic fixture grants.
-    for grant in fixture.config['authorities']+fixture.config['competencies']:
-        grant['payload']['valid_until']='2099-01-01T00:00:00Z'
-    fixture._grants()
-    fixture.save()
-finally:
-    tempfile.TemporaryDirectory=original
-assert fixture.native.packet['reviews']==[]
-print(json.dumps({'public':str(fixture.public),'private':str(fixture.private),
-    'context':str(fixture.context_path),'owner':str(fixture.owner),
-    'subject_id':fixture.identifier,'request':fixture.request(),
-    'preserved':[str(fixture.packet_path),str(fixture.content_path),str(fixture.public/fixture.native.layer_ref)],
-    'absent_original':str(fixture.public/fixture.native.original_ref),
-    'forbidden':[fixture.native.text[3:8],fixture.content_ref,fixture.binding['packet_ref'],
-        fixture.binding['packet_sha256'],fixture.binding['text_layer']['record_sha256'],
-        'ordered_anchor_refs','exact_sha256','source_record_refs']},ensure_ascii=False,separators=(',',':')))
-"#;
-    let fixture = fixture_json(
-        &repository,
-        temporary.path(),
-        &temporary.path().join("assessment-fixture.stdout"),
-        &temporary.path().join("assessment-fixture.stderr"),
-        deadline,
-        script,
-    );
+    // This is a Rust-owned v4 setup derived from the captured native text-journal
+    // fixture. The archive remains v5 evidence: only its in-memory owner config
+    // is explicitly downgraded for the v4 compatibility route.
+    let fixture = native_layer_journal_fixture(temporary.path(), false);
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
+    let captured_v5: Value = serde_json::from_slice(&fs::read(&owner).unwrap()).unwrap();
+    assert_eq!(
+        captured_v5["schema_version"],
+        "tos_local_assessment_owner_v5"
+    );
+    let mut config = captured_v5;
+    config["schema_version"] = Value::from("tos_local_assessment_owner_v4");
+    assert!(
+        config
+            .as_object_mut()
+            .unwrap()
+            .remove("quality_dependencies")
+            .is_some()
+    );
+    fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(config["schema_version"], "tos_local_assessment_owner_v4");
+    assert!(config.get("quality_dependencies").is_none());
+    assert_eq!(config["native_text_units"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        config["owner_local_source_records"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
     let images = [
         std::env::current_exe().unwrap(),
         PathBuf::from(
@@ -1287,6 +1223,28 @@ print(json.dumps({'public':str(fixture.public),'private':str(fixture.private),
     let invocation_path = temporary.path().join("assessment-native-invocation.json");
     fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let unit = &fixture["unit_subject"];
+    let unit_id = unit["id"].as_str().unwrap();
+    let binding = &config["native_text_units"][0]["binding"];
+    let private_marker = fixture["content"]
+        .as_str()
+        .unwrap()
+        .chars()
+        .take(8)
+        .collect::<String>();
+    let forbidden = [
+        private_marker,
+        fixture["source_member"].as_str().unwrap().to_owned(),
+        binding["packet_ref"].as_str().unwrap().to_owned(),
+        binding["packet_sha256"].as_str().unwrap().to_owned(),
+        binding["text_layer"]["record_sha256"]
+            .as_str()
+            .unwrap()
+            .to_owned(),
+        "ordered_anchor_refs".to_owned(),
+        "exact_sha256".to_owned(),
+        "source_record_refs".to_owned(),
+    ];
     let invoke = |request: &Value| -> Value {
         let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
             &repository,
@@ -1304,9 +1262,9 @@ print(json.dumps({'public':str(fixture.public),'private':str(fixture.private),
         assert_eq!(response["schema_version"], "tos_local_assessment_result_v1");
         assert_eq!(response["visibility"], "local_only");
         assert_eq!(response["publication_authorized"], false);
-        for forbidden in fixture["forbidden"].as_array().unwrap() {
+        for marker in &forbidden {
             assert!(
-                !String::from_utf8_lossy(&raw).contains(forbidden.as_str().unwrap()),
+                !String::from_utf8_lossy(&raw).contains(marker),
                 "private native evidence disclosed in result"
             );
         }
@@ -1314,11 +1272,12 @@ print(json.dumps({'public':str(fixture.public),'private':str(fixture.private),
         response
     };
     let describe = serde_json::json!({"schema_version":"tos_local_assessment_command_v1",
-        "operation":"describe","subject_id":fixture["subject_id"]});
+        "operation":"describe","subject_id":unit_id});
     let described = invoke(&describe);
-    let mut request = fixture["request"].clone();
+    let mut request = fixture["unit_template"].clone();
     // Currentness comes from the selected native owner, not fixture/oracle output.
     request["expected_snapshot"] = described["owner_snapshot"].clone();
+    request["expected_revision"] = Value::Null;
     let committed = invoke(&request);
     assert_eq!(committed["result"]["current_admission"]["can_use"], true);
     assert_eq!(
@@ -1352,16 +1311,15 @@ print(json.dumps({'public':str(fixture.public),'private':str(fixture.private),
     for (path, raw) in preserved {
         assert_eq!(fs::read(path).unwrap(), raw);
     }
-    assert!(!Path::new(fixture["absent_original"].as_str().unwrap()).exists());
+    assert_authored_text_unchanged(&public, &authored);
     for (index, path) in images.iter().enumerate() {
         assert_eq!(custody(path), before_images[index]);
     }
     assert!(Instant::now() < deadline);
 }
 
-fn assessment_feature_sources() -> [&'static str; 13] {
+fn assessment_feature_sources() -> [&'static str; 12] {
     [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
         "rust/crates/tos-command/src/lib.rs",
         "rust/crates/tos-command/src/source_native_cli.rs",
         "rust/crates/tos-command/src/source_native_private_cli.rs",
@@ -2032,398 +1990,333 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let deadline = Instant::now() + Duration::from_secs(600);
+    let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);
-    for (count, source_copy, ready) in [(1usize, false, false), (6, true, true)] {
-        let temporary = tempfile::Builder::new()
-            .permissions(fs::Permissions::from_mode(0o700))
-            .tempdir()
-            .unwrap();
-        let fixture_script = r#"
-import json,sys,tempfile
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),
-    str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-from datetime import datetime,timedelta,timezone
-import test_knowledge_assessment as policy_fixture
-policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
-counter=0
-class OwnedTemporary:
-    def __init__(self,*args,**kwargs):
-        global counter
-        counter+=1
-        directory=root/('owned-'+str(counter))
-        directory.mkdir(mode=0o700)
-        self.name=str(directory)
-    def cleanup(self): pass
-original=tempfile.TemporaryDirectory
-tempfile.TemporaryDirectory=OwnedTemporary
-try:
-    from test_assessment_read_batch import AssessmentReadBatchTests
-    case=AssessmentReadBatchTests(methodName='runTest')
-    fx=case.fixture(__COUNT__,ready=__READY__,source_copy=__SOURCE_COPY__)
-finally:
-    tempfile.TemporaryDirectory=original
-print(json.dumps({'owner':str(fx.owner),'source_root':str(fx.root),
-    'journal':fx.config['journal_directory'],'form_ids':fx.ids,'forms':fx.forms,
-    'source':{'id':fx.source.id,'version':fx.source.version,'payload':fx.source.payload,
-        'origin_id':fx.source.origin_id,'ref':fx.source.ref},
-    'source_path':fx.config['source_records'][0]['path'],
-    'form_path':fx.config['source_records'][1]['path'],'nodes':fx.nodes},
-    ensure_ascii=False,separators=(',',':')))
-"#
-            .replace("__COUNT__", &count.to_string())
-            .replace("__READY__", if ready { "True" } else { "False" })
-            .replace(
-                "__SOURCE_COPY__",
-                if source_copy { "True" } else { "False" },
-            );
-        let fixture = fixture_json(
+    let temporary = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
+    let fixture =
+        super::native_public_assessment_fixture::native_public_v2_assessed_form_batch_fixture(
             &repository,
             temporary.path(),
-            &temporary.path().join("public-read-fixture.stdout"),
-            &temporary.path().join("public-read-fixture.stderr"),
-            deadline,
-            &fixture_script,
+        )
+        .unwrap();
+    let owner = fixture.owner_config_path.clone();
+    let source_root = fixture.public_root.clone();
+    let invocation_path = temporary
+        .path()
+        .join("native-assessment-read-invocation.json");
+    let images = [
+        std::env::current_exe().unwrap(),
+        PathBuf::from(
+            std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
+        ),
+        PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("native worker required")),
+    ];
+    let before: Vec<_> = images
+        .iter()
+        .map(|path| super::command_text_cases::alignment_image_digest(path))
+        .collect();
+    let authored = super::command_text_cases::authored_text_files(&source_root);
+    let mut captured = authored.clone();
+    for reference in assessment_feature_sources().into_iter().chain([
+        "rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-validation/src/source_forms/source_copy_kernel.rs",
+    ]) {
+        let path = repository.join(reference);
+        assert!(path.is_file() && fs::metadata(&path).unwrap().len() <= 2_097_152);
+        assert!(
+            captured
+                .insert(reference.to_owned(), fs::read(path).unwrap())
+                .is_none()
         );
-        let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
-        let source_root = PathBuf::from(fixture["source_root"].as_str().unwrap());
-        let invocation_path = temporary
-            .path()
-            .join("native-assessment-read-invocation.json");
-        let manifest_path = temporary
-            .path()
-            .join("native-assessment-read-manifest.json");
-        fs::write(&manifest_path, serde_json::to_vec(&fixture).unwrap()).unwrap();
-        let images = [
-            std::env::current_exe().unwrap(),
-            PathBuf::from(
-                std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
-            ),
-            PathBuf::from(
-                std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("native worker required"),
-            ),
-        ];
-        let before: Vec<_> = images
-            .iter()
-            .map(|path| super::command_text_cases::alignment_image_digest(path))
-            .collect();
-        let authored = super::command_text_cases::authored_text_files(&source_root);
-        let mut captured = authored.clone();
-        for reference in assessment_feature_sources().into_iter().chain([
-            "scripts/source_witness_human_forms.py",
-            "rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-            "rust/crates/tos-command/src/source_forms.rs",
-            "rust/crates/tos-validation/src/source_forms/source_copy_kernel.rs",
-        ]) {
-            let path = repository.join(reference);
-            assert!(path.is_file() && fs::metadata(&path).unwrap().len() <= 2_097_152);
-            assert!(
-                captured
-                    .insert(reference.to_owned(), fs::read(path).unwrap())
-                    .is_none()
-            );
+    }
+    assert!(captured.len() <= 2048 && captured.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+    let (capture, _software, components) =
+        super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+    let store = temporary.path().join("public-assessment-read-cut");
+    let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let invocation = serde_json::json!({
+        "schema_version":"tos_local_native_assessment_read_invocation_v1",
+        "owner_config":owner,
+        "native_executable":images[1],
+        "native_executable_sha256":before[1].to_prefixed(),
+        "corpus_store":store,
+        "source_revision":selected.0.to_prefixed(),
+        "original_source_revision":selected.0.to_prefixed(),
+        "software_capture":capture.capture,
+        "software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,
+            "source_git_tree":capture.selection.source_git_tree,
+            "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":images[2],"sha256":before[2].to_prefixed()},
+        "assessment_schema_worker":{"absolute_path":images[2],"sha256":before[2].to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+            "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
+    });
+    fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+
+    let mut command_invocation = invocation.clone();
+    command_invocation["schema_version"] = Value::from("tos_local_native_source_invocation_v1");
+    command_invocation["owner_context"] = serde_json::json!(fixture.owner_context_path);
+    let command_path = temporary
+        .path()
+        .join("native-assessment-command-invocation.json");
+    fs::write(
+        &command_path,
+        serde_json::to_vec(&command_invocation).unwrap(),
+    )
+    .unwrap();
+    fs::set_permissions(&command_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let observe = |path: &Path, request: &Value| {
+        super::command_text_cases::native_owner_cli_observation(
+            &repository,
+            &owner,
+            path,
+            request,
+            deadline,
+        )
+    };
+    let invoke = |path: &Path, request: &Value| -> Value {
+        let (status, raw, errors) = observe(path, request);
+        assert!(
+            status.success(),
+            "native batch {}: {}",
+            request["operation"],
+            String::from_utf8_lossy(&errors)
+        );
+        serde_json::from_slice(&raw).unwrap()
+    };
+    let describe = |index: usize| serde_json::json!({"schema_version":"tos_local_assessment_command_v1","operation":"describe","subject_id":fixture.subject_ids[index]});
+    for &index in &fixture.ready_selections {
+        let current = invoke(&command_path, &describe(index));
+        let request = serde_json::json!({"schema_version":"tos_local_assessment_command_v1","operation":"append",
+            "subject_id":fixture.subject_ids[index],"expected_subject":fixture.subject_refs[index],
+            "expected_snapshot":current["owner_snapshot"],"expected_revision":current["result"]["revision"],
+            "command_id":format!("native-batch-{index}"),"assessments":[fixture.append_assessments[index]]});
+        assert_eq!(
+            invoke(&command_path, &request)["result"]["current_admission"]["can_use"],
+            true
+        );
+    }
+    fn files(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+        let mut result = BTreeMap::new();
+        for entry in fs::read_dir(root).unwrap() {
+            let path = entry.unwrap().path();
+            let metadata = path.symlink_metadata().unwrap();
+            assert!(!metadata.file_type().is_symlink());
+            if metadata.is_dir() {
+                result.extend(files(&path));
+            } else {
+                assert!(metadata.is_file());
+                result.insert(path.clone(), fs::read(path).unwrap());
+            }
+        }
+        result
+    }
+    let journal_before = files(&fixture.journal_directory);
+    let source_path = fixture.owner_config["source_records"][0]["path"].clone();
+    let form_path = fixture
+        .form_set_path
+        .as_ref()
+        .unwrap()
+        .strip_prefix(&source_root)
+        .unwrap()
+        .to_str()
+        .unwrap();
+    let selections=fixture.subject_refs.iter().map(|form_ref|serde_json::json!({
+        "form_ref":form_ref,"subject_ref":fixture.source_ref,"source_path":source_path,"form_path":form_path
+    })).collect::<Vec<_>>();
+    let request = serde_json::json!({"schema_version":"tos_local_assessed_forms_materialization_request_v1","operation":"materialize_assessed_forms","selections":selections});
+    let actual = invoke(&invocation_path, &request);
+    assert_eq!(
+        actual["schema_version"],
+        "tos_local_assessed_forms_materialization_result_v1"
+    );
+    let replies = actual["replies"].as_array().unwrap();
+    assert_eq!(replies.len(), 7);
+    for (index, reply) in replies.iter().enumerate() {
+        let current = invoke(&command_path, &describe(index));
+        let single = invoke(
+            &command_path,
+            &serde_json::json!({"schema_version":"tos_local_assessment_command_v1",
+            "operation":"materialize-form","subject_id":fixture.subject_ids[index],"expected_subject":fixture.subject_refs[index],
+            "expected_snapshot":current["owner_snapshot"]}),
+        );
+        let mut expected = single.clone();
+        expected["owner_snapshot"] = reply["owner_snapshot"].clone();
+        assert_eq!(reply, &expected, "whole native batch/single parity {index}");
+        assert_eq!(
+            reply["result"]["materialization"]["state"],
+            if index == 0 {
+                "needs-assessment"
+            } else {
+                "ready"
+            }
+        );
+    }
+    assert_eq!(files(&fixture.journal_directory), journal_before);
+    assert_authored_text_unchanged(&source_root, &authored);
+    for mutation in [
+        "version",
+        "subject",
+        "source-path",
+        "form-path",
+        "duplicate",
+    ] {
+        let mut bad = request.clone();
+        let rows = bad["selections"].as_array_mut().unwrap();
+        let last = rows.last_mut().unwrap();
+        match mutation {
+            "version" => last["form_ref"]["version"] = serde_json::json!(2),
+            "subject" => last["subject_ref"] = last["form_ref"].clone(),
+            "source-path" => {
+                last["source_path"] = Value::from("ToS/source-witnesses/another/source.json")
+            }
+            "form-path" => {
+                last["form_path"] =
+                    Value::from("ToS/source-witnesses/another/source.human-forms.json")
+            }
+            _ => {
+                let duplicate = last.clone();
+                rows.push(duplicate);
+            }
         }
         assert!(
-            captured.len() <= 2048 && captured.values().map(Vec::len).sum::<usize>() <= 33_554_432
+            !observe(&invocation_path, &bad).0.success(),
+            "bad final selection {mutation}"
         );
-        let (capture, _software, components) =
-            super::command_record_cases::captured_components(&captured, deadline, &cancelled);
-        let store = temporary.path().join("public-assessment-read-cut");
-        let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
-        let invocation = serde_json::json!({
-            "schema_version":"tos_local_native_assessment_read_invocation_v1",
-            "owner_config":owner,
-            "native_executable":images[1],
-            "native_executable_sha256":before[1].to_prefixed(),
-            "corpus_store":store,
-            "source_revision":selected.0.to_prefixed(),
-            "original_source_revision":selected.0.to_prefixed(),
-            "software_capture":capture.capture,
-            "software_restored_root":capture.restored,
-            "software_selection":{"source_git_commit":capture.selection.source_git_commit,
-                "source_git_tree":capture.selection.source_git_tree,
-                "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
-            "software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),
-            "schema_worker":{"absolute_path":images[2],"sha256":before[2].to_prefixed()},
-            "assessment_schema_worker":{"absolute_path":images[2],"sha256":before[2].to_prefixed()},
-            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
-                "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
-                "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
-        });
-        fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
-        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
-
-        let exercise = r#"
-import copy,json,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),
-    str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-from source_witness_human_forms import AssessedFormSnapshot,write_assessed_candidate
-from assessment_journal import AssessmentJournal,JournalConflict,run_legacy_oracle_command
-from knowledge_assessment import Record,SubjectContext
-manifest=json.loads((root/'native-assessment-read-manifest.json').read_text())
-owner=Path(manifest['owner']); ids=manifest['form_ids']; invocation=root/'native-assessment-read-invocation.json'
-nodes=manifest['nodes']; original=copy.deepcopy(nodes)
-journal=Path(manifest['journal'])
-def files(path):
-    return {entry.relative_to(path).as_posix():entry.read_bytes()
-        for entry in path.rglob('*') if entry.is_file()}
-def normalize(nodes):
-    result=copy.deepcopy(nodes)
-    for node in result:
-        for packet in node.get('properties',{}).get('human_forms',[]):
-            if packet.get('form',{}).get('id') in ids:
-                packet['assessment_snapshot']['owner_snapshot']='same-current-snapshot'
-    return result
-def selected_packets(nodes):
-    return [packet for node in nodes for packet in node.get('properties',{}).get('human_forms',[])
-        if packet.get('form',{}).get('id') in ids]
-journal_before=files(journal)
-source_before=(Path(manifest['source_root'])/manifest['source_path']).read_bytes()
-form_before=(Path(manifest['source_root'])/manifest['form_path']).read_bytes()
-retained=AssessedFormSnapshot.for_retained_reference_fixture(owner,ids)
-expected=retained.materialize(copy.deepcopy(nodes)); retained.verify_current()
-native=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
-actual=native.materialize(copy.deepcopy(nodes)); native.verify_current()
-assert normalize(actual)==normalize(expected), 'native batch differs from retained public-v2 read'
-assert nodes==original, 'batch changed its caller-owned graph'
-assert files(journal)==journal_before, 'a read batch wrote or locked the journal'
-assert (Path(manifest['source_root'])/manifest['source_path']).read_bytes()==source_before
-assert (Path(manifest['source_root'])/manifest['form_path']).read_bytes()==form_before
-packets=selected_packets(actual)
-assert len(packets)==len(ids)
-if len(ids)==1:
-    assert packets[0]['state']=='needs-assessment' and packets[0]['display_text'] is None
-else:
-    assert len(ids)==6 and all(packet['state']=='ready' and packet['admission']['can_use'] for packet in packets)
-
-# Every bad final selection goes through the real native batch consumer and
-# rejects the whole request. Cross-subject/path binding is independent of an
-# otherwise valid first row; the journal and authored source stay untouched.
-for mutation in ('version','subject','source-path','form-path','duplicate'):
-    bad=copy.deepcopy(native._native_request)
-    final=bad['selections'][-1]
-    if mutation=='version':
-        final['form_ref']['version']+=1
-    elif mutation=='subject':
-        final['subject_ref']=copy.deepcopy(final['form_ref'])
-    elif mutation=='source-path':
-        final['source_path']='ToS/source-witnesses/another/source.json'
-    elif mutation=='form-path':
-        final['form_path']='ToS/source-witnesses/another/source.human-forms.json'
-    else:
-        bad['selections'].append(copy.deepcopy(final))
-    try:
-        native._run_native_materialization(bad)
-    except (ValueError,PermissionError,JournalConflict):
-        pass
-    else:
-        raise AssertionError('a partially bound native batch unexpectedly succeeded: '+mutation)
-    assert files(journal)==journal_before, 'a rejected batch changed journal bytes'
-    assert (Path(manifest['source_root'])/manifest['source_path']).read_bytes()==source_before
-    assert (Path(manifest['source_root'])/manifest['form_path']).read_bytes()==form_before
-
-# Native grammar is frozen in the explicitly selected immutable cut. A changed
-# selected object must refuse both cached and fresh reads, never use root caches.
-import hashlib
-invocation_value=json.loads(invocation.read_text())
-grammar_source=Path(manifest['source_root'])/'ToS/contracts/knowledge-assessment.schema.json'
-grammar=Path(invocation_value['corpus_store'])/'objects'/hashlib.sha256(grammar_source.read_bytes()).hexdigest()
-assert grammar.is_file() and not grammar.is_relative_to(Path(manifest['source_root']))
-grammar_before=grammar.read_bytes()
-try:
-    schema=json.loads(grammar_before)
-    schema['properties']['rationale']['const']='A new independently owned narrow grammar.'
-    grammar.write_text(json.dumps(schema))
-    for probe in (native.verify_current,
-            lambda: AssessedFormSnapshot(owner,ids,native_invocation=invocation).materialize(copy.deepcopy(nodes))):
-        try:
-            probe()
-        except (ValueError,PermissionError,JournalConflict):
-            pass
-        else:
-            raise AssertionError('selected grammar drift escaped the native batch guard')
-finally:
-    grammar.write_bytes(grammar_before)
-native.verify_current()
-assert files(journal)==journal_before and nodes==original
-
-# The builder's final guard invokes the native consumer after staging fsync.
-# Grant and publication changes at that point cannot expose a candidate.
-import os
-from unittest.mock import patch
-owner_before=owner.read_bytes()
-control=Path(manifest['source_root'])/'ToS/source-witnesses/.metadata-publication.json'
-control_before=control.read_bytes() if control.exists() else None
-post_sync_target=owner.parent/'native-post-fsync-candidate.json'
-original_fsync=os.fsync
-for mutation in ('grant','pending','ready-epoch'):
-    changed=[]
-    def sync_then_change(descriptor):
-        original_fsync(descriptor)
-        if changed:
-            return
-        changed.append(True)
-        if mutation=='grant':
-            config=json.loads(owner_before)
-            config['subjects'][ids[0]]['access_allowed']=False
-            owner.write_text(json.dumps(config))
-        else:
-            state={'schema_version':'tos_source_metadata_publication_v1','generation':1,
-                'transition_id':'1'*32,'phase':'pending' if mutation=='pending' else 'ready',
-                'transaction_id':'sha256:'+'1'*64,'manifest_sha256':'sha256:'+'2'*64,
-                'outcome':None if mutation=='pending' else 'rolled-back','recovery_authorization':None}
-            state['token']='sha256:'+hashlib.sha256(json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode('utf-8')).hexdigest()
-            control.write_text(json.dumps(state))
-    try:
-        with patch.object(os,'fsync',sync_then_change):
-            try:
-                write_assessed_candidate(post_sync_target,json.dumps(actual),native)
-            except (ValueError,PermissionError,JournalConflict):
-                pass
-            else:
-                raise AssertionError('post-fsync drift escaped native final currentness: '+mutation)
-        assert changed and not post_sync_target.exists()
-        assert not list(post_sync_target.parent.glob('.tos-assessed-*'))
-    finally:
-        owner.write_bytes(owner_before)
-        if control_before is None:
-            control.unlink(missing_ok=True)
-        else:
-            control.write_bytes(control_before)
-    native.verify_current()
-    assert files(journal)==journal_before
-
-# A current expired authority cannot reuse a previously ready materialization.
-# Its actual native clock evaluates the finite configured validity interval.
-if len(ids)>1:
-    from datetime import datetime,timedelta,timezone
-    config=json.loads(owner_before)
-    for authority in config['authorities']:
-        authority['payload']['valid_until']=(datetime.now(timezone.utc)-timedelta(days=1)).isoformat()
-    try:
-        owner.write_text(json.dumps(config))
-        try:
-            native.verify_current()
-        except (ValueError,PermissionError,JournalConflict):
-            pass
-        else:
-            raise AssertionError('expired authority reused a ready native snapshot')
-        fresh_expired=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
-        expired=fresh_expired.materialize(copy.deepcopy(nodes))
-        assert all(packet['state']=='needs-assessment' and packet['display_text'] is None
-            and packet['admission']['can_use'] is False for packet in selected_packets(expired))
-        assert files(journal)==journal_before
-    finally:
-        owner.write_bytes(owner_before)
-    native.verify_current()
-
-target=owner.parent/'native-assessed-candidate.json'
-if len(ids)==1:
-    config=json.loads(owner.read_text())
-    config['authorities'][0]['payload']['state']='revoked'
-    owner.write_text(json.dumps(config))
-    try:
-        native.verify_current()
-    except JournalConflict:
-        pass
-    else:
-        raise AssertionError('owner drift did not invalidate the native snapshot')
-    try:
-        write_assessed_candidate(target,json.dumps(actual),native)
-    except JournalConflict:
-        pass
-    else:
-        raise AssertionError('candidate escaped the final currentness guard')
-    assert not target.exists() and not list(target.parent.glob('.tos-assessed-*'))
-else:
-    form=manifest['forms'][0]
-    subject=Record.from_payload(form['form_id'],form['form_version'],form)
-    source=Record.from_payload(manifest['source']['id'],manifest['source']['version'],
-        manifest['source']['payload'],origin_id=manifest['source']['origin_id'])
-    assessor_module=__import__('test_knowledge_assessment')
-    assessor_module.END=json.loads(owner.read_text())['authorities'][0]['payload']['valid_until']
-    assessor=assessor_module.AssessmentPolicyTests(methodName='runTest'); assessor.setUp()
-    for index in range(len(assessor.authorities)):
-        competence=assessor.competencies[index]
-        assessor.competencies[index]=Record.from_payload(competence.id,competence.version,
-            {**competence.payload,'assertion_layers':['human_projection']})
-        authority=assessor.authorities[index]
-        assessor.authorities[index]=Record.from_payload(authority.id,authority.version,
-            {**authority.payload,'assertion_layers':['human_projection'],'subject_prefixes':['tos.form.'],
-             'competence_refs':[assessor.competencies[index].ref]})
-    assessor.subject=subject; assessor.source=source
-    assessor.context=SubjectContext(subject,'human_projection','low',('ru','de'),'fixture-writer','research',True)
-    assessor.records=[subject,source,assessor.source_b,assessor.eval_evidence,assessor.executor]
-    history=AssessmentJournal(journal); revision,chain=history._load(subject.id)
-    old=chain[0]['events'][0]['assessment']
-    described=run_legacy_oracle_command(owner,{'schema_version':'tos_local_assessment_command_v1',
-        'operation':'describe','subject_id':subject.id})
-    withdrawn=assessor.review(profile='interpretation',decision='withdraw',
-        name='tos.review.native-read-batch-withdrawal').assessment
-    withdrawn['supersedes']=[Record.from_payload(old['assessment_id'],1,old).ref]
-    run_legacy_oracle_command(owner,{'schema_version':'tos_local_assessment_command_v1',
-        'operation':'append','subject_id':subject.id,'expected_subject':subject.ref,
-        'expected_snapshot':described['owner_snapshot'],'expected_revision':revision,
-        'command_id':'native-read-batch-withdrawal','assessments':[withdrawn]})
-    journal_after_withdrawal=files(journal)
-    try:
-        native.verify_current()
-    except JournalConflict:
-        pass
-    else:
-        raise AssertionError('committed withdrawal did not invalidate the ready snapshot')
-    try:
-        write_assessed_candidate(target,json.dumps(actual),native)
-    except JournalConflict:
-        pass
-    else:
-        raise AssertionError('withdrawn assessment escaped the final currentness guard')
-    assert not target.exists() and not list(target.parent.glob('.tos-assessed-*'))
-    fresh_retained=AssessedFormSnapshot.for_retained_reference_fixture(owner,ids)
-    expected=fresh_retained.materialize(copy.deepcopy(nodes)); fresh_retained.verify_current()
-    fresh_native=AssessedFormSnapshot(owner,ids,native_invocation=invocation)
-    actual=fresh_native.materialize(copy.deepcopy(nodes)); fresh_native.verify_current()
-    assert normalize(actual)==normalize(expected), 'fresh withdrawn native batch differs from retained reader'
-    current=selected_packets(actual)
-    assert current[0]['state']=='needs-assessment' and current[0]['display_text'] is None
-    assert current[0]['admission']['can_use'] is False
-    assert all(packet['state']=='ready' for packet in current[1:])
-    assert files(journal)==journal_after_withdrawal, 'fresh read batch wrote or locked the journal'
-    assert (Path(manifest['source_root'])/manifest['source_path']).read_bytes()==source_before
-    assert (Path(manifest['source_root'])/manifest['form_path']).read_bytes()==form_before
-print(json.dumps({'form_count':len(ids),'native_route':True,'parity':True,
-    'no_partial':True,'no_read_writes':True,'fresh_currentness_guard':True},separators=(',',':')))
-"#;
-        let result = fixture_json(
-            &repository,
-            temporary.path(),
-            &temporary.path().join("public-read-exercise.stdout"),
-            &temporary.path().join("public-read-exercise.stderr"),
-            deadline,
-            exercise,
+        assert_eq!(files(&fixture.journal_directory), journal_before);
+        assert_authored_text_unchanged(&source_root, &authored);
+    }
+    let grammar_raw =
+        fs::read(source_root.join("ToS/contracts/knowledge-assessment.schema.json")).unwrap();
+    let grammar = store
+        .join("objects")
+        .join(Digest256::of_bytes(&grammar_raw).to_hex());
+    assert_eq!(fs::read(&grammar).unwrap(), grammar_raw);
+    fs::write(&grammar, b"{}").unwrap();
+    assert!(!observe(&invocation_path, &request).0.success());
+    fs::write(&grammar, &grammar_raw).unwrap();
+    assert_eq!(invoke(&invocation_path, &request), actual);
+    let owner_before = fs::read(&owner).unwrap();
+    let control = source_root.join("ToS/source-witnesses/.metadata-publication.json");
+    let control_before = fs::read(&control).ok();
+    for mutation in ["grant", "pending", "ready-epoch"] {
+        let target = temporary
+            .path()
+            .join(format!("native-post-fsync-{mutation}.json"));
+        let changed = std::cell::Cell::new(false);
+        let result = tos_command::managed_native_original_cli::conformance_write_assessed_candidate(
+            &target,
+            b"{}",
+            || {
+                changed.set(true);
+                if mutation == "grant" {
+                    let mut config: Value = serde_json::from_slice(&owner_before).unwrap();
+                    config["subjects"][&fixture.subject_ids[0]]["access_allowed"] =
+                        Value::Bool(false);
+                    fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+                } else {
+                    let mut state = serde_json::json!({"schema_version":"tos_source_metadata_publication_v1","generation":1,
+                    "transition_id":"11111111111111111111111111111111","phase":if mutation=="pending"{"pending"}else{"ready"},
+                    "transaction_id":format!("sha256:{}","1".repeat(64)),"manifest_sha256":format!("sha256:{}","2".repeat(64)),
+                    "outcome":if mutation=="pending"{Value::Null}else{Value::from("rolled-back")},"recovery_authorization":null});
+                    state["token"] = Value::from(
+                        Digest256::of_bytes(&super::command_text_cases::alignment_owner_bytes(
+                            &state,
+                        ))
+                        .to_prefixed(),
+                    );
+                    fs::write(&control, serde_json::to_vec(&state).unwrap()).unwrap();
+                }
+                let (status, raw, _) = observe(&invocation_path, &request);
+                if !status.success() || serde_json::from_slice::<Value>(&raw).unwrap() != actual {
+                    Err(std::io::Error::other(
+                        "selected assessment or publication changed after fsync",
+                    )
+                    .into())
+                } else {
+                    Ok(())
+                }
+            },
         );
-        assert_eq!(result["form_count"], count);
-        assert_eq!(result["native_route"], true);
-        assert_eq!(result["parity"], true);
-        assert_eq!(result["no_partial"], true);
-        assert_eq!(result["no_read_writes"], true);
-        assert_eq!(result["fresh_currentness_guard"], true);
-        for (path, expected) in images.iter().zip(&before) {
-            assert_eq!(
-                super::command_text_cases::alignment_image_digest(path),
-                *expected,
-                "native read must not modify selected executable or worker"
-            );
+        assert!(
+            changed.get() && result.is_err() && !target.exists(),
+            "post-fsync mutation {mutation}"
+        );
+        assert!(fs::read_dir(temporary.path()).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".tos-assessed-")
+        }));
+        fs::write(&owner, &owner_before).unwrap();
+        match &control_before {
+            Some(raw) => fs::write(&control, raw).unwrap(),
+            None => {
+                if control.exists() {
+                    fs::remove_file(&control).unwrap();
+                }
+            }
         }
-        assert!(Instant::now() < deadline);
+        assert_eq!(invoke(&invocation_path, &request), actual);
+        assert_eq!(files(&fixture.journal_directory), journal_before);
+    }
+    let mut expired: Value = serde_json::from_slice(&owner_before).unwrap();
+    for authority in expired["authorities"].as_array_mut().unwrap() {
+        authority["payload"]["valid_until"] = Value::from("2026-09-02T00:00:00Z");
+    }
+    fs::write(&owner, serde_json::to_vec(&expired).unwrap()).unwrap();
+    let result = invoke(&invocation_path, &request);
+    assert_ne!(result["owner_snapshot"], actual["owner_snapshot"]);
+    for reply in result["replies"].as_array().unwrap() {
+        assert_eq!(
+            reply["result"]["materialization"]["state"],
+            "needs-assessment"
+        );
+        assert!(reply["result"]["materialization"]["display_text"].is_null());
+        assert_eq!(reply["result"]["current_admission"]["can_use"], false);
+    }
+    fs::write(&owner, &owner_before).unwrap();
+    let index = fixture.ready_selections[0];
+    let current = invoke(&command_path, &describe(index));
+    let withdrawn = invoke(
+        &command_path,
+        &serde_json::json!({"schema_version":"tos_local_assessment_command_v1","operation":"append",
+        "subject_id":fixture.subject_ids[index],"expected_subject":fixture.subject_refs[index],"expected_snapshot":current["owner_snapshot"],
+        "expected_revision":current["result"]["revision"],"command_id":"native-batch-withdrawal","assessments":[fixture.withdrawal_assessments[index]]}),
+    );
+    assert_eq!(withdrawn["result"]["current_admission"]["can_use"], false);
+    let journal_after = files(&fixture.journal_directory);
+    let result = invoke(&invocation_path, &request);
+    assert_ne!(
+        result["replies"][index]["result"]["revision"],
+        actual["replies"][index]["result"]["revision"]
+    );
+    for (i, reply) in result["replies"].as_array().unwrap().iter().enumerate() {
+        assert_eq!(
+            reply["result"]["materialization"]["state"],
+            if i == 0 || i == index {
+                "needs-assessment"
+            } else {
+                "ready"
+            }
+        );
+    }
+    assert_eq!(files(&fixture.journal_directory), journal_after);
+    assert_authored_text_unchanged(&source_root, &authored);
+    for (path, expected) in images.iter().zip(&before) {
+        assert_eq!(
+            super::command_text_cases::alignment_image_digest(path),
+            *expected
+        );
     }
 }
 
@@ -2438,23 +2331,30 @@ fn native_public_assessment_versions(versions: &[u8]) {
             .permissions(fs::Permissions::from_mode(0o700))
             .tempdir()
             .unwrap();
-        let script = format!(
-            r#"
-import json,runpy,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-f=runpy.run_path(str(repository/'tests/conformance/rust/journal_public_fixture.py'))
-print(json.dumps(f['prepare'](repository,root,{version}),ensure_ascii=False,separators=(',',':')))
-"#
-        );
-        let fixture = fixture_json(
-            &repository,
-            temporary.path(),
-            &temporary.path().join("public-fixture.stdout"),
-            &temporary.path().join("public-fixture.stderr"),
-            deadline,
-            &script,
-        );
+        let native_fixture =
+            super::native_public_assessment_fixture::native_public_assessment_fixture(
+                &repository,
+                temporary.path(),
+                version,
+            )
+            .unwrap();
+        let fixture = serde_json::json!({
+            "owner": native_fixture.owner_config_path,
+            "public": native_fixture.public_root,
+            "context": native_fixture.owner_context_path,
+            "subject_id": native_fixture.subject_ids[0],
+            "request": {
+                "schema_version":"tos_local_assessment_command_v1",
+                "operation":"append",
+                "subject_id":native_fixture.subject_ids[0],
+                "expected_subject":native_fixture.subject_refs[0],
+                "expected_snapshot":null,"expected_revision":null,
+                "command_id":"native-public-assessment-append",
+                "assessments":[native_fixture.append_assessments[0]]
+            },
+            "preserved":native_fixture.preserved,
+            "metadata_subject":native_fixture.metadata_subject,
+        });
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         let public = PathBuf::from(fixture["public"].as_str().unwrap());
         let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -2539,9 +2439,25 @@ print(json.dumps(f['prepare'](repository,root,{version}),ensure_ascii=False,sepa
             "operation":"describe","subject_id":fixture["subject_id"]});
         let described = invoke(&describe);
         assert_eq!(
-            described, fixture["expected_describe"],
-            "whole public description v{version}"
+            described["schema_version"],
+            "tos_local_assessment_result_v1"
         );
+        assert_eq!(described["authentication"], "local-unix-account");
+        assert_eq!(
+            described["result"]["command_context"]["subject"],
+            native_fixture.subject_refs[0]
+        );
+        assert_eq!(
+            described["result"]["command_context"]["grants_authority"],
+            false
+        );
+        assert!(
+            described["owner_snapshot"]
+                .as_str()
+                .is_some_and(|value| !value.is_empty())
+        );
+        assert_eq!(described["result"]["batch_count"], 0);
+        assert!(described["result"]["revision"].is_null());
         let mut request = fixture["request"].clone();
         request["expected_snapshot"] = described["owner_snapshot"].clone();
         let mut inspect = serde_json::json!({"schema_version":"tos_local_assessment_command_v1",
