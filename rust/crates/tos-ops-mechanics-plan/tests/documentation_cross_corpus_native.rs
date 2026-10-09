@@ -468,7 +468,6 @@ fn actual_coordinator_cli_does_not_invent_an_ambient_kag_export_operation() {
 #[test]
 fn priced_card_discovery_streams_payload_names_but_refuses_untracked_cards() {
     use std::{
-        sync::atomic::AtomicI32,
         time::{Duration, Instant},
     };
     use tos_ops_mechanics_plan::route_cards::{self, RouteSources};
@@ -505,45 +504,30 @@ fn priced_card_discovery_streams_payload_names_but_refuses_untracked_cards() {
             .unwrap(),
         before
     );
-    let issues = route_cards::run_validation_with_card_discovery_limit(
-        &fixture.root,
-        &mut sources(),
-        &AtomicI32::new(0),
-        route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
-    )
-    .unwrap();
-    assert!(
-        !issues
-            .iter()
-            .any(|(_, message)| message.contains("route discovery entry bound exceeded"))
-    );
-    let generated = route_cards::build_currentness(&fixture.root, &AtomicI32::new(0)).unwrap();
-    let generated_cards: Vec<_> = generated["cards"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|card| card["path"].as_str().unwrap().to_owned())
-        .collect();
+    // Git-backed coordination needs its own process, as the maintained CLI has.
+    // The Rust test harness has a worker thread even with --test-threads=1.
+    let out = fixture.command().arg("--nested-agents-validate").output().unwrap();
+    let diagnostics = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    assert!(matches!(out.status.code(), Some(0 | 1)) && !diagnostics.contains("route discovery entry bound exceeded"), "{diagnostics}");
+    let out = fixture.command().arg("--agents-route-currentness-build").output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let generated: Value = serde_json::from_slice(&fs::read(fixture.root.join(".agents/agents-route.current.json")).unwrap()).unwrap();
+    let generated_cards: Vec<_> = generated["cards"].as_array().unwrap().iter()
+        .map(|card| card["path"].as_str().unwrap().to_owned()).collect();
     assert_eq!(generated_cards, before);
     fixture.write("docs/ignored-payload/AGENTS.md", b"untracked card\n");
-    let issues = route_cards::run_validation_with_card_discovery_limit(
-        &fixture.root,
-        &mut sources(),
-        &AtomicI32::new(0),
-        route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
-    )
-    .unwrap();
+    let out = fixture.command().arg("--nested-agents-validate").output().unwrap();
+    let diagnostics = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
     assert!(
-        issues
-            .iter()
-            .any(|(path, message)| path == "docs/ignored-payload/AGENTS.md"
-                && message == "discovered AGENTS.md is not tracked")
+        !out.status.success() && diagnostics.contains("docs/ignored-payload/AGENTS.md")
+            && diagnostics.contains("discovered AGENTS.md is not tracked"), "{diagnostics}"
     );
 }
 #[test]
 fn tracked_executable_route_card_cannot_disappear() {
     use tos_ops_mechanics_plan::route_cards::RouteSources;
     let fixture = Fixture::new();
+    fs::remove_file(fixture.root.join("docs/AGENTS.md")).unwrap();
     let mut sources = RouteSources::new(&fixture.root).unwrap();
     let error = guards::validate_executable_routes(
         &fixture.root,
@@ -573,7 +557,6 @@ fn source_map_binds_lanes_routes_public_requirements_and_executable_inventory() 
         ("/public_forbidden_markers", json!([]), "public_forbidden_markers"),
         ("/atlas_method/structured_carrier_extensions", json!([".toml"]), "extension groups must exactly cover"),
         ("/atlas_method/tracked_source", json!("find tracked -print0"), "tracked_source must match the builder operation"),
-        ("/context_probes/0/max_tokens", json!(9999), "canonical context contract"),
     ] {
         let mut changed = source.clone();
         *changed.pointer_mut(pointer).unwrap() = replacement;
@@ -581,6 +564,11 @@ fn source_map_binds_lanes_routes_public_requirements_and_executable_inventory() 
         guards::validate_source_map(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &changed, &mut issues).unwrap();
         assert!(issues.iter().any(|v| v.1.contains(expected)), "{pointer}: {issues:?}");
     }
+    let mut changed_probes = source["context_probes"].clone();
+    changed_probes[0]["max_tokens"] = json!(9999);
+    let mut issues = Vec::new();
+    guards::validate_context_probe_configuration(&changed_probes, &mut issues).unwrap();
+    assert!(issues.iter().any(|v| v.1.contains("canonical context contract")), "{issues:?}");
     for (field, required) in [("public_authored_surfaces", "README.md"), ("public_forbidden_markers", "BEGIN PRIVATE KEY")] {
         let mut changed = source.clone();
         changed[field].as_array_mut().unwrap().retain(|v| v != required);
@@ -630,7 +618,8 @@ fn authority_and_surface_configuration_cannot_silently_drop_coverage() {
     fixture.write("unowned-new-family/file.md", b"new tracked source\n");
     fixture.track();
     fixture.build();
-    assert!(fixture.native().iter().any(|v| v.1.contains("unhandled family count is 1: unowned-new-family/file.md")));
+    let issues = fixture.native();
+    assert!(issues.iter().any(|v| v.1.contains("unhandled family count is 1:") && v.1.contains("unowned-new-family/file.md")), "{issues:?}");
 }
 
 #[test]
