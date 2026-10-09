@@ -1355,9 +1355,12 @@
       {
         "label": "software contracts",
         "command": [
-          "python",
-          "access/packaging/validate_standalone.py",
-          "--software"
+          "tos",
+          "validate-standalone",
+          "--root",
+          "{repo_root}",
+          "--software",
+          "--json"
         ]
       },
       {

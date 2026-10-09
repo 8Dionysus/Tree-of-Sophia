@@ -354,6 +354,7 @@ pub fn command_sequence_with_budgets(
             }
         }
         let executor_key = match parts[0].as_str() {
+            "tos" => Some("TOS_NATIVE_PREPARED_CONSUMER_BIN"),
             "tos-ops-mechanics-plan" => Some("TOS_OPS_MECHANICS_EXECUTOR"),
             "tos-validation-lanes" => Some("TOS_VALIDATION_LANES_EXECUTOR"),
             "tos-release-check" => Some("TOS_RELEASE_CHECK_EXECUTOR"),

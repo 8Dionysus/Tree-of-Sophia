@@ -1,5 +1,13 @@
 # Native access response budgets
 
+`tos validate-standalone --root ABS --software --json` checks the standalone
+runtime/API/page contracts, the offline Draft 2020-12 schema set, runtime-data
+allowlist and access source portability. It reads no production corpus. This
+native command is the `release_check` software-contract step. Validation lanes
+use `TOS_NATIVE_PREPARED_CONSUMER_BIN` when an exact built `tos-access` image is
+selected, or the installed `tos` on PATH. Source-data validation is a separate
+operation and is not implied by this software result.
+
 The metadata-only lexical validation entry is
 `tos lexical-index validate-tracked --source-root ABS`. Use
 `--derived-input-root ABS` when the declared lexical projection is in a data
