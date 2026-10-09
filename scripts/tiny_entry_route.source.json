@@ -36,9 +36,9 @@
     },
     "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md": {
       "required_tokens": [
-        "scripts/build_kag_export.py",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
         "--kag-source-export-verify",
-        "scripts/publish_kag_release.py"
+        "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs"
       ],
       "forbidden_tokens": []
     }

@@ -71,7 +71,7 @@ replace `public_entry` command authority.
 ## Source Surfaces
 
 - `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
-- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
+- `rust/crates/tos-ops-mechanics-plan/src/derived_kag.rs`
 - `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
 - `ToS/derived-exports/kag_export.json`
 - `ToS/derived-exports/kag_export.min.json`

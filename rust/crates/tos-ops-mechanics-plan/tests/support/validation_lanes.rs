@@ -165,9 +165,7 @@ fn release_software_inventory_is_complete_and_selected_once() {
         "tests/test_corpus_source_validation.py",
         "tests/test_corpus_source_retirement.py",
         "tests/test_corpus_build_worker.py",
-        "tests/test_build_kag_export.py",
         "tests/test_downstream_status.py",
-        "tests/test_publish_kag_release.py",
     ];
     assert_eq!(
         selected.len(),

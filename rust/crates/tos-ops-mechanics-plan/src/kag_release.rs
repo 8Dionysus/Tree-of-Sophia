@@ -703,7 +703,8 @@ pub fn build_release(
             vec![
                 python.to_string_lossy().into_owned(),
                 kag.join("scripts/validate_repo_local_kag_family.py")
-                    .to_string_lossy().into_owned(),
+                    .to_string_lossy()
+                    .into_owned(),
                 "--repo-root".into(),
                 provider.to_string_lossy().into_owned(),
                 "--artifact-root".into(),

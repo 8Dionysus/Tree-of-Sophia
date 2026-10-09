@@ -36,8 +36,8 @@ supporting ToS surfaces; the public entry remains a compatibility mirror.
 ## Tooling
 
 The standard installed `tos-ops-mechanics-plan` entry exposes the explicit
-accepted-corpus export builder and verifier. `scripts/build_kag_export.py` is
-a compatibility API selecting the same native operations:
+accepted-corpus export builder and verifier, owned by
+`rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs`:
 
 ```text
 tos-ops-mechanics-plan --repo-root REPO --kag-source-export-build --store STORE --revision REVISION --output EXPORT
@@ -47,17 +47,15 @@ tos-ops-mechanics-plan --repo-root REPO --kag-source-export-verify --kag-export 
 The installed native builder reads the selected CorpusStore revision and calls
 `derived_kag::build_payload` with the staged source root. This renderer has no
 ambient repository or output paths and only returns deterministic payload data.
-`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
-is retained solely as the explicit comparison renderer used by
-`build_kag_export_legacy_oracle.py`; it has no executable/default recipe.
 The old checkout-writing `--derived-kag-generate` and `--derived-kag-validate`
 flags are compatibility controls, not accepted-corpus export or publication.
 
-`scripts/publish_kag_release.py` owns the local handoff to an explicitly
-selected downstream KAG consumer and its release status:
+`rust/crates/tos-ops-mechanics-plan/src/kag_release.rs` owns the local handoff to an explicitly
+selected downstream KAG consumer and its release status. The foreign interpreter
+is explicit; ToS calls the aoa-kag validation CLI and contains no Python probe:
 
 ```text
-tos-kag-release build --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
+tos-kag-release build --repo-root REPO --python KAG_PYTHON --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
 tos-kag-release status --release-root RELEASE_ROOT --expected-revision REVISION
 ```
 
@@ -84,7 +82,6 @@ fresh export with the explicit `build` command above. No in-checkout Git parity
 step or software merge gate is part of this export route; the selected revision
 and its verified source objects are the input boundary.
 
-If the downstream owner needs a release, invoke `scripts/publish_kag_release.py
-build` with explicit store, revision, KAG root, and release root paths. Keep
+If the downstream owner needs a release, invoke `tos-kag-release build` with explicit store, revision, KAG root, and release root paths. Keep
 consumer semantics, status, lag, admission, and deployment with their actual
 owners.

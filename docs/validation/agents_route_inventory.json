@@ -246,7 +246,7 @@
       "boundary_markers": ["source witness", "canon", "derived export"],
       "on_demand_surfaces": ["ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md", "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
       "validation_lanes": ["public_entry", "route_docs"],
-      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs", "scripts/validate_local_kag_provider.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs", "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs"],
       "completion_evidence": ["ToS/zarathustra/AGENTS.md", "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs"],
       "handoff_routes": ["ToS/public-compatibility/AGENTS.md", "ToS/derived-exports/AGENTS.md"]
     },
@@ -344,8 +344,8 @@
       "boundary_markers": ["source-return", "derived", "MCP"],
       "on_demand_surfaces": ["kag/README.md", "kag/provider-template.json", "kag/VALIDATION.md", "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"],
       "validation_lanes": ["local_kag_provider", "public_entry", "route_docs"],
-      "validation_paths": ["scripts/validate_local_kag_provider.py"],
-      "completion_evidence": ["kag/AGENTS.md", "kag/provider-template.json", "scripts/validate_local_kag_provider.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs"],
+      "completion_evidence": ["kag/AGENTS.md", "kag/provider-template.json", "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs"],
       "handoff_routes": ["ToS/derived-exports/AGENTS.md", "aoa-kag"]
     },
     {

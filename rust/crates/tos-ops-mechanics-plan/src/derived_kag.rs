@@ -12,7 +12,7 @@ const CAPSULE: &str = "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md";
 const PRETTY: &str = "ToS/derived-exports/kag_export.json";
 const COMPACT: &str = "ToS/derived-exports/kag_export.min.json";
 const GENERATOR: &str =
-    "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py";
+    "rust/crates/tos-ops-mechanics-plan/src/derived_kag.rs";
 const PRIMARY_QUESTION: &str = "What source-owned tiny export keeps the current Zarathustra prologue route legible for downstream KAG consumers without replacing ToS authority?";
 const SUMMARY_50: &str =
     "Source-owned tiny export for the current Zarathustra prologue authority route.";
@@ -280,7 +280,7 @@ fn text_equal(root: &Path, relative: &str, expected: &[u8], label: &str) -> io::
     let actual = actual.replace("\r\n", "\n").replace('\r', "\n");
     if actual.as_bytes() != expected {
         return Err(invalid(format!(
-            "{label} is out of date; regenerate through the maintained installed export owner (reference renderer: {GENERATOR})"
+            "{label} is out of date; regenerate through the maintained installed export owner (renderer source: {GENERATOR})"
         )));
     }
     Ok(actual.into_bytes())

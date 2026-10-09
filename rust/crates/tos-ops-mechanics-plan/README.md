@@ -387,14 +387,14 @@ The source template and emitted closure are capped at 64 KiB; the nine route
 files, duplicate rejection, finite JSON, nonblank cards, new regular output
 paths, sizes, hashes and unchanged template remain native owner checks.
 
-The imported `scripts/kag_provider_controls.py` API requires this installed
-product (`TOS_KAG_PROVIDER_CONTROLS_BIN` may select it explicitly). It has no
-Python fallback. The exact pre-cutover Python source is retained in
-`scripts/kag_provider_controls_legacy_oracle.py` as an explicit cold oracle;
-maintained imports never execute it. The controlled `publish_kag_release.py`
-consumer retains its materialize/verify API. This source cutover requires native
-product and controlled publisher acceptance before deployment claims; it does
-not publish a KAG artifact or accept source, rights, canon or runtime authority.
+The native `tos-kag-release` publisher directly calls this module to materialize
+and verify the exact control closure. It invokes the explicitly selected
+external aoa-kag producer and its `validate_repo_local_kag_family.py
+--probe-source` CLI for the owner's family and provider-home validation.
+Export, status and integration verification have no Python dependency. Native
+publication tests cover prior-success preservation, exact member verification,
+consumer mutation, source-return mismatch and historical four-program releases.
+These checks do not accept source meaning, rights, canon or runtime authority.
 
 ## Maintained philosophy product commands
 

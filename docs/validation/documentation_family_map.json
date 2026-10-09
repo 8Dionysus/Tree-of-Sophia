@@ -611,9 +611,8 @@
         "kag/AGENTS.md",
         "kag/VALIDATION.md",
         "kag/provider-template.json",
-        "scripts/validate_local_kag_provider.py",
-        "scripts/build_kag_export.py",
-        "scripts/publish_kag_release.py",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
         "ToS/derived-exports/"
       ],
       "next_organ": [

@@ -811,14 +811,21 @@ mod tests {
                     "node" => value["node_id"] = json!("incompatible-node"),
                     "entry" => value["entry_surface"]["match_value"] = json!("incompatible-node"),
                     "sections" => value["section_handles"] = json!(["other-layer"]),
-                    "relation" => value["direct_relations"][0]["target_ref"] =
-                        json!("Tree-of-Sophia/ToS/public-compatibility/source_node.example.json"),
+                    "relation" => {
+                        value["direct_relations"][0]["target_ref"] = json!(
+                            "Tree-of-Sophia/ToS/public-compatibility/source_node.example.json"
+                        )
+                    }
                     _ => unreachable!(),
                 }
                 let raw = canonical(&value).unwrap();
                 fs::write(&path, &raw).unwrap();
-                let entry = manifest["files"].as_array_mut().unwrap().iter_mut()
-                    .find(|v| v["path"] == relative).unwrap();
+                let entry = manifest["files"]
+                    .as_array_mut()
+                    .unwrap()
+                    .iter_mut()
+                    .find(|v| v["path"] == relative)
+                    .unwrap();
                 entry["sha256"] = json!(digest(&raw));
                 entry["size_bytes"] = json!(raw.len());
                 manifest.as_object_mut().unwrap().remove("export_revision");
@@ -838,11 +845,16 @@ mod tests {
             write_new(&kag.join(path), b"controlled foreign owner fixture\n").unwrap();
         }
         write_new(&kag.join("mode"), b"ok\n").unwrap();
-        write_new(&kag.join("probe.json"), &canonical(&json!({
-            "primary_source": {"identity": {"path": PRIMARY, "content_hash": source_hash},
-                "owner_return_route": {"repo": "Tree-of-Sophia", "surface": PRIMARY}},
-            "distribution_identity": {"corpus": "controlled-fixture"}
-        })).unwrap()).unwrap();
+        write_new(
+            &kag.join("probe.json"),
+            &canonical(&json!({
+                "primary_source": {"identity": {"path": PRIMARY, "content_hash": source_hash},
+                    "owner_return_route": {"repo": "Tree-of-Sophia", "surface": PRIMARY}},
+                "distribution_identity": {"corpus": "controlled-fixture"}
+            }))
+            .unwrap(),
+        )
+        .unwrap();
         let interpreter = base.join("foreign-owner-runner");
         write_new(&interpreter, br##"#!/bin/sh
 set -eu
@@ -882,16 +894,38 @@ esac
         (kag, interpreter)
     }
 
-    fn publish(store: &Path, revision: &str, kag: &Path, release: &Path, runner: &Path) -> io::Result<Value> {
-        crate::kag_release::build_release(&repo(), store, revision, kag, release, runner,
-            &std::sync::atomic::AtomicI32::new(0))
+    fn publish(
+        store: &Path,
+        revision: &str,
+        kag: &Path,
+        release: &Path,
+        runner: &Path,
+    ) -> io::Result<Value> {
+        crate::kag_release::build_release(
+            &repo(),
+            store,
+            revision,
+            kag,
+            release,
+            runner,
+            &std::sync::atomic::AtomicI32::new(0),
+        )
     }
 
     fn source_hash(store: &Path, revision: &str) -> String {
-        let snapshot: Value = serde_json::from_slice(&fs::read(store.join("revisions")
-            .join(revision).join("snapshot.json")).unwrap()).unwrap();
-        snapshot["files"].as_array().unwrap().iter().find(|v| v["path"] == PRIMARY)
-            .unwrap()["sha256"].as_str().unwrap().to_owned()
+        let snapshot: Value = serde_json::from_slice(
+            &fs::read(store.join("revisions").join(revision).join("snapshot.json")).unwrap(),
+        )
+        .unwrap();
+        snapshot["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["path"] == PRIMARY)
+            .unwrap()["sha256"]
+            .as_str()
+            .unwrap()
+            .to_owned()
     }
 
     #[test]
@@ -901,71 +935,128 @@ esac
         let release = base.0.join("release");
         let first = publish(&store, &revision, &kag, &release, &runner).unwrap();
         assert_eq!(first["programs"].as_array().unwrap().len(), 5);
-        assert_eq!(publish(&store, &revision, &kag, &release, &runner).unwrap(), first);
+        assert_eq!(
+            publish(&store, &revision, &kag, &release, &runner).unwrap(),
+            first
+        );
         let other = base.0.join("other-release");
-        assert_eq!(publish(&store, &revision, &kag, &other, &runner).unwrap(), first);
+        assert_eq!(
+            publish(&store, &revision, &kag, &other, &runner).unwrap(),
+            first
+        );
         let status = crate::kag_release::status_release(&release, &revision).unwrap();
         assert_eq!(status["freshness"], "current");
-        assert_eq!(status["integration_revision"], first["integration_revision"]);
+        assert_eq!(
+            status["integration_revision"],
+            first["integration_revision"]
+        );
         assert_eq!(status["primary_source"], first["primary_source"]);
-        let old = release.join("releases").join(first["integration_revision"].as_str().unwrap());
+        let old = release
+            .join("releases")
+            .join(first["integration_revision"].as_str().unwrap());
         fs::write(kag.join("mode"), b"fail\n").unwrap();
         assert!(publish(&store, &revision, &kag, &release, &runner).is_err());
-        assert_eq!(crate::kag_release::verify_integration(&old, &revision).unwrap(), first);
+        assert_eq!(
+            crate::kag_release::verify_integration(&old, &revision).unwrap(),
+            first
+        );
         let status = crate::kag_downstream_status::Status::new(&release.join("status"), "kag")
-            .unwrap().status(&revision).unwrap();
+            .unwrap()
+            .status(&revision)
+            .unwrap();
         assert_eq!(status["freshness"], "current");
         assert_eq!(status["state"]["latest"]["state"], "failed");
         fs::write(kag.join("mode"), b"ok\n").unwrap();
-        fs::write(kag.join("scripts/query_repo_local_kag.py"), b"changed foreign owner\n").unwrap();
+        fs::write(
+            kag.join("scripts/query_repo_local_kag.py"),
+            b"changed foreign owner\n",
+        )
+        .unwrap();
         let second = publish(&store, &revision, &kag, &release, &runner).unwrap();
-        assert_ne!(second["integration_revision"], first["integration_revision"]);
-        assert_eq!(crate::kag_release::verify_integration(&old, &revision).unwrap(), first);
+        assert_ne!(
+            second["integration_revision"],
+            first["integration_revision"]
+        );
+        assert_eq!(
+            crate::kag_release::verify_integration(&old, &revision).unwrap(),
+            first
+        );
     }
 
     #[test]
     fn owner_failure_mutation_and_invalid_probe_never_publish() {
-        for mode in ["fail", "mutate", "control-mutate", "program-mutate", "control-fail", "mismatch", "duplicate"] {
+        for mode in [
+            "fail",
+            "mutate",
+            "control-mutate",
+            "program-mutate",
+            "control-fail",
+            "mismatch",
+            "duplicate",
+        ] {
             let (base, store, revision) = fixture();
             let (kag, runner) = selected_owner(&base.0, &source_hash(&store, &revision));
             fs::write(kag.join("mode"), mode).unwrap();
             if mode == "mismatch" {
-                let mut probe: Value = serde_json::from_slice(&fs::read(kag.join("probe.json")).unwrap()).unwrap();
+                let mut probe: Value =
+                    serde_json::from_slice(&fs::read(kag.join("probe.json")).unwrap()).unwrap();
                 probe["primary_source"]["identity"]["content_hash"] = json!("f".repeat(64));
                 fs::write(kag.join("probe.json"), canonical(&probe).unwrap()).unwrap();
             } else if mode == "duplicate" {
-                fs::write(kag.join("probe.json"), b"{\"primary_source\":{},\"primary_source\":{}}").unwrap();
+                fs::write(
+                    kag.join("probe.json"),
+                    b"{\"primary_source\":{},\"primary_source\":{}}",
+                )
+                .unwrap();
             }
             let release = base.0.join("release");
-            assert!(publish(&store, &revision, &kag, &release, &runner).is_err(), "accepted {mode}");
+            assert!(
+                publish(&store, &revision, &kag, &release, &runner).is_err(),
+                "accepted {mode}"
+            );
             assert_eq!(fs::read_dir(release.join("releases")).unwrap().count(), 0);
             let status = crate::kag_downstream_status::Status::new(&release.join("status"), "kag")
-                .unwrap().status(&revision).unwrap();
+                .unwrap()
+                .status(&revision)
+                .unwrap();
             assert_eq!(status["freshness"], "missing");
             assert_eq!(status["state"]["latest"]["state"], "failed");
         }
     }
 
     fn rewrite_integration(path: &Path, value: &mut Value) {
-        value.as_object_mut().unwrap().remove("integration_revision");
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("integration_revision");
         value["integration_revision"] = json!(digest(&canonical(value).unwrap()));
         fs::write(path.join("integration.json"), canonical(value).unwrap()).unwrap();
     }
 
     #[test]
     fn complete_membership_tamper_and_historical_program_binding_are_checked() {
-        for case in ["extra", "member", "manifest", "primary", "historical", "unknown-program"] {
+        for case in [
+            "extra",
+            "member",
+            "manifest",
+            "primary",
+            "historical",
+            "unknown-program",
+        ] {
             let (base, store, revision) = fixture();
             let (kag, runner) = selected_owner(&base.0, &source_hash(&store, &revision));
             let release = base.0.join("release");
             let mut integration = publish(&store, &revision, &kag, &release, &runner).unwrap();
-            let path = release.join("releases").join(integration["integration_revision"].as_str().unwrap());
+            let path = release
+                .join("releases")
+                .join(integration["integration_revision"].as_str().unwrap());
             match case {
                 "extra" => fs::write(path.join("unexpected.bin"), b"extra").unwrap(),
                 "member" => fs::write(path.join("artifacts/config.json"), b"changed").unwrap(),
                 "manifest" => fs::write(path.join("integration.json"), b"invalid JSON").unwrap(),
                 "primary" => {
-                    integration["primary_source"]["identity"]["content_hash"] = json!("f".repeat(64));
+                    integration["primary_source"]["identity"]["content_hash"] =
+                        json!("f".repeat(64));
                     rewrite_integration(&path, &mut integration);
                 }
                 "historical" => {
