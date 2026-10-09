@@ -1766,6 +1766,56 @@ pub(crate) fn validate_native_snapshot_semantics(
     )
 }
 
+pub(crate) fn validate_native_snapshot_semantics_with_rows<T>(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+    catalog: Option<&mut crate::catalog::CatalogReduction<'_, '_, '_>>,
+    drive: impl FnOnce(&mut KnowledgeStage<'_>, &mut SemanticRowVisitor<'_>) -> Result<T>,
+) -> Result<(ValidatedGraphSemantics, T)> {
+    if stage.public_build()
+        || stage.exact_receipt()?.binding.owner_profile != "tos-native-projection-snapshot-v1"
+    {
+        return Err(Error::Invalid("native snapshot stage required"));
+    }
+    let state = stage
+        .owned_creation_state()
+        .ok_or(Error::Invalid("native semantic row owner absent"))?;
+    state.charge_work(
+        entity_bytes
+            .len()
+            .checked_add(relation_bytes.len())
+            .and_then(|n| n.checked_mul(2))
+            .ok_or(Error::Budget("public D1 semantic registry work"))?,
+    )?;
+    if !digest_matches_hex(&Digest256::of_bytes(entity_bytes), &registry.entity_sha256)
+        || !digest_matches_hex(
+            &Digest256::of_bytes(relation_bytes),
+            &registry.relation_sha256,
+        )
+    {
+        return Err(Error::Invalid("public D1 semantic registry binding"));
+    }
+    let limits = tos_foundation::JsonLimits::new(4 * 1024 * 1024, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("public D1 semantic registry limits"))?;
+    state.with_serde_owned_value_with_limits(entity_bytes, limits, |entity| {
+        state.with_serde_owned_value_with_limits(relation_bytes, limits, |relation| {
+            validate_public_semantics_values_with_rows(
+                stage,
+                capture,
+                registry,
+                &entity,
+                &relation,
+                Some(state),
+                catalog,
+                drive,
+            )
+        })
+    })
+}
+
 fn validate_public_semantics_captured(
     stage: &mut KnowledgeStage<'_>,
     capture: &PublicCapture,
@@ -1817,6 +1867,211 @@ fn validate_public_semantics_captured(
     validate_public_semantics_values(stage, capture, registry, &entity, &relation, None, catalog)
 }
 
+/// A row's actual indexed columns and authenticated final logical digest.
+/// Borrowed only for the duration of one original Stage operation.
+pub(crate) struct SemanticRow<'a> {
+    pub relation: bool,
+    pub id: &'a str,
+    pub source: &'a str,
+    pub kind_or_predicate: &'a str,
+    pub type_id: &'a str,
+    pub entity: Option<&'a str>,
+    pub from: Option<&'a str>,
+    pub to: Option<&'a str>,
+    pub order: i64,
+    pub logical_len: i64,
+    pub digest: &'a [u8],
+}
+pub(crate) type SemanticRowVisitor<'a> =
+    dyn FnMut(&rusqlite::Connection, &SemanticRow<'_>, &Value) -> Result<()> + 'a;
+
+/// Native finalization lends its already authenticated final Value. The SQL
+/// row must still carry that exact digest, length and order. Accumulated roots
+/// are compared with the complete Stage after the producer/cleanup returns.
+pub(crate) struct FinalSemanticRows<'visitor, 'operation, 'ceiling> {
+    pub visitor: &'visitor mut SemanticRowVisitor<'operation>,
+    pub catalog_limits: crate::catalog::CatalogLimits,
+    pub catalog_ceiling: &'ceiling mut Option<u64>,
+}
+impl crate::knowledge_native_finalize::FinalRowObserver for FinalSemanticRows<'_, '_, '_> {
+    fn begin(&mut self, stage: &mut KnowledgeStage<'_>) -> Result<()> {
+        if self.catalog_ceiling.is_some() {
+            return Err(Error::Invalid("final semantic observer restarted"));
+        }
+        *self.catalog_ceiling = Some(stage.with_connection(WritePhase::Finalize, |db| {
+            crate::catalog::CatalogReduction::begin_final_rows(db, self.catalog_limits)
+        })?);
+        Ok(())
+    }
+    fn row(
+        &mut self,
+        stage: &mut KnowledgeStage<'_>,
+        relation: bool,
+        id: &str,
+        order: i64,
+        length: usize,
+        digest: Digest256,
+        value: &Value,
+    ) -> Result<()> {
+        if self.catalog_ceiling.is_none() {
+            return Err(Error::Invalid("final semantic observer not started"));
+        }
+        let state = stage.owned_creation_state();
+        let _hold = state
+            .map(|state| {
+                state.hold(
+            tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+        )
+            })
+            .transpose()?;
+        let sql = if relation {
+            "SELECT payload_len,payload_sha256,relation_type_id,NULL,source_graph,predicate_id,source_order,from_id,to_id FROM knowledge_relations WHERE id=?1"
+        } else {
+            "SELECT payload_len,payload_sha256,type_id,entity_id,source_graph,kind_id,source_order,NULL,NULL FROM knowledge_nodes WHERE id=?1"
+        };
+        if let Some(state) = state {
+            state.charge_work(sql.len() + id.len())?;
+        }
+        stage.with_connection(WritePhase::Finalize, |db| {
+            let mut statement = db.prepare_cached(sql)?;
+            let mut rows = statement.query([id])?;
+            let row = rows
+                .next()?
+                .ok_or(Error::Invalid("final semantic row absent"))?;
+            let logical_len = row.get::<_, i64>(0)?;
+            if logical_len <= 0
+                || logical_len as u64 != length as u64
+                || sql_blob_ref(row, 1)? != digest.as_bytes()
+                || row.get::<_, i64>(6)? != order
+            {
+                return Err(Error::Invalid("final semantic row receipt changed"));
+            }
+            let meta = SemanticRow {
+                relation,
+                id,
+                source: sql_text_ref(row, 4)?,
+                kind_or_predicate: sql_text_ref(row, 5)?,
+                type_id: sql_text_ref(row, 2)?,
+                entity: sql_optional_text_ref(row, 3)?,
+                from: sql_optional_text_ref(row, 7)?,
+                to: sql_optional_text_ref(row, 8)?,
+                order,
+                logical_len,
+                digest: digest.as_bytes(),
+            };
+            (self.visitor)(db, &meta, value)?;
+            if rows.next()?.is_some() {
+                return Err(Error::Invalid("final semantic duplicate row"));
+            }
+            Ok(())
+        })
+    }
+}
+
+fn scan_semantic_rows(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    state: Option<&CreationState<'_>>,
+    consume: &mut SemanticRowVisitor<'_>,
+) -> Result<()> {
+    let layout = stage.payload_layout();
+    stage.with_connection(WritePhase::Finalize, |db| {
+        {
+            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,type_id,entity_id,source_graph,payload_codec,source_packet_sha256,id,kind_id,source_order FROM knowledge_nodes ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,type_id,entity_id,source_graph,0,NULL,id,kind_id,source_order FROM knowledge_nodes ORDER BY source_order" })?;
+            let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
+            while let Some(row) = rows.next()? {
+                if let Some(state) = state {
+                    state.active()?;
+                }
+
+                if let Some(state) = state {
+                    let len = row.get::<_, i64>(0)?;
+                    if len < 0 {
+                        return Err(Error::Invalid("public D1 semantic row length"));
+                    }
+                    let len = usize::try_from(len)
+                        .map_err(|_| Error::Budget("public D1 semantic row bytes"))?;
+                    if len > MAX_ROW_BYTES {
+                        return Err(Error::Budget("public D1 semantic row bytes"));
+                    }
+                    let digest = sql_blob_ref(row, 1)?;
+                    let raw = sql_blob_ref(row, 2)?;
+                    let stored_type = sql_text_ref(row, 3)?;
+                    let stored_entity = sql_optional_text_ref(row, 4)?;
+                    let stored_source = sql_text_ref(row, 5)?;
+                    if layout == KnowledgePayloadLayout::InlineV1 && len != raw.len() {
+                        return Err(Error::Invalid("public D1 semantic row length"));
+                    }
+                    capture.charge_work(
+                        (stored_type.len()
+                            + stored_entity.map_or(0, str::len)
+                            + stored_source.len()) as u64,
+                    )?;
+                    with_semantic_physical_row_owned(db, row, layout, 6, state, |value| {
+                        consume(db, &SemanticRow { relation: false, id: sql_text_ref(row,8)?, source: stored_source, kind_or_predicate: sql_text_ref(row,9)?, type_id: stored_type, entity: stored_entity, from: None, to: None, order: row.get(10)?, logical_len: row.get(0)?, digest: sql_blob_ref(row,1)? }, value)
+                    })?;
+                } else {
+                    let len = admitted_row_len(capture, row.get(0)?)?;
+                    let digest: Vec<u8> = row.get(1)?;
+                    let value = check_row(len, &digest, row.get(2)?)?;
+                    let stored_type: String = row.get(3)?;
+                    let stored_entity: Option<String> = row.get(4)?;
+                    let stored_source: String = row.get(5)?;
+                    consume(db, &SemanticRow { relation: false, id: sql_text_ref(row,8)?, source: &stored_source, kind_or_predicate: sql_text_ref(row,9)?, type_id: &stored_type, entity: stored_entity.as_deref(), from: None, to: None, order: row.get(10)?, logical_len: row.get(0)?, digest: sql_blob_ref(row,1)? }, &value)?;
+                }
+            }
+        }
+        {
+            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,payload_codec,source_packet_sha256,id,predicate_id FROM knowledge_relations ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,0,NULL,id,predicate_id FROM knowledge_relations ORDER BY source_order" })?;
+            let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
+            while let Some(row) = rows.next()? {
+                if let Some(state) = state {
+                    state.active()?;
+                }
+
+                if let Some(state) = state {
+                    let len = row.get::<_, i64>(0)?;
+                    if len < 0 {
+                        return Err(Error::Invalid("public D1 semantic row length"));
+                    }
+                    let len = usize::try_from(len)
+                        .map_err(|_| Error::Budget("public D1 semantic row bytes"))?;
+                    if len > MAX_ROW_BYTES {
+                        return Err(Error::Budget("public D1 semantic row bytes"));
+                    }
+                    let digest = sql_blob_ref(row, 1)?;
+                    let raw = sql_blob_ref(row, 2)?;
+                    let stored_type = sql_text_ref(row, 3)?;
+                    let stored_from = sql_text_ref(row, 4)?;
+                    let stored_to = sql_text_ref(row, 5)?;
+                    let stored_source = sql_text_ref(row, 6)?;
+                    let source_order = row.get::<_, i64>(7)?;
+                    if layout == KnowledgePayloadLayout::InlineV1 && len != raw.len() {
+                        return Err(Error::Invalid("public D1 semantic row length"));
+                    }
+                    capture.charge_work(
+                        (stored_type.len() + stored_from.len() + stored_to.len() + stored_source.len()) as u64,
+                    )?;
+                    with_semantic_physical_row_owned(db, row, layout, 8, state, |value| {
+                        consume(db, &SemanticRow { relation: true, id: sql_text_ref(row,10)?, source: stored_source, kind_or_predicate: sql_text_ref(row,11)?, type_id: stored_type, entity: None, from: Some(stored_from), to: Some(stored_to), order: source_order, logical_len: row.get(0)?, digest: sql_blob_ref(row,1)? }, value)
+                    })?;
+                } else {
+                    let len = admitted_row_len(capture, row.get(0)?)?;
+                    let digest: Vec<u8> = row.get(1)?;
+                    let value = check_row(len, &digest, row.get(2)?)?;
+                    let stored_type: String = row.get(3)?;
+                    let stored_from: String = row.get(4)?;
+                    let stored_to: String = row.get(5)?;
+                    let stored_source: String = row.get(6)?;
+                    let source_order: i64 = row.get(7)?;
+                    consume(db, &SemanticRow { relation: true, id: sql_text_ref(row,10)?, source: &stored_source, kind_or_predicate: sql_text_ref(row,11)?, type_id: &stored_type, entity: None, from: Some(&stored_from), to: Some(&stored_to), order: source_order, logical_len: row.get(0)?, digest: sql_blob_ref(row,1)? }, &value)?;
+                }
+            }
+        }
+        Ok(())
+    })
+}
+
 fn validate_public_semantics_values(
     stage: &mut KnowledgeStage<'_>,
     capture: &PublicCapture,
@@ -1824,8 +2079,31 @@ fn validate_public_semantics_values(
     entity: &Value,
     relation: &Value,
     state: Option<&CreationState<'_>>,
-    mut catalog: Option<&mut crate::catalog::CatalogReduction<'_, '_, '_>>,
+    catalog: Option<&mut crate::catalog::CatalogReduction<'_, '_, '_>>,
 ) -> Result<ValidatedGraphSemantics> {
+    validate_public_semantics_values_with_rows(
+        stage,
+        capture,
+        registry,
+        entity,
+        relation,
+        state,
+        catalog,
+        |stage, consume| scan_semantic_rows(stage, capture, state, consume),
+    )
+    .map(|(semantics, ())| semantics)
+}
+
+fn validate_public_semantics_values_with_rows<T>(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    registry: &KnowledgeRegistry,
+    entity: &Value,
+    relation: &Value,
+    state: Option<&CreationState<'_>>,
+    mut catalog: Option<&mut crate::catalog::CatalogReduction<'_, '_, '_>>,
+    drive: impl FnOnce(&mut KnowledgeStage<'_>, &mut SemanticRowVisitor<'_>) -> Result<T>,
+) -> Result<(ValidatedGraphSemantics, T)> {
     let entries_bytes = if let Some(state) = state {
         let bytes = registry_entries_owned_state(entity, "types", "type_id", state)?
             .checked_add(registry_entries_owned_state(
@@ -1881,7 +2159,8 @@ fn validate_public_semantics_values(
         // SQLite VM, TEMP page, cache and absolute deadline guards. A public
         // Stage has no active aggregate host-quota isolation guard.
         // No relation payload or graph-sized Rust incidence map is retained.
-        db.execute_batch("CREATE TEMP TABLE d1_semantic_cardinality (
+        db.execute_batch(
+            "CREATE TEMP TABLE d1_semantic_cardinality (
             direction INTEGER NOT NULL, endpoint TEXT NOT NULL,
             relation_type TEXT NOT NULL, scope_kind INTEGER NOT NULL,
             scope_value TEXT NOT NULL, first_order INTEGER NOT NULL,
@@ -1889,613 +2168,648 @@ fn validate_public_semantics_values(
             UNIQUE(direction,endpoint,relation_type,scope_kind,scope_value)
         );
         CREATE INDEX d1_semantic_cardinality_order
-        ON d1_semantic_cardinality(direction,first_order);")?;
-        let mut incidence_insert = db.prepare("INSERT INTO d1_semantic_cardinality
+        ON d1_semantic_cardinality(direction,first_order);",
+        )?;
+        Ok(())
+    })?;
+    let mut node_hash = tos_foundation::Digest256Hasher::new();
+    let mut relation_hash = tos_foundation::Digest256Hasher::new();
+    let (mut observed_nodes, mut observed_relations) = (0u64, 0u64);
+    let mut consume = |db: &rusqlite::Connection,
+                       row: &SemanticRow<'_>,
+                       value: &Value|
+     -> Result<()> {
+        let _statements_hold = state.map(|owner| owner.hold(
+            5 * tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound()
+        )).transpose()?;
+        if let Some(state) = state {
+            state.active()?;
+        }
+        let next = if row.relation {
+            observed_relations
+        } else {
+            observed_nodes
+        };
+        if row.order < 0
+            || row.order as u64 != next
+            || row.digest.len() != 32
+            || row.logical_len <= 0
+            || row.logical_len as u64 > MAX_ROW_BYTES as u64
+            || (!row.relation && observed_relations != 0)
+            || string(value, "id") != Some(row.id)
+        {
+            return Err(Error::Invalid("semantic final row identity/order/length"));
+        }
+        let stored_type = row.type_id;
+        let stored_source = row.source;
+        let mut identity_lookup =
+            db.prepare_cached("SELECT type_id,entity_id FROM knowledge_nodes WHERE id=?1")?;
+        if !row.relation {
+            let stored_entity = row.entity;
+            let mut claim_edges = db.prepare_cached("SELECT to_id FROM knowledge_relations WHERE from_id=?1 AND relation_type_id=?2 LIMIT 2")?;
+
+            if let Some(state) = state {
+                state.active()?;
+            }
+            capture.charge_work(
+                (stored_type.len() + stored_entity.map_or(0, str::len) + stored_source.len())
+                    as u64,
+            )?;
+            if string(value, "type_id") != Some(stored_type)
+                || string(value, "entity_id") != stored_entity
+                || string(value, "source_graph") != Some(stored_source)
+            {
+                return Err(Error::Invalid("public D1 indexed node identity"));
+            }
+            check_node(
+                value,
+                registry,
+                &entities,
+                properties,
+                capture,
+                state,
+                hierarchy_edges,
+            )?;
+            header_counts.observe(0, stored_source, value, state)?;
+            if let Some(reduction) = catalog.as_deref_mut() {
+                reduction.node(
+                    db,
+                    value,
+                    row.id,
+                    stored_source,
+                    row.kind_or_predicate,
+                    stored_type,
+                    row.order,
+                    row.logical_len,
+                )?;
+            }
+            let type_id = string(value, "type_id").unwrap_or("");
+            registered_nodes += u64::from(entities.contains_key(type_id));
+            unmapped_nodes += u64::from(type_id == registry.fallback_entity_type_id());
+            if type_id == "tos.entity.claim" {
+                claim_count += 1;
+                let id = string(value, "id").ok_or(Error::Invalid("public D1 Claim ID"))?;
+                let claim = member(value, "semantics.claim");
+                for (predicate, target) in [
+                    ("tos.relation.has-subject", "subject_node_id"),
+                    ("tos.relation.has-object", "object_node_id"),
+                ] {
+                    if let Some(state) = state {
+                        state.active()?;
+                    }
+                    let target =
+                        string(claim, target).ok_or(Error::Invalid("public D1 Claim endpoint"))?;
+                    claim_edge(&mut claim_edges, capture, id, predicate, target, state)?;
+                }
+                let subject = string(claim, "subject_node_id")
+                    .ok_or(Error::Invalid("public D1 Claim subject"))?;
+                let object = string(claim, "object_node_id")
+                    .ok_or(Error::Invalid("public D1 Claim object"))?;
+                let relation_type = string(claim, "relation_type_id").unwrap_or(fallback_relation);
+                let relation_entry = relations
+                    .get(relation_type)
+                    .ok_or(Error::Invalid("public D1 Claim relation type"))?;
+                let left = node_identity(&mut identity_lookup, capture, subject, state)?;
+                let right = node_identity(&mut identity_lookup, capture, object, state)?;
+                endpoint_contract(
+                    left.as_ref(),
+                    right.as_ref(),
+                    relation_type,
+                    fallback_relation,
+                    relation_entry,
+                    &entities,
+                    capture,
+                    state,
+                    hierarchy_edges,
+                )?;
+                let mut evidence = strings(claim, "evidence_node_ids").peekable();
+                if evidence.peek().is_none() {
+                    push_gap(
+                        capture,
+                        &mut gaps,
+                        &mut live_gap_bytes,
+                        id,
+                        "claim-evidence-not-projected",
+                        state,
+                    )?;
+                    claim_gap_count = claim_gap_count
+                        .checked_add(1)
+                        .ok_or(Error::Budget("public D1 claim gap count"))?;
+                }
+                for evidence_id in evidence {
+                    if let Some(state) = state {
+                        state.active()?;
+                    }
+                    if node_identity(&mut identity_lookup, capture, evidence_id, state)?.is_none() {
+                        return Err(Error::Invalid("public D1 unresolved Claim evidence"));
+                    }
+                }
+            }
+        } else {
+            let stored_from = row.from.ok_or(Error::Invalid("semantic row from absent"))?;
+            let stored_to = row.to.ok_or(Error::Invalid("semantic row to absent"))?;
+            let source_order = row.order;
+            let mut incidence_insert = db.prepare_cached(
+                "INSERT INTO d1_semantic_cardinality
             (direction,endpoint,relation_type,scope_kind,scope_value,first_order)
             VALUES (?1,?2,?3,?4,?5,?6)
             ON CONFLICT(direction,endpoint,relation_type,scope_kind,scope_value)
-            DO UPDATE SET tally=tally+1 WHERE tally < 9223372036854775807")?;
-        let mut node_lookup = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)<=?2+17 THEN payload ELSE NULL END,payload_codec,source_packet_sha256 FROM knowledge_nodes WHERE id=?1" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)=payload_len THEN payload ELSE NULL END FROM knowledge_nodes WHERE id=?1" })?;
-        let mut identity_lookup = db.prepare("SELECT type_id,entity_id FROM knowledge_nodes WHERE id=?1")?;
-        let mut claim_edges = db.prepare("SELECT to_id FROM knowledge_relations WHERE from_id=?1 AND relation_type_id=?2 LIMIT 2")?;
-        let mut supporting_lookup = db.prepare("SELECT source_graph,id FROM knowledge_nodes WHERE entity_id=?1 AND type_id='tos.entity.claim'")?;
-        {
-            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,type_id,entity_id,source_graph,payload_codec,source_packet_sha256,id,kind_id,source_order FROM knowledge_nodes ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,type_id,entity_id,source_graph,0,NULL,id,kind_id,source_order FROM knowledge_nodes ORDER BY source_order" })?;
-            let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
-            while let Some(row) = rows.next()? {
-                if let Some(state) = state {
-                    state.active()?;
-                }
-                let mut process = |value: &Value,
-                                   stored_type: &str,
-                                   stored_entity: Option<&str>,
-                                   stored_source: &str|
-                 -> Result<()> {
-                    if let Some(state) = state {
-                        state.active()?;
-                    }
-                    capture.charge_work(
-                        (stored_type.len()
-                            + stored_entity.map_or(0, str::len)
-                            + stored_source.len()) as u64,
-                    )?;
-                    if string(value, "type_id") != Some(stored_type)
-                        || string(value, "entity_id") != stored_entity
-                        || string(value, "source_graph") != Some(stored_source)
-                    {
-                        return Err(Error::Invalid("public D1 indexed node identity"));
-                    }
-                    check_node(
-                        value,
-                        registry,
-                        &entities,
-                        properties,
-                        capture,
-                        state,
-                        hierarchy_edges,
-                    )?;
-                    header_counts.observe(0, stored_source, value, state)?;
-                    if let Some(reduction)=catalog.as_deref_mut() {
-                        reduction.node(db,value,sql_text_ref(row,8)?,stored_source,sql_text_ref(row,9)?,stored_type,row.get(10)?, row.get(0)?)?;
-                    }
-                    let type_id = string(value, "type_id").unwrap_or("");
-                    registered_nodes += u64::from(entities.contains_key(type_id));
-                    unmapped_nodes += u64::from(type_id == registry.fallback_entity_type_id());
-                    if type_id == "tos.entity.claim" {
-                        claim_count += 1;
-                        let id = string(value, "id").ok_or(Error::Invalid("public D1 Claim ID"))?;
-                        let claim = member(value, "semantics.claim");
-                        for (predicate, target) in [
-                            ("tos.relation.has-subject", "subject_node_id"),
-                            ("tos.relation.has-object", "object_node_id"),
-                        ] {
-                            if let Some(state) = state {
-                                state.active()?;
-                            }
-                            let target = string(claim, target)
-                                .ok_or(Error::Invalid("public D1 Claim endpoint"))?;
-                            claim_edge(&mut claim_edges, capture, id, predicate, target, state)?;
-                        }
-                        let subject = string(claim, "subject_node_id")
-                            .ok_or(Error::Invalid("public D1 Claim subject"))?;
-                        let object = string(claim, "object_node_id")
-                            .ok_or(Error::Invalid("public D1 Claim object"))?;
-                        let relation_type =
-                            string(claim, "relation_type_id").unwrap_or(fallback_relation);
-                        let relation_entry = relations
-                            .get(relation_type)
-                            .ok_or(Error::Invalid("public D1 Claim relation type"))?;
-                        let left = node_identity(
-                            &mut identity_lookup,
+            DO UPDATE SET tally=tally+1 WHERE tally < 9223372036854775807",
+            )?;
+            let mut node_lookup = db.prepare_cached(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)<=?2+17 THEN payload ELSE NULL END,payload_codec,source_packet_sha256 FROM knowledge_nodes WHERE id=?1" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)=payload_len THEN payload ELSE NULL END FROM knowledge_nodes WHERE id=?1" })?;
+            let mut supporting_lookup = db.prepare_cached("SELECT source_graph,id FROM knowledge_nodes WHERE entity_id=?1 AND type_id='tos.entity.claim'")?;
+
+            if let Some(state) = state {
+                state.active()?;
+            }
+            capture.charge_work(
+                (stored_type.len() + stored_from.len() + stored_to.len() + stored_source.len())
+                    as u64,
+            )?;
+            if string(value, "relation_type_id") != Some(stored_type)
+                || string(value, "from_id") != Some(stored_from)
+                || string(value, "to_id") != Some(stored_to)
+                || string(value, "source_graph") != Some(stored_source)
+            {
+                return Err(Error::Invalid("public D1 indexed relation identity"));
+            }
+            header_counts.observe(1, stored_source, value, state)?;
+            if let Some(reduction) = catalog.as_deref_mut() {
+                reduction.relation(
+                    db,
+                    value,
+                    row.id,
+                    stored_source,
+                    stored_from,
+                    stored_to,
+                    row.kind_or_predicate,
+                    stored_type,
+                    source_order,
+                    row.logical_len,
+                )?;
+            }
+            let id = string(value, "id").ok_or(Error::Invalid("public D1 relation ID"))?;
+            let relation_type = string(value, "relation_type_id")
+                .ok_or(Error::Invalid("public D1 relation type"))?;
+            let entry = relations
+                .get(relation_type)
+                .ok_or(Error::Invalid("public D1 unregistered relation type"))?;
+            registered_relations += 1;
+            unmapped_relations += u64::from(relation_type == fallback_relation);
+            cross_layer += u64::from(string(value, "source_graph") == Some("semantic-interchange"));
+            if truthy(member(entry, "abstract"))
+                || relation_type != mapped_relation_type(registry, value)
+                || string(value, "predicate_mapping.status")
+                    != Some(if relation_type == fallback_relation {
+                        "unmapped"
+                    } else {
+                        "mapped"
+                    })
+                || string(value, "predicate_mapping.source_predicate_id").is_none()
+                || (truthy(member(entry, "evidence_required"))
+                    && strings(value, "source_refs").next().is_none())
+                || (member(entry, "review_requirement").as_str() != Some("none")
+                    && string(value, "epistemic.review_posture").is_none())
+            {
+                return Err(Error::Invalid(
+                    "public D1 relation semantic mapping/evidence",
+                ));
+            }
+            if string(value, "epistemic.review_posture") == Some("not-recorded") {
+                push_gap(
+                    capture,
+                    &mut gaps,
+                    &mut live_gap_bytes,
+                    id,
+                    "review-not-recorded",
+                    state,
+                )?;
+            }
+            let from_id =
+                string(value, "from_id").ok_or(Error::Invalid("public D1 relation from"))?;
+            let to_id = string(value, "to_id").ok_or(Error::Invalid("public D1 relation to"))?;
+            let left = node_identity(&mut identity_lookup, capture, from_id, state)?;
+            let right = node_identity(&mut identity_lookup, capture, to_id, state)?;
+            endpoint_contract(
+                left.as_ref(),
+                right.as_ref(),
+                relation_type,
+                fallback_relation,
+                entry,
+                &entities,
+                capture,
+                state,
+                hierarchy_edges,
+            )?;
+            let claim_ref = string(value, "attributes.claim_ref").unwrap_or("");
+            if string(entry, "assertion_mode") == Some("reified-claim") {
+                let supporting =
+                    supporting_claim(&mut supporting_lookup, capture, claim_ref, state)?
+                        .ok_or(Error::Invalid("public D1 unresolved supporting Claim"))?;
+                if left
+                    .as_ref()
+                    .is_some_and(|left| left.type_id != "tos.entity.claim")
+                {
+                    let endpoints_match = if let Some(state) = state {
+                        with_node_value(
+                            db,
+                            layout,
+                            &mut node_lookup,
                             capture,
-                            subject,
-                            state,
-                        )?;
-                        let right = node_identity(
-                            &mut identity_lookup,
-                            capture,
-                            object,
-                            state,
-                        )?;
-                        endpoint_contract(
-                            left.as_ref(),
-                            right.as_ref(),
-                            relation_type,
-                            fallback_relation,
-                            relation_entry,
-                            &entities,
-                            capture,
-                            state,
-                            hierarchy_edges,
-                        )?;
-                        let mut evidence = strings(claim, "evidence_node_ids").peekable();
-                        if evidence.peek().is_none() {
-                            push_gap(
-                                capture,
-                                &mut gaps,
-                                &mut live_gap_bytes,
-                                id,
-                                "claim-evidence-not-projected",
-                                state,
-                            )?;
-                            claim_gap_count = claim_gap_count
-                                .checked_add(1)
-                                .ok_or(Error::Budget("public D1 claim gap count"))?;
-                        }
-                        for evidence_id in evidence {
-                            if let Some(state) = state {
-                                state.active()?;
-                            }
-                            if node_identity(
-                                &mut identity_lookup,
-                                capture,
-                                evidence_id,
-                                state,
-                            )?
-                            .is_none()
-                            {
-                                return Err(Error::Invalid("public D1 unresolved Claim evidence"));
-                            }
-                        }
+                            &supporting.id,
+                            Some(state),
+                            |claim_node| {
+                                Ok(left.as_ref().is_some_and(|left| {
+                                    left.entity_id
+                                        == string(claim_node, "semantics.claim.subject_entity_id")
+                                            .unwrap_or("")
+                                }) && right.as_ref().is_some_and(|right| {
+                                    right.entity_id
+                                        == string(claim_node, "semantics.claim.object_entity_id")
+                                            .unwrap_or("")
+                                }))
+                            },
+                        )?
+                        .unwrap_or(false)
+                    } else {
+                        let claim_node = node(&mut node_lookup, capture, &supporting.id)?
+                            .ok_or(Error::Invalid("public D1 missing supporting Claim"))?;
+                        left.as_ref().map(|item| item.entity_id.as_str())
+                            == string(&claim_node, "semantics.claim.subject_entity_id")
+                            && right.as_ref().map(|item| item.entity_id.as_str())
+                                == string(&claim_node, "semantics.claim.object_entity_id")
+                    };
+                    if !endpoints_match {
+                        return Err(Error::Invalid("public D1 supporting Claim endpoints"));
                     }
-                    Ok(())
-                };
-                if let Some(state) = state {
-                    let len = row.get::<_, i64>(0)?;
-                    if len < 0 {
-                        return Err(Error::Invalid("public D1 semantic row length"));
-                    }
-                    let len = usize::try_from(len)
-                        .map_err(|_| Error::Budget("public D1 semantic row bytes"))?;
-                    if len > MAX_ROW_BYTES {
-                        return Err(Error::Budget("public D1 semantic row bytes"));
-                    }
-                    let digest = sql_blob_ref(row, 1)?;
-                    let raw = sql_blob_ref(row, 2)?;
-                    let stored_type = sql_text_ref(row, 3)?;
-                    let stored_entity = sql_optional_text_ref(row, 4)?;
-                    let stored_source = sql_text_ref(row, 5)?;
-                    if layout == KnowledgePayloadLayout::InlineV1 && len != raw.len() {
-                        return Err(Error::Invalid("public D1 semantic row length"));
-                    }
-                    capture.charge_work(
-                        (stored_type.len()
-                            + stored_entity.map_or(0, str::len)
-                            + stored_source.len()) as u64,
-                    )?;
-                    with_semantic_physical_row_owned(db, row, layout, 6, state, |value| {
-                        process(value, stored_type, stored_entity, stored_source)
-                    })?;
-                } else {
-                    let len = admitted_row_len(capture, row.get(0)?)?;
-                    let digest: Vec<u8> = row.get(1)?;
-                    let value = check_row(len, &digest, row.get(2)?)?;
-                    let stored_type: String = row.get(3)?;
-                    let stored_entity: Option<String> = row.get(4)?;
-                    let stored_source: String = row.get(5)?;
-                    process(
-                        &value,
-                        &stored_type,
-                        stored_entity.as_deref(),
-                        &stored_source,
-                    )?;
                 }
             }
-        }
-        {
-            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,payload_codec,source_packet_sha256,id,predicate_id FROM knowledge_relations ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,0,NULL,id,predicate_id FROM knowledge_relations ORDER BY source_order" })?;
-            let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
-            while let Some(row) = rows.next()? {
-                if let Some(state) = state {
-                    state.active()?;
+            if relation_type == "tos.relation.projects"
+                && left.as_ref().map(|item| item.entity_id.as_str())
+                    != right.as_ref().map(|item| item.entity_id.as_str())
+            {
+                return Err(Error::Invalid("public D1 projection entity identity"));
+            }
+            if relation_type == "tos.relation.same-as" {
+                let left = left
+                    .as_ref()
+                    .ok_or(Error::Invalid("public D1 same-as left"))?;
+                let right = right
+                    .as_ref()
+                    .ok_or(Error::Invalid("public D1 same-as right"))?;
+                if !(is_a_one(
+                    &left.type_id,
+                    &right.type_id,
+                    &entities,
+                    capture,
+                    state,
+                    hierarchy_edges,
+                )? || is_a_one(
+                    &right.type_id,
+                    &left.type_id,
+                    &entities,
+                    capture,
+                    state,
+                    hierarchy_edges,
+                )?) || !matches!(
+                    string(value, "epistemic.review_posture"),
+                    Some("accepted" | "verified" | "reviewed_equivalence")
+                ) || strings(value, "source_refs").next().is_none()
+                {
+                    return Err(Error::Invalid("public D1 same-as evidence/review"));
                 }
-                let mut process = |value: &Value,
-                                   stored_type: &str,
-                                   stored_from: &str,
-                                   stored_to: &str,
-                                   stored_source: &str,
-                                   source_order: i64|
-                 -> Result<()> {
-                    if let Some(state) = state {
-                        state.active()?;
-                    }
-                    capture.charge_work(
-                        (stored_type.len()
-                            + stored_from.len()
-                            + stored_to.len()
-                            + stored_source.len()) as u64,
-                    )?;
-                    if string(value, "relation_type_id") != Some(stored_type)
-                        || string(value, "from_id") != Some(stored_from)
-                        || string(value, "to_id") != Some(stored_to)
-                        || string(value, "source_graph") != Some(stored_source)
-                    {
-                        return Err(Error::Invalid("public D1 indexed relation identity"));
-                    }
-                    header_counts.observe(1, stored_source, value, state)?;
-                    if let Some(reduction)=catalog.as_deref_mut() {
-                        reduction.relation(db,value,sql_text_ref(row,10)?,stored_source,stored_from,stored_to,sql_text_ref(row,11)?,stored_type,source_order, row.get(0)?)?;
-                    }
-                    let id = string(value, "id").ok_or(Error::Invalid("public D1 relation ID"))?;
-                    let relation_type = string(value, "relation_type_id")
-                        .ok_or(Error::Invalid("public D1 relation type"))?;
-                    let entry = relations
-                        .get(relation_type)
-                        .ok_or(Error::Invalid("public D1 unregistered relation type"))?;
-                    registered_relations += 1;
-                    unmapped_relations += u64::from(relation_type == fallback_relation);
-                    cross_layer += u64::from(string(value, "source_graph") == Some("semantic-interchange"));
-                    if truthy(member(entry, "abstract"))
-                        || relation_type != mapped_relation_type(registry, value)
-                        || string(value, "predicate_mapping.status")
-                            != Some(if relation_type == fallback_relation { "unmapped" } else { "mapped" })
-                        || string(value, "predicate_mapping.source_predicate_id").is_none()
-                        || (truthy(member(entry, "evidence_required"))
-                            && strings(value, "source_refs").next().is_none())
-                        || (member(entry, "review_requirement").as_str() != Some("none")
-                            && string(value, "epistemic.review_posture").is_none())
-                    {
-                        return Err(Error::Invalid("public D1 relation semantic mapping/evidence"));
-                    }
-                    if string(value, "epistemic.review_posture") == Some("not-recorded") {
-                        push_gap(capture, &mut gaps, &mut live_gap_bytes, id, "review-not-recorded", state)?;
-                    }
-                    let from_id = string(value, "from_id")
-                        .ok_or(Error::Invalid("public D1 relation from"))?;
-                    let to_id = string(value, "to_id")
-                        .ok_or(Error::Invalid("public D1 relation to"))?;
-                    let left = node_identity(&mut identity_lookup, capture, from_id, state)?;
-                    let right = node_identity(&mut identity_lookup, capture, to_id, state)?;
-                    endpoint_contract(
-                        left.as_ref(),
-                        right.as_ref(),
-                        relation_type,
-                        fallback_relation,
-                        entry,
-                        &entities,
-                        capture,
-                        state,
-                        hierarchy_edges,
-                    )?;
-                    let claim_ref = string(value, "attributes.claim_ref").unwrap_or("");
-                    if string(entry, "assertion_mode") == Some("reified-claim") {
-                        let supporting = supporting_claim(
-                            &mut supporting_lookup,
-                            capture,
-                            claim_ref,
-                            state,
-                        )?
-                        .ok_or(Error::Invalid("public D1 unresolved supporting Claim"))?;
-                        if left.as_ref().is_some_and(|left| left.type_id != "tos.entity.claim") {
-                            let endpoints_match = if let Some(state) = state {
-                                with_node_value(db, layout, &mut node_lookup, capture, &supporting.id, Some(state), |claim_node| {
-                                    Ok(left.as_ref().is_some_and(|left| {
-                                        left.entity_id == string(claim_node, "semantics.claim.subject_entity_id").unwrap_or("")
-                                    }) && right.as_ref().is_some_and(|right| {
-                                        right.entity_id == string(claim_node, "semantics.claim.object_entity_id").unwrap_or("")
-                                    }))
-                                })?.unwrap_or(false)
-                            } else {
-                                let claim_node = node(&mut node_lookup, capture, &supporting.id)?
-                                    .ok_or(Error::Invalid("public D1 missing supporting Claim"))?;
-                                left.as_ref().map(|item| item.entity_id.as_str())
-                                    == string(&claim_node, "semantics.claim.subject_entity_id")
-                                    && right.as_ref().map(|item| item.entity_id.as_str())
-                                        == string(&claim_node, "semantics.claim.object_entity_id")
-                            };
-                            if !endpoints_match {
-                                return Err(Error::Invalid("public D1 supporting Claim endpoints"));
-                            }
-                        }
-                    }
-                    if relation_type == "tos.relation.projects"
-                        && left.as_ref().map(|item| item.entity_id.as_str())
-                            != right.as_ref().map(|item| item.entity_id.as_str())
-                    {
-                        return Err(Error::Invalid("public D1 projection entity identity"));
-                    }
-                    if relation_type == "tos.relation.same-as" {
-                        let left = left.as_ref().ok_or(Error::Invalid("public D1 same-as left"))?;
-                        let right = right.as_ref().ok_or(Error::Invalid("public D1 same-as right"))?;
-                        if !(is_a_one(&left.type_id, &right.type_id, &entities, capture, state, hierarchy_edges)?
-                            || is_a_one(&right.type_id, &left.type_id, &entities, capture, state, hierarchy_edges)?)
-                            || !matches!(string(value, "epistemic.review_posture"), Some("accepted" | "verified" | "reviewed_equivalence"))
-                            || strings(value, "source_refs").next().is_none()
-                        {
-                            return Err(Error::Invalid("public D1 same-as evidence/review"));
-                        }
-                        let review_id = string(value, "attributes.review_node_id")
-                            .ok_or(Error::Invalid("public D1 same-as review ID"))?;
-                        let supporting = supporting_claim(
-                            &mut supporting_lookup,
-                            capture,
-                            claim_ref,
-                            state,
-                        )?
+                let review_id = string(value, "attributes.review_node_id")
+                    .ok_or(Error::Invalid("public D1 same-as review ID"))?;
+                let supporting =
+                    supporting_claim(&mut supporting_lookup, capture, claim_ref, state)?
                         .ok_or(Error::Invalid("public D1 same-as Claim"))?;
-                        if let Some(state) = state {
-                            let claim_summary = with_node_value(db, layout,
-                                &mut node_lookup,
-                                capture,
-                                &supporting.id,
-                                Some(state),
-                                |claim_node| {
-                                    let claim = member(claim_node, "semantics.claim");
-                                    if string(claim, "relation_type_id") != Some(relation_type)
-                                        || member(claim, "claim_version").is_null()
-                                        || strings(claim, "evidence_node_ids").next().is_none()
-                                    {
-                                        return Err(Error::Invalid("public D1 same-as exact Claim"));
-                                    }
-                                    let pair = [left.entity_id.as_str(), right.entity_id.as_str()];
-                                    let expected = [
-                                        string(claim, "subject_entity_id"),
-                                        string(claim, "object_entity_id"),
-                                    ];
-                                    if !((expected[0] == Some(pair[0]) && expected[1] == Some(pair[1]))
-                                        || (expected[0] == Some(pair[1]) && expected[1] == Some(pair[0])))
-                                    {
-                                        return Err(Error::Invalid("public D1 same-as exact Claim"));
-                                    }
-                                    for evidence in strings(claim, "evidence_node_ids") {
-                                        state.active()?;
-                                        let identity = node_identity(
-                                            &mut identity_lookup,
-                                            capture,
-                                            evidence,
-                                            Some(state),
-                                        )?
-                                        .ok_or(Error::Invalid("public D1 same-as evidence"))?;
-                                        if !is_a_one(
-                                            &identity.type_id,
-                                            "tos.entity.evidence",
-                                            &entities,
-                                            capture,
-                                            Some(state),
-                                            hierarchy_edges,
-                                        )? {
-                                            return Err(Error::Invalid("public D1 same-as evidence type"));
-                                        }
-                                    }
-                                    owned_claim_summary(state, claim)
-                                },
-                            )?
-                            .ok_or(Error::Invalid("public D1 same-as Claim node"))?;
-                            let review_valid = with_node_value(db, layout,
-                                &mut node_lookup,
-                                capture,
-                                review_id,
-                                Some(state),
-                                |review| {
-                                    let review_type = string(review, "type_id").unwrap_or("");
-                                    let registered = is_a_one(
-                                        review_type,
-                                        "tos.entity.review",
-                                        &entities,
-                                        capture,
-                                        Some(state),
-                                        hierarchy_edges,
-                                    )?;
-                                    Ok(registered
-                                        && string(review, "attributes.claim_ref")
-                                            == claim_summary.claim_id.as_deref()
-                                        && member(review, "attributes.claim_version")
-                                            == &claim_summary.claim_version
-                                        && string(review, "attributes.decision") == Some("accepted"))
-                                },
-                            )?
-                            .unwrap_or(false);
-                            if !review_valid {
-                                return Err(Error::Invalid("public D1 same-as exact Claim"));
-                            }
-                        } else {
-                            let review = node(&mut node_lookup, capture, review_id)?
-                                .ok_or(Error::Invalid("public D1 same-as review"))?;
-                            let claim_node = node(&mut node_lookup, capture, &supporting.id)?
-                                .ok_or(Error::Invalid("public D1 same-as Claim node"))?;
-                            let claim = member(&claim_node, "semantics.claim");
-                            let pair = [left.entity_id.as_str(), right.entity_id.as_str()];
-                            let expected = [string(claim, "subject_entity_id"), string(claim, "object_entity_id")];
-                            if !is_a_one(string(&review, "type_id").unwrap_or(""), "tos.entity.review", &entities, capture, None, hierarchy_edges)?
-                                || string(&review, "attributes.claim_ref") != string(claim, "claim_id")
-                                || member(&review, "attributes.claim_version") != member(claim, "claim_version")
-                                || string(&review, "attributes.decision") != Some("accepted")
-                                || string(claim, "relation_type_id") != Some(relation_type)
+                if let Some(state) = state {
+                    let claim_summary = with_node_value(
+                        db,
+                        layout,
+                        &mut node_lookup,
+                        capture,
+                        &supporting.id,
+                        Some(state),
+                        |claim_node| {
+                            let claim = member(claim_node, "semantics.claim");
+                            if string(claim, "relation_type_id") != Some(relation_type)
                                 || member(claim, "claim_version").is_null()
                                 || strings(claim, "evidence_node_ids").next().is_none()
-                                || !((expected[0] == Some(pair[0]) && expected[1] == Some(pair[1]))
-                                    || (expected[0] == Some(pair[1]) && expected[1] == Some(pair[0])))
+                            {
+                                return Err(Error::Invalid("public D1 same-as exact Claim"));
+                            }
+                            let pair = [left.entity_id.as_str(), right.entity_id.as_str()];
+                            let expected = [
+                                string(claim, "subject_entity_id"),
+                                string(claim, "object_entity_id"),
+                            ];
+                            if !((expected[0] == Some(pair[0]) && expected[1] == Some(pair[1]))
+                                || (expected[0] == Some(pair[1]) && expected[1] == Some(pair[0])))
                             {
                                 return Err(Error::Invalid("public D1 same-as exact Claim"));
                             }
                             for evidence in strings(claim, "evidence_node_ids") {
-                                let identity = node_identity(&mut identity_lookup, capture, evidence, None)?
-                                    .ok_or(Error::Invalid("public D1 same-as evidence"))?;
-                                if !is_a_one(&identity.type_id, "tos.entity.evidence", &entities, capture, None, hierarchy_edges)? {
+                                state.active()?;
+                                let identity = node_identity(
+                                    &mut identity_lookup,
+                                    capture,
+                                    evidence,
+                                    Some(state),
+                                )?
+                                .ok_or(Error::Invalid("public D1 same-as evidence"))?;
+                                if !is_a_one(
+                                    &identity.type_id,
+                                    "tos.entity.evidence",
+                                    &entities,
+                                    capture,
+                                    Some(state),
+                                    hierarchy_edges,
+                                )? {
                                     return Err(Error::Invalid("public D1 same-as evidence type"));
                                 }
                             }
+                            owned_claim_summary(state, claim)
+                        },
+                    )?
+                    .ok_or(Error::Invalid("public D1 same-as Claim node"))?;
+                    let review_valid = with_node_value(
+                        db,
+                        layout,
+                        &mut node_lookup,
+                        capture,
+                        review_id,
+                        Some(state),
+                        |review| {
+                            let review_type = string(review, "type_id").unwrap_or("");
+                            let registered = is_a_one(
+                                review_type,
+                                "tos.entity.review",
+                                &entities,
+                                capture,
+                                Some(state),
+                                hierarchy_edges,
+                            )?;
+                            Ok(registered
+                                && string(review, "attributes.claim_ref")
+                                    == claim_summary.claim_id.as_deref()
+                                && member(review, "attributes.claim_version")
+                                    == &claim_summary.claim_version
+                                && string(review, "attributes.decision") == Some("accepted"))
+                        },
+                    )?
+                    .unwrap_or(false);
+                    if !review_valid {
+                        return Err(Error::Invalid("public D1 same-as exact Claim"));
+                    }
+                } else {
+                    let review = node(&mut node_lookup, capture, review_id)?
+                        .ok_or(Error::Invalid("public D1 same-as review"))?;
+                    let claim_node = node(&mut node_lookup, capture, &supporting.id)?
+                        .ok_or(Error::Invalid("public D1 same-as Claim node"))?;
+                    let claim = member(&claim_node, "semantics.claim");
+                    let pair = [left.entity_id.as_str(), right.entity_id.as_str()];
+                    let expected = [
+                        string(claim, "subject_entity_id"),
+                        string(claim, "object_entity_id"),
+                    ];
+                    if !is_a_one(
+                        string(&review, "type_id").unwrap_or(""),
+                        "tos.entity.review",
+                        &entities,
+                        capture,
+                        None,
+                        hierarchy_edges,
+                    )? || string(&review, "attributes.claim_ref") != string(claim, "claim_id")
+                        || member(&review, "attributes.claim_version")
+                            != member(claim, "claim_version")
+                        || string(&review, "attributes.decision") != Some("accepted")
+                        || string(claim, "relation_type_id") != Some(relation_type)
+                        || member(claim, "claim_version").is_null()
+                        || strings(claim, "evidence_node_ids").next().is_none()
+                        || !((expected[0] == Some(pair[0]) && expected[1] == Some(pair[1]))
+                            || (expected[0] == Some(pair[1]) && expected[1] == Some(pair[0])))
+                    {
+                        return Err(Error::Invalid("public D1 same-as exact Claim"));
+                    }
+                    for evidence in strings(claim, "evidence_node_ids") {
+                        let identity =
+                            node_identity(&mut identity_lookup, capture, evidence, None)?
+                                .ok_or(Error::Invalid("public D1 same-as evidence"))?;
+                        if !is_a_one(
+                            &identity.type_id,
+                            "tos.entity.evidence",
+                            &entities,
+                            capture,
+                            None,
+                            hierarchy_edges,
+                        )? {
+                            return Err(Error::Invalid("public D1 same-as evidence type"));
                         }
                     }
-                    if relation_type == "tos.relation.promotion-basis-version" {
-                        let valid = if let Some(state) = state {
-                            let candidate_digest = with_node_value(db, layout,
-                                &mut node_lookup,
-                                capture,
-                                from_id,
-                                Some(state),
-                                |left| {
-                                    let candidate = member(left, "attributes.source_record.promotion_basis.candidate");
-                                    if !exact_ref(candidate) {
-                                        return Err(Error::Invalid("public D1 promotion basis exact version"));
-                                    }
-                                    exact_record_digest_owned(capture, state, candidate)
-                                },
-                            )?
-                            .ok_or(Error::Invalid("public D1 promotion Sign"))?;
-                            let reference_digest = with_node_value(db, layout,
-                                &mut node_lookup,
-                                capture,
-                                to_id,
-                                Some(state),
-                                |right| {
-                                    let reference = member(right, "semantics.record_version.record_ref");
-                                    if !exact_ref(reference) {
-                                        return Err(Error::Invalid("public D1 promotion basis exact version"));
-                                    }
-                                    exact_record_digest_owned(capture, state, reference)
-                                },
-                            )?
-                            .ok_or(Error::Invalid("public D1 promotion Version"))?;
-                            candidate_digest.as_bytes() == reference_digest.as_bytes()
-                        } else {
-                            let left = node(&mut node_lookup, capture, from_id)?.ok_or(Error::Invalid("public D1 promotion Sign"))?;
-                            let right = node(&mut node_lookup, capture, to_id)?.ok_or(Error::Invalid("public D1 promotion Version"))?;
-                            let candidate = member(&left, "attributes.source_record.promotion_basis.candidate");
-                            let reference = member(&right, "semantics.record_version.record_ref");
-                            exact_ref(candidate) && exact_ref(reference)
-                                && exact_record_matches(capture, None, candidate, reference)?
-                        };
-                        if !valid {
-                            return Err(Error::Invalid("public D1 promotion basis exact version"));
-                        }
-                    }
-                    if relation_type == "tos.relation.has-record-version" {
-                        if let Some(state) = state {
-                            let reference_digest = with_node_value(db, layout,
-                                &mut node_lookup,
-                                capture,
-                                to_id,
-                                Some(state),
-                                |right| {
-                                    let reference = member(right, "semantics.record_version.record_ref");
-                                    if string(right, "semantics.record_version.record_kind") != Some("metadata")
-                                        || !exact_ref(reference)
-                                    {
-                                        return Err(Error::Invalid("public D1 record history reference"));
-                                    }
-                                    exact_record_digest_owned(capture, state, reference)
-                                },
-                            )?
-                            .ok_or(Error::Invalid("public D1 record Version"))?;
-                            let found = with_node_value(db, layout,
-                                &mut node_lookup,
-                                capture,
-                                from_id,
-                                Some(state),
-                                |left| {
-                                    let history = metadata_history_refs(capture, left, Some(state))?;
-                                    for candidate in history {
-                                        state.active()?;
-                                        if exact_ref(candidate)
-                                            && exact_record_digest_owned(capture, state, candidate)?.as_bytes()
-                                                == reference_digest.as_bytes()
-                                        {
-                                            return Ok(true);
-                                        }
-                                    }
-                                    Ok(false)
-                                },
-                            )?
-                            .ok_or(Error::Invalid("public D1 record source"))?;
-                            if !found {
-                                return Err(Error::Invalid("public D1 record history exact member"));
+                }
+            }
+            if relation_type == "tos.relation.promotion-basis-version" {
+                let valid = if let Some(state) = state {
+                    let candidate_digest = with_node_value(
+                        db,
+                        layout,
+                        &mut node_lookup,
+                        capture,
+                        from_id,
+                        Some(state),
+                        |left| {
+                            let candidate =
+                                member(left, "attributes.source_record.promotion_basis.candidate");
+                            if !exact_ref(candidate) {
+                                return Err(Error::Invalid(
+                                    "public D1 promotion basis exact version",
+                                ));
                             }
-                        } else {
-                            let right = node(&mut node_lookup, capture, to_id)?.ok_or(Error::Invalid("public D1 record Version"))?;
-                            let reference = member(&right, "semantics.record_version.record_ref");
-                            if string(&right, "semantics.record_version.record_kind") != Some("metadata") || !exact_ref(reference) {
+                            exact_record_digest_owned(capture, state, candidate)
+                        },
+                    )?
+                    .ok_or(Error::Invalid("public D1 promotion Sign"))?;
+                    let reference_digest = with_node_value(
+                        db,
+                        layout,
+                        &mut node_lookup,
+                        capture,
+                        to_id,
+                        Some(state),
+                        |right| {
+                            let reference = member(right, "semantics.record_version.record_ref");
+                            if !exact_ref(reference) {
+                                return Err(Error::Invalid(
+                                    "public D1 promotion basis exact version",
+                                ));
+                            }
+                            exact_record_digest_owned(capture, state, reference)
+                        },
+                    )?
+                    .ok_or(Error::Invalid("public D1 promotion Version"))?;
+                    candidate_digest.as_bytes() == reference_digest.as_bytes()
+                } else {
+                    let left = node(&mut node_lookup, capture, from_id)?
+                        .ok_or(Error::Invalid("public D1 promotion Sign"))?;
+                    let right = node(&mut node_lookup, capture, to_id)?
+                        .ok_or(Error::Invalid("public D1 promotion Version"))?;
+                    let candidate =
+                        member(&left, "attributes.source_record.promotion_basis.candidate");
+                    let reference = member(&right, "semantics.record_version.record_ref");
+                    exact_ref(candidate)
+                        && exact_ref(reference)
+                        && exact_record_matches(capture, None, candidate, reference)?
+                };
+                if !valid {
+                    return Err(Error::Invalid("public D1 promotion basis exact version"));
+                }
+            }
+            if relation_type == "tos.relation.has-record-version" {
+                if let Some(state) = state {
+                    let reference_digest = with_node_value(
+                        db,
+                        layout,
+                        &mut node_lookup,
+                        capture,
+                        to_id,
+                        Some(state),
+                        |right| {
+                            let reference = member(right, "semantics.record_version.record_ref");
+                            if string(right, "semantics.record_version.record_kind")
+                                != Some("metadata")
+                                || !exact_ref(reference)
+                            {
                                 return Err(Error::Invalid("public D1 record history reference"));
                             }
-                            let left = node(&mut node_lookup, capture, from_id)?.ok_or(Error::Invalid("public D1 record source"))?;
-                            let history = metadata_history_refs(capture, &left, None)?;
-                            let reference_digest = exact_record_digest(capture, reference)?;
-                            let mut found = false;
+                            exact_record_digest_owned(capture, state, reference)
+                        },
+                    )?
+                    .ok_or(Error::Invalid("public D1 record Version"))?;
+                    let found = with_node_value(
+                        db,
+                        layout,
+                        &mut node_lookup,
+                        capture,
+                        from_id,
+                        Some(state),
+                        |left| {
+                            let history = metadata_history_refs(capture, left, Some(state))?;
                             for candidate in history {
+                                state.active()?;
                                 if exact_ref(candidate)
-                                    && exact_record_digest(capture, candidate)? == reference_digest
+                                    && exact_record_digest_owned(capture, state, candidate)?
+                                        .as_bytes()
+                                        == reference_digest.as_bytes()
                                 {
-                                    found = true;
-                                    break;
+                                    return Ok(true);
                                 }
                             }
-                            if !found {
-                                return Err(Error::Invalid("public D1 record history exact member"));
-                            }
-                        }
+                            Ok(false)
+                        },
+                    )?
+                    .ok_or(Error::Invalid("public D1 record source"))?;
+                    if !found {
+                        return Err(Error::Invalid("public D1 record history exact member"));
                     }
-                    // Only the verified scalar assertion context is retained.
-                    // A missing/null Claim ref and an actual string are distinct;
-                    // other types cannot satisfy the supporting-Claim rule above.
-                    let scope = if string(entry, "assertion_mode") == Some("reified-claim") {
-                        match member(value, "attributes.claim_ref") {
-                            Value::Null => None,
-                            Value::String(reference) => Some(reference.as_str()),
-                            _ => return Err(Error::Invalid("public D1 Claim assertion scope")),
-                        }
-                    } else {
-                        None
-                    };
-                    for (direction, endpoint, maximum) in [
-                        (0, from_id, "per_subject_max"),
-                        (1, to_id, "per_object_max"),
-                    ] {
-                        if let Some(state) = state {
-                            state.active()?;
-                        }
-                        let maximum = if maximum == "per_subject_max" {
-                            member(entry, "cardinality.per_subject_max")
-                        } else {
-                            member(entry, "cardinality.per_object_max")
-                        };
-                        if maximum.as_u64().is_some() {
-                            record_cardinality(
-                                &mut incidence_insert,
-                                capture,
-                                direction,
-                                endpoint,
-                                relation_type,
-                                scope,
-                                source_order,
-                                state,
-                            )?;
-                        }
-                    }
-                    Ok(())
-                };
-                if let Some(state) = state {
-                    let len = row.get::<_, i64>(0)?;
-                    if len < 0 {
-                        return Err(Error::Invalid("public D1 semantic row length"));
-                    }
-                    let len = usize::try_from(len)
-                        .map_err(|_| Error::Budget("public D1 semantic row bytes"))?;
-                    if len > MAX_ROW_BYTES {
-                        return Err(Error::Budget("public D1 semantic row bytes"));
-                    }
-                    let digest = sql_blob_ref(row, 1)?;
-                    let raw = sql_blob_ref(row, 2)?;
-                    let stored_type = sql_text_ref(row, 3)?;
-                    let stored_from = sql_text_ref(row, 4)?;
-                    let stored_to = sql_text_ref(row, 5)?;
-                    let stored_source = sql_text_ref(row, 6)?;
-                    let source_order = row.get::<_, i64>(7)?;
-                    if layout == KnowledgePayloadLayout::InlineV1 && len != raw.len() {
-                        return Err(Error::Invalid("public D1 semantic row length"));
-                    }
-                    capture.charge_work(
-                        (stored_type.len() + stored_from.len() + stored_to.len() + stored_source.len()) as u64,
-                    )?;
-                    with_semantic_physical_row_owned(db, row, layout, 8, state, |value| {
-                        process(value, stored_type, stored_from, stored_to, stored_source, source_order)
-                    })?;
                 } else {
-                    let len = admitted_row_len(capture, row.get(0)?)?;
-                    let digest: Vec<u8> = row.get(1)?;
-                    let value = check_row(len, &digest, row.get(2)?)?;
-                    let stored_type: String = row.get(3)?;
-                    let stored_from: String = row.get(4)?;
-                    let stored_to: String = row.get(5)?;
-                    let stored_source: String = row.get(6)?;
-                    let source_order: i64 = row.get(7)?;
-                    process(
-                        &value,
-                        &stored_type,
-                        &stored_from,
-                        &stored_to,
-                        &stored_source,
+                    let right = node(&mut node_lookup, capture, to_id)?
+                        .ok_or(Error::Invalid("public D1 record Version"))?;
+                    let reference = member(&right, "semantics.record_version.record_ref");
+                    if string(&right, "semantics.record_version.record_kind") != Some("metadata")
+                        || !exact_ref(reference)
+                    {
+                        return Err(Error::Invalid("public D1 record history reference"));
+                    }
+                    let left = node(&mut node_lookup, capture, from_id)?
+                        .ok_or(Error::Invalid("public D1 record source"))?;
+                    let history = metadata_history_refs(capture, &left, None)?;
+                    let reference_digest = exact_record_digest(capture, reference)?;
+                    let mut found = false;
+                    for candidate in history {
+                        if exact_ref(candidate)
+                            && exact_record_digest(capture, candidate)? == reference_digest
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        return Err(Error::Invalid("public D1 record history exact member"));
+                    }
+                }
+            }
+            // Only the verified scalar assertion context is retained.
+            // A missing/null Claim ref and an actual string are distinct;
+            // other types cannot satisfy the supporting-Claim rule above.
+            let scope = if string(entry, "assertion_mode") == Some("reified-claim") {
+                match member(value, "attributes.claim_ref") {
+                    Value::Null => None,
+                    Value::String(reference) => Some(reference.as_str()),
+                    _ => return Err(Error::Invalid("public D1 Claim assertion scope")),
+                }
+            } else {
+                None
+            };
+            for (direction, endpoint, maximum) in [
+                (0, from_id, "per_subject_max"),
+                (1, to_id, "per_object_max"),
+            ] {
+                if let Some(state) = state {
+                    state.active()?;
+                }
+                let maximum = if maximum == "per_subject_max" {
+                    member(entry, "cardinality.per_subject_max")
+                } else {
+                    member(entry, "cardinality.per_object_max")
+                };
+                if maximum.as_u64().is_some() {
+                    record_cardinality(
+                        &mut incidence_insert,
+                        capture,
+                        direction,
+                        endpoint,
+                        relation_type,
+                        scope,
                         source_order,
+                        state,
                     )?;
                 }
             }
         }
-        drop(incidence_insert);
+        capture.charge_work((row.id.len() + 40) as u64)?;
+        if row.relation {
+            crate::knowledge_stage::root_item(&mut relation_hash, row.id, row.digest);
+            observed_relations = observed_relations
+                .checked_add(1)
+                .ok_or(Error::Budget("semantic observed rows"))?;
+        } else {
+            crate::knowledge_stage::root_item(&mut node_hash, row.id, row.digest);
+            observed_nodes = observed_nodes
+                .checked_add(1)
+                .ok_or(Error::Budget("semantic observed rows"))?;
+        }
+        Ok(())
+    };
+    let driven = drive(stage, &mut consume)?;
+    drop(consume);
+    let observed = stage.core_roots()?;
+    if observed.nodes != observed_nodes
+        || observed.relations != observed_relations
+        || observed.node_sha256 != node_hash.finalize().to_hex()
+        || observed.relation_sha256 != relation_hash.finalize().to_hex()
+    {
+        return Err(Error::Invalid("semantic final rows changed or incomplete"));
+    }
+    stage.with_connection(WritePhase::Finalize, |db| {
         // Python checks outgoing groups first, then incoming groups, each in
         // first-observed order. The private order index avoids a late sorter.
         {
-            let mut counts = db.prepare("SELECT length(CAST(endpoint AS BLOB)),
+            let mut counts = db.prepare(
+                "SELECT length(CAST(endpoint AS BLOB)),
                 length(CAST(relation_type AS BLOB)),direction,relation_type,tally
-                FROM d1_semantic_cardinality ORDER BY direction,first_order")?;
+                FROM d1_semantic_cardinality ORDER BY direction,first_order",
+            )?;
             let mut rows = counts.query([])?;
             while let Some(row) = rows.next()? {
                 if let Some(state) = state {
@@ -2516,24 +2830,31 @@ fn validate_public_semantics_values(
                 if output_len > MAX_ROW_BYTES {
                     return Err(Error::Budget("public D1 cardinality key bytes"));
                 }
-                capture.charge_work((output_len as u64).checked_mul(2)
-                    .and_then(|n| n.checked_add(32))
-                    .ok_or(Error::Budget("public D1 cardinality group work"))?)?;
+                capture.charge_work(
+                    (output_len as u64)
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(32))
+                        .ok_or(Error::Budget("public D1 cardinality group work"))?,
+                )?;
                 let direction: i64 = row.get(2)?;
                 let relation_type = sql_text_ref(row, 3)?;
                 let tally: i64 = row.get(4)?;
                 if (direction != 0 && direction != 1) || tally < 1 {
                     return Err(Error::Invalid("public D1 cardinality summary"));
                 }
-                let entry = relations.get(relation_type)
+                let entry = relations
+                    .get(relation_type)
                     .ok_or(Error::Invalid("public D1 cardinality relation type"))?;
-                let maximum = member(entry, if direction == 0 {
-                    "cardinality.per_subject_max"
-                } else {
-                    "cardinality.per_object_max"
-                })
-                    .as_u64()
-                    .ok_or(Error::Invalid("public D1 cardinality maximum"))?;
+                let maximum = member(
+                    entry,
+                    if direction == 0 {
+                        "cardinality.per_subject_max"
+                    } else {
+                        "cardinality.per_object_max"
+                    },
+                )
+                .as_u64()
+                .ok_or(Error::Invalid("public D1 cardinality maximum"))?;
                 if tally as u64 > maximum {
                     return Err(Error::Invalid("public D1 scoped relation cardinality"));
                 }
@@ -2590,7 +2911,209 @@ fn validate_public_semantics_values(
     if let Some(state) = state {
         state.retain(128 + std::mem::size_of::<crate::knowledge_stage::CoreRoots>())?;
     }
-    ValidatedGraphSemantics::new(Value::Object(report), header_counts, stage.core_roots()?)
+    Ok((
+        ValidatedGraphSemantics::new(Value::Object(report), header_counts, observed)?,
+        driven,
+    ))
+}
+
+#[cfg(test)]
+pub(crate) fn fixture_final_semantics(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+    catalog: &mut crate::catalog::CatalogReduction<'_, '_, '_>,
+    catalog_limits: crate::catalog::CatalogLimits,
+    fused: bool,
+) -> (ValidatedGraphSemantics, u64) {
+    use crate::d1_public_capture::{
+        PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole,
+    };
+    use crate::knowledge_inherited_views::{
+        CompleteRelationSeal, InheritedViewLimits, prepare_global_inherited_views,
+    };
+    use crate::knowledge_native_finalize::{
+        NativeFinalizeLimits, finalize_native_graph_rows_with_observer,
+    };
+    use std::{
+        sync::{Arc, atomic::AtomicBool},
+        time::{Duration, Instant},
+    };
+    let district = tempfile::tempdir().unwrap();
+    let root = district.path();
+    let source = root.join("philosophy.json");
+    std::fs::write(&source, br#"{"schema_version":"tos_philosophy_graph_projection_v2","nodes":[],"edges":[],"views":[],"graph_layers":[],"clusters":[],"review_packets":[]}"#).unwrap();
+    let absent = root.join("absent.json");
+    let paths = PublicCaptureInputPaths {
+        index_path: absent.clone(),
+        philosophy_graph_projection_path: source,
+        bibliographic_graph_path: absent.clone(),
+        entity_type_registry_path: absent.clone(),
+        relation_type_registry_path: absent.clone(),
+        philosophy_post_planting_audit_path: absent.clone(),
+        evidence_projection_path: absent,
+    };
+    let capture = PublicCapture::create_runtime_carrier_selected(
+        root,
+        &paths,
+        RuntimeCaptureRole::Philosophy,
+        &root.join("capture.sqlite"),
+        PublicCaptureLimits {
+            max_input_bytes: 1024 * 1024,
+            max_rows: 100,
+            max_staging_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 32 * 1024 * 1024,
+            max_sql_vm_steps: 1_000_000,
+            sqlite_cache_kib: 64,
+        },
+        Instant::now() + Duration::from_secs(30),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap();
+    let entity = serde_json::from_slice(entity_bytes).unwrap();
+    let relation = serde_json::from_slice(relation_bytes).unwrap();
+    // A provider cannot return a report for missing rows or for rows changed
+    // after validation. Both controls exercise the independent final-root fence.
+    let missing = validate_public_semantics_values_with_rows(
+        stage,
+        &capture,
+        registry,
+        &entity,
+        &relation,
+        None,
+        None,
+        |_, _| Ok(()),
+    );
+    assert!(matches!(
+        missing,
+        Err(Error::Invalid("semantic final rows changed or incomplete"))
+    ));
+    stage
+        .with_connection(WritePhase::Finalize, |db| {
+            db.execute_batch("DROP TABLE d1_semantic_cardinality")?;
+            Ok(())
+        })
+        .unwrap();
+    let original: Vec<u8> = stage
+        .with_connection(WritePhase::Finalize, |db| {
+            Ok(db.query_row(
+                "SELECT payload_sha256 FROM knowledge_nodes WHERE source_order=0",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    let changed = validate_public_semantics_values_with_rows(
+        stage,
+        &capture,
+        registry,
+        &entity,
+        &relation,
+        None,
+        None,
+        |stage, visitor| {
+            scan_semantic_rows(stage, &capture, None, visitor)?;
+            stage.with_connection(WritePhase::Finalize, |db| {
+                db.execute(
+                    "UPDATE knowledge_nodes SET payload_sha256=zeroblob(32) WHERE source_order=0",
+                    [],
+                )?;
+                Ok(())
+            })
+        },
+    );
+    assert!(matches!(
+        changed,
+        Err(Error::Invalid("semantic final rows changed or incomplete"))
+    ));
+    stage
+        .with_connection(WritePhase::Finalize, |db| {
+            db.execute(
+                "UPDATE knowledge_nodes SET payload_sha256=?1 WHERE source_order=0",
+                [original],
+            )?;
+            db.execute_batch("DROP TABLE d1_semantic_cardinality")?;
+            Ok(())
+        })
+        .unwrap();
+    let roots = stage.core_roots().unwrap();
+    let inherited = prepare_global_inherited_views(
+        stage,
+        &CompleteRelationSeal {
+            source_cut: stage.exact_receipt().unwrap().binding.source_cut.clone(),
+            relation_count: roots.relations,
+            relation_root_sha256: roots.relation_sha256,
+        },
+        InheritedViewLimits {
+            max_relations: 8,
+            max_endpoint_evidence_rows: 16,
+            max_view_tokens: 16,
+            max_page_rows: 1,
+            max_page_bytes: 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+    )
+    .unwrap();
+    let limits = NativeFinalizeLimits {
+        max_rows: 8,
+        max_page_rows: 1,
+        max_page_bytes: 1024 * 1024,
+        max_row_bytes: 1024 * 1024,
+        max_view_ids_per_node: 16,
+        max_context_sources: 16,
+        max_work_bytes: 32 * 1024 * 1024,
+    };
+    let mut ceiling = None;
+    let (semantics, finalized) = validate_public_semantics_values_with_rows(
+        stage,
+        &capture,
+        registry,
+        &entity,
+        &relation,
+        None,
+        Some(catalog),
+        |stage, visitor| {
+            if fused {
+                let mut observer = FinalSemanticRows {
+                    visitor,
+                    catalog_limits,
+                    catalog_ceiling: &mut ceiling,
+                };
+                finalize_native_graph_rows_with_observer(
+                    stage,
+                    registry,
+                    entity_bytes,
+                    &inherited,
+                    limits,
+                    |_, _, _| Ok(Vec::new()),
+                    |_, _, _, _, _| Ok(None),
+                    Some(&mut observer),
+                )
+            } else {
+                let result = finalize_native_graph_rows_with_observer(
+                    stage,
+                    registry,
+                    entity_bytes,
+                    &inherited,
+                    limits,
+                    |_, _, _| Ok(Vec::new()),
+                    |_, _, _, _, _| Ok(None),
+                    None,
+                )?;
+                ceiling = Some(stage.with_connection(WritePhase::Finalize, |db| {
+                    crate::catalog::CatalogReduction::begin_final_rows(db, catalog_limits)
+                })?);
+                scan_semantic_rows(stage, &capture, None, visitor)?;
+                Ok(result)
+            }
+        },
+    )
+    .unwrap();
+    assert_eq!((finalized.nodes, finalized.relations), (4, 1));
+    crate::knowledge_inherited_views::clear_inherited_views(stage).unwrap();
+    (semantics, ceiling.unwrap())
 }
 
 #[cfg(test)]

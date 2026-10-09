@@ -3185,6 +3185,25 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
         }
         Ok(ceiling)
     }
+    /// Finalization still writes core rows; it cannot be enclosed in the
+    /// disposable catalog savepoint. Only these three TEMP tables are owned
+    /// here, under the same existing absolute page ceiling.
+    pub(crate) fn begin_final_rows(db: &Connection, limits: CatalogLimits) -> Result<u64> {
+        let ceiling: u64 = db.query_row("PRAGMA temp.max_page_count", [], |r| r.get(0))?;
+        stage(db, limits)?;
+        Ok(ceiling)
+    }
+    pub(crate) fn cleanup_final_rows(db: &Connection, ceiling: u64) -> Result<()> {
+        db.execute_batch("DROP TABLE cmp_catalog_counts; DROP TABLE cmp_catalog_posts; DROP TABLE cmp_catalog_node_routes;")?;
+        let restored: u64 =
+            db.query_row(&format!("PRAGMA temp.max_page_count={ceiling}"), [], |r| {
+                r.get(0)
+            })?;
+        if restored != ceiling {
+            return Err(Error::Budget("catalog staging page ceiling restore"));
+        }
+        Ok(())
+    }
     pub(crate) fn cleanup(db: &Connection, ceiling: u64) -> Result<()> {
         db.execute_batch("ROLLBACK TO cmp_catalog_build; RELEASE cmp_catalog_build")?;
         let restored: u64 =

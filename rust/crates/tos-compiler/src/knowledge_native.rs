@@ -679,6 +679,32 @@ pub fn materialize_native_sources_with_inputs(
     limits: NativeProducerLimits,
     additional: NativeFamilyInputs<'_>,
 ) -> Result<NativeProducerReceipt> {
+    materialize_native_sources_with_observer(
+        stage,
+        registry,
+        entity_bytes,
+        relation_bytes,
+        vocabulary,
+        descriptor_bytes,
+        navigation_header,
+        limits,
+        additional,
+        None,
+    )
+}
+
+pub(crate) fn materialize_native_sources_with_observer(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+    vocabulary: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    navigation_header: &NavigationHeaderClaim,
+    limits: NativeProducerLimits,
+    additional: NativeFamilyInputs<'_>,
+    observer: Option<&mut dyn crate::knowledge_native_finalize::FinalRowObserver>,
+) -> Result<NativeProducerReceipt> {
     let mut phases = MaterializePhases::new(stage.owned_creation_state());
     let result = (|| {
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
@@ -1156,56 +1182,59 @@ pub fn materialize_native_sources_with_inputs(
             limits.inherited,
         )?;
         phases.next("finalize");
-        let final_rows = finalize_native_graph_rows_with_witnesses(
-            stage,
-            registry,
-            entity_bytes,
-            &inherited,
-            limits.finalize,
-            |stage, graph, reference| {
-                claim_context_sources(stage, &contexts, graph, reference, limits.claims)
-            },
-            |stage, relation, graph, id, native| {
-                if let Some((prepared, _)) = canon
-                    .iter()
-                    .chain(candidates.iter())
-                    .find(|(p, _)| p.source_graph == graph)
-                {
-                    return source_material(
-                        stage,
-                        prepared,
-                        id,
-                        relation,
-                        limits.finalize.max_row_bytes,
-                    )
-                    .map(Some);
-                }
-                if let Some(prepared) = repository.as_ref().filter(|p| p.source_graph == graph) {
-                    return repository_material_witness(
-                        stage,
-                        prepared,
-                        relation,
-                        id,
-                        additional.topology,
-                    )
-                    .map(Some);
-                }
-                if let Some(prepared) = semantic.as_ref().filter(|p| p.source_graph == graph) {
-                    if !relation {
-                        return Err(Error::Invalid("semantic source-material node"));
+        let final_rows =
+            crate::knowledge_native_finalize::finalize_native_graph_rows_with_observer(
+                stage,
+                registry,
+                entity_bytes,
+                &inherited,
+                limits.finalize,
+                |stage, graph, reference| {
+                    claim_context_sources(stage, &contexts, graph, reference, limits.claims)
+                },
+                |stage, relation, graph, id, native| {
+                    if let Some((prepared, _)) = canon
+                        .iter()
+                        .chain(candidates.iter())
+                        .find(|(p, _)| p.source_graph == graph)
+                    {
+                        return source_material(
+                            stage,
+                            prepared,
+                            id,
+                            relation,
+                            limits.finalize.max_row_bytes,
+                        )
+                        .map(Some);
                     }
-                    return crate::knowledge_semantic_join::semantic_relation_material_witness(
-                        stage,
-                        prepared,
-                        id,
-                        native,
-                        additional.topology,
-                    )
-                    .map(Some);
-                }
-                Ok(None)
-            },
-        )?;
+                    if let Some(prepared) = repository.as_ref().filter(|p| p.source_graph == graph)
+                    {
+                        return repository_material_witness(
+                            stage,
+                            prepared,
+                            relation,
+                            id,
+                            additional.topology,
+                        )
+                        .map(Some);
+                    }
+                    if let Some(prepared) = semantic.as_ref().filter(|p| p.source_graph == graph) {
+                        if !relation {
+                            return Err(Error::Invalid("semantic source-material node"));
+                        }
+                        return crate::knowledge_semantic_join::semantic_relation_material_witness(
+                            stage,
+                            prepared,
+                            id,
+                            native,
+                            additional.topology,
+                        )
+                        .map(Some);
+                    }
+                    Ok(None)
+                },
+                observer,
+            )?;
         phases.next("cleanup");
         // Complete actual rows now own final roots. Cleanup checks raw family
         // coverage and dependency roots again, then removes private joins only.

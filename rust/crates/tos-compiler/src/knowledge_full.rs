@@ -202,6 +202,17 @@ mod tests {
     use crate::knowledge_full_fixture::build_fixture;
 
     #[test]
+    fn final_row_semantics_and_catalog_match_separate_scan_and_cold_read() {
+        let separate=crate::knowledge_full_fixture::build_fixture_with_final_semantics(false);
+        let fused=crate::knowledge_full_fixture::build_fixture_with_final_semantics(true);
+        assert_eq!(separate.expectation.graph_root_sha256,fused.expectation.graph_root_sha256);
+        assert_eq!(separate.expectation.catalog_packet_sha256,fused.expectation.catalog_packet_sha256);
+        assert_eq!(separate.expectation.catalog_index_root_sha256,fused.expectation.catalog_index_root_sha256);
+        assert_eq!(separate.expectation.search_index_root_sha256,fused.expectation.search_index_root_sha256);
+        fused.open().unwrap();
+    }
+
+    #[test]
     fn prepared_catalog_keeps_full_seal_and_cold_packets_identical() {
         let regular=crate::knowledge_full_fixture::build_fixture();
         let reduced=crate::knowledge_full_fixture::build_fixture_with_prepared_catalog();

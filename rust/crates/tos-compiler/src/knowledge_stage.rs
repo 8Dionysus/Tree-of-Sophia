@@ -5822,7 +5822,7 @@ fn valid_id(value: &str) -> Result<()> {
     }
     Ok(())
 }
-fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
+pub(crate) fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
     hash.update(&(id.len() as u64).to_be_bytes());
     hash.update(id.as_bytes());
     hash.update(digest);

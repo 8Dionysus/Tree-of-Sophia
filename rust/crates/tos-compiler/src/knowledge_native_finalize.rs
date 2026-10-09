@@ -151,8 +151,51 @@ pub fn finalize_native_graph_rows_with_witnesses<F, G>(
     entity_registry_bytes: &[u8],
     inherited: &InheritedViewReceipt,
     limits: NativeFinalizeLimits,
+    claim_sources: F,
+    source_material: G,
+) -> Result<NativeFinalizeReceipt>
+where
+    F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,
+    G: FnMut(&mut KnowledgeStage<'_>, bool, &str, &str, &str) -> Result<Option<Vec<u8>>>,
+{
+    finalize_native_graph_rows_with_observer(
+        stage,
+        registry,
+        entity_registry_bytes,
+        inherited,
+        limits,
+        claim_sources,
+        source_material,
+        None,
+    )
+}
+
+/// The observer borrows each final authenticated Value only after its CAS write
+/// succeeds (or after an unchanged row's authenticated read). It cannot issue
+/// source authority. Completion must check every observed row against final roots.
+pub(crate) trait FinalRowObserver {
+    fn begin(&mut self, stage: &mut KnowledgeStage<'_>) -> Result<()>;
+    fn row(
+        &mut self,
+        stage: &mut KnowledgeStage<'_>,
+        relation: bool,
+        id: &str,
+        order: i64,
+        length: usize,
+        digest: Digest256,
+        value: &Value,
+    ) -> Result<()>;
+}
+
+pub(crate) fn finalize_native_graph_rows_with_observer<F, G>(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    inherited: &InheritedViewReceipt,
+    limits: NativeFinalizeLimits,
     mut claim_sources: F,
     mut source_material: G,
+    mut observer: Option<&mut dyn FinalRowObserver>,
 ) -> Result<NativeFinalizeReceipt>
 where
     F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,
@@ -186,6 +229,9 @@ where
             "Native finalize start nodes={} relations={}",
             roots.nodes, roots.relations
         );
+        if let Some(observer) = observer.as_deref_mut() {
+            observer.begin(stage)?;
+        }
         for table in ["knowledge_nodes", "knowledge_relations"] {
             let mut after = -1i64;
             loop {
@@ -227,6 +273,7 @@ where
                         return Err(Error::Budget("native final scan"));
                     }
                     let state = stage.owned_creation_state();
+                    let original_len = row.payload.len();
                     let source_receipt = match &row.payload {
                         NormalizedLogical::Value { source_receipt, .. } => *source_receipt,
                         NormalizedLogical::Bytes(_) => None,
@@ -418,6 +465,11 @@ where
                                 return Err(Error::Invalid("native final concurrent row change"));
                             }
                         }
+                        if let Some(observer)=observer.as_deref_mut() {
+                            if let Some(state)=state {state.charge_work(raw.len())?;}
+                            observer.row(stage,table == "knowledge_relations",row.id,row.order,
+                                raw.len(),Digest256::of_bytes(raw),value)?;
+                        }
                             Ok(())
                         };
                         if let Some(state) = state {
@@ -430,6 +482,9 @@ where
                                 .map_err(|_| Error::Invalid("native final JSON"))?;
                             write(&value, &raw)?;
                         }
+                    } else if let Some(observer)=observer.as_deref_mut() {
+                        observer.row(stage,table == "knowledge_relations",row.id,row.order,
+                            original_len,row.digest,&value)?;
                     }
                     Ok(())
                     };

@@ -246,12 +246,16 @@ pub fn build_fixture() -> FullKnowledgeFixture {
 }
 
 pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullKnowledgeFixture {
-    build_fixture_configured(report,false)
+    build_fixture_configured(report,false,None)
 }
 pub(crate) fn build_fixture_with_prepared_catalog() -> FullKnowledgeFixture {
-    build_fixture_configured(None,true)
+    build_fixture_configured(None,true,None)
 }
-fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool) -> FullKnowledgeFixture {
+#[cfg(test)]
+pub(crate) fn build_fixture_with_final_semantics(fused: bool) -> FullKnowledgeFixture {
+    build_fixture_configured(None,true,Some(fused))
+}
+fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool, final_semantics: Option<bool>) -> FullKnowledgeFixture {
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
     let relation_bytes =
@@ -323,7 +327,8 @@ fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool) -> Full
         "content_revision":"1".repeat(64),
         "display":{"label":{"default":"Owner relation"},"explanation_state":"source",
             "provenance":{"source_explanation_available":true}},
-        "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
+        "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],
+        "view_ids":if final_semantics.is_some(){json!(["route-graph"])}else{json!([])},
         "source_refs":["owner:record-1"]
     }))
     .unwrap();
@@ -453,7 +458,16 @@ fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool) -> Full
         let entity:Value=serde_json::from_slice(entity_bytes).unwrap();
         let relation:Value=serde_json::from_slice(relation_bytes).unwrap();
         let mut reduction=crate::catalog::CatalogReduction::new(&entity,&relation,&descriptor,&vocabulary,limits.catalog,None).unwrap();
-        let ceiling=stage.with_connection(WritePhase::Finalize,|db|reduction.begin(db)).unwrap();
+        let (ceiling,streamed)=if let Some(fused)=final_semantics {
+            #[cfg(test)] {
+                let (semantics,ceiling)=crate::d1_public_semantics::fixture_final_semantics(
+                    &mut stage,&registry,entity_bytes,relation_bytes,&mut reduction,limits.catalog,fused);
+                header["counts"]["semantic_validation"]=semantics.report;
+                (ceiling,true)
+            }
+            #[cfg(not(test))] { let _=fused;unreachable!("final semantics fixture is test-only") }
+        } else {
+            let ceiling=stage.with_connection(WritePhase::Finalize,|db|reduction.begin(db)).unwrap();
         // Fixture-only delivery of tiny admitted inline rows. Production feeds
         // the authenticated Value from the semantic pass without this parse.
         stage.with_connection(WritePhase::Finalize,|db| {
@@ -474,12 +488,16 @@ fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool) -> Full
             }
             Ok(())
         }).unwrap();
+            (ceiling,false)
+        };
         let proof=reduction.finish_prepared(&mut stage,&header,&[],&vocabulary,&descriptor_bytes,&registry).unwrap();
         let mut different_header=header.clone();
         different_header["source_revision"]=json!("f".repeat(64));
         assert!(proof.into_packet(&mut stage,&different_header,&vocabulary,&registry).is_err());
         let prepared=reduction.finish_prepared(&mut stage,&header,&[],&vocabulary,&descriptor_bytes,&registry).unwrap();
-        stage.with_connection(WritePhase::Finalize,|db|crate::catalog::CatalogReduction::cleanup(db,ceiling)).unwrap();
+        stage.with_connection(WritePhase::Finalize,|db|if streamed {
+            crate::catalog::CatalogReduction::cleanup_final_rows(db,ceiling)
+        } else {crate::catalog::CatalogReduction::cleanup(db,ceiling)}).unwrap();
         Some(prepared)
     } else { None };
     finish_fixture_with_limits(
