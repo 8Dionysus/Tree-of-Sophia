@@ -60,7 +60,7 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
             configuration_raw: owner_raw,
             request_raw: proposal_raw,
             recorded_at: "2026-09-09T12:00:00+00:00".to_owned(),
-            effective_uid: fs::metadata(root).unwrap().uid(),
+            effective_uid: u64::from(fs::metadata(root).unwrap().uid()),
             files: files
                 .iter()
                 .map(|(path, raw)| SourceFile {

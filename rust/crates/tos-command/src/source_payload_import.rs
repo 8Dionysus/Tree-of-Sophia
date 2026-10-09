@@ -1986,14 +1986,14 @@ mod tests {
 
     #[test]
     fn publication_identifier_is_stable_and_domain_separated() {
-        let a = publication_id("tos.item.a", "tos.file.b", "c".repeat(64));
+        let a = publication_id("tos.item.a", "tos.file.b", &"c".repeat(64));
         assert_eq!(
             a,
-            publication_id("tos.item.a", "tos.file.b", "c".repeat(64))
+            publication_id("tos.item.a", "tos.file.b", &"c".repeat(64))
         );
         assert_ne!(
             a,
-            publication_id("tos.item.a", "tos.file.c", "c".repeat(64))
+            publication_id("tos.item.a", "tos.file.c", &"c".repeat(64))
         );
     }
 }

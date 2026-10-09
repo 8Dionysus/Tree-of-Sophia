@@ -75,3 +75,7 @@ required-features = ["compiler-backed-validators"]
 name = "tos-open-work-queue"
 path = "src/open_work_queue_main.rs"
 required-features = ["compiler-backed-validators"]
+
+[[bin]]
+name = "tos-unicode-tables"
+path = "src/unicode_tables_main.rs"
