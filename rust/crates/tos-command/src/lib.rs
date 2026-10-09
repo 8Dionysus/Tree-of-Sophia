@@ -81,9 +81,9 @@ mod source_sign;
 mod source_sign_native;
 #[cfg(feature = "conformance-owner-local-source-resolver")]
 pub use source_sign_native::{
-    SignNativeRead as PublicNativeReadForConformance,
     NativeReadKind as PublicNativeReadKindForConformance,
     NativeReadScope as PublicNativeReadScopeForConformance,
+    SignNativeRead as PublicNativeReadForConformance,
     resolve_assessment as resolve_public_native_assessment_for_conformance,
 };
 pub mod source_text_alignment_entry;

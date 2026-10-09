@@ -19,7 +19,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::Digest256Hasher;
 const APP: &str = "tos-sophia-demo";
 const IDENTITY: &str = "/__tos_demo_identity";
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -211,6 +211,47 @@ fn redirect(log: &Path) -> Result<()> {
     }
     Ok(())
 }
+fn bind_loopback(port: u16) -> Result<TcpListener> {
+    use std::os::fd::{FromRawFd, OwnedFd};
+    let raw = unsafe { libc::socket(libc::AF_INET, libc::SOCK_STREAM | libc::SOCK_CLOEXEC, 0) };
+    if raw < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    let fd = unsafe { OwnedFd::from_raw_fd(raw) };
+    let enabled: libc::c_int = 1;
+    if unsafe {
+        libc::setsockopt(
+            fd.as_raw_fd(),
+            libc::SOL_SOCKET,
+            libc::SO_REUSEADDR,
+            (&enabled as *const libc::c_int).cast(),
+            std::mem::size_of_val(&enabled) as libc::socklen_t,
+        )
+    } != 0
+    {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    let address = libc::sockaddr_in {
+        sin_family: libc::AF_INET as libc::sa_family_t,
+        sin_port: port.to_be(),
+        sin_addr: libc::in_addr {
+            s_addr: u32::from_ne_bytes([127, 0, 0, 1]),
+        },
+        sin_zero: [0; 8],
+    };
+    if unsafe {
+        libc::bind(
+            fd.as_raw_fd(),
+            (&address as *const libc::sockaddr_in).cast(),
+            std::mem::size_of_val(&address) as libc::socklen_t,
+        )
+    } != 0
+        || unsafe { libc::listen(fd.as_raw_fd(), 128) } != 0
+    {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    Ok(TcpListener::from(fd))
+}
 fn serve(root: &Path, port: u16, digest: Option<&str>, log: Option<&Path>) -> Result<()> {
     let root = fs::canonicalize(root)?;
     let actual = release_digest(&root)?;
@@ -221,7 +262,7 @@ fn serve(root: &Path, port: u16, digest: Option<&str>, log: Option<&Path>) -> Re
     if let Some(log) = log {
         redirect(log)?;
     }
-    let listener = TcpListener::bind(("127.0.0.1", port))?;
+    let listener = bind_loopback(port)?;
     let port = listener.local_addr()?.port();
     let identity = Arc::new(serde_json::to_vec(
         &json!({"schema":"tos_demo_server_identity_v1","app_id":APP,"release":root,"release_digest":actual,"pid":std::process::id()}),
@@ -465,7 +506,7 @@ fn ensure(v: &Value) -> Result<Value> {
         return Ok(found);
     }
     drop(
-        TcpListener::bind("127.0.0.1:44339")
+        bind_loopback(44339)
             .map_err(|_| bad("port44339 is occupied; existing process left untouched"))?,
     );
     checked(

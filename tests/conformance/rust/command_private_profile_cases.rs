@@ -791,8 +791,7 @@ impl NativeProfileHttp {
         command
             .arg(repository.join("mechanics/growth-cycle/tests/native_source_form_http_host.mjs"))
             .arg(packet);
-        let output =
-            native_child::bounded_output_before(&mut command, 1_048_576, self.deadline);
+        let output = native_child::bounded_output_before(&mut command, 1_048_576, self.deadline);
         assert!(
             output.status.success(),
             "browser HTTP host: {}",

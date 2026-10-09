@@ -550,7 +550,9 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
     )
     .map_err(invalid_data)?;
     use tos_validation::source_cut::CutSchemaExecutor;
-    worker.finish(deadline, &cancelled).map_err(|e| invalid_data(format!("{e:?}")))?;
+    worker
+        .finish(deadline, &cancelled)
+        .map_err(|e| invalid_data(format!("{e:?}")))?;
     let native_records = exact
         .records
         .iter()
