@@ -292,13 +292,21 @@ The source-to-reader operation is explicit:
    explicit options. A rejected batch leaves the accepted pointer unchanged.
    General record/claim batches currently run a conservative full source audit;
    only the verified retirement transition has a scoped fast path.
-3. Run `scripts/corpus_build_worker.py --store STORE --revision REVISION
-   --output NEW_SNAPSHOT`. The output directory must be new. Its `manifest.json`
-   binds the corpus and completed compiled data; source files cannot select
-   executable producers.
-4. Select `NEW_SNAPSHOT/data` with `TOS_DATA_ROOT` or `--root`. The reader checks
-   artifact integrity and compatibility before serving it. A failed build or
-   corrupt new artifact does not replace an existing readable snapshot.
+3. Produce a managed native Original candidate with
+   `tos-native-owner-command corpus-build < REQUEST_JSON` and the
+   `tos_native_corpus_build_request_v1` schema. The request names the exact
+   immutable corpus store and revision, a separately selected, digest-bound
+   software capture and restored root, its Git commit/tree and component
+   selection, and the exact schema-worker path and digest. `mode: build`
+   composes the six fixed source runtime products and invokes the native data
+   writer; it writes fresh `data_directory` and private release-candidate
+   directories under the selected persistent store and does not move a release
+   pointer.
+4. For parity, send the same source, software and worker selection in `mode:
+   check` with an absolute `comparison_root`. This recomposes and compares the
+   exact six products without a persistent write. Submit a successful build's
+   private pair to the ManagedRelease owner for full pair compatibility and
+   selection. A producer candidate is not an installed or published release.
 
 Bulk source revisions and their historical evidence use permanent local
 storage and permitted private Cloudflare R2 backups with verified restore.

@@ -1,0 +1,59 @@
+{
+  "artifacts": [
+    {
+      "bytes": 588,
+      "captured_name": "metadata-export-capture.json",
+      "path": "export-capture-manifest.json",
+      "sha256": "a53469b1d59e90ed92f2d3eda967689a1f0cbe293bbbb75eac5ee48295d150c7"
+    },
+    {
+      "bytes": 599690,
+      "captured_name": "metadata-full-union-oracle.json",
+      "path": "full-union-oracle.json",
+      "sha256": "f48f9ed1b186c900b3c5b0160996b5e6f7e11dbb88e04a6714eff70af454d86f"
+    },
+    {
+      "bytes": 441,
+      "captured_name": "metadata-oracle-capture.json",
+      "path": "oracle-capture-manifest.json",
+      "sha256": "a3a665d84791039908e02a6908ce5bb99459a3f84f235957de748b1a34f327cc"
+    },
+    {
+      "bytes": 643,
+      "captured_name": "metadata-owner-before.json",
+      "path": "owner-before.json",
+      "sha256": "b268ed2b09fc53d55be05fc674f6e33a9405149a5ee4439b03ab134337dd7065"
+    },
+    {
+      "bytes": 5237924,
+      "captured_name": "metadata-prepared-before.packet.json",
+      "path": "prepared-before.packet.json",
+      "sha256": "5e84b8d27568464046c1f756b8c10c247b241a88ecebf2555de713de215ea590"
+    },
+    {
+      "bytes": 4509696,
+      "captured_name": "metadata-prepared-before.sqlite",
+      "path": "prepared-before.sqlite",
+      "sha256": "2a8fdea7d261960ca643539e9f4403bc3fcb0168467274bc7d6c2b55c7b16b65"
+    },
+    {
+      "bytes": 1406,
+      "captured_name": "metadata-native-source-create-receipt.json",
+      "path": "source-create-receipt.json",
+      "sha256": "7f925477ad66a8cec608bb187739dca7187660b946124dc7d2d96c785610edda"
+    }
+  ],
+  "capture_artifact": "/srv/abyss-machine/storage/artifacts/tos-publication-fixture-capture-r2/metadata",
+  "capture_python": "/usr/bin/python3.14",
+  "capture_source_commit": "19e67dd358a9b17bbc3917f780bfffe1c8b1a097",
+  "capture_wrapper_sha256": "4741229d0442c95698117907955515a04807ee4c2fea65b5a428bd96a871ba97",
+  "classification": "oracle-evidence-only; the historical whole case failed after full oracle capture during installed-layout/access assertions; not source-runtime acceptance",
+  "conformance_binary_sha256": "6b4d46a79dfedc9c1deb8e514c811c2bd10ab03ec7bed55ad0d7372bb986dc72",
+  "conformance_test": "command_metadata_publication_cases::maintained_initial_metadata_whole_transaction_and_access",
+  "historical_module": "tos_access.source_assembly_normalization",
+  "historical_module_sha256": "e8612986db360f03dad9268205297053ba608332c1f742ccfc71a138b805cb94",
+  "historical_module_source_commit": "cd5f3bc841cef964a9c13a7a800ba777d4e8b7ca",
+  "native_owner_command_sha256": "bd79a8dec74486cef7e74a6fbf731257fc1f6b43b7272edc147da19769e264fa",
+  "schema_version": "tos_legacy_python_metadata_oracle_evidence_v1",
+  "schema_worker_sha256": "4742dda2c0fd1b7f18b4e1c1d63db91426ab48dde99fa584a6aa0beaef07a9c3"
+}

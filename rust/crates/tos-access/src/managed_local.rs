@@ -2355,6 +2355,16 @@ mod health_tests {
         }
     }
     impl AccessExecutor for HealthPacket {
+        fn source_descend_available(&self) -> bool {
+            false
+        }
+        fn source_descend(
+            &self,
+            _: Params,
+            _: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket<'static>, AccessError> {
+            Err(unavailable("health fixture has no source owner"))
+        }
         fn access_health_available(&self) -> bool {
             true
         }

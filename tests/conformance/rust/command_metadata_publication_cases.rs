@@ -11,6 +11,7 @@ use serde_json::json;
 use std::{
     collections::{BTreeMap, BTreeSet},
     os::unix::fs::{MetadataExt, PermissionsExt},
+    path::Component,
     process::Command,
     sync::{Arc, atomic::AtomicBool},
     time::{Duration, Instant},
@@ -21,7 +22,10 @@ use tos_compiler::{
     prepared_catalog_index::CatalogMaintenanceLimits,
     prepared_semantic_index::{self, SemanticMaintenanceLimits},
 };
-use tos_source_store::{ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1};
+use tos_source_store::{
+    CaptureGitRequest, CaptureRestoreLimits, GitCaptureLimits, ReadLimits, SoftwareCaptureReader,
+    SoftwareCaptureSelectionV1, capture_git, restore_capture,
+};
 #[path = "claim_publication_access.rs"]
 mod access;
 #[path = "../../../rust/crates/tos-access/tests/support/native_child.rs"]
@@ -33,21 +37,118 @@ fn private_json(path: &Path, value: &Value) {
     fs::write(path, raw).unwrap();
     fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
 }
-fn python(command: &mut Command, deadline: Instant) {
-    command
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME");
-    let output = native_child::bounded_output_before(
-        command,
-        4096,
-        deadline.min(Instant::now() + Duration::from_secs(60)),
+fn decode_fixture_hex(raw: &str) -> Vec<u8> {
+    assert!(raw.len().is_multiple_of(2));
+    raw.as_bytes()
+        .chunks_exact(2)
+        .map(|pair| {
+            let digit = |byte: u8| match byte {
+                b'0'..=b'9' => byte - b'0',
+                b'a'..=b'f' => byte - b'a' + 10,
+                b'A'..=b'F' => byte - b'A' + 10,
+                _ => panic!("invalid frozen Metadata source hex"),
+            };
+            digit(pair[0]) * 16 + digit(pair[1])
+        })
+        .collect()
+}
+fn rebase_fixture_paths(value: &mut Value, replacements: &[(String, String)]) {
+    match value {
+        Value::String(text) => {
+            for (from, to) in replacements {
+                *text = text.replace(from, to);
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                rebase_fixture_paths(value, replacements);
+            }
+        }
+        Value::Object(values) => {
+            for value in values.values_mut() {
+                rebase_fixture_paths(value, replacements);
+            }
+        }
+        _ => {}
+    }
+}
+fn materialize_metadata_predecessor(
+    fixture_dir: &Path,
+    packet: &mut Value,
+    workspace: &Path,
+) -> (PathBuf, PathBuf, PathBuf) {
+    let old_root = required(packet, "source_root").to_owned();
+    let old_db = required(packet, "db_path").to_owned();
+    let old_owner = required(packet, "owner_config").to_owned();
+    let source_root = workspace.join("metadata-source");
+    fs::create_dir(&source_root).unwrap();
+    fs::set_permissions(&source_root, fs::Permissions::from_mode(0o700)).unwrap();
+    let source_root = source_root.canonicalize().unwrap();
+    let db_path = source_root.join("derived/prepared.sqlite");
+    let owner_path = source_root.join("metadata-addition-owner.json");
+    let replacements = [
+        (old_db, db_path.display().to_string()),
+        (old_owner, owner_path.display().to_string()),
+        (old_root, source_root.display().to_string()),
+    ];
+    rebase_fixture_paths(packet, &replacements);
+
+    let source_files = packet["source_files"].as_object().unwrap();
+    assert!(source_files.len() <= 2048);
+    let mut total = 0usize;
+    for (relative, encoded) in source_files {
+        assert!(relative.starts_with("ToS/"));
+        let relative_path = Path::new(relative);
+        assert!(relative_path.components().all(|part| matches!(part, Component::Normal(_))));
+        let bytes = decode_fixture_hex(encoded.as_str().unwrap());
+        total = total.checked_add(bytes.len()).unwrap();
+        assert!(bytes.len() <= 8_388_608 && total <= 16_777_216);
+        let target = source_root.join(relative_path);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, bytes).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    let db_parent = db_path.parent().unwrap();
+    fs::create_dir_all(db_parent).unwrap();
+    fs::set_permissions(db_parent, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::copy(fixture_dir.join("prepared-before.sqlite"), &db_path).unwrap();
+    fs::set_permissions(&db_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let mut owner_document = packet["owner_config_document"].clone();
+    owner_document["uid"] = json!(fs::metadata(&source_root).unwrap().uid());
+    private_json(&owner_path, &owner_document);
+    packet["source_root"] = json!(source_root);
+    packet["db_path"] = json!(db_path);
+    packet["owner_config"] = json!(owner_path);
+    (source_root, db_path, owner_path)
+}
+fn verify_frozen_metadata_evidence(fixture_dir: &Path, deadline: Instant) {
+    let provenance = read_packet(&fixture_dir.join("PROVENANCE.json"));
+    assert_eq!(
+        required(&provenance, "schema_version"),
+        "tos_legacy_python_metadata_oracle_evidence_v1"
     );
-    assert!(
-        output.status.success(),
-        "Metadata fixture/capture: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    assert!(required(&provenance, "classification").contains("oracle-evidence-only"));
+    assert!(required(&provenance, "classification").contains("not source-runtime acceptance"));
+    let artifacts = provenance["artifacts"].as_array().unwrap();
+    assert_eq!(artifacts.len(), 7);
+    for artifact in artifacts {
+        assert!(Instant::now() < deadline);
+        let relative = Path::new(required(artifact, "path"));
+        assert!(relative.components().all(|part| matches!(part, Component::Normal(_))));
+        let path = fixture_dir.join(relative);
+        assert!(path.starts_with(fixture_dir));
+        let cap = match relative.file_name().unwrap().to_str().unwrap() {
+            "prepared-before.sqlite" => 629_145_600,
+            "prepared-before.packet.json" | "full-union-oracle.json" => 16_777_216,
+            "owner-before.json" | "source-create-receipt.json" => 1_048_576,
+            "export-capture-manifest.json" | "oracle-capture-manifest.json" => 1_048_576,
+            _ => panic!("unexpected frozen Metadata evidence file"),
+        };
+        assert_eq!(
+            native_child::bounded_sha_before(&path, cap, deadline).to_hex(),
+            required(artifact, "sha256")
+        );
+    }
 }
 
 #[test]
@@ -72,22 +173,13 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     let c_sha = native_child::bounded_sha_before(&consumer, 512 * 1024 * 1024, deadline);
     let w_sha = native_child::bounded_sha_before(&worker_path, 128 * 1024 * 1024, deadline);
     let workspace = tempfile::tempdir().unwrap();
-    let packet_path = workspace.path().join("metadata-fixture.json");
-    let fixture = repository.join("tests/conformance/rust/source_metadata_publication_fixture.py");
-    python(
-        Command::new(crate::maintained_python())
-            .arg(&fixture)
-            .arg(workspace.path())
-            .arg(&packet_path),
-        deadline,
-    );
-    let packet = read_packet(&packet_path);
-    let root = PathBuf::from(required(&packet, "source_root"))
-        .canonicalize()
-        .unwrap();
+    let fixture_dir = repository.join("tests/conformance/rust/legacy-python-oracles-v1/metadata");
+    verify_frozen_metadata_evidence(&fixture_dir, deadline);
+    let mut packet = read_packet(&fixture_dir.join("prepared-before.packet.json"));
+    let (root, db_path, owner) =
+        materialize_metadata_predecessor(&fixture_dir, &mut packet, workspace.path());
+    let root = root.canonicalize().unwrap();
     assert!(root.starts_with(workspace.path().canonicalize().unwrap()));
-    let owner = PathBuf::from(required(&packet, "owner_config"));
-    let db_path = PathBuf::from(required(&packet, "db_path"));
     assert!(owner.starts_with(&root) && db_path.starts_with(&root));
     // The native DB fence requires its immediate parent to be fixture-private.
     let db_parent = db_path.parent().unwrap();
@@ -176,38 +268,65 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     assert!(output.status.success());
     let commit = String::from_utf8(output.stdout).unwrap().trim().to_owned();
     assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
-    let mut archive = Command::new(crate::maintained_python());
-    archive
-        .arg(repository.join("scripts/corpus_archive.py"))
-        .arg("capture")
-        .arg("--repo-root")
-        .arg(&repository)
-        .arg("--commit")
-        .arg(&commit)
-        .arg("--output")
-        .arg(&capture);
-    for name in &names {
-        archive.arg("--include-prefix").arg(name);
-    }
-    python(&mut archive, deadline);
-    python(
-        Command::new(crate::maintained_python())
-            .arg(repository.join("scripts/corpus_archive.py"))
-            .arg("restore")
-            .arg("--capture")
-            .arg(&capture)
-            .arg("--output")
-            .arg(&restored),
+    let include_prefixes = names.iter().cloned().collect::<Vec<_>>();
+    let captured = capture_git(
+        CaptureGitRequest {
+            repository: &repository,
+            commit: &commit,
+            include_prefixes: &include_prefixes,
+            exclude_prefixes: &[],
+            exclude_path_parts: &[],
+            output: &capture,
+        },
+        GitCaptureLimits {
+            max_members: 512,
+            max_member_bytes: 2_097_152,
+            max_source_bytes: 33_554_432,
+            max_metadata_bytes: 4_194_304,
+            max_tree_bytes: 4_194_304,
+            max_archive_bytes: 33_554_432,
+        },
         deadline,
-    );
+        &cancelled,
+    )
+    .unwrap();
     let capture_raw = fs::read(capture.join("capture.json")).unwrap();
     assert!(capture_raw.len() <= 1_048_576);
+    assert_eq!(Digest256::of_bytes(&capture_raw), captured.manifest_sha256);
     let manifest: Value = serde_json::from_slice(&capture_raw).unwrap();
+    let source_git_tree = captured
+        .manifest
+        .object_get("source_git_tree")
+        .and_then(|value| value.as_str())
+        .expect("native capture returns its exact Git tree")
+        .to_owned();
+    assert_eq!(manifest["source_git_commit"].as_str().unwrap(), commit);
+    assert_eq!(manifest["source_git_tree"].as_str().unwrap(), source_git_tree);
     let selection = SoftwareCaptureSelectionV1 {
         source_git_commit: commit,
-        source_git_tree: required(&manifest, "source_git_tree").to_owned(),
-        capture_manifest_sha256: Digest256::of_bytes(&capture_raw),
+        source_git_tree,
+        capture_manifest_sha256: captured.manifest_sha256,
     };
+    let read_limits = ReadLimits {
+        max_manifest_bytes: 1_048_576,
+        max_manifest_entries: 512,
+        max_selected_object_bytes: 2_097_152,
+        json: JsonLimits::default(),
+    };
+    restore_capture(
+        &capture,
+        &restored,
+        &selection,
+        CaptureRestoreLimits {
+            metadata: read_limits,
+            max_archive_bytes: 33_554_432,
+            max_decoded_bytes: 33_554_432,
+            max_source_bytes: 33_554_432,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     let software = SoftwareCaptureReader::open(
         &capture,
         &restored,
@@ -266,16 +385,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     );
     // Genuine native creation is observed by the exact maintained full oracle
     // BEFORE any native prepared profile transition changes Python identities.
-    let oracle_path = workspace.path().join("metadata-independent-oracle.json");
-    python(
-        Command::new(crate::maintained_python())
-            .arg(&fixture)
-            .arg("oracle")
-            .arg(&packet_path)
-            .arg(&oracle_path),
-        deadline,
-    );
-    let oracle = read_packet(&oracle_path);
+    let oracle = read_packet(&fixture_dir.join("full-union-oracle.json"));
     assert_eq!(agent_authored(&root, deadline), current_files);
     let publication = PublicationLimits {
         max_bytes: 67_108_864,

@@ -580,7 +580,7 @@ pub(super) fn previous_release(
     let (_, pair_raw, bindings_raw) =
         stored_records(&store, previous, limits, deadline, charges)?;
     store.check(deadline)?;
-    if pointer(&store, limits, deadline, charges)? != Some(original) {
+    if pointer(&store, limits, deadline, charges)?.as_ref() != Some(&original) {
         return Err("release pointer changed while reading rollback target".into());
     }
     Ok(PreviousRelease {

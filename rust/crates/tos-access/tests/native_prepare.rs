@@ -102,6 +102,37 @@ fn prepare(root: &Path, output: &Path, extra: &[&str]) -> Output {
     command.output().expect("native prepare process")
 }
 
+fn assert_native_compressed_readback(source: &Path, prepared: &Path, node_id: &str) {
+    let output = Command::new(env!("CARGO_BIN_EXE_tos-access"))
+        .arg("--prepared-read-model")
+        .arg(prepared.join("snapshot.sqlite"))
+        .arg("--prepared-binding")
+        .arg(prepared.join("binding.json"))
+        .arg("--root")
+        .arg(source)
+        .args([
+            "knowledge",
+            "search",
+            "Alpha",
+            "--mode",
+            "compressed",
+        ])
+        .output()
+        .expect("native prepared compressed search process");
+    assert!(
+        output.status.success(),
+        "native prepared search failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let page: Value = serde_json::from_slice(&output.stdout).expect("native search page JSON");
+    assert!(
+        page["nodes"]
+            .as_array()
+            .is_some_and(|nodes| nodes.iter().any(|node| node["id"] == node_id)),
+        "native compressed search did not read back prepared node {node_id}: {page}"
+    );
+}
+
 fn completed(output: Output) -> Value {
     assert!(
         output.status.success(),
@@ -208,6 +239,7 @@ fn native_prepare_cli_receipt_artifact_and_maintenance_modes() {
     let buffered = scratch.0.join("buffered");
     let base_receipt = completed(prepare(&source, &buffered, &[]));
     assert_artifact(&buffered, &base_receipt, false, "buffered");
+    assert_native_compressed_readback(&source, &buffered, "a");
 
     let buffered_attached = scratch.0.join("buffered-attached");
     let attached_receipt = completed(prepare(
@@ -216,6 +248,7 @@ fn native_prepare_cli_receipt_artifact_and_maintenance_modes() {
         &["--attach-maintenance"],
     ));
     assert_artifact(&buffered_attached, &attached_receipt, true, "buffered");
+    assert_native_compressed_readback(&source, &buffered_attached, "a");
 
     let bulk_attached = scratch.0.join("bulk-attached");
     let bulk_receipt = completed(prepare(
@@ -230,6 +263,7 @@ fn native_prepare_cli_receipt_artifact_and_maintenance_modes() {
         ],
     ));
     assert_artifact(&bulk_attached, &bulk_receipt, true, "bulk");
+    assert_native_compressed_readback(&source, &bulk_attached, "a");
 
     assert_eq!(
         base_receipt["source_revision"],
