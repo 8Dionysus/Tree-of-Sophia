@@ -243,10 +243,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
             "validate_mechanics_topology.py",
             include_str!("../../../../scripts/validate_mechanics_topology.py"),
         ),
-        (
-            "validate_active_naming.py",
-            include_str!("../../../../scripts/validate_active_naming.py"),
-        ),
     ] {
         fs::write(root.join("scripts").join(name), source).unwrap();
     }
@@ -317,33 +313,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
         base(&["--mechanics-topology-validate"]),
         false,
     );
-    inspect(
-        "validate_active_naming.py",
-        "TOS_OPS_MECHANICS_EXECUTOR",
-        &[],
-        base(&["--active-naming-validate"]),
-        false,
-    );
-    let help = Command::new("/usr/bin/python3")
-        .arg("-B")
-        .arg(root.join("scripts/validate_active_naming.py"))
-        .arg("--help")
-        .env("TOS_OPS_MECHANICS_EXECUTOR", root.join("missing-native"))
-        .output()
-        .unwrap();
-    assert_eq!(help.status.code(), Some(0));
-    assert!(String::from_utf8_lossy(&help.stdout).contains("--feedback-cache"));
-    // Explicit cache branch remains Python-owned, independently of whether
-    // native is installed. No real cache is written in this routing fixture.
-    let compatibility = Command::new("/usr/bin/python3").arg("-B").arg("-c")
-        .arg("import pathlib,runpy,sys; root=pathlib.Path(sys.argv[1]); sys.path.insert(0,str(root/'scripts')); modules={n:runpy.run_path(str(root/'scripts'/n),run_name='tos_import_api') for n in ['validate_mechanics_topology.py','validate_active_naming.py']}; assert callable(modules['validate_mechanics_topology.py']['run_validation']); naming=modules['validate_active_naming.py']; seen=[]; naming['native_main'].__globals__['main']=lambda args:seen.append(args) or 23; assert naming['native_main'](['--feedback-cache=external.sqlite'])==23; assert seen==[['--feedback-cache=external.sqlite']]")
-        .arg(&root).env("TOS_OPS_MECHANICS_EXECUTOR",root.join("missing-native")).output().unwrap();
-    assert!(
-        compatibility.status.success(),
-        "{}",
-        String::from_utf8_lossy(&compatibility.stderr)
-    );
-    assert!(!root.join("external.sqlite").exists());
     fs::write(
         root.join("docs/validation/validation_lanes.json"),
         r#"{"command_sequences":{"sample":[{"label":"first","command":["python","-B","adapter.py","first"]},{"label":"failing","command":["python","-B","adapter.py","fail"]},{"label":"later","command":["python","-B","adapter.py","later"]}],"rust_workspace":[{"label":"budgeted slow","command":["python","-B","adapter.py","slow"],"command_timeout_ms":500},{"label":"never after timeout","command":["python","-B","adapter.py","later"]}]}}"#,

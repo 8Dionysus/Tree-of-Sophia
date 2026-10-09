@@ -79,6 +79,7 @@ struct SemanticOptions {
     baseline_commit: Option<String>,
     allow_initial_introduction: bool,
     json_output: bool,
+    feedback_cache: Option<PathBuf>,
 }
 
 #[cfg(target_os = "linux")]
@@ -157,6 +158,14 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--derived-kag-generate" => derived_kag_generate = true,
             "--mechanics-topology-validate" => mechanics_topology_validate = true,
             "--active-naming-validate" => active_naming_validate = true,
+            "--feedback-cache" => {
+                if semantic.feedback_cache.is_some() { return Err("duplicate feedback cache selection".into()); }
+                semantic.feedback_cache = Some(PathBuf::from(args.next().ok_or("missing feedback cache path")?));
+            }
+            option if option.starts_with("--feedback-cache=") => {
+                if semantic.feedback_cache.is_some() { return Err("duplicate feedback cache selection".into()); }
+                semantic.feedback_cache = Some(PathBuf::from(&option["--feedback-cache=".len()..]));
+            }
             "--source-home" => source_home = true,
             "--witness-structure-validate" => witness_structure_validate = true,
             "--philosophy-topology" => philosophy_topology = true,
@@ -276,6 +285,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
                 || root_entry_map_build
                 || agents_route_currentness_build))
         || (fetch_budget_bases && !agent_surface_validate)
+        || (semantic.feedback_cache.is_some() && !active_naming_validate)
         || (semantic.output.is_some()
             && !(documentation_family_build
                 || agents_route_currentness_build
@@ -541,7 +551,7 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
@@ -999,13 +1009,17 @@ fn main() {
                 0
             }),
         Action::ActiveNamingValidate => {
-            tos_ops_mechanics_plan::active_naming::validate(&root).map(|issues| {
-                if issues.is_empty() {
+            tos_ops_mechanics_plan::active_naming::validate_with_feedback(&root, semantic.feedback_cache.as_deref()).map(|report| {
+                for warning in &report.warnings { eprintln!("[feedback-cache] {warning}"); }
+                if let Some(stats) = report.feedback {
+                    eprintln!("[feedback-cache] local-only path={} hits={} misses={}", stats.path.display(), stats.hits, stats.misses);
+                }
+                if report.issues.is_empty() {
                     println!("[ok] validated active naming");
                     0
                 } else {
                     eprintln!("Active naming validation failed.");
-                    for issue in issues {
+                    for issue in report.issues {
                         eprintln!("- {issue}");
                     }
                     1

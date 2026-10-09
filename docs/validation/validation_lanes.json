@@ -130,7 +130,7 @@
       "label": "active naming",
       "layer": "active-topology",
       "mode": "blocking",
-      "owner_surface": "scripts/validate_active_naming.py",
+      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/active_naming.rs",
       "purpose": "Keep retired active path and id names out of current surfaces while allowing archive provenance.",
       "command_sequence": "active_naming",
       "failure_route": "AGENTS.md",

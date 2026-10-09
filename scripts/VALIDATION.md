@@ -48,7 +48,7 @@ a software merge requirement. KAG/stats validation belongs to their selected
 integration artifacts under [D0062](../docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md).
 
 The `active_naming` route, when selected for naming work, uses
-`python scripts/validate_active_naming.py`. Its optional `--feedback-cache`
-accepts an external local SQLite cache; cached results do not replace release
+`tos-ops-mechanics-plan --repo-root ABS --active-naming-validate`. Its optional
+`--feedback-cache ABS` accepts an external local SQLite cache on Linux; cached results do not replace release
 or corpus-admission evidence. No inventory or documentation-currentness
 rebuild is required merely because a script or test file was added.

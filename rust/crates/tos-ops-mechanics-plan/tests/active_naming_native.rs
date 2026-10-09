@@ -1,7 +1,7 @@
-//! Actual default validator vs its maintained Python on one disposable tree.
+//! Actual native validator preserves naming boundaries on one disposable tree.
 #[cfg(target_os = "linux")]
 #[test]
-fn active_naming_default_consumer_matches_maintained_python_and_retains_moved_history() {
+fn active_naming_default_consumer_retains_live_checks_and_moved_history() {
     use std::fs;
     use std::process::Command;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -18,10 +18,6 @@ fn active_naming_default_consumer_matches_maintained_python_and_retains_moved_hi
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text).unwrap();
     };
-    write(
-        "scripts/validate_active_naming.py",
-        include_str!("../../../../scripts/validate_active_naming.py"),
-    );
     write("legacy/wave/old.md", "seed-pack\n");
     write("kag/indexes/segments/source/00.jsonl", "wave-pack\n");
     write("access/web/package-lock.json", "seed-pack\n");
@@ -52,13 +48,7 @@ fn active_naming_default_consumer_matches_maintained_python_and_retains_moved_hi
             .arg("--repo-root")
             .arg(&root)
             .arg("--active-naming-validate")
-            .output()
-            .unwrap();
-        let python = Command::new("/usr/bin/python3")
-            .arg("-B")
-            .arg("-c")
-            .arg("import pathlib, runpy, sys; path=sys.argv[1]; sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(path).parent)); raise SystemExit(runpy.run_path(path,run_name='tos_maintained_python_oracle')['main']())")
-            .arg(root.join("scripts/validate_active_naming.py"))
+            .env("PATH", "")
             .output()
             .unwrap();
         assert_eq!(
@@ -67,14 +57,6 @@ fn active_naming_default_consumer_matches_maintained_python_and_retains_moved_hi
             "{}",
             String::from_utf8_lossy(&native.stderr)
         );
-        assert_eq!(
-            python.status.code(),
-            Some(expected),
-            "{}",
-            String::from_utf8_lossy(&python.stderr)
-        );
-        assert_eq!(native.stdout, python.stdout);
-        assert_eq!(native.stderr, python.stderr);
         String::from_utf8(native.stderr).unwrap()
     };
     let findings = compare(1);

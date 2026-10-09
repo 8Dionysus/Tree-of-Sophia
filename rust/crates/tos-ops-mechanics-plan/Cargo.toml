@@ -15,6 +15,7 @@ csv = "=1.4.0"
 jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 num-bigint = "=0.4.8"
 regex = "=1.13.1"
+rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
 tos-foundation = { path = "../tos-foundation" }

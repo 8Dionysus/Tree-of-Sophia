@@ -1,4 +1,4 @@
-//! Read-only candidate for the maintained active-naming default validator.
+//! Maintained active-naming validator, with an optional external feedback cache.
 //! Authored route law and exact content exceptions remain source-owned.
 use regex::Regex;
 use serde_json::Value;
@@ -9,6 +9,16 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 use tos_foundation::python_lower_unicode16_v1;
 use unicode_general_category::{GeneralCategory, get_general_category};
+
+#[path = "active_naming_cache.rs"]
+mod cache;
+pub use cache::FeedbackStats;
+
+pub struct ValidationReport {
+    pub issues: Vec<String>,
+    pub feedback: Option<FeedbackStats>,
+    pub warnings: Vec<String>,
+}
 
 const MAX_ENTRIES: usize = 10_000;
 const MAX_FILE_BYTES: usize = 8 * 1024 * 1024;
@@ -358,8 +368,37 @@ struct Scan {
     entries: usize,
     bytes: usize,
     issues: Vec<String>,
+    cache: Option<cache::FeedbackCache>,
+    feedback: Option<FeedbackStats>,
+    warnings: Vec<String>,
 }
 impl Scan {
+    fn disable_cache(&mut self, message: String) {
+        if let Some(cache) = self.cache.take() {
+            self.feedback = Some(cache.stats());
+            // Drop rolls back incomplete hint writes. Findings already obtained
+            // from this explicitly selected local cache keep their old meaning.
+        }
+        if self.warnings.len() < 2 {
+            self.warnings.push(message.chars().take(1024).collect());
+        }
+    }
+    fn content(&mut self, text: &str, patterns: &Patterns) -> io::Result<Option<String>> {
+        if let Some(cache) = self.cache.as_mut() {
+            match cache.lookup(text) {
+                Ok(Some(result)) => return Ok(result),
+                Ok(None) => (),
+                Err(error) => self.disable_cache(format!("read failure; recomputing uncached: {error}")),
+            }
+        }
+        let result = patterns.content_issue(text)?;
+        if let Some(cache) = self.cache.as_mut() {
+            if let Err(error) = cache.store(text, result.as_deref()) {
+                self.disable_cache(format!("write failure; recomputing uncached: {error}"));
+            }
+        }
+        Ok(result)
+    }
     fn current(&self) -> io::Result<()> {
         if Instant::now() >= self.deadline {
             Err(invalid("active naming wall deadline"))
@@ -477,7 +516,7 @@ impl Scan {
             } else {
                 Cow::Borrowed(text.as_str())
             };
-            if let Some(value) = patterns.content_issue(&active)? {
+            if let Some(value) = self.content(&active, patterns)? {
                 self.issue(&rel, "retired active path/id reference in content", &value)?;
             }
             if rel.starts_with("mechanics/experience/") {
@@ -492,24 +531,46 @@ impl Scan {
         Ok(())
     }
 }
-/// Native default read-only consumer only. Optional Python external-cache
-/// feedback is deliberately retained under its existing owner; no cache write.
+/// The default route reads source only. CI and release lanes select no cache.
 pub fn validate(root: &Path) -> io::Result<Vec<String>> {
+    Ok(validate_with_feedback(root, None)?.issues)
+}
+
+/// Explicit local feedback hints never replace live path and content reads.
+/// Invalid cache selection refuses; optional storage failure recomputes normally.
+pub fn validate_with_feedback(root: &Path, selected: Option<&Path>) -> io::Result<ValidationReport> {
     if !root.is_absolute() || fs::canonicalize(root)? != root {
         return Err(invalid(
             "active naming root must be absolute without symlinks",
         ));
     }
+    let deadline = Instant::now() + Duration::from_secs(300);
     let mut scan = Scan {
-        deadline: Instant::now() + Duration::from_secs(300),
+        deadline,
         entries: 0,
         bytes: 0,
         issues: Vec::new(),
+        cache: None,
+        feedback: None,
+        warnings: Vec::new(),
     };
+    if let Some(path) = selected {
+        cache::validate_selection(root, path)?;
+        match cache::FeedbackCache::open(path, deadline) {
+            Ok(cache) => scan.cache = Some(cache),
+            Err(error) => scan.disable_cache(format!("unavailable; recomputing uncached: {error}")),
+        }
+    }
     let patterns = Patterns::new()?;
     scan.directory(root, root, &patterns, 0)?;
     scan.current()?;
-    Ok(scan.issues)
+    if let Some(cache) = scan.cache.take() {
+        scan.feedback = Some(cache.stats());
+        if let Err(error) = cache.finish() {
+            scan.disable_cache(format!("close failure; cache writes may be incomplete: {error}"));
+        }
+    }
+    Ok(ValidationReport { issues: scan.issues, feedback: scan.feedback, warnings: scan.warnings })
 }
 
 #[cfg(test)]

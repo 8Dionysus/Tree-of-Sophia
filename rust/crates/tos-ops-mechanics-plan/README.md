@@ -142,17 +142,23 @@ explicit finite candidate limits. Git error text/exception tracebacks are not
 promised byte-identical; selection, successful output and document findings
 retain the maintained semantics within this profile. No remote fetch occurs.
 
-`--active-naming-validate` is the read-only default-route candidate for
-`scripts/validate_active_naming.py`. It preserves pruned top-down/sorted path
-checking, token-first maximal runs, exact content-only domain/provenance
-exceptions, experience route scope and active fields of mechanics topology.
-Generated KAG carriers and retired history remain outside the active naming
-source. Python's optional external SQLite feedback-cache route stays intact;
-this native mode does not write or consume a cache. The existing command entry
-selects native validation by default and retains the Python API for explicit
-`--feedback-cache` requests.
+`--active-naming-validate` preserves pruned top-down/sorted path checking,
+token-first maximal runs, exact content-only domain/provenance exceptions,
+experience route scope and active fields of mechanics topology. Generated KAG
+carriers and retired history remain outside the active naming source.
 
-This candidate refuses encountered active symlinks, bounds traversal to 10,000
+On Linux, `--feedback-cache ABSOLUTE_SQLITE_FILE` selects an optional external
+local cache. Every path and file is still read live; only the pure content
+result is reused by digest. Policy binds the native source and resolved
+Rust dependencies, so old Python hints are recomputed. The parent must be
+owned and not writable by other users; the cache cannot be inside the source
+root or reached through a symlink into it. New files use mode `0600`.
+Reserve up to 128 MiB for the 64 MiB database and its rollback journal before
+selecting this write route. Corrupt rows are recomputed; storage, lock and
+schema failures fall back immediately to uncached validation and are reported.
+CI and release commands do not select feedback caches.
+
+The validator refuses encountered active symlinks, bounds traversal to 10,000
 entries / 128 directory levels, each text file to 8 MiB and aggregate read input
 to 64 MiB, and issues to 4096 of at most 8 KiB each. Invalid UTF-8 text is skipped
 as in Python; ordinary newline decoding is preserved. JSON topology is bounded
