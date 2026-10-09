@@ -13,7 +13,7 @@ postgres-lab = []
 hmac = "=0.13.0"
 sha2 = "=0.11.0"
 sha1 = "=0.10.6"
-tos-ops-mechanics-plan = { path = "../tos-ops-mechanics-plan", default-features = false }
+tos-ops-mechanics-plan = { path = "../tos-ops-mechanics-plan", default-features = false, features = ["compiler-backed-validators"] }
 rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
 base64 = "=0.22.1"
 crc32fast = "=1.5.2"

@@ -1,6 +1,6 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -13,7 +13,7 @@ import {nativePacketJson} from '../src/native-lens.ts';
 import {publishedNodeFixtureWorker,publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 
 const repo=fileURLToPath(new URL('../../../../',import.meta.url));
-const python=(code,input)=>JSON.parse(execFileSync('python3',['-B','-c',
+const python=(code,input)=>JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',
   "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];"+code],
   {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');

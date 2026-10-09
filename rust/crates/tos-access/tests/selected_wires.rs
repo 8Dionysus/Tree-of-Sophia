@@ -1587,11 +1587,8 @@ mod selected_knowledge {
         );
         let ledger_paths = tos_access::release_state::public_source_gap_paths().unwrap();
         source_guard(&source_root, &source_ref, &ledger_paths);
-        assert_eq!(
-            bounded_source(&source_root.join("access/tests/test_access_contract.py")),
-            include_bytes!("../../../../access/tests/test_access_contract.py").as_slice(),
-            "Python fixture source differs from compile-time input"
-        );
+        // No test-only Python fixture writer participates in the selected
+        // source closure. Runtime data remains bound to the compiled source.
         assert_eq!(
             bounded_source(
                 &source_root.join(tos_access::release_state::RUNTIME_DATA_DECLARATION_PATH)
@@ -1599,37 +1596,39 @@ mod selected_knowledge {
             tos_access::release_state::RUNTIME_DATA_DECLARATION,
             "public-ledger selection differs from compile-time input"
         );
-        // Reuse the maintained software fixture, exporting only original inputs.
-        // The existing independent QRY dossier case owns Python domain equality.
-        let script = r#"
-import json,sys,tempfile
-from pathlib import Path
-sys.path.insert(0,sys.argv[1])
-from test_access_contract import write_fixture
-with tempfile.TemporaryDirectory() as d:
- root=Path(d);write_fixture(root)
- nav=json.loads((root/'ToS/derived-exports/tos_corpus_index.min.json').read_text())['source_navigation']
- print(json.dumps(nav,ensure_ascii=False,separators=(',',':'),allow_nan=False))
-"#;
-        let output = bounded_output(
-            Command::new("python3")
-                .args(["-I", "-B", "-c"])
-                .arg(script)
-                .arg(source_root.join("access/tests")),
-            1_048_576,
-        );
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
+        // A compact native source-navigation fixture preserves this installed
+        // entrypoint probe without pulling a Python fixture generator into the
+        // Rust test process. The packet intentionally has one item and one
+        // scoped rights row; domain-wide dossier parity is tested separately.
         let nav = parse_json(
-            &output.stdout,
+            br#"{
+              "schema_version":"tos_source_navigation_v1",
+              "authority_boundary":"bounded native installed-entrypoint fixture",
+              "counts":{"nodes":1,"edges":0,"rights":1},
+              "nodes":[{
+                "node_id":"tos.item.fixture",
+                "node_kind":"item",
+                "label":"Fixture Item",
+                "source_ref":"ToS/source-witnesses/works/fixture/item.json",
+                "identity_status":"verified",
+                "properties":{}
+              }],
+              "edges":[],
+              "rights":[{
+                "rights_id":"tos.rights.fixture",
+                "scope_refs":["tos.item.fixture"],
+                "assessment_status":"unknown",
+                "review_status":"unreviewed",
+                "redistribution_posture":"not_authorized",
+                "source_ref":"ToS/source-witnesses/works/fixture/rights.json"
+              }]
+            }"#,
             JsonMode::PublishedStrict,
             JsonLimits::default(),
         )
         .unwrap()
         .into_root();
+        let nav_bytes = json_bytes(&nav);
         let mut header = nav.clone();
         if let JsonValue::Object(fields) = &mut header {
             fields.retain(|(key, _)| !matches!(key.as_str(), Some("nodes" | "edges" | "rights")));
@@ -1735,7 +1734,7 @@ with tempfile.TemporaryDirectory() as d:
         let registries = fixture.registry_originals();
         fs::write(data_root.join(&paths.entity_registry), registries[0]).unwrap();
         fs::write(data_root.join(&paths.relation_registry), registries[1]).unwrap();
-        fs::write(data_root.join("data/navigation-input.json"), &output.stdout).unwrap();
+        fs::write(data_root.join("data/navigation-input.json"), &nav_bytes).unwrap();
         // This public subset is declared by the existing software owner, never
         // discovered from a runtime checkout or current filename/count rule.
         source_guard(&source_root, &source_ref, &ledger_paths);
@@ -1821,7 +1820,7 @@ with tempfile.TemporaryDirectory() as d:
                 ])
             })
             .collect();
-        let source_sha = Digest256::of_bytes(&output.stdout).to_hex();
+        let source_sha = Digest256::of_bytes(&nav_bytes).to_hex();
         let compiler = object(vec![
             ("schema", text(&fixture.expectation.model_abi)),
             ("compiler_version", text(tos_compiler::COMPILER_VERSION)),
@@ -4283,62 +4282,160 @@ with tempfile.TemporaryDirectory() as d:
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
     fn captured_corpus_executor_fixture() -> (Executor, JsonValue) {
-        let script = r#"
-import hashlib,json,subprocess,sys,tempfile
-from pathlib import Path
-repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'access/src'),str(repo/'access/tests'),str(repo/'scripts')]
-from fixture_support import write_corpus_topology_fixture
-from corpus_archive import capture_git,restore_capture
-base=Path(tempfile.mkdtemp(prefix='tos-access-corpus-'));source=base/'source';source.mkdir()
-write_corpus_topology_fixture(source)
-source_path='ToS/derived-exports/tos_corpus_index.min.json'
-payload=json.loads((source/source_path).read_text())
-def git(*args):
- return subprocess.check_output(['git','-C',str(source),*args],stderr=subprocess.PIPE,text=True).strip()
-git('init','-q');git('add',source_path);git('-c','user.name=ToS Software Fixture','-c','user.email=fixture@example.invalid','commit','-qm','existing corpus read input')
-commit=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
-capture=base/'capture';restored=base/'restored';capture_git(source,commit,[source_path],capture);restore_capture(capture,restored)
-json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree':tree,'manifest_sha':hashlib.sha256((capture/'capture.json').read_bytes()).hexdigest(),'source_path':source_path,'node':payload['nodes'][0]['node_id'],'pack':payload['relation_packs'][-1]['pack_id'],'view':payload['graph_views'][0]['view_id'],'query':payload['nodes'][0]['label']},sys.stdout)
-"#;
-        let output = std::process::Command::new("python3")
-            .arg("-c")
-            .arg(script)
-            .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
+        use std::{path::Path, process::Command, sync::atomic::AtomicBool, time::Instant};
+        use tos_source_store::{
+            CaptureGitRequest, CaptureRestoreLimits, GitCaptureLimits, ReadLimits,
+            SoftwareCaptureSelectionV1, capture_git, restore_capture,
+        };
+
+        // This compact, immutable schema fixture exercises only the maintained
+        // corpus collections used by the transport test. It is intentionally
+        // not produced by the retired Python fixture_support module.
+        const INDEX: &[u8] = br#"{
+          "schema_version":"tos_corpus_index_v1",
+          "owner_repo":"Tree-of-Sophia",
+          "surface_kind":"derived",
+          "counts":{"nodes":2,"relation_edges":2,"relation_packs":2},
+          "nodes":[
+            {"node_id":"a","label":"Alpha","source_ref":"ToS/canon/a.json"},
+            {"node_id":"b","label":"Beta","source_ref":"ToS/canon/b.json"}
+          ],
+          "resources":[],"manifests":[],"branches":[],
+          "relation_packs":[
+            {"pack_id":"candidate-intake/fixture","owner_branch":"ToS/candidate-intake","path":"ToS/candidate-intake/fixture/edges.csv"},
+            {"pack_id":"canon/fixture","owner_branch":"ToS/canon","path":"ToS/canon/fixture/edges.csv"}
+          ],
+          "relation_edges":[
+            {"edge_id":"candidate-edge","owner_branch":"ToS/candidate-intake","pack_id":"candidate-intake/fixture","from_id":"candidate-a","to_id":"candidate-b"},
+            {"edge_id":"canon-edge","owner_branch":"ToS/canon","pack_id":"canon/fixture","from_id":"a","to_id":"b"}
+          ],
+          "graph_views":[
+            {"view_id":"corpus-topology","title":"Corpus"},
+            {"view_id":"route-graph","title":"Routes"},
+            {"view_id":"promotion-flow","title":"Promotion"}
+          ],
+          "authority_order":["ToS/canon"],
+          "runtime_projection_boundary":{"runtime_owner":"abyss-stack"}
+        }"#;
+        let tick = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let base =
+            std::env::temp_dir().join(format!("tos-captured-corpus-{}-{tick}", std::process::id()));
+        let source = base.join("source");
+        let source_index = "ToS/derived-exports/tos_corpus_index.min.json";
+        fs::create_dir_all(source.join("ToS/derived-exports")).unwrap();
+        fs::write(source.join(source_index), INDEX).unwrap();
+        let git = |args: &[&str]| {
+            let output = Command::new("git")
+                .current_dir(&source)
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "git {:?}: {}",
+                args,
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8(output.stdout).unwrap().trim().to_owned()
+        };
+        git(&["init", "-q"]);
+        git(&["add", "--", source_index]);
+        let commit_output = Command::new("git")
+            .current_dir(&source)
+            .args([
+                "-c",
+                "user.name=ToS Native Fixture",
+                "-c",
+                "user.email=fixture@example.invalid",
+                "commit",
+                "-qm",
+                "captured native corpus fixture",
+            ])
             .output()
             .unwrap();
         assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
+            commit_output.status.success(),
+            "fixture commit: {}",
+            String::from_utf8_lossy(&commit_output.stderr)
         );
-        let metadata = parse_json(
-            &output.stdout,
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
+        let commit = git(&["rev-parse", "HEAD^{commit}"]);
+        let tree = git(&["rev-parse", "HEAD^{tree}"]);
+        let capture = base.join("capture");
+        let restored = base.join("restored");
+        let include_prefixes = vec![source_index.to_owned()];
+        let no_prefixes = Vec::<String>::new();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let captured = capture_git(
+            CaptureGitRequest {
+                repository: &source,
+                commit: &commit,
+                include_prefixes: &include_prefixes,
+                exclude_prefixes: &no_prefixes,
+                exclude_path_parts: &no_prefixes,
+                output: &capture,
+            },
+            GitCaptureLimits::default(),
+            deadline,
+            &cancelled,
         )
         .unwrap();
-        let value = |key| {
-            metadata
-                .root()
-                .object_get(key)
-                .and_then(JsonValue::as_str)
-                .unwrap()
-                .to_owned()
+        let selection = SoftwareCaptureSelectionV1 {
+            source_git_commit: commit.clone(),
+            source_git_tree: tree.clone(),
+            capture_manifest_sha256: captured.manifest_sha256,
         };
+        let read_limits = ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 128,
+            max_selected_object_bytes: 8_388_608,
+            json: JsonLimits::default(),
+        };
+        restore_capture(
+            &capture,
+            &restored,
+            &selection,
+            CaptureRestoreLimits {
+                metadata: read_limits,
+                max_archive_bytes: 8_388_608,
+                max_decoded_bytes: 8_388_608,
+                max_source_bytes: 8_388_608,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(fs::read(restored.join(source_index)).unwrap(), INDEX);
+
         let fixture =
             tos_compiler::knowledge_full_fixture::build_native_fixture_with_captured_corpus(
-                std::path::Path::new(&value("capture")),
-                std::path::Path::new(&value("restored")),
-                &value("commit"),
-                &value("tree"),
-                &value("manifest_sha"),
-                &value("source_path"),
+                Path::new(&capture),
+                Path::new(&restored),
+                &commit,
+                &tree,
+                &captured.manifest_sha256.to_hex(),
+                source_index,
             );
+        let metadata = object(vec![
+            ("capture", text(capture.to_str().unwrap())),
+            ("restored", text(restored.to_str().unwrap())),
+            ("commit", text(&commit)),
+            ("tree", text(&tree)),
+            ("manifest_sha", text(&captured.manifest_sha256.to_hex())),
+            ("source_path", text(source_index)),
+            ("node", text("a")),
+            ("pack", text("canon/fixture")),
+            ("view", text("corpus-topology")),
+            ("query", text("Alpha")),
+        ]);
         let executor = Executor {
             fixture,
             corpus_context: Some(tos_query::corpus_read::CorpusReadContext {
-                tos_root: value("restored"),
-                index_path: format!("{}/{}", value("restored"), value("source_path")),
+                tos_root: restored.to_string_lossy().into_owned(),
+                index_path: format!("{}/{}", restored.display(), source_index),
             }),
             held: Arc::new(AtomicUsize::new(0)),
             controls: Arc::new(Controls::default()),
@@ -4353,7 +4450,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                 .unwrap(),
             ),
         };
-        (executor, metadata.into_root())
+        (executor, metadata)
     }
     #[test]
     fn captured_selected_corpus_get_head_and_all_mcp_tools_hold_exact_packets() {

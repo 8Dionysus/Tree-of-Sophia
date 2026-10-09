@@ -1,7 +1,7 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import {execFileSync} from "node:child_process";
 import {fileURLToPath} from "node:url";
 import { sourceDossierD1, sourceDescendD1, SOURCE_NAVIGATION_PAGE_SIZE } from "../src/source-navigation-store.ts";
 import type { Item } from "../src/common.ts";
@@ -19,7 +19,7 @@ type Navigation = {
 // Same maintained Python oracle mechanism as knowledge.test.ts. Only finite
 // fixture data is supplied; the core owns indexing and query semantics.
 function sourceOracle(navigation:Navigation,operation:'descent'|'dossier',id:string,limit:number,maxDepth=8):Item {
-  return JSON.parse(execFileSync('python3',['-B','-c',String.raw`
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',String.raw`
 import json,sys
 sys.path.insert(0,'access/src')
 from tos_access.core import ToSAccessCore

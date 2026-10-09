@@ -7,12 +7,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "ci:python": "python -m pip install -r ../../../requirements-dev.txt",
     "ci:web": "npm ci --prefix ../../web",
     "build:web": "npm --prefix ../../web run build",
     "build:data": "node scripts/build_data.mjs",
     "build": "npm run build:web && npm run build:data",
-    "build:ci": "npm run ci:python && npm run ci:web && npm run build",
+    "build:ci": "npm run ci:web && npm run build",
     "types": "wrangler types",
     "typecheck": "tsc --noEmit",
     "load:local": "node scripts/deploy_edge.mjs --local --data-only",
@@ -23,8 +22,7 @@
     "deploy:edge:plan": "node scripts/deploy_edge.mjs --plan",
     "load:remote": "wrangler d1 execute DB --remote --file=runtime/read-model.sql --yes",
     "check": "npm run build && npm run types && npm run typecheck && npm test",
-    "check:local": "npm run check && npm run load:local && npm run verify:local",
-    "verify:local:reference": "python scripts/verify_local_runtime.py"
+    "check:local": "npm run check && npm run load:local && npm run verify:local"
   },
   "devDependencies": {
     "typescript": "5.9.3",

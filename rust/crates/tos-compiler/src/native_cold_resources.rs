@@ -154,7 +154,7 @@ impl NativeColdOpenResourceHold for LinuxCgroupColdOpenResourceHold {
         cancelled: &AtomicBool,
     ) -> Result<()> {
         if working_ram_bytes != self.working_ram_bytes
-            || stage_model_bytes == 0
+            || (stage_model_bytes == 0 && additional_copy_bytes != 0)
             || sealed_model_bytes == 0
             || additional_copy_bytes > sealed_model_bytes
             || !matches!(copy_buffer_bytes, 0 | COPY_BUFFER_BYTES)
@@ -166,8 +166,9 @@ impl NativeColdOpenResourceHold for LinuxCgroupColdOpenResourceHold {
         // RLIMIT_AS/FSIZE through its existing owner kernel before this callback.
         let used = self.check_current(deadline, cancelled)?;
         // Actual current usage already includes allocated stage and copied pages.
-        // Only producer-owned unallocated copy bytes and its live stack buffer
-        // remain prospective. Cold/runtime heap remains under the SAME hard max.
+        // A zero stage size denotes the selected persistent-cache route, which
+        // has no private compiler-stage database. Only producer-owned unallocated
+        // copy bytes and its live stack buffer remain prospective.
         headroom(
             used,
             self.memory_max,

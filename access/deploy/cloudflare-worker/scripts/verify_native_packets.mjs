@@ -1,4 +1,4 @@
-// Maintained local verification request matrix from verify_local_runtime.py.
+// Native local verification request matrix for the selected source profile.
 // Product semantics come from the selected native reader and Worker.
 import assert from 'node:assert/strict';
 const quote = value => encodeURIComponent(value).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());

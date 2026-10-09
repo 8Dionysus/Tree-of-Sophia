@@ -425,8 +425,7 @@ fn revision_cli_image(path: &Path) -> (Digest256, (u64, u64, u64)) {
 }
 
 fn revision_cli_observe(
-    repository: &Path,
-    owner: &Path,
+    native: &Path,
     invocation: &Path,
     request: &serde_json::Value,
     deadline: Instant,
@@ -439,23 +438,14 @@ fn revision_cli_observe(
     input.seek(SeekFrom::Start(0)).unwrap();
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
-    let mut child =
-        Command::new("python3")
-            .arg(repository.join(
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-            ))
-            .arg("--owner-config")
-            .arg(owner)
-            .arg("--native-invocation")
-            .arg(invocation)
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdin(Stdio::from(input))
-            .stdout(Stdio::from(output.try_clone().unwrap()))
-            .stderr(Stdio::from(errors.try_clone().unwrap()))
-            .spawn()
-            .unwrap();
+    let mut child = Command::new(native)
+        .arg("--invocation")
+        .arg(invocation)
+        .stdin(Stdio::from(input))
+        .stdout(Stdio::from(output.try_clone().unwrap()))
+        .stderr(Stdio::from(errors.try_clone().unwrap()))
+        .spawn()
+        .unwrap();
     let step = deadline.min(Instant::now() + Duration::from_secs(60));
     let status = loop {
         if let Some(status) = child.try_wait().unwrap() {
@@ -874,7 +864,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
         scratch_budget_with_shared(temporary.path(), shared_software_scratch.path(), deadline);
         let invoke = |request: &serde_json::Value| {
             let (success, result) =
-                revision_cli_observe(&repository, &owner, &invocation_path, request, deadline);
+                revision_cli_observe(&native, &invocation_path, request, deadline);
             assert!(success, "scenario {scenario}: {result}");
             result
         };
@@ -1036,14 +1026,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
                     .map(|w| current_side(isolated.path(), &w.path))
                     .collect::<Vec<_>>();
                 assert!(
-                    !revision_cli_observe(
-                        &repository,
-                        &owner,
-                        &invocation_path,
-                        &selected_request,
-                        deadline
-                    )
-                    .0
+                    !revision_cli_observe(&native, &invocation_path, &selected_request, deadline).0
                 );
                 assert_eq!(
                     witnesses
@@ -1140,9 +1123,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             let mut wrong = invocation.clone();
             wrong["original_source_revision"] = serde_json::json!(current_revision.0.to_prefixed());
             freeze_invocation(&invocation_path, &wrong);
-            assert!(
-                !revision_cli_observe(&repository, &owner, &invocation_path, &request, deadline).0
-            );
+            assert!(!revision_cli_observe(&native, &invocation_path, &request, deadline).0);
             assert_eq!(authored(isolated.path()), after);
             freeze_invocation(&invocation_path, &invocation);
         }

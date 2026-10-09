@@ -1,6 +1,6 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -15,7 +15,7 @@ import type {Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
 const repo = fileURLToPath(new URL('../../../../', import.meta.url));
-const python = (code: string, input: unknown) => JSON.parse(execFileSync('python3', ['-c',
+const python = (code: string, input: unknown) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
   "import sys,json;sys.path[:0]=['access/src','access/tests'];" + code], {cwd: repo, input: JSON.stringify(input), encoding: 'utf8'}));
 function graph(size = 12, seed = 0) {
   return python("from test_exploration import graph_for;p=json.load(sys.stdin);print(json.dumps(graph_for(p['size'],p['seed'])))", {size, seed});

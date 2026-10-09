@@ -1,9 +1,9 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 /** Test-only v9 publication for legacy hand-built tiny D1 fixtures.
  * Numeric/Unicode production-emission parity is independently covered by
- * native-lens.test.mjs, whose raw rows and metadata come from Python owners.
+ * native-lens.test.mjs against frozen Python reference outcomes.
  */
 import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -113,19 +113,19 @@ export async function executePublishedFixtureLens(db: D1Database, spec: unknown)
   return JSON.parse(await (await executePublishedLensResponse(db,JSON.stringify(spec))).text());
 }
 
-/** Maintained Python oracle for mixed native D1 fixture controls. */
-export async function executeFixturePythonLens(graph:unknown,spec:unknown):Promise<FixtureLensReply> {
-  return JSON.parse(execFileSync('python3',['-B','-c',
+/** Frozen Python reference outcome for mixed native D1 fixture controls. */
+export async function executeFixtureReferenceLens(graph:unknown,spec:unknown,sourceUrl:string):Promise<FixtureLensReply> {
+  return JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
     {cwd:fileURLToPath(new URL('../../../../',import.meta.url)),input:JSON.stringify({graph,spec}),encoding:'utf8',maxBuffer:32*1024*1024}));
 }
 
-/** Exact Python oracle for publication-bound cursors, not in-memory cursors. */
-export async function executePublishedFixturePythonLens(db: D1Database, graph: unknown, spec: unknown): Promise<FixtureLensReply> {
+/** Frozen Python reference for publication-bound cursors, not in-memory cursors. */
+export async function executePublishedFixtureReferenceLens(db: D1Database, graph: unknown, spec: unknown, sourceUrl:string): Promise<FixtureLensReply> {
   const rows = await db.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top' ORDER BY part").all<{json_chunk:string}>();
   const clock = await db.prepare('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').first<{epoch:number}>();
   if (!clock) throw new Error('published fixture clock absent');
-  return JSON.parse(execFileSync('python3',['-B','-c',String.raw`
+  return JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',String.raw`
 import sys,json
 sys.path.insert(0,'access/src')
 from tos_access.knowledge import execute_knowledge_lens
@@ -137,12 +137,12 @@ print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'],
     input:JSON.stringify({graph,spec,top:JSON.parse(rows.results.map(row=>row.json_chunk).join('')),epoch:clock.epoch})}));
 }
 
-/** Publish the current tiny fixture with the actual Python search emitters. */
-export async function publishNativeSearchFixture(db:D1Database):Promise<void> {
+/** Publish search rows from captured Python reference outcomes. */
+export async function publishNativeSearchFixture(db:D1Database,sourceUrl:string):Promise<void> {
   await publishNativeLensFixture(db);
   const raw:Record<string,string[]>={};
   for(const kind of ['nodes','relations'])raw[kind]=(await db.prepare(`SELECT json FROM knowledge_${kind} ORDER BY id`).all<{json:string}>()).results.map(row=>row.json);
-  const emitted=JSON.parse(execFileSync('python3',['-B','-c',String.raw`
+  const emitted=JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',String.raw`
 import sys,json,hashlib
 sys.path.insert(0,'access/src')
 from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S

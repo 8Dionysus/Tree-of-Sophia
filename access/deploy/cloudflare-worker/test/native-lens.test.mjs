@@ -1,6 +1,6 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
@@ -19,7 +19,7 @@ const executePublishedLensD1=(db,spec)=>executePublishedLensResponse(db,rawSpec(
 const executePublishedLensWithLimits=(db,spec,limits={})=>executePublishedLensResponse(db,rawSpec(spec),'compile',limits);
 const focusPublishedLensD1=(db,node_id,options={})=>executePublishedLensResponse(db,JSON.stringify({node_id,...options}),'focus');
 
-const python = (code, input) => JSON.parse(execFileSync('python3', ['-B', '-c', "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];" + code],
+const python = (code, input) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B', '-c', "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];" + code],
   {cwd: repo, input: input === undefined ? undefined : JSON.stringify(input), encoding: 'utf8', timeout: 30000, maxBuffer: 16 * 1024 * 1024}));
 const fixture = python(String.raw`
 import copy

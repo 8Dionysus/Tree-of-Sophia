@@ -1162,18 +1162,16 @@ through `processing_dependency_closure`. Its read-only result describes the
 retained DAG, not complete source impact or permission for partial publication.
 The disposable cache has output byte/count limits, integrity checks, exclusive
 builder ownership and bounded run history. See the
-[retention boundary](deploy/cloudflare-worker/README.md#incremental-checks-and-cache-retention).
+[retention rationale](../docs/decisions/TOS-D-0050-incremental-checks-bounded-cache.md).
 Private validation fingerprints use canonical JSON and are bound to the
 normalization processor version. They do not replace the cross-language
 framing of public source/content revisions or alter semantic validation rules.
 
-The edge builder additionally checkpoints completed SQL and static-response
-stages. An unchanged build verifies source/producer and output byte digests, then
-reuses those stages without constructing the graph. Changing only web assets
-does not regenerate SQL. `manifest.build_stages` distinguishes `computed` from
-`reused`; `processing.status=not-run` means no normalization was requested in
-this build, not that a new corpus validation ran. See the
-[build-stage boundary](deploy/cloudflare-worker/README.md#resumable-build-stages).
+The former Worker Python builder checkpointed completed SQL and static-response
+stages. That implementation was retired with the Python runtime; the accepted
+historical rationale is in [TOS-D-0049](../docs/decisions/TOS-D-0049-content-verified-build-stages.md).
+The maintained native producer has a separate [build flow](deploy/cloudflare-worker/README.md#production-flow)
+and makes no parity claim for that Python-specific cache.
 
 ### Opt-in backend measurement and UI compatibility
 

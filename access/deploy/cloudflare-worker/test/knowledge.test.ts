@@ -1,8 +1,8 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import test from "node:test";
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
@@ -10,12 +10,12 @@ import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as native
 import {nativeChild, nativeField, nativePacketJson, parseNativeJson} from '../src/native-lens.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
-import {executePublishedFixtureLens, executePublishedFixturePythonLens, publishNativeLensFixture, publishNativeSearchFixture,
+import {executePublishedFixtureLens, executePublishedFixtureReferenceLens as frozenExecutePublishedFixtureReferenceLens, publishNativeLensFixture, publishNativeSearchFixture as frozenPublishNativeSearchFixture,
   inspectPublishedFixtureNode as knowledgeNodeD1, inspectPublishedFixtureRelation as knowledgeRelationD1,
   publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import type {KnowledgeGraph} from "../src/knowledge.ts";
 import {knowledgeScene} from "../../../shared/knowledge-scene.ts";
-import {executeFixturePythonLens} from "./native-lens-fixture.ts";
+import {executeFixtureReferenceLens as frozenExecuteFixtureReferenceLens} from "./native-lens-fixture.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
 import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
 
@@ -28,6 +28,9 @@ const knowledgeExplorationMigration = readFileSync(
 // native-search.test.mjs compares raw numeric kinds and ordered source keys.
 const knowledgeSearchD1=async(...args:Parameters<typeof nativeSearchD1>)=>JSON.parse(nativePacketJson(await nativeSearchD1(...args)));
 const knowledgeSearchD1Indexed=async(...args:Parameters<typeof nativeSearchD1Indexed>)=>JSON.parse(nativePacketJson(await nativeSearchD1Indexed(...args)));
+const executeFixtureReferenceLens=(graph:unknown,spec:unknown)=>frozenExecuteFixtureReferenceLens(graph,spec,import.meta.url);
+const executePublishedFixtureReferenceLens=(db:D1Database,graph:unknown,spec:unknown)=>frozenExecutePublishedFixtureReferenceLens(db,graph,spec,import.meta.url);
+const publishNativeSearchFixture=(db:D1Database)=>frozenPublishNativeSearchFixture(db,import.meta.url);
 
 async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void> {
   await db.batch(knowledgeExplorationMigration.split(/\n(?=CREATE |INSERT )/).map((statement) => db.prepare(statement)));
@@ -52,7 +55,7 @@ function hasHttpStatus(status: number) {
 }
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
-  return JSON.parse(execFileSync('python3', ['-c',
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
@@ -74,7 +77,7 @@ function assessedFormNode(): KnowledgeGraph['nodes'][number] {
 function claimFormNode(): KnowledgeGraph['nodes'][number] {
   // A disposable source-copy form of the real, unreviewed letter Claim;
   // not a new historical assertion or an assessed source form.
-  return JSON.parse(execFileSync('python3', ['-c',
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-claim-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))",
   ], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
@@ -84,7 +87,7 @@ function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeG
   // Build disposable navigation carriers from three real legacy Claims and
   // their exact public identity records. No source/form files are changed;
   // this transport fixture does not assert graph-wide source closure.
-  return JSON.parse(execFileSync('python3', ['-c', `
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
 import copy, json, pathlib, sys
 sys.path[:0] = ['access/src', 'scripts']
 from claim_navigation import build_claim_navigation_descriptor
@@ -434,7 +437,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       for (const quantifier of ['exists', 'not_exists']) {
         for (const length of [1, 2, 3, 4]) {
           const spec = {...base, path_query: [{path_id: 'p', quantifier, steps: Array.from({length}, () => ({direction}))}]};
-          assert.deepEqual(await executePublishedFixtureLens(db, spec), await executeFixturePythonLens(graph, spec));
+          assert.deepEqual(await executePublishedFixtureLens(db, spec), await executeFixtureReferenceLens(graph, spec));
         }
       }
     }
@@ -443,10 +446,10 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       {path_id: 'work', steps: [{node_query: {filters: [{field: 'type_id', op: 'eq', value: 'tos.entity.work'}]}}]}
     ]};
     const joinedResult = await executePublishedFixtureLens(db, joined);
-    assert.deepEqual(joinedResult, await executeFixturePythonLens(graph, joined));
+    assert.deepEqual(joinedResult, await executeFixtureReferenceLens(graph, joined));
     assert.deepEqual((joinedResult.nodes as {id:string}[]).map(n=>n.id), ['philosophy:a']);
     const focused = {...base, seed: {focus_node_id: 'philosophy:a'}, node_query: {enabled: false}, traversal: {depth: 2}};
-    assert.deepEqual(await executePublishedFixtureLens(db, focused), await executeFixturePythonLens(graph, focused));
+    assert.deepEqual(await executePublishedFixtureLens(db, focused), await executeFixtureReferenceLens(graph, focused));
     // A shared record maker/provenance event is not semantic proximity.
     // Exact inspection and the full technical profile still expose the edge.
     for (const relationType of ['tos.relation.made-by', 'tos.relation.generated-by']) {
@@ -456,14 +459,14 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
         .bind(relationType, JSON.stringify(technical.relations[0]), technical.relations[0]!.id).run();
       for (const profile of ['overview', 'all']) {
         const spec = {...focused, traversal: {depth: 2, profile}};
-        const pure = await executeFixturePythonLens(technical, spec);
+        const pure = await executeFixtureReferenceLens(technical, spec);
         assert.deepEqual(pure.nodes.map(n => n.id), profile === 'overview' ? ['philosophy:a'] : graph.nodes.map(n => n.id));
         assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       }
     }
     await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
       .bind(graph.relations[0]!.relation_type_id, JSON.stringify(graph.relations[0]), graph.relations[0]!.id).run();
-    const python = (spec: unknown, source = graph) => JSON.parse(execFileSync('python3', ['-c',
+    const python = (spec: unknown, source = graph) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph:source,spec}), encoding:'utf8'}));
     const propertyGraph = structuredClone(graph);
@@ -489,7 +492,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       const node_query = {filters: [{property_id: 'tos.property.fixture-score', op, value}]};
       for (const path of [false, true]) for (const detail of ['compact', 'full']) {
         const spec = {...base, detail, ...(path ? {path_query: [{path_id: 'property-target', steps: [{node_query}]}]} : {node_query})};
-        const pure = await executeFixturePythonLens(propertyGraph, spec);
+        const pure = await executeFixtureReferenceLens(propertyGraph, spec);
         assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
         assert.equal(JSON.stringify(pure.lens).includes('_property_binding'), false);
       }
@@ -498,7 +501,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
                          {value: '3'}, {field: 'attributes.score'}, {property_id: 'tos.property.bad\r'},
                          {property_id: 'tos.property.bad\n'}, {property_id: null}]) {
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3, ...change}]}};
-      await assert.rejects(executeFixturePythonLens(propertyGraph, spec));
+      await assert.rejects(executeFixtureReferenceLens(propertyGraph, spec));
       await assert.rejects(executePublishedFixtureLens(db, spec));
     }
     for (const [name, op, value] of [['word', 'eq', 'Свобода Ω 🦉\u0000fin'], ['word', 'contains', 'Ω 🦉'],
@@ -507,7 +510,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
         ['flag', 'eq', false], ['flag', 'neq', true], ['tags', 'eq', 'Мысль'],
         ['tags', 'in', ['Freiheit']], ['tags', 'contains', ['Мысль', 'Freiheit']]] as const) {
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-' + name, op, value}]}};
-      const pure = await executeFixturePythonLens(propertyGraph, spec);
+      const pure = await executeFixtureReferenceLens(propertyGraph, spec);
       assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
     }
     // Returning to the old snapshot removes the binding as well as the synthetic values.
@@ -515,7 +518,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       source_revision: graph.source_revision, authority_boundary: graph.authority_boundary})).run();
     for (const n of graph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(n), n.id).run();
     const absentProperty = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3}]}};
-    await assert.rejects(executeFixturePythonLens(graph, absentProperty));
+    await assert.rejects(executeFixtureReferenceLens(graph, absentProperty));
     await assert.rejects(executePublishedFixtureLens(db, absentProperty));
     const carriers = structuredClone(graph);
     // In-memory continuation and published continuation intentionally bind
@@ -539,17 +542,17 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       .bind(carriers.nodes[1]!.entity_id, JSON.stringify(carriers.nodes[1]), carriers.nodes[1]!.id).run();
     for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...focused, pagination: paging};
-      const pure = await executeFixturePythonLens(carriers, spec);
+      const pure = await executeFixtureReferenceLens(carriers, spec);
       const published = await executePublishedFixtureLens(db, spec);
       assertPageContent(published, pure);
-      if (paging) assert.deepEqual(published, await executePublishedFixturePythonLens(db, carriers, spec));
+      if (paging) assert.deepEqual(published, await executePublishedFixtureReferenceLens(db, carriers, spec));
       assert.deepEqual(pure, python(spec, carriers));
       const scene = pure.scene as {vertices: {node_ids: string[]}[]};
       assert.equal(scene.vertices.filter(v => v.node_ids.includes('philosophy:a'))[0]!.node_ids.length, 2);
     }
     for (const profile of ['overview', 'all']) for (const size of [1, 3]) {
       const spec = {...focused, traversal: {depth: 1, profile}, limits: {nodes: size}};
-      const pure = await executeFixturePythonLens(carriers, spec);
+      const pure = await executeFixtureReferenceLens(carriers, spec);
       assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       assert.deepEqual(pure, python(spec, carriers));
       assert.equal(pure.nodes.some(n => n.id === 'philosophy:c'), profile === 'overview' && size > 1);
@@ -557,7 +560,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
     }
     await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
       .bind(graph.nodes[1]!.entity_id, JSON.stringify(graph.nodes[1]), graph.nodes[1]!.id).run();
-    const whole = await executeFixturePythonLens(graph, focused);
+    const whole = await executeFixtureReferenceLens(graph, focused);
     const nodeIds: string[] = [], relationIds: string[] = [];
     let cursor: string | null = null;
     let memoryCursor: string | null = null;
@@ -565,10 +568,10 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       const spec = {...focused, pagination: {nodes: 1, relations: 1, cursor}};
       const page = await executePublishedFixtureLens(db, spec);
       const memorySpec = {...spec, pagination: {...spec.pagination, cursor: memoryCursor}};
-      const memoryPage = await executeFixturePythonLens(graph, memorySpec);
+      const memoryPage = await executeFixtureReferenceLens(graph, memorySpec);
       assertPageContent(page, memoryPage);
       assert.deepEqual(memoryPage, python(memorySpec));
-      assert.deepEqual(page, await executePublishedFixturePythonLens(db, graph, spec));
+      assert.deepEqual(page, await executePublishedFixtureReferenceLens(db, graph, spec));
       memoryCursor = (memoryPage.page as {next_cursor:string|null}).next_cursor;
       assert.equal(page.fingerprint, whole.fingerprint);
       const info = page.page as {primary_node_ids:string[]; next_cursor:string|null};
@@ -626,7 +629,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
         .bind(JSON.stringify(n), JSON.stringify(n).toLowerCase(), n.id).run();
       for (const r of rankingGraph.relations) await db.prepare('UPDATE knowledge_relations SET json=?,search_text=? WHERE id=?')
         .bind(JSON.stringify(r), JSON.stringify(r).toLowerCase(), r.id).run();
-      const expectedSearch = JSON.parse(execFileSync('python3', ['-c',
+      const expectedSearch = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph;p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],limit=p['limit'])))"],
         {cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
           input: JSON.stringify({graph: rankingGraph, query: '4363', limit: 3}), encoding: 'utf8'}));
@@ -654,8 +657,8 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       relation_query: {filters: [{field: 'display.statement.fr', op: 'contains', value: 'non'}]},
       composition: {endpoint_policy: 'either'}};
     const languageResult = await executePublishedFixtureLens(db, languageSpec);
-    assert.deepEqual(languageResult, await executeFixturePythonLens(scoped, languageSpec));
-    const pythonLanguage = JSON.parse(execFileSync('python3', ['-c',
+    assert.deepEqual(languageResult, await executeFixtureReferenceLens(scoped, languageSpec));
+    const pythonLanguage = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: languageSpec}), encoding:'utf8'}));
     assert.deepEqual(languageResult, pythonLanguage);
@@ -676,8 +679,8 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
     const formSpec = {...base, sources: ['source-claims'], language: 'ru', detail: 'compact',
       seed: {focus_node_id: sourceFormNode.id}, node_query: {enabled: false}, relation_query: {enabled: false}};
     const formResult = await executePublishedFixtureLens(db, formSpec);
-    assert.deepEqual(formResult, await executeFixturePythonLens(scoped, formSpec));
-    const pythonForms = JSON.parse(execFileSync('python3', ['-c',
+    assert.deepEqual(formResult, await executeFixtureReferenceLens(scoped, formSpec));
+    const pythonForms = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
     assert.deepEqual(formResult, pythonForms);
@@ -698,8 +701,8 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       scoped.nodes[sourceFormIndex] = candidate;
       await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(candidate), candidate.id).run();
       const edge = await executePublishedFixtureLens(db, formSpec);
-      assert.deepEqual(edge, await executeFixturePythonLens(scoped, formSpec));
-      const pythonAssessed = JSON.parse(execFileSync('python3', ['-c',
+      assert.deepEqual(edge, await executeFixtureReferenceLens(scoped, formSpec));
+      const pythonAssessed = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
         {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
       assert.deepEqual(edge, pythonAssessed);
@@ -717,8 +720,8 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       claimNode.display.title.default.toLowerCase(), JSON.stringify(claimNode).toLowerCase(), JSON.stringify(claimNode)).run();
     const claimSpec = {...formSpec, seed: {focus_node_id: claimNode.id}};
     const claimResult = await executePublishedFixtureLens(db, claimSpec);
-    assert.deepEqual(claimResult, await executeFixturePythonLens(scoped, claimSpec));
-    const pythonClaim = JSON.parse(execFileSync('python3', ['-c',
+    assert.deepEqual(claimResult, await executeFixtureReferenceLens(scoped, claimSpec));
+    const pythonClaim = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: claimSpec}), encoding:'utf8'}));
     assert.deepEqual(claimResult, pythonClaim);
@@ -728,7 +731,7 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
     assert.deepEqual((claimPacket.context as {value: unknown}[])[0]!.value, claimNode.attributes.source_claim);
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
-    assert.deepEqual(await executePublishedFixtureLens(db,joined), await executeFixturePythonLens(scoped,joined));
+    assert.deepEqual(await executePublishedFixtureLens(db,joined), await executeFixtureReferenceLens(scoped,joined));
     // Synthetic topology with an explicit disputed Claim; no historical fact
     // follows from the test's normalized endpoint declarations.
     const pathGraph = structuredClone(graph);
@@ -750,10 +753,10 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       .bind(r.from_id,r.to_id,r.relation_type_id,JSON.stringify(r),r.id).run();
     for (const focus of ['philosophy:a', 'philosophy:c']) for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...base, detail: 'compact', language: 'en', seed: {focus_node_id: focus}, pagination: paging};
-      const result = await executeFixturePythonLens(pathGraph,spec);
+      const result = await executeFixtureReferenceLens(pathGraph,spec);
       const published = await executePublishedFixtureLens(db,spec);
       assertPageContent(published,result);
-      if (paging) assert.deepEqual(published,await executePublishedFixturePythonLens(db,pathGraph,spec));
+      if (paging) assert.deepEqual(published,await executePublishedFixtureReferenceLens(db,pathGraph,spec));
       assert.deepEqual(result,python(spec,pathGraph));
       const view = (result.scene as {compact:{claim_paths:{claim_node_id:string;reading:{standalone:boolean}}[]}}).compact;
       assert.equal(view.claim_paths.length,
@@ -891,7 +894,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     // this same synthetic graph. Indexed page/work counters and opaque cursor
     // carriers are backend mechanics, so the comparison intentionally omits
     // them while retaining source, filters, authority, and complete packets.
-    const python = JSON.parse(execFileSync('python3', ['-c', [
+    const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', [
       "import json,sys;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph",
       "p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],sources=p['sources'],kind_ids=p['kind_ids'],predicate_ids=p['predicate_ids'],limit=p['limit'])))",
     ].join(';')], {
@@ -1065,7 +1068,7 @@ test('assessed forms preserve snapshot limits and reject malformed authority acr
     else (admission.subject as Record<string, unknown>)[change === 'boolean-version' ? 'version' : 'id'] = change === 'boolean-version' ? true : 'tos.form.other';
     cases.push(broken);
   }
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1130,7 +1133,7 @@ test('assessed source-copy and separate parent context have lossless bounded Pyt
   (((large.attributes.human_forms as Record<string, unknown>[])[0]!.subject_assessment as Record<string, unknown>).admission as Record<string, unknown>).limits = ['x'.repeat(20000)];
   cases.push(large);
   const before = structuredClone(cases);
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8', maxBuffer: 4194304}));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1173,7 +1176,7 @@ test('source human forms preserve ambiguity, exact context and bounded delivery 
   const missingNull = structuredClone(restricted);
   delete (missingNull.attributes.human_forms as Record<string, unknown>[])[0]!.display_text;
   cases.push({item: missingNull, language: 'ru'});
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;p=json.load(sys.stdin);print(json.dumps([select_human_forms(c['item'],c['language']) for c in p]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(({item, language}) => selectHumanForms(item, language));
@@ -1223,7 +1226,7 @@ test('form budget prioritizes requested language across roles in Python and Work
   statement.language = 'fr-CA';
   cases.push({item: structuredClone(node), language: 'fr-CA'});
   const before = structuredClone(cases);
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(c['item'],c['language']) for c in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding: 'utf8'}));
   const results = cases.map(({item, language}) => selectHumanForms(item, language));
@@ -1282,7 +1285,7 @@ test('native witness and canonical forms bind unchanged identities in Python and
         cases.push(changed);
       }
     }
-    const python = JSON.parse(execFileSync('python3', ['-c',
+    const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
     const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1304,7 +1307,7 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   const missing = structuredClone(node);
   delete missing.attributes.source_claim;
   const cases = [node, conflicting, wrongIdentity, changed, missing];
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1346,7 +1349,7 @@ test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/f
     await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
       const {language, detail} = spec as {language: 'ru' | 'en'; detail: 'compact' | 'full'};
-      const pure = await executeFixturePythonLens(source, spec);
+      const pure = await executeFixtureReferenceLens(source, spec);
       const result = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, language + '/' + detail + ': Python/Worker parity');
       assert.deepEqual(result, pure, language + '/' + detail + ': D1 transport');
@@ -1437,7 +1440,7 @@ test('V2 semantic identity proposals retain the whole frozen plan through Python
   // Use the real owner transaction and portable normalizer in a disposable
   // synthetic source fixture. No canonical subjects or deployed DB are touched.
   const fixture: {graph: KnowledgeGraph; claimId: string; plan: unknown; members: string[];
-    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(execFileSync('python3', ['-c', `
+    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
 import json, sys
 sys.path[:0] = ['mechanics/growth-cycle/tests', 'access/src']
 from test_identity_proposals import SemanticIdentityProposalCommandTests
@@ -1474,7 +1477,7 @@ print(json.dumps(result))
     ]);
     await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
-      const pure = await executeFixturePythonLens(source, spec), result = await executePublishedFixtureLens(db, spec);
+      const pure = await executeFixtureReferenceLens(source, spec), result = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, 'Python/Worker parity');
       assert.deepEqual(result, pure, 'D1 preserves the normalized proposal and members');
       const proposal = result.nodes.find(n => n.id === fixture.claimId)!;
@@ -1514,7 +1517,7 @@ test('source linguistic context controls original selection without an inferred 
   const missingDependency = structuredClone(node);
   (missingDependency.attributes.human_forms as Record<string, unknown>[])[0]!.dependencies = [];
   const cases = [node, absent, changed, multiple, missingDependency];
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'original') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(item => selectHumanForms(item, 'original'));
@@ -1601,7 +1604,7 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
     // Use the producer's bounded SQL append path for the serving row. The
     // native consumer reads this one complete row; payload-only legacy tables
     // above are intentionally not used as an unsupported fallback.
-    const rowSql = execFileSync('python3', ['-B', '-c', String.raw`
+    const rowSql = frozenPythonOracleExec(import.meta.url, ['-B', '-c', String.raw`
 import json, sys
 sys.path.insert(0, 'access/deploy/cloudflare-worker/scripts')
 from build_runtime import append_chunkable_insert, sql_text
@@ -1711,7 +1714,7 @@ test("v5 native overflow rows preserve exact packets and bounded payload search"
       JSON.stringify("x".repeat(fillerLength) + boundaryNeedle + "-suffix"),
       '}}}',
     ].join("");
-    const searchText = (raw: string): string => execFileSync("python3", ["-B", "-c", String.raw`
+    const searchText = (raw: string): string => frozenPythonOracleExec(import.meta.url, ["-B", "-c", String.raw`
 import json, sys
 sys.path.insert(0, 'access/src')
 from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
@@ -1722,7 +1725,7 @@ print(S._searchable(json.loads(sys.stdin.read())))
       encoding: "utf8",
       maxBuffer: 4 * 1024 * 1024,
     }).trim();
-    const searchInfo = (raw: string) => JSON.parse(execFileSync("python3", ["-B", "-c", String.raw`
+    const searchInfo = (raw: string) => JSON.parse(frozenPythonOracleExec(import.meta.url, ["-B", "-c", String.raw`
 import hashlib, json, sys
 sys.path.insert(0, 'access/src')
 from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S

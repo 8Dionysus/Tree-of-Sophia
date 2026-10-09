@@ -575,8 +575,7 @@ fn cli37_image(path: &Path) -> (Digest256, (u64, u64, u64)) {
 }
 
 fn cli37_observe(
-    repository: &Path,
-    owner: &Path,
+    native: &Path,
     invocation: &Path,
     request: &serde_json::Value,
     deadline: Instant,
@@ -589,23 +588,14 @@ fn cli37_observe(
     input.seek(SeekFrom::Start(0)).unwrap();
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
-    let mut child =
-        Command::new("python3")
-            .arg(repository.join(
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-            ))
-            .arg("--owner-config")
-            .arg(owner)
-            .arg("--native-invocation")
-            .arg(invocation)
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdin(Stdio::from(input))
-            .stdout(Stdio::from(output.try_clone().unwrap()))
-            .stderr(Stdio::from(errors.try_clone().unwrap()))
-            .spawn()
-            .unwrap();
+    let mut child = Command::new(native)
+        .arg("--invocation")
+        .arg(invocation)
+        .stdin(Stdio::from(input))
+        .stdout(Stdio::from(output.try_clone().unwrap()))
+        .stderr(Stdio::from(errors.try_clone().unwrap()))
+        .spawn()
+        .unwrap();
     let step = deadline.min(Instant::now() + Duration::from_secs(60));
     let status = loop {
         if let Some(status) = child.try_wait().unwrap() {
@@ -767,13 +757,8 @@ print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref'
             assert!(describe["source_fields"].is_array());
             assert!(describe["materializations"].is_null());
         }
-        let (ok, preview) = cli37_observe(
-            &repository,
-            &owner,
-            &invocation_path,
-            &fixture["proposal"],
-            deadline,
-        );
+        let (ok, preview) =
+            cli37_observe(&native, &invocation_path, &fixture["proposal"], deadline);
         assert!(ok, "{preview}");
         assert!(preview["prepared_materializations"].is_object());
         // The maintained Python fixture prepared these exact parent fields
@@ -793,8 +778,7 @@ print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref'
             request[field] = preview[prepared].clone();
         }
         if mode == 0 {
-            let (ok, created) =
-                cli37_observe(&repository, &owner, &invocation_path, &request, deadline);
+            let (ok, created) = cli37_observe(&native, &invocation_path, &request, deadline);
             assert!(ok, "{created}");
             assert_eq!(created["replayed"], false);
             assert!(!created["receipt"].is_null());
@@ -832,8 +816,7 @@ print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref'
             let (current_revision, _) = cut(&after, &store, deadline, &cancelled);
             invocation["source_revision"] = serde_json::json!(current_revision.0.to_prefixed());
             freeze(&invocation);
-            let (ok, replay) =
-                cli37_observe(&repository, &owner, &invocation_path, &request, deadline);
+            let (ok, replay) = cli37_observe(&native, &invocation_path, &request, deadline);
             assert!(ok, "{replay}");
             assert_eq!(replay["replayed"], true);
             assert_eq!(replay["receipt"], created["receipt"]);
@@ -934,7 +917,7 @@ print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref'
                     .iter()
                     .map(|file| current_side(isolated.path(), &file.path))
                     .collect::<Vec<_>>();
-                assert!(!cli37_observe(&repository, &owner, &invocation_path, request, deadline).0);
+                assert!(!cli37_observe(&native, &invocation_path, request, deadline).0);
                 assert_eq!(fs::read(&control).unwrap(), pending_raw);
                 let after = witnesses
                     .iter()
@@ -960,8 +943,7 @@ print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref'
             fs::write(&source, [source_raw.as_slice(), b"\n"].concat()).unwrap();
             refuse_unchanged(&recovery);
             fs::write(&source, &source_raw).unwrap();
-            let (ok, recovered) =
-                cli37_observe(&repository, &owner, &invocation_path, &recovery, deadline);
+            let (ok, recovered) = cli37_observe(&native, &invocation_path, &recovery, deadline);
             assert!(ok, "{recovered}");
             for file in &witnesses {
                 assert_eq!(

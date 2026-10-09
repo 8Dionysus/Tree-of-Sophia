@@ -1,6 +1,6 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -22,7 +22,7 @@ type Packet = Item & {origin: ResolvedOrigin; nodes: Item[]; relations: Item[];
   counts: {discovered_nodes: number; emitted_relations: number}};
 const repo = fileURLToPath(new URL('../../../../', import.meta.url));
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
-const python = (code: string, input: unknown) => JSON.parse(execFileSync('python3', ['-c',
+const python = (code: string, input: unknown) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
   "import sys,json;sys.path[:0]=['access/src','access/tests'];" + code],
   {cwd: repo, input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}));
 function graph(seed = 0, identities = false): Graph {

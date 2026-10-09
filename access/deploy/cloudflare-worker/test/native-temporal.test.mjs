@@ -1,6 +1,6 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -12,7 +12,7 @@ import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 
 const repo = fileURLToPath(new URL('../../../../',import.meta.url));
 const sha = raw => createHash('sha256').update(raw).digest('hex');
-const python = (code,input) => JSON.parse(execFileSync('python3',['-B','-c',
+const python = (code,input) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',
   "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];"+code],
   {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
 const fixtures = python(String.raw`

@@ -1,6 +1,6 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {parseNativeJson, nativeScalar, nativeField, nativeChild, nativeNumberInfo,
   pythonTruthy, pythonEquals, pythonMember, pythonStr, pythonRepr, nativeSortKey,
@@ -8,7 +8,7 @@ import {parseNativeJson, nativeScalar, nativeField, nativeChild, nativeNumberInf
 import {nativeLower, nativeIsPrintable, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-unicode.ts';
 
 function python(code, input) {
-  return JSON.parse(execFileSync('python3', ['-B', '-c', code], {input: input === undefined ? undefined : JSON.stringify(input),
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B', '-c', code], {input: input === undefined ? undefined : JSON.stringify(input),
     encoding:'utf8',timeout:30000,maxBuffer:16*1024*1024}));
 }
 

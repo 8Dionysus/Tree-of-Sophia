@@ -1233,4 +1233,112 @@ mod tests {
         assert!(view.get("node_ids").is_none());
         assert!(view.get("edge_ids").is_none());
     }
+
+    #[test]
+    fn active_sql_sink_chunks_multibyte_public_rows_without_losing_bytes() {
+        // Exercise the native full-build row emitter and its active SqlSink,
+        // rather than a stand-alone string-chunk helper. The SQL statements
+        // stay under D1's transport ceiling while SQLite reconstructs the
+        // complete original UTF-8 cells.
+        let district = tempfile::tempdir().unwrap();
+        let root = district.path();
+        let source = root.join("phi.json");
+        let payload = format!("{}tail-marker", "é🜁".repeat(22_000));
+        let node = serde_json::json!({
+            "node_id":"n:large",
+            "label":"Fixture",
+            "source_payload":payload,
+        });
+        let raw = serde_json::to_vec(&serde_json::json!({
+            "schema_version":"tos_philosophy_graph_projection_v2",
+            "nodes":[node],
+            "edges":[],
+            "views":[],
+            "clusters":[],
+            "review_packets":[],
+            "graph_layers":[],
+        }))
+        .unwrap();
+        fs::write(&source, raw).unwrap();
+        let expected_json = serde_json::to_string(&node).unwrap();
+        assert!(expected_json.len() <= MAX_ROW_BYTES);
+        assert!(expected_json.len() > crate::d1_public_sql::MAX_STATEMENT_BYTES);
+
+        let absent = root.join("absent.json");
+        let selected = PublicCaptureInputPaths {
+            index_path: absent.clone(),
+            philosophy_graph_projection_path: source,
+            bibliographic_graph_path: absent.clone(),
+            entity_type_registry_path: absent.clone(),
+            relation_type_registry_path: absent.clone(),
+            philosophy_post_planting_audit_path: absent.clone(),
+            evidence_projection_path: absent,
+        };
+        let limits = PublicCaptureLimits {
+            max_input_bytes: 1024 * 1024,
+            max_rows: 100,
+            max_staging_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 16 * 1024 * 1024,
+            max_sql_vm_steps: 1_000_000,
+            sqlite_cache_kib: 64,
+        };
+        let capture = PublicCapture::create_runtime_carrier_selected(
+            root,
+            &selected,
+            RuntimeCaptureRole::Philosophy,
+            &root.join("capture.sqlite"),
+            limits,
+            Instant::now() + Duration::from_secs(30),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .unwrap();
+        let pending = root.join("emitted.sql");
+        let mut sink = SqlSink::create(
+            &pending,
+            &root.join("index.sqlite"),
+            4 * 1024 * 1024,
+            &capture,
+            limits,
+        )
+        .unwrap();
+        crate::d1_public_schema::begin(&mut sink).unwrap();
+        emit_philosophy(&capture, &mut sink, root, &mut SourceSqlCounts::default()).unwrap();
+        let _retained_index = sink
+            .finish(
+                &root.join("baseline.json"),
+                &"0".repeat(64),
+                &serde_json::json!({}),
+                4 * 1024 * 1024,
+            )
+            .unwrap();
+
+        let sql = fs::read_to_string(pending).unwrap();
+        let statements = sql.lines().collect::<Vec<_>>();
+        assert!(
+            statements
+                .iter()
+                .filter(|statement| statement.starts_with("UPDATE philosophy_nodes_next SET "))
+                .count()
+                > 2,
+            "large cells must be emitted in chunks"
+        );
+        assert!(
+            statements
+                .iter()
+                .all(|statement| { statement.len() <= crate::d1_public_sql::MAX_STATEMENT_BYTES })
+        );
+        let db = rusqlite::Connection::open_in_memory().unwrap();
+        db.execute_batch(&sql).unwrap();
+        let expected_search = lower_search(&capture, &expected_json).unwrap();
+        let (stored_json, stored_search): (String, String) = db
+            .query_row(
+                "SELECT json, search_text FROM philosophy_nodes_next WHERE id='n:large'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(stored_json, expected_json);
+        assert_eq!(stored_search, expected_search);
+        assert!(stored_search.len() > crate::d1_public_sql::MAX_STATEMENT_BYTES);
+    }
 }

@@ -199,6 +199,6 @@ limits, held SQLite input identity checks, operation-specific fields, output
 contract and false owner-admission boundary are documented in the
 [Cloudflare Worker source route](../../../access/deploy/cloudflare-worker/README.md#native-offline-prepared-pair-capture).
 This command emits unapplied local artifacts and performs no D1 import,
-consumer switch or remote publication. The retained Python capture modules
-remain documented API and parity-oracle sources; the native command does not
-load Python at runtime.
+consumer switch or remote publication. The Worker package no longer ships
+the former Python capture modules; this native command owns the maintained
+offline capture implementation and does not load Python at runtime.

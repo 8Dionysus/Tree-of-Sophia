@@ -1,6 +1,20 @@
 use std::path::Path;
 
 fn main() {
+    if std::env::args_os().len() == 2
+        && std::env::args_os()
+            .nth(1)
+            .is_some_and(|arg| arg == "corpus-build")
+    {
+        let input = std::io::stdin();
+        let code = tos_command::managed_native_original_cli::run_corpus_build(
+            input.lock(),
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        std::process::exit(code);
+    }
+
     if std::env::args_os().nth(1).is_some_and(|arg| arg == "http") {
         let args = std::env::args_os()
             .skip(2)
@@ -187,7 +201,7 @@ fn main() {
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command http --help\n       tos-native-owner-command foundation --help\n       tos-native-owner-command source-catalog --help\n       tos-native-owner-command corpus-admit --help\n       tos-native-owner-command capacity-fixture --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nUse source-commands --discover [--handler HANDLER_ID] for implementation-only discovery without source or owner access.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command http --help\n       tos-native-owner-command foundation --help\n       tos-native-owner-command source-catalog --help\n       tos-native-owner-command corpus-admit --help\n       tos-native-owner-command corpus-build < REQUEST_JSON\n       tos-native-owner-command capacity-fixture --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nUse source-commands --discover [--handler HANDLER_ID] for implementation-only discovery without source or owner access.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
         );
         return;
     }

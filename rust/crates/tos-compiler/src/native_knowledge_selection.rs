@@ -180,6 +180,28 @@ impl NativeKnowledgeSelection {
         }
         Ok(Self { packet, vocabulary })
     }
+    /// Rebind the already verified producer receipts to an exact copied model
+    /// and current cold-open envelope. The authored descriptor and registries
+    /// remain the ones checked when this selection was decoded.
+    pub fn with_copied_model_measurement(
+        &self,
+        measurement: NativeFsVerityMeasurement,
+        cold_limits: ColdOpenLimits,
+        process_limits: NativeProcessLimits,
+        max_bytes: usize,
+    ) -> Result<Self> {
+        let mut packet = self.packet.clone();
+        packet.fs_verity = measurement;
+        packet.cold_limits = cold_limits;
+        packet.process_limits = process_limits;
+        validate_packet(&packet)?;
+        encode_packet(&packet, max_bytes)?;
+        Ok(Self {
+            packet,
+            vocabulary: self.vocabulary.clone(),
+        })
+    }
+
     pub fn encode(&self, max_bytes: usize) -> Result<Vec<u8>> {
         encode_packet(&self.packet, max_bytes)
     }
@@ -263,7 +285,8 @@ fn validate_packet(p: &Packet) -> Result<()> {
     let schema = if p.expectation.model_abi == crate::KNOWLEDGE_MANAGED_MODEL_ABI {
         crate::managed_source::MANAGED_SELECTION_SCHEMA
     } else if p.expectation.model_abi == crate::KNOWLEDGE_CORPUS_MODEL_ABI
-        || crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(&p.expectation.model_abi).uses_carriers()
+        || crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(&p.expectation.model_abi)
+            .uses_carriers()
     {
         CORPUS_SCHEMA
     } else if p.expectation.model_abi == crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI {

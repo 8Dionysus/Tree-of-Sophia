@@ -1489,6 +1489,143 @@ fn exploration_software_contracts_survive_unrelated_data_selection_and_all_nativ
     );
 }
 
+fn write_native_doctor_fixture(root: &std::path::Path) {
+    use tos_compiler::{
+        PhilosophyOriginalCollection,
+        knowledge_full_fixture::build_native_fixture_with_philosophy_original,
+    };
+
+    let fixture = build_native_fixture_with_philosophy_original();
+    let model = fixture.open().unwrap();
+    let receipt = model.philosophy_original_receipt().unwrap().clone();
+    let read_rows = |collection, count: u64| {
+        let mut rows = Vec::new();
+        let mut after = None;
+        for _ in 0..count {
+            let page = model
+                .philosophy_original_page_under_caller_budget(
+                    collection, after, 1, 1_048_576, 1_048_576,
+                )
+                .unwrap();
+            let row = page.rows.into_iter().next().unwrap();
+            after = Some(row.ordinal);
+            rows.push(serde_json::from_slice::<serde_json::Value>(&row.raw).unwrap());
+        }
+        rows
+    };
+    let mut graph = read_rows(PhilosophyOriginalCollection::Header, 1)
+        .into_iter()
+        .next()
+        .unwrap();
+    graph["nodes"] = serde_json::Value::Array(read_rows(
+        PhilosophyOriginalCollection::Nodes,
+        receipt.nodes,
+    ));
+    graph["edges"] = serde_json::Value::Array(read_rows(
+        PhilosophyOriginalCollection::Edges,
+        receipt.edges,
+    ));
+
+    let derived = root.join("ToS/derived-exports");
+    let graph_dir = derived.join("graph");
+    let registries = root.join("ToS/doctrine/semantic-interchange");
+    std::fs::create_dir_all(&graph_dir).unwrap();
+    std::fs::create_dir_all(&registries).unwrap();
+    std::fs::write(
+        derived.join("tos_corpus_index.min.json"),
+        br#"{"schema_version":"tos_corpus_index_v1","graph_views":[{"view_id":"chronology","title":"Chronology"}]}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        derived.join("philosophy_graph_projection.min.json"),
+        serde_json::to_vec(&graph).unwrap(),
+    )
+    .unwrap();
+    std::fs::write(
+        derived.join("epistemic_evidence_projection.min.json"),
+        br#"{"schema_version":"tos_epistemic_evidence_projection_v1","scenes":[{"scene_id":"fixture"}]}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        graph_dir.join("source-witness-bibliographic-claims.min.json"),
+        b"{}",
+    )
+    .unwrap();
+    std::fs::write(
+        registries.join("entity-types.v1.json"),
+        br#"{"schema_version":"fixture_entity_types_v1"}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        registries.join("relation-types.v1.json"),
+        br#"{"schema_version":"fixture_relation_types_v1"}"#,
+    )
+    .unwrap();
+}
+
+/// Build only the legacy reader's declared metadata envelope. This is an
+/// explicit schema fixture, not a second production QueryStore writer.
+fn write_legacy_query_store_fixture(root: &std::path::Path) {
+    let input_paths = [
+        "ToS/derived-exports/tos_corpus_index.min.json",
+        "ToS/derived-exports/philosophy_graph_projection.min.json",
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+    ];
+    let mut bindings = serde_json::Map::new();
+    for relative in input_paths {
+        let raw = std::fs::read(root.join(relative)).unwrap();
+        bindings.insert(
+            relative.to_owned(),
+            serde_json::Value::String(tos_foundation::Digest256::of_bytes(&raw).to_hex()),
+        );
+    }
+    let graph_raw = std::fs::read(root.join(input_paths[1])).unwrap();
+    let graph: serde_json::Value = serde_json::from_slice(&graph_raw).unwrap();
+    let corpus_raw = std::fs::read(root.join(input_paths[0])).unwrap();
+    let corpus: serde_json::Value = serde_json::from_slice(&corpus_raw).unwrap();
+    let store = root.join("ToS/derived-exports/runtime/knowledge.sqlite3");
+    std::fs::create_dir_all(store.parent().unwrap()).unwrap();
+    let db = rusqlite::Connection::open(&store).unwrap();
+    db.execute_batch(
+        "CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+         CREATE TABLE knowledge_nodes(id TEXT PRIMARY KEY,native_id TEXT,entity_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,label TEXT,search_text TEXT,payload TEXT NOT NULL);
+         CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,native_id TEXT,from_id TEXT,to_id TEXT,source_graph TEXT,predicate_id TEXT,relation_type_id TEXT,label TEXT,search_text TEXT,payload TEXT NOT NULL);
+         CREATE TABLE source_nodes(id TEXT PRIMARY KEY,kind_id TEXT,packet_id TEXT,payload TEXT NOT NULL);
+         CREATE TABLE source_edges(id TEXT PRIMARY KEY,from_id TEXT,to_id TEXT,edge_kind TEXT,predicate_id TEXT,payload TEXT NOT NULL);
+         CREATE TABLE source_rights(id TEXT PRIMARY KEY,payload TEXT NOT NULL);
+         CREATE TABLE source_rights_scopes(right_id TEXT,scope_id TEXT,PRIMARY KEY(right_id,scope_id));
+         CREATE TABLE semantic_diagnostics(kind TEXT,position INTEGER,payload TEXT NOT NULL,PRIMARY KEY(kind,position));
+         CREATE TABLE raw_records(collection TEXT,key TEXT,position INTEGER,payload TEXT NOT NULL,PRIMARY KEY(collection,key));",
+    )
+    .unwrap();
+    let metadata = [
+        ("schema", serde_json::json!("tos_query_store_v1")),
+        ("complete", serde_json::json!(true)),
+        (
+            "compiler_version",
+            serde_json::json!("tos_offline_knowledge_v2"),
+        ),
+        ("snapshot_bindings", serde_json::Value::Object(bindings)),
+        ("graph_header", graph),
+        ("catalog", serde_json::json!({})),
+        ("corpus_header", corpus),
+        (
+            "exploration_revision",
+            serde_json::json!("fixture-old-query-store-v1"),
+        ),
+    ];
+    for (key, value) in metadata {
+        db.execute(
+            "INSERT INTO metadata(key,value) VALUES (?1,?2)",
+            rusqlite::params![key, serde_json::to_string(&value).unwrap()],
+        )
+        .unwrap();
+    }
+    drop(db);
+}
+
 #[test]
 fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
     use std::{
@@ -1506,19 +1643,8 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             .as_nanos()
     ));
     fs::create_dir(&directory).unwrap();
-    // Reuse the maintained source-shaped fixture; Python is fixture setup only,
-    // never a diagnostic runtime/backend or packet oracle.
-    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(3)
-        .unwrap();
-    let setup=Command::new("python3").args(["-c","import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);from fixture_support import write_fixture;write_fixture(Path(sys.argv[2]))"])
-        .arg(repository.join("access/tests")).arg(&directory).output().unwrap();
-    assert!(
-        setup.status.success(),
-        "{}",
-        String::from_utf8_lossy(&setup.stderr)
-    );
+    // Native source-shaped inputs keep diagnostics independent of the retired Python fixture writer.
+    write_native_doctor_fixture(&directory);
     let run = |args: &[&str]| {
         let mut command = Command::new(env!("CARGO_BIN_EXE_tos-access"));
         command.arg("--root").arg(&directory).args(args);
@@ -1733,42 +1859,9 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
         "a store file marker cannot establish native readiness"
     );
     fs::remove_file(&store).unwrap();
-    // A real completed legacy store and partitioned source remain supported
-    // inputs during replacement. Compile the maintained fixture once; runtime
-    // below is exclusively the native CLI, including stale/journal refusals.
-    let setup = Command::new("python3")
-        .args([
-            "-c",
-            r#"
-import sys
-from pathlib import Path
-sys.path[:0] = [str(Path(sys.argv[1]) / 'access/src'), sys.argv[1]]
-from scripts.partitioned_projection_common import write_partitioned_payload
-from tos_access.knowledge_compile import compile_knowledge_store
-import json
-root = Path(sys.argv[2])
-for relative in (
-    'ToS/derived-exports/tos_corpus_index.min.json',
-    'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json',
-    'ToS/derived-exports/philosophy_graph_projection.min.json',
-):
-    path = root / relative
-    value = json.loads(path.read_text())
-    if value.get('schema_version') == 'tos_source_witness_bibliographic_graph_v1':
-        value['input_digests'] = {}
-    write_partitioned_payload(path, value)
-compile_knowledge_store(root, root / 'ToS/derived-exports/runtime/knowledge.sqlite3')
-"#,
-        ])
-        .arg(repository)
-        .arg(&directory)
-        .output()
-        .unwrap();
-    assert!(
-        setup.status.success(),
-        "{}",
-        String::from_utf8_lossy(&setup.stderr)
-    );
+    // Retain the legacy success-path contract through a precise test-only schema fixture.
+    // This does not add a second production QueryStore writer.
+    write_legacy_query_store_fixture(&directory);
     let ready = run(&["verify", "--json"]);
     let ready = parse_json(
         &ready.stdout,

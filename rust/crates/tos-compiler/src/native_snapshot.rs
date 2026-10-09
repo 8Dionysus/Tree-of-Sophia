@@ -87,6 +87,136 @@ pub struct CompletedNativeSnapshot {
     relation: Vec<u8>,
 }
 
+/// Separate truthful carrier for an exactly selected prior model. Unlike a
+/// completed build it contains no fabricated full-component receipt.
+pub struct ReusedNativeSnapshot {
+    cache: crate::native_snapshot_manifest::VerifiedNativeDataCache,
+    capture_identity: (u64, u64, u64, i64, i64, i64, i64),
+    declaration_sha256: Digest256,
+    source_revision: String,
+}
+
+/// Borrowed output kind shared by the normal producer and persistent-cache
+/// routes. The variant remains visible to callers that report build behavior.
+#[derive(Clone, Copy)]
+pub enum NativeSnapshotOutput<'a> {
+    Built(&'a CompletedNativeSnapshot),
+    Reused(&'a ReusedNativeSnapshot),
+}
+impl NativeSnapshotOutput<'_> {
+    pub fn stage(&self) -> &crate::knowledge_stage::StageReceipt {
+        match self {
+            Self::Built(value) => value.stage(),
+            Self::Reused(value) => value.stage(),
+        }
+    }
+    pub fn expectation(&self) -> &KnowledgeSelectedExpectation {
+        match self {
+            Self::Built(value) => value.expectation(),
+            Self::Reused(value) => value.expectation(),
+        }
+    }
+    pub fn producer(&self) -> &crate::knowledge_native::NativeProducerReceipt {
+        match self {
+            Self::Built(value) => value.producer(),
+            Self::Reused(value) => value.producer(),
+        }
+    }
+    pub fn artifact_path(&self) -> &Path {
+        match self {
+            Self::Built(value) => value.artifact_path(),
+            Self::Reused(value) => value.artifact_path(),
+        }
+    }
+    pub fn source_revision(&self) -> &str {
+        match self {
+            Self::Built(value) => value.source_revision(),
+            Self::Reused(value) => value.source_revision(),
+        }
+    }
+    pub fn declaration_sha256(&self) -> Digest256 {
+        match self {
+            Self::Built(value) => value.declaration_sha256(),
+            Self::Reused(value) => value.declaration_sha256,
+        }
+    }
+    pub fn built(&self) -> Option<&CompletedNativeSnapshot> {
+        match self {
+            Self::Built(value) => Some(value),
+            Self::Reused(_) => None,
+        }
+    }
+    pub fn reused(&self) -> Option<&ReusedNativeSnapshot> {
+        match self {
+            Self::Built(_) => None,
+            Self::Reused(value) => Some(value),
+        }
+    }
+    pub fn check_capture_binding(&self, capture: &PublicCapture) -> Result<()> {
+        match self {
+            Self::Built(value) => value.check_capture_binding(capture),
+            Self::Reused(value) => value.check_capture_binding(capture),
+        }
+    }
+}
+
+impl ReusedNativeSnapshot {
+    pub fn stage(&self) -> &crate::knowledge_stage::StageReceipt {
+        &self.cache.selection().producer().stage
+    }
+    pub fn selection(&self) -> &crate::NativeKnowledgeSelection {
+        self.cache.selection()
+    }
+    /// Rebind the cached producer evidence to this invocation's exact copied
+    /// model and cold-open envelope. The model itself is still admitted by the
+    /// controlled cold verifier before this selection can be written.
+    pub fn selection_for_copied_model(
+        &self,
+        copied_model: &Path,
+        cold: crate::ColdOpenLimits,
+        process: crate::NativeProcessLimits,
+        max_bytes: usize,
+    ) -> Result<crate::NativeKnowledgeSelection> {
+        let measurement = crate::prepare_native_knowledge_artifact(copied_model, self.stage())?;
+        self.selection()
+            .with_copied_model_measurement(measurement, cold, process, max_bytes)
+    }
+    pub fn expectation(&self) -> &KnowledgeSelectedExpectation {
+        self.cache.selection().expectation()
+    }
+    pub fn producer(&self) -> &crate::knowledge_native::NativeProducerReceipt {
+        self.cache.selection().producer()
+    }
+    pub fn artifact_path(&self) -> &Path {
+        self.cache.model_path()
+    }
+    pub fn source_revision(&self) -> &str {
+        &self.source_revision
+    }
+    pub fn declaration_sha256(&self) -> Digest256 {
+        self.declaration_sha256
+    }
+
+    fn check_capture_binding(&self, capture: &PublicCapture) -> Result<()> {
+        if capture.capture_identity()? != self.capture_identity
+            || !self.expectation().complete
+            || self.stage().source_cut != format!("native-projection:{}", self.source_revision)
+            || self.expectation().source_cut != self.stage().source_cut
+            || self.expectation().owner_receipt_id
+                != format!(
+                    "native-snapshot:{}:{}",
+                    self.source_revision,
+                    self.declaration_sha256.to_hex()
+                )
+            || self.stage().sqlite_sha256 != self.expectation().model_sha256
+            || self.stage().sqlite_size_bytes != self.expectation().model_size_bytes
+        {
+            return Err(Error::Invalid("reused native snapshot capture binding"));
+        }
+        capture.verify_captured_inputs()
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct SnapshotModelIdentity {
     device: u64,
@@ -3578,6 +3708,82 @@ pub struct NativeSnapshotOwnedReadLoan<'owner, 'budget> {
     state: &'owner CreationState<'budget>,
 }
 impl<'owner, 'budget> NativeSnapshotOwnedReadLoan<'owner, 'budget> {
+    /// Cold-open a copied cache model under this capture's original owned
+    /// counters. A zero stage size is truthful here: no private Stage model
+    /// remains live on the reuse route.
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_controlled_selected_knowledge_model(
+        &self,
+        pinned: &mut File,
+        expected: &KnowledgeSelectedExpectation,
+        custody: &dyn crate::ImmutableKnowledgeCustody,
+        cold: crate::ColdOpenLimits,
+        process: crate::NativeProcessLimits,
+        working_ram_bytes: u64,
+        resource_hold: &dyn NativeColdOpenResourceHold,
+        operation_deadline: Instant,
+        consume: impl FnOnce(&mut crate::ControlledKnowledgeModel<'_, 'owner, 'budget>) -> Result<()>,
+    ) -> Result<()> {
+        if operation_deadline > self.operation_deadline()
+            || operation_deadline <= Instant::now()
+            || working_ram_bytes == 0
+            || process.address_space_bytes == 0
+            || process.address_space_bytes > working_ram_bytes
+            || process.file_size_bytes < expected.model_size_bytes
+            || cold.max_file_bytes < expected.model_size_bytes
+        {
+            return Err(Error::Invalid("reused selected cold admission envelope"));
+        }
+        crate::native_knowledge_selection::verify_native_process_limits(process)?;
+        if !expected.complete || expected.model_size_bytes == 0 {
+            return Err(Error::Invalid("reused selected model expectation"));
+        }
+        resource_hold.verify_cold_open(
+            cold,
+            process,
+            working_ram_bytes,
+            0,
+            expected.model_size_bytes,
+            0,
+            0,
+            operation_deadline,
+            self.capture.cancellation(),
+        )?;
+        let capture = self.capture;
+        let result = capture.with_owned_operation_deadline_and_limits(
+            operation_deadline,
+            Some((cold.max_work_bytes, cold.max_vm_steps)),
+            || {
+                let outcome =
+                    crate::knowledge_payload_read::with_snapshot_owned_knowledge_read_context(
+                        self,
+                        operation_deadline,
+                        |context| {
+                            crate::controlled_cold_model::with_controlled_selected_knowledge_model(
+                                pinned, expected, custody, cold, self, context, consume,
+                            )
+                        },
+                    );
+                resource_hold.verify_cold_open(
+                    cold,
+                    process,
+                    working_ram_bytes,
+                    0,
+                    expected.model_size_bytes,
+                    0,
+                    0,
+                    operation_deadline,
+                    capture.cancellation(),
+                )?;
+                capture.verify_captured_inputs()?;
+                self.state.active()?;
+                outcome
+            },
+        )?;
+        self.state.active()?;
+        result
+    }
+
     /// Checked Evidence delivery borrowing the Whole writer's authentic state.
     /// Neither the projection nor a state/counter reference escapes this call.
     pub fn with_owned_evidence_delivery(
@@ -3659,7 +3865,7 @@ pub fn with_native_original_snapshot_from_capture_with_owned_budget_and_layout<'
 ) -> Result<()>
 where
     F: for<'scope> FnOnce(
-        &'scope CompletedNativeSnapshot,
+        &'scope NativeSnapshotOutput<'scope>,
         NativeSnapshotOwnedReadLoan<'scope, 'budget>,
     ) -> Result<()>,
 {
@@ -3707,15 +3913,123 @@ where
         }
         state.active()?;
         completed.check_capture_binding(capture)?;
+        let output = NativeSnapshotOutput::Built(&completed);
         let result = consume(
-            &completed,
+            &output,
             NativeSnapshotOwnedReadLoan {
                 capture,
                 state: &state,
             },
         );
         state.active()?;
-        completed.check_capture_binding(capture)?;
+        output.check_capture_binding(capture)?;
+        result
+    };
+    let _operation = state.hold(std::mem::size_of_val(&operation))?;
+    let result = operation();
+    usage.json_visits = state.json_visits();
+    result
+}
+
+/// Issue a native cache carrier only from the strict manifest verifier after
+/// it matched the current source cut and compiler fingerprint.
+pub fn reuse_native_snapshot_from_verified_cache(
+    capture: &PublicCapture,
+    cache: crate::native_snapshot_manifest::VerifiedNativeDataCache,
+    expected_source_revision: &str,
+    declaration_raw: &[u8],
+    expected_model_abi: &str,
+) -> Result<ReusedNativeSnapshot> {
+    let source_revision = capture.core_source_revision()?;
+    let declaration_sha256 = Digest256::of_bytes(declaration_raw);
+    let selection = cache.selection();
+    let expected_cut = format!("native-projection:{source_revision}");
+    let expected_owner = format!(
+        "native-snapshot:{source_revision}:{}",
+        declaration_sha256.to_hex()
+    );
+    if source_revision != expected_source_revision
+        || declaration_sha256
+            != Digest256::of_bytes(crate::native_snapshot_manifest::RUNTIME_DATA_DECLARATION)
+        || selection.expectation().model_abi != expected_model_abi
+        || selection.expectation().source_cut != expected_cut
+        || selection.expectation().owner_receipt_id != expected_owner
+        || !selection.expectation().complete
+        || selection.producer().stage.source_cut != expected_cut
+        || selection.producer().stage.sqlite_sha256 != selection.expectation().model_sha256
+        || selection.producer().stage.sqlite_size_bytes != selection.expectation().model_size_bytes
+    {
+        return Err(Error::Invalid(
+            "native cache current cut or model identity differs",
+        ));
+    }
+    capture.check_custody()?;
+    capture.verify_captured_inputs()?;
+    let capture_identity = capture.capture_identity()?;
+    Ok(ReusedNativeSnapshot {
+        cache,
+        capture_identity,
+        declaration_sha256,
+        source_revision,
+    })
+}
+
+/// Retain the same source-owned budget and cold-reader loan for a verified
+/// persistent-model reuse. This issues only a `Reused` carrier and never runs
+/// the native Stage/compiler pipeline.
+#[allow(clippy::too_many_arguments)]
+pub fn with_reused_native_snapshot_from_capture_with_owned_budget_and_layout<'budget, F>(
+    capture: &'budget PublicCapture,
+    reused: &'budget ReusedNativeSnapshot,
+    owner_deadline: Instant,
+    cancelled: &AtomicBool,
+    budget: NativeSnapshotOwnedBudget<'budget>,
+    usage: &mut NativeSnapshotCreationUsage,
+    payload_layout: crate::knowledge_stage::KnowledgePayloadLayout,
+    consume: F,
+) -> Result<()>
+where
+    F: for<'scope> FnOnce(
+        &'scope NativeSnapshotOutput<'scope>,
+        NativeSnapshotOwnedReadLoan<'scope, 'budget>,
+    ) -> Result<()>,
+{
+    *usage = NativeSnapshotCreationUsage::default();
+    if owner_deadline != capture.deadline()
+        || !std::ptr::eq(cancelled, capture.cancellation())
+        || payload_layout.carrier_model_abi() != Some(reused.expectation().model_abi.as_str())
+    {
+        return Err(Error::Invalid(
+            "reused Original snapshot admission context changed",
+        ));
+    }
+    let state = capture.model_creation_state(
+        budget.remaining_after_retained,
+        budget.original_sqlite_heap,
+        budget.max_creation_json_visits,
+        budget.creation_deadline,
+    )?;
+    let operation = || {
+        let frame = std::mem::size_of_val(&consume)
+            .checked_add(std::mem::size_of::<NativeSnapshotOutput<'_>>())
+            .and_then(|n| n.checked_add(std::mem::size_of::<NativeSnapshotOwnedReadLoan<'_, '_>>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<Result<()>>()))
+            .ok_or(Error::Budget("reused Original scoped consumer frame"))?;
+        let _frame = state.hold(frame)?;
+        capture.with_owned_operation_deadline(budget.creation_deadline, || {
+            reused.check_capture_binding(capture)
+        })?;
+        state.active()?;
+        let output = NativeSnapshotOutput::Reused(reused);
+        let result = consume(
+            &output,
+            NativeSnapshotOwnedReadLoan {
+                capture,
+                state: &state,
+            },
+        );
+        state.active()?;
+        output.check_capture_binding(capture)?;
         result
     };
     let _operation = state.hold(std::mem::size_of_val(&operation))?;
