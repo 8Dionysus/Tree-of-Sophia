@@ -1158,21 +1158,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_witness_structure_correspondence.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "validator_behavior",
-      "validation_lane": "source_witness_foundation",
-      "owner_surface": "ToS/source-witnesses/README.md",
-      "protects": "text-free named-division and parallel-PDF correspondence, inventory closure, proposed addresses, number-span restraint, provenance, and candidate-only authority",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_witness_structure_correspondence.py",
-      "failure_route": "Fix the structure-correspondence contract, tracked map, builder, or validator before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_source_text_layer_proposal.py",
       "home": "tests",
       "home_scope": "root",

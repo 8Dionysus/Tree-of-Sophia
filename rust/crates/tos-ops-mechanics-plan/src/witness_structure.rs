@@ -99,10 +99,13 @@ fn page_member(v: &Value) -> Option<i64> {
         .as_str()?
         .strip_prefix("EPUB/page_")?
         .strip_suffix(".html")?;
-    if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) {
+    if s.is_empty() {
         return None;
     }
-    s.parse().ok()
+    s.chars().try_fold(0i64, |n, c| {
+        n.checked_mul(10)?
+            .checked_add(tos_foundation::python_decimal_value_unicode16_v1(c)? as i64)
+    })
 }
 
 struct Context<'a> {

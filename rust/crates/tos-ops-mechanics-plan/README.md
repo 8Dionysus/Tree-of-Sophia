@@ -250,6 +250,25 @@ whole-process costs. Git output is capped at 16 MiB total, each query at most
 30/300 seconds; public limits only tighten them. It performs no fetch, executes
 no baseline code, and makes no source, rights or semantic admission.
 
+`--witness-structure-validate` validates the five maintained text-free witness
+structure families through Rust: Zarathustra part correspondences and three
+proposed addresses per correspondence, parallel PDF divisions, source and
+target numbered-unit maps, and shared numbered labels. It checks the owner
+schemas with formats enabled, exact inventory and provenance digests, page
+arithmetic, ordering, anchor closure and the recorded rights bindings. It reads
+tracked metadata only and does not read private PDF or TEI payloads, assess
+translations, or grant rights, review or canon status. The source-foundation
+lane invokes this mode directly; its Python implementation is retired.
+
+The held route reader bounds each input to 8 MiB, retained input to 64 MiB,
+and the whole pass to 30 seconds. Diagnostics are capped at 4096 and 1 MiB.
+The source-data integration test requires these explicitly selected tracked
+metadata files and runs with `cargo test --locked --no-default-features -p
+tos-ops-mechanics-plan --test witness_structure_native -- --ignored`.
+The tests exercise the actual native entry with an empty PATH and preserve the
+source-only `237a` and translation-claim refusal controls. They are outside the
+software-only test set, which does not select a production witness corpus.
+
 `--source-home` is an explicit native candidate for the maintained
 `validate_tos_source_home.py` law. It checks core source-branch membership, stable
 IDs, owner surfaces, lane references, source-home README fragments and absent
