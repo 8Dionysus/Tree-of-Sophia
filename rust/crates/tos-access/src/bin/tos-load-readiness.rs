@@ -1642,7 +1642,7 @@ fn validate_plan(plan: &Plan, args: &Args) -> Result<(usize, bool, bool), String
             .first()
             .map(|entry| entry.1.clone())
             .ok_or("empty conflict group")?;
-        declared.sort();
+        declared.sort_by_key(|value| value.status);
         let has_success = declared
             .iter()
             .filter(|v| (200..300).contains(&v.status))

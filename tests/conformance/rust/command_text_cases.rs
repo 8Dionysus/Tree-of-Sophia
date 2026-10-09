@@ -306,7 +306,7 @@ fn source_value(value: &Value) -> JsonValue {
     .into_root()
 }
 
-fn alignment_owner_bytes(value: &Value) -> Vec<u8> {
+pub(super) fn alignment_owner_bytes(value: &Value) -> Vec<u8> {
     tos_foundation::canonical_bytes_v1(
         &source_value(value),
         tos_foundation::CanonicalProfile::CorpusSnapshotV1,

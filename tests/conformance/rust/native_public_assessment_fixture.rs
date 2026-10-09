@@ -551,8 +551,9 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
         .as_str()
         .ok_or_else(|| invalid_data("native TextUnit binding has no layer identity"))?;
     let layer_ref = summary_record_ref(&native_summaries, layer_id)?;
-    let access_language = metadata_summary["language"]
-        .as_str()
+    let access_language = metadata_summary
+        .object_get("language")
+        .and_then(tos_foundation::JsonValue::as_str)
         .unwrap_or("und")
         .to_owned();
 

@@ -436,7 +436,7 @@ fn native_work_expression_publishes_replays_and_prepares_next_sibling() {
             CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancelled).unwrap();
         let mut proposal_ctx = super::command_form_cases::context(
             &second_inputs,
-            second_config.clone(),
+            canonical_json(&second_config),
             serde_json::to_vec(&work_expression_proposal(&base_work, &second_config)).unwrap(),
             second_revision,
         );
@@ -481,7 +481,7 @@ fn native_work_expression_publishes_replays_and_prepares_next_sibling() {
         let request_raw = serde_json::to_vec(&second_request).unwrap();
         let mut create_ctx = super::command_form_cases::context(
             &second_inputs,
-            second_config,
+            canonical_json(&second_config),
             request_raw,
             second_revision,
         );

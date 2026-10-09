@@ -1,6 +1,6 @@
 //! Native software command roles shared by the build receipt and installed archive readers.
 //! This describes delivery only; execution, source selection and owner grants stay separate.
-pub const COMMANDS: [&str; 17] = [
+pub const COMMANDS: [&str; 18] = [
     "tos-native-owner-command",
     "tos-schema-worker",
     "tos-validation-lanes",
@@ -16,10 +16,11 @@ pub const COMMANDS: [&str; 17] = [
     "tos-kag-release",
     "tos-stats-release",
     "tos-unicode-tables",
+    "tos-constructor-desktop",
     "tos-source-registry",
     "tos-open-work-queue",
 ];
-pub const NO_DEFAULT_FEATURES: [&str; 9] = [
+pub const NO_DEFAULT_FEATURES: [&str; 10] = [
     "tos-validation-lanes",
     "tos-release-check",
     "tos-software-ci",
@@ -29,6 +30,7 @@ pub const NO_DEFAULT_FEATURES: [&str; 9] = [
     "tos-kag-release",
     "tos-stats-release",
     "tos-unicode-tables",
+    "tos-constructor-desktop",
 ];
 pub fn package(role: &str) -> Option<&'static str> {
     Some(match role {
