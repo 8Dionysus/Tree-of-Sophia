@@ -334,53 +334,34 @@ fn materialize_metadata_predecessor(
     assert!(source_inputs_raw.len() <= 1_048_576);
     let source_inputs_sha = Digest256::of_bytes(&source_inputs_raw).to_hex();
     let connection = rusqlite::Connection::open(&db_path).unwrap();
-    // The frozen fixture is relocated before its preservation baseline. Its
-    // two physical source-state rows must bind the same relocated input bytes.
+    // Relocate this frozen fixture before its preservation baseline. Every
+    // physical source-state row must bind the same relocated input bytes.
     let old_source_sha: String = connection
-        .query_row(
-            "SELECT sha256 FROM prepared_source_state WHERE singleton=1",
-            [],
-            |row| row.get(0),
-        )
+        .query_row("SELECT sha256 FROM prepared_source_state WHERE singleton=1", [], |row| row.get(0))
         .unwrap();
-    let (dependency_raw, dependency_sha): (String, String) = connection
-        .query_row(
-            "SELECT json,sha256 FROM source_dependency_state WHERE singleton=1",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .unwrap();
-    assert!(dependency_raw.len() <= 1_048_576);
-    assert_eq!(
-        Digest256::of_bytes(dependency_raw.as_bytes()).to_hex(),
-        dependency_sha
-    );
-    let mut dependencies: Value = serde_json::from_str(&dependency_raw).unwrap();
-    assert_eq!(canonical_lf(&dependencies), dependency_raw.as_bytes());
-    assert_eq!(
-        Digest256::of_bytes(&canonical_lf(&frozen_source_inputs)).to_hex(),
-        old_source_sha
-    );
-    // The immutable historical export rebased prepared_source_state to its
-    // portable /__tos_fixture__ root but retained this original dependency
-    // reference. Rebind that known fixture artifact here, before execution.
-    assert_eq!(
-        dependencies["source_inputs_sha256"],
-        "f2123f65b518e6bd2dddde1e6fc0276c556aaab2ea1cfd5d92064718850b16c3"
-    );
-    dependencies["source_inputs_sha256"] = json!(source_inputs_sha);
-    let dependency_bytes = canonical_lf(&dependencies);
+    assert_eq!(Digest256::of_bytes(&canonical_lf(&frozen_source_inputs)).to_hex(), old_source_sha);
     connection.execute_batch("BEGIN IMMEDIATE").unwrap();
-    let dependency_changed = connection
-        .execute(
-            "UPDATE source_dependency_state SET json=?1,sha256=?2 WHERE singleton=1",
-            rusqlite::params![
-                std::str::from_utf8(&dependency_bytes).unwrap(),
-                Digest256::of_bytes(&dependency_bytes).to_hex()
-            ],
-        )
-        .unwrap();
-    assert_eq!(dependency_changed, 1);
+    for table in ["source_dependency_state", "agent_context_state"] {
+        let (raw, sha): (String, String) = connection
+            .query_row(&format!("SELECT json,sha256 FROM {table} WHERE singleton=1"), [],
+                |row| Ok((row.get(0)?, row.get(1)?))).unwrap();
+        assert!(raw.len() <= 1_048_576);
+        assert_eq!(Digest256::of_bytes(raw.as_bytes()).to_hex(), sha);
+        let mut state: Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(canonical_lf(&state), raw.as_bytes());
+        assert_eq!(state["binding"], packet["binding"]);
+        // The historical export relocated prepared_source_state to its
+        // portable root but retained this known reference in both dependents.
+        assert_eq!(state["source_inputs_sha256"],
+            "f2123f65b518e6bd2dddde1e6fc0276c556aaab2ea1cfd5d92064718850b16c3");
+        state["source_inputs_sha256"] = json!(source_inputs_sha);
+        let bytes = canonical_lf(&state);
+        let changed = connection.execute(
+            &format!("UPDATE {table} SET json=?1,sha256=?2 WHERE singleton=1"),
+            rusqlite::params![std::str::from_utf8(&bytes).unwrap(), Digest256::of_bytes(&bytes).to_hex()]
+        ).unwrap();
+        assert_eq!(changed, 1);
+    }
     let changed = connection
         .execute(
             "UPDATE prepared_source_state SET inputs=?1,sha256=?2 WHERE singleton=1",
@@ -447,10 +428,17 @@ fn verify_frozen_metadata_evidence(fixture_dir: &Path, deadline: Instant) {
     }
 }
 
-#[test]
-fn maintained_initial_metadata_whole_transaction_and_access() {
-    // Whole deadline precedes image hashes, fixture/capture scans and all writes.
-    let deadline = Instant::now() + Duration::from_secs(240);
+struct PublishedMetadataFixture {
+    source_root: PathBuf,
+    model: PathBuf,
+    binding: PathBuf,
+    source_inputs: PathBuf,
+    record_id: Value,
+}
+
+// Both the regression and load preparation use this real native transaction.
+// Build in the final selected root: copying a published pair changes its paths.
+fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMetadataFixture {
     let cancelled = Arc::new(AtomicBool::new(false));
     let repository = super::validation_cut_cases::repository();
     let consumer = PathBuf::from(
@@ -468,14 +456,13 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     let e_sha = native_child::bounded_sha_before(&e, 512 * 1024 * 1024, deadline);
     let c_sha = native_child::bounded_sha_before(&consumer, 512 * 1024 * 1024, deadline);
     let w_sha = native_child::bounded_sha_before(&worker_path, 128 * 1024 * 1024, deadline);
-    let workspace = tempfile::tempdir().unwrap();
     let fixture_dir = repository.join("tests/conformance/rust/legacy-python-oracles-v1/metadata");
     verify_frozen_metadata_evidence(&fixture_dir, deadline);
     let mut packet = read_packet(&fixture_dir.join("prepared-before.packet.json"));
     let (root, db_path, owner) =
-        materialize_metadata_predecessor(&fixture_dir, &mut packet, workspace.path(), deadline);
+        materialize_metadata_predecessor(&fixture_dir, &mut packet, workspace, deadline);
     let root = root.canonicalize().unwrap();
-    assert!(root.starts_with(workspace.path().canonicalize().unwrap()));
+    assert!(root.starts_with(workspace.canonicalize().unwrap()));
     assert!(owner.starts_with(&root) && db_path.starts_with(&root));
     // The native DB fence requires its immediate parent to be fixture-private.
     let db_parent = db_path.parent().unwrap();
@@ -487,7 +474,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     fs::set_permissions(db_parent, fs::Permissions::from_mode(0o700)).unwrap();
     // Only this synthetic fixture is inventoried. No authored host scan or
     // estimation run; reserve the bounded static increments below before DB work.
-    let (baseline, _) = fixture_physical_bytes(&[workspace.path().to_owned()], deadline);
+    let (baseline, _) = fixture_physical_bytes(&[workspace.to_owned()], deadline);
     for suffix in ["-wal", "-shm", "-journal"] {
         assert!(!PathBuf::from(format!("{}{suffix}", db_path.display())).exists());
     }
@@ -501,7 +488,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     assert!(baseline.checked_sub(baseline_db).unwrap() + 480 * 1024 * 1024 <= 1024 * 1024 * 1024);
     fs::set_permissions(&db_path, fs::Permissions::from_mode(0o600)).unwrap();
     let (original_files, original_modes) = agent_authored_capture(&root, deadline, 33_554_432);
-    let original_store = workspace.path().join("original-cut");
+    let original_store = workspace.join("original-cut");
     let original_revision = super::validation_cut_cases::write_cut_store_with_modes(
         &original_files,
         &original_store,
@@ -624,8 +611,8 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         fs::create_dir_all(target.parent().unwrap()).unwrap();
         fs::write(target, fs::read(path).unwrap()).unwrap();
     }
-    let capture = workspace.path().join("software-capture");
-    let restored = workspace.path().join("software-restored");
+    let capture = workspace.join("software-capture");
+    let restored = workspace.join("software-restored");
     let mut revision = Command::new("git");
     revision
         .arg("-C")
@@ -725,7 +712,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         .map(|p| RelativePath::parse(p).unwrap())
         .collect::<Vec<_>>();
     software.select_components(&paths).unwrap(); // Selected capture validates the concrete component union.
-    let invocation_path = workspace.path().join("metadata-native-invocation.json");
+    let invocation_path = workspace.join("metadata-native-invocation.json");
     let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":consumer,"native_executable_sha256":c_sha.to_prefixed(),"corpus_store":original_store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),"software_capture":capture,"software_restored_root":restored,"software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},"software_components":names,"schema_worker":{"absolute_path":worker_path,"sha256":w_sha.to_prefixed()},"budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     private_json(&invocation_path, &invocation);
     let mut request = packet["creation_request"].clone();
@@ -998,6 +985,15 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     );
     drop(connection);
     private_json(&binding_path, &published["binding"]);
+    let connection = rusqlite::Connection::open(&db_path).unwrap();
+    let selected_source_raw: String = connection.query_row(
+        "SELECT inputs FROM prepared_source_state WHERE singleton=1", [], |r| r.get(0)
+    ).unwrap();
+    assert!(selected_source_raw.len() <= 1_048_576);
+    let selected_source: Value = serde_json::from_str(&selected_source_raw).unwrap();
+    private_json(&source_path, &selected_source);
+    connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)").unwrap();
+    drop(connection);
     let old = tos_access::prepared_local::PreparedLocalExecutor::open(
         db_path.clone(),
         predecessor_binding,
@@ -1021,7 +1017,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         required(&oracle, "new_relation_id"),
         deadline,
     );
-    let (physical, _) = fixture_physical_bytes(&[workspace.path().to_owned()], deadline);
+    let (physical, _) = fixture_physical_bytes(&[workspace.to_owned()], deadline);
     assert!(physical <= 1024 * 1024 * 1024);
     for (path, sha, cap) in [
         (&e, e_sha, 512 * 1024 * 1024),
@@ -1031,6 +1027,17 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         assert_eq!(native_child::bounded_sha_before(path, cap, deadline), sha);
     }
     assert!(Instant::now() < deadline);
+    PublishedMetadataFixture {
+        source_root: root, model: db_path, binding: binding_path,
+        source_inputs: source_path, record_id: packet["record_id"].clone(),
+    }
+}
+
+#[test]
+fn maintained_initial_metadata_whole_transaction_and_access() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let workspace = tempfile::tempdir().unwrap();
+    publish_metadata_fixture(workspace.path(), deadline);
 }
 
 struct LoadReadinessMcp {
@@ -1208,16 +1215,12 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let metadata_fixture =
-        repository.join("tests/conformance/rust/legacy-python-oracles-v1/metadata");
-    verify_frozen_metadata_evidence(&metadata_fixture, deadline);
-    let mut packet = read_packet(&metadata_fixture.join("prepared-before.packet.json"));
-    let (source_root, model, _metadata_owner) =
-        materialize_metadata_predecessor(&metadata_fixture, &mut packet, &baseline, deadline);
-    let binding_path = source_root.join("prepared-binding.json");
-    let source_inputs_path = source_root.join("source-inputs.json");
-    private_json(&binding_path, &packet["binding"]);
-    private_json(&source_inputs_path, &packet["source_inputs"]);
+    let published = publish_metadata_fixture(&baseline, deadline);
+    let source_root = published.source_root;
+    let model = published.model;
+    let binding_path = published.binding;
+    let source_inputs_path = published.source_inputs;
+    let source_record_id = published.record_id;
 
     let forms = baseline.join("forms");
     fs::create_dir(&forms).unwrap();
@@ -1379,7 +1382,7 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     let discover_request = json!({
         "jsonrpc":"2.0","id":102,"method":"tools/call",
         "params":{"name":"tos_source_handle_discover","arguments":{"selector":{
-            "layer":"metadata_record","record_type":"agent","record_id":packet["record_id"]
+            "layer":"metadata_record","record_type":"agent","record_id":source_record_id
         }}}
     });
     let (search_response, search_bytes) = mcp.call(&search_request);
@@ -1484,7 +1487,7 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
         "stages":[2,8,16,32,64,128,256],
         "query_binary":fixture_path(&query_binary),
         "owner_binary":fixture_path(&native),
-        "source_record_id":packet["record_id"],
+        "source_record_id":source_record_id,
         "source_representation":"record",
         "conflict_group":"synthetic-form-apply-v1",
         "retry":"same command id and body; transport creates a fresh nonce",
