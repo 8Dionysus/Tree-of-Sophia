@@ -4,9 +4,9 @@ use std::{
     collections::BTreeMap,
     fs,
     io::{Read, Seek, Write},
-    os::unix::fs::PermissionsExt,
+    os::unix::{fs::PermissionsExt, process::CommandExt},
     path::{Path, PathBuf},
-    process::{Command, CommandExt, Output},
+    process::{Command, Output},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -84,7 +84,7 @@ fn create_archive(path: &Path, marker: &str) -> String {
         ("rust-toolchain.toml", pin),
     ]);
     let source = Digest256::of_bytes(b"native release action integration fixture").to_hex();
-    let pin_text = std::str::from_utf8(files["rust-toolchain.toml"]).unwrap();
+    let pin_text = std::str::from_utf8(&files["rust-toolchain.toml"]).unwrap();
     let toolchain = pin_text
         .lines()
         .find_map(|line| {

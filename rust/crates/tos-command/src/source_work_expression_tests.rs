@@ -662,8 +662,7 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
         freeze(&invocation);
         if mode == 0 {
             let (ok, describe) = cli37_observe(
-                &repository,
-                &owner,
+                &native,
                 &invocation_path,
                 &serde_json::json!({"schema_version":"tos_local_work_expression_command_v1","operation":"describe"}),
                 deadline,

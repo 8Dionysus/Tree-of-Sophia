@@ -1,5 +1,6 @@
 //! Disposable native HTTP fixture host for the Node Playwright browser suite.
 //! Domain query packets are produced through the existing Rust access/QRY seams.
+#[path = "tos-e2e-fixture/browser_fixture.rs"]
 mod browser_fixture;
 
 use std::{

@@ -1021,6 +1021,7 @@ fn native_corpus_composition_case(installed: bool) {
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     phase(started, deadline, "selected-inputs-ready");
+    let fixture = tempfile::TempDir::new().unwrap();
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);

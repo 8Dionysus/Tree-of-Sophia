@@ -526,10 +526,10 @@ mod tests {
         let (mut reader, slot, revision, content_revision, row_sha, cancelled) =
             slot_case(public, "public");
         let root = reader.root.clone();
-        let context = context(&root, &revision, &cancelled);
+        let public_context = context(&root, &revision, &cancelled);
         let result = read_source_slot(
             &mut reader,
-            &context,
+            &public_context,
             &slot,
             "claim",
             "tos.claim.fixture",

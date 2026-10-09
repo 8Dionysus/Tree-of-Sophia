@@ -1,7 +1,7 @@
 //! Bounded protocol workload for an already installed Tree-of-Sophia Rust release.
 //! The schedule supplies owner-selected requests; this tool adds no server API.
-use hmac::{Hmac, Mac};
-use serde::Deserialize;
+use hmac::{Hmac, KeyInit, Mac};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -83,7 +83,7 @@ struct Operation {
     sdk_argv: Vec<String>,
 }
 
-#[derive(Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]
 struct ExpectedOutcome {
     status: u16,
@@ -390,7 +390,7 @@ fn executable_sha256(path: &Path, deadline: Instant) -> Result<String, String> {
     if stamp(&opened) != stamp(&after) || stamp(&opened) != stamp(&path_after) {
         return Err("executable changed during identity hash".into());
     }
-    Ok(format!("{:x}", hash.finalize()))
+    Ok(hex(&hash.finalize()))
 }
 fn valid_sha(value: &str) -> bool {
     value.len() == 64

@@ -22,6 +22,18 @@ struct HealthOwner {
     ready: bool,
 }
 impl AccessExecutor for HealthOwner {
+    fn source_descend_available(&self) -> bool {
+        false
+    }
+
+    fn source_descend(
+        &self,
+        _: tos_query::Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        unreachable!("health-only test owner has no source descent capability")
+    }
+
     fn access_health_available(&self) -> bool {
         true
     }

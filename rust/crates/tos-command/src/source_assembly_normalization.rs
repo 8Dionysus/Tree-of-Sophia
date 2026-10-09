@@ -547,8 +547,14 @@ mod tests {
         let node_record = &mut input.node_records[claim_position].record;
         node_record["properties"]["qualifiers"] = source_claim["qualifiers"].clone();
         node_record["properties"]["source_claim"] = source_claim.clone();
-        node_record["source_sha256"] =
-            json!(validation_digest(&source_claim, MAX_CANDIDATE_ROW_BYTES).unwrap());
+        let source_claim_bytes = tos_foundation::canonical_raw_bytes_v1(
+            &serde_json::to_vec(&source_claim).unwrap(),
+            tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+            tos_foundation::JsonLimits::new(MAX_CANDIDATE_ROW_BYTES, 96, 1_000_000, 4096)
+                .unwrap(),
+        )
+        .unwrap();
+        node_record["source_sha256"] = json!(Digest256::of_bytes(&source_claim_bytes).to_hex());
 
         let fixture = fixture();
         let entity_registry: Value =
