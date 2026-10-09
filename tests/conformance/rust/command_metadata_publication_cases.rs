@@ -512,129 +512,71 @@ fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMet
         "rust/crates/tos-compiler/src/source_bibliographic.rs".to_owned(),
         "rust/crates/tos-compiler/src/source_bibliographic_render.rs".to_owned(),
     ]);
-    for reference in source_catalog["header"]["profile_bindings"]["execution"]
-        .as_object()
-        .unwrap()
-        .keys()
-    {
-        if !reference.starts_with("ToS/") {
-            // The retained predecessor keeps its historical execution identity.
-            // Select current software explicitly; the reviewed bootstrap below
-            // must still authorize the actual before/after execution transition.
-            let current = match reference.as_str() {
-                "access/src/tos_access/projection_diff.py" => "rust/crates/tos-compiler/src/lib.rs",
-                "access/src/tos_access/projection_mutation.py" => {
-                    "rust/crates/tos-compiler/src/publication.rs"
-                }
-                "access/src/tos_access/projection_store.py" => {
-                    "rust/crates/tos-source-store/src/lib.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py" => {
-                    "rust/crates/tos-command/src/source_assessment_journal.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py" => {
-                    "rust/crates/tos-command/src/source_forms.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py" => {
-                    "rust/crates/tos-validation/src/assessment.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py" => {
-                    "rust/crates/tos-command/src/source_artifact_native.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py" => {
-                    "rust/crates/tos-command/src/source_command.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py" => {
-                    "rust/crates/tos-command/src/source_native_cli.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py" => {
-                    "rust/crates/tos-command/src/source_legacy_historical_claim.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py" => {
-                    "rust/crates/tos-command/src/source_work_transaction.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py" => {
-                    "rust/crates/tos-command/src/source_revisions.rs"
-                }
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py" => {
-                    "rust/crates/tos-command/src/source_revisions.rs"
-                }
-                "scripts/build_source_witness_catalog.py" => {
-                    "rust/crates/tos-compiler/src/source_witness_catalog.rs"
-                }
-                "scripts/native_text_binding.py" => {
-                    "rust/crates/tos-command/src/source_sign_native.rs"
-                }
-                "scripts/source_bibliographic_responsibility.py" => {
-                    "rust/crates/tos-validation/src/native_compound.rs"
-                }
-                "scripts/source_bibliographic_topology.py" => {
-                    "rust/crates/tos-validation/src/biblio_rules.rs"
-                }
-                "scripts/source_catalog_projection.py" => {
-                    "rust/crates/tos-compiler/src/source_bibliographic.rs"
-                }
-                "scripts/source_document_catalogue.py" => {
-                    "rust/crates/tos-validation/src/biblio_rules.rs"
-                }
-                "scripts/source_identity_proposals.py" => {
-                    "rust/crates/tos-command/src/source_claims.rs"
-                }
-                "scripts/source_metadata_snapshot.py" => {
-                    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs"
-                }
-                "scripts/source_owner_context.py" => {
-                    "rust/crates/tos-command/src/source_text_owner.rs"
-                }
-                "scripts/source_record_profiles.py" => {
-                    "rust/crates/tos-command/src/source_private_profile.rs"
-                }
-                "scripts/source_witness_human_forms.py" => {
-                    "rust/crates/tos-command/src/source_forms.rs"
-                }
-                path if !path.ends_with(".py") => path,
-                path => panic!("unmapped historical execution component: {path}"),
-            };
-            names.insert(current.to_owned());
+    let mut software_files: BTreeMap<String, Vec<u8>> = names.iter()
+        .map(|name| (name.clone(), fs::read(repository.join(name)).unwrap()))
+        .collect();
+    let provenance = read_packet(&fixture_dir.join("PROVENANCE.json"));
+    let historical_commit = required(&provenance["capture"], "source_commit");
+    assert!(historical_commit.len() == 40 && historical_commit.bytes().all(|b| b.is_ascii_hexdigit()));
+    for (reference, expected) in source_catalog["header"]["profile_bindings"]["execution"]
+        .as_object().unwrap() {
+        if reference.starts_with("ToS/") { continue; }
+        safe_metadata_fixture_relative(reference);
+        let mut show = Command::new("git");
+        show.arg("-C").arg(&repository).arg("show").arg(format!("{historical_commit}:{reference}"));
+        for (name, _) in std::env::vars_os() {
+            if name.to_string_lossy().starts_with("GIT_") { show.env_remove(name); }
         }
+        show.env("GIT_NO_REPLACE_OBJECTS", "1").env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null");
+        let output = native_child::bounded_output_before(&mut show, 2_097_152, deadline);
+        assert!(output.status.success());
+        assert_eq!(expected["bytes"].as_u64(), Some(output.stdout.len() as u64));
+        assert_eq!(expected["sha256"], Digest256::of_bytes(&output.stdout).to_hex());
+        assert!(software_files.insert(reference.clone(), output.stdout).is_none());
+        names.insert(reference.clone());
     }
     assert!(names.len() <= 64);
+    // This capture is explicitly synthetic: current native rule source plus
+    // immutable historical software evidence. No historical file is executed.
+    let software_repository = workspace.join("metadata-software-evidence-repository");
+    fs::create_dir(&software_repository).unwrap();
     let mut software_bytes = 0usize;
-    for name in &names {
-        assert!(Instant::now() < deadline);
-        let path = repository.join(name);
-        let size = fs::metadata(&path).unwrap().len();
-        assert!(size <= 2_097_152);
-        software_bytes = software_bytes.checked_add(size as usize).unwrap();
+    for (name, raw) in &software_files {
+        assert!(Instant::now() < deadline && raw.len() <= 2_097_152);
+        software_bytes = software_bytes.checked_add(raw.len()).unwrap();
         assert!(software_bytes <= 33_554_432);
-        let target = root.join(name);
-        fs::create_dir_all(target.parent().unwrap()).unwrap();
-        fs::write(target, fs::read(path).unwrap()).unwrap();
-    }
-    let capture = workspace.join("software-capture");
-    let restored = workspace.join("software-restored");
-    let mut revision = Command::new("git");
-    revision
-        .arg("-C")
-        .arg(&repository)
-        .args(["rev-parse", "HEAD^{commit}"]);
-    for (name, _) in std::env::vars_os() {
-        if name.to_string_lossy().starts_with("GIT_") {
-            revision.env_remove(name);
+        for base in [&root, &software_repository] {
+            let target = base.join(name);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(target, raw).unwrap();
         }
     }
-    revision
-        .env("GIT_NO_REPLACE_OBJECTS", "1")
-        .env("GIT_CONFIG_NOSYSTEM", "1")
-        .env("GIT_CONFIG_GLOBAL", "/dev/null");
-    let output = native_child::bounded_output_before(&mut revision, 4096, deadline);
-    assert!(output.status.success());
-    let commit = String::from_utf8(output.stdout).unwrap().trim().to_owned();
+    let git = |args: &[&str]| {
+        let mut command = Command::new("git");
+        command.arg("-C").arg(&software_repository)
+            .args(["-c", "core.hooksPath=/dev/null", "-c", "user.name=ToS synthetic fixture", "-c", "user.email=fixture@invalid"])
+            .args(args);
+        for (name, _) in std::env::vars_os() {
+            if name.to_string_lossy().starts_with("GIT_") { command.env_remove(name); }
+        }
+        command.env("GIT_NO_REPLACE_OBJECTS", "1").env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null");
+        let output = native_child::bounded_output_before(&mut command, 4096, deadline);
+        assert!(output.status.success(), "synthetic software capture Git operation");
+        output.stdout
+    };
+    git(&["init", "--quiet"]);
+    git(&["add", "--all"]);
+    git(&["commit", "--quiet", "-m", "synthetic current and historical metadata software evidence"]);
+    let capture = workspace.join("software-capture");
+    let restored = workspace.join("software-restored");
+    let commit = String::from_utf8(git(&["rev-parse", "HEAD^{commit}"])).unwrap().trim().to_owned();
     assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
     let include_prefixes = names.iter().cloned().collect::<Vec<_>>();
     let captured = capture_git(
         CaptureGitRequest {
-            repository: &repository,
+            repository: &software_repository,
             commit: &commit,
             include_prefixes: &include_prefixes,
             exclude_prefixes: &[],
