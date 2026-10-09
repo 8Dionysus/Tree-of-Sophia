@@ -685,15 +685,15 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                     &[
                         (
                             "TOS_MECHANICS_TEST_EXECUTABLE",
-                            path(&installed(prefix, "tos-ops-mechanics-plan")?)?,
+                            path(&installed(&prefix, "tos-ops-mechanics-plan")?)?,
                         ),
                         (
                             "TOS_VALIDATION_LANES_TEST_EXECUTABLE",
-                            path(&installed(prefix, "tos-validation-lanes")?)?,
+                            path(&installed(&prefix, "tos-validation-lanes")?)?,
                         ),
                         (
                             "TOS_RELEASE_CHECK_TEST_EXECUTABLE",
-                            path(&installed(prefix, "tos-release-check")?)?,
+                            path(&installed(&prefix, "tos-release-check")?)?,
                         ),
                     ],
                 )?;
