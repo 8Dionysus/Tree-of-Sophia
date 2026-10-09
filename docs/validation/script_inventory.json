@@ -3387,30 +3387,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
-      "family": "source_projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/README.md",
-      "source_truth": [
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/plan.v1.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-antonovsky-parallel-candidates-v1/identity-issuance.v1.json",
-        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/manifest.v2.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json"
-      ],
-      "reads": [
-        "native build/check/preview read the existing exact German lexical database and recurrence projection, reconstructed Russian structural witness, private DE/RU paragraph layers and frozen paragraph-alignment packets; --validate-tracked instead reads authenticated declared inputs, retained issuance, exact tracked/private receipts and full private cache bytes without regeneration or SQLite opening; retained imported Python helper bodies are cold comparison/reference APIs for tests and migration oracles, not maintained producer fallback"
-      ],
-      "writes": [
-        "native --build writes tracked text-free recurrence, keyword, repeated-sequence and surface-association projections plus coverage, summary, provenance and manifest, and ignored mode-0600 SQLite/readable analysis; --check/--preview regenerate privately and require admitted scratch; --validate-tracked writes nothing"
-      ],
-      "side_effects": "native-only maintained producer dispatch; original full 5ee rendering source retained as nonexecuted/nonimported archive, authenticated cold oracle separate; read-only --validate-tracked proves existing receipt custody, not regenerated algorithm or typed cache equivalence; retained Python helper bodies are cold comparison/reference only; maintained producer CLIs select installed native tos before reference imports; imported Generic local word-analysis requires an explicit absolute installed native prefix and otherwise reports capability unavailable; mechanical whole-work lexical observations and proposed/ambiguous/deferred surface-association candidates only; no text acceptance, correction overlay, morphology, lemma, lexeme, translation equivalence, sign, concept, graph/canon effect, publication, or human review",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_parallel_lexical_candidates_v1.py",
-      "disposition": "keep"
-    },
-    {
       "path": "scripts/build_antonovsky_1911_technical_markup.py",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
@@ -3511,145 +3487,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_morphology_theme_candidates_v1.py",
-      "family": "candidate_projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1/plan.v1.json",
-      "source_truth": [
-        "complete Zarathustra DE/RU parallel lexical candidate manifest",
-        "mode-0600 readable lexical analysis and exact occurrence stores",
-        "fixed local ru_RU Hunspell dictionary",
-        "semantic identity research and candidate-intake authority boundary"
-      ],
-      "reads": [
-        "recurring exact-form candidate keys, paragraph alignment evidence, German casing profiles, Russian historical folds, and provider stem proposals"
-      ],
-      "writes": [
-        "text-free candidate morphology families, typed relations, bilingual recurrence neighborhoods, receipts, and one mode-0600 readable analysis"
-      ],
-      "side_effects": "Native-only producer dispatch; writes require explicit native admitted scratch quota. Exact Concept signature compatibility helper remains; full historical body retained as NONEXECUTED recipe, no Python producer fallback. Native issues opaque candidate identities only on explicit first build; creates no accepted lemma, lexeme, sense, translation equivalence, sign, concept, semantic relation, graph fact, canon object, or human review.",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_morphology_theme_candidates_v1.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py",
-      "family": "candidate_projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/plan.v1.json",
-      "source_truth": [
-        "complete Zarathustra DE/RU paragraph-alignment manifest and exact private text layers",
-        "parallel lexical and morphology/theme candidate manifests",
-        "semantic identity research and sign-annotation contract",
-        "return-as-action canon node as a declared negative control",
-        "exact historical rendering recipe at ToS/research-packets/retained-builder-inputs/build_zarathustra_eternal_return_concept_candidate_v1/35f9a992d0f9460baea7649dde7abed4f615188a376b915041ce49c734400c12.py; NONEXECUTED and never imported or a producer fallback"
-      ],
-      "reads": [
-        "all 3423 aligned units, exact DE/RU source-return anchors, recurrence formulas, context signals, and declared negative controls",
-        "native-only maintained main: --build/--check/--preview retain source regeneration; --validate-tracked reads authenticated default plan/input pins, identity issuance and existing tracked/private output receipts without regeneration or providers"
-      ],
-      "writes": [
-        "one sign-annotation concept candidate, text-free evidence/formula/template ledgers, coverage and promotion receipts, plus one mode-0600 exact bilingual analysis",
-        "--validate-tracked writes nothing; --check remains a regenerating comparison and is distinct from retained-product receipt validation"
-      ],
-      "side_effects": "issues opaque candidate identities only on explicit first build; materializes no accepted sign, concept, claim, relation, translation equivalence, graph fact, canon object, or human review; maintained main dispatches native tos only; retained recipe archive is NONEXECUTED/nonimported, cold original oracle stays separate; --validate-tracked authenticates retained receipts without semantic admission",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_eternal_return_concept_candidate_v1.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/build_zarathustra_eternal_return_review_preparation_v1.py",
-      "family": "candidate_projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/review-preparation-v1/plan.v1.json",
-      "source_truth": [
-        "frozen eternal-return parent candidate and exact mode-0600 analysis",
-        "complete DE/RU paragraph-alignment manifest",
-        "Antonovsky 1911 structural paragraph/verse manifest",
-        "semantic identity research and review-ledger checklist",
-        "exact historical rendering recipe at ToS/research-packets/retained-builder-inputs/build_zarathustra_eternal_return_review_preparation_v1/335df2c5ad52229d449cf6a22cdef4d5dabca49163b3154d85aed1e1a212027b.py; NONEXECUTED and never imported or a producer fallback"
-      ],
-      "reads": [
-        "five declared gap alignments, all 159 selected core-reading evidence units in source order, exact witness slices, speaker transitions, interpretation templates, and counterpressure passages",
-        "native-only maintained main: --build/--check/--preview retain source regeneration; --validate-tracked reads authenticated default plan/input pins, identity issuance and existing tracked/private output receipts without regeneration or providers"
-      ],
-      "writes": [
-        "text-free gap and speaker candidates, interpretation review matrix, compressed exception worklist, coverage/provenance receipts, and one mode-0600 exact review-preparation analysis",
-        "--validate-tracked writes nothing; --check remains a regenerating comparison and is distinct from retained-product receipt validation"
-      ],
-      "side_effects": "issues opaque candidate identities only on explicit first build; corrects no witness, mutates no alignment, records no human review, materializes no claim or relation, and has no graph or canon effect; maintained main dispatches native tos only; retained recipe archive is NONEXECUTED/nonimported, cold original oracle stays separate; --validate-tracked authenticates retained receipts without semantic admission",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_eternal_return_review_preparation_v1.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/build_zarathustra_concept_workbench_v1.py",
-      "family": "candidate_projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json",
-      "source_truth": [
-        "complete four-part German and Russian technical witness units, exact occurrence indexes, and paragraph alignment candidates",
-        "candidate lexical and morphology methods, semantic identity research, and review checklist",
-        "one parameterized concept request with explicit seeds, distinctions, negative controls, relation ceiling, and a source-first on-demand English policy",
-        "the fixity-bound translation reference register and etymology evidence route",
-        "selected native implementation is distinct from the exact NONEXECUTED c60 rendering recipe; retained imported helper bodies are cold comparison/reference APIs, not maintained producer fallback; Generic local word-analysis delegates to the selected native core only with an explicit absolute installed native prefix"
-      ],
-      "reads": [
-        "all exact source-item occurrences, Zarathustra work-scope boundaries, every paragraph and verse line, alignment shapes and statuses, and private source-return layers",
-        "default frozen plan or an owned bounded technical successor changing only five selected SHA256 pins with exact predecessor lineage and all remaining semantics preserved"
-      ],
-      "writes": [
-        "text-free all-form and witness-local context spines, speaker-state candidates, request-local form and occurrence candidates, typed relations, gap and exclusion ledgers, a candidate graph, English on-demand task worklists, and mode-0600 exact and English context packets"
-      ],
-      "side_effects": "issues opaque candidate identities only on explicit first build; excludes appended separate-work material; English is AI-generated per German occurrence with Russian as comparator, sourced etymology required, recognized English translations sealed until freeze, and no accepted translation, lemma, speaker, sign, concept, relation, graph fact, review, or canon object; maintained main dispatches native tos before reference imports; archive is NONEXECUTED/nonimported and never a fallback; custom technical plans cannot issue identities or promote candidate authority",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/query_zarathustra_concept_workbench_v1.py",
-      "family": "candidate_query_adapter",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/candidate-intake/zarathustra/concept-workbench-v1/README.md",
-      "source_truth": [
-        "current schema-valid concept request and request-local concept candidate",
-        "typed candidate realization and translation-parallel relations",
-        "fixity-bound tracked workbench outputs and ignored mode-0600 exact source-return index"
-      ],
-      "reads": [
-        "multilingual discovery labels and reversible morphology candidates, exact German occurrences and contexts, aligned Antonovsky comparator contexts, and prepared English on-demand task refs"
-      ],
-      "writes": [],
-      "side_effects": "prints a schema-valid local exact-source result to stdout; creates no persistent search artifact, accepted concept, translation truth, graph fact, review, or canon effect",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/prepare_zarathustra_word_analysis_v1.py",
-      "family": "candidate_query_adapter",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/candidate-intake/zarathustra/concept-workbench-v1/README.md",
-      "source_truth": [
-        "one schema-valid concept-search result returning to an exact German occurrence and context",
-        "the source-first English candidate contract and the etymology evidence route"
-      ],
-      "reads": [
-        "one ranked German occurrence card, exact German context, aligned Antonovsky comparator context, and immutable source digests"
-      ],
-      "writes": [],
-      "side_effects": "prints a private source-bound agent task or validation receipt; persists no text or candidate and has no accepted lemma, translation, semantic, graph, review, or canon effect",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_concept_workbench_v1.py",
-      "disposition": "keep"
-    },
-    {
       "path": "rust/crates/tos-compiler/src/research_reading_workbench.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
@@ -3709,25 +3546,6 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "rust/crates/tos-compiler/src/research_reading_formulas.rs",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/query_zarathustra_reading_workbench_v1.py",
-      "family": "source_projection_builder",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
-      "source_truth": [
-        "ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md",
-        "explicit selected data root: fixity-bound source spine and unaccepted 81-chapter voice policy"
-      ],
-      "reads": [
-        "fixity-bound source spine, predecessor analysis, concept occurrences and explicit witness-local policies"
-      ],
-      "writes": [],
-      "side_effects": "read-only local source-first concept query enriched with discourse, formulas and candidate alignments; no source mutation, public export, semantic, translation or canon promotion",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_reading_query_v1.py",
       "disposition": "keep"
     },
     {

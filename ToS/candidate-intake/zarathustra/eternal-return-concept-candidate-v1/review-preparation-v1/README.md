@@ -27,13 +27,12 @@ All records remain `unreviewed` or `prepared_for_review`. This route issues no
 review IDs, writes nothing to `ToS/review-ledger/`, materializes no claims or
 relations, and has no graph or canon effect.
 
-The implementation and focused validation are owned by
-`scripts/build_zarathustra_eternal_return_review_preparation_v1.py` and
-`tests/test_zarathustra_eternal_return_review_preparation_v1.py`; execute them
-through the [ToS validation routes](../../../../VALIDATION.md).
+The maintained entry is `tos zarathustra-eternal-return-review-preparation-v1`. Its implementation and
+focused native assertions live in `rust/crates/tos-compiler/src/research_eternal_return.rs`.
+Use the [ToS validation routes](../../../../VALIDATION.md) and explicit selected data for receipt checks.
 
-The maintained producer entry dispatches to the native `tos` command. Select
-an exact installed executable with `TOS_NATIVE_PREPARED_CONSUMER_BIN` and pass
+Invoke the matching installed `tos zarathustra-eternal-return-review-preparation-v1`
+executable directly and pass
 `--source-root` for a separately owned source/carrier root. `--build` produces
 candidate files; `--check` regenerates them and compares the full product.
 Use `--validate-tracked` to validate existing retained products without
@@ -44,8 +43,8 @@ It reports receipt mechanics, not algorithm equivalence or semantic admission.
 
 The original Python rendering recipes remain independent cold oracle/history
 material with their exact Git identities. Both active Eternal entries are
-native-only; the former Review-to-Concept Python hydration import retires with
-the coordinated family cutover. Historical expected output identities remain
+native; the former Python wrappers and Review-to-Concept hydration imports
+are retired. Historical expected output identities remain
 separate from actual native/oracle equivalence; no prior artifact is retagged.
 
 For a future fresh producer chain, `--plan-ref` may select an explicit technical

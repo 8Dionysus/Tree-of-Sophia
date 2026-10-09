@@ -24,10 +24,10 @@ lexical equivalence, a translation judgment, a lexeme, a sign, or a concept.
 
 ## Rebuild and verify
 
-- first identity issue and build: `python scripts/build_zarathustra_parallel_lexical_candidates_v1.py --build --issue-identities`
-- rebuild: `python scripts/build_zarathustra_parallel_lexical_candidates_v1.py --build`
-- parity check: `python scripts/build_zarathustra_parallel_lexical_candidates_v1.py --check`
-- focused tests: `python -m unittest tests.test_zarathustra_parallel_lexical_candidates_v1`
+- first identity issue and build: `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build --issue-identities`
+- rebuild: `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build`
+- parity check: `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --check`
+- focused native assertions: `research_parallel_lexical` in the `tos-compiler` library
 
 Identity issuance is a one-time operation. A normal rebuild refuses to remint
 opaque association-candidate IDs.
@@ -43,20 +43,21 @@ review route.
 
 ## Native technical input profiles
 
-The native `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --plan-ref ROOT_RELATIVE --build` route selects an explicit technical input profile; omitting `--plan-ref` retains the authenticated v1 plan. Custom profiles require a current-user-owned mode-`0700` carrier root and mode-`0600` plan. Use a separate private carrier and preserve the old plan, outputs and issuance in their original custody. The scratch value is an explicitly reserved remaining quota after the carrier baseline, retained outputs and metadata; it does not grant storage. The selector grants no source, semantic, rights or canon admission.
+The native `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --plan-ref ROOT_RELATIVE --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --build` route selects an explicit technical input profile; omitting `--plan-ref` retains the authenticated v1 plan. Custom profiles require a current-user-owned mode-`0700` carrier root and mode-`0600` plan. Use a separate private carrier and preserve the old plan, outputs and issuance in their original custody. The scratch value is an explicitly reserved remaining quota after the carrier baseline, retained outputs and metadata; it does not grant storage. The selector grants no source, semantic, rights or canon admission.
 
 A profile requires a distinct `plan_id`, `status: proposed-technical-input-profile-successor`, `frozen_at: null`, and `input_profile_lineage` with `profile_version >= 2`, `supersedes_plan_ref` and `supersedes_plan_sha256` matching the authentic v1 plan. Only input `sha256` values may change; input membership, refs and all semantic fields, methods, thresholds, output declarations and authority remain exact. Unknown changes fail closed. Selected plan ref and digest are emitted in provenance and manifest. Full bindings must match the retained v1 issuance, including in preview; custom profiles reject `--issue-identities`. Outputs retain the existing filenames inside the selected carrier. Technical profile proposal and boundary review precede scoped mechanical admission; execution does not perform that admission.
 
 The local `0700`/`0600` privacy guard does not prove distinct custody. The controller and explicit admission must fence the selected carrier from original source and historical output custody.
 
-The compatibility producer entry executes installed native `tos zarathustra-parallel-lexical-candidates-v1`, selected by absolute `TOS_NATIVE_PREPARED_CONSUMER_BIN` or PATH. Source-root separate-token and equals forms route to the same native argument; absent source-root defaults to the facade repository location. Explicit plan-ref, common max-seconds and admitted scratch-bytes are forwarded; no hidden quota, Python producer fallback or plan retag is supplied.
-
-Exact Python token/normalization/occurrence helpers remain executable for Python Concept, and alignment/text-quality readers for Python Eternal Concept. In particular Russian observation reconstruction/import remains algorithmic compatibility, not a closed helper seam. Full helper retirement requires each genuine native consumer acceptance, maintained cutover and import census closure. The full5ee producer is retained separately only as NONEXECUTED rendering recipe bytes; immutable authenticated cold oracle and accepted cases remain independent and unchanged.
+Invoke installed `tos zarathustra-parallel-lexical-candidates-v1` directly with
+an explicit source root. Concept and Eternal Concept use their Rust owners;
+the Python compatibility helpers and wrappers are retired. Historical recipe
+bytes and independently retained comparison evidence keep their exact identities.
 
 Actual72947/7113 admitted scoped typed SQLite cache equivalence, while raw DB/manifest byte differences remain explicit. The original frozen plan/history are unchanged. Existing --check and --preview regenerate; they must not be replayed to present a cheap maintained-entry validation. A meaningful read-only receipt consumer requires a separately reviewed native validation seam and matching installed source image. Transport checks alone do not accept source, translation, semantics, rights, graph or canon.
 
-`--validate-tracked` verifies existing Parallel receipts without regeneration, external tools, SQLite opening or writes. Invoke through the maintained native-only Python entry with explicit source-root as needed; absent source-root uses the facade repository location. The unchanged original09f plan is selected by default; explicit --plan-ref permits only the authenticated technical input-profile successor law. This actual72947 receipt check needs no profile successor: its native DB digest is its own output receipt, not a changed input pin.
+`--validate-tracked` verifies existing Parallel receipts without regeneration, external tools, SQLite opening or writes. Invoke the installed native command with an explicit `--source-root`. The unchanged original09f plan is selected by default; explicit --plan-ref permits only the authenticated technical input-profile successor law. This actual72947 receipt check needs no profile successor: its native DB digest is its own output receipt, not a changed input pin.
 
-Validation authenticates declared inputs, exact seven generated entries, manifest, private analysis0600 and complete private DB0600 bytes against its own manifest; retained issuance IDs/bindings, candidate-only ceilings, public/private projections, summary/coverage and selectedplan provenance are checked. The returned manifest and DB hashes must match independently bound actual72947 identities. DBhash validation does not rerun or broaden accepted7113 typed cache equivalence; raw DB/manifest differences remain explicit. No algorithm equivalence, source/translation/semantic/rights/graph/canon acceptance follows. Compatibility helper body and nonexecuted5ee archive fate remain as separately documented.
+Validation authenticates declared inputs, exact seven generated entries, manifest, private analysis0600 and complete private DB0600 bytes against its own manifest; retained issuance IDs/bindings, candidate-only ceilings, public/private projections, summary/coverage and selectedplan provenance are checked. The returned manifest and DB hashes must match independently bound actual72947 identities. DBhash validation does not rerun or broaden accepted7113 typed cache equivalence; raw DB/manifest differences remain explicit. No algorithm equivalence, source/translation/semantic/rights/graph/canon acceptance follows. The historical nonexecuted5ee archive remains provenance only.
 
 Historical full rendering recipe: `ToS/research-packets/retained-builder-inputs/build_zarathustra_parallel_lexical_candidates_v1/5eeabab845a141f7ee7c34bc7ad4141694f238fde0531c4c0fa282a1ec659f84.py`; never execute or import it. Its provenance companion records exact source bytes and isolated oracle separation.

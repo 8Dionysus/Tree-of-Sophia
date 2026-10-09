@@ -1876,8 +1876,8 @@ option and forward to that Rust image before importing the Python query,
 schema, or database implementation:
 
 ```sh
-python scripts/query_zarathustra_concept_workbench_v1.py --native-prefix /absolute/installed-prefix --data-root /absolute/source-root --query 'судьбы' --language ru
-python scripts/prepare_zarathustra_word_analysis_v1.py --native-prefix /absolute/installed-prefix --data-root /absolute/source-root --query 'судьбы' --language ru --rank 1
+/absolute/installed-prefix/bin/tos --root /absolute/source-root concept-search --query 'судьбы' --language ru
+/absolute/installed-prefix/bin/tos --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
 ```
 
 This requires the installed `tos_access` package providing `tos-native`; data

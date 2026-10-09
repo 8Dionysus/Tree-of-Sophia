@@ -34,10 +34,9 @@ gaps are retained explicitly; two central Russian III.13 formulas are visible
 in the witness but missed by the direct detector, so no silent correction is
 performed.
 
-The implementation and focused validation are owned by
-`scripts/build_zarathustra_eternal_return_concept_candidate_v1.py` and
-`tests/test_zarathustra_eternal_return_concept_candidate_v1.py`; execute them
-through the [ToS validation routes](../../../VALIDATION.md).
+The maintained entry is `tos zarathustra-eternal-return-concept-candidate-v1`. Its implementation and
+focused native assertions live in `rust/crates/tos-compiler/src/research_eternal_return_concept.rs`.
+Use the [ToS validation routes](../../../VALIDATION.md) and explicit selected data for receipt checks.
 
 The native command `tos zarathustra-eternal-return-concept-candidate-v1`
 uses the original `plan.v1.json` by default. A reviewed technical input profile
@@ -63,8 +62,8 @@ mechanical result; source-visible review and scoped admission retain their
 existing owners. Fresh profile validation is independent of the original
 plan's retained-input validation.
 
-The maintained producer entry dispatches to the native `tos` command. Select
-an exact installed executable with `TOS_NATIVE_PREPARED_CONSUMER_BIN` and pass
+Invoke the matching installed `tos zarathustra-eternal-return-concept-candidate-v1`
+executable directly and pass
 `--source-root` for a separately owned source/carrier root. `--build` produces
 candidate files; `--check` regenerates them and compares the full product.
 Use `--validate-tracked` to validate existing retained products without
@@ -75,6 +74,6 @@ It reports receipt mechanics, not algorithm equivalence or semantic admission.
 
 The original Python rendering recipes remain independent cold oracle/history
 material with their exact Git identities. Both active Eternal entries are
-native-only; the former Review-to-Concept Python hydration import retires with
-the coordinated family cutover. Historical expected output identities remain
+native; the former Python wrappers and Review-to-Concept hydration imports
+are retired. Historical expected output identities remain
 separate from actual native/oracle equivalence; no prior artifact is retagged.

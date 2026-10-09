@@ -61,7 +61,7 @@ identity.
 For example, the Russian genitive form `судьбы` is recognized as a reversible
 morphology candidate for the discovery label `судьба` and returns the German
 source cards in work order. The local query adapter is
-`scripts/query_zarathustra_concept_workbench_v1.py`; use the query `судьбы`,
+`tos --root /absolute/source-root concept-search`; use the query `судьбы`,
 language `ru`, and the required result limit.
 
 Use `--data-root` to select a separate local dataset. Query code, morphology
@@ -91,7 +91,7 @@ translation comparator and English generated candidate.
 ## On-demand word analysis
 
 One search result can now be compiled into a source-bound task by
-`scripts/prepare_zarathustra_word_analysis_v1.py`, using the query `судьбы`,
+`tos --root /absolute/source-root word-analysis`, using the query `судьбы`,
 language `ru`, and the selected result rank.
 
 The task contains the exact German form and barrier-bounded context, stable
@@ -153,14 +153,12 @@ The v1 manifest retains its historical recipe references. These describe the
 frozen derivation contract; they do not identify the currently executing
 native binary. A changed historical builder input resolves only to retained
 bytes matching its declared digest. Native execution evidence must identify
-its own implementation independently. The previous
-`scripts/build_zarathustra_concept_workbench_v1.py` implementation remains the
-migration comparison oracle until native producer and consumer acceptance.
-Focused native tests protect request identity isolation, frequency-one form
-expansion, scope exclusions, private modes and source-path boundaries; the
-existing `tests/test_zarathustra_concept_workbench_v1.py` protects the dossier
-and consumer contract. Execute the selected checks through the
-[ToS validation routes](../../../VALIDATION.md).
+its own implementation independently. The former Python producer, query and word-analysis entrypoints are retired.
+Focused native producer tests protect request identity isolation, frequency-one
+form expansion, scope exclusions, private modes and source-path boundaries.
+The Rust query/word-analysis tests protect exact source return and candidate
+validation; the original Reading query responses are frozen test data.
+Execute the selected checks through the [ToS validation routes](../../../VALIDATION.md).
 
 Another schema-valid request needs no builder change: pass its path through
 the builder's `--request` option and use the routed preview, build, and check
@@ -184,11 +182,10 @@ the graph contains only its concept candidate and sets `empty_result: true`.
 The no-isolated-node invariant applies to evidence-bearing form, occurrence,
 and speaker nodes; absence is recorded rather than padded with invented edges.
 
-The maintained executable entry dispatches native `tos` before loading the
-reference algorithm or third-party Python imports. Imported helper bodies remain
-as comparison references. The Generic access word-analysis caller requires an
-explicit installed native prefix and no longer loads this Python helper chain. The exact c60 recipe is retained separately as
-NONEXECUTED source, never a fallback or the native implementation identity.
+The installed native `tos zarathustra-concept-workbench-v1` owns producer
+execution; `concept-search` and `word-analysis` use the Rust query owner.
+The exact c60 recipe remains nonexecuted provenance, with its own identity
+separate from the executing native product.
 
 An explicit `--plan-ref` selects a bounded technical successor only: a distinct
 plan ID, proposed status and exact predecessor lineage may accompany changes to
@@ -200,15 +197,9 @@ cannot issue identities, and preview checks the full retained identity binding.
 The selected raw plan digest is propagated into the manifest; default input
 pins and candidate-only authority remain unchanged.
 
-Tracked request schema and manifest reference assertions remain active without
-private payload presence. Only the legacy producer regeneration subprocess and
-request-variant integration method are explicitly dormant pending an admitted
-owned carrier. Their assertions remain retained; private artifact presence alone
-is not admission to production-root writes, outside-root requests or generation
-without scratch quota. Existing dossier checks/native request units remain
-active. Independent immutable c60 comparison belongs to its selected bounded
-oracle case; the changed maintained facade is never an independent oracle.
-The next necessary producer case may exercise the pinned facade with a root-relative
-request, admitted scratch quota and whole-operation custody. Variant requests
-require disposable owned carrier and explicit issuance policy; no production
-root generation or cleanup. Genuine generated-nine proof remains subsequent.
+Native request/schema and manifest checks bind each selected operation.
+Variant requests require a disposable owned carrier, a root-relative request,
+an admitted scratch quota and explicit identity issuance where applicable.
+Private artifact presence alone authorizes no production-root write or cleanup.
+Historical comparison receipts retain their exact original implementation and
+input identities; they do not identify the current installed native product.

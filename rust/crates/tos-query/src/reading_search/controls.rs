@@ -171,99 +171,35 @@ fn delivery_pin_observes_source_mutation_and_abort() {
     );
 }
 #[test]
-fn native_python16_original_provider_semantics_and_explicit_provenance_difference() {
+fn retained_original_provider_semantics_and_explicit_provenance_difference() {
     let fixture = Fixture::new();
-    let software = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-    let mut cases = vec![fixture.request()];
-    for (query, lang, limit, semantic, groups) in [
-        ("Schicksal", "de", 0, false, vec![]),
-        ("Ｆａｔｅ", "en", 2, false, vec!["formula".into()]),
-        ("случай", "ru", 3, false, vec!["speaker".into()]),
-        (
-            "судьба",
-            "ru",
-            3,
-            true,
-            vec!["speaker".into(), "formula".into()],
-        ),
-    ] {
-        cases.push(ReadingSearchRequest {
-            query: query.into(),
-            language: lang.into(),
-            limit,
-            include_semantic_neighbors: semantic,
-            group_by: groups,
+    let retained: Value = serde_json::from_str(include_str!("legacy_query_fixtures.json")).unwrap();
+    assert_eq!(retained["schema"], "tos_retained_reading_query_fixtures_v1");
+    assert_eq!(retained["unicode_version"], "16.0.0");
+    let cases = retained["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 5);
+    for case in cases {
+        let request = ReadingSearchRequest {
+            query: case["query"].as_str().unwrap().to_owned(),
+            language: case["language"].as_str().unwrap().to_owned(),
+            limit: case["limit"].as_u64().unwrap().try_into().unwrap(),
+            include_semantic_neighbors: case["include_semantic_neighbors"].as_bool().unwrap(),
+            group_by: serde_json::from_value(case["group_by"].clone()).unwrap(),
             request_ref: None,
-        });
-    }
-    for request in cases {
-        let program = r#"import importlib.util,json,sys,unicodedata
-from pathlib import Path
-assert unicodedata.unidata_version=='16.0.0', unicodedata.unidata_version
-path=Path(sys.argv[1])/'scripts/query_zarathustra_reading_workbench_v1.py'
-spec=importlib.util.spec_from_file_location('reading_original_oracle',path)
-m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-r=m.build_result(sys.argv[4],sys.argv[5],limit=int(sys.argv[6]),include_semantic_neighbors=sys.argv[7]=='true',group_by=tuple(json.loads(sys.argv[8])),source_root=Path(sys.argv[2]),analysis_root=Path(sys.argv[3]))
-print(json.dumps(r,ensure_ascii=False))"#;
-        let python =
-            std::env::var("TOS_READING_ORACLE_PYTHON").unwrap_or_else(|_| "python3".into());
-        let output = std::process::Command::new(python)
-            .arg("-c")
-            .arg(program)
-            .arg(&software)
-            .arg(&fixture.roots.source_root)
-            .arg(&fixture.roots.analysis_root)
-            .arg(&request.query)
-            .arg(&request.language)
-            .arg(request.limit.to_string())
-            .arg(request.include_semantic_neighbors.to_string())
-            .arg(serde_json::to_string(&request.group_by).unwrap())
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "oracle failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let mut oracle: Value = serde_json::from_slice(&output.stdout).unwrap();
+        };
         let mut native = fixture.packet(&request);
         assert_eq!(native["provenance"]["adapter_ref"], READING_PROVIDER_REF);
-        assert_eq!(
-            oracle["provenance"]["adapter_ref"],
-            "scripts/query_zarathustra_reading_workbench_v1.py"
-        );
-        assert_eq!(
-            native["provenance"]["reading_layer"],
-            oracle["provenance"]["reading_layer"]
-        );
-        assert_eq!(
-            native["provenance"]["result_schema_sha256"],
-            oracle["provenance"]["result_schema_sha256"]
-        );
+        // These four fields identify the current code rather than query semantics.
+        // Every data/source/schema binding and all returned groups remain exact.
         for path in ["adapter_ref", "adapter_sha256"] {
             native["provenance"].as_object_mut().unwrap().remove(path);
-            oracle["provenance"].as_object_mut().unwrap().remove(path);
         }
         for path in ["query_adapter_ref", "query_adapter_sha256"] {
             native["provenance"]["concept_predecessor"]
-                .as_object_mut()
-                .unwrap()
-                .remove(path);
-            oracle["provenance"]["concept_predecessor"]
-                .as_object_mut()
-                .unwrap()
-                .remove(path);
+                .as_object_mut().unwrap().remove(path);
         }
-        println!("RETAINED_READING_ORACLE {}", serde_json::to_string(&json!({
-            "query": request.query, "language": request.language, "limit": request.limit,
-            "include_semantic_neighbors": request.include_semantic_neighbors,
-            "group_by": request.group_by, "expected": oracle
-        })).unwrap());
-        assert_eq!(
-            native, oracle,
-            "entire original synthetic result differs for {}:{}",
-            request.language, request.query
-        );
+        assert_eq!(native, case["expected"],
+            "entire retained original result differs for {}:{}", request.language, request.query);
     }
 }
 
