@@ -5983,9 +5983,6 @@ def inspect_knowledge_node(
     graph: dict[str, Any], identifier: str, relation_limit: int = 200,
     *, graph_index: KnowledgeGraphIndex | None = None,
 ) -> dict[str, Any]:
-    # Query-only dependencies must not change the normalization processor ABI.
-    from .source_read_projection import source_read_targets
-
     item_id = str(identifier).strip()
     if not item_id:
         raise ValueError("knowledge node id is required")
@@ -6030,7 +6027,6 @@ def inspect_knowledge_node(
             "returned_relations": len(selected_relations),
         },
         "source_refs": sorted({ref for item in [*matches, *selected_relations] for ref in _strings(item.get("source_refs"))}),
-        "source_read_targets": source_read_targets([*matches, *selected_relations], graph["source_revision"]),
         "authority_boundary": graph.get("authority_boundary", {}),
     }
 
@@ -6038,8 +6034,6 @@ def inspect_knowledge_node(
 def inspect_knowledge_relation(
     graph: dict[str, Any], identifier: str, *, graph_index: KnowledgeGraphIndex | None = None,
 ) -> dict[str, Any]:
-    from .source_read_projection import source_read_targets
-
     item_id = str(identifier).strip()
     if not item_id:
         raise ValueError("knowledge relation id is required")
@@ -6073,6 +6067,5 @@ def inspect_knowledge_relation(
         "endpoints": endpoints,
         "counts": {"matches": len(matches), "endpoints": len(endpoints)},
         "source_refs": sorted({ref for item in [*matches, *endpoints] for ref in _strings(item.get("source_refs"))}),
-        "source_read_targets": source_read_targets([*matches, *endpoints], graph["source_revision"]),
         "authority_boundary": graph.get("authority_boundary", {}),
     }

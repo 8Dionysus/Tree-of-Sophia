@@ -10,7 +10,8 @@ ACCESS_ROOT = PACKAGE_ROOT.parents[1]
 
 
 def _source_checkout() -> bool:
-    return PACKAGE_ROOT == ACCESS_ROOT / "src/tos_access" and (ACCESS_ROOT / "pyproject.toml").is_file()
+    return (PACKAGE_ROOT == ACCESS_ROOT / "src/tos_access"
+            and (ACCESS_ROOT.parent / "Cargo.toml").is_file())
 
 
 def data_root(explicit: str | Path | None = None) -> Path:
@@ -28,9 +29,6 @@ def data_root(explicit: str | Path | None = None) -> Path:
         if os.path.lexists(root / "manifest.json") and (root / "data").is_dir():
             return root / "data"
         return root
-    if release_root := os.environ.get("TOS_RELEASE_ROOT"):
-        from .data_access import release_data_root
-        return release_data_root(Path(release_root))
     return PACKAGE_ROOT / "runtime_data"
 
 

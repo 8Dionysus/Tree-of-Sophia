@@ -50,15 +50,10 @@ The caller reserves source/image/output, journals, TEMP and scratch coexistence
 and supplies a whole deadline before invoking the command. No full corpus or
 capacity result is inferred from finite fixture execution.
 
-`python -m tos_access.prepare` and imported `prepare()` are compatibility
-adapters to the same installed native command, through explicit
-`--native-executable`/`TOS_PREPARED_EXECUTOR` or installed `tos` on PATH.
-They do not assemble a Python graph. The importable `reference_prepare()` and
-its source helpers remain the distinct oracle until final retirement. The
-existing Python-specific reference tests retain their separate scope; native
-command evidence must traverse the installed native route. The native producer
-has its own normalization binding; it never copies the Python processor
-identity to disguise a different executable.
+The Python `tos_access.prepare` module and source-graph producer are retired.
+Invoke the installed `tos-access prepare` command directly. The native producer
+binds its own normalization processor and configuration; it does not claim
+identity with the retired Python implementation.
 
 ## Optional maintenance attachment
 
@@ -68,24 +63,20 @@ search. Without this flag, snapshot packet keys, output fields and the three-fil
 ABI are unchanged, and no maintenance indexes are constructed.
 
 ```bash
-PYTHONPATH=access/src python -m tos_access.prepare \
-  --native-executable /absolute/native-prefix/bin/tos --max-seconds ADMITTED_SECONDS \
+/absolute/prefix/bin/tos-access prepare \
+  --max-seconds ADMITTED_SECONDS \
   --source-root /absolute/source/Tree-of-Sophia \
   --output-dir /absolute/existing-parent/new-maintainable-publication \
   --attach-maintenance --maintenance-max-mutations 2000000
 ```
 
-The retained Python oracle requests `knowledge_snapshot_once(include_catalog_inputs=True)`.
-The native command carries the same captured header, original registry bytes and
-portable lens specs directly to the existing native maintenance owner.
-It returns copy-isolated `CatalogInputs` from the actual registries and saved-lens
-carriers used by that coherent graph/catalog build, while normalization caching
-is still disabled and before the final source-state check. The producer makes
-the captured header and lenses portable, but preserves the original registries
-and their normalization-binding digests. It never reconstructs stronger inputs
-from a catalog. If portable rows/header/lenses plus those original registries
-cannot exactly reproduce the selected catalog and semantic report, attachment
-refuses; registry values are not rewritten or rebound to force success.
+The native command passes the selected header, original registry bytes and
+portable lens specs directly to the native maintenance owner. The producer makes
+the captured header and lenses portable, preserves the original registries and
+their normalization-binding digests, and verifies that the portable rows plus
+those registries reproduce the selected catalog and semantic report. Attachment
+refuses if they do not; it never reconstructs stronger inputs from a catalog or
+rewrites registry values to force success.
 
 After base publication commits, a separate `BEGIN IMMEDIATE` transaction invokes
 the existing `bootstrap_prepared_maintenance_transaction` kernel. It receives
@@ -112,25 +103,10 @@ of publication `max_bytes`, catalog `max_index_bytes`, and semantic `max_bytes`;
 it never interprets them as additive capacities. CLI owner defaults still
 include semantic 32 MiB input accounting and 256 MiB whole-file limits, catalog
 4 GiB whole-file limits, and publication 64 MiB whole-file limits. Raising only
-the CLI publication cap does not lift semantic or catalog limits. These defaults
-are refusal budgets, not full-corpus admission or RAM forecasts. Advanced callers
-can explicitly supply every owner limit, for example:
-
-```python
-from dataclasses import replace
-from tos_access.catalog_index import CatalogLimits
-from tos_access.semantic_index import SemanticIndexLimits
-from tos_access.prepare import MaintenanceAttachmentLimits, prepare
-from tos_access.prepared_publication import PublicationLimits
-
-maintenance = MaintenanceAttachmentLimits(
-    max_mutations=2_000_000,
-    catalog_limits=replace(CatalogLimits(), max_index_bytes=128 * 1024 * 1024),
-    semantic_limits=replace(SemanticIndexLimits(), max_bytes=128 * 1024 * 1024),
-)
-receipt = prepare(source_root, fresh_output_dir,
-    limits=PublicationLimits(max_bytes=128 * 1024 * 1024), maintenance=maintenance)
-```
+the CLI publication cap does not lift semantic or catalog limits. Advanced
+callers can supply complete owner profiles with `--publication-limits` and
+`--maintenance-limits`; these remain refusal budgets, not full-corpus admission
+or RAM forecasts.
 
 Only opt-in completion adds `maintenance` to the existing receipt. This field
 records attachment status, unchanged binding, catalog/report digests, declared
@@ -170,18 +146,11 @@ paths. Interruptions may leave partial files; no automatic recovery is implied.
 Select the snapshot and binding from a complete output **explicitly**, using
 the normal prepared reader/CLI selection documented in [README](README.md):
 
-```python
-import json
-from pathlib import Path
-from tos_access.published_read_model import PublishedKnowledgeReadModel
-
-output = Path('/absolute/existing-parent/new-publication')
-completed = json.loads((output / 'completed.json').read_text())
-assert completed['schema'] == 'tos_offline_prepared_bootstrap_receipt_v1'
-assert completed['status'] == 'completed'
-binding = json.loads((output / 'binding.json').read_text())
-assert binding == completed['binding']
-reader = PublishedKnowledgeReadModel(output / 'snapshot.sqlite', binding)
+```bash
+/absolute/prefix/bin/tos-access \
+  --prepared-read-model /absolute/existing-parent/new-publication/snapshot.sqlite \
+  --prepared-binding /absolute/existing-parent/new-publication/binding.json \
+  knowledge catalog
 ```
 
 Keep the independent binding with the selected snapshot. No receipt-reader
@@ -190,26 +159,13 @@ deltas and stale binding refusal belong to [local prepared publication](LOCAL_PR
 The completed marker records bootstrap completion only; it must not be treated
 as a refreshed binding after a later mutation.
 
-The existing real CLI cases may select a protected native command directly with
-`TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE`; the ordinary Python adapter selection
-remains `TOS_PREPARED_EXECUTOR` plus `TOS_PREPARED_MAX_SECONDS`. This selected
-bridge preserves the source-revision, registry identity, complete row/read,
-exclusive output, buffered/bulk, attachment and binding assertions. Only the
-native processor/configuration identity is treated as distinct from the Python
-oracle. Python-specific injected source/marker/kernel failures call
-`reference_prepare()` explicitly; a green reference case is not native evidence.
-The finite selected consumer is four existing methods (real command reads,
-output collision, buffered/bulk binding, opt-in maintenance buffered/bulk),
-not a claim that all reference failure injection crossed the native process.
-
-The fixture writes only five tiny real
-core input carriers, invokes the executable in a subprocess, and compares
-prepared catalog/node/lens/compressed-search reads to their source reference.
-Attachment cases cover both search initializers, exact registry/lens handoff,
-cache restoration, declared/effective caps, transaction and marker ordering,
-rollback on kernel failures/interruptions/drift, and post-commit marker failure.
-Test ownership is in `tests/test_inventory.json`; ordered validation authority
-stays in `docs/validation/validation_lanes.json`.
+The installed native command test, `rust/crates/tos-access/tests/native_prepare.rs`,
+checks source revision, registry identity, completion receipt, private output,
+binding, buffered/bulk publication, optional attachment, invalid-cap refusal
+and occupied-output preservation. It exercises the real native CLI. Python
+graph-builder and adapter tests were retired with those implementations. The
+fixture uses only five tiny core input carriers; it makes no full-corpus
+capacity claim or human semantic judgment.
 
 Native prepare measures the executing ELF with a bounded streaming SHA256 read,
 keeps the executing file open through normalization, and verifies the exact

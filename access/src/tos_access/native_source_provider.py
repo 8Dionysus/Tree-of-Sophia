@@ -71,21 +71,6 @@ class NativeSourceProvider:
         self._binding_context = None
 
     @classmethod
-    def from_reference_service(cls, prefix, service):
-        """Compare an existing reference service through native initialization."""
-        provider = cls(prefix, service)
-        try:
-            provider.initial_capabilities = provider.capabilities()
-            return provider
-        except BaseException as primary:
-            try:
-                provider.close()
-            except BaseException as cleanup:
-                primary.add_note('native source provider initialization cleanup failed')
-                raise primary from cleanup
-            raise
-
-    @classmethod
     def from_owner_readers(cls, prefix, *, metadata_reader=None, claim_reader=None,
                            slot_reader=None, target_issuer=None, metadata_record_types=(),
                            slot_descriptor=None, limits=None):

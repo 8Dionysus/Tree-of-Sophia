@@ -1370,7 +1370,46 @@ pub(crate) fn compose_selected_access_health_original(
                 );
             }
             knowledge_schema = JsonValue::String(JsonString::from_utf8(&graph_schema));
-            knowledge_counts = counts;
+            // Keep health output to the stable public counters. Source-owned
+            // diagnostic maps and validator internals are inputs to this
+            // decision, not part of the public readiness response.
+            let public_coverage = health_object(
+                [
+                    "node_titles",
+                    "node_summaries",
+                    "relation_labels",
+                    "relation_statements",
+                    "relation_explanations",
+                ]
+                .into_iter()
+                .map(|field| {
+                    (
+                        field,
+                        coverage
+                            .object_get(field)
+                            .cloned()
+                            .unwrap_or(JsonValue::Null),
+                    )
+                })
+                .collect(),
+            );
+            knowledge_counts = health_object(vec![
+                (
+                    "nodes",
+                    counts
+                        .object_get("nodes")
+                        .cloned()
+                        .unwrap_or(JsonValue::Null),
+                ),
+                (
+                    "relations",
+                    counts
+                        .object_get("relations")
+                        .cloned()
+                        .unwrap_or(JsonValue::Null),
+                ),
+                ("display_coverage", public_coverage),
+            ]);
             knowledge_graph_status = health_subject(
                 if graph_errors || semantic_errors {
                     "degraded"
@@ -2292,4 +2331,173 @@ fn same_corpus_receipt(
             .iter()
             .zip(&b.origin.members)
             .all(|(a, b)| a.path == b.path && a.size_bytes == b.size_bytes && a.sha256 == b.sha256)
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod health_tests {
+    use super::*;
+
+    struct ReadyProbe;
+    impl AbortProbe for ReadyProbe {
+        fn reason(&self) -> Option<AbortReason> {
+            None
+        }
+    }
+
+    struct HealthPacket {
+        body: Vec<u8>,
+        ready: bool,
+    }
+    struct HealthFence;
+    impl crate::DisclosureFence for HealthFence {
+        fn recheck(&mut self) -> Result<(), AccessError> {
+            Ok(())
+        }
+    }
+    impl AccessExecutor for HealthPacket {
+        fn access_health_available(&self) -> bool {
+            true
+        }
+
+        fn access_health_report(
+            &self,
+            _: Arc<dyn AbortProbe>,
+        ) -> Result<crate::common::PreparedHealth<'static>, AccessError> {
+            Ok(crate::common::PreparedHealth {
+                packet: PreparedPacket {
+                    body: self.body.clone(),
+                    fence: Box::new(HealthFence),
+                },
+                ok: self.ready,
+            })
+        }
+    }
+
+    fn budget() -> tos_query::InspectBudget {
+        tos_query::InspectBudget {
+            max_open_vm_steps: 10_000,
+            max_read_vm_steps: 10_000,
+            max_matches: 100,
+            max_rows: 100,
+            max_field_bytes: 4096,
+            max_payload_bytes: 16_384,
+            max_decoded_bytes: 65_536,
+            max_response_bytes: 4096,
+            json: JsonLimits::default(),
+        }
+    }
+
+    fn compose(incomplete: bool) -> (Vec<u8>, bool) {
+        let probe: Arc<dyn AbortProbe> = Arc::new(ReadyProbe);
+        compose_selected_access_health(
+            budget(),
+            65_536,
+            JsonLimits::default(),
+            &probe,
+            |child, child_budget, meter| {
+                let value = match child {
+                    HealthChild::CorpusSeed => serde_json::json!({
+                        "schema_version":"tos_selected_corpus_health_seed_v1",
+                        "index_schema_version":"tos_corpus_index_v1",
+                        "first_graph_view_id":"corpus-view",
+                    }),
+                    HealthChild::CorpusView(view_id) => serde_json::json!({
+                        "schema":"tos_corpus_mcp_graph_view_v1",
+                        "view":{"view_id":view_id},
+                    }),
+                    HealthChild::PhilosophySeed => serde_json::json!({
+                        "schema_version":"tos_selected_philosophy_health_seed_v1",
+                        "projection_schema_version":"tos_philosophy_graph_projection_v1",
+                        "first_view_id":"philosophy-view",
+                    }),
+                    HealthChild::PhilosophyView(view_id) => serde_json::json!({
+                        "schema":"tos_philosophy_mcp_view_v1",
+                        "view":{"view_id":view_id},
+                    }),
+                    HealthChild::Knowledge => serde_json::json!({
+                        "schema_version":"tos_selected_knowledge_health_metadata_v1",
+                        "graph_schema":"tos_knowledge_graph_v1",
+                        "catalog_schema":"tos_knowledge_catalog_v1",
+                        "counts":{
+                            "nodes":3,
+                            "relations":2,
+                            "display_coverage":{
+                                "node_titles":3,
+                                "node_summaries":3,
+                                "relation_labels":2,
+                                "relation_statements":2,
+                                "relation_explanations":if incomplete {1} else {2},
+                                "private_owner_detail":"must-not-escape",
+                            },
+                            "semantic_validation":{"valid":true,"violations":[],"gaps":[]},
+                            "sources":{"dynamic-owner-key":3},
+                        },
+                    }),
+                };
+                let bytes = serde_json::to_vec(&value).unwrap();
+                health_child_packet(&bytes, child_budget.json, meter)
+            },
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn selected_health_compacts_counts_and_refuses_incomplete_coverage() {
+        let (body, ok) = compose(false);
+        assert!(ok);
+        let owner = HealthPacket {
+            body: body.clone(),
+            ready: ok,
+        };
+        let http = crate::http::handle_get(
+            &owner,
+            "GET",
+            "/health",
+            AccessProfile::new(65_536, 65_536, 65_536),
+        );
+        assert_eq!(http.status, 200);
+        assert_eq!(http.body, body);
+        let parsed = parse_json(&body, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        let counts = parsed.root().object_get("knowledge_counts").unwrap();
+        assert_eq!(counts.as_object().unwrap().len(), 3);
+        assert_eq!(
+            counts.object_get("nodes").and_then(JsonValue::as_u64),
+            Some(3)
+        );
+        assert_eq!(
+            counts.object_get("relations").and_then(JsonValue::as_u64),
+            Some(2)
+        );
+        assert!(counts.object_get("sources").is_none());
+        assert!(counts.object_get("semantic_validation").is_none());
+        let coverage = counts.object_get("display_coverage").unwrap();
+        assert_eq!(coverage.as_object().unwrap().len(), 5);
+        assert!(coverage.object_get("private_owner_detail").is_none());
+
+        let (body, ok) = compose(true);
+        assert!(!ok);
+        let owner = HealthPacket {
+            body: body.clone(),
+            ready: ok,
+        };
+        let http = crate::http::handle_get(
+            &owner,
+            "GET",
+            "/health",
+            AccessProfile::new(65_536, 65_536, 65_536),
+        );
+        assert_eq!(http.status, 503);
+        assert_eq!(http.body, body);
+        let parsed = parse_json(&body, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        assert!(
+            parsed
+                .root()
+                .object_get("errors")
+                .and_then(JsonValue::as_array)
+                .unwrap()
+                .iter()
+                .any(|value| value.as_str()
+                    == Some("knowledge graph relation explanation coverage is incomplete"))
+        );
+    }
 }

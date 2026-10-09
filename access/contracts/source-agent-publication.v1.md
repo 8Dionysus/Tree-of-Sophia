@@ -1,11 +1,13 @@
-# Selected Agent to prepared publication
+# Selected Agent to prepared publication (retired Python route)
 
-`scripts/source_agent_publication.py` is an **offline**, explicit source-owner
-composition. It does not add a query-time compiler, CLI default, watcher,
-deployment, source authority or consumer switch. It implements one existing
-native Agent's immediate selected descriptive correction against an explicitly
-bootstrapped prepared predecessor. It is not an adoption route for an arbitrary
-legacy full snapshot.
+> Historical contract: `scripts/source_agent_publication.py` and the Python
+> prepared-publication transaction it described have been retired. The details
+> below record former behavior and are not active interfaces or supported
+> invocation instructions. Current exact-source disclosure follows the native
+> owner-selected contract in [`source-read.v1.schema.json`](source-read.v1.schema.json);
+> current release and corpus admission follow
+> [`native-managed-release.v1.md`](native-managed-release.v1.md). No native
+> Agent-specific prepared-publication transaction is claimed by this retirement.
 
 ## Independent source identity
 
@@ -172,26 +174,13 @@ belongs to the caller. `execution_profile_current=false` remains observable
 for an old execution profile: the extension cannot make a subsequent source
 command eligible by simply copying the current implementation hash.
 
-For authored CSV, `scripts/authored_corpus_source_read.py` supplies the stronger
-`bootstrap_authored_source_read_transaction` composition. The caller provides
-the existing corpus-index pack/row records and a fresh output namespace, not an
-arbitrary root to trust. Indexed, budgeted reads of both canon and intake
-prepared relation carriers require exact equality of CSV membership, original
-cells, logical row ordinals, source-file digests and pack-scoped graph IDs.
-Explicit node-contract relations remain a separate non-CSV carrier; a missing
-CSV identity is not silently skipped. Tracked owner files, complete included
-pack rows and actual CSV bytes are then checked by the existing raw bootstrap.
-No full graph materialization or source reimport occurs.
-
-The resulting immutable `authored-corpus` root is paired in the same caller
-transaction as the prepared lanes, dependency and context selection. Its
-receipt scopes admission to `exact-retained-authored-csv-records`, not global
-source completeness, semantic acceptance, rights or canon. Before committing,
-the caller rechecks `verify_authored_csv_sources` against the same validated
-index and retains ordinary source-owner guards. The helper also checks files
-before returning, but does not claim a filesystem/SQLite atomic commit. An
-error requires full rollback; unselected parts may remain. This offline route
-does not activate a service, alter a running reader or rebind execution policy.
+The Access-owned Python helper `scripts/authored_corpus_source_read.py` and
+its authored-CSV prepared-source bootstrap have been retired. Exact source
+disclosure follows the native owner-selected vector contract in
+[`source-read.v1.schema.json`](source-read.v1.schema.json); this
+publication contract does not synthesize that vector or infer membership,
+source rights, or currentness. A source owner must select and verify its
+own exact inputs before the native reader can issue a handle.
 
 Receipts separate source-command commit, prepared commit, bounded descriptive
 closure and semantic report. They grant no textual/semantic acceptance,

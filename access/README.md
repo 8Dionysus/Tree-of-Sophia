@@ -15,25 +15,24 @@ The normal `tos` command comes from [native fresh-prefix installation](#native-f
 It requires an explicitly verified native software archive and no Python runtime.
 Data selection is separate from software installation.
 
-## Legacy reference development install
+## Development and native runtime
 
-Create a local environment with `python -m venv .venv` and install with
-`.venv/bin/python -m pip install -e 'access[mcp,dev]'`. Install and build browser
-assets with `npm ci --prefix access/web` and `npm run build --prefix access/web`.
-Program development and tests need no production corpus or AbyssOS installation.
+Rust owns runtime query semantics, managed-release lifecycle, and installed
+CLI/HTTP/MCP entrypoints. `access/src/tos_access/` retains a source-importable
+Python SDK bridge for external callers; it delegates to an explicitly selected
+native binary and has no Python query fallback or installable wheel.
 
-To read production data, explicitly select an existing compatible snapshot:
-`export TOS_DATA_ROOT=/path/to/data`. Then run `.venv/bin/tos-legacy doctor`,
-`.venv/bin/tos-legacy serve`, or `.venv/bin/tos-legacy mcp`. The reader does not
-search parent directories for data. Software-owned contracts and browser assets do not come
-from the selected dataset. Compiling or admitting new data is a separate data
-operation; software edits do not trigger it.
+Use the repository's native validation route after installing its declared
+development dependencies. Build browser assets with `npm ci --prefix access/web`
+and `npm run build --prefix access/web`. To read production data, explicitly
+select an admitted snapshot with `--root` or `TOS_DATA_ROOT`; managed software/data
+pairs use the native `--release-root` interface. No path searches parent
+directories for another dataset. Data compilation/admission remains a separate
+operation and software builds never claim corpus data.
 
-`tos serve` is loopback-only by default. `tos mcp` uses stdio unless an explicit
-loopback-only HTTP transport is selected with `TOS_MCP_TRANSPORT`.
-The software-only artifact and verification route live in
-[RELEASING](../docs/RELEASING.md); `data_included: false` distinguishes it from
-older combined bundles. Browser build outputs are no longer Git companions.
+The installed `tos` command is loopback-only for HTTP by default and uses stdio
+for MCP unless an explicit loopback-only HTTP transport is selected. The
+software-only archive route lives in [RELEASING](../docs/RELEASING.md).
 
 The backend exposes two source-navigation operations over the selected native
 navigation product (or the corpus index in the legacy carrier mode).
@@ -199,20 +198,16 @@ verified installed executable. The selected data needs its completed immutable
 offline `knowledge.sqlite3` and the five exact source projection/registry inputs;
 a missing or stale store refuses the diagnostic, without building data implicitly.
 `TOS_QUERY_STORE_PATH` and the existing explicit input-path settings select data.
-The maintained module is a platform forwarder:
-`PYTHONPATH=access/src python -m tos_access.coverage --native-prefix /absolute/installed-prefix --root . --language en`.
-Imported `coverage_row`, `coverage_rows`, and `coverage_report` use the same
-installed Rust code selected by `TOS_NATIVE_PREFIX`; they never fall back to
-Python subject rules. Their JSON input is bounded to 16 MiB (4 MiB for one
-carrier); larger snapshots use the streaming root route. Native
+The retired Python platform forwarder is not part of the access package. Use
+the installed command directly. Its JSON input is bounded to 16 MiB (4 MiB for
+one carrier); larger snapshots use the streaming root route. Native
 `coverage --graph /absolute/snapshot.json` (or `-` for stdin) observes a supplied
 normalized snapshot, and `coverage-row --input /absolute/carrier.json` observes
 one complete carrier. Root traversal defaults to 256 MiB cumulative decoded/input
 bytes, one million rows and 30 seconds; explicit `--max-input-bytes`, `--max-rows`
-and `--max-seconds` select a bounded envelope. The module forwards those
-options and caps each owned native child at 50 seconds. Budget refusal never emits a
+and `--max-seconds` select a bounded envelope. Budget refusal never emits a
 terminal completion summary. Software selection requires an installed prefix
-for the module/imported paths; CWD and selected data cannot select code.
+and selected data cannot select code.
 This scans the existing normalized projection and reports per-source carrier
 counts, mapped/unmapped types, missing display wording, derivation, and each
 HumanForm role's delivery and candidate states. `--rows` streams one NDJSON
@@ -291,11 +286,12 @@ Exact source reading has a separate opt-in
 [transport contract](contracts/source-read.v1.schema.json). Discover it with
 `GET /api/source/contracts` or `tos_source_read_contract`; check the selected
 owner with `GET /api/source/capabilities` or `tos_source_read_capabilities`.
-The default CLI/server selects no source owner and reports `available: false`.
-An embedding explicitly supplies `SourceReadService` to `ToSAccessCore.discover`.
-Its `SourceOwnerBinding.from_prepared_source` requires the actual source
-assembler's complete vector verification and addressed catalog/readers;
-constructing a vector object or copying a source revision is insufficient.
+The default native service selects no source owner and reports `available: false`.
+An embedding can supply `NativeSourceProvider.from_owner_readers(...)` for an
+owner-issued reader or `NativeSelectedSourceProvider.from_retained_bytes(...)`
+for an explicitly selected source vector. Rust parses and validates the retained
+vector and owns request admission, currentness and disclosure. The former Python
+`SourceReadService` and `SelectedSourceReadService` engines are retired.
 
 For an explicitly bound owner, `POST /api/source/handles` /
 `tos_source_handle_discover` accepts a typed catalog selector or exact
@@ -325,8 +321,8 @@ in that source vector. An older vector without it reports `unsupported`.
 The record preserves every original string/null cell; provenance returns raw
 CSV text, byte offset/count, raw-row hash and the distinct canon/intake owner
 posture. This is source disclosure, not semantic assessment or a rights grant.
-Python/native inspection projects the exact target; the human source reader
-and MCP use the same handle/read operations. A source-vector addition still
+Native inspection projects the exact target; the human source reader and MCP
+use the same handle/read operations. A source-vector addition still
 needs matching prepared publication and separate live UI verification.
 
 For local source-owner selection, pass all four exact inputs:
@@ -340,12 +336,11 @@ tos --root /absolute/source-owner --prepared-read-model /absolute/snapshot.sqlit
 The source vector must match the prepared reader revision. The source mechanics
 come from the access implementation checkout, never from caller-selected source
 data. A portable bundle without those mechanics cannot activate this route.
-`SelectedSourceReadService` creates fresh bounded owner readers per operation,
-with at most two concurrent source operations and no waiting queue. Reader
-caches and work counters do not accumulate across a server lifetime. Reselection
-after source changes is explicit; no request quietly chooses a newer snapshot.
-The same selection works with `mcp` and the `source capabilities`, `source
-contracts`, `source discover REQUEST.json`, and `source read REQUEST.json` CLI
+The native selected reader owns a private retained source vector and admits at
+most two source operations without a waiting queue. It rechecks the selected
+source state before disclosure; a source change requires explicit reselection.
+The same selection works with native `mcp` and the `source capabilities`,
+`source contracts`, `source discover REQUEST.json`, and `source read REQUEST.json`
 commands. Discovery/read accept `-` for bounded JSON input from stdin.
 
 The native selected source reader admits its installed executable and schema
@@ -767,43 +762,12 @@ local continuation store, not authored knowledge. Without it, exploration
 checkpoints remain process-local. `doctor` and `verify` still inspect the
 source-backed profile and reject prepared flags rather than claiming its health.
 
-`PublishedLensService(reader, limits=PublishedLensLimits(...))` executes native-v7
-lens and focus semantics over an owner-published v9 snapshot. `execute(spec)` and
-`focus(node_id, **options)` share the native property binder, focus specification
-and final packet builder: query normalization, human forms, fingerprints,
-inclusion reasons, grouping, ordering and stateless pagination remain identical.
-Each page re-executes the complete bounded selection; it never substitutes a
-subgraph for global `available`, `matched` or `eligible` counts.
-The explicitly selected prepared core routes `knowledge_focus`,
-`compile_knowledge_lens` and `stored_knowledge_lens` to this service, including
-the existing HTTP and MCP adapters. Stored-lens catalog lookup and execution
-both enforce the same publication binding and epoch; publication between them
-refuses instead of mixing versions. The default source-backed core is unchanged.
-
-The producer owns small exact source/kind/type and source/predicate/relation-type
-histograms plus Python-lowercase order keys and local incidence indices. This
-keeps default focus and dimensional/default-sort lenses off whole-graph scans.
-General filters, native Unicode/scalar/list operations, mixed sorts and path
-witnesses evaluate through bounded Python callbacks and keyset candidate streams.
-Explicit seed IDs first use the exact/entity/native identity-index union, retaining
-all source-scoped aliases rather than applying focus's representative selection.
-The default ceilings are 2,048 candidates, 32,768 callbacks, 16 MiB decoded row
-bytes, 4 MiB sort-key bytes, 100,000 path steps, and a 64-entry/2 MiB row cache;
-reader row/byte/SQLite-work ceilings also apply. These are logical budgets, not
-an RSS guarantee. Exact internal-edge counts use equality probes over the bounded
-selected basis, avoiding unrelated high-degree edges; a large local basis can
-itself hit the VM ceiling. Exhaustion refuses the entire request: no partial match count,
-false negative path witness or approximate successful packet escapes. No SQLite
-UDF invokes an unmetered native callback. Selected full rows check their emitted
-digests and order-carrier mirrors. Header-bound histograms are producer evidence,
-not a request-time recount or authentication of a same-authority writer.
-
-Lens execution checks its native execution version and Python Unicode database
-version. Old v8 publications retain catalog/inspect/explore support but cannot
-serve lens/focus until the owner publishes v9. `reader.status()` only checks the
-selected publication metadata and required indices, never all source rows; its
-packet explicitly says `verifies_all_rows: false`. No service builds or migrates
-a missing publication while handling a request.
+The installed native Rust access product owns prepared knowledge focus and
+lens operations. `ToSAccessCore` forwards `knowledge_focus`,
+`compile_knowledge_lens`, and `stored_knowledge_lens` through the
+native MCP/HTTP owner; query planning, bounds, ordering, continuation,
+publication binding, and packet construction remain in that owner.
+No standalone Python lens or search service is shipped.
 
 `PublishedExplorationService(reader, ...)` provides native-v6
 exploration over the same pinned reader. Each page uses bounded identity and
@@ -845,12 +809,9 @@ the prepared core keeps process-local checkpoints. No environment variable,
 request field or default server configuration activates persistence. This wiring
 does not establish real-corpus performance or a deployed service.
 
-The HTTP factory accepts that same configured core. The native MCP factory can
-also bind it with `build_server(core=selected_core)`; this is mutually exclusive
-with discovery-path arguments and keeps the core's exploration/checkpoint policy.
-The default MCP factory retains its existing discovery behavior. HTTP capability
-responses expose the selected mode; stale snapshots return 409, expired cursors
-410, exceeded read budgets 413, and unavailable read/checkpoint stores 503.
+The installed Rust HTTP and MCP handlers use this same native exploration
+owner. The optional Python SDK consumer calls the installed `tos mcp` process;
+it does not host an independent HTTP or MCP server.
 
 In prepared mode `/health` checks only the selected publication header, binding
 and required indices. It returns `scope: selected-prepared-publication` and
@@ -1114,188 +1075,49 @@ D1 publications increment a monotonic clock to reject even A -> B -> A changes
 during a multi-query read. Concurrent continuations atomically select one replay
 response and successor. See the [edge route](deploy/cloudflare-worker/README.md).
 
-Compile the read model explicitly after rebuilding its source projections:
+The retired Python `knowledge_compile` producer no longer builds the managed
+data product. Use the native source-only corpus owner with a bounded request:
+`tos-native-owner-command corpus-build < REQUEST_JSON`. Its
+`tos_native_corpus_build_request_v1` `mode=build` creates the private managed
+native Original data pair; `mode=check` requires absolute `comparison_root` and
+checks the six fixed runtime products without writing. The public Worker builder
+uses native `tos build-data`; its source selection, finite ceilings and artifact
+admission are documented in the [Worker route](deploy/cloudflare-worker/README.md).
+Managed NativeData preparation, status, promotion, rollback and revocation use
+the native actions in [native-managed-release.v1.md](contracts/native-managed-release.v1.md).
+A built candidate is not selected data until the native release writer verifies
+the pair and commits its exact pointer.
+
+The explicit external Python SDK keeps a compatibility selector for existing
+`tos_query_store_v1` data, but sends query execution and format validation to the
+installed Rust `core-snapshot` reader. That adapter is read-only: it does not
+compile, repair or relabel a legacy store. See the [native selected-snapshot
+contract](contracts/native-selected-snapshot-profile.v1.md).
+
+### Native backend and browser verification
+
+The Python normalization-cache profiler was retired with the Python graph
+builder. Source-query and prepared-publication checks run through the installed
+`tos-access` owners in the native source and prepared routes.
+
+To compare a live selected release across its installed CLI and an already
+running native HTTP service, use the small Node host adapter:
 
 ```bash
-PYTHONPATH=access/src python -m tos_access.knowledge_compile --root .
+node access/packaging/verify_ui_backend.mjs \
+  --native-executable /absolute/prefix/bin/tos-access \
+  --root /absolute/selected/data \
+  --release-root /absolute/managed-release \
+  --http-base http://127.0.0.1:5429
 ```
 
-The default output is `ToS/derived-exports/runtime/knowledge.sqlite3`, an ignored
-build artifact. Its exact input manifests, registries and compiler version bind
-the completed snapshot. Missing, stale or incompatible stores report
-`query store build required`. The compiler requires SQLite FTS5 trigram support;
-Foundation's `tos_offline_knowledge_v2` compiler includes typed-time and readable
-context semantics. An older v1 compiled store must be explicitly rebuilt; a
-software update alone does not relabel its contents as compatible.
-`--search-accelerator scan` explicitly chooses the bounded-memory scan fallback.
-Standalone packaging compiles its own artifact, includes the exact projection
-closures, and records separate source/compiler and output identities. Compilation
-runs in a fresh interpreter and checks the inputs and compiler against the
-staged package before publication. ZIP and wheel writers stream runtime files;
-installation validation separates wheel building from installation to release
-the disposable build copy before creating the installed snapshot. See
-[partitioned projection storage](contracts/projection-store.v1.md)
-and the [runtime data allowlist](contracts/runtime-data.v1.json).
-
-The legacy offline normalization path schedules a resumable dependency DAG:
-
-source/type -> node -> endpoint title -> relation. Partitioned compilation uses
-the same normalization and semantic construction rules with disk-backed
-collections; it does not currently reuse that legacy DAG cache. In the legacy
-path, unchanged intermediate output
-stops downstream recomputation; completed steps survive failed builds. Final node
-materialization and per-node, per-relation and per-Claim checks now reuse results
-bound to actual input and dependency digests. Changed or missing evidence, review
-versions, endpoints and registries invalidate their dependent checks. Global ID,
-cardinality and registry checks still run. This does not yet schedule the entire
-corpus lifecycle: source-file reading, graph indexing/assembly and SQL comparison
-remain full passes on changed builds; OCR/alignment/review remain
-separate source-owned stages. Broad legacy relation families and absent lexical
-annotations remain explicit source/review gaps, not automatically accepted
-semantic facts. Backend construction support is not completed corpus annotation.
-
-Offline processing reports added/changed/removed input IDs and per-kind work.
-`tos_access.processing.processing_input_changes` reads ID-ordered pages with
-before/after digests from the cache DB; incomplete scans never imply removal.
-An exact completed run also supports [bounded reverse dependency navigation](PROCESSING_DEPENDENCIES.md)
-through `processing_dependency_closure`. Its read-only result describes the
-retained DAG, not complete source impact or permission for partial publication.
-The disposable cache has output byte/count limits, integrity checks, exclusive
-builder ownership and bounded run history. See the
-[retention rationale](../docs/decisions/TOS-D-0050-incremental-checks-bounded-cache.md).
-Private validation fingerprints use canonical JSON and are bound to the
-normalization processor version. They do not replace the cross-language
-framing of public source/content revisions or alter semantic validation rules.
-
-The former Worker Python builder checkpointed completed SQL and static-response
-stages. That implementation was retired with the Python runtime; the accepted
-historical rationale is in [TOS-D-0049](../docs/decisions/TOS-D-0049-content-verified-build-stages.md).
-The maintained native producer has a separate [build flow](deploy/cloudflare-worker/README.md#production-flow)
-and makes no parity claim for that Python-specific cache.
-
-### Opt-in backend measurement and UI compatibility
-
-`python access/packaging/profile_backend.py --cache /absolute/scratch/cache.sqlite`
-compares a fresh persistent cache with full rebuilds across cold/warm, metadata,
-relation deletion, review-trace change, interruption and resume scenarios. Input
-variants exist only in memory; it never changes source or serving data. It binds
-input/processor digests and reports timings, work counts, equality and cache
-size. Scenario times include full-result digest comparison and cache finalization;
-the interruption scenario injects a cooperative exception and reopens the DB,
-not a power-loss test. Use `--scenarios cold warm` for a shorter pass. The scratch cache must be
-new and outside the source checkout; its adjacent `.profile.jsonl` is diagnostic
-output, not source/review history. Admit CPU/RAM/storage through the host route
-before a full-corpus pass and account for SQLite metadata beyond payload limits.
-
-`python access/packaging/verify_ui_backend.py --root /absolute/source
---native-prefix /absolute/native-prefix --release-root /absolute/managed-release
---native-state-root /absolute/private-state --http-base http://127.0.0.1:5429
---web-root /absolute/ui/dist
---client-module /absolute/ui/src/observatory/knowledge-client.mjs` measures native
-catalog/search/focus, then runs the supplied actual UI client against the already
-running Rust HTTP server selected by `--http-base`. Start that server with the
-same native prefix and managed release. The check compares the native HTTP and
-imported Core catalogs and the served HTML with the selected web assets. Its
-independent Python search oracle uses `--root`; its source revision must match
-the native selection before packet comparison. The check closes its imported
-Core after verifying focus/search/inspection/relation selection and HTML/CSP. The supplied UI source must
-also contain the sibling navigation/evidence modules and query operations;
-Node's TypeScript stripping executes those same adapters. The check follows up
-to four exploration pages, binds a source-owned contested relation to its
-evidence and path, and verifies exclusion of that relation. It also measures
-inspection and bounded exploration/continuation, and exercises the actual
-`readMaterial` full-packet adapter for one node and both known/restored relation
-identities at the same snapshot. Optional `--material-id` selects an exact public
-knowledge node with human forms; `--language` selects the content language
-(default `ru`). Its report retains each role's selection, exact form reference,
-context-slot names and SHA-256 of the complete received packet, not its wording.
-Those packet hashes use the consumer's UTF-8 JSON serialization for this
-observation; they are not ToS canonical record digests or semantic acceptance.
-Use `--report /absolute/scratch/query.jsonl`
-to retain the timings and exact client/HTML hashes outside the checkout. This checks the named
-producer-consumer seam, not browser rendering, production or deployment. Neither
-command belongs in the fast test lane or modifies the UI checkout.
-
-Full knowledge carriers may include `readable_context`, a bounded presentation
-of the existing HumanForm and assertion contexts. `GET /api/knowledge/catalog`
-publishes its exact source-owned vocabulary as `context_presentation` with
-`id`, `version`, `source_ref`, canonical `digest`, and `payload`; catalog and
-carrier must belong to the same `source_revision`. The public contracts bundle
-includes `readable_context`, a thin reference to the graph schema definition.
-Entries preserve raw governing values, unknowns and exact record/form/pointer
-bindings. Deduplicated `exact_materials` retains canonical JSON text and hashes
-at actual raw origins; verify and use its lossless numeric lexemes for display,
-since ordinary JavaScript JSON numbers cannot preserve every source value.
-`complete` describes returned-context coverage, not semantic review
-or translation. Overflow yields `requires-exact-context` with exact roots;
-invalid bindings yield `unavailable`, with no partial ready context.
-Native canonical records opt in with `tos_canonical_node_v1`: their unchanged
-`node_id` and safe positive `record_version` bind both source and HumanForm
-context. The canonical type/ID grammar and no-`record_id` boundary match the
-existing form owner. Legacy or unknown `node_id`-only records do not acquire an
-inferred identity or version; unknown source fields remain visible rather than
-being treated as alternative identities. Existing snapshots require explicit
-normalization migration before they contain a changed context sidecar.
-The complete multi-form canonical context can exceed the same presentation
-budget: `requires-exact-context` then points to the unchanged source record and
-mandatory HumanForm contexts, while a bounded individual form can be complete.
-Compact lenses omit this optional sidecar because its raw roots are absent;
-selected HumanForms retain their own mandatory context. Request full detail for
-readable context and verify its vocabulary and bindings before using it.
-Vocabulary/processor changes invalidate the derived stage. Carriers without
-context bypass that stage and do not acquire a duplicate cache record.
-
-Lens carriers deliver selected HumanForms using the explicit, lossless
-`tos_human_form_selection_v2` envelope. Common context and literal admission
-limits are transmitted once, then reconstructed before reading; source
-materializations and exact inspection remain v1. The complete wire selection
-keeps its 16 KiB conservative budget. Consumers support both versions,
-retain raw envelopes for saved places, and validate complete decoded packets
-before using wording. See the [delivery and migration contract](contracts/human-form-delivery.md)
-for bounds, exact reconstruction, compact Claim pointers and rollback.
-
-Cold normalization preserves the existing public revision byte protocol. A
-bounded in-process cache reuses at most 4,096 short string tokens (up to 256
-characters); longer values are streamed without retention in that cache.
-Finalization still copies nodes for isolation, but reuses their existing
-content revision when neither claim metadata nor view membership changes.
-Catalog sampling stops after five examples per field while continuing to count
-every item, value type and source. These optimizations do not skip semantic
-validation or turn the build-time processing cache into a query dependency.
-
-
-## Explicit existing QueryStore SDK selection
-
-`NativeAccessCore.from_legacy_query_store(prefix, selection, admission_provider)`
-selects an explicitly configured existing immutable QueryStore. `selection` is
-`NativeCoreSnapshotSelection` with the maintained seven absolute carrier paths
-and `query_store_configured=True`. The native store owner authenticates five
-bindings: index, philosophy projection, bibliographic graph and both registries.
-Audit and Evidence paths remain separate lower-source selectors; they do not
-become QueryStore bindings or a captured-source authority.
-
-Each provider result must be `NativeCoreSnapshotAdmission` with explicit
-`NativeCoreQueryStoreLimits`, the original finite cutoff, process/state/output
-limits and actual borrowed stage-ticket FD. Opening and querying use native
-`core-snapshot`; the factory neither opens SQLite in Python nor rebuilds missing
-or stale data. Knowledge/corpus headers, fresh Graph/Snapshot and the six native
-store requests are the implemented source routes: `tos_knowledge_catalog`,
-`tos_knowledge_header`, `tos_corpus_header`, `tos_knowledge_node`,
-`tos_knowledge_relation`, and `tos_knowledge_search` in legacy mode. Indexed,
-compressed and navigation/exploration requests still require their missing native
-store routes; their names alone do not establish support. After a weak Graph/Snapshot, SDK addressed updates refuse a stale parent because
-no captured model-state FD exists. Direct native addressed requests independently
-retain the refusal for a parent without captured source inputs.
-
-This factory selects the weaker `tos_query_store_v1` export profile: every
-Graph/Snapshot is fresh, no strong model-state FD or publication epoch is claimed.
-Captured SourceRoot resource/lower-carrier requests require their separately
-selected owner; this factory does not fall back to software-only resources.
-Independent Reading, Word and SourceRead retain their existing selections.
-The maintained `ToSAccessCore` source alias selects `NativeToSAccessCore`.
-`ReferenceToSAccessCore` remains the explicit comparison oracle. An installed
-consumer requires the matching native product and SDK; this explicit-provider
-factory has its own limits and supported operations.
+It sends the same catalog and indexed-search requests through both routes and
+compares their native packets and selected source revision. The command does
+not start or authorize the service; both paths must already be explicitly
+bound to the selected release. The `software_browser` lane separately runs
+`node --test access/e2e/test_webmcp.mjs` against the real browser and site
+handlers using bounded synthetic fixtures; that fixture run is not a live
+selected-release deployment check.
 
 ## Explicit SourceRoot SDK adapter
 
@@ -1327,10 +1149,9 @@ with NativeAccessCore.from_source_root(
 `selected_paths` contains `index_path`, `philosophy_graph_projection_path`,
 `bibliographic_graph_path`, `entity_type_registry_path`,
 `relation_type_registry_path`, `philosophy_post_planting_audit_path`, and
-`evidence_projection_path`, each an explicitly selected absolute path. A caller
-may instead freeze an existing Reference instance's selectors with
-`NativeCoreSnapshotSelection.from_reference`; this copies paths without invoking
-its readers. Search read-model and compressed-search selectors remain independent.
+`evidence_projection_path`, each an explicitly selected absolute path. A caller builds this selection from explicit paths. The adapter has no
+Reference Core or implicit in-memory graph to freeze. Search read-model and
+compressed-search selectors remain independent.
 
 `admission_provider(operation)` must return a `NativeCoreSnapshotAdmission` for
 that operation, with its original finite monotonic deadline, all source, JSON,
@@ -1369,52 +1190,26 @@ Root calls, and installed CLI/HTTP/MCP consumer parity remain open. A source
 checkpoint or protocol check does not close those boundaries.
 
 
-## Software archive
+## Native software and managed releases
 
-After building the browser, package the exact reviewed Git commit:
-`python access/packaging/build_software_bundle.py --source-ref HEAD_SHA --output dist/tos-software.zip`.
-Validate it with
-`python access/packaging/validate_software_bundle.py --bundle dist/tos-software.zip
---native-prefix /absolute/installed-native-prefix`. The wheel probe installs its
-declared `[mcp]` extra and exercises `NativeAccessCore` against that separately
-installed native binary. The legacy reference archive and its wheel do not
-package that binary; the report records this distinction. `--integrity-only`
-checks archive integrity without the installed caller probe.
-The adjacent external `.zip.manifest.json` binds the archive digest, while the
-embedded manifest binds every member's path, size and hash. Local dirty builds
-must use `--allow-dirty` and retain `source_dirty: true`.
+The native software archive is built and verified by the installed Rust
+`tos-access software` commands. Repo Validation builds it twice and compares the
+archive and sidecar bytes, verifies the exact software closure, installs to a
+fresh prefix, and checks the installed `tos` entrypoint. No Python wheel or
+Python runtime is part of the software product.
 
-The archive contains installable Python code, API contracts, static schemas and
-built browser assets. It contains no corpus data, tests, Git metadata, sibling
-repository, source payload, compiled query store or AbyssOS runtime dependency.
-Verification installs a wheel in an isolated environment outside the checkout.
-Select a compatible dataset separately with `TOS_DATA_ROOT` before reading it.
+Managed release preparation, status, promotion, rollback and revocation use the
+native `native-release-*` actions documented in
+[native-managed-release.v1.md](contracts/native-managed-release.v1.md). The
+pair binds an exact native software archive to one native data snapshot. Readers
+select an existing pair through `--release-root`; source/data selection is
+separate from software installation. Rollback re-verifies the exact retained
+pair and cannot revive a revoked component. Revocation records are immutable.
 
-Build the dataset separately with `access/packaging/build_data_snapshot.py` and
-prepare its compatible software/data pair with `access/packaging/release_pair.py`.
-The previous combined packager has been removed. Set `TOS_DATA_ROOT` for explicit
-dataset reading or `TOS_RELEASE_ROOT` for a managed pair with rollback and
-withdrawal checks. Dataset selection does not install or deploy software.
-
-Selecting a released snapshot performs a full integrity check once when the
-reader opens it. `tos serve` and `tos mcp` retain that reader for the process
-lifetime; subsequent requests check withdrawal and the selected files without
-repeating the full snapshot check. Start a new server to select another
-snapshot. A standalone CLI invocation opens and verifies its snapshot anew.
-
-The full local Tree may additionally expose a source-bound Zarathustra word
-analysis capability. It resolves a German, Russian, or English query to one
-exact German occurrence and prepares morphology, syntax, historical sense,
-cited etymology, contextual semantics, Russian comparison, and English
-rendering for the calling agent. Native MCP, local HTTP, and WebMCP use the
-same read-only core operation. The standalone archive deliberately omits the
-local provider and exact text, so the call returns an explicit
-`available: false` packet rather than fabricating weaker evidence.
-
-After extraction, install from any location with
-`python -m pip install '/path/to/extracted/access[mcp]'`. Select data explicitly,
-then run `tos-legacy verify --profile standalone`, `tos-legacy serve`, or
-`tos-legacy mcp`.
+Data snapshot production remains owned by its explicit source/data builder.
+Software builds contain no corpus data and never admit a dataset. Selecting a
+released snapshot performs bounded native integrity and member-binding checks;
+`tos serve` and `tos mcp` use the installed Rust process for their lifetime.
 
 ## Contracts
 
@@ -1602,10 +1397,9 @@ Rust owner sources participate in dirty-source detection for this profile;
 `--allow-dirty` cannot relabel a native product. Archive integrity validation
 checks the executable's exact 0755 mode without executing it. An extractor
 must retain that member's declared mode; the existing install probe restores
-only this verified member after Python zipfile extraction. The existing wheel
-backend does not include the ELF: `pip install ./access` provides the explicit
-`tos-legacy` reference entrypoint. The native archive excludes Python runtime modules and wheel
-metadata; its installed `bin/tos` is the normal entrypoint.
+the verified ELF member during native installation. The native archive is the
+sole installed software product; it has no Python runtime or wheel metadata,
+and its installed `bin/tos` is the supported entrypoint.
 
 Native `serve` uses the executable's installed software companion, never the
 selected data root, to serve `/` and `/static/…`. The manifest is bounded to
@@ -1656,13 +1450,9 @@ rechecks every extracted member and the archive before reporting success. A
 failure can leave an incomplete owned candidate, which is never startup or
 installation evidence and is not overwritten by another invocation.
 
-The existing Python software CLI, validator and unique unsafe/integrity checks
-remain available during this transition; the native route does not invoke
-Python packaging. The legacy wheel backend and `pip install ./access` still
-install `tos-legacy` and do not include the native ELF. Native archive
-assembly and actual extracted startup require their own admitted product and
-runtime evidence; they do not establish wheel migration or managed data
-custody.
+The native verifier does not execute archive members. Fresh-prefix startup and
+managed release use have separate evidence routes; archive integrity alone does
+not establish data custody or runtime health.
 
 Software source observations use the same retained source-directory descriptor
 as member reads, including the final Git check. Renaming or replacing the
@@ -1750,34 +1540,20 @@ approximately `5S + 8Z`, plus the previously described bounded manifest/Git and
 startup reads. No new image staging copy or decompressed buffer is introduced.
 These bounds describe operation I/O, not an aggregate RSS guarantee.
 
-The maintained Python module can explicitly associate with a selected native
-prefix: `python -m tos_access --native-prefix /absolute/installed-prefix mcp`
-(or `--native-prefix=/absolute/installed-prefix`). The option precedes data and
-operation arguments. It checks the existing software manifest, exact native
-build receipt, lock/toolchain and complete executable hash, then replaces the
-Python process through the held executable FD with the unchanged argument list.
-`serve --host HOST --port PORT` is already understood by the native adapter.
-This association never discovers code through data roots, the working directory,
-PATH or an environment variable. Native operations and their currentness guards
-remain owned by the selected installation; association alone is not admission,
-compatibility acceptance or retirement. Unselected module calls and imported Python APIs retain reference behavior
-except local word-analysis: without an explicit native prefix it returns
-unavailable instead of importing the retired Python provider chain.
+The installed `bin/tos` command invokes native operations directly.
+`tos mcp --transport streamable-http --host 127.0.0.1 --port 5429` selects the
+loopback MCP transport; software and selected data remain separate.
 
-The existing imported serving caller can select the same explicit native
-association: `build_server(native_prefix=Path('/absolute/installed-prefix'),
-native_arguments=['--root', '/absolute/data', '--prepared-read-model',
+The optional imported Python SDK consumer can use the installed native MCP
+process directly: `NativeMCPServer(Path('/absolute/installed-prefix'),
+['--root', '/absolute/data', '--prepared-read-model',
 '/absolute/prepared.sqlite', '--prepared-binding', '/absolute/binding.json',
-'--source-inputs', '/absolute/inputs.raw']).run(transport='stdio')`.
-The options are forwarded unchanged, followed by `mcp`; this does not load a
-reference core or require the Python MCP dependency. Native software selection
-is mutually exclusive with `core=` and reference discovery paths. Direct
-`python -m tos_access.mcp_server --native-prefix /absolute/installed-prefix ...`
-uses the same association. With an installation containing the Streamable HTTP
-transport, select `server.settings.host = '127.0.0.1'`, set
-`server.settings.port`, then call `server.run(transport='streamable-http')`.
-The executable module also honors the existing `TOS_MCP_TRANSPORT`/`AOA_MCP_TRANSPORT`,
-host and port settings after explicit `--native-prefix` software association.
+'--source-inputs', '/absolute/inputs.raw'])`. Its bounded tool/resource methods
+spawn the selected native image; it does not implement an MCP server or a
+second query engine. Direct
+With an installation containing the Streamable HTTP transport, select
+`server.settings.host = '127.0.0.1'`, set `server.settings.port`, then call
+`server.run(transport='streamable-http')` from the external SDK adapter.
 Direct native selection is `tos mcp --transport streamable-http --host 127.0.0.1 --port 5429`.
 The explicitly associated imported server also exposes `await server.list_tools()`
 and `await server.call_tool(name, arguments)` through a bounded native child per
@@ -1797,42 +1573,9 @@ The local word-analysis tool can report the maintained unavailable packet only
 when the held installed software manifest and filesystem confirm provider
 absence. A supplied private provider requires a native task kernel and is
 explicitly unsupported; it is never represented as a public unavailable
-reading capability. This remaining positive path retains its reference route.
+reading capability. The corresponding task is available only through the installed native provider.
 
-This explicit API does not select a replacement for reference Core discovery or
-change the reference wheel/default entrypoint.
-
-
-The loopback `/mcp` endpoint returns JSON responses to POST, accepts notifications
-with an empty 202 response, and uses unpredictable session IDs. The ID is only a
-transport session; it selects no source, rights or software. Subsequent requests
-retain the selected native executor and need the returned session ID. DELETE
-terminates the session; GET returns 405 because this profile offers no
-server-initiated or resumable SSE. Host and Origin follow the maintained loopback
-wildcard-port policy. The same absolute request deadline covers packet rechecks, bounded socket writes and final flush; output gains no fresh timeout after execution. Cancellation stops active output rather than publishing a late response. At most 32 connections and 32 sessions are admitted; an idle
-session expires after 15 minutes. Cancellation notifications reach the active
-request; disconnect alone does not cancel it. Each request has a fresh deadline,
-and query/disclosure checks remain held through the final response flush.
-
-In-process Python tools and unselected/default core calls retain their reference
-route. Native doctor/verify already use their source-backed diagnostic entrypoint;
-their scoped compatibility acceptance and the remaining default/import API
-coverage are required before a blanket default or wheel retirement. Source
-implementation of a transport does not establish installed runtime acceptance.
-
-**LEGACY compatibility:** `pip install ./access`, wheel/editable/sdist hooks,
-Python reference CLI and existing isolated-install/streaming RECORD integrity
-checks remain available. The wheel command is explicitly `tos-legacy`; native
-fresh-prefix installation owns `tos`. That wheel still requires Python, does
-not include the native ELF, and does not become the native installation path. Wheel/Python retirement
-remains an open migration requirement until its consumers and unique checks
-have an accepted replacement. Native archive installation does not prove a
-wheel, installed managed data profile, or complete migration ready.
-
-Migration does not rewrite existing virtual environments or PATH. Reinstalling
-the legacy wheel updates its command name; deselect any old wheel-owned `tos`
-when choosing the native prefix. Preserve the previous prefix for rollback.
-Python reference APIs and unique integrity checks remain in the repository.
+The native archive and installed `bin/tos` are the maintained product route. This repository no longer publishes a Python wheel, Python CLI, or Python runtime fallback. Imported Python SDK adapters may frame calls to the installed native product; source preparation and fixture tools remain under their own owners and are not part of the installed product.
 
 The current native verifier rejects older native archives containing Python
 runtime or wheel metadata. To roll back, select the retained previous prefix;
@@ -1841,23 +1584,6 @@ that matching retained verifier. The native archive change does not claim
 backward compatibility with the previous mixed Python/native layout.
 
 
-The wheel also provides `tos-native`, a console caller for an independently
-installed native software prefix:
-
-```sh
-tos-native --native-prefix /absolute/installed-prefix source contracts
-```
-
-The prefix selector must come first. Missing selection refuses before importing
-the reference core. The caller uses the module's existing installed manifest,
-receipt, held-file identity and full executable SHA checks, then executes that
-exact native image. It does not discover native software through PATH or data
-selection. The wheel carries this Python caller; it does not carry a native ELF.
-`tos-legacy` remains the reference command, and module invocation without the
-explicit native selector retains its reference behavior. This console route
-alone does not establish full typed Core, default MCP, resource/prompt or wheel
-payload replacement.
-
 ### Native private concept and WordAnalysis callers
 
 A matching installed native access image supports `concept-search` and
@@ -1865,8 +1591,8 @@ A matching installed native access image supports `concept-search` and
 software installation independently of that data:
 
 ```sh
-tos-native --native-prefix /absolute/installed-prefix --root /absolute/source-root concept-search --query 'судьбы' --language ru --limit 20
-tos-native --native-prefix /absolute/installed-prefix --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
+/absolute/installed-prefix/bin/tos --root /absolute/source-root concept-search --query 'судьбы' --language ru --limit 20
+/absolute/installed-prefix/bin/tos --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
 ```
 
 The maintained script entrypoints require the same installation as their first
@@ -1878,8 +1604,8 @@ schema, or database implementation:
 /absolute/installed-prefix/bin/tos --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
 ```
 
-This requires the installed `tos_access` package providing `tos-native`; data
-roots do not select or import software. Without `--data-root`, the compatibility
+The installed native `bin/tos` command provides these operations; data
+roots do not select software. Without `--data-root`, the compatibility
 scripts keep their repository source root. Concept `--limit 0` returns coverage
 without cards. Word `--validate-candidate FILE` validates against the prepared
 source task without modifying either source or candidate. The native MCP tool
@@ -1890,9 +1616,7 @@ to 1–100; the standalone script/CLI uses a positive rank.
 The script CLI has no automatic Python fallback: omitting the explicit
 installation selector fails before loading the query implementation. This is
 a deliberate CLI migration; add the selector to earlier script invocations.
-Imported Python reference functions remain for existing oracle and reading
-controls, and are not the maintained CLI. A matching native installation is
-required; an older image is not implied to provide these operations.
+A matching native installation is required; an older image is not implied to provide these operations.
 
 Imported callers can select the same installation explicitly for the four
 source-read methods:
@@ -1908,11 +1632,11 @@ keep their dictionary packet/request shapes. Each synchronous call joins one
 helper thread and uses the existing authenticated native MCP child with one
 50-second operation/cleanup deadline. The data arguments cannot select software.
 An absent source owner still raises `SourceReadError` for discovery/read. This
-explicit source-method slice does not replace the default `ToSAccessCore`, its
-other methods, or a package's installation identity.
+source methods use the same installed native Core and retain the SDK package's
+selected software identity.
 
 The explicit `NativeCore.zarathustra_word_analysis_task` caller keeps the
-reference query/language conversion, rank fallback/clamp and boolean conversion,
+maintained query/language conversion, rank fallback/clamp and boolean conversion,
 then returns the complete native capability packet under its original50s clock.
 It uses the selected native Word provider; it does not load a Python provider.
 Native tool refusals remain `ToolError`, distinct from source-read `SourceReadError`.
@@ -1930,7 +1654,7 @@ root, synthesize an Original catalog, or replace the remaining default Core API.
 object from that same contracts call. It preserves selected availability,
 limits and refusal behavior and does not create another backend or data selection.
 
-Existing imported `ToSAccessCore` callers can select native Word and Reading
+Imported `ToSAccessCore` callers can select native Word and Reading
 without replacing their other Core methods:
 
 ```python
@@ -1951,9 +1675,8 @@ Original selection. The optional analysis root affects Reading only. Larger
 Reading inputs require the explicit paired `reading_max_file_bytes` and
 `reading_max_total_file_bytes`; all other native request limits remain unchanged.
 An older installed image may refuse these selectors. No Python fallback runs
-after a selected native refusal. Omitting `native_prefix` retains the existing
-reference methods and does not retire their imported helpers. This association
-does not replace the other default Core APIs or establish positive data acceptance.
+after a selected native refusal. Omitting `native_prefix` uses the installed
+native product-selection route and refuses if none is available.
 
 
 ### Imported native query core
@@ -1996,8 +1719,8 @@ they require the prepared pair and a separately declared `tos_root`.
 `concept_max_file_bytes` / `concept_max_total_file_bytes` select the root-only
 Concept/Word file budget for the Word child. They require an explicit `tos_root`
 and positive integers with file <= total; they never change Reading, SQL, work,
-output or clock budgets. Both native and reference named factories forward
-these selectors only to their explicitly selected native Word delegate. The
+output or clock budgets. The public native Core facade forwards these selectors
+only to its explicitly selected native Word delegate. The
 installed binary must support the matching concept budget flags.
 A generic release or
 prepared publication does not supply local source authority, and a local source
@@ -2008,17 +1731,15 @@ descriptors; the explicit embedded profile below retains their actual objects.
 The native facade serves the established knowledge, corpus, philosophy, lens,
 evidence, bounded source-navigation and exact-source MCP operations plus native
 resource reads. The remaining graph/snapshot builders and complete carrier APIs
-use the native whole-Core source route in `ToSAccessCore`. The default source
-alias selects `NativeToSAccessCore`; `ReferenceToSAccessCore` is the explicitly
-selected comparison implementation. Software selection follows explicit
+use the native whole-Core source route in `ToSAccessCore`. The public `ToSAccessCore` SDK facade delegates to the installed native Core; no Python semantic engine is selected. Software selection follows explicit
 `native_prefix`, `TOS_NATIVE_PREFIX`, the bundled SDK layout, then the standard
 installed `tos` entrypoint on absolute `PATH` entries.
 
 For the whole-Core SDK, `TOS_RELEASE_ROOT` with no data-root selection resolves
-the current Reference release through native metadata and freezes its receipt
+the current managed release through native metadata and freezes its receipt
 at construction. Each ordinary operation rechecks that receipt, snapshot
 members and withdrawal under the native guard. Supplying an explicit snapshot
-root selects its `data/` child; pairing it with a Reference release retains the
+root selects its `data/` child; pairing it with a managed release retains the
 same guard. Python frames paths and receipts without reading release pointers.
 The generic `NativeAccessCore` release adapter retains its separately selected
 ManagedRelease route.
@@ -2037,7 +1758,7 @@ with an explicit installed prefix and the actual metadata, claim or slot readers
 actual catalog snapshot, readers, issuer and optional slot-descriptor callback.
 Both constructors initialize through Rust; they do not derive epochs or validate
 source policy in Python. Pass the resulting provider as
-`NativeAccessCore.discover(native_prefix=prefix, source_read_service=provider)`.
+`NativeAccessCore.discover(native_prefix=prefix, source_provider=provider)`.
 This requires an installed binary containing `source owner-provider-phase`;
 it does not imply that an earlier installed release supports that command.
 
@@ -2065,26 +1786,24 @@ Selected byte limits are preserved, including zero; values above the supported
 16 KiB handle, 64 KiB request, 1 MiB record or 2 MiB response ceilings refuse
 explicitly and are never clamped.
 
-Passing an already constructed historical `SourceReadService` to the additive
-facade is a functional comparison route. Its old constructor already executed
-Python owner rules, so that route does not establish retirement of the old
-builders. The public default and named reference compatibility remain unchanged
-pending genuine constructor and installed consumer acceptance.
+The public `ToSAccessCore` and `NativeAccessCore` facades delegate runtime
+operations to the installed Rust product. Source-construction helpers remain
+separate maintainer APIs and do not supply an alternate runtime engine.
 
 The imported `tos_access.doctor.doctor_report` diagnostic executes the installed
 Rust doctor through `native_prefix` (or `TOS_NATIVE_PREFIX`). Its existing
 `tos_root`, `profile`, and `require_mcp` keywords select the same native report;
 not-ready results remain dictionaries with `ok: false`, rather than process
-errors. `tos-legacy --native-prefix /absolute/installed doctor --json` uses this
+errors. `tos --native-prefix /absolute/installed doctor --json` uses this
 same path. Missing installed software refuses instead of running Python rules.
 
 Data selection is independent of software: an explicit `tos_root` selects the
 source diagnostic, and omission uses the native installed runtime-data route.
 Rust's source byte/work/time bounds, embedded contracts, installed web assets,
 and built-in MCP readiness apply. This deliberately replaces repository auto
-search and Python dependency readiness in the historical diagnostic. The
-`reference_doctor_report` entry exists only for the named independent oracle
-tests; it is never selected by the maintained diagnostic or as fallback.
+search and Python dependency readiness in the historical diagnostic. No Python
+diagnostic rules or fallback are shipped; the adapter returns the installed
+Rust report unchanged.
 
 `NativeAccessCore.philosophy_scale_rows` reads a complete table through the
 existing Rust scale-export operation in one held snapshot. It preserves table
@@ -2100,7 +1819,7 @@ worker. It neither constructs `PreparedSourceInputs` nor derives an epoch in
 Python. The required revision keyword and two concurrent slots without a queue
 preserve the selected-service contract. Each request keeps one original 50-second
 clock through retention, native admission, worker verification and final cleanup.
-Pass this provider to `NativeAccessCore.discover(..., source_read_service=provider)`;
+Pass this provider to `NativeAccessCore.discover(..., source_provider=provider)`;
 the Core borrows it, and the caller closes it after use. Selecting this owner
 requires no Knowledge publication pair. Existing reference constructors and the
 public Core default remain pending actual comparison and explicit cutover.

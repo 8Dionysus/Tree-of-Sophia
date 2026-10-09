@@ -20,6 +20,8 @@ use tos_foundation::{
 };
 type Result<T> = std::result::Result<T, String>;
 const SCHEMA: &str = "tos_access_native_release_promote_request_v1";
+const ROLLBACK_SCHEMA: &str = "tos_access_native_release_rollback_request_v1";
+const REVOCATION_SCHEMA: &str = "tos_access_native_release_revoke_request_v1";
 const BOOTSTRAP_BYTES: usize = 1_048_576;
 // Dispatch holder plan: candidate root + four metadata/archive guards + the
 // archive's two FDs + model/SQLite holders (9), private store/lock layout (9),
@@ -91,6 +93,7 @@ impl Budget {
         Ok(())
     }
     fn state(&mut self, bytes: usize) -> Result<()> {
+        self.active()?;
         self.state = self
             .state
             .checked_add(bytes)
@@ -166,6 +169,35 @@ fn json(raw: &[u8], cap: usize, available_state: usize) -> Result<JsonValue> {
         != raw
     {
         return Err("promotion metadata must be exact canonical JSON".into());
+    }
+    Ok(value)
+}
+/// Native selection records are emitted under SourceRecordDigestV1 and end in
+/// one LF. Keep that authored profile distinct from the CorpusSnapshot
+/// manifest and request profile accepted by `json` above.
+fn selection_json(raw: &[u8], cap: usize, available_state: usize) -> Result<JsonValue> {
+    let limits = JsonLimits {
+        max_bytes: cap,
+        ..state::METADATA_LIMITS
+    };
+    let value = parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, available_state)
+        .map_err(|e| e.to_string())?
+        .into_root();
+    let retained = value.retained_state_bytes().map_err(|e| e.to_string())?;
+    let remainder = available_state
+        .checked_sub(retained)
+        .ok_or("native selection parser state exceeds allowance")?;
+    let canonical = canonical_bytes_v1(
+        &value,
+        CanonicalProfile::SourceRecordDigestV1,
+        JsonLimits {
+            max_bytes: limits.max_bytes.min(remainder),
+            ..limits
+        },
+    )
+    .map_err(|e| e.to_string())?;
+    if raw.strip_suffix(b"\n") != Some(canonical.as_slice()) {
+        return Err("native selection must use exact source-record JSON with one LF".into());
     }
     Ok(value)
 }
@@ -595,6 +627,26 @@ impl fs::Charges for PublicationCharges<'_> {
         self.inputs.verify(self.budget)
     }
 }
+struct WriterCharges<'a> {
+    budget: &'a mut Budget,
+}
+impl fs::Charges for WriterCharges<'_> {
+    fn io(&mut self, n: usize) -> Result<()> {
+        self.budget.io(n as u64)
+    }
+    fn state(&mut self, n: usize) -> Result<()> {
+        self.budget.state(n)
+    }
+    fn available_state(&self) -> usize {
+        self.budget
+            .limits
+            .max_state_bytes
+            .saturating_sub(self.budget.state)
+    }
+    fn verify_inputs(&mut self) -> Result<()> {
+        self.budget.active()
+    }
+}
 fn bootstrap(path: PathBuf, expected: Digest256, deadline: Instant) -> Result<Vec<u8>> {
     let mut budget = Budget {
         deadline,
@@ -621,10 +673,403 @@ fn bootstrap(path: PathBuf, expected: Digest256, deadline: Instant) -> Result<Ve
     }
     held.raw(BOOTSTRAP_BYTES, &mut budget)
 }
-fn execute(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<fs::Publication> {
-    let request = json(raw, BOOTSTRAP_BYTES, BOOTSTRAP_BYTES * 64)?;
+fn execute_prepare(
+    raw: &[u8],
+    original_ns: u64,
+    deadline: Instant,
+) -> Result<serde_json::Value> {
+    const PREPARE_SCHEMA: &str = "tos_access_native_release_prepare_request_v1";
+    let request = json(raw, BOOTSTRAP_BYTES, BOOTSTRAP_BYTES * 16)?;
     state::keys(
         &request,
+        &[
+            "schema_version",
+            "work_deadline_ns",
+            "software_archive",
+            "data_root",
+            "limits",
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+    if text(&request, "schema_version")? != PREPARE_SCHEMA
+        || field(&request, "work_deadline_ns")?.as_u64() != Some(original_ns)
+    {
+        return Err("preparation request schema/original deadline differs".into());
+    }
+    let limits: Limits =
+        serde_json::from_slice(&canonical(field(&request, "limits")?, BOOTSTRAP_BYTES)?)
+            .map_err(|e| e.to_string())?;
+    limits.validate()?;
+    if raw.len() > limits.max_metadata_bytes {
+        return Err("request metadata exceeds declared caller cap".into());
+    }
+    let mut budget = Budget {
+        deadline,
+        limits,
+        io: 0,
+        state: 0,
+    };
+    budget.io((raw.len() as u64)
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(2))
+        .ok_or("request IO overflow")?)?;
+    budget.state(
+        raw.len()
+            .checked_add(request.retained_state_bytes().map_err(|e| e.to_string())?)
+            .ok_or("request state overflow")?,
+    )?;
+    let software_archive = absolute(text(&request, "software_archive")?)?;
+    let data_root = absolute(text(&request, "data_root")?)?;
+    if data_root.starts_with(&software_archive) || software_archive.starts_with(&data_root) {
+        return Err("software archive and candidate data scopes overlap".into());
+    }
+    let mut archive = Held::open(software_archive.clone(), limits.max_archive_bytes, &mut budget)?;
+    budget.io(archive
+        .stamp
+        .2
+        .checked_mul(4)
+        .and_then(|n| n.checked_add(limits.max_archive_expanded_bytes))
+        .ok_or("archive owner work plan overflow")?)?;
+    budget.state(
+        limits
+            .max_metadata_bytes
+            .checked_mul(3)
+            .ok_or("archive metadata-state plan overflow")?,
+    )?;
+    let verified_archive = software_archive::VerifiedArchive::open(
+        &software_archive,
+        software_archive::ArchiveLimits {
+            max_archive_bytes: limits.max_archive_bytes,
+            max_total_bytes: limits.max_archive_expanded_bytes,
+            max_members: limits.max_archive_members,
+            max_metadata_bytes: limits.max_metadata_bytes,
+        },
+    )?;
+    let running_image_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    let mut running_image = Held::open(running_image_path, limits.max_image_bytes, &mut budget)?;
+    let native_proof = field(verified_archive.manifest(), "native_access")?;
+    if running_image.stamp.2 != field(native_proof, "size_bytes")?.as_u64().ok_or("native image size absent")?
+        || running_image.digest != state::digest(native_proof, "sha256").map_err(|e| e.to_string())?
+    {
+        return Err("native archive does not contain this running release tool".into());
+    }
+    archive.check(&budget)?;
+    running_image.check(&budget)?;
+    if hash(&mut archive.file, archive.stamp.2, &mut budget)? != archive.digest {
+        return Err("retained archive changed after verification".into());
+    }
+
+    let mut candidate = Candidate::open(data_root.clone())?;
+    let mut manifest = Held::open(
+        data_root.join("data/manifest.json"),
+        limits.max_metadata_bytes as u64,
+        &mut budget,
+    )?;
+    let manifest_raw = manifest.raw(limits.max_metadata_bytes, &mut budget)?;
+    let manifest_value = json(
+        &manifest_raw,
+        limits.max_metadata_bytes,
+        limits.max_state_bytes.saturating_sub(budget.state),
+    )?;
+    budget.state(
+        manifest_raw
+            .len()
+            .checked_mul(4)
+            .ok_or("typed manifest state plan overflow")?,
+    )?;
+    let compiler = field(&manifest_value, "compiler")?;
+    let pair_seed = serde_json::json!({
+        "schema_version":"tos_access_release_pair_v1",
+        "software_sha256":archive.digest.to_hex(),
+        "data_revision":text(&manifest_value, "data_revision")?,
+        "data_manifest_sha256":manifest.digest.to_hex(),
+        "corpus_revision":text(&manifest_value, "corpus_revision")?,
+        "query_schema":text(compiler, "schema")?,
+        "compiler_version":text(compiler, "compiler_version")?,
+    });
+    let pair_seed_raw = serde_json::to_vec(&pair_seed).map_err(|e| e.to_string())?;
+    let pair = json(
+        &pair_seed_raw,
+        limits.max_metadata_bytes,
+        limits.max_state_bytes.saturating_sub(budget.state),
+    )?;
+    let pair_raw = canonical(&pair, limits.max_metadata_bytes)?;
+    state::validate_release_pair(&pair, &pair_raw).map_err(|e| e.to_string())?;
+    budget.state(
+        pair_raw
+            .len()
+            .checked_add(pair.retained_state_bytes().map_err(|e| e.to_string())?)
+            .ok_or("prepared pair state overflow")?,
+    )?;
+
+    let decoded = state::decode_native_manifest(&manifest_value, &manifest_raw, &pair)
+        .map_err(|e| e.to_string())?;
+    budget.state(
+        manifest_value
+            .retained_state_bytes()
+            .map_err(|e| e.to_string())?,
+    )?;
+    if decoded.members.is_empty() || decoded.members.len() > limits.max_candidate_members {
+        return Err("candidate manifest member ceiling exceeded".into());
+    }
+    let mut total = 0u64;
+    for (path, member) in &decoded.members {
+        total = total
+            .checked_add(member.size)
+            .filter(|n| *n <= limits.max_candidate_bytes)
+            .ok_or("candidate declared closure byte ceiling exceeded")?;
+        candidate.member(path, member.size, member.digest, &mut budget)?;
+    }
+    if total
+        .checked_add(manifest.stamp.2)
+        .is_none_or(|n| n > limits.max_candidate_bytes)
+    {
+        return Err("candidate manifest plus member bytes exceeds caller cap".into());
+    }
+    candidate.member(
+        "data/manifest.json",
+        manifest.stamp.2,
+        manifest.digest,
+        &mut budget,
+    )?;
+    let mut exact_files = decoded.members.keys().cloned().collect::<BTreeSet<_>>();
+    exact_files.insert("data/manifest.json".into());
+    budget.state(exact_files.iter().try_fold(0usize, |n, path| {
+        n.checked_add(path.len() + 128)
+            .ok_or("candidate census state overflow")
+    })?)?;
+    candidate.census(&exact_files, &mut budget)?;
+
+    let mut selection_file = Held::open(
+        data_root.join(&decoded.selection_path),
+        limits.max_metadata_bytes as u64,
+        &mut budget,
+    )?;
+    let selection_raw = selection_file.raw(limits.max_metadata_bytes, &mut budget)?;
+    let selection_value = selection_json(
+        &selection_raw,
+        limits.max_metadata_bytes,
+        limits.max_state_bytes.saturating_sub(budget.state),
+    )?;
+    budget.state(
+        selection_value
+            .retained_state_bytes()
+            .map_err(|e| e.to_string())?,
+    )?;
+    let paths = field(&selection_value, "paths")?;
+    let mut raw_path = |key: &str| -> Result<Vec<u8>> {
+        let relative = text(paths, key)?;
+        RelativePath::parse(relative).map_err(|e| e.to_string())?;
+        let row = decoded
+            .members
+            .get(relative)
+            .ok_or("selection references undeclared candidate member")?;
+        let mut held = Held::open(
+            data_root.join(relative),
+            limits.max_metadata_bytes as u64,
+            &mut budget,
+        )?;
+        if held.stamp.2 != row.size || held.digest != row.digest {
+            return Err("selection vocabulary member differs".into());
+        }
+        held.raw(limits.max_metadata_bytes, &mut budget)
+    };
+    let descriptor = raw_path("descriptor")?;
+    let entity = raw_path("entity_registry")?;
+    let relation = raw_path("relation_registry")?;
+    let selection = tos_compiler::NativeKnowledgeSelection::decode(
+        &selection_raw,
+        &descriptor,
+        &entity,
+        &relation,
+        tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+        limits.max_metadata_bytes,
+    )
+    .map_err(|e| e.to_string())?;
+    if selection.producer().managed_source.is_some()
+        || selection.producer().managed_source_v2.is_some()
+        || text(&pair, "query_schema")? != selection.expectation().model_abi
+        || text(&pair, "compiler_version")? != tos_compiler::COMPILER_VERSION
+    {
+        return Err("native candidate selection compiler/ABI/source profile mismatch".into());
+    }
+    let model_row = decoded
+        .members
+        .get(&selection.paths().model)
+        .ok_or("model not in candidate manifest")?;
+    if model_row.size != selection.expectation().model_size_bytes
+        || model_row.digest.to_hex() != selection.expectation().model_sha256
+    {
+        return Err("native selected model independent binding differs".into());
+    }
+    manifest.check(&budget)?;
+    selection_file.check(&budget)?;
+    running_image.check(&budget)?;
+    candidate.check(&budget)?;
+    let binding_seed = serde_json::json!({
+        "data_root":data_root.to_str().ok_or("data root UTF8 invalid")?,
+        "software_archive":software_archive.to_str().ok_or("software archive path UTF8 invalid")?,
+    });
+    let bindings_seed_raw = serde_json::to_vec(&binding_seed).map_err(|e| e.to_string())?;
+    let bindings = json(
+        &bindings_seed_raw,
+        limits.max_metadata_bytes,
+        limits.max_state_bytes.saturating_sub(budget.state),
+    )?;
+    state::validate_release_bindings(&bindings).map_err(|e| e.to_string())?;
+    let bindings_raw = canonical(&bindings, limits.max_metadata_bytes)?;
+    let pair_id = Digest256::of_bytes(&pair_raw).to_hex();
+    Ok(serde_json::json!({
+        "schema_version":"tos_access_native_release_preparation_receipt_v1",
+        "pair_id":pair_id,
+        "pair":serde_json::from_slice::<serde_json::Value>(&pair_raw).map_err(|e| e.to_string())?,
+        "bindings":serde_json::from_slice::<serde_json::Value>(&bindings_raw).map_err(|e| e.to_string())?,
+        "candidate_manifest_sha256":manifest.digest.to_hex(),
+        "candidate_selection_sha256":selection_file.digest.to_hex(),
+        "admission":"candidate-preparation-only",
+    }))
+}
+
+fn execute_status(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<serde_json::Value> {
+    const STATUS_SCHEMA: &str = "tos_access_native_release_status_request_v1";
+    let request = json(raw, BOOTSTRAP_BYTES, BOOTSTRAP_BYTES * 8)?;
+    state::keys(&request, &["schema_version", "work_deadline_ns", "release_root"])
+        .map_err(|e| e.to_string())?;
+    if text(&request, "schema_version")? != STATUS_SCHEMA
+        || field(&request, "work_deadline_ns")?.as_u64() != Some(original_ns)
+    {
+        return Err("status request schema/original deadline differs".into());
+    }
+    let mut budget = Budget {
+        deadline,
+        limits: Limits {
+            max_metadata_bytes: BOOTSTRAP_BYTES,
+            max_state_bytes: BOOTSTRAP_BYTES * 8,
+            max_io_bytes: (BOOTSTRAP_BYTES * 8) as u64,
+            max_installed_io_bytes: 1,
+            max_installed_state_bytes: 1,
+            max_held_fds: 32,
+            max_archive_bytes: 1,
+            max_archive_expanded_bytes: 1,
+            max_archive_members: 1,
+            max_image_bytes: 1,
+            max_candidate_bytes: 1,
+            max_candidate_members: 1,
+        },
+        io: 0,
+        state: 0,
+    };
+    budget.limits.validate()?;
+    budget.io((raw.len() as u64)
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(2))
+        .ok_or("status request IO overflow")?)?;
+    budget.state(
+        raw.len()
+            .checked_add(request.retained_state_bytes().map_err(|e| e.to_string())?)
+            .ok_or("status request state overflow")?,
+    )?;
+    let root = absolute(text(&request, "release_root")?)?;
+    let mut charges = WriterCharges { budget: &mut budget };
+    let current = fs::current_release(
+        &root,
+        deadline,
+        BOOTSTRAP_BYTES,
+        &mut charges,
+    )?;
+    Ok(serde_json::json!({
+        "schema_version":"tos_access_native_release_status_receipt_v1",
+        "pair_id":current.pair_id,
+        "pair":serde_json::from_slice::<serde_json::Value>(&current.pair_raw).map_err(|e| e.to_string())?,
+        "bindings":serde_json::from_slice::<serde_json::Value>(&current.bindings_raw).map_err(|e| e.to_string())?,
+        "previous":current.previous,
+    }))
+}
+
+fn execute_revoke(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<(String, String)> {
+    let request = json(raw, BOOTSTRAP_BYTES, BOOTSTRAP_BYTES * 4)?;
+    state::keys(
+        &request,
+        &[
+            "schema_version",
+            "work_deadline_ns",
+            "release_root",
+            "kind",
+            "digest",
+            "reason",
+            "owner_ref",
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+    if text(&request, "schema_version")? != REVOCATION_SCHEMA
+        || field(&request, "work_deadline_ns")?.as_u64() != Some(original_ns)
+    {
+        return Err("revocation request schema/original deadline differs".into());
+    }
+    let mut budget = Budget {
+        deadline,
+        limits: Limits {
+            max_metadata_bytes: BOOTSTRAP_BYTES,
+            max_state_bytes: BOOTSTRAP_BYTES * 4,
+            max_io_bytes: (BOOTSTRAP_BYTES * 4) as u64,
+            max_installed_io_bytes: 1,
+            max_installed_state_bytes: 1,
+            max_held_fds: 32,
+            max_archive_bytes: 1,
+            max_archive_expanded_bytes: 1,
+            max_archive_members: 1,
+            max_image_bytes: 1,
+            max_candidate_bytes: 1,
+            max_candidate_members: 1,
+        },
+        io: 0,
+        state: 0,
+    };
+    budget.limits.validate()?;
+    budget.io((raw.len() as u64)
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(2))
+        .ok_or("revocation request IO overflow")?)?;
+    budget.state(
+        raw.len()
+            .checked_add(request.retained_state_bytes().map_err(|e| e.to_string())?)
+            .ok_or("revocation request state overflow")?,
+    )?;
+    let root = absolute(text(&request, "release_root")?)?;
+    let kind = text(&request, "kind")?;
+    let digest = text(&request, "digest")?;
+    let reason = text(&request, "reason")?;
+    let owner_ref = text(&request, "owner_ref")?;
+    let mut charges = WriterCharges { budget: &mut budget };
+    fs::revoke_digest(
+        &root,
+        kind,
+        digest,
+        reason,
+        owner_ref,
+        deadline,
+        BOOTSTRAP_BYTES,
+        &mut charges,
+    )?;
+    Ok((kind.to_owned(), digest.to_owned()))
+}
+fn execute(
+    raw: &[u8],
+    original_ns: u64,
+    deadline: Instant,
+    rollback: bool,
+) -> Result<fs::Publication> {
+    let request = json(raw, BOOTSTRAP_BYTES, BOOTSTRAP_BYTES * 64)?;
+    let expected_keys: &[&str] = if rollback {
+        &[
+            "schema_version",
+            "work_deadline_ns",
+            "release_root",
+            "software_prefix",
+            "expected_current",
+            "limits",
+        ]
+    } else {
         &[
             "schema_version",
             "work_deadline_ns",
@@ -636,10 +1081,11 @@ fn execute(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<fs::Public
             "candidate_manifest_sha256",
             "candidate_selection_sha256",
             "limits",
-        ],
-    )
-    .map_err(|e| e.to_string())?;
-    if text(&request, "schema_version")? != SCHEMA
+        ]
+    };
+    state::keys(&request, expected_keys).map_err(|e| e.to_string())?;
+    if text(&request, "schema_version")?
+        != if rollback { ROLLBACK_SCHEMA } else { SCHEMA }
         || field(&request, "work_deadline_ns")?.as_u64() != Some(original_ns)
     {
         return Err("request schema/original monotonic deadline differs".into());
@@ -666,24 +1112,137 @@ fn execute(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<fs::Public
             .checked_add(request.retained_state_bytes().map_err(|e| e.to_string())?)
             .ok_or("request state overflow")?,
     )?;
-    let pair = field(&request, "candidate_pair")?;
-    let bindings = field(&request, "bindings")?;
-    let pair_raw = canonical(pair, limits.max_metadata_bytes)?;
-    let bindings_raw = canonical(bindings, limits.max_metadata_bytes)?;
-    state::validate_release_pair(pair, &pair_raw).map_err(|e| e.to_string())?;
-    state::validate_release_bindings(bindings).map_err(|e| e.to_string())?;
-    budget.state(pair_raw.len() + bindings_raw.len())?;
-    let expected_current = match field(&request, "expected_current")? {
-        JsonValue::Null => None,
-        JsonValue::String(_) => Some(
-            state::digest(&request, "expected_current")
-                .map_err(|e| e.to_string())?
-                .to_hex(),
-        ),
-        _ => return Err("expected_current must be digest/null".into()),
-    };
     let release_root = absolute(text(&request, "release_root")?)?;
     let prefix = absolute(text(&request, "software_prefix")?)?;
+    let (pair, bindings, pair_raw, bindings_raw, expected_current, expected_manifest, expected_selection) =
+        if rollback {
+            let current = state::digest(&request, "expected_current")
+                .map_err(|e| e.to_string())?
+                .to_hex();
+            let target = {
+                let mut charges = WriterCharges { budget: &mut budget };
+                fs::previous_release(
+                    &release_root,
+                    &current,
+                    deadline,
+                    limits.max_metadata_bytes,
+                    &mut charges,
+                )?
+            };
+            if target.current != current {
+                return Err("rollback current release changed while selecting target".into());
+            }
+            let target_id = target.previous.clone();
+            let pair_raw = target.pair_raw;
+            let bindings_raw = target.bindings_raw;
+            let pair = json(
+                &pair_raw,
+                limits.max_metadata_bytes,
+                limits.max_state_bytes.saturating_sub(budget.state),
+            )?;
+            let bindings = json(
+                &bindings_raw,
+                limits.max_metadata_bytes,
+                limits.max_state_bytes.saturating_sub(budget.state),
+            )?;
+            let target_pair_id =
+                state::validate_release_pair(&pair, &pair_raw).map_err(|e| e.to_string())?;
+            state::validate_release_bindings(&bindings).map_err(|e| e.to_string())?;
+            if target_pair_id != target_id {
+                return Err("rollback selected pair differs from stored previous id".into());
+            }
+            budget.state(
+                pair_raw
+                    .len()
+                    .checked_add(bindings_raw.len())
+                    .and_then(|n| {
+                        n.checked_add(pair.retained_state_bytes().ok()?)
+                    })
+                    .and_then(|n| {
+                        n.checked_add(bindings.retained_state_bytes().ok()?)
+                    })
+                    .ok_or("rollback pair state plan overflow")?,
+            )?;
+            let data_root = absolute(text(&bindings, "data_root")?)?;
+            let expected_manifest =
+                state::digest(&pair, "data_manifest_sha256").map_err(|e| e.to_string())?;
+            let mut manifest = Held::open(
+                data_root.join("data/manifest.json"),
+                limits.max_metadata_bytes as u64,
+                &mut budget,
+            )?;
+            if manifest.digest != expected_manifest {
+                return Err("rollback previous manifest differs from stored pair".into());
+            }
+            let manifest_raw = manifest.raw(limits.max_metadata_bytes, &mut budget)?;
+            let manifest_value = json(
+                &manifest_raw,
+                limits.max_metadata_bytes,
+                limits.max_state_bytes.saturating_sub(budget.state),
+            )?;
+            budget.state(
+                manifest_raw
+                    .len()
+                    .checked_mul(4)
+                    .ok_or("rollback manifest state plan overflow")?,
+            )?;
+            budget.state(
+                manifest_value
+                    .retained_state_bytes()
+                    .map_err(|e| e.to_string())?,
+            )?;
+            let decoded = state::decode_native_manifest(&manifest_value, &manifest_raw, &pair)
+                .map_err(|e| e.to_string())?;
+            let mut selection = Held::open(
+                data_root.join(decoded.selection_path),
+                limits.max_metadata_bytes as u64,
+                &mut budget,
+            )?;
+            let expected_selection = selection.digest;
+            manifest.check(&budget)?;
+            selection.check(&budget)?;
+            (
+                pair,
+                bindings,
+                pair_raw,
+                bindings_raw,
+                Some(current),
+                expected_manifest,
+                expected_selection,
+            )
+        } else {
+            let pair = field(&request, "candidate_pair")?.clone();
+            let bindings = field(&request, "bindings")?.clone();
+            let pair_raw = canonical(&pair, limits.max_metadata_bytes)?;
+            let bindings_raw = canonical(&bindings, limits.max_metadata_bytes)?;
+            state::validate_release_pair(&pair, &pair_raw).map_err(|e| e.to_string())?;
+            state::validate_release_bindings(&bindings).map_err(|e| e.to_string())?;
+            budget.state(pair_raw.len() + bindings_raw.len())?;
+            let expected_current = match field(&request, "expected_current")? {
+                JsonValue::Null => None,
+                JsonValue::String(_) => Some(
+                    state::digest(&request, "expected_current")
+                        .map_err(|e| e.to_string())?
+                        .to_hex(),
+                ),
+                _ => return Err("expected_current must be digest/null".into()),
+            };
+            let expected_manifest =
+                state::digest(&request, "candidate_manifest_sha256").map_err(|e| e.to_string())?;
+            let expected_selection =
+                state::digest(&request, "candidate_selection_sha256").map_err(|e| e.to_string())?;
+            (
+                pair,
+                bindings,
+                pair_raw,
+                bindings_raw,
+                expected_current,
+                expected_manifest,
+                expected_selection,
+            )
+        };
+    let pair = &pair;
+    let bindings = &bindings;
     let data_root = absolute(text(bindings, "data_root")?)?;
     let archive_path = absolute(text(bindings, "software_archive")?)?;
     if release_root.starts_with(&data_root)
@@ -694,8 +1253,6 @@ fn execute(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<fs::Public
     {
         return Err("release publication and candidate/software custody scopes overlap".into());
     }
-    let expected_manifest =
-        state::digest(&request, "candidate_manifest_sha256").map_err(|e| e.to_string())?;
     if expected_manifest
         != state::digest(pair, "data_manifest_sha256").map_err(|e| e.to_string())?
     {
@@ -775,9 +1332,7 @@ fn execute(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<fs::Public
         limits.max_metadata_bytes as u64,
         &mut budget,
     )?;
-    if selection_file.digest
-        != state::digest(&request, "candidate_selection_sha256").map_err(|e| e.to_string())?
-    {
+    if selection_file.digest != expected_selection {
         return Err("candidate selection independent SHA differs".into());
     }
     let selection_raw = selection_file.raw(limits.max_metadata_bytes, &mut budget)?;
@@ -1024,15 +1579,29 @@ fn execute(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<fs::Public
                 installed_budget: &mut installed_budget,
             },
         };
-        fs::publish_verified_pair(
-            &release_root,
-            &pair_raw,
-            &bindings_raw,
-            expected_current.as_deref(),
-            deadline,
-            limits.max_metadata_bytes,
-            &mut charges,
-        )?
+        if rollback {
+            fs::rollback_verified_previous(
+                &release_root,
+                &pair_raw,
+                &bindings_raw,
+                expected_current
+                    .as_deref()
+                    .ok_or("rollback expected_current absent")?,
+                deadline,
+                limits.max_metadata_bytes,
+                &mut charges,
+            )?
+        } else {
+            fs::publish_verified_pair(
+                &release_root,
+                &pair_raw,
+                &bindings_raw,
+                expected_current.as_deref(),
+                deadline,
+                limits.max_metadata_bytes,
+                &mut charges,
+            )?
+        }
     };
     let post = (|| {
         model.check_pin().map_err(|e| e.to_string())?;
@@ -1059,16 +1628,33 @@ pub fn run_if_requested(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> Option<i32> {
-    if args.first().map(String::as_str) != Some("native-release-promote") {
+    let action = args.first().map(String::as_str)?;
+    if !matches!(
+        action,
+        "native-release-prepare"
+            | "native-release-status"
+            | "native-release-promote"
+            | "native-release-rollback"
+            | "native-release-revoke"
+    ) {
         return None;
     }
-    let result = (|| -> Result<fs::Publication> {
+    let receipt_schema = match action {
+        "native-release-prepare" => "tos_access_native_release_preparation_receipt_v1",
+        "native-release-status" => "tos_access_native_release_status_receipt_v1",
+        "native-release-promote" => "tos_access_native_release_promotion_receipt_v1",
+        "native-release-rollback" => "tos_access_native_release_rollback_receipt_v1",
+        _ => "tos_access_native_release_revocation_receipt_v1",
+    };
+    let result = (|| -> Result<(serde_json::Value, bool)> {
         if args.len() != 7
             || args[1] != "--request"
             || args[3] != "--request-sha256"
             || args[5] != "--work-deadline-ns"
         {
-            return Err("usage: native-release-promote --request ABS --request-sha256 HEX --work-deadline-ns ORIGINAL_NS".into());
+            return Err(format!(
+                "usage: {action} --request ABS --request-sha256 HEX --work-deadline-ns ORIGINAL_NS"
+            ));
         }
         let ns = args[6]
             .parse::<u64>()
@@ -1076,36 +1662,64 @@ pub fn run_if_requested(
         let original = deadline(ns)?;
         let expected = Digest256::from_hex(&args[4]).map_err(|e| e.to_string())?;
         let raw = bootstrap(absolute(&args[2])?, expected, original)?;
-        execute(&raw, ns, original)
+        match action {
+            "native-release-prepare" => Ok((execute_prepare(&raw, ns, original)?, true)),
+            "native-release-status" => Ok((execute_status(&raw, ns, original)?, true)),
+            "native-release-revoke" => {
+                let (kind, digest) = execute_revoke(&raw, ns, original)?;
+                Ok((
+                    serde_json::json!({
+                        "schema_version":receipt_schema,
+                        "kind":kind,
+                        "digest":digest,
+                        "committed":true,
+                        "durable":true,
+                        "failure":null,
+                        "resource_accounting":"bounded-metadata-and-io-counters"
+                    }),
+                    true,
+                ))
+            }
+            "native-release-rollback" | "native-release-promote" => {
+                let rollback = action == "native-release-rollback";
+                let publication = execute(&raw, ns, original, rollback)?;
+                let success = publication.durable && publication.failure.is_none();
+                Ok((
+                    serde_json::json!({
+                        "schema_version":receipt_schema,
+                        "pair_id":publication.pair_id,
+                        "previous":publication.previous,
+                        "committed":publication.committed,
+                        "durable":publication.durable,
+                        "failure":publication.failure,
+                        "verification_profile":"native-selected-fsverity-installed-access-owner-v1",
+                        "owner_scan_deadline":"finite-owner-caps-with-external-normal-unit-hardwall",
+                        "resource_accounting":"structural-counters-and-conservative-owner-scan-plans; external-peak-caps"
+                    }),
+                    success,
+                ))
+            }
+            _ => unreachable!(),
+        }
     })();
     match result {
-        Ok(p) => {
-            let code = if p.durable && p.failure.is_none() {
-                0
-            } else {
-                1
-            };
-            let receipt = serde_json::json!({"schema_version":"tos_access_native_release_promotion_receipt_v1",
-                "pair_id":p.pair_id,"previous":p.previous,"committed":p.committed,"durable":p.durable,"failure":p.failure,
-                "verification_profile":"native-selected-fsverity-installed-access-owner-v1",
-                "owner_scan_deadline":"finite-owner-caps-with-external-normal-unit-hardwall",
-                "resource_accounting":"structural-counters-and-conservative-owner-scan-plans; external-peak-caps"});
+        Ok((receipt, success)) => {
             if writeln!(stdout, "{receipt}").is_err() {
                 return Some(1);
             }
-            Some(code)
+            Some(if success { 0 } else { 1 })
         }
         Err(reason) => {
-            let _ = writeln!(
-                stderr,
-                "native release promotion: {}",
-                reason.chars().take(512).collect::<String>()
-            );
+            let _ = writeln!(stderr, "native release {action}: {}", reason.chars().take(512).collect::<String>());
             let _ = writeln!(
                 stdout,
                 "{}",
-                serde_json::json!({"schema_version":"tos_access_native_release_promotion_receipt_v1",
-                "committed":false,"durable":false,"failure":reason.chars().take(512).collect::<String>()})
+                serde_json::json!({
+                    "schema_version":receipt_schema,
+                    "committed":false,
+                    "durable":false,
+                    "failure":reason.chars().take(512).collect::<String>()
+                })
             );
             Some(1)
         }

@@ -99,6 +99,34 @@ fn validate_release_pointer(value: &JsonValue) -> Result<(String, Option<String>
     };
     Ok((current, previous))
 }
+const RELEASE_REVOCATION_SCHEMA: &str = "tos_access_release_revocation_v1";
+fn validate_release_revocation(
+    value: &JsonValue,
+    expected_kind: &str,
+    expected_digest: &str,
+) -> Result<()> {
+    keys(
+        value,
+        &["schema_version", "kind", "digest", "reason", "owner_ref"],
+    )?;
+    if text(value, "schema_version")? != RELEASE_REVOCATION_SCHEMA
+        || text(value, "kind")? != expected_kind
+        || digest(value, "digest")?.to_hex() != expected_digest
+    {
+        return Err(unavailable("release revocation identity invalid"));
+    }
+    for field in ["reason", "owner_ref"] {
+        let value = text(value, field)?;
+        if value.trim().is_empty()
+            || value.chars().any(|character| {
+                (character as u32) < 0x20 || character == '\u{7f}'
+            })
+        {
+            return Err(unavailable("release revocation text invalid"));
+        }
+    }
+    Ok(())
+}
 fn validate_release_bindings(value: &JsonValue) -> Result<()> {
     keys(value, &["data_root", "software_archive"])?;
     for key in ["data_root", "software_archive"] {
@@ -1043,7 +1071,7 @@ fn corpus_source_plan(
                 || proof.output_bytes != receipt.origin.source_size_bytes
                 || release
                     .compiler_bindings
-                    .get("scripts/tos_corpus_index_common.py")
+                    .get("rust/crates/tos-compiler/src/source_corpus.rs")
                     .map(|sha| sha.to_hex())
                     != Some(proof.owner_program_sha256.clone())
                 || release

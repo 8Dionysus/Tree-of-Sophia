@@ -689,7 +689,6 @@ fn scan_source(meter: &mut Meter) -> Result<(), String> {
         "access/web/src",
     ];
     let mut paths = vec![
-        "access/pyproject.toml".to_owned(),
         "access/web/index.html".to_owned(),
     ];
     let mut visited_entries = 0u64;

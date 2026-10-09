@@ -561,13 +561,47 @@ mod tests {
         let b = "b".repeat(64);
         let artifact = "c".repeat(64);
         let manifest = "d".repeat(64);
+        assert!(Status::new(&root, "other").is_err());
+        let stats_root = scratch.0.join("stats-state");
+        let stats = Status::new(&stats_root, "stats").unwrap();
+        assert_eq!(stats.status(&a).unwrap()["freshness"], "missing");
+        assert!(!stats_root.exists());
         assert_eq!(
             status.status(&a).unwrap(),
             json!({"state":null,"freshness":"missing","latest_attempt":null})
         );
+        assert!(status.begin("bad-digest").is_err());
         assert!(!scratch.0.exists());
         let first = status.begin(&a).unwrap();
+        assert!(status.succeed(&first, "bad-digest", &manifest).is_err());
+        assert!(status.fail(&first, "").is_err());
+        assert_eq!(
+            status.status(&a).unwrap()["latest_attempt"]["state"],
+            "running"
+        );
         status.succeed(&first, &artifact, &manifest).unwrap();
+        let first_success = status.status(&a).unwrap();
+        assert_eq!(first_success["freshness"], "current");
+        assert_eq!(
+            first_success["latest_attempt"]["state"].as_str(),
+            Some("succeeded")
+        );
+        assert_eq!(
+            first_success["state"]["last_success"]["artifact_revision"].as_str(),
+            Some(artifact.as_str())
+        );
+        assert_eq!(
+            first_success["state"]["last_success"]["artifact_manifest_sha256"].as_str(),
+            Some(manifest.as_str())
+        );
+        assert!(
+            first_success["state"]["last_success"]["completed_at"]
+                .as_str()
+                .unwrap()
+                >= first_success["state"]["last_success"]["started_at"]
+                    .as_str()
+                    .unwrap()
+        );
         let old = status.begin(&b).unwrap();
         let second = status.begin(&b).unwrap();
         assert!(
@@ -582,6 +616,14 @@ mod tests {
         let state = status.status(&b).unwrap();
         assert_eq!(state["freshness"], "current");
         assert_eq!(state["state"]["previous_success"]["attempt_id"], first);
+        assert_eq!(
+            state["state"]["previous_success"]["source_revision"].as_str(),
+            Some(a.as_str())
+        );
+        assert_eq!(
+            state["state"]["last_success"]["source_revision"].as_str(),
+            Some(b.as_str())
+        );
         assert_eq!(status.status(&a).unwrap()["freshness"], "stale");
         let failed = status.begin(&a).unwrap();
         status.fail(&failed, &"λ".repeat(5000)).unwrap();
@@ -607,6 +649,11 @@ mod tests {
         assert!(Status::new(&scratch.0.join("alias/state"), "kag").is_err());
         let status = Status::new(&scratch.0.join("state"), "kag").unwrap();
         let a = "a".repeat(64);
+        let lock_root = scratch.0.join("lock-link");
+        fs::create_dir_all(&lock_root).unwrap();
+        symlink(scratch.0.join("outside"), lock_root.join(".lock")).unwrap();
+        let lock_status = Status::new(&lock_root, "kag").unwrap();
+        assert!(lock_status.status(&a).is_err());
         let attempt = status.begin(&a).unwrap();
         assert!(status.fail(&attempt, "bad\0error").is_err());
         assert_eq!(

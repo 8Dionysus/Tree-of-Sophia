@@ -1,7 +1,7 @@
 # Managed local native access v1
 
-This Linux consumer profile ports the existing `ReleaseStore`/`DataGuard`
-release-holder role. It selects an already admitted projection. It does not
+The native Rust owner implements the managed release lifecycle and holder
+checks. It selects an already admitted projection. It does not
 admit a source, grant rights to source records or payloads, or issue a public
 service credential. The first execution candidate is an isolated software
 fixture; this contract does not activate an installed/public release.
@@ -98,8 +98,8 @@ and its bounded ordered original rows. The same release hold covers every
 consulted header/node/edge grant through final flush. Missing phi originals
 leave those tools unavailable; the consumer does not derive them from normalized
 knowledge rows. No philosophy one-shot CLI is added. It does not expose a new raw header/rights
-or source-byte operation. Exact source record/text remains the separate opt-in
-`SelectedSourceReadService`/`SourceOwnerBinding` contract. Indexed transport
+or source-byte operation. Exact source record/text remains the separate opt-in native source-owner
+contract in `source-read.v1.schema.json`. Indexed transport
 continuations and compressed publication require their respective real owner
 seams; readiness is not inferred from an engine capability packet.
 

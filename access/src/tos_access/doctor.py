@@ -38,12 +38,6 @@ def doctor_report(*, tos_root: str | Path | None = None,
     return report
 
 
-def reference_doctor_report(**arguments):
-    """Explicit historical diagnostic oracle; never selected as fallback."""
-    from .reference_doctor import reference_doctor_report as oracle
-    return oracle(**arguments)
-
-
 def web_root_for(core) -> Path | None:
     from .locations import web_root
     return web_root()

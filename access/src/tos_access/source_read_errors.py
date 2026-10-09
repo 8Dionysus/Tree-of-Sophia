@@ -1,4 +1,4 @@
-"""Shared error identities for reference and native exact-source callers."""
+"""Error identities used by the native exact-source SDK adapters."""
 
 class SourceReadError(ValueError):
     """The supplied ABI value is structurally invalid."""

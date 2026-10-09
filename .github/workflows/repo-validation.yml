@@ -308,6 +308,19 @@ jobs:
             --web-dist "$root/access/web/dist" --output "$archive" \
             --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
             --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
+          repeated="$RUNNER_TEMP/tree-of-sophia-software-repeat.zip"
+          "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
+            --web-dist "$root/access/web/dist" --output "$repeated" \
+            --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
+            --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
+          if ! cmp --silent "$archive" "$repeated"; then
+            echo 'native software archive is not byte deterministic' >&2
+            exit 1
+          fi
+          if ! cmp --silent "$archive.manifest.json" "$repeated.manifest.json"; then
+            echo 'native software sidecar is not byte deterministic' >&2
+            exit 1
+          fi
           "$native" software verify --archive "$archive" "${limits[@]}"
           "$native" software install --archive "$archive" --prefix "$RUNNER_TEMP/tos-native-install" "${limits[@]}"
           env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --help
@@ -319,14 +332,7 @@ jobs:
           printf 'TOS_E2E_SITE_EXECUTABLE=%s\n' "$RUNNER_TEMP/tos-native-install/access/src/tos_access/tos-access" >> "$GITHUB_ENV"
 
       - name: Test browser behavior with bounded native fixtures
-        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --run software_browser'
-
-      - name: Retain unique legacy wheel and integrity reference checks
-        run: |
-          python access/packaging/build_software_bundle.py \
-            --output "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip" \
-            --source-ref "${{ github.sha }}"
-          python access/packaging/validate_software_bundle.py --bundle "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip" --native-prefix "$RUNNER_TEMP/tos-native-install"
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_browser'
 
       - name: Preserve validated software candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

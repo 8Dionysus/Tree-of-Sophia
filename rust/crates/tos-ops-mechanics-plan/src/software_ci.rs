@@ -487,12 +487,18 @@ mod tests {
             (vec!["README.md", "docs/RELEASING.md"], "none", false, false),
             (vec!["access/web/src/Graph.tsx"], "browser", false, false),
             (vec!["access/e2e/test_webmcp.py"], "browser", false, false),
-            (vec!["access/src/tos_access/cli.py"], "reader", true, false),
+            (vec!["access/src/tos_access/native_access_core.py"], "reader", true, false),
             (
-                vec!["access/tests/test_data_access.py"],
+                vec!["access/tests/test_data_snapshot.py"],
                 "reader",
                 true,
                 false,
+            ),
+            (
+                vec!["rust/crates/tos-access/src/software_archive.rs"],
+                "browser",
+                false,
+                true,
             ),
             (
                 vec!["access/deploy/cloudflare-worker/src/index.ts"],
@@ -531,7 +537,6 @@ mod tests {
         for path in [
             "access/contracts/query-store.v1.json",
             "access/profiles/reader.json",
-            "access/packaging/build_software_bundle.py",
             "requirements-dev.txt",
             "pytest.ini",
             ".github/workflows/repo-validation.yml",

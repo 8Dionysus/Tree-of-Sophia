@@ -1,7 +1,7 @@
-"""Explicit source-selected Core bridge over the private native snapshot CLI.
+"""Python SDK bridge over the installed native Core.
 
-This is an opt-in imported SDK adapter. It does not replace ReferenceToSAccessCore,
-resolve paths from the process at call time, or run the Python semantic builders.
+The adapter freezes caller-selected paths and delegates whole-Core work to the
+native product; it does not contain query semantics or provide a fallback.
 """
 from __future__ import annotations
 
@@ -89,10 +89,9 @@ def _decode_object(raw: bytes, label: str) -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class NativeCoreSnapshotSelection:
-    """Caller-selected root, seven original carrier paths, and QueryStore selector.
+    """Caller-selected root, seven carrier paths, and QueryStore selector.
 
-    Use ``from_reference`` to capture the maintained Reference selector choices
-    once. The search read model/compressed store is deliberately not an input.
+    The search read model/compressed store is deliberately not an input.
     """
 
     tos_root: Path
@@ -155,42 +154,6 @@ class NativeCoreSnapshotSelection:
         return prepared.discover(cls, tos_root, query_store_path, carrier_selectors,
             state, maximum_owner_objects=maximum_owner_objects,
             source_root_only=source_root_only)
-
-    @classmethod
-    def from_reference(cls, reference, *, query_store_path: str | Path | None = None):
-        """Copy Reference's already selected paths without calling its readers.
-
-        ``query_store_path`` is a separate additive native selector. When absent,
-        this captures only the legacy TOS_QUERY_STORE_PATH or reference default;
-        search_read_model_path is never consulted.
-        """
-        from .locations import QUERY_STORE_RELATIVE_PATH as DEFAULT_RELATIVE_PATH
-
-        root = Path(reference.tos_root).expanduser()
-        if '..' in root.parts:
-            raise ValueError('Reference tos_root parent traversal cannot be frozen as a native selector')
-        if not root.is_absolute():
-            root = Path(os.path.abspath(root))
-        if query_store_path is not None:
-            selected = Path(query_store_path).expanduser()
-            configured = True
-        else:
-            ambient = os.environ.get('TOS_QUERY_STORE_PATH')
-            configured = bool(ambient)
-            selected = Path(ambient).expanduser() if configured else root / DEFAULT_RELATIVE_PATH
-        if not selected.is_absolute():
-            selected = root / selected
-        fields = {}
-        for name in _SOURCE_PATH_FIELDS:
-            selected_path = Path(getattr(reference, name)).expanduser()
-            if '..' in selected_path.parts:
-                raise ValueError(f'Reference {name} parent traversal cannot be frozen as a native selector')
-            if not selected_path.is_absolute():
-                selected_path = Path(os.path.abspath(selected_path))
-            fields[name] = selected_path
-        return cls(tos_root=root, **fields,
-                   query_store_path=selected,
-                   query_store_configured=configured)
 
     def source_paths_wire(self) -> dict[str, str]:
         return {name: os.fspath(getattr(self, name)) for name in _SOURCE_PATH_FIELDS}
@@ -425,7 +388,7 @@ class NativeCoreSnapshotClient:
             if guard is not None:
                 raise ValueError('raw native selection returned a snapshot guard')
             return
-        from .core import DataAccessUnavailable
+        from .native_core_errors import DataAccessUnavailable
         if (type(guard) is not str or len(guard) != 64
                 or any(c not in '0123456789abcdef' for c in guard)):
             raise DataAccessUnavailable('native snapshot guard receipt missing or invalid')
@@ -474,7 +437,7 @@ class NativeCoreSnapshotClient:
             except Exception as error:
                 from .native_core_session import NativeSessionRefused
                 if isinstance(error, NativeSessionRefused) and error.code == 'DataAccessUnavailable':
-                    from .core import DataAccessUnavailable
+                    from .native_core_errors import DataAccessUnavailable
                     state.reserve(DataAccessUnavailable.__basicsize__ + state.geometry.gc_header
                                   + state.geometry.tuple_base + state.geometry.pointer)
                     raise DataAccessUnavailable(str(error)) from error
@@ -732,7 +695,7 @@ class NativeCoreSnapshotClient:
         with self._operation(op) as call:
             if (self._published_graph is None or previous_graph is not self._published_graph
                     or self._state_file is None):
-                from .core import AddressedUpdateError
+                from .native_core_errors import AddressedUpdateError
                 raise AddressedUpdateError(
                     'addressed update parent is stale; previous snapshot is not the current published snapshot')
             arguments = {
@@ -789,21 +752,17 @@ class NativeCoreSnapshotClient:
                     successor.close()
                 raise
 
-    def knowledge_snapshot_once(self, *, include_catalog_inputs: bool = False) -> dict[str, Any]:
-        if type(include_catalog_inputs) is not bool:
-            raise ValueError('include_catalog_inputs must be a boolean')
+    def knowledge_snapshot_once(self) -> dict[str, Any]:
         op = 'tos_knowledge_snapshot_once'
         with self._operation(op) as call:
             result, reused, successor = self._exchange(
-                op, {'include_catalog_inputs': include_catalog_inputs}, call)
+                op, {}, call)
             if reused is not None or successor is not None:
                 if successor is not None:
                     successor.close()
                 raise ValueError('one-shot native Core call must not return retained state')
             result = self._object(result, 'one-shot snapshot')
             expected = {'graph', 'catalog', 'source_state'}
-            if include_catalog_inputs:
-                expected.add('catalog_inputs')
             if set(result) != expected:
                 raise ValueError('native one-shot snapshot public result keys differ')
             self._object(result['graph'], 'one-shot graph')
@@ -818,18 +777,6 @@ class NativeCoreSnapshotClient:
                     raise ValueError('native one-shot source_state tuple shape differs')
                 converted.append(tuple(row))
             result['source_state'] = tuple(converted)
-            if include_catalog_inputs:
-                fields = self._object(result['catalog_inputs'], 'catalog inputs')
-                if set(fields) != {'header', 'entity_type_registry', 'relation_type_registry',
-                                   'lenses', 'source_order_profile'}:
-                    raise ValueError('native CatalogInputs fields differ')
-                from .catalog_semantics import CatalogInputs, SEQUENCE_ORDER
-                if fields['source_order_profile'] != SEQUENCE_ORDER:
-                    raise ValueError('native source order profile differs from the original graph encounter order')
-                result['catalog_inputs'] = CatalogInputs(
-                    fields['header'], fields['entity_type_registry'],
-                    fields['relation_type_registry'], fields['lenses'],
-                    source_order_profile=fields['source_order_profile'])
             return result
 
     def _read(self, public_name: str, arguments: dict[str, Any] | None = None):

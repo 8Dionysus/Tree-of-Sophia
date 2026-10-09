@@ -2,7 +2,7 @@
 
 The adapter owns absolute argv/path framing. The native selected executor owns
 all authority, query validation and data compatibility. There is no graph build
-or Python SourceReadService execution in this factory.
+or a Python source reader in this factory.
 """
 from __future__ import annotations
 
@@ -22,6 +22,12 @@ from threading import Condition, RLock
 from typing import Any
 
 from .native_core import NativeCore
+
+# Defaults for the installed Rust owner's optional ordinary-search selector.
+# These wire-profile numbers stay here as SDK framing; no Python SQLite index
+# or query implementation is retained.
+SEARCH_READ_MODEL_MAX_POSTINGS = 10_000_000
+SEARCH_READ_MODEL_MAX_VERIFY_CHARS = 16_000_000
 
 
 def _selected_path(value: str | Path, name: str) -> Path:
@@ -169,13 +175,18 @@ class NativeAccessCore(NativeCore):
                  concept_max_file_bytes: int | None = None,
                  concept_max_total_file_bytes: int | None = None,
                  native_state_root: str | Path | None = None,
-                 source_read_service: Any | None = None,
+                 source_provider: Any | None = None,
                  core_snapshot_selection: Any | None = None,
                  core_snapshot_admission_provider: Any | None = None,
                  core_snapshot_native_owned: bool = False,
                  core_snapshot_snapshot_root: str | Path | None = None,
                  core_snapshot_release_root: str | Path | None = None,
-                 core_snapshot_expected_reference_guard: str | None = None):
+                 core_snapshot_expected_reference_guard: str | None = None,
+                 source_read_service: Any | None = None):
+        if source_provider is not None and source_read_service is not None:
+            raise ValueError('select source_provider or source_read_service, not both')
+        if source_provider is None:
+            source_provider = source_read_service
         self._lifetime_lock = RLock()
         self._closed = False
         self._ephemeral_state = None
@@ -192,24 +203,18 @@ class NativeAccessCore(NativeCore):
         self._selected_source_provider = False
         self._selected_calls_condition = Condition()
         self._selected_calls = 0
-        if source_read_service is not None:
+        if source_provider is not None:
             if source_inputs_path is not None or source_local_text_selection_path is not None:
                 raise ValueError('select one persisted or embedded source owner')
             from .native_source_provider import NativeSourceProvider
             from .native_selected_source import NativeSelectedSourceProvider
-            if isinstance(source_read_service, (NativeSourceProvider, NativeSelectedSourceProvider)):
-                if source_read_service.prefix != prefix:
+            if isinstance(source_provider, (NativeSourceProvider, NativeSelectedSourceProvider)):
+                if source_provider.prefix != prefix:
                     raise ValueError('embedded source provider uses a different native prefix')
-                self._source_provider = source_read_service
-                self._selected_source_provider = isinstance(source_read_service, NativeSelectedSourceProvider)
+                self._source_provider = source_provider
+                self._selected_source_provider = isinstance(source_provider, NativeSelectedSourceProvider)
             else:
-                from .source_read import SourceReadService
-                if not isinstance(source_read_service, SourceReadService):
-                    raise TypeError('embedded source owner requires NativeSourceProvider or SourceReadService')
-                # Compatibility comparison only: the legacy object's constructor
-                # has already run. New callers use native provider initialization.
-                self._source_provider = NativeSourceProvider.from_reference_service(prefix, source_read_service)
-                self._owns_source_provider = True
+                raise TypeError('embedded source owner requires a native source provider')
         self.tos_root = None if tos_root is None else _selected_path(tos_root, 'tos_root')
         self.release_root = None if release_root is None else _selected_path(release_root, 'release_root')
         self._core_snapshot_release_root = (
@@ -274,8 +279,6 @@ class NativeAccessCore(NativeCore):
         self._has_prepared_checkpoints = published_exploration_checkpoint_path is not None
         self._search_read_model_options = None
         if self.tos_root is not None:
-            from .search_read_model import (SEARCH_READ_MODEL_MAX_POSTINGS,
-                                            SEARCH_READ_MODEL_MAX_VERIFY_CHARS)
             configured_path = (search_read_model_path or
                                os.environ.get('TOS_SEARCH_READ_MODEL_PATH'))
             if configured_path is None:
@@ -690,9 +693,8 @@ class NativeAccessCore(NativeCore):
     def knowledge_snapshot(self) -> dict[str, Any]:
         return self._core_snapshot_call('knowledge_snapshot')
 
-    def knowledge_snapshot_once(self, *, include_catalog_inputs: bool = False) -> dict[str, Any]:
-        return self._core_snapshot_call(
-            'knowledge_snapshot_once', include_catalog_inputs=include_catalog_inputs)
+    def knowledge_snapshot_once(self) -> dict[str, Any]:
+        return self._core_snapshot_call('knowledge_snapshot_once')
 
     def _ensure_open(self):
         if self._closed:

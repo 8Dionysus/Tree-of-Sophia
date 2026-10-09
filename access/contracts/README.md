@@ -30,8 +30,8 @@ returned in that packet and contains the packet `source_revision` plus one
 `source_record` or full `source_claim`. This is a pure target projection: a
 source path, `claim_ref`, ID prefix, `latest` lookup, or owner scan cannot create
 an entry, and an entry does not promise that a source-read owner is configured
-or current. `SourceReadService` revalidates the exact target and owner epoch
-before issuing any handle; unsupported or ambiguous carriers remain absent.
+or current. The native owner-bound source-read route revalidates the exact target and owner
+epoch before issuing any handle; unsupported or ambiguous carriers remain absent.
 The ToS-owned entity and relation registries under
 `ToS/doctrine/semantic-interchange/` add stable machine type IDs, hierarchy,
 source crosswalks, localized definitions, relation domain/range, direction,

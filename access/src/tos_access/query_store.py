@@ -59,8 +59,6 @@ class QueryStore:
 
     @contextmanager
     def connect(self):
-        from .data_access import check_data_path
-        check_data_path(self.path)
         try:
             stat = self.path.stat()
             if (stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns) != self.file_identity:
@@ -275,7 +273,6 @@ class QueryStore:
         return rows[0]
 
     def inspect_node(self, identifier, relation_limit=200):
-        from .source_read_projection import source_read_targets
         identifier = str(identifier).strip()
         if not identifier:
             raise ValueError('knowledge node id is required')
@@ -293,11 +290,9 @@ class QueryStore:
                 'shared_entity_id': field == 'entity_id' and len(matches) > 1, 'matches': matches,
                 'related_relations': relations, 'counts': {'matches': len(matches), 'related_relations': count, 'returned_relations': len(relations)},
                 'source_refs': sorted({ref for item in [*matches, *relations] for ref in k._strings(item.get('source_refs'))}),
-                'source_read_targets': source_read_targets([*matches, *relations], self.header['source_revision']),
                 'authority_boundary': self.header.get('authority_boundary', {})}
 
     def inspect_relation(self, identifier):
-        from .source_read_projection import source_read_targets
         identifier = str(identifier).strip()
         if not identifier:
             raise ValueError('knowledge relation id is required')
@@ -310,7 +305,6 @@ class QueryStore:
                 'requested_id': identifier, 'ambiguous_native_id': field == 'native_id' and len(matches) > 1,
                 'matches': matches, 'endpoints': endpoints, 'counts': {'matches': len(matches), 'endpoints': len(endpoints)},
                 'source_refs': sorted({ref for item in [*matches, *endpoints] for ref in k._strings(item.get('source_refs'))}),
-                'source_read_targets': source_read_targets([*matches, *endpoints], self.header['source_revision']),
                 'authority_boundary': self.header.get('authority_boundary', {})}
 
     def selection(self, table, sources, group, *, sorts=None, extra='1', params=()):

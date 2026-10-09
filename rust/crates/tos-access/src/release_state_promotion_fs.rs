@@ -176,6 +176,12 @@ struct Root {
 }
 impl Root {
     fn acquire(path: &Path, deadline: Instant) -> Result<Self> {
+        Self::open(path, deadline, true)
+    }
+    fn open_existing(path: &Path, deadline: Instant) -> Result<Self> {
+        Self::open(path, deadline, false)
+    }
+    fn open(path: &Path, deadline: Instant, create: bool) -> Result<Self> {
         active(deadline)?;
         normalized(path)?;
         let parent_path = path
@@ -189,7 +195,14 @@ impl Root {
         let parent = tos_fd_open::open_absolute_directory(&parent_path)
             .map_err(|_| "release private parent unavailable")?;
         private_dir(&parent, true)?;
-        let file = directory(&parent, &leaf, deadline)?;
+        let file = if create {
+            directory(&parent, &leaf, deadline)?
+        } else {
+            let file = tos_fd_open::open_directory_at(&parent, Path::new(&leaf))
+                .map_err(|_| "release private root unavailable")?;
+            private_dir(&file, false)?;
+            file
+        };
         let root = Self {
             path: path.to_path_buf(),
             parent_path,
@@ -235,16 +248,27 @@ struct Store {
 }
 impl Store {
     fn acquire(root: &Path, deadline: Instant) -> Result<Self> {
-        let root = Root::acquire(root, deadline)?;
+        Self::open(root, deadline, true)
+    }
+    fn open_existing(root: &Path, deadline: Instant) -> Result<Self> {
+        Self::open(root, deadline, false)
+    }
+    fn open(root: &Path, deadline: Instant, create: bool) -> Result<Self> {
+        let root = if create {
+            Root::acquire(root, deadline)?
+        } else {
+            Root::open_existing(root, deadline)?
+        };
         let lock = open_at(
             &root.file,
             OsStr::new(".release.lock"),
-            libc::O_RDWR | libc::O_CREAT,
+            if create { libc::O_RDWR | libc::O_CREAT } else { libc::O_RDONLY },
         )?;
         regular(&lock)?;
+        let lock_mode = if create { libc::LOCK_EX } else { libc::LOCK_SH };
         loop {
             active(deadline)?;
-            if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0 {
+            if unsafe { libc::flock(lock.as_raw_fd(), lock_mode | libc::LOCK_NB) } == 0 {
                 break;
             }
             let error = std::io::Error::last_os_error().raw_os_error();
@@ -255,12 +279,22 @@ impl Store {
                 Duration::from_millis(2).min(deadline.saturating_duration_since(Instant::now())),
             );
         }
-        let pairs = directory(&root.file, OsStr::new("pairs"), deadline)?;
-        let bindings = directory(&root.file, OsStr::new("bindings"), deadline)?;
-        let revocations = directory(&root.file, OsStr::new("revocations"), deadline)?;
-        let revoked_data = directory(&revocations, OsStr::new("data"), deadline)?;
-        let revoked_corpus = directory(&revocations, OsStr::new("corpus"), deadline)?;
-        let revoked_software = directory(&revocations, OsStr::new("software"), deadline)?;
+        let open_dir = |parent: &File, leaf: &str| {
+            if create {
+                directory(parent, OsStr::new(leaf), deadline)
+            } else {
+                let dir = tos_fd_open::open_directory_at(parent, Path::new(leaf))
+                    .map_err(|_| "release managed directory unavailable")?;
+                private_dir(&dir, false)?;
+                Ok(dir)
+            }
+        };
+        let pairs = open_dir(&root.file, "pairs")?;
+        let bindings = open_dir(&root.file, "bindings")?;
+        let revocations = open_dir(&root.file, "revocations")?;
+        let revoked_data = open_dir(&revocations, "data")?;
+        let revoked_corpus = open_dir(&revocations, "corpus")?;
+        let revoked_software = open_dir(&revocations, "software")?;
         let store = Self {
             root,
             pairs,
@@ -474,6 +508,136 @@ fn stored_pair(
     bindings(&raw, limits, deadline, charges)?;
     Ok(())
 }
+fn stored_records(
+    store: &Store,
+    id: &str,
+    limits: JsonLimits,
+    deadline: Instant,
+    charges: &mut dyn Charges,
+) -> Result<(JsonValue, Vec<u8>, Vec<u8>)> {
+    let leaf = format!("{id}.json");
+    let pair_raw = read_optional(&store.pairs, &leaf, limits.max_bytes, deadline, charges)?
+        .ok_or("current immutable pair absent")?;
+    let pair = canonical(&pair_raw, limits, charges)?;
+    if state::validate_release_pair(&pair, &pair_raw).map_err(|error| error.to_string())? != id {
+        return Err("current pair filename digest differs".into());
+    }
+    let bindings_raw =
+        read_optional(&store.bindings, &leaf, limits.max_bytes, deadline, charges)?
+            .ok_or("current immutable bindings absent")?;
+    bindings(&bindings_raw, limits, deadline, charges)?;
+    Ok((pair, pair_raw, bindings_raw))
+}
+
+pub(super) struct PreviousRelease {
+    pub(super) current: String,
+    pub(super) previous: String,
+    pub(super) pair_raw: Vec<u8>,
+    pub(super) bindings_raw: Vec<u8>,
+}
+
+/// Read exactly the stored previous pair under the private writer lock. The
+/// caller releases this lock before the expensive owner verification; the
+/// rollback commit later requires the same target still be the pointer's
+/// previous pair and rechecks the full pointer CAS.
+pub(super) fn previous_release(
+    root: &Path,
+    expected_current: &str,
+    deadline: Instant,
+    max_metadata_bytes: usize,
+    charges: &mut dyn Charges,
+) -> Result<PreviousRelease> {
+    active(deadline)?;
+    Digest256::from_hex(expected_current).map_err(|_| "expected_current digest invalid")?;
+    if max_metadata_bytes == 0 || max_metadata_bytes > state::METADATA_LIMITS.max_bytes {
+        return Err("release metadata budget invalid".into());
+    }
+    let limits = JsonLimits {
+        max_bytes: max_metadata_bytes,
+        ..state::METADATA_LIMITS
+    };
+    charges.state(
+        std::mem::size_of::<Store>()
+            + root.as_os_str().len()
+            + root.parent().ok_or("release parent absent")?.as_os_str().len()
+            + root.file_name().ok_or("release leaf absent")?.len(),
+    )?;
+    let store = Store::acquire(root, deadline)?;
+    charges.verify_inputs()?;
+    let original = pointer(&store, limits, deadline, charges)?
+        .ok_or("cannot rollback without a current release pointer")?;
+    let current = original.0.as_str();
+    if current != expected_current {
+        return Err("expected_current does not match current release".into());
+    }
+    let previous = original
+        .1
+        .as_deref()
+        .ok_or("current release has no previous pair to roll back to")?;
+    // As in the Python owner, corrupt current state blocks rollback even though
+    // it is the pair being replaced.
+    stored_records(&store, current, limits, deadline, charges)?;
+    let (_, pair_raw, bindings_raw) =
+        stored_records(&store, previous, limits, deadline, charges)?;
+    store.check(deadline)?;
+    if pointer(&store, limits, deadline, charges)? != Some(original) {
+        return Err("release pointer changed while reading rollback target".into());
+    }
+    Ok(PreviousRelease {
+        current: current.to_owned(),
+        previous: previous.to_owned(),
+        pair_raw,
+        bindings_raw,
+    })
+}
+pub(super) struct CurrentRelease {
+    pub(super) pair_id: String,
+    pub(super) pair_raw: Vec<u8>,
+    pub(super) bindings_raw: Vec<u8>,
+    pub(super) previous: Option<String>,
+}
+
+/// Read status without creating the store or its lock/layout. The shared lock
+/// keeps pair, bindings, pointer and revocations from changing during the read.
+pub(super) fn current_release(
+    root: &Path,
+    deadline: Instant,
+    max_metadata_bytes: usize,
+    charges: &mut dyn Charges,
+) -> Result<CurrentRelease> {
+    active(deadline)?;
+    if max_metadata_bytes == 0 || max_metadata_bytes > state::METADATA_LIMITS.max_bytes {
+        return Err("release metadata budget invalid".into());
+    }
+    let limits = JsonLimits {
+        max_bytes: max_metadata_bytes,
+        ..state::METADATA_LIMITS
+    };
+    charges.state(
+        std::mem::size_of::<Store>()
+            + root.as_os_str().len()
+            + root.parent().ok_or("release parent absent")?.as_os_str().len()
+            + root.file_name().ok_or("release leaf absent")?.len(),
+    )?;
+    let store = Store::open_existing(root, deadline)?;
+    charges.verify_inputs()?;
+    let original = pointer(&store, limits, deadline, charges)?
+        .ok_or("no current release pointer exists")?;
+    let pair_id = original.0.clone();
+    let (pair, pair_raw, bindings_raw) = stored_records(&store, &pair_id, limits, deadline, charges)?;
+    store.available(&pair, deadline)?;
+    store.check(deadline)?;
+    if pointer(&store, limits, deadline, charges)? != Some(original.clone()) {
+        return Err("release pointer changed while reading status".into());
+    }
+    Ok(CurrentRelease {
+        pair_id,
+        pair_raw,
+        bindings_raw,
+        previous: original.1,
+    })
+}
+
 struct Temporary<'a> {
     dir: &'a File,
     leaf: String,
@@ -651,6 +815,88 @@ fn pointer_raw(
     charges.state(raw.len())?;
     Ok(raw)
 }
+fn revocation_raw(
+    kind: &str,
+    digest: &str,
+    reason: &str,
+    owner_ref: &str,
+    limits: JsonLimits,
+    charges: &mut dyn Charges,
+) -> Result<Vec<u8>> {
+    if !matches!(kind, "data" | "corpus" | "software") {
+        return Err("release revocation kind must be data, corpus, or software".into());
+    }
+    let encoded = serde_json::to_vec(&serde_json::json!({
+        "schema_version":"tos_access_release_revocation_v1",
+        "kind":kind,
+        "digest":digest,
+        "reason":reason,
+        "owner_ref":owner_ref
+    }))
+    .map_err(|_| "release revocation encoding failed")?;
+    let value = parse_json_with_state_budget(
+        &encoded,
+        JsonMode::PublishedStrict,
+        limits,
+        charges.available_state(),
+    )
+    .map_err(|_| "release revocation JSON invalid")?
+    .into_root();
+    state::validate_release_revocation(&value, kind, digest).map_err(|error| error.to_string())?;
+    charges.state(
+        encoded
+            .len()
+            .checked_add(value.retained_state_bytes().map_err(|e| e.to_string())?)
+            .ok_or("release revocation state overflow")?,
+    )?;
+    let raw = canonical_bytes_v1(
+        &value,
+        CanonicalProfile::CorpusSnapshotV1,
+        JsonLimits {
+            max_bytes: limits.max_bytes.min(charges.available_state()),
+            ..limits
+        },
+    )
+    .map_err(|_| "release revocation canonicalization failed")?;
+    charges.state(raw.len())?;
+    Ok(raw)
+}
+
+/// Write one permanent revocation record. An identical retry succeeds, while
+/// different metadata for an existing digest is a collision and never replaces
+/// the earlier owner decision.
+pub(super) fn revoke_digest(
+    root: &Path,
+    kind: &str,
+    digest: &str,
+    reason: &str,
+    owner_ref: &str,
+    deadline: Instant,
+    max_metadata_bytes: usize,
+    charges: &mut dyn Charges,
+) -> Result<()> {
+    active(deadline)?;
+    if max_metadata_bytes == 0 || max_metadata_bytes > state::METADATA_LIMITS.max_bytes {
+        return Err("release metadata budget invalid".into());
+    }
+    let limits = JsonLimits {
+        max_bytes: max_metadata_bytes,
+        ..state::METADATA_LIMITS
+    };
+    let raw = revocation_raw(kind, digest, reason, owner_ref, limits, charges)?;
+    let store = Store::acquire(root, deadline)?;
+    let directory = match kind {
+        "data" => &store.revoked_data,
+        "corpus" => &store.revoked_corpus,
+        "software" => &store.revoked_software,
+        _ => return Err("release revocation kind must be data, corpus, or software".into()),
+    };
+    let leaf = format!("{digest}.json");
+    immutable(directory, &leaf, &raw, limits, deadline, charges)?;
+    store.check(deadline)?;
+    Ok(())
+}
+
 /// The parent has already authenticated the genuine native/software/cold pair.
 /// An Err precedes pointer commit. Once rename succeeds, failure stays in the
 /// structured outcome with committed=true; no rollback or foreign deletion.
@@ -659,6 +905,52 @@ pub(super) fn publish_verified_pair(
     pair_raw: &[u8],
     bindings_raw: &[u8],
     expected_current: Option<&str>,
+    deadline: Instant,
+    max_metadata_bytes: usize,
+    charges: &mut dyn Charges,
+) -> Result<Publication> {
+    publish_verified_pair_inner(
+        root,
+        pair_raw,
+        bindings_raw,
+        expected_current,
+        false,
+        deadline,
+        max_metadata_bytes,
+        charges,
+    )
+}
+
+/// Roll back only to the exact stored previous pair. The caller supplies the
+/// same sealed verification loan as promotion, so the previous candidate is
+/// deeply rechecked before the writer's exact-pointer CAS.
+pub(super) fn rollback_verified_previous(
+    root: &Path,
+    pair_raw: &[u8],
+    bindings_raw: &[u8],
+    expected_current: &str,
+    deadline: Instant,
+    max_metadata_bytes: usize,
+    charges: &mut dyn Charges,
+) -> Result<Publication> {
+    publish_verified_pair_inner(
+        root,
+        pair_raw,
+        bindings_raw,
+        Some(expected_current),
+        true,
+        deadline,
+        max_metadata_bytes,
+        charges,
+    )
+}
+
+fn publish_verified_pair_inner(
+    root: &Path,
+    pair_raw: &[u8],
+    bindings_raw: &[u8],
+    expected_current: Option<&str>,
+    rollback_to_previous: bool,
     deadline: Instant,
     max_metadata_bytes: usize,
     charges: &mut dyn Charges,
@@ -694,6 +986,14 @@ pub(super) fn publish_verified_pair(
     let current = original.as_ref().map(|p| p.0.as_str());
     if current != expected_current {
         return Err("expected_current does not match current release".into());
+    }
+    if rollback_to_previous
+        && original
+            .as_ref()
+            .and_then(|pointer| pointer.1.as_deref())
+            != Some(pair_id.as_str())
+    {
+        return Err("rollback target is no longer the stored previous pair".into());
     }
     if let Some(current) = current {
         stored_pair(&store, current, limits, deadline, charges)?;
@@ -887,12 +1187,15 @@ mod tests {
         .unwrap()
     }
     fn pair(label: &str) -> Vec<u8> {
+        let data = format!("test data {label}");
+        let manifest = format!("test manifest {label}");
+        let corpus = format!("test corpus {label}");
         encode(serde_json::json!({
             "schema_version":"tos_access_release_pair_v1",
             "software_sha256":Digest256::of_bytes(label.as_bytes()).to_hex(),
-            "data_revision":Digest256::of_bytes(b"test data").to_hex(),
-            "data_manifest_sha256":Digest256::of_bytes(b"test manifest").to_hex(),
-            "corpus_revision":Digest256::of_bytes(b"test corpus").to_hex(),
+            "data_revision":Digest256::of_bytes(data.as_bytes()).to_hex(),
+            "data_manifest_sha256":Digest256::of_bytes(manifest.as_bytes()).to_hex(),
+            "corpus_revision":Digest256::of_bytes(corpus.as_bytes()).to_hex(),
             "query_schema":"test query", "compiler_version":"test compiler"
         }))
     }
@@ -922,6 +1225,102 @@ mod tests {
         std::fs::write(path, bytes).unwrap();
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
     }
+    #[test]
+    fn status_reads_the_exact_available_pair_without_creating_store_state() {
+        let fixture = Fixture::new();
+        let root = fixture.root();
+        assert!(
+            current_release(
+                &root,
+                Instant::now() + Duration::from_secs(30),
+                state::METADATA_LIMITS.max_bytes,
+                &mut TestCharges { io: 0, state: 0 },
+            )
+            .is_err()
+        );
+        assert!(!root.exists());
+
+        let first_pair = pair("status-a");
+        let first_bindings = binding("status-a");
+        let first = publish(&root, &first_pair, &first_bindings, None).unwrap();
+        let second = publish(
+            &root,
+            &pair("status-b"),
+            &binding("status-b"),
+            Some(&first.pair_id),
+        )
+        .unwrap();
+        let selected = current_release(
+            &root,
+            Instant::now() + Duration::from_secs(30),
+            state::METADATA_LIMITS.max_bytes,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
+        assert_eq!(selected.pair_id, second.pair_id);
+        assert_eq!(selected.pair_raw, pair("status-b"));
+        assert_eq!(selected.bindings_raw, binding("status-b"));
+        assert_eq!(selected.previous.as_deref(), Some(first.pair_id.as_str()));
+
+        let current = canonical(
+            &selected.pair_raw,
+            state::METADATA_LIMITS,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
+        let revoked = state::digest(&current, "software_sha256").unwrap().to_hex();
+        revoke_digest(
+            &root,
+            "software",
+            &revoked,
+            "status refuses withdrawn selection",
+            "test:release-status",
+            Instant::now() + Duration::from_secs(30),
+            state::METADATA_LIMITS.max_bytes,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
+        assert!(
+            current_release(
+                &root,
+                Instant::now() + Duration::from_secs(30),
+                state::METADATA_LIMITS.max_bytes,
+                &mut TestCharges { io: 0, state: 0 },
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn invalid_revocation_metadata_is_refused_before_store_creation() {
+        let fixture = Fixture::new();
+        let root = fixture.root();
+        let uppercase = "A".repeat(64);
+        let lowercase = "a".repeat(64);
+        for (kind, digest, reason, owner) in [
+            ("other", "a", "reason", "owner"),
+            ("data", uppercase.as_str(), "reason", "owner"),
+            ("data", lowercase.as_str(), "", "owner"),
+            ("data", lowercase.as_str(), "bad\nreason", "owner"),
+            ("data", lowercase.as_str(), "reason", "\t"),
+        ] {
+            assert!(
+                revoke_digest(
+                    &root,
+                    kind,
+                    digest,
+                    reason,
+                    owner,
+                    Instant::now() + Duration::from_secs(30),
+                    state::METADATA_LIMITS.max_bytes,
+                    &mut TestCharges { io: 0, state: 0 },
+                )
+                .is_err()
+            );
+            assert!(!root.exists());
+        }
+    }
+
     #[test]
     fn fresh_and_owned_python_layout_publish_with_exact_cas() {
         let fixture = Fixture::new();
@@ -1095,5 +1494,218 @@ mod tests {
         assert!(result.is_err());
         assert!(!root.join("current.json").exists());
         assert_eq!(std::fs::read_dir(root.join("pairs")).unwrap().count(), 0);
+    }
+    #[test]
+    fn rollback_reverifies_exact_previous_and_preserves_pointer_on_refusal() {
+        let fixture = Fixture::new();
+        let root = fixture.root();
+        let first_pair = pair("rollback-a");
+        let first_bindings = binding("rollback-a");
+        let first = publish(&root, &first_pair, &first_bindings, None).unwrap();
+        let second = publish(
+            &root,
+            &pair("rollback-b"),
+            &binding("rollback-b"),
+            Some(&first.pair_id),
+        )
+        .unwrap();
+        let original_pointer = std::fs::read(root.join("current.json")).unwrap();
+        let previous = previous_release(
+            &root,
+            &second.pair_id,
+            Instant::now() + Duration::from_secs(30),
+            state::METADATA_LIMITS.max_bytes,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
+        assert_eq!(previous.current, second.pair_id);
+        assert_eq!(previous.previous, first.pair_id);
+        assert_eq!(previous.pair_raw, first_pair);
+        assert_eq!(previous.bindings_raw, first_bindings);
+
+        struct RefuseVerification(TestCharges);
+        impl Charges for RefuseVerification {
+            fn io(&mut self, n: usize) -> Result<()> {
+                self.0.io(n)
+            }
+            fn state(&mut self, n: usize) -> Result<()> {
+                self.0.state(n)
+            }
+            fn available_state(&self) -> usize {
+                self.0.available_state()
+            }
+            fn verify_inputs(&mut self) -> Result<()> {
+                Err("previous pair verification refused".into())
+            }
+        }
+        assert!(
+            rollback_verified_previous(
+                &root,
+                &first_pair,
+                &first_bindings,
+                &second.pair_id,
+                Instant::now() + Duration::from_secs(30),
+                state::METADATA_LIMITS.max_bytes,
+                &mut RefuseVerification(TestCharges { io: 0, state: 0 }),
+            )
+            .is_err()
+        );
+        assert_eq!(std::fs::read(root.join("current.json")).unwrap(), original_pointer);
+
+        let rolled_back = rollback_verified_previous(
+            &root,
+            &first_pair,
+            &first_bindings,
+            &second.pair_id,
+            Instant::now() + Duration::from_secs(30),
+            state::METADATA_LIMITS.max_bytes,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
+        assert!(rolled_back.committed && rolled_back.durable);
+        assert_eq!(rolled_back.pair_id, first.pair_id);
+        assert_eq!(rolled_back.previous.as_deref(), Some(second.pair_id.as_str()));
+        let pointer: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(root.join("current.json")).unwrap()).unwrap();
+        assert_eq!(pointer["current"], first.pair_id);
+        assert_eq!(pointer["previous"], second.pair_id);
+    }
+
+    #[test]
+    fn revocation_is_immutable_and_rollback_never_resurrects_it() {
+        let fixture = Fixture::new();
+        let root = fixture.root();
+        let first_pair = pair("revoke-a");
+        let first_bindings = binding("revoke-a");
+        let first = publish(&root, &first_pair, &first_bindings, None).unwrap();
+        let second_pair = pair("revoke-b");
+        let second_bindings = binding("revoke-b");
+        let second =
+            publish(&root, &second_pair, &second_bindings, Some(&first.pair_id)).unwrap();
+        let second_value = canonical(
+            &second_pair,
+            state::METADATA_LIMITS,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
+        let digest = state::digest(&second_value, "software_sha256")
+            .unwrap()
+            .to_hex();
+        let revoke = |reason: &str| {
+            revoke_digest(
+                &root,
+                "software",
+                &digest,
+                reason,
+                "test:release-state",
+                Instant::now() + Duration::from_secs(30),
+                state::METADATA_LIMITS.max_bytes,
+                &mut TestCharges { io: 0, state: 0 },
+            )
+        };
+        revoke("current release revoked").unwrap();
+        let path = root
+            .join("revocations/software")
+            .join(format!("{digest}.json"));
+        let original_record = std::fs::read(&path).unwrap();
+        assert!(revoke("different reason").is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), original_record);
+
+        // A revoked current pair can be replaced by a verified previous pair;
+        // rollback neither deletes nor rewrites the current pair's revocation.
+        let rollback = rollback_verified_previous(
+            &root,
+            &first_pair,
+            &first_bindings,
+            &second.pair_id,
+            Instant::now() + Duration::from_secs(30),
+            state::METADATA_LIMITS.max_bytes,
+            &mut TestCharges { io: 0, state: 0 },
+        )
+        .unwrap();
+        assert!(rollback.committed && rollback.durable);
+        assert_eq!(std::fs::read(&path).unwrap(), original_record);
+        let pointer_before_refused_rollback = std::fs::read(root.join("current.json")).unwrap();
+
+        // The same revoked pair can never be restored later as the previous.
+        assert!(
+            rollback_verified_previous(
+                &root,
+                &second_pair,
+                &second_bindings,
+                &first.pair_id,
+                Instant::now() + Duration::from_secs(30),
+                state::METADATA_LIMITS.max_bytes,
+                &mut TestCharges { io: 0, state: 0 },
+            )
+            .is_err()
+        );
+        assert_eq!(
+            std::fs::read(root.join("current.json")).unwrap(),
+            pointer_before_refused_rollback
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), original_record);
+    }
+
+    #[test]
+    fn each_revoked_previous_component_blocks_rollback_without_pointer_change() {
+        for (kind, field) in [
+            ("data", "data_revision"),
+            ("corpus", "corpus_revision"),
+            ("software", "software_sha256"),
+        ] {
+            let fixture = Fixture::new();
+            let root = fixture.root();
+            let target_pair = pair(&format!("rollback-target-{kind}"));
+            let target_bindings = binding(&format!("rollback-target-{kind}"));
+            let target =
+                publish(&root, &target_pair, &target_bindings, None).unwrap();
+            let current = publish(
+                &root,
+                &pair(&format!("rollback-current-{kind}")),
+                &binding(&format!("rollback-current-{kind}")),
+                Some(&target.pair_id),
+            )
+            .unwrap();
+            let target_value = canonical(
+                &target_pair,
+                state::METADATA_LIMITS,
+                &mut TestCharges { io: 0, state: 0 },
+            )
+            .unwrap();
+            let digest = state::digest(&target_value, field).unwrap().to_hex();
+            revoke_digest(
+                &root,
+                kind,
+                &digest,
+                "previous component revoked",
+                "test:release-state",
+                Instant::now() + Duration::from_secs(30),
+                state::METADATA_LIMITS.max_bytes,
+                &mut TestCharges { io: 0, state: 0 },
+            )
+            .unwrap();
+            let pointer_before = std::fs::read(root.join("current.json")).unwrap();
+            assert!(
+                rollback_verified_previous(
+                    &root,
+                    &target_pair,
+                    &target_bindings,
+                    &current.pair_id,
+                    Instant::now() + Duration::from_secs(30),
+                    state::METADATA_LIMITS.max_bytes,
+                    &mut TestCharges { io: 0, state: 0 },
+                )
+                .is_err(),
+                "rollback restored revoked {kind} component"
+            );
+            assert_eq!(std::fs::read(root.join("current.json")).unwrap(), pointer_before);
+            assert!(
+                root.join("revocations")
+                    .join(kind)
+                    .join(format!("{digest}.json"))
+                    .is_file()
+            );
+        }
     }
 }

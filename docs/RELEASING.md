@@ -102,9 +102,10 @@ owner surfaces.
    candidate. It builds matching empty-feature receipts, selects the complete
    command descriptor, and derives package byte limits from the actual six
    executables, web assets and bounded software inputs; it does not reuse an
-   access-only byte cap. Its separate legacy
-   Python wheel/integrity probe remains a reference check; that wheel exposes
-   `tos-legacy`, and is not the normal native artifact. Build-time Python test
+   access-only byte cap. The job builds the same native archive and sidecar
+   twice and compares their bytes before verify/install, retaining the legacy
+   builder's determinism assertion on the maintained artifact. There is no
+   Python wheel reference package in the release candidate path. Python test
    tools do not become runtime dependencies of the native prefix.
    Native prepare fixture calls in CI use a 45-second allowance and a 55-second
    child wait, matching the measured joined maintenance fixture; the native

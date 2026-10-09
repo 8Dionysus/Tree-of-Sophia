@@ -1,14 +1,14 @@
-# Compressed search-v3 service
+# Compressed search-v3: native access route and retired Python design
 
-`src/tos_access/compressed_search_store.py` is an offline-published SQLite
-service. Legacy search and
-`tos_knowledge_search_indexed_v2` are unchanged. `PublishedSearchService` adds
-same-snapshot carrier joins for the explicit local prepared publication. Python
-core, CLI, local HTTP and native MCP expose it through explicit `compressed`
-mode. WebMCP and Cloudflare/D1 do not gain this mode from local integration.
-This does not close foundation K3 or establish full-corpus feasibility.
+The current runtime owner is the installed Rust `tos-query` and `tos-access`
+product. Use its CLI, HTTP, native MCP, or the thin `ToSAccessCore` SDK adapter
+for prepared compressed search. The former Python `SearchStore` and
+`PublishedSearchService` implementation is no longer shipped. This document keeps
+its implementation history below; those details do not describe the current
+runtime or supported Python APIs. The native operation and packet contracts
+remain in the Rust access/query sources and `access/contracts/knowledge-api.v1.json`.
 
-## Producer and reader API
+## Historical Python producer and reader API (retired)
 
 ```python
 prepared = PreparedSearchDocument.from_item(
@@ -435,106 +435,40 @@ Insert-before changed
 282/1373 blocks without other address/order-key changes. This is not a real
 corpus or D1 measurement and must not be extrapolated as one.
 
-Focused checks live in `tests/test_compressed_search_store.py`: complete paged
-reference equality, short/common/absent/Unicode queries, ties, typed filters,
-large-value progress and chunk overlap, cursor integrity/restart/ABA, local
-delta edits/rollback/nonreuse, physical storage and indexed directory seeks.
-`tests/test_search_reverse_codec.py` protects canonical frame boundaries,
-selected corruption, dictionary closure, local mutations and old-version
-refusal. Bulk tests cover 255/256/257 tails, tiny-cache churn, all mutation/page
-refusals, cancellation and scratch cleanup. A frozen storage-2 oracle for 513
-explicit synthetic carriers checks term dictionary, ordered logical forward
-postings and complete query streams; physical block history may differ.
+The old Python producer/reader test suites were retired with those classes.
+Current tests live in the native `tos-query` search modules and the
+installed Access integration routes under
+`rust/crates/tos-access/tests/selected_wires.rs`. The historical
+synthetic measurements above are not a full-corpus forecast.
 
-## Full-carrier publication search
+## Current native full-carrier prepared search
 
-`PublishedSearchService(reader, limits=PublishedSearchLimits())` in
-`src/tos_access/published_search.py` provides the shared internal service for
-`tos_local_prepared_read_model_v1`. Its reader must already carry the exact
-owner-selected `published_snapshot_binding`. `capability()` checks the selected
-reader/search headers and required search/mapping tables and indexes without
-reading a graph or full catalog. Edge v8/v9 are explicitly unavailable for this
-service; none of these methods select a publication from its own database.
+The sections above document the retired Python implementation for historical
+context. Its `SearchStore` and `PublishedSearchService` classes are not installed
+entrypoints.
 
-```python
-service = PublishedSearchService(reader)
-page = service.search(
-    query="common", sources=["philosophy"], kind_ids=None,
-    predicate_ids=None, cursor=None, limit=40,
-)
-```
+The installed native access product owns full-carrier prepared search for
+`tos_local_prepared_read_model_v1`. Its selected native query owner checks
+the publication binding, reads through one verified snapshot, and returns
+complete graph carriers with the `tos_knowledge_search_compressed_v3`
+packet contract. Search normalization, filtering, continuation, work and
+response budgets, and body verification execute in Rust. The Python SDK
+only frames native `tos_knowledge_search` calls; it does not ship a
+`PublishedSearchService` or another Python reader.
 
-Requests use `normalize_search_query` and validate string lists, known sources,
-limits and the 65536-byte query/filter frame before opening SQLite. Empty string
-filters are ignored as in native search; absent/empty sources select all known
-sources. The limit is an integer in 1..100, per kind. The transport normalizer's
-256-character bound includes lower expansion; standalone `SearchStore` keeps
-its separately documented query normalization contract.
-
-One `reader._read` operation supplies one checked connection/snapshot for both
-`SearchStore.query_transaction` calls and all carrier joins. Every address is
-looked up with both `doc_id` and `kind` in `prepared_documents`; a length probe
-precedes the exact mapped ID. Its SHA-256 must equal the search match's exact
-JSON-ID digest. Body/index-column lengths and checksum metadata chunk lengths
-are probed before full rows. `read.items(kind, 'id=?', ...)` then verifies the
-existing emitted-byte checksum and exact full-row/index closure. No alias
-lookup, corpus digest, graph load, producer or alternative reader is used.
-
-The result schema remains `tos_knowledge_search_compressed_v3`, with complete
-unmodified `nodes`/`relations`, `source_revision`, normalized request filters,
-`page`, `counts`, `ranks`, `work`, and the checked source authority boundary.
-`ranks.nodes` and `ranks.relations` align positionally with their body arrays;
-each entry carries `doc_id`, rank 0..3 and a mechanical explanation
-(`exact-identity`, `identity-prefix`, `visible-text`, `serialized-text`, or
-`all-items` for an empty query). These explanations are search ordering, not
-semantic judgments. Returned counts are exact; matching counts are non-null
-only when the initial request exhausts that kind and emits all of its pending
-bodies. Continued pages always have null matching totals.
-
-Each kind performs at most one inner search page per request. Defaults are
-256 candidate/value operations, 65536 verification bytes and 4 MiB search
-metadata per kind. If matches exceed the body/fetch allowance, the unconsumed
-suffix is retained as `[doc_id, rank, sha256(exact_json_id)]` tuples, at most
-100 per kind. Later requests drain that suffix before doing another inner
-search. They do not reread already emitted bodies or repeat the saved search
-work. Empty candidate-work pages with a changing continuation remain valid.
-
-The outer cursor is base64url JSON authenticated with a separate HMAC domain
-using `search_header.cursor_key` from that same checked snapshot. It binds the
-complete selected publication, normalized query/filters, both inner cursors,
-exhaustion states and pending tuples. A canonical sorted-key hash makes
-equivalent binding dictionaries insensitive to JSON member order after restart;
-emitted-row framing is unchanged. The cursor expires absolutely after 15 minutes
-and is at most 65536 encoded ASCII bytes. Hashed exact IDs keep giant identities
-out of the continuation. A different selected binding is stale; a bad MAC alone
-is an invalid cursor and cannot establish whether the cause is ABA or tampering.
-
-The default body allowance is 4 MiB, partitioned into 2 MiB per kind. It is
-further bounded by the configured reader response limit after reserving 512 KiB
-for incoming/outgoing cursors, filters, authority metadata, ranks and top-level
-framing. Each kind must be able to return one maximal admitted reader row; an
-incompatible budget is refused without inflation. The remaining fetch-byte and
-row budgets are split evenly after reserving 66560 bytes and 513 rows for the
-reader's final snapshot check. A kind's fetch share must admit its configured
-inner metadata/verification allowance and a worst-case singleton carrier join;
-otherwise the request fails with `SearchBudgetExceeded`.
-
-Direct search metadata/text bytes are charged into `read.bytes` alongside mapped
-IDs, duplicate index columns, full bodies and checksum metadata. The service
-stops before fetching a body that would exceed its allowance and retains the
-pending match. `work.nodes`/`work.relations` include inner search counters and
-body/defer counts; top-level read counters describe the operation before the
-reserved final snapshot check. Search-owner row/probe counters remain separate
-from `_Read.query` row accounting. The reader validates the entire serialized
-response and performs its post-operation publication check, rejecting a result
-if publication changed during the read. Current checksums detect byte drift;
-they do not defend against a malicious owner rewriting all bound metadata.
-
-Actual-file checks in `tests/test_published_search.py` compare full native
-rank/filter/ID/order results, restart and empty-work continuations, long text,
-lossless body and fetch-byte deferral, mapping/checksum/index corruption,
-concurrent/stale publication, HMAC/expiry and explicit legacy refusal. They use
-the publisher owner's bounded synthetic fixture, not a full source corpus.
+Select `tos knowledge search --mode compressed`, native MCP
+`tos_knowledge_search(..., mode="compressed")`, or
+`ToSAccessCore.knowledge_search_compressed(...)` with an explicit prepared
+reader selection. Discover the selected engine through
+`knowledge_search_capabilities()`, HTTP
+`GET /api/knowledge/search/capabilities`, CLI
+`tos knowledge search-capabilities`, or native MCP
+`tos_knowledge_search_capabilities`. Compatibility mode availability
+describes engine selection only; compressed availability checks its
+selected publication/search headers and required objects, not every
+corpus row. The default mode remains `legacy`; a prepared reader requires
+an explicit supported mode and never silently creates or falls back to a
+compatibility graph.
 
 ## Local adapters
 

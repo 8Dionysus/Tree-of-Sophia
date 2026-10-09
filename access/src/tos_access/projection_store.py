@@ -36,12 +36,6 @@ _HEX = re.compile(r"[0-9a-f]{64}\Z")
 _COLLECTION = re.compile(r"[a-z][a-z0-9_]*(?:/[a-z][a-z0-9_]*)*\Z")
 
 
-def _check_selected_data(path: Path):
-    # Lazy import avoids making offline projection writers depend on release state.
-    from .data_access import check_data_path
-    check_data_path(path)
-
-
 class ProjectionStoreError(ValueError):
     """A projection part, manifest, identity, or declared bound is invalid."""
 
@@ -314,7 +308,6 @@ class ProjectionReader:
         # each physical read. Ordinary query readers retain their old behavior.
         self.path = Path(path).absolute()
         self._before_read = before_read
-        _check_selected_data(self.path)
         if self.path.is_symlink() or not self.path.is_file():
             raise ProjectionStoreError("projection root must be a regular file")
         root_size = self.path.stat().st_size
@@ -393,7 +386,6 @@ class ProjectionReader:
 
     def _load(self, descriptor: dict, prefix: str) -> bytes:
         path = self._descriptor(descriptor, prefix)
-        _check_selected_data(path)
         cache_key = (descriptor["sha256"], descriptor["kind"], descriptor["size_bytes"],
                      descriptor["decoded_bytes"], descriptor["decoded_sha256"])
         if cache_key in self._cache:
@@ -551,7 +543,6 @@ class ProjectionReader:
         return result
 
     def require_current(self) -> None:
-        _check_selected_data(self.path)
         if self.path.is_symlink():
             raise ProjectionStoreError("projection snapshot changed during operation")
         with self.path.open("rb") as stream:
@@ -563,7 +554,6 @@ class ProjectionReader:
 def is_partitioned(path: Path, *, before_read: Callable[[int, int], None] | None = None) -> bool:
     """Small-root probe; a legacy monolith is never read just for detection."""
     path = Path(path)
-    _check_selected_data(path)
     if not path.is_file():
         return False
     size = path.stat().st_size

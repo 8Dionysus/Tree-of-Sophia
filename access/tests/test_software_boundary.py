@@ -85,7 +85,14 @@ class SoftwareBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'model and owner-selected binding'):
             NativeAccessCore('/owned/software', published_read_model_path='/owned/model')
         with self.assertRaises(TypeError):
+            NativeAccessCore.discover('/owned/source', native_prefix='/owned/software', source_provider=object())
+        with self.assertRaisesRegex(TypeError, 'embedded source owner requires a native source provider'):
             NativeAccessCore.discover('/owned/source', native_prefix='/owned/software', source_read_service=object())
+        with self.assertRaisesRegex(ValueError, 'select source_provider or source_read_service'):
+            NativeAccessCore('/owned/software', source_provider=object(), source_read_service=object())
+        with self.assertRaisesRegex(TypeError, 'embedded source owner requires a native source provider'):
+            ToSAccessCore.discover('/owned/source', native_prefix='/owned/software',
+                published_read_model_path='/owned/model', source_read_service=object())
 
     def test_native_access_ephemeral_checkpoint_lifetime_is_per_core(self):
         from tos_access.native_access_core import NativeAccessCore
@@ -145,14 +152,15 @@ class SoftwareBoundaryTests(unittest.TestCase):
             deadline = time.monotonic() + 1
             self.assertEqual(core._native_result('call', (), absolute_deadline=deadline), 'packet')
             self.assertEqual(child.call_args.kwargs['absolute_deadline'], deadline)
-        from tos_access import ReferenceToSAccessCore, ToSAccessCore
-        from tos_access.source_read import SourceReadError
+        import tos_access
+        from tos_access import ToSAccessCore
+        from tos_access.source_read_errors import SourceReadError
         from tos_access.source_read_errors import SourceReadError as platform_error
-        from tos_access.mcp_server import NativeMCPServer
-        from tos_access.native_mcp import NativeMCPServer as platform_server
-        self.assertIs(ReferenceToSAccessCore, ToSAccessCore)
+        from tos_access.native_mcp import NativeMCPServer
+        self.assertEqual(ToSAccessCore.__name__, 'NativeToSAccessCore')
+        self.assertFalse(hasattr(tos_access, 'ReferenceToSAccessCore'))
         self.assertIs(SourceReadError, platform_error)
-        self.assertIs(NativeMCPServer, platform_server)
+        self.assertEqual(NativeMCPServer.__module__, 'tos_access.native_mcp')
         core.close()
 
     def test_imported_doctor_preserves_profile_and_not_ready_report(self):
@@ -296,7 +304,7 @@ class SoftwareBoundaryTests(unittest.TestCase):
 
     def test_native_core_word_method_preserves_reference_argument_contract(self):
         from tos_access.native_core import NativeCore
-        from tos_access.mcp_server import _native_wire_bytes
+        from tos_access.native_mcp import _native_wire_bytes
         from mcp import types
         wire_query = "Я\ud800\ud83d\ude00"
         request = types.JSONRPCMessage(root=types.JSONRPCRequest(
@@ -337,8 +345,8 @@ class SoftwareBoundaryTests(unittest.TestCase):
         from types import SimpleNamespace
         from threading import get_ident, enumerate as threads
         from tos_access.native_core import NativeCore
-        from tos_access.mcp_server import NativeMCPServer
-        from tos_access.source_read import SourceReadError
+        from tos_access.native_mcp import NativeMCPServer
+        from tos_access.source_read_errors import SourceReadError
 
         calls = []
         caller = get_ident()
@@ -402,7 +410,7 @@ class SoftwareBoundaryTests(unittest.TestCase):
 
     def test_native_core_deadline_refuses_before_native_setup(self):
         import anyio
-        from tos_access.mcp_server import NativeMCPServer
+        from tos_access.native_mcp import NativeMCPServer
         server = NativeMCPServer('/explicit/installed')
         async def attempt(deadline):
             return await server._native_api('call', ('tos_source_read_capabilities', {}),
@@ -450,11 +458,11 @@ class SoftwareBoundaryTests(unittest.TestCase):
             program = '''
 import importlib.util, sys
 import tos_access
-spec = importlib.util.spec_from_file_location('tos_access.mcp_server', sys.argv[1])
+spec = importlib.util.spec_from_file_location('tos_access.native_mcp', sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
-server = module.build_server(native_prefix=sys.argv[2])
+server = module.NativeMCPServer(sys.argv[2])
 server.settings.port = int(sys.argv[3])
 server.run(transport='streamable-http')
 '''
@@ -655,7 +663,7 @@ server.run(transport='streamable-http')
         spec = importlib.util.spec_from_file_location('tos_access.native_tool_api_candidate', adapter)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        server = module.build_server(native_prefix=prefix)
+        server = module.NativeMCPServer(prefix)
         with tempfile.TemporaryDirectory() as temporary:
             expected = ToSAccessCore.discover(tos_root=temporary).source_read_contract()
             async def consume():
@@ -721,43 +729,28 @@ server.run(transport='streamable-http')
             spec = importlib.util.spec_from_file_location('tos_access.native_metadata_candidate', adapter)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            server = module.build_server(native_prefix=prefix)
-            with tempfile.TemporaryDirectory() as temporary:
-                reference_core = ToSAccessCore.discover(tos_root=temporary)
-                reference = module.build_server(core=reference_core)
-                def dump(value):
-                    return value.model_dump(mode='json', by_alias=True, exclude_none=True)
-                async def consume():
-                    actual = await server.list_resources()
-                    expected = await reference.list_resources()
-                    assert [dump(item) for item in actual] == [dump(item) for item in expected]
-                    assert len(actual) == 12
-                    actual = await server.list_resource_templates()
-                    expected = await reference.list_resource_templates()
-                    assert [dump(item) for item in actual] == [dump(item) for item in expected]
-                    assert len(actual) == 5
-                    actual = await server.list_prompts()
-                    expected = await reference.list_prompts()
-                    assert [dump(item) for item in actual] == [dump(item) for item in expected]
-                    assert len(actual) == 3
-                    for name, arguments in (
-                            ('tos-corpus-review', None),
-                            ('tos-zarathustra-word-analysis', {'query': "a'\\\n\ud800", 'language': 'ru', 'rank': '+002.00'})):
-                        actual = await server.get_prompt(name, arguments)
-                        # Existing imported reference validates its typed rank;
-                        # preserve exact coercion before FastMCP prompt dispatch.
-                        normalized = None if arguments is None else dict(arguments, rank=2)
-                        expected = await reference.get_prompt(name, normalized)
-                        assert dump(actual) == dump(expected)
-                    arguments = {'query': 'Wort', 'language': '\u001cRU\u001f', 'rank': 1,
-                                 'include_semantic_neighbors': False}
-                    with patch('tos_access.core.program_path', return_value=provider):
-                        expected = reference_core.zarathustra_word_analysis_task(**arguments)
-                    content, structured = await server.call_tool('tos_zarathustra_prepare_word_analysis', arguments)
-                    assert expected['available'] is False
-                    assert expected['reason'] == 'installed native prefix is required for local word-analysis'
-                    assert structured == expected and json.loads(content[0].text) == expected
-                asyncio.run(asyncio.wait_for(consume(), timeout=max(0, whole_deadline-time.monotonic())))
+            server = module.NativeMCPServer(prefix)
+            async def consume():
+                resources = await server.list_resources()
+                templates = await server.list_resource_templates()
+                prompts = await server.list_prompts()
+                assert len(resources) == 12
+                assert len(templates) == 5
+                assert len(prompts) == 3
+                prompt = await server.get_prompt(
+                    'tos-zarathustra-word-analysis',
+                    {'query': "a'\\\n\ud800", 'language': 'ru', 'rank': '+002.00'},
+                )
+                assert prompt is not None
+                content, structured = await server.call_tool(
+                    'tos_zarathustra_prepare_word_analysis',
+                    {'query': 'Wort', 'language': '\u001cRU\u001f', 'rank': 1,
+                     'include_semantic_neighbors': False},
+                )
+                assert structured['available'] is False
+                assert structured['reason'] == 'installed native prefix is required for local word-analysis'
+                assert json.loads(content[0].text) == structured
+            asyncio.run(asyncio.wait_for(consume(), timeout=max(0, whole_deadline-time.monotonic())))
             assert not provider.exists() and not provider.is_symlink()
             assert stamp(parent.lstat()) == parent_stamp
         finally:
@@ -777,14 +770,14 @@ server.run(transport='streamable-http')
                     manifest.close()
 
     def test_imported_native_mcp_serving_has_explicit_software_and_stdio_boundary(self):
-        from tos_access.mcp_server import build_server
+        from tos_access.native_mcp import NativeMCPServer
 
         options = ['--root', '/selected/data', '--source-inputs', '/selected/inputs.raw']
         # The serving caller must not require a reference core or Python MCP
         # dependency before dispatching the explicitly associated native image.
         with patch.dict(sys.modules, {'tos_access.core': None, 'mcp': None}), patch(
                 'tos_access.native_dispatch.run', return_value='native-serving') as dispatch:
-            server = build_server(native_prefix=Path('/selected/software'), native_arguments=options)
+            server = NativeMCPServer(Path('/selected/software'), options)
             self.assertEqual(server.run(transport='stdio'), 'native-serving')
             dispatch.assert_called_once_with(Path('/selected/software'), [*options, 'mcp'])
             server.settings.host = '::1'
@@ -797,15 +790,10 @@ server.run(transport='streamable-http')
             server.settings.host = '0.0.0.0'
             with self.assertRaises(ValueError):
                 server.run(transport='streamable-http')
-        for selection in ({'core': object()}, {'tos_root': '/selected/data'}):
-            with self.subTest(selection=selection), self.assertRaises(ValueError):
-                build_server(native_prefix='/selected/software', **selection)
         with self.assertRaises(ValueError):
-            build_server(native_arguments=options)
+            NativeMCPServer('relative/software')
         with self.assertRaises(ValueError):
-            build_server(native_prefix='relative/software')
-        with self.assertRaises(ValueError):
-            build_server(native_prefix='/selected/software', native_arguments=['--root', 'bad\0path'])
+            NativeMCPServer('/selected/software', ['--root', 'bad\0path'])
 
     def test_installed_package_cannot_fall_back_to_unrelated_library_paths(self):
         with tempfile.TemporaryDirectory() as temporary:

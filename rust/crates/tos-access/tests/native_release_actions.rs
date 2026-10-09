@@ -1,0 +1,733 @@
+#![cfg(all(target_os = "linux", target_arch = "x86_64"))]
+
+use std::{
+    collections::BTreeMap,
+    fs,
+    io::{Read, Seek, Write},
+    os::unix::fs::PermissionsExt,
+    path::{Path, PathBuf},
+    process::{Command, CommandExt, Output},
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+use tos_foundation::{
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, canonical_bytes_v1,
+    parse_json,
+};
+use zip::{ZipWriter, write::SimpleFileOptions};
+
+const CLI: &str = env!("CARGO_BIN_EXE_tos-access");
+const MAX_METADATA: usize = 262_144;
+
+struct Scratch(PathBuf);
+impl Scratch {
+    fn new(label: &str) -> Self {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "tos-native-release-{label}-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir(&path).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+        Self(path)
+    }
+    fn path(&self) -> &Path {
+        &self.0
+    }
+}
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+fn canonical(value: &serde_json::Value) -> Vec<u8> {
+    let raw = serde_json::to_vec(value).unwrap();
+    let document = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    canonical_bytes_v1(
+        &document.into_root(),
+        CanonicalProfile::CorpusSnapshotV1,
+        JsonLimits::default(),
+    )
+    .unwrap()
+}
+
+fn number(value: usize) -> serde_json::Value {
+    serde_json::json!(value)
+}
+
+fn write_private(path: &Path, raw: &[u8]) {
+    fs::write(path, raw).unwrap();
+    fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+}
+
+fn create_archive(path: &Path, marker: &str) -> String {
+    let binary = fs::read(CLI).unwrap();
+    let lock = include_bytes!("../../../../Cargo.lock").to_vec();
+    let pin = include_bytes!("../../../../rust-toolchain.toml").to_vec();
+    let native_owner = binary.clone();
+    let files = BTreeMap::from([
+        ("Cargo.lock", lock),
+        ("access/src/tos_access/tos-access", binary),
+        ("native/bin/tos-native-owner-command", native_owner),
+        (
+            "access/src/tos_access/web_dist/assets/tos-graph.css",
+            format!("body{{margin:0}}/*{marker}*/\n").into_bytes(),
+        ),
+        (
+            "access/src/tos_access/web_dist/assets/tos-graph.js",
+            b"export const softwareOwned=true;\n".to_vec(),
+        ),
+        ("rust-toolchain.toml", pin),
+    ]);
+    let source = Digest256::of_bytes(b"native release action integration fixture").to_hex();
+    let pin_text = std::str::from_utf8(files["rust-toolchain.toml"]).unwrap();
+    let toolchain = pin_text
+        .lines()
+        .find_map(|line| {
+            line.trim()
+                .strip_prefix("channel = ")
+                .and_then(|raw| raw.strip_prefix('"'))
+                .and_then(|raw| raw.strip_suffix('"'))
+        })
+        .unwrap();
+    let member_rows = files
+        .iter()
+        .map(|(name, bytes)| {
+            serde_json::json!({
+                "path": name,
+                "size_bytes": bytes.len(),
+                "sha256": Digest256::of_bytes(bytes).to_hex(),
+            })
+        })
+        .collect::<Vec<_>>();
+    let lock = &files["Cargo.lock"];
+    let image = &files["access/src/tos_access/tos-access"];
+    let embedded = serde_json::json!({
+        "schema_version":"tos_software_bundle_manifest_v1",
+        "software_ref":source,
+        "data_included":false,
+        "source_dirty":false,
+        "native_access":{
+            "schema_version":"tos_native_access_build_v1",
+            "target":"x86_64-unknown-linux-gnu",
+            "source_commit":source,
+            "source_tree":source,
+            "profile":"debug",
+            "lock_sha256":Digest256::of_bytes(lock).to_hex(),
+            "toolchain":toolchain,
+            "sha256":Digest256::of_bytes(image).to_hex(),
+            "size_bytes":image.len(),
+        },
+        "native_commands":{
+            "tos-native-owner-command":{
+                "schema_version":"tos_native_command_build_v1",
+                "target":"x86_64-unknown-linux-gnu",
+                "source_commit":source,
+                "source_tree":source,
+                "profile":"debug",
+                "lock_sha256":Digest256::of_bytes(lock).to_hex(),
+                "toolchain":toolchain,
+                "features":[],
+                "sha256":Digest256::of_bytes(&files["native/bin/tos-native-owner-command"]).to_hex(),
+                "size_bytes":files["native/bin/tos-native-owner-command"].len(),
+            }
+        },
+        "members":member_rows,
+    });
+    let mut writer = ZipWriter::new(fs::File::create(path).unwrap());
+    for (name, bytes) in &files {
+        writer
+            .start_file(
+                *name,
+                SimpleFileOptions::default()
+                    .compression_method(zip::CompressionMethod::Stored)
+                    .unix_permissions(if matches!(
+                        *name,
+                        "access/src/tos_access/tos-access" | "native/bin/tos-native-owner-command"
+                    ) {
+                        0o755
+                    } else {
+                        0o644
+                    }),
+            )
+            .unwrap();
+        writer.write_all(bytes).unwrap();
+    }
+    writer
+        .start_file(
+            "software.manifest.json",
+            SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored)
+                .unix_permissions(0o644),
+        )
+        .unwrap();
+    writer
+        .write_all(&serde_json::to_vec(&embedded).unwrap())
+        .unwrap();
+    let mut archive = writer.finish().unwrap();
+    archive.sync_all().unwrap();
+    let size = archive.metadata().unwrap().len();
+    archive.rewind().unwrap();
+    let mut hasher = Digest256Hasher::new();
+    let mut buffer = [0u8; 65_536];
+    loop {
+        let read = archive.read(&mut buffer).unwrap();
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    let digest = hasher.finalize().to_hex();
+    let mut sidecar = embedded;
+    sidecar
+        .as_object_mut()
+        .unwrap()
+        .insert("archive_size_bytes".into(), number(size as usize));
+    sidecar
+        .as_object_mut()
+        .unwrap()
+        .insert("archive_sha256".into(), serde_json::json!(digest));
+    let mut sidecar_path = path.as_os_str().to_os_string();
+    sidecar_path.push(".manifest.json");
+    fs::write(PathBuf::from(sidecar_path), serde_json::to_vec(&sidecar).unwrap()).unwrap();
+    digest
+}
+
+fn write_snapshot(
+    root: &Path,
+    fixture: &tos_compiler::knowledge_full_fixture::FullKnowledgeFixture,
+    query_schema: &str,
+    corrupt_model: bool,
+    fs_verity: bool,
+    process_limits: tos_compiler::NativeProcessLimits,
+) -> (String, String) {
+    fs::create_dir(root).unwrap();
+    fs::set_permissions(root, fs::Permissions::from_mode(0o700)).unwrap();
+    let data = root.join("data");
+    fs::create_dir(&data).unwrap();
+    fs::set_permissions(&data, fs::Permissions::from_mode(0o700)).unwrap();
+    let model_path = data.join("model.sqlite");
+    fs::copy(&fixture.path, &model_path).unwrap();
+    let measurement = if fs_verity {
+        tos_compiler::prepare_native_knowledge_artifact(&model_path, &fixture.stage_receipt).unwrap()
+    } else {
+        tos_compiler::NativeFsVerityMeasurement {
+            algorithm: "sha256".into(),
+            digest: fixture.expectation.model_sha256.clone(),
+        }
+    };
+    let descriptor = fixture.descriptor_bytes.clone();
+    let entity = fixture.entity_registry_bytes().to_vec();
+    let relation = fixture.relation_registry_bytes().to_vec();
+    fs::write(data.join("descriptor.json"), &descriptor).unwrap();
+    fs::write(data.join("entity.json"), &entity).unwrap();
+    fs::write(data.join("relation.json"), &relation).unwrap();
+    let selection = tos_compiler::NativeKnowledgeSelection::from_producer(
+        tos_compiler::NativeSelectionPaths {
+            model: "data/model.sqlite".into(),
+            descriptor: "data/descriptor.json".into(),
+            entity_registry: "data/entity.json".into(),
+            relation_registry: "data/relation.json".into(),
+        },
+        tos_compiler::NativeSelectionProducer {
+            stage: fixture.stage_receipt.clone(),
+            seal: fixture.seal_receipt.clone(),
+            navigation_original: fixture.navigation_original.clone(),
+            philosophy_original: fixture.philosophy_original.clone(),
+            corpus_original: fixture.corpus_original.clone(),
+            managed_source: None,
+            managed_source_v2: None,
+        },
+        fixture.expectation.clone(),
+        measurement,
+        fixture.cold_limits(),
+        process_limits,
+        &descriptor,
+        &entity,
+        &relation,
+        tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+        MAX_METADATA,
+    )
+    .unwrap();
+    let selection = selection.encode(MAX_METADATA).unwrap();
+    fs::write(data.join("native-selection.json"), &selection).unwrap();
+    let members = BTreeMap::from([
+        ("data/descriptor.json", descriptor),
+        ("data/entity.json", entity),
+        ("data/model.sqlite", fs::read(&model_path).unwrap()),
+        ("data/native-selection.json", selection.clone()),
+        ("data/relation.json", relation),
+    ]);
+    let source_declaration = include_bytes!("../../../../access/contracts/runtime-data.v1.json");
+    let compiler_program = include_bytes!("../../../../rust/crates/tos-compiler/src/source_corpus.rs");
+    let source_binding = Digest256::of_bytes(source_declaration).to_hex();
+    let compiler_binding = Digest256::of_bytes(compiler_program).to_hex();
+    let mut manifest = serde_json::json!({
+        "schema_version":"tos_access_native_data_snapshot_v1",
+        "corpus_revision":fixture.corpus_original.as_ref().unwrap().origin.native_producer.as_ref().unwrap().source_revision,
+        "input_bindings":{"access/contracts/runtime-data.v1.json":source_binding},
+        "compiler":{
+            "schema":query_schema,
+            "compiler_version":tos_compiler::COMPILER_VERSION,
+            "compiler_sha256":Digest256::of_bytes(b"fixture compiler").to_hex(),
+            "compiler_paths":["rust/crates/tos-compiler/src/source_corpus.rs"],
+            "input_bindings":{"rust/crates/tos-compiler/src/source_corpus.rs":compiler_binding},
+        },
+        "members":members.iter().map(|(path, raw)| serde_json::json!({
+            "path":path,
+            "size_bytes":raw.len(),
+            "sha256":Digest256::of_bytes(raw).to_hex(),
+        })).collect::<Vec<_>>(),
+        "native_selection":"data/native-selection.json",
+    });
+    let revision = Digest256::of_bytes(&canonical(&manifest)).to_hex();
+    manifest
+        .as_object_mut()
+        .unwrap()
+        .insert("data_revision".into(), serde_json::json!(revision));
+    let manifest_raw = canonical(&manifest);
+    fs::write(data.join("manifest.json"), &manifest_raw).unwrap();
+    if corrupt_model {
+        fs::write(&model_path, b"corrupt after authenticated member census").unwrap();
+    }
+    (Digest256::of_bytes(&manifest_raw).to_hex(), Digest256::of_bytes(&selection).to_hex())
+}
+
+fn deadline_ns() -> u64 {
+    let mut now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    assert_eq!(unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) }, 0);
+    (now.tv_sec as u64) * 1_000_000_000 + now.tv_nsec as u64 + 120_000_000_000
+}
+
+fn bounded_command_output(mut command: Command) -> Output {
+    // The verified synthetic selection itself declares these finite owner limits.
+    unsafe {
+        command.pre_exec(|| {
+            let address = libc::rlimit {
+                rlim_cur: 2 * 1024 * 1024 * 1024,
+                rlim_max: 2 * 1024 * 1024 * 1024,
+            };
+            let file_size = libc::rlimit {
+                rlim_cur: 512 * 1024 * 1024,
+                rlim_max: 512 * 1024 * 1024,
+            };
+            if libc::setrlimit(libc::RLIMIT_AS, &address) != 0
+                || libc::setrlimit(libc::RLIMIT_FSIZE, &file_size) != 0
+            {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+    command.output().unwrap()
+}
+
+fn install_archive(archive: &Path, prefix: &Path) -> Output {
+    let mut command = Command::new(CLI);
+    command
+        .args(["software", "install", "--archive"])
+        .arg(archive)
+        .arg("--prefix")
+        .arg(prefix)
+        .args([
+            "--max-total-bytes", "536870912",
+            "--max-archive-bytes", "536870912",
+            "--max-members", "16",
+            "--max-metadata-bytes", "262144",
+        ]);
+    bounded_command_output(command)
+}
+
+fn action(action: &str, root: &Path, value: serde_json::Value) -> Output {
+    action_with(Path::new(CLI), action, root, value)
+}
+
+fn action_with(program: &Path, action: &str, root: &Path, value: serde_json::Value) -> Output {
+    let request_path = root.join(format!("{action}.request.json"));
+    let request = canonical(&value);
+    write_private(&request_path, &request);
+    let deadline = value["work_deadline_ns"].as_u64().unwrap();
+    let request_sha = Digest256::of_bytes(&request).to_hex();
+    let deadline = deadline.to_string();
+    let mut command = Command::new(program);
+    command.args([
+        action,
+        "--request",
+        request_path.to_str().unwrap(),
+        "--request-sha256",
+        &request_sha,
+        "--work-deadline-ns",
+        &deadline,
+    ]);
+    bounded_command_output(command)
+}
+
+fn action_limits() -> serde_json::Value {
+    serde_json::json!({
+        "max_metadata_bytes":MAX_METADATA,
+        "max_state_bytes":536_870_912usize,
+        "max_io_bytes":8_000_000_000u64,
+        "max_installed_io_bytes":4_000_000_000u64,
+        "max_installed_state_bytes":268_435_456usize,
+        "max_held_fds":64,
+        "max_archive_bytes":536_870_912u64,
+        "max_archive_expanded_bytes":536_870_912u64,
+        "max_archive_members":16,
+        "max_image_bytes":536_870_912u64,
+        "max_candidate_bytes":67_108_864u64,
+        "max_candidate_members":32,
+    })
+}
+
+fn prepare_request(archive: &Path, data_root: &Path, deadline: u64) -> serde_json::Value {
+    serde_json::json!({
+        "schema_version":"tos_access_native_release_prepare_request_v1",
+        "work_deadline_ns":deadline,
+        "software_archive":archive,
+        "data_root":data_root,
+        "limits":action_limits(),
+    })
+}
+
+fn promotion_request(
+    receipt: &serde_json::Value,
+    release: &Path,
+    prefix: &Path,
+    expected_current: Option<&str>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "schema_version":"tos_access_native_release_promote_request_v1",
+        "work_deadline_ns":deadline_ns(),
+        "release_root":release,
+        "software_prefix":prefix,
+        "candidate_pair":receipt["pair"],
+        "bindings":receipt["bindings"],
+        "expected_current":expected_current,
+        "candidate_manifest_sha256":receipt["candidate_manifest_sha256"],
+        "candidate_selection_sha256":receipt["candidate_selection_sha256"],
+        "limits":action_limits(),
+    })
+}
+
+fn rollback_request(release: &Path, prefix: &Path, expected_current: &str) -> serde_json::Value {
+    serde_json::json!({
+        "schema_version":"tos_access_native_release_rollback_request_v1",
+        "work_deadline_ns":deadline_ns(),
+        "release_root":release,
+        "software_prefix":prefix,
+        "expected_current":expected_current,
+        "limits":action_limits(),
+    })
+}
+
+fn revoke_request(release: &Path, kind: &str, digest: &str) -> serde_json::Value {
+    serde_json::json!({
+        "schema_version":"tos_access_native_release_revoke_request_v1",
+        "work_deadline_ns":deadline_ns(),
+        "release_root":release,
+        "kind":kind,
+        "digest":digest,
+        "reason":"superseded synthetic release candidate",
+        "owner_ref":"test:native-release-actions",
+    })
+}
+
+fn native_action_process_limits() -> tos_compiler::NativeProcessLimits {
+    tos_compiler::NativeProcessLimits {
+        address_space_bytes: 2 * 1024 * 1024 * 1024,
+        file_size_bytes: 512 * 1024 * 1024,
+    }
+}
+
+#[test]
+fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates() {
+    let scratch = Scratch::new("actions");
+    let archive = scratch.path().join("software.zip");
+    let archive_sha = create_archive(&archive, "first");
+    let fixture = tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_original();
+    let candidate = scratch.path().join("candidate");
+    let (manifest_sha, selection_sha) = write_snapshot(
+        &candidate,
+        &fixture,
+        &fixture.expectation.model_abi,
+        false,
+        true,
+        native_action_process_limits(),
+    );
+    let deadline = deadline_ns();
+    let prepared = action(
+        "native-release-prepare",
+        scratch.path(),
+        prepare_request(&archive, &candidate, deadline),
+    );
+    assert!(prepared.status.success(), "{}", String::from_utf8_lossy(&prepared.stderr));
+    let receipt: serde_json::Value = serde_json::from_slice(&prepared.stdout).unwrap();
+    assert_eq!(receipt["schema_version"], "tos_access_native_release_preparation_receipt_v1");
+    assert_eq!(receipt["admission"], "candidate-preparation-only");
+    assert_eq!(receipt["candidate_manifest_sha256"], manifest_sha);
+    assert_eq!(receipt["candidate_selection_sha256"], selection_sha);
+    let pair = &receipt["pair"];
+    let pair_raw = canonical(pair);
+    assert_eq!(receipt["pair_id"], Digest256::of_bytes(&pair_raw).to_hex());
+    assert_eq!(pair["software_sha256"], archive_sha);
+    assert_eq!(pair["data_manifest_sha256"], manifest_sha);
+    assert_eq!(pair["query_schema"], fixture.expectation.model_abi);
+    assert_eq!(pair["compiler_version"], tos_compiler::COMPILER_VERSION);
+
+    let bad_abi = scratch.path().join("bad-abi");
+    let (bad_manifest_sha, _) = write_snapshot(
+        &bad_abi, &fixture, "unsupported-fixture-abi", false, false,
+        tos_compiler::knowledge_full_fixture::NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS,
+    );
+    let refused_abi = action(
+        "native-release-prepare",
+        scratch.path(),
+        prepare_request(&archive, &bad_abi, deadline_ns()),
+    );
+    assert!(!refused_abi.status.success());
+    assert!(String::from_utf8_lossy(&refused_abi.stderr).contains("compiler/ABI/source profile mismatch"));
+    assert_ne!(bad_manifest_sha, manifest_sha);
+
+    let corrupt = scratch.path().join("corrupt");
+    write_snapshot(
+        &corrupt, &fixture, &fixture.expectation.model_abi, true, false,
+        tos_compiler::knowledge_full_fixture::NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS,
+    );
+    let refused_corrupt = action(
+        "native-release-prepare",
+        scratch.path(),
+        prepare_request(&archive, &corrupt, deadline_ns()),
+    );
+    assert!(!refused_corrupt.status.success());
+
+    let release = scratch.path().join("release");
+    for directory in [
+        release.clone(),
+        release.join("pairs"),
+        release.join("bindings"),
+        release.join("revocations"),
+        release.join("revocations/data"),
+        release.join("revocations/corpus"),
+        release.join("revocations/software"),
+    ] {
+        fs::create_dir(&directory).unwrap();
+        fs::set_permissions(&directory, fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    write_private(&release.join(".release.lock"), b"");
+    let pair_id = receipt["pair_id"].as_str().unwrap();
+    write_private(&release.join(format!("pairs/{pair_id}.json")), &pair_raw);
+    let bindings_raw = canonical(&receipt["bindings"]);
+    write_private(&release.join(format!("bindings/{pair_id}.json")), &bindings_raw);
+    write_private(
+        &release.join("current.json"),
+        &canonical(&serde_json::json!({
+            "schema_version":"tos_access_release_pointer_v1",
+            "current":pair_id,
+            "previous":null,
+        })),
+    );
+    let status = action(
+        "native-release-status",
+        scratch.path(),
+        serde_json::json!({
+            "schema_version":"tos_access_native_release_status_request_v1",
+            "work_deadline_ns":deadline_ns(),
+            "release_root":release,
+        }),
+    );
+    assert!(status.status.success(), "{}", String::from_utf8_lossy(&status.stderr));
+    let status: serde_json::Value = serde_json::from_slice(&status.stdout).unwrap();
+    assert_eq!(status["schema_version"], "tos_access_native_release_status_receipt_v1");
+    assert_eq!(status["pair_id"], pair_id);
+    assert_eq!(canonical(&status["pair"]), pair_raw);
+    assert_eq!(canonical(&status["bindings"]), bindings_raw);
+    assert!(status["previous"].is_null());
+
+    // Exercise the actual installed native CLI and writer protocol with two
+    // independently verified software/data pairs. Their corpus source revision
+    // is shared, while the view variant changes the selected data identity.
+    let second_archive = scratch.path().join("software-second.zip");
+    let second_archive_sha = create_archive(&second_archive, "second");
+    let second_fixture = tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_view_variant(
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1,
+    );
+    let second_candidate = scratch.path().join("candidate-second");
+    let (second_manifest_sha, second_selection_sha) = write_snapshot(
+        &second_candidate,
+        &second_fixture,
+        &second_fixture.expectation.model_abi,
+        false,
+        true,
+        native_action_process_limits(),
+    );
+    let second_prepared = action(
+        "native-release-prepare",
+        scratch.path(),
+        prepare_request(&second_archive, &second_candidate, deadline_ns()),
+    );
+    assert!(
+        second_prepared.status.success(),
+        "{}",
+        String::from_utf8_lossy(&second_prepared.stderr)
+    );
+    let second_receipt: serde_json::Value = serde_json::from_slice(&second_prepared.stdout).unwrap();
+    assert_eq!(second_receipt["candidate_manifest_sha256"], second_manifest_sha);
+    assert_eq!(second_receipt["candidate_selection_sha256"], second_selection_sha);
+    assert_eq!(second_receipt["pair"]["software_sha256"], second_archive_sha);
+    assert_ne!(second_receipt["pair"]["data_revision"], receipt["pair"]["data_revision"]);
+    assert_eq!(second_receipt["pair"]["corpus_revision"], receipt["pair"]["corpus_revision"]);
+
+    let prefix_first = scratch.path().join("prefix-first");
+    let installed_first = install_archive(&archive, &prefix_first);
+    assert!(
+        installed_first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&installed_first.stderr)
+    );
+    let prefix_second = scratch.path().join("prefix-second");
+    let installed_second = install_archive(&second_archive, &prefix_second);
+    assert!(
+        installed_second.status.success(),
+        "{}",
+        String::from_utf8_lossy(&installed_second.stderr)
+    );
+    let release_actions = scratch.path().join("release-actions");
+    let first_program = prefix_first.join("bin/tos");
+    let second_program = prefix_second.join("bin/tos");
+    let promoted_first = action_with(
+        &first_program,
+        "native-release-promote",
+        scratch.path(),
+        promotion_request(&receipt, &release_actions, &prefix_first, None),
+    );
+    assert!(
+        promoted_first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&promoted_first.stderr)
+    );
+    let promoted_first: serde_json::Value = serde_json::from_slice(&promoted_first.stdout).unwrap();
+    assert!(promoted_first["committed"].as_bool().unwrap());
+    assert_eq!(promoted_first["pair_id"], receipt["pair_id"]);
+    assert!(promoted_first["previous"].is_null());
+
+    let first_pair_id = receipt["pair_id"].as_str().unwrap();
+    let promoted_second = action_with(
+        &second_program,
+        "native-release-promote",
+        scratch.path(),
+        promotion_request(&second_receipt, &release_actions, &prefix_second, Some(first_pair_id)),
+    );
+    assert!(
+        promoted_second.status.success(),
+        "{}",
+        String::from_utf8_lossy(&promoted_second.stderr)
+    );
+    let promoted_second: serde_json::Value = serde_json::from_slice(&promoted_second.stdout).unwrap();
+    assert!(promoted_second["committed"].as_bool().unwrap());
+    assert_eq!(promoted_second["pair_id"], second_receipt["pair_id"]);
+    assert_eq!(promoted_second["previous"], receipt["pair_id"]);
+
+    // Roll back by the exact current CAS and verify that the genuine earlier
+    // candidate becomes current while the second pair remains the rollback slot.
+    let second_pair_id = second_receipt["pair_id"].as_str().unwrap();
+    let rolled_back = action_with(
+        &first_program,
+        "native-release-rollback",
+        scratch.path(),
+        rollback_request(&release_actions, &prefix_first, second_pair_id),
+    );
+    assert!(
+        rolled_back.status.success(),
+        "{}",
+        String::from_utf8_lossy(&rolled_back.stderr)
+    );
+    let rolled_back: serde_json::Value = serde_json::from_slice(&rolled_back.stdout).unwrap();
+    assert!(rolled_back["committed"].as_bool().unwrap());
+    assert_eq!(rolled_back["pair_id"], receipt["pair_id"]);
+    assert_eq!(rolled_back["previous"], second_receipt["pair_id"]);
+
+    // An undeclared candidate member refuses a switch before pointer mutation.
+    let undeclared = second_candidate.join("data/undeclared.json");
+    fs::write(&undeclared, b"must not be admitted").unwrap();
+    let failed_switch = action_with(
+        &second_program,
+        "native-release-promote",
+        scratch.path(),
+        promotion_request(&second_receipt, &release_actions, &prefix_second, Some(first_pair_id)),
+    );
+    assert!(!failed_switch.status.success());
+    fs::remove_file(undeclared).unwrap();
+    let stable = action_with(
+        &first_program,
+        "native-release-status",
+        scratch.path(),
+        serde_json::json!({
+            "schema_version":"tos_access_native_release_status_request_v1",
+            "work_deadline_ns":deadline_ns(),
+            "release_root":release_actions,
+        }),
+    );
+    assert!(stable.status.success(), "{}", String::from_utf8_lossy(&stable.stderr));
+    let stable: serde_json::Value = serde_json::from_slice(&stable.stdout).unwrap();
+    assert_eq!(stable["pair_id"], receipt["pair_id"]);
+    assert_eq!(stable["previous"], second_receipt["pair_id"]);
+
+    // Native CLI revocation writes each immutable component record. Neither
+    // rollback nor repromotion may resurrect the revoked previous pair.
+    for (kind, field) in [
+        ("data", "data_revision"),
+        ("corpus", "corpus_revision"),
+        ("software", "software_sha256"),
+    ] {
+        let revoked = action_with(
+            &second_program,
+            "native-release-revoke",
+            scratch.path(),
+            revoke_request(
+                &release_actions,
+                kind,
+                second_receipt["pair"][field].as_str().unwrap(),
+            ),
+        );
+        assert!(revoked.status.success(), "{}", String::from_utf8_lossy(&revoked.stderr));
+        let revoked: serde_json::Value = serde_json::from_slice(&revoked.stdout).unwrap();
+        assert_eq!(revoked["kind"], kind);
+        assert!(revoked["committed"].as_bool().unwrap());
+        assert!(revoked["durable"].as_bool().unwrap());
+    }
+    let refused_promotion = action_with(
+        &second_program,
+        "native-release-promote",
+        scratch.path(),
+        promotion_request(&second_receipt, &release_actions, &prefix_second, Some(first_pair_id)),
+    );
+    assert!(!refused_promotion.status.success());
+    let refused_rollback = action_with(
+        &second_program,
+        "native-release-rollback",
+        scratch.path(),
+        rollback_request(&release_actions, &prefix_second, first_pair_id),
+    );
+    assert!(!refused_rollback.status.success());
+    let stable = action_with(
+        &first_program,
+        "native-release-status",
+        scratch.path(),
+        serde_json::json!({
+            "schema_version":"tos_access_native_release_status_request_v1",
+            "work_deadline_ns":deadline_ns(),
+            "release_root":release_actions,
+        }),
+    );
+    assert!(stable.status.success(), "{}", String::from_utf8_lossy(&stable.stderr));
+    let stable: serde_json::Value = serde_json::from_slice(&stable.stdout).unwrap();
+    assert_eq!(stable["pair_id"], receipt["pair_id"]);
+    assert_eq!(stable["previous"], second_receipt["pair_id"]);
+}
