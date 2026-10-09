@@ -202,6 +202,17 @@ mod tests {
     use crate::knowledge_full_fixture::build_fixture;
 
     #[test]
+    fn prepared_catalog_keeps_full_seal_and_cold_packets_identical() {
+        let regular=crate::knowledge_full_fixture::build_fixture();
+        let reduced=crate::knowledge_full_fixture::build_fixture_with_prepared_catalog();
+        assert_eq!(regular.expectation.graph_root_sha256,reduced.expectation.graph_root_sha256);
+        assert_eq!(regular.expectation.catalog_packet_sha256,reduced.expectation.catalog_packet_sha256);
+        assert_eq!(regular.expectation.catalog_index_root_sha256,reduced.expectation.catalog_index_root_sha256);
+        assert_eq!(regular.expectation.search_index_root_sha256,reduced.expectation.search_index_root_sha256);
+        reduced.open().unwrap();
+    }
+
+    #[test]
     fn complete_large_semantic_report_survives_seal_cold_read_and_restore() {
         use serde_json::json;
         let gaps = (0..11_692)

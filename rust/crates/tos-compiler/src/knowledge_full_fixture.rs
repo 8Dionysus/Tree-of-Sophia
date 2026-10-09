@@ -246,6 +246,12 @@ pub fn build_fixture() -> FullKnowledgeFixture {
 }
 
 pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullKnowledgeFixture {
+    build_fixture_configured(report,false)
+}
+pub(crate) fn build_fixture_with_prepared_catalog() -> FullKnowledgeFixture {
+    build_fixture_configured(None,true)
+}
+fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool) -> FullKnowledgeFixture {
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
     let relation_bytes =
@@ -443,6 +449,39 @@ pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullK
         header["counts"]["semantic_validation"] = report;
         limits.seal.max_header_bytes = crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES;
     }
+    let prepared = if reduce_catalog {
+        let entity:Value=serde_json::from_slice(entity_bytes).unwrap();
+        let relation:Value=serde_json::from_slice(relation_bytes).unwrap();
+        let mut reduction=crate::catalog::CatalogReduction::new(&entity,&relation,&descriptor,&vocabulary,limits.catalog,None).unwrap();
+        let ceiling=stage.with_connection(WritePhase::Finalize,|db|reduction.begin(db)).unwrap();
+        // Fixture-only delivery of tiny admitted inline rows. Production feeds
+        // the authenticated Value from the semantic pass without this parse.
+        stage.with_connection(WritePhase::Finalize,|db| {
+            for (table,is_relation) in [("knowledge_nodes",false),("knowledge_relations",true)] {
+                let mut statement=db.prepare(&format!("SELECT payload,source_order FROM {table} ORDER BY source_order"))?;
+                let mut rows=statement.query([])?;
+                while let Some(row)=rows.next()? {
+                    let raw:Vec<u8>=row.get(0)?;
+                    let value:Value=serde_json::from_slice(&raw).unwrap();
+                    let get=|key:&str|value[key].as_str().unwrap();
+                    let order=row.get(1)?;
+                    if is_relation {
+                        reduction.relation(db,&value,get("id"),get("source_graph"),get("from_id"),get("to_id"),get("predicate_id"),get("relation_type_id"),order,raw.len() as i64)?;
+                    } else {
+                        reduction.node(db,&value,get("id"),get("source_graph"),get("kind_id"),get("type_id"),order,raw.len() as i64)?;
+                    }
+                }
+            }
+            Ok(())
+        }).unwrap();
+        let proof=reduction.finish_prepared(&mut stage,&header,&[],&vocabulary,&descriptor_bytes,&registry).unwrap();
+        let mut different_header=header.clone();
+        different_header["source_revision"]=json!("f".repeat(64));
+        assert!(proof.into_packet(&mut stage,&different_header,&vocabulary,&registry).is_err());
+        let prepared=reduction.finish_prepared(&mut stage,&header,&[],&vocabulary,&descriptor_bytes,&registry).unwrap();
+        stage.with_connection(WritePhase::Finalize,|db|crate::catalog::CatalogReduction::cleanup(db,ceiling)).unwrap();
+        Some(prepared)
+    } else { None };
     finish_fixture_with_limits(
         stage,
         path,
@@ -458,6 +497,7 @@ pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullK
         None,
         limits,
         false,
+        prepared,
     )
 }
 
@@ -519,6 +559,7 @@ fn finish_fixture(
         corpus_original,
         limits,
         false,
+        None,
     )
 }
 
@@ -590,6 +631,7 @@ pub fn finish_native_source_fixture(
         native.corpus_original,
         full_limits,
         true,
+        None,
     )
 }
 
@@ -609,6 +651,7 @@ fn finish_fixture_with_limits(
     corpus_original: Option<crate::CorpusOriginalReceipt>,
     limits: FullKnowledgeLimits,
     trace_native: bool,
+    prepared: Option<crate::catalog::PreparedCatalog>,
 ) -> FullKnowledgeFixture {
     let source_binding = stage
         .exact_receipt()
@@ -618,7 +661,7 @@ fn finish_fixture_with_limits(
     if trace_native {
         native_fixture_phase("full-components-start");
     }
-    let full = compile_full_knowledge_components(
+    let full = crate::knowledge_full::compile_full_knowledge_components_prepared(
         &mut stage,
         &header,
         &registry,
@@ -628,6 +671,7 @@ fn finish_fixture_with_limits(
         &vocabulary,
         &descriptor_bytes,
         limits,
+        prepared,
     )
     .unwrap();
     if trace_native {
