@@ -14,9 +14,11 @@ limited to the standalone SDK tests under `access/tests`. Tests marked
 that data release; they are not part of the software command.
 
 With that complete source snapshot explicitly selected, run the native data
-checks separately:
+checks separately. Missing required private layers fail the selected private-data
+check; they do not produce a passing skip.
 
 ```sh
+export TOS_DATA_ROOT=/absolute/materialized-source-snapshot
 cargo test --locked -p tos-compiler tracked_current_route_preserves_census_and_authority_ceiling -- --ignored
 cargo test --locked -p tos-compiler present_private_layers_rebuild_exactly -- --ignored
 cargo test --locked -p tos-ops-mechanics-plan table_one_and_two_language_packets_cover_selected_text_corpora -- --ignored

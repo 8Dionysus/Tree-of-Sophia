@@ -81,10 +81,13 @@ fn text(out: &Output) -> String {
 #[test]
 #[ignore = "data_release: complete authored tree and public-entry snapshot"]
 fn current_source_routes_run_natively_and_preserve_authority_bounds() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(3)
-        .unwrap();
+    let selected = PathBuf::from(
+        std::env::var_os("TOS_DATA_ROOT")
+            .expect("data_release requires an explicit complete TOS_DATA_ROOT"),
+    )
+    .canonicalize()
+    .expect("selected data root exists");
+    let root = selected.as_path();
     let mut failures = Vec::new();
     for flag in [
         "--tiny-entry-validate",

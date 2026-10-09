@@ -1779,10 +1779,12 @@ mod tests {
     #[test]
     #[ignore = "data_release: exact tracked translation-alignment corpus"]
     fn tracked_current_route_preserves_census_and_authority_ceiling() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .canonicalize()
-            .unwrap();
+        let root = std::path::PathBuf::from(
+            std::env::var_os("TOS_DATA_ROOT")
+                .expect("data_release requires an explicit complete TOS_DATA_ROOT"),
+        )
+        .canonicalize()
+        .expect("selected data root exists");
         let summary = validate_tracked(&root).expect("tracked alignment route validates");
         assert_eq!(summary["status"], "pass");
         assert_eq!(summary["packets"], 4);
@@ -1802,10 +1804,12 @@ mod tests {
     #[test]
     #[ignore = "data_release: explicitly selected private translation layers"]
     fn present_private_layers_rebuild_exactly() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .canonicalize()
-            .unwrap();
+        let root = std::path::PathBuf::from(
+            std::env::var_os("TOS_DATA_ROOT")
+                .expect("data_release requires an explicit complete TOS_DATA_ROOT"),
+        )
+        .canonicalize()
+        .expect("selected data root exists");
         let repo = ResearchExecution::new(&root, 180).unwrap();
         let private_refs = (1..=4)
             .flat_map(|part| {
@@ -1815,13 +1819,12 @@ mod tests {
                     .map(move |side| s(&packet[side]["text_layer_ref"]).unwrap().to_owned())
             })
             .collect::<Vec<_>>();
-        if !private_refs
-            .iter()
-            .all(|reference| root.join(reference).is_file())
-        {
-            eprintln!("skip: exact local German and Russian private layers are not present");
-            return;
-        }
+        assert!(
+            private_refs
+                .iter()
+                .all(|reference| root.join(reference).is_file()),
+            "selected private data release must contain the exact German and Russian layers"
+        );
         let result =
             run(&root, &["--check".to_owned()]).expect("native exact private rebuild parity");
         assert_eq!(result["status"], "pass");
