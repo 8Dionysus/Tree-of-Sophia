@@ -2609,7 +2609,14 @@ mod io_restriction_tests {
         let before = io.snapshot();
         clone.restrict_remaining_io(0, 0).unwrap();
         assert!(clone.shares_with(&io));
-        assert_eq!(io.snapshot(), before);
+        let after = io.snapshot();
+        assert_eq!(after.read_limit_bytes, Some(7));
+        assert!(after.read_limit_origin.is_some());
+        assert_ne!(after.read_limit_origin, before.read_limit_origin);
+        let mut expected = before;
+        expected.read_limit_bytes = Some(7);
+        expected.read_limit_origin = after.read_limit_origin;
+        assert_eq!(after, expected);
         io.record_read_returned(7).unwrap();
         io.record_write_returned(11).unwrap();
         // A larger later slice cannot restore either exhausted ceiling.

@@ -120,9 +120,10 @@ fn assert_native_compressed_readback(source: &Path, prepared: &Path, node_id: &s
     );
     let page: Value = serde_json::from_slice(&output.stdout).expect("native search page JSON");
     assert!(
-        page["nodes"]
-            .as_array()
-            .is_some_and(|nodes| nodes.iter().any(|node| node["id"] == node_id)),
+        page["nodes"].as_array().is_some_and(|nodes| nodes
+            .iter()
+            .any(|node| node["id"] == format!("philosophy:{node_id}")
+                && node["native_id"] == node_id)),
         "native compressed search did not read back prepared node {node_id}: {page}"
     );
 }

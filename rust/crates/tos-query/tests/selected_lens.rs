@@ -990,9 +990,9 @@ fn rebind_historical_lens_cursors(oracle: JsonValue, publication: &JsonValue) ->
             "f5e77c4e6a6cb49ce73d13682a95cfe8cdbc47c31c6939036541dd256fc18d70",
             position,
         );
-        // One emitted page token and one subsequent request token. The stale
-        // token and all malformed-input cases are deliberately left intact.
-        assert_eq!(encoded.matches(&old).count(), 2);
+        // One emitted page token, the subsequent request and its published
+        // compiled spec. Stale and malformed-input tokens remain unchanged.
+        assert_eq!(encoded.matches(&old).count(), 3);
         encoded = encoded.replace(&old, &cursor(&current, position));
     }
     parse_json(
@@ -2252,12 +2252,22 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
         *field_mut(&mut oracle, "root") = value(restored.to_string_lossy().as_ref());
         *field_mut(&mut oracle, "index") =
             value(restored.join(source_path).to_string_lossy().as_ref());
-        let status = field_mut(field_mut(&mut oracle, "cases"), "status");
-        assert_eq!(field(status, "tos_root"), field(archived_oracle, "root"));
-        assert_eq!(field(status, "index_path"), field(archived_oracle, "index"));
-        *field_mut(status, "tos_root") = value(restored.to_string_lossy().as_ref());
-        *field_mut(status, "index_path") =
-            value(restored.join(source_path).to_string_lossy().as_ref());
+        // Both the status response and the summary embed the selected filesystem
+        // location. Rebase only those authenticated historical location fields.
+        for summary in [false, true] {
+            let cases = field_mut(&mut oracle, "cases");
+            let container = if summary {
+                field_mut(cases, "summary")
+            } else {
+                cases
+            };
+            let status = field_mut(container, "status");
+            assert_eq!(field(status, "tos_root"), field(archived_oracle, "root"));
+            assert_eq!(field(status, "index_path"), field(archived_oracle, "index"));
+            *field_mut(status, "tos_root") = value(restored.to_string_lossy().as_ref());
+            *field_mut(status, "index_path") =
+                value(restored.join(source_path).to_string_lossy().as_ref());
+        }
         let s = |name| field(&oracle, name).as_str().unwrap().to_owned();
         let mut fixture = build_native_fixture_with_captured_corpus(
             &capture,

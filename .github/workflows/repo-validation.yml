@@ -298,6 +298,19 @@ jobs:
       - name: Validate software contracts and build browser assets
         run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase checks'
 
+      - name: Prepare isolated fs-verity test filesystem
+        run: |
+          # Native immutable-file tests require a filesystem with fs-verity.
+          # Format only this job-owned image; leave the runner filesystem alone.
+          root="$RUNNER_TEMP/tos-verity-tests"
+          mkdir -m 700 "$root"
+          truncate -s 4G "$root/volume.ext4"
+          mkfs.ext4 -q -F -O verity "$root/volume.ext4"
+          mkdir -m 700 "$root/mounted"
+          sudo mount -o loop,nodev,nosuid "$root/volume.ext4" "$root/mounted"
+          sudo chown "$(id -u):$(id -g)" "$root/mounted"
+          chmod 700 "$root/mounted"
+          echo "TMPDIR=$root/mounted" >> "$GITHUB_ENV"
       - name: Test shared software and data-operation code on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'full' }}
         run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase tests --command-timeout-ms 900000'
@@ -358,6 +371,14 @@ jobs:
             dist/tree-of-sophia-software.zip.manifest.json
           if-no-files-found: error
           retention-days: 14
+
+      - name: Unmount isolated fs-verity test filesystem
+        if: ${{ always() }}
+        run: |
+          root="$RUNNER_TEMP/tos-verity-tests"
+          if mountpoint -q "$root/mounted"; then
+            sudo umount "$root/mounted"
+          fi
 
   worker:
     needs: plan
@@ -838,6 +859,19 @@ jobs:
           printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
           tar -xzf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
+      - name: Prepare isolated fs-verity test filesystem
+        run: |
+          # Native immutable-file tests require a filesystem with fs-verity.
+          # Format only this job-owned image; leave the runner filesystem alone.
+          root="$RUNNER_TEMP/tos-verity-tests"
+          mkdir -m 700 "$root"
+          truncate -s 4G "$root/volume.ext4"
+          mkfs.ext4 -q -F -O verity "$root/volume.ext4"
+          mkdir -m 700 "$root/mounted"
+          sudo mount -o loop,nodev,nosuid "$root/volume.ext4" "$root/mounted"
+          sudo chown "$(id -u):$(id -g)" "$root/mounted"
+          chmod 700 "$root/mounted"
+          echo "TMPDIR=$root/mounted" >> "$GITHUB_ENV"
       - name: Verify Rust workspace, conformance products and isolated install
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home
@@ -858,6 +892,14 @@ jobs:
         run: |
           : "${TOS_CMD_POSTGRES_URL:?dedicated PostgreSQL connection is required}"
           cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
+
+      - name: Unmount isolated fs-verity test filesystem
+        if: ${{ always() }}
+        run: |
+          root="$RUNNER_TEMP/tos-verity-tests"
+          if mountpoint -q "$root/mounted"; then
+            sudo umount "$root/mounted"
+          fi
 
   required_gate:
     name: Repo Validation

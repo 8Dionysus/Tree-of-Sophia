@@ -984,8 +984,7 @@ mod tests {
             .unwrap()
             .iter()
             .find(|node| {
-                node["entity_id"].as_str() == Some(identity)
-                    && node["node_kind"] != "record-version"
+                node["entity_id"].as_str() == Some(identity) && node["kind_id"] != "record-version"
             })
             .unwrap();
         assert_eq!(
@@ -1006,7 +1005,7 @@ mod tests {
             .as_array()
             .unwrap()
             .iter()
-            .filter(|node| node["node_kind"] == "record-version")
+            .filter(|node| node["kind_id"] == "record-version")
             .collect::<Vec<_>>();
         assert_eq!(version_nodes.len(), 2);
         assert!(

@@ -33,6 +33,10 @@ owner surfaces.
    Run `tos-release-check --repo-root "$PWD"`
    to check contracts, build browser assets and run program fixture tests.
    This command uses program fixtures and repository-owned dependencies.
+   Native immutable-file integration tests require fs-verity on the selected
+   temporary filesystem. CI supplies a job-owned ext4 image formatted with
+   `-O verity`, points `TMPDIR` at it and unmounts it after the tests; local
+   execution must likewise select a filesystem with fs-verity enabled.
    The wrapper forwards explicit `--command-timeout-ms`, `--lane-timeout-ms`,
    `--cleanup-grace-ms` and `--max-output-bytes` to the native executor.
    Omitted limits retain its defaults. Select a phase with `--phase checks`

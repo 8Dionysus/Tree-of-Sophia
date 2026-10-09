@@ -126,11 +126,11 @@ pub(crate) fn work_expression(repository: &Path, root: &Path) -> Value {
 }
 
 /// A single frozen Item fixture for owner-internal retained-orphan recovery.
-/// The captured root is preserved; only the four explicitly selected external
-/// locations in its protected grant are rebased into the isolated test root.
+/// The captured root is preserved; only the explicitly selected external
+/// locations and the fixture owner uid in its protected grant are rebased into the isolated test root.
 pub(crate) fn item_orphan_recovery(_repository: &Path, root: &Path) -> Value {
     const MANIFEST_SHA256: &str =
-        "6d024a3a1bca79603e5d6b1afb172f2ab774db6bd27eb08d64d7df6b032af9ad";
+        "cde47679f5406e5aa77e7cc7143341d621e5dfc11310087609fea739d4ed15d7";
     const ARCHIVE_SHA256: &str = "bc472cbb1c7f05010f9d96993efa478778d8e11c78a8a34b4f9c633e07899ef6";
     const ARCHIVE: &[u8] =
         include_bytes!("../tests/fixtures/native-item-recovery/item-base.tar.gz");
@@ -149,65 +149,94 @@ pub(crate) fn item_orphan_recovery(_repository: &Path, root: &Path) -> Value {
     assert_eq!(manifest["archive"]["sha256"], ARCHIVE_SHA256);
     assert_eq!(digest(ARCHIVE), ARCHIVE_SHA256);
 
-    let mut decoded = Vec::new();
-    GzDecoder::new(ARCHIVE)
-        .read_to_end(&mut decoded)
-        .expect("decompress captured Item source fixture");
-    let mut offset = 0usize;
+    const HISTORY: &[u8] =
+        include_bytes!("../tests/fixtures/native-item-recovery/item-record-history.tar.gz");
+    assert_eq!(
+        digest(HISTORY),
+        manifest["record_revision_history"]["sha256"]
+    );
+    assert_eq!(
+        HISTORY.len() as u64,
+        manifest["record_revision_history"]["size_bytes"]
+            .as_u64()
+            .unwrap()
+    );
     let mut packet_raw = None;
-    while offset + 512 <= decoded.len() {
-        let header = &decoded[offset..offset + 512];
-        if header.iter().all(|byte| *byte == 0) {
-            break;
-        }
-        let field = |range: std::ops::Range<usize>| {
-            let raw = &header[range];
-            let end = raw.iter().position(|byte| *byte == 0).unwrap_or(raw.len());
-            std::str::from_utf8(&raw[..end]).expect("USTAR header text")
-        };
-        let name = field(0..100);
-        let prefix = field(345..500);
-        let relative = if prefix.is_empty() {
-            name.to_owned()
-        } else {
-            format!("{prefix}/{name}")
-        };
-        let size_text = field(124..136).trim();
-        let size = if size_text.is_empty() {
-            0usize
-        } else {
-            usize::from_str_radix(size_text, 8).expect("USTAR member size")
-        };
-        let data_start = offset + 512;
-        let data_end = data_start.checked_add(size).expect("USTAR size overflow");
-        assert!(data_end <= decoded.len(), "truncated Item fixture archive");
-        let kind = header[156];
-        if relative == "packet.json" {
-            assert_eq!(kind, b'0');
-            packet_raw = Some(decoded[data_start..data_end].to_vec());
-        } else {
-            assert!(safe_relative(&relative), "unsafe Item fixture path");
-            let target = root.join(&relative);
-            if kind == b'5' {
-                fs::create_dir_all(&target).expect("create captured Item directory");
-                let mode_text = field(100..108).trim();
-                if !mode_text.is_empty() {
-                    let mode = u32::from_str_radix(mode_text, 8).expect("USTAR directory mode");
-                    fs::set_permissions(&target, fs::Permissions::from_mode(mode & 0o777))
-                        .expect("restore captured Item directory mode");
-                }
-            } else {
-                assert_eq!(kind, b'0', "only regular Item fixture files are accepted");
-                fs::create_dir_all(target.parent().unwrap()).expect("create Item source parent");
-                fs::write(&target, &decoded[data_start..data_end])
-                    .expect("materialize captured Item source");
-                let mode_text = field(100..108).trim();
-                let mode = u32::from_str_radix(mode_text, 8).expect("USTAR file mode");
-                fs::set_permissions(&target, fs::Permissions::from_mode(mode & 0o777))
-                    .expect("restore captured Item file mode");
+    for (archive, history) in [(ARCHIVE, false), (HISTORY, true)] {
+        let mut decoded = Vec::new();
+        GzDecoder::new(archive)
+            .read_to_end(&mut decoded)
+            .expect("decompress captured Item source fixture");
+        let mut offset = 0usize;
+        while offset + 512 <= decoded.len() {
+            let header = &decoded[offset..offset + 512];
+            if header.iter().all(|byte| *byte == 0) {
+                break;
             }
+            let field = |range: std::ops::Range<usize>| {
+                let raw = &header[range];
+                let end = raw.iter().position(|byte| *byte == 0).unwrap_or(raw.len());
+                std::str::from_utf8(&raw[..end]).expect("USTAR header text")
+            };
+            let name = field(0..100);
+            let prefix = field(345..500);
+            let relative = if prefix.is_empty() {
+                name.to_owned()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            let size_text = field(124..136).trim();
+            let size = if size_text.is_empty() {
+                0usize
+            } else {
+                usize::from_str_radix(size_text, 8).expect("USTAR member size")
+            };
+            let data_start = offset + 512;
+            let data_end = data_start.checked_add(size).expect("USTAR size overflow");
+            assert!(data_end <= decoded.len(), "truncated Item fixture archive");
+            let kind = header[156];
+            if relative == "packet.json" {
+                assert_eq!(kind, b'0');
+                assert!(packet_raw.is_none(), "duplicate Item fixture packet");
+                packet_raw = Some(decoded[data_start..data_end].to_vec());
+            } else {
+                assert!(safe_relative(&relative), "unsafe Item fixture path");
+                let relative = if history {
+                    format!("ToS/source-witnesses/.record-revisions/{relative}")
+                } else {
+                    relative
+                };
+                let target = root.join(&relative);
+                if kind == b'5' {
+                    fs::create_dir_all(&target).expect("create captured Item directory");
+                    let mode_text = field(100..108).trim();
+                    if !mode_text.is_empty() {
+                        let mode = u32::from_str_radix(mode_text, 8).expect("USTAR directory mode");
+                        fs::set_permissions(&target, fs::Permissions::from_mode(mode & 0o777))
+                            .expect("restore captured Item directory mode");
+                    }
+                } else {
+                    assert_eq!(kind, b'0', "only regular Item fixture files are accepted");
+                    fs::create_dir_all(target.parent().unwrap())
+                        .expect("create Item source parent");
+                    if history {
+                        let mut directory = target.parent().unwrap();
+                        while directory != root.join("ToS/source-witnesses") {
+                            fs::set_permissions(directory, fs::Permissions::from_mode(0o700))
+                                .unwrap();
+                            directory = directory.parent().unwrap();
+                        }
+                    }
+                    fs::write(&target, &decoded[data_start..data_end])
+                        .expect("materialize captured Item source");
+                    let mode_text = field(100..108).trim();
+                    let mode = u32::from_str_radix(mode_text, 8).expect("USTAR file mode");
+                    fs::set_permissions(&target, fs::Permissions::from_mode(mode & 0o777))
+                        .expect("restore captured Item file mode");
+                }
+            }
+            offset = data_start + size.div_ceil(512) * 512;
         }
-        offset = data_start + size.div_ceil(512) * 512;
     }
     let packet_raw = packet_raw.expect("captured Item fixture packet");
     assert_eq!(digest(&packet_raw), manifest["archive"]["packet_sha256"]);

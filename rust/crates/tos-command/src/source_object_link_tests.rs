@@ -183,6 +183,19 @@ fn object_link_fixture(repository: &Path, root: &Path) -> (PathBuf, Vec<u8>) {
             .into_owned(),
     );
     owner["uid"] = serde_json::Value::from(fs::metadata(root).unwrap().uid());
+    // The file-only capture omits empty creation parents. The owner creates
+    // the selected leaf directories, so their existing parents remain inputs.
+    for key in ["link_source_path", "claim_source_path"] {
+        let source_path = owner[key].as_str().unwrap();
+        assert!(safe_relative(source_path));
+        let parent = root.join(Path::new(source_path).parent().unwrap().parent().unwrap());
+        fs::create_dir_all(&parent).expect("create selected ObjectLink parent");
+        let mut directory = parent.as_path();
+        while directory != root {
+            fs::set_permissions(directory, fs::Permissions::from_mode(0o755)).unwrap();
+            directory = directory.parent().unwrap();
+        }
+    }
     let owner_path = root.join("link-owner.json");
     fs::write(&owner_path, serde_json::to_vec_pretty(&owner).unwrap())
         .expect("write isolated ObjectLink owner config");

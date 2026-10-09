@@ -3277,6 +3277,22 @@ mod selected_snapshot_tests {
                 "claim_traces": []
             }),
         );
+        write_json_fixture(
+            root,
+            EVIDENCE_PROJECTION_PATH,
+            json!({
+                "schema_version": "tos_epistemic_evidence_projection_v1",
+                "owner_repo": "Tree-of-Sophia",
+                "surface_kind": "derived_public_evidence_navigation",
+                "source_definition_ref": EVIDENCE_SCENES_PATH,
+                "source_definition_sha256": Digest256::of_bytes(EVIDENCE_SCENES_SOURCE).to_hex(),
+                "scenes": [],
+                "authority_boundary": {
+                    "is_source": false, "is_canon": false,
+                    "is_semantic_truth": false, "is_rights_clearance": false
+                }
+            }),
+        );
         for (relative, raw) in [
             (
                 "ToS/doctrine/semantic-interchange/entity-types.v1.json",
