@@ -37,6 +37,7 @@ mod source_agent_publication_commit;
 mod source_agent_publication_profile;
 mod source_agent_publication_recovery;
 pub mod source_artifact_native;
+pub mod source_assembly_normalization;
 pub(crate) mod source_capacity_workload;
 pub mod source_capacity_workload_cli;
 pub mod source_claim_publication;

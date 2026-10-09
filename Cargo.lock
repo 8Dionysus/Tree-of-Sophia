@@ -1555,11 +1555,13 @@ name = "tos-access"
 version = "0.0.0"
 dependencies = [
  "flate2",
+ "hmac",
  "libc",
  "rawzip",
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "toml",
  "tos-command",
  "tos-compiler",

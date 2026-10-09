@@ -1,12 +1,8 @@
 #![cfg(not(target_arch = "wasm32"))]
 //! Independent legacy packet oracle over the existing CMP producer fixture.
-use std::{
-    io::Write,
-    process::{Command, Stdio},
-};
 use tos_compiler::knowledge_full_fixture::build_fixture;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
+    CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
 };
 use tos_query::search_v2::{CurrentPolicyBinding, SearchKind, SearchV2Error, SearchV2ErrorCode};
 use tos_query::{
@@ -124,7 +120,7 @@ fn canonical(value: &JsonValue) -> Vec<u8> {
     .unwrap()
 }
 #[test]
-fn producer_selected_inspect_matches_full_python_packets_and_refuses_budget_or_withdrawal() {
+fn producer_selected_inspect_matches_frozen_packets_and_refuses_budget_or_withdrawal() {
     let fixture = build_fixture();
     let oracle = parse_json(
         include_bytes!("fixtures/cmp_knowledge_inspect_python_oracle.json"),
@@ -133,61 +129,9 @@ fn producer_selected_inspect_matches_full_python_packets_and_refuses_budget_or_w
     )
     .unwrap()
     .into_root();
-    // The producer now exposes actual retained source_order, rather than the
-    // original ingestion order of this shared fixture. Keep the historical
-    // packet oracle and compare it to the maintained reader on these exact
-    // current graph bytes; do not relabel its obsolete raw input SHA.
-    let script = r#"
-import hashlib,json,sys
-from pathlib import Path
-repo=Path(sys.argv[1]);sys.path.insert(0,str(repo/'access/src'))
-from tos_access.knowledge import inspect_knowledge_node,inspect_knowledge_relation
-raw=sys.stdin.buffer.read();graph=json.loads(raw)
-original=json.loads((repo/'rust/crates/tos-query/tests/fixtures/cmp_knowledge_inspect_python_oracle.json').read_bytes())
-cases=[]
-for case in original['cases']:
- packet=(inspect_knowledge_node(graph,case['identifier'],relation_limit=case['relation_limit'])
-         if case['kind']=='nodes' else inspect_knowledge_relation(graph,case['identifier']))
- cases.append({**case,'packet':packet})
-json.dump({'input_sha256':hashlib.sha256(raw).hexdigest(),'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
-"#;
-    let mut child = Command::new("python3")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(&fixture.graph_input_bytes)
-        .unwrap();
-    let output = child.wait_with_output().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let current_oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap()
-    .into_root();
-    assert_eq!(
-        Digest256::of_bytes(&fixture.graph_input_bytes).to_hex(),
-        field(&current_oracle, "input_sha256").as_str().unwrap()
-    );
-    assert_eq!(
-        canonical(field(&current_oracle, "cases")),
-        canonical(field(&oracle, "cases"))
-    );
-    let oracle = current_oracle;
+    // Use the committed independent Python packets as frozen expectations.
+    // Their raw input digest records the historical fixture bytes; the current
+    // producer exposes retained source order while preserving packet meaning.
     let cold = fixture.open().unwrap();
     let bound =
         bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();

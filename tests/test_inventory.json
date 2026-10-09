@@ -123,18 +123,18 @@
       "disposition": "keep"
     },
     {
-      "path": "access/tests/test_source_assembly_normalization.py",
-      "home": "access",
-      "home_scope": "product-local",
-      "family": "standalone_access_contract",
-      "validation_lane": "standalone_access",
+      "path": "rust/crates/tos-command/src/source_assembly_normalization.rs",
+      "home": "rust/crates/tos-command",
+      "home_scope": "rust",
+      "family": "mechanics_schema_contract",
+      "validation_lane": "source_witness_foundation",
       "owner_surface": "access/contracts/source-assembly-normalization.v1.md",
       "protects": "bounded multi-node source cohort normalization using full-builder Claim, literal-context, relation, inherited-view and readable-context kernels; source Agent correction parity beyond direct incidence, exact retained versions, missing input refusal, output isolation and budgets without closure or admission claims",
-      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "coverage_authority": "Cargo test discovery and native source-assembly contract",
       "mode": "blocking",
       "runtime_cost": "fast",
-      "focused_target": "access/tests/test_source_assembly_normalization.py",
-      "failure_route": "Fix shared normalization or supplied closure verification; never infer omitted source dependencies, skip Claim reducers or silently fall back to a full graph build.",
+      "focused_target": "source_assembly_normalization::tests",
+      "failure_route": "Fix the native shared normalization or supplied closure contract; never infer omitted source dependencies, skip Claim reducers or silently fall back to a full graph build.",
       "disposition": "keep"
     },
     {

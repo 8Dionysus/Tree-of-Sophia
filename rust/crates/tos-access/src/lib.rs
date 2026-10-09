@@ -35,6 +35,8 @@ pub(crate) mod reference_cursor;
 pub mod release_state;
 pub mod word_analysis;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
+#[cfg(not(target_arch = "wasm32"))]
+pub use tos_command::source_assembly_normalization;
 mod common;
 pub mod http;
 #[cfg(not(target_arch = "wasm32"))]
@@ -50,10 +52,10 @@ mod selected_source_owner_cli;
 pub mod site;
 pub mod software_archive;
 #[cfg(not(target_arch = "wasm32"))]
-pub mod standalone_validation;
-#[cfg(not(target_arch = "wasm32"))]
 mod source_owner_provider_phase;
 pub mod source_read;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod standalone_validation;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
@@ -105,9 +107,9 @@ pub mod transfer_metadata_command;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod dta_technical_markup_command;
 #[cfg(not(target_arch = "wasm32"))]
-pub mod transfer_target_passages_command;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod transfer_source_passages_command;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod transfer_target_passages_command;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod transfer_candidates_command;

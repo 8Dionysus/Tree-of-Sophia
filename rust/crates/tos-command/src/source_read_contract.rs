@@ -272,3 +272,129 @@ pub(crate) fn validate_handle(value: &Value) -> SourceCommandResult<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn epoch() -> Value {
+        json!({
+            "source_revision": "a".repeat(64),
+            "catalog_root_sha256": "b".repeat(64),
+            "catalog_namespace": "tos.agent.fixture",
+            "source_publication": {
+                "protocol": "tos_selected_source_metadata_v1",
+                "token": format!("sha256:{}", "c".repeat(64)),
+                "generation": 7
+            }
+        })
+    }
+
+    fn metadata_target() -> Value {
+        let digest = format!("sha256:{}", "d".repeat(64));
+        json!({
+            "layer": "metadata_record",
+            "record_type": "agent",
+            "record_ref": {"id": "tos.agent.fixture", "version": 2, "digest": digest.clone()},
+            "content_revision": digest
+        })
+    }
+
+    #[test]
+    fn exact_metadata_handle_binds_epoch_and_never_grants_text_rights() {
+        let target = metadata_target();
+        let metadata_access = access("public-metadata-record", "public_metadata_only").unwrap();
+        assert_eq!(metadata_access["rights_revalidated"], false);
+        assert_eq!(metadata_access["rights_scope"], "metadata-disclosure-only");
+        let handle = make_handle(&epoch(), &target, &metadata_access).unwrap();
+        validate_handle(&handle).unwrap();
+
+        let mut changed_target = handle.clone();
+        changed_target["target"]["record_ref"]["version"] = json!(3);
+        assert!(validate_handle(&changed_target).is_err());
+        let mut changed_epoch = handle.clone();
+        changed_epoch["epoch"]["source_revision"] = json!("e".repeat(64));
+        assert!(validate_handle(&changed_epoch).is_err());
+
+        let mut escalated = handle;
+        escalated["access"]["rights_revalidated"] = json!(true);
+        assert!(validate_handle(&escalated).is_err());
+        assert!(access("public-metadata-record", "private").is_err());
+    }
+
+    #[test]
+    fn exact_targets_reject_paths_ranges_and_unrecognized_source_layers() {
+        let valid = metadata_target();
+        target(&valid).unwrap();
+
+        let mut path = valid.clone();
+        path["source_ref"] = json!("../../etc/passwd");
+        assert!(target(&path).is_err());
+
+        let mut range = valid;
+        range["range"] = json!({"start": 0, "end": 1});
+        assert!(target(&range).is_err());
+
+        assert!(
+            target(&json!({
+                "layer": "text_layer",
+                "path": "ToS/source-witnesses/fixture.txt"
+            }))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn claim_and_source_slot_handles_keep_typed_owner_scope_and_visibility() {
+        let claim_digest = format!("sha256:{}", "1".repeat(64));
+        let claim = json!({
+            "layer": "claim_record",
+            "record_ref": {"id": "tos.claim.fixture", "version": 1, "digest": claim_digest.clone()},
+            "content_revision": claim_digest
+        });
+        let slot = json!({
+            "layer": "source_slot",
+            "slot_kind": "claim",
+            "identity": "tos.claim.fixture",
+            "row_sha256": "2".repeat(64),
+            "content_revision": format!("sha256:{}", "3".repeat(64))
+        });
+        for (target_value, scope) in [
+            (&claim, "public-claim-record"),
+            (&slot, "public-source-slot-metadata"),
+        ] {
+            let permitted = access(scope, "public_metadata_only").unwrap();
+            let handle = make_handle(&epoch(), target_value, &permitted).unwrap();
+            validate_handle(&handle).unwrap();
+            assert_eq!(handle["access"]["rights_revalidated"], false);
+            assert_eq!(handle["access"]["rights_scope"], "metadata-disclosure-only");
+            assert!(access(scope, "private").is_err());
+            let mut forged = handle;
+            forged["access"]["visibility_verified"] = json!(false);
+            assert!(validate_handle(&forged).is_err());
+        }
+
+        let mut wrong_slot_kind = slot;
+        wrong_slot_kind["slot_kind"] = json!("text");
+        assert!(target(&wrong_slot_kind).is_err());
+        let mut wrong_claim_identity = claim;
+        wrong_claim_identity["record_ref"]["id"] = json!("tos.agent.fixture");
+        assert!(target(&wrong_claim_identity).is_err());
+    }
+
+    #[test]
+    fn authored_csv_identity_rejects_traversal_before_owner_lookup() {
+        let good = json!({
+            "layer": "authored_csv_record",
+            "pack_id": "canon/relations/fixture",
+            "edge_id": "edge-1",
+            "source_row": 1,
+            "source_file_sha256": "e".repeat(64),
+            "content_revision": format!("sha256:{}", "f".repeat(64))
+        });
+        target(&good).unwrap();
+        let mut traversal = good;
+        traversal["pack_id"] = json!("canon/relations/../secret");
+        assert!(target(&traversal).is_err());
+    }
+}

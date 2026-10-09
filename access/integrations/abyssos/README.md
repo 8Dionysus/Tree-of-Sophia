@@ -13,186 +13,101 @@ Tree of Sophia owns the standalone product and its projection readers.
 bounded ports; `abyss-machine` retains artifact policy, registry, and consumer
 admission. None of those owners is imported into the query core.
 
-## Explicit native prepared read measurement
+## Rust protocol load readiness
 
-`measure_prepared_reads.py` is an optional host-side, finite CLI workload
-component for E4. It does not activate an adapter or accept capacity. It only
-invokes `knowledge search --mode compressed` with an explicitly selected native
-binary, standalone prepared SQLite main and binding; it never prepares or
-publishes data. Protected input files must be absolute, regular, non-symlink,
-read-only files; the SQLite main must have no WAL/SHM/journal sidecars.
+`rust/crates/tos-access/src/bin/tos-load-readiness.rs` is the finite Rust
+measurement target for an installed native Rust release. Build it from the
+selected ToS source cohort with `cargo build --release -p tos-access --bin
+tos-load-readiness --features load-readiness`, then launch its absolute path
+through the existing `abyss-machine resource launch` route. The harness is a
+client: it starts the selected `tos` Streamable HTTP listener and, only when
+scheduled, the native source-command HTTP owner. It adds no server endpoint,
+source grant, or publication step. It requires no Python runtime.
 
-Provide a protected JSON schedule array. Every entry has exactly `argv`,
-`exit_code`, `stdout_json`, `stdout_text`, `stderr_text`. For successful JSON,
-set `stdout_text` to null and supply the complete expected packet in
-`stdout_json` (including schema/revision/cursors). For refusals, set
-`stdout_json` to null and provide exact stdout and stderr strings. Do not
-replace refusal codes or expected packets with success labels. Requests run
-once; C is caller supplied, no larger than the finite request count.
+The protected schedule has the form
+`{"schema":"tos_protocol_load_schedule_v1","sessions":[{"id":"s-0","operations":[...]}]}`.
+Each session contains an ordered operation list. `--sessions 2|8|16|64|128|256`
+selects the stage (default 2); the harness launches each operation index as a
+concurrent wave across sessions. An operation declares `channel`, `label`,
+`request`, `expected_status`, and `expected_sha256`. Channels are `mcp` for an
+ordinary 2025-11-25 Streamable HTTP JSON-RPC request, `owner_http` for the
+exact authenticated native source-command request object, and `sdk` for an
+explicit absolute SDK consumer command. SDK receives one bounded JSON line on
+stdin and returns the response bytes on stdout; stderr is discarded. The input
+writer and bounded output drain run concurrently so a full-duplex exchange
+cannot deadlock on full pipes. A deadline or output-cap breach terminates the
+owned process group and records the operation as an error.
 
-The caller creates an isolated output directory through the existing canonical
-host launch/storage route. Example command shape (all uppercase values are
-explicit selected profile values, not defaults):
+For a conflict race, set the same `conflict_group` on at least two owner HTTP
+operations in one wave and give every member the same
+`alternate_outcomes` set, containing one exact 2xx status/digest and one exact
+409 status/digest. Each operation passes when its own signed response matches
+either declared outcome; the group passes only when exactly one member succeeds
+and all remaining members return the signed 409. This accepts whichever session
+wins the race while preserving per-status response checks. Every scheduled
+owner command ID must still be unique. `retry_same_command_id` deliberately
+closes after signed response headers and retries the identical command body and
+ID with a fresh transport nonce. `reconnect_before` deletes and reinitializes
+the MCP session before the operation.
+
+For a small two-session smoke, use
+`access/integrations/abyssos/fixtures/load-readiness-two-session.json`. It is a
+finite exact-oracle schedule for one MCP `ping` in each session, using the
+native handler's deterministic `{"result":{}}` response. It needs no content
+specific to the selected model or binding and does not carry a source-writing
+request. The source fixture must remain on the selected reviewed checkout.
+
+Launch the smoke through the canonical host wrapper; the uppercase fields below
+are explicit values selected for that attempt:
 
 ```sh
 abyss-machine resource launch --class CLASS --kind benchmark \
   --memory-demand-mib MEMORY --bytes OUTPUT_CAP --target OUTPUT \
   --unit UNIT --timeout OUTER_SECONDS --json -- \
-  python3 ABS_DRIVER --binary ABS_TOS --model ABS_MODEL --binding ABS_BINDING \
-  --schedule ABS_SCHEDULE --output OUTPUT --unit UNIT \
-  --concurrency C --deadline-seconds SECONDS --output-cap-bytes OUTPUT_CAP \
-  --response-cap-bytes RESPONSE_CAP --schedule-cap-bytes SCHEDULE_CAP \
-  --max-requests REQUEST_COUNT
+  ABS_LOAD_READINESS \
+  --query-binary ABS_INSTALLED_TOS \
+  --model ABS_PREPARED_MAIN --binding ABS_PREPARED_BINDING \
+  --schedule ABS_CHECKOUT/access/integrations/abyssos/fixtures/load-readiness-two-session.json \
+  --output OUTPUT --unit UNIT --sessions 2 --deadline-seconds 120 \
+  --request-cap-bytes 1048576 --response-cap-bytes 4194304 \
+  --schedule-cap-bytes 16777216 --output-cap-bytes OUTPUT_CAP
 ```
 
-The output directory must already exist when the driver starts (use the
-existing frozen owner launch body to create it). Driver checks its exact cgroup
-unit and a fresh, unique canonical `write-reservation list` receipt with a
-terminal execution hold covering the output cap. Its exclusive
-`measurements.jsonl` streams identities, per-request elapsed time, exit status,
-complete bounded stdout/stderr and comparison result, then unchanged-input
-checks. Deadline/output refusal terminates this attempt; it does not retry or
-raise caps. Each child process group is terminated and reaped, including
-surviving pipe holders. No native call is made during source validation.
+When a schedule uses `owner_http`, pass the owner-only option group
+`--owner-binary ABS_INSTALLED_NATIVE_OWNER_COMMAND --owner-config ABS_OWNER_CONFIG
+--invocation ABS_NATIVE_INVOCATION --token-file ABS_TOKEN`; the target requires
+all four together and reads the token only for an owner HTTP run. The host launch
+must create the pre-existing private output directory through the current frozen
+owner launch body and retain its fresh, unique terminal write reservation. The
+helper checks the exact cgroup unit, output ownership and mode,
+and canonical reservation before opening an exclusive mode-0600
+`measurements.jsonl`. The report keeps the existing `start`, `request`, and
+`finish` envelope and adds MCP session/catalog observations. It records exact
+status and response hashes, retries, reconnects, conflict-group pass/fail,
+latency quantiles, cgroup CPU/memory/I/O deltas, and report allocation. The
+catalog preflight records only handler count and digest, not a copied function
+catalog.
 
-Physical/accounting scope: two full input hash passes plus schedule decode;
-C child CLI processes (cold process/open per call), at most C RESPONSE_CAP raw
-response buffers, JSON decode/serialization transient allocations, and at most
-OUTPUT_CAP written bytes plus filesystem allocation slack. Schedule storage is
-bounded by SCHEDULE_CAP and REQUEST_COUNT, but decoded Python objects and
-threads are additional RSS, not bounded by serialized bytes alone. Source
-capture/compiler/postings/sort/publication/history/restore and HTTP persistent
-server measurements remain separate components. The existing native request
-meters and budget refusals are unchanged. A whole E4 profile still requires
-hardware/topology, N/E/R/U/text/degree/skew/churn/pin/concurrency dimensions,
-selected identities, numerical SLO and fresh aggregate physical admission;
-this finite component supplies no billion-record or hundreds-client claim.
+The helper caps sessions at 256, operations at 4096 (64 per session), request
+bodies at 1 MiB, response bodies at 4 MiB, schedules at 16 MiB, and report
+output at 64 MiB (default 8 MiB). It requests 256 KiB stacks for session
+workers and 128 KiB for each concurrent SDK output drain. At the maximum stage,
+wire buffers can reach roughly 1.25 GiB before decoded schedules, runtime/server
+state, SDK RSS, stacks, and filesystem allocation slack; the outer reservation
+must fit the selected stage. The helper records cgroup resource deltas but does
+not establish a capacity ceiling or SLO.
 
-For the persistent native HTTP component, add `--transport http --port PORT
---server-log-cap-bytes LOG_CAP`. PORT is an explicit IPv4 loopback port. The
-same finite schedule instead contains exact `{ "path": "/api/knowledge/search?
-mode=compressed&query=...", "status": 200, "response": FULL_EXPECTED_JSON }`
-entries (the path must be one string with no whitespace introduced by this
-illustration). Compressed search, search capabilities and exact knowledge node GET routes are
-accepted. Error packets/statuses are compared unchanged, including stale,
-budget, deadline and unavailable refusals; they do not become successes.
+The existing Rust Streamable HTTP route admits at most 32 sessions and 32
+connections, expires idle sessions after 900 seconds, and returns 503 at its
+session/connection limits or on a busy session. Native source-command HTTP has
+a 1 MiB request and 4 MiB response ceiling, 1024 nonce entries, a serial
+handler with backlog 4, 5-second idle and 30-second request deadlines, and no
+automatic retry. The harness reports these source limits as observed support
+boundaries; it does not claim they admit the larger configured client stages.
 
-One protected native `serve 127.0.0.1:PORT` child owns the entire series. Driver
-checks its Linux socket inode ownership before/after requests and refuses an
-unrelated listener. It uses no external URL, redirects or publication request.
-Connections close after each GET; the server and prepared backend persist, so
-this measures persistent-server operation rather than CLI process cold opens.
-Startup latency is reported separately. HTTP bodies are read in bounded
-chunks, server stdout/stderr are streamed under LOG_CAP and the same aggregate
-OUTPUT_CAP, and all server threads/pipes/process groups are joined/closed/reaped
-before final input guards. The log drain also terminates the server at the
-whole deadline or cancellation. HTTP-library header parsing has its standard
-100-header/65536-byte-line bounds; account up to roughly6.4MiB header bytes per
-concurrent connection plus object overhead, separately from RESPONSE_CAP body
-bytes. This is a source-level allocation envelope, not measured peak RSS.
-
-HTTP cost adds one persistent server baseline/backend caches, at most C client
-connections/header parsers/body/decoded/serialized buffers, bounded streamed
-server-log chunks, startup and terminal cleanup to the earlier formula. No
-additional dataset copy or publication occurs. Use a separate owned output
-attempt for CLI and HTTP; neither variant starts unless admission and all caps
-are explicit. No runtime capacity or numerical SLO is implied by this source.
-
-For repeated HTTP reads, the same protected schedule may instead be an exact
-object `{ "shared_response": RESPONSE, "requests": [{ "path": PATH, "status": STATUS }] }`.
-The request list remains explicitly finite and bounded by `--max-requests`; every
-response is compared against the complete shared JSON oracle. The driver decodes
-one oracle and references it without cloning. The original per-request schedule
-array remains supported. Compute the encoded schedule size before writing it; the
-existing schedule byte cap still applies before parsing/allocation.
-
-The initial model must have no SQLite sidecars. After server termination, the
-driver still requires exact main-file FD/path identity and SHA equality, but
-permits newly created regular, same-owner coordination files only when the model
-is inside the owned output directory: an empty WAL and SHM at most32KiB. This is
-the selected empty-WAL workload resource profile, not a universal SQLite size
-rule. Any rollback journal, symlink or nonempty WAL refuses the result. The
-coordination artifacts are recorded and count toward the output reservation.
-Native readers retain their ordinary readonly pathname/WAL semantics.
-
-A finite mixed HTTP workload may share several exact packets with
-`{ "shared_responses": [PACKET], "requests": [{ "path": PATH, "status": STATUS, "response_index":0 }] }`.
-Indices and request/oracle counts are validated before constructing references;
-packets are never cloned per client. HTTP records separately classify exact
-responses, the exact `503 server busy / unavailable` envelope, connection refusal
-and other errors. Refusals remain failed exact-response checks and do not become
-successes. The finish record carries these counts; client futures do not measure
-server-admitted concurrency.
-
-Installed executables may retain0755 ownership modes. Protection is admitted
-only when input permission bits prohibit writes or `statvfs(ST_RDONLY)` proves
-the actual execution namespace mount is readonly. Writable unmounted inputs
-still refuse; full opened-FD/path/stat/SHA checks remain before and after the
-workload. Do not chmod the installed original or copy its ELF to satisfy this
-check. Mount protection is observed inside execution, not inferred on the host.
-
-
-A scheduled actor HTTP workload uses the same driver and exact shared packets:
-`{"actors":["actor-000"],"window_seconds":600,"shared_responses":[PACKET],"requests":[{"actor_id":"actor-000","due_seconds":0,"path":PATH,"status":200,"response_index":0}]}`.
-Supply explicit `--max-actors` as well as the existing request, schedule, response,
-output, concurrency and whole-deadline caps. Labels are bounded client measurement
-labels, not authenticated principals or server threads. Every actor has at least
-one scheduled operation; each actor executes serially, while the existing global
-concurrency cap bounds live futures. The scheduler uses earliest due time with
-stable declared actor order for ties. Due times start after owned HTTP readiness;
-startup, terminal cleanup and input verification still consume the original whole
-deadline. Warmup requires a separately identified schedule; no time is silently
-removed or added.
-
-Per-request `latency_due_to_finish_seconds` includes waiting for the actor lane,
-client concurrency slot, connection, server and complete response. Existing
-`elapsed_seconds` reports worker-entry to response completion. The receipt records
-client wait, scheduled/start/finish times, exact comparison outcome and separately
-`successful_operation` (matching 2xx response). An expected 503 can match its oracle
-while remaining an unsuccessful operation. Actor summaries include sample counts,
-nearest-rank successful latency quantiles, first/last success, maximum success gap,
-zero-success actors, unstarted requests and successful completions inside the
-stated window. These observations do not automatically accept a throughput,
-fairness, latency or server-active-concurrency target. Quantiles include all
-successful completions offered in the schedule; window-only analysis must use the
-per-request finish times explicitly.
-
-Source-only cost for this optional mode adds O(A) actor lanes/heap/counters and
-O(Q) request-index and successful-latency storage, where A and Q have explicit
-input ceilings. Schedule JSON object overhead, Python float/list overhead, up to
-C simultaneous response buffers, JSON escaping, summary bytes and full packet
-JSONL all remain part of the caller's measured RAM/output reservation. The driver
-has no source builder, source authority or physical-capacity grant. Parameterized
-`PublicationWorkload` construction remains the existing fixture exporter; its
-nondefault Claim oracle asserts exact unchanged predecessor rows and affected U.
-Source sizing, an exact read schedule and a successful byte comparison are
-separate evidence. Calibration must retain requested workload counts separately
-from static fixture floors and observed selected rows.
-
-
-Optional `--observe-http` requires the corresponding native observed-serve source
-and matching product; it does not infer capability from an older executable. It
-is HTTP-only and limits the original whole deadline to3600 seconds. The driver
-captures CLOCK_MONOTONIC nanoseconds once and passes the same absolute deadline
-as `serve --observe-stdin-eof-deadline-ns N`; EOF never renews the clock. The owned
-stdin pipe has one writer and receives no bytes. After requests finish, closing
-it stops acceptance and permits bounded native draining only until that original
-deadline. Cancellation, timeout or log-cap refusal still kills and reaps the
-owned process group through existing terminal cleanup. Legacy serving keeps its
-original DEVNULL/kill behavior.
-
-The native server emits exactly one `TOS_HTTP_OBSERVATION ` JSON line of at most
-1024 bytes on stderr. The driver keeps the already capped raw log and validates
-the fixed `tos_http_observation_v1` counters. Missing, duplicate, malformed,
-oversize, unterminated or incomplete summaries, overflow, nonzero exit or live
-counters on a claimed complete snapshot make opted-in observation unavailable
-and the whole result unsuccessful. Queue support remains false/depth0. Connection
-and kernel-operation counters are server observations; kernel completion is not
-a packet-disclosure or output-flush count, and neither counter authenticates
-client actor labels. No server admission cap or business response changes.
-
-This optional control adds a bounded1024-byte line buffer, one fixed summary DOM
-(and at most a second rejected duplicate), constant parser counters and one pipe;
-raw server log plus JSON escaping and the summary record count against the same
-explicit log/output limits. No additional time, source copy, corpus carrier,
-physical quota, native build or load admission is implied by this source option.
+Selected executable identities are recorded with SHA-256 (each executable is
+bounded to 512 MiB); prepared model, binding, owner inputs, and executables are
+checked for path/device/inode/size/time/mode stability. The schedule content is
+SHA-256 checked before and after the run. This is a finite protocol measurement
+of the selected installed release, not capacity acceptance, source validation,
+semantic review, owner authorization, or publication.

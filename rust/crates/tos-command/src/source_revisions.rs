@@ -6058,6 +6058,16 @@ impl ResolvedRecordVersion {
                 | "tos_artifact_source_witness_v2"
                 | "tos_scholarly_composite_witness_v1"
         );
+        let expected_witness_kind = match schema_version {
+            "tos_artifact_source_witness_v1" | "tos_artifact_source_witness_v2" => Some("artifact"),
+            "tos_scholarly_composite_witness_v1" => Some("composite"),
+            _ => None,
+        };
+        if expected_witness_kind.is_some_and(|expected| expected != kind) {
+            return Err(SourceCommandError::Conflict(
+                "native witness schema differs from owner record type",
+            ));
+        }
         let native_link = schema_version == "tos_source_link_v1";
         let native_corpus = schema_version == "tos_corpus_record_v1";
         let (adapter, identity_field) = if native_witness {
@@ -6833,4 +6843,123 @@ fn resolve_record_version_selected(
     Err(SourceCommandError::Conflict(
         "requested metadata version is not retained in exact owner history",
     ))
+}
+
+#[cfg(test)]
+mod readonly_descriptor_tests {
+    use super::*;
+
+    fn parse(value: serde_json::Value) -> JsonValue {
+        cmd::parse(&serde_json::to_vec(&value).unwrap()).unwrap()
+    }
+
+    fn resolved(
+        kind: &str,
+        schema: &str,
+        visibility: Option<serde_json::Value>,
+    ) -> ResolvedRecordVersion {
+        let mut record = serde_json::json!({"schema_version":schema});
+        if let Some(visibility) = visibility {
+            record["visibility"] = visibility;
+        }
+        ResolvedRecordVersion {
+            record: parse(record),
+            current_record: None,
+            source_path: "ToS/source-witnesses/fixture/record.json".into(),
+            current_ref: JsonValue::Null,
+            version_status: "current",
+            source: JsonValue::Null,
+            history: JsonValue::Null,
+            transition: JsonValue::Null,
+            route_profile: parse(serde_json::json!({
+                "record_type":kind,
+                "schema_ref":"ToS/contracts/native-witness.schema.json",
+                "source_basename":"record.json"
+            })),
+            descriptor: None,
+            bytes_read: 0,
+            returned_state_bytes: 0,
+            reads: Vec::new(),
+        }
+    }
+
+    fn registry_for(kind: &str) -> JsonValue {
+        parse(serde_json::json!({"types":[{
+            "type_id":format!("tos.type.{kind}"),
+            "source_mappings":[{"source_graph":"source-navigation","source_kind_id":kind}]
+        }]}))
+    }
+
+    #[test]
+    fn native_witness_schemas_require_the_exact_owner_kind_and_identity_descriptor() {
+        for (schema, kind, field) in [
+            ("tos_artifact_source_witness_v1", "artifact", "artifact_id"),
+            ("tos_artifact_source_witness_v2", "artifact", "artifact_id"),
+            (
+                "tos_scholarly_composite_witness_v1",
+                "composite",
+                "composite_id",
+            ),
+        ] {
+            let descriptor = resolved(
+                kind,
+                schema,
+                Some(serde_json::json!("public_metadata_only")),
+            )
+            .readonly_descriptor(&registry_for(kind))
+            .unwrap();
+            assert_eq!(cmd::text(&descriptor, "adapter").unwrap(), "native-witness");
+            assert_eq!(cmd::text(&descriptor, "record_type").unwrap(), kind);
+            assert_eq!(cmd::text(&descriptor, "identity_field").unwrap(), field);
+        }
+        let mismatch = resolved(
+            "composite",
+            "tos_artifact_source_witness_v2",
+            Some(serde_json::json!("public_metadata_only")),
+        );
+        assert!(matches!(
+            mismatch.readonly_descriptor(&registry_for("composite")),
+            Err(SourceCommandError::Conflict(
+                "native witness schema differs from owner record type"
+            ))
+        ));
+    }
+
+    #[test]
+    fn readonly_descriptor_fails_closed_on_registry_ambiguity_and_nonpublic_visibility() {
+        let record = resolved(
+            "artifact",
+            "tos_artifact_source_witness_v1",
+            Some(serde_json::json!("public_metadata_only")),
+        );
+        let duplicate_registry = parse(serde_json::json!({"types":[
+            {"type_id":"tos.type.artifact-a","source_mappings":[{"source_graph":"source-navigation","source_kind_id":"artifact"}]},
+            {"type_id":"tos.type.artifact-b","source_mappings":[{"source_graph":"source-navigation","source_kind_id":"artifact"}]}
+        ]}));
+        assert!(matches!(
+            record.readonly_descriptor(&duplicate_registry),
+            Err(SourceCommandError::Conflict(
+                "metadata kind lacks exact owner-registry mapping"
+            ))
+        ));
+
+        let hidden = resolved(
+            "artifact",
+            "tos_artifact_source_witness_v1",
+            Some(serde_json::json!("private")),
+        );
+        assert!(matches!(
+            hidden.readonly_descriptor(&registry_for("artifact")),
+            Err(SourceCommandError::Denied("metadata descriptor visibility"))
+        ));
+        let malformed = resolved(
+            "artifact",
+            "tos_artifact_source_witness_v1",
+            Some(serde_json::json!(false)),
+        );
+        assert!(matches!(
+            malformed.readonly_descriptor(&registry_for("artifact")),
+            Err(SourceCommandError::Invalid("expected text field"))
+        ));
+    }
 }

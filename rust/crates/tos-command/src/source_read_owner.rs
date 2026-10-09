@@ -39,6 +39,14 @@ pub struct SelectedSourceReadOwner {
     slots: Arc<AtomicUsize>,
 }
 struct Slot(Arc<AtomicUsize>);
+fn reserve_source_read_slot(slots: &Arc<AtomicUsize>) -> Result<Slot> {
+    slots
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
+            (n < 2).then_some(n + 1)
+        })
+        .map_err(|_| Error::Unsupported("source reader concurrency budget exhausted"))?;
+    Ok(Slot(Arc::clone(slots)))
+}
 impl Drop for Slot {
     fn drop(&mut self) {
         self.0.fetch_sub(1, Ordering::AcqRel);
@@ -131,12 +139,7 @@ impl SelectedSourceReadOwner {
         deadline: Instant,
         cancelled: Arc<AtomicBool>,
     ) -> Result<SourceReadPacket> {
-        self.slots
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
-                (n < 2).then_some(n + 1)
-            })
-            .map_err(|_| Error::Unsupported("source reader concurrency budget exhausted"))?;
-        let slot = Slot(self.slots.clone());
+        let slot = reserve_source_read_slot(&self.slots)?;
         let mut fs =
             SourceReadFilesystem::open(&self.root, 4096, 67_108_864, deadline, &cancelled)?;
         let inputs =
@@ -845,4 +848,29 @@ pub fn software_packet(operation: SourceReadOperation) -> Result<Vec<u8>> {
         _ => return Err(Error::Unsupported("source owner reader unconfigured")),
     };
     wire::canonical(&value, wire::RESPONSE_BYTES)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn selected_owner_caps_parallel_requests_and_releases_slots_after_drop() {
+        let slots = Arc::new(AtomicUsize::new(0));
+        let first = reserve_source_read_slot(&slots).unwrap();
+        let second = reserve_source_read_slot(&slots).unwrap();
+        assert!(matches!(
+            reserve_source_read_slot(&slots),
+            Err(Error::Unsupported(
+                "source reader concurrency budget exhausted"
+            ))
+        ));
+        assert_eq!(slots.load(Ordering::Acquire), 2);
+        drop(first);
+        let third = reserve_source_read_slot(&slots).unwrap();
+        assert_eq!(slots.load(Ordering::Acquire), 2);
+        drop(second);
+        drop(third);
+        assert_eq!(slots.load(Ordering::Acquire), 0);
+    }
 }

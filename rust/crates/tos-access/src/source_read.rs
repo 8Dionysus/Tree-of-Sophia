@@ -250,3 +250,33 @@ impl crate::DisclosureFence for SoftwareFence {
         crate::knowledge::check_abort(&self.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn source_profile() -> AccessProfile {
+        AccessProfile::new(4096, 4096, 4096)
+    }
+
+    #[test]
+    fn source_requests_reject_duplicate_members_before_owner_dispatch() {
+        let error = Request::from_bytes(
+            Operation::Discover,
+            br#"{"selector":{"layer":"metadata_record"},"selector":{"layer":"claim_record"}}"#,
+            source_profile(),
+        )
+        .err()
+        .expect("duplicate JSON members must be refused");
+        assert_eq!(error.code, AccessErrorCode::InvalidRequest);
+    }
+
+    #[test]
+    fn source_requests_enforce_the_owner_request_byte_cap() {
+        let body = vec![b' '; MAX_REQUEST_BYTES + 1];
+        let error = Request::from_bytes(Operation::Read, &body, source_profile())
+            .err()
+            .expect("oversized request must be refused before parsing");
+        assert_eq!(error.code, AccessErrorCode::BudgetExceeded);
+    }
+}

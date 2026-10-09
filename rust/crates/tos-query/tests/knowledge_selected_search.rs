@@ -5,8 +5,6 @@
 
 use std::{
     collections::BTreeMap,
-    io::Write,
-    process::{Command, Stdio},
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
@@ -206,11 +204,8 @@ fn canonical(value: &JsonValue) -> Vec<u8> {
 }
 
 #[test]
-fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
+fn producer_selected_indexed_pages_match_frozen_rank_and_original_carriers() {
     let fixture = build_fixture();
-    if let Some(path) = std::env::var_os("TOS_CMP_GRAPH_INPUT_EXPORT") {
-        std::fs::write(path, &fixture.graph_input_bytes).unwrap();
-    }
     let oracle = parse_json(
         include_bytes!("fixtures/cmp_knowledge_search_python_oracle.json"),
         JsonMode::PublishedStrict,
@@ -218,65 +213,9 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
     )
     .unwrap()
     .into_root();
-    // The selected fixture retains the actual normalized source order. Run
-    // the maintained Python reader over those exact bytes, then keep the
-    // frozen complete packets as an independent semantic guard.
-    let script = r#"
-import hashlib,json,sys
-from pathlib import Path
-repo=Path(sys.argv[1]);sys.path.insert(0,str(repo/'access/src'))
-from tos_access import knowledge as k
-raw=sys.stdin.buffer.read(int(sys.argv[2]));graph=json.loads(raw)
-descriptor=json.load(sys.stdin.buffer)
-k.KNOWLEDGE_SOURCES=tuple(s['source_graph_id'] for s in descriptor['sources'])
-oracle=json.loads((repo/'rust/crates/tos-query/tests/fixtures/cmp_knowledge_search_python_oracle.json').read_bytes())
-sources=oracle['sources']
-json.dump({'input_sha256':hashlib.sha256(raw).hexdigest(),
-           'query':oracle['query'],'false_positive_query':oracle['false_positive_query'],
-           'sources':sources,
-           'reference':k.search_knowledge_graph(graph,oracle['query'],sources=sources),
-           'false_positive_reference':k.search_knowledge_graph(graph,oracle['false_positive_query'],sources=sources)},
-          sys.stdout,ensure_ascii=False,allow_nan=False)
-"#;
-    let mut child = Command::new("python3")
-        .arg("-B")
-        .arg("-c")
-        .arg(script)
-        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
-        .arg(fixture.graph_input_bytes.len().to_string())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let mut input = child.stdin.take().unwrap();
-    input.write_all(&fixture.graph_input_bytes).unwrap();
-    input.write_all(&fixture.descriptor_bytes).unwrap();
-    drop(input);
-    let output = child.wait_with_output().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let current_oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap()
-    .into_root();
-    assert_eq!(
-        Digest256::of_bytes(&fixture.graph_input_bytes).to_hex(),
-        field(&current_oracle, "input_sha256").as_str().unwrap()
-    );
-    for packet in ["reference", "false_positive_reference"] {
-        assert_eq!(
-            canonical(field(&current_oracle, packet)),
-            canonical(field(&oracle, packet))
-        );
-    }
-    let oracle = current_oracle;
+    // Compare native output directly with the committed packet from the
+    // independent Python oracle. The oracle is frozen so this test needs no
+    // Python subprocess or current Python implementation.
     let reference = field(&oracle, "reference");
     let reference_nodes = field(reference, "nodes").as_array().unwrap();
     assert_eq!(reference_nodes.len(), 2);

@@ -412,3 +412,228 @@ pub fn read_authored_csv(
         provenance,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{path::PathBuf, sync::atomic::AtomicBool};
+
+    struct BytesReader {
+        root: PathBuf,
+        reference: String,
+        bytes: Vec<u8>,
+        reads: usize,
+    }
+    impl SourceLayerRead for BytesReader {
+        fn source_root(&self) -> &Path {
+            &self.root
+        }
+        fn read(
+            &mut self,
+            reference: &str,
+            max_bytes: usize,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Vec<u8>> {
+            if reference != self.reference || self.bytes.len() > max_bytes {
+                return Err(Error::Invalid("test source read"));
+            }
+            self.reads += 1;
+            Ok(self.bytes.clone())
+        }
+        fn read_range(
+            &mut self,
+            reference: &str,
+            offset: u64,
+            length: usize,
+            expected_file_bytes: u64,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Vec<u8>> {
+            if reference != self.reference || expected_file_bytes != self.bytes.len() as u64 {
+                return Err(Error::Conflict("test source range binding"));
+            }
+            let start = usize::try_from(offset).map_err(|_| Error::Invalid("test range"))?;
+            let end = start
+                .checked_add(length)
+                .filter(|end| *end <= self.bytes.len())
+                .ok_or(Error::Invalid("test source range"))?;
+            self.reads += 1;
+            Ok(self.bytes[start..end].to_vec())
+        }
+        fn verify_current(&mut self, _: Instant, _: &AtomicBool) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    fn slot_case(
+        raw: &[u8],
+        visibility: &str,
+    ) -> (BytesReader, Value, Value, String, String, AtomicBool) {
+        let id = "tos.claim.fixture";
+        let reference = "ToS/source-witnesses/fixture/source-claims.jsonl".to_owned();
+        let mut bytes = raw.to_vec();
+        bytes.push(b'\n');
+        let payload: Value = serde_json::from_slice(raw).unwrap();
+        assert_eq!(payload["visibility"], visibility);
+        let canonical_sha = hash(&payload, false).unwrap();
+        let slot = json!({
+            "kind":"claim",
+            "identity":id,
+            "source_slot_key":slot_key("claim",id).unwrap(),
+            "source":{
+                "source_ref":reference,
+                "byte_offset":0,
+                "row_bytes":raw.len(),
+                "file_bytes":bytes.len(),
+                "source_line":1,
+                "delimiter":"lf",
+                "raw_row_sha256":Digest256::of_bytes(raw).to_hex(),
+                "canonical_sha256":canonical_sha
+            }
+        });
+        let content_revision = format!("sha256:{canonical_sha}");
+        let row_sha = hash(&slot, true).unwrap();
+        let reader = BytesReader {
+            root: PathBuf::from("/selected/source-root"),
+            reference,
+            bytes,
+            reads: 0,
+        };
+        let revision = json!({"source_revision":"a".repeat(64)});
+        let cancelled = AtomicBool::new(false);
+        (reader, slot, revision, content_revision, row_sha, cancelled)
+    }
+
+    fn context<'a>(
+        root: &'a Path,
+        revision: &'a Value,
+        cancelled: &'a AtomicBool,
+    ) -> LayerContext<'a> {
+        LayerContext {
+            source_root: root,
+            full_revision: revision,
+            catalog_namespace: "fixture.catalog",
+            max_record_bytes: 4096,
+            deadline: Instant::now() + std::time::Duration::from_secs(5),
+            cancelled,
+        }
+    }
+
+    #[test]
+    fn current_claim_source_slot_reads_exact_public_bytes_and_rejects_private_visibility() {
+        let public = br#"{"claim_id":"tos.claim.fixture","visibility":"public"}"#;
+        let (mut reader, slot, revision, content_revision, row_sha, cancelled) =
+            slot_case(public, "public");
+        let root = reader.root.clone();
+        let context = context(&root, &revision, &cancelled);
+        let result = read_source_slot(
+            &mut reader,
+            &context,
+            &slot,
+            "claim",
+            "tos.claim.fixture",
+            &row_sha,
+            &content_revision,
+        )
+        .unwrap();
+        assert_eq!(result.record["claim_id"], "tos.claim.fixture");
+        assert_eq!(
+            result.provenance["verification_scope"],
+            "current-source-slot"
+        );
+        assert_eq!(reader.reads, 1);
+
+        let private = br#"{"claim_id":"tos.claim.fixture","visibility":"private"}"#;
+        let (mut reader, slot, revision, content_revision, row_sha, cancelled) =
+            slot_case(private, "private");
+        let root = reader.root.clone();
+        let context = context(&root, &revision, &cancelled);
+        assert!(matches!(
+            read_source_slot(
+                &mut reader,
+                &context,
+                &slot,
+                "claim",
+                "tos.claim.fixture",
+                &row_sha,
+                &content_revision,
+            ),
+            Err(Error::Denied("source slot visibility"))
+        ));
+    }
+
+    #[test]
+    fn current_claim_read_matches_exact_catalog_entry_to_source_slot_and_ref() {
+        let public = br#"{"claim_id":"tos.claim.fixture","claim_type":"attestation","assertion_layer":"recorded","subject_ref":"tos.record.fixture","predicate":"was witnessed by","object":"tos.agent.fixture","evidence_refs":[],"maker":{},"provenance_event_ref":null,"epistemic_status":"asserted","review_status":"unreviewed","visibility":"public_metadata_only","claim_version":1,"schema_version":"tos_source_claim_v1"}"#;
+        let (mut reader, slot, revision, content_revision, _slot_row_sha, cancelled) =
+            slot_case(public, "public_metadata_only");
+        let source_ref = slot["source"]["source_ref"].as_str().unwrap();
+        let payload: Value = serde_json::from_slice(public).unwrap();
+        let entry = tos_compiler::source_witness_catalog::render_catalog_claim(
+            &payload, source_ref, 1, None, 4096,
+        )
+        .unwrap();
+        let exact_ref = json!({
+            "id":"tos.claim.fixture",
+            "version":1,
+            "digest":content_revision
+        });
+        let claim = json!({
+            "claim_id":"tos.claim.fixture",
+            "claim_ref":exact_ref,
+            "source_slot_key":slot["source_slot_key"],
+            "entry":entry
+        });
+        let claim_row_sha = hash(&claim, true).unwrap();
+        let root = reader.root.clone();
+        let context = context(&root, &revision, &cancelled);
+        let result = read_current_claim(
+            &mut reader,
+            &context,
+            &claim,
+            &slot,
+            &exact_ref,
+            &claim_row_sha,
+        )
+        .unwrap();
+        assert_eq!(result.record, payload);
+        assert_eq!(result.provenance["catalog"]["claim_ref"], exact_ref);
+        assert_eq!(reader.reads, 1);
+
+        let mut wrong_ref = exact_ref;
+        wrong_ref["version"] = json!(2);
+        assert!(
+            read_current_claim(
+                &mut reader,
+                &context,
+                &claim,
+                &slot,
+                &wrong_ref,
+                &claim_row_sha,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn current_claim_source_slot_rejects_duplicate_json_before_record_return() {
+        let duplicate = br#"{"claim_id":"tos.claim.fixture","claim_id":"tos.claim.fixture","visibility":"public"}"#;
+        let (mut reader, slot, revision, content_revision, row_sha, cancelled) =
+            slot_case(duplicate, "public");
+        let root = reader.root.clone();
+        let context = context(&root, &revision, &cancelled);
+        assert!(
+            read_source_slot(
+                &mut reader,
+                &context,
+                &slot,
+                "claim",
+                "tos.claim.fixture",
+                &row_sha,
+                &content_revision,
+            )
+            .is_err()
+        );
+    }
+}
