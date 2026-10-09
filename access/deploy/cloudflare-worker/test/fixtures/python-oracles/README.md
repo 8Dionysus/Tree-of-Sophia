@@ -20,8 +20,10 @@ existing test assertions. Known reference refusals retain their exception
 outcomes with local runtime prefixes removed. Nine temporal mutation calls
 retain exact before/after JSON and metadata rows; the helper applies those
 bytes in one SQLite transaction and verifies both predecessor and final file
-state. Search and temporal packet comparisons execute an independent
-lossless JSON comparator over actual results; successful comparison results
+state. Search, temporal, inspection and exploration packet comparisons execute an independent
+lossless JSON comparator over actual results. Exploration retains independent
+scene outputs for exactly the selected node/relation carriers and focus;
+opaque continuation fields are not inputs to that pure scene function. Successful comparison results
 are never treated as frozen expected packets. A missing, mismatched, exhausted, or ambiguous
 record fails the test. Historical source and output provenance remain in the
 metadata; local capture-storage paths are intentionally omitted.

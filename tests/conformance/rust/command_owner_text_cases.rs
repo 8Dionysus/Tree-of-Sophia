@@ -2092,7 +2092,14 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
             request["operation"],
             String::from_utf8_lossy(&errors)
         );
-        serde_json::from_slice(&raw).unwrap()
+        let outer: Value = serde_json::from_slice(&raw).unwrap();
+        if request["operation"] == "materialize_assessed_forms" {
+            assert_eq!(outer["schema_version"], "tos_local_native_source_result_v1");
+            assert_eq!(outer["grants_admission"], false);
+            outer["result"].clone()
+        } else {
+            outer
+        }
     };
     let describe = |index: usize| serde_json::json!({"schema_version":"tos_local_assessment_command_v1","operation":"describe","subject_id":fixture.subject_ids[index]});
     for &index in &fixture.ready_selections {
@@ -2135,10 +2142,7 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
         "form_ref":form_ref,"subject_ref":fixture.source_ref,"source_path":source_path,"form_path":form_path
     })).collect::<Vec<_>>();
     let request = serde_json::json!({"schema_version":"tos_local_assessed_forms_materialization_request_v1","operation":"materialize_assessed_forms","selections":selections});
-    let outer = invoke(&invocation_path, &request);
-    assert_eq!(outer["schema_version"], "tos_local_native_source_result_v1");
-    assert_eq!(outer["grants_admission"], false);
-    let actual = &outer["result"];
+    let actual = invoke(&invocation_path, &request);
     assert_eq!(actual["schema_version"], "tos_local_assessed_forms_materialization_result_v1");
     let replies = actual["replies"].as_array().unwrap();
     assert_eq!(replies.len(), 7);
@@ -2238,7 +2242,7 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
                     fs::write(&control, serde_json::to_vec(&state).unwrap()).unwrap();
                 }
                 let (status, raw, _) = observe(&invocation_path, &request);
-                if !status.success() || serde_json::from_slice::<Value>(&raw).unwrap() != actual {
+                if !status.success() || serde_json::from_slice::<Value>(&raw).unwrap()["result"] != actual {
                     Err(std::io::Error::other(
                         "selected assessment or publication changed after fsync",
                     )

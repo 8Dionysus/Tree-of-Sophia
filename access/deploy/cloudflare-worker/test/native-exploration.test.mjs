@@ -1,3 +1,4 @@
+import {parseLosslessJson,stringifyLosslessJson,compareLosslessValues} from './lossless-json-compare.mjs';
 import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -97,40 +98,44 @@ async function stream(data,query){const pages=[];for(let count=0;count<500;count
  const cursor=JSON.parse(raw).page.next_cursor;if(!cursor)return pages;query={cursor};
  }throw Error('nonterminating bounded fixture');}
 function compareStreams(actual,expected){
- const diff=python(String.raw`
-def check(a,b,path):
- if type(a)!=type(b):return [path+': numeric/value kind differs']
- if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': source member order differs']
-  return [d for k in a for d in check(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': length differs']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in check(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float representation differs']
- return [] if a==b else [path+': value differs']
-def union(pages,kind):
- result={}
- for page in pages:
-  for value in page[kind]:
-   if value['id'] in result:
-    assert not check(value,result[value['id']],kind+'.'+value['id'])
-   result[value['id']]=value
- return result
-p=json.load(sys.stdin);a=list(map(json.loads,p['actual']));b=list(map(json.loads,p['expected']));errors=[]
+ const a=actual.map(parseLosslessJson),b=expected.map(parseLosslessJson);
+ const field=(node,key)=>{assert.equal(node.kind,'dict');const pair=node.value.find(([name])=>name===key);assert.ok(pair,`missing ${key}`);return pair[1];};
+ const nullValue={kind:'null',value:null};
+ // Freeze independent scene outputs for exactly the carriers the former pure
+ // Python function reads. The comparisons below always evaluate current data.
+ const scenes=python(String.raw`
 from tos_access.knowledge import knowledge_scene
-for page in a:
- origin=page.get('origin');focus=origin['id'] if origin and origin['kind']=='node' else None if origin else page['focus']['node_id']
- selected_relation=origin['id'] if origin and origin['kind']=='relation' else None
- if page['scene']!=knowledge_scene(page['nodes'],page['relations'],focus,selected_relation):errors.append('page scene differs from Python over the same native page carriers')
-for kind in ('nodes','relations'):
- x,y=union(a,kind),union(b,kind)
- if set(x)!=set(y):errors.append(kind+': full traversal selection differs')
- else:
-  for key in sorted(x):errors+=check(x[key],y[key],kind+'.'+key)
-for key in ('status','limit_reason','counts','authority_boundary'):
- errors+=check(a[-1][key],b[-1][key],key)
-print(json.dumps(errors))
-`,{actual,expected});assert.deepEqual(diff,[]);
+p=json.load(sys.stdin);out=[]
+for raw in p:
+ c=json.loads(raw)
+ out.append(json.dumps(knowledge_scene(c['nodes'],c['relations'],c['focus'],c['relation']),ensure_ascii=False,separators=(',',':'),allow_nan=False))
+print(json.dumps(out))
+`,a.map(page=>{
+   const origin=page.value.find(([name])=>name==='origin')?.[1];
+   const hasOrigin=origin?.kind==='dict';
+   const kind=hasOrigin?field(origin,'kind').value:null;
+   const focus=hasOrigin?(kind==='node'?field(origin,'id'):nullValue):field(field(page,'focus'),'node_id');
+   const relation=kind==='relation'?field(origin,'id'):nullValue;
+   return stringifyLosslessJson({kind:'dict',value:[['nodes',field(page,'nodes')],['relations',field(page,'relations')],['focus',focus],['relation',relation]]});
+ }));
+ assert.equal(scenes.length,a.length);
+ for(let i=0;i<a.length;i++)assert.deepEqual(compareLosslessValues(field(a[i],'scene'),parseLosslessJson(scenes[i]),{unordered:()=>true}),[],`page ${i} scene`);
+ function union(pages,kind){
+   const result=new Map();
+   for(const page of pages){const values=field(page,kind);assert.equal(values.kind,'list');for(const value of values.value){
+     const id=field(value,'id');assert.equal(id.kind,'str');
+     if(result.has(id.value))assert.deepEqual(compareLosslessValues(value,result.get(id.value)),[],`${kind}.${id.value} repeated source`);
+     result.set(id.value,value);
+   }}
+   return result;
+ }
+ for(const kind of ['nodes','relations']){
+   const left=union(a,kind),right=union(b,kind);
+   assert.deepEqual([...left.keys()].sort(),[...right.keys()].sort(),`${kind} full traversal selection`);
+   for(const [id,value]of left)assert.deepEqual(compareLosslessValues(value,right.get(id)),[],`${kind}.${id}`);
+ }
+ assert.ok(a.length&&b.length);
+ for(const key of ['status','limit_reason','counts','authority_boundary'])assert.deepEqual(compareLosslessValues(field(a.at(-1),key),field(b.at(-1),key)),[],key);
 }
 
 test('native exploration full traversal selections and source packets equal current published Python',async t=>{

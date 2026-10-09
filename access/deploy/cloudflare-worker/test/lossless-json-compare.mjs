@@ -50,11 +50,18 @@ export function parseLosslessJson(raw) {
     const floating = /[.eE]/.test(match[0]);
     const item = floating ? Number(match[0]) : BigInt(match[0]);
     if (floating && !Number.isFinite(item)) throw new SyntaxError('nonfinite JSON number');
-    return {kind:floating ? 'float' : 'int', value:item};
+    return {kind:floating ? 'float' : 'int', value:item, raw:match[0]};
   }
   const result = value(); white();
   if (at !== raw.length) throw new SyntaxError('trailing JSON input');
   return result;
+}
+
+export function stringifyLosslessJson(node) {
+  if (node.kind === 'dict') return `{${node.value.map(([key, value]) => `${JSON.stringify(key)}:${stringifyLosslessJson(value)}`).join(',')}}`;
+  if (node.kind === 'list') return `[${node.value.map(stringifyLosslessJson).join(',')}]`;
+  if (node.kind === 'int' || node.kind === 'float') return node.raw;
+  return JSON.stringify(node.value);
 }
 
 export function compareLosslessJson(actual, expected, {indexed = false, unordered = () => false} = {}) {
@@ -72,6 +79,10 @@ export function compareLosslessJson(actual, expected, {indexed = false, unordere
       pair[1] = {kind:'bool',value:pair[1].kind !== 'null'};
     }
   }
+  return compareLosslessValues(left, right, {unordered});
+}
+
+export function compareLosslessValues(left, right, {unordered = () => false} = {}) {
   function diff(a, b, path = '$') {
     if (a.kind !== b.kind) return [`${path}: kind ${a.kind} != ${b.kind}`];
     if (a.kind === 'dict') {

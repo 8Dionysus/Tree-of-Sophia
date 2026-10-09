@@ -1,3 +1,4 @@
+import {compareLosslessJson} from './lossless-json-compare.mjs';
 import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -104,20 +105,10 @@ except Exception as e:
 `,{path:database.path,binding,kind,id,limit});
 }
 function assertPackets(actual,expected,lens=false) {
-  const diff=python(String.raw`
-def diff(a,b,path='$'):
- if type(a)!=type(b):return [path+': kind '+type(a).__name__+' != '+type(b).__name__]
- if isinstance(a,dict):
-  if set(a)!=set(b):return [path+': keys differ']
-  if list(a)!=list(b) and not any(path==root or path.startswith(root+'.') or path.startswith(root+'[') for root in unordered):return [path+': ordered keys differ']
-  return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': lengths differ']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
- return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);unordered=['$.lens','$.counts','$.scene'] if p['lens'] else [];print(json.dumps(diff(json.loads(p['actual']),json.loads(p['expected']))))
-`,{actual,expected,lens});assert.deepEqual(diff,[]);
+  const roots=lens?['$.lens','$.counts','$.scene']:[];
+  assert.deepEqual(compareLosslessJson(actual,expected,{
+    unordered:path=>roots.some(root=>path===root||path.startsWith(root+'.')||path.startsWith(root+'[')),
+  }),[]);
 }
 let workerPromise;
 async function worker() {

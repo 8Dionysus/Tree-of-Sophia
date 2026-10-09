@@ -329,7 +329,7 @@ test('D1 motif value-member pages preserve the complete context and fail closed 
       await init(db, g);
       for (const focus of ['2', '0', '5']) for (const size of [1, 8]) {
         const pages = await collect(db, {focus_node_id: focus, max_depth: 3, page_nodes: size, page_relations: size});
-        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['nodes'],c['relations'],c['focus']['node_id']) for c in p]))", pages);
+        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['nodes'],c['relations'],c['focus']['node_id']) for c in p]))", pages.map(page => ({nodes:page.nodes,relations:page.relations,focus:{node_id:(page.focus as {node_id:string}).node_id}})));
         let folded = 0;
         for (const [index, page] of pages.entries()) {
           assert.deepEqual(page.scene, expected[index]);
