@@ -383,7 +383,9 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     names.extend([
         "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py"
             .to_owned(),
-        "scripts/source_witness_bibliographic_graph_common.py".to_owned(),
+        "rust/crates/tos-command/src/source_corpus_index_projection.rs".to_owned(),
+        "rust/crates/tos-compiler/src/source_bibliographic.rs".to_owned(),
+        "rust/crates/tos-compiler/src/source_bibliographic_render.rs".to_owned(),
     ]);
     for reference in source_catalog["header"]["profile_bindings"]["execution"]
         .as_object()

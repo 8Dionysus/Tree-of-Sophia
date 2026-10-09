@@ -96,3 +96,10 @@ retained under their original logical names with their exact pre-retirement
 bytes and SHA-256 paths. They remain nonexecuted historical recipes; the active
 atlas, graph-view, graph-projection and post-planting audit route is the native
 `tos-ops-mechanics-plan --philosophy-product` command.
+
+The generic `scripts/partitioned_projection_common.py` helper is retained at
+`partitioned_projection_common/fd1f3a55e3b0c10f2d60490d605abcd221725107ce8a029010f68e62bcfc5010.py`
+(7,108 bytes, exact SHA-256). It only supported retired Python test utilities;
+no active source builder imports it. Rust corpus readers and artifact bundling
+remain the current consumers of the partitioned-carrier contract. The archived
+helper is historical evidence, never a maintained builder or reader fallback.

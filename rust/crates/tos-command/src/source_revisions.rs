@@ -1827,7 +1827,10 @@ fn dependencies(
         names.extend(SELECTED_DEPENDENCIES.iter().map(|s| s.to_string()));
     }
     if family == RevisionFamily::NativeSelected {
-        names.extend(["rust/crates/tos-command/src/source_revisions.rs".into(),"scripts/build_source_witness_catalog.py".into()]);
+        names.extend([
+            "rust/crates/tos-command/src/source_revisions.rs".into(),
+            "rust/crates/tos-compiler/src/source_witness_catalog.rs".into(),
+        ]);
     }
     let mut entries = names
         .iter()

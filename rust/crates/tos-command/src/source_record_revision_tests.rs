@@ -489,7 +489,7 @@ const IMPLEMENTATIONS: &[&str] = &[
     "scripts/source_witness_human_forms.py",
     "scripts/source_metadata_snapshot.py",
     "rust/crates/tos-command/src/source_work_transaction.rs",
-    "scripts/build_source_witness_catalog.py",
+    "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 
 // Count actual allocated blocks and inodes of every named owned copy.

@@ -40,8 +40,10 @@ const CLAIM_REGISTRY_REFS: &[&str] = &[
 ];
 const HISTORICAL_GROUND_IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
-    "scripts/source_witness_bibliographic_graph_common.py",
-    "scripts/build_source_witness_catalog.py",
+    "rust/crates/tos-command/src/source_corpus_index_projection.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
+    "rust/crates/tos-compiler/src/source_witness_catalog.rs",
     "scripts/source_record_profiles.py",
     "rust/crates/tos-command/src/source_native_cli.rs",
 ];

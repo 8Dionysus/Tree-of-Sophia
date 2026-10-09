@@ -1822,6 +1822,55 @@ mod descriptor_limit_tests {
     }
 
     #[test]
+    fn supplied_event_keeps_large_source_arrays_nested_once_with_exact_binding() {
+        const INPUT_CAP: usize = 1024 * 1024;
+        const OUTPUT_CAP: usize = 4 * 1024 * 1024;
+        let rows = |kind: &str| {
+            (0..24)
+                .map(|index| {
+                    json!({
+                        "ref": format!("tos.file.synthetic-{kind}-{index:05}"),
+                        "role": format!("{kind}-{}", "x".repeat(20_000)),
+                        "sha256": if kind == "input" { "a".repeat(64) } else { "b".repeat(64) },
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
+        let event = json!({
+            "schema_version":"tos_provenance_event_v1",
+            "event_id":"tos.event.synthetic-large-provenance",
+            "event_type":"annotation",
+            "started_at":"2026-09-15T00:00:00Z",
+            "ended_at":"2026-09-15T00:00:00Z",
+            "agent_refs":["software:test-provenance-projection"],
+            "inputs":rows("input"),
+            "outputs":rows("output"),
+            "method":{"maker_type":"software","name":"synthetic-provenance-test","version":"1","configuration":{"aliases":["synthetic:large-event"]}},
+            "status":"completed_with_warnings",
+            "event_version":1
+        });
+        let source_raw = encode(&event, INPUT_CAP).unwrap();
+        assert!(source_raw.len() > 900 * 1024 && source_raw.len() <= INPUT_CAP);
+        let source_sha = Digest256::of_bytes(&source_raw).to_hex();
+        let location = json!({
+            "source_ref":"ToS/source-witnesses/history/fixture/large-provenance.jsonl",
+            "source_line":7,
+            "canonical_sha256":source_sha
+        });
+
+        let node = supplied_bibliographic_event(&event, &location, OUTPUT_CAP).unwrap();
+        assert_eq!(node["source_ref"], location["source_ref"]);
+        assert_eq!(node["source_line"], 7);
+        assert_eq!(node["source_sha256"], source_sha);
+        assert_eq!(node["properties"]["source_event"], event);
+        assert!(node["properties"].get("inputs").is_none());
+        assert!(node["properties"].get("outputs").is_none());
+        assert_eq!(node["properties"]["source_event"]["inputs"].as_array().unwrap().len(), 24);
+        assert_eq!(node["properties"]["source_event"]["outputs"].as_array().unwrap().len(), 24);
+        assert!(encode(&node, OUTPUT_CAP).unwrap().len() <= OUTPUT_CAP);
+    }
+
+    #[test]
     fn descriptor_uses_caller_input_and_output_bounds_independently() {
         let claim = json!({"claim_id":"claim:test","claim_version":1,"predicate":"unmapped"});
         let registry = json!({"claim_navigation_template":{"template_id":"test","template_version":1},"relations":[],"retained_extension":"x".repeat(40_000)});

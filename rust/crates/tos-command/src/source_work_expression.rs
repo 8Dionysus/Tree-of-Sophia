@@ -44,7 +44,7 @@ const IMPLEMENTATIONS: &[&str] = &[
     "scripts/source_metadata_snapshot.py",
     "scripts/source_witness_human_forms.py",
     "scripts/source_record_profiles.py",
-    "scripts/build_source_witness_catalog.py",
+    "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 
 fn item_error(reason: ItemRefusal) -> SourceCommandError {

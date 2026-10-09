@@ -3328,8 +3328,10 @@ pub const CLAIM_GROUNDING_RULE_INPUTS: &[&str] = &[
     "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
     "scripts/native_text_binding.py",
     "scripts/source_owner_context.py",
-    "scripts/build_source_witness_catalog.py",
-    "scripts/source_witness_bibliographic_graph_common.py",
+    "rust/crates/tos-compiler/src/source_witness_catalog.rs",
+    "rust/crates/tos-command/src/source_corpus_index_projection.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
 ];
 pub const CLAIM_REVISION_RULE_INPUTS: &[&str] = &[
     "rust/crates/tos-command/src/source_claims.rs",

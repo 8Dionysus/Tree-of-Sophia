@@ -132,7 +132,7 @@ struct Observation {
 }
 
 /// Streaming marker reader matching `_jpeg_dimensions` in
-/// `scripts/validate_source_witness_foundation.py`. It consumes no retained
+/// the native source-witness foundation validator. It consumes no retained
 /// image bytes and deliberately keeps hashing even after dimensions are known.
 #[derive(Debug, Clone, Copy)]
 enum JpegState {

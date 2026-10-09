@@ -46,9 +46,11 @@ const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_forms.rs",
     "scripts/source_record_profiles.py",
     "scripts/source_metadata_snapshot.py",
-    "scripts/source_witness_bibliographic_graph_common.py",
+    "rust/crates/tos-command/src/source_corpus_index_projection.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
     "scripts/source_witness_human_forms.py",
-    "scripts/build_source_witness_catalog.py",
+    "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 fn error(reason: ItemRefusal) -> SourceCommandError {
     SourceCommandError::SchemaExecution {

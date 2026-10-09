@@ -576,14 +576,14 @@ mod tests {
         .unwrap();
 
         let after = normalize(&input, AssemblyNormalizationLimits::default()).unwrap();
-        let find_literal = |result: &Value| {
+        fn find_literal(result: &Value) -> &Value {
             result["nodes"]
                 .as_array()
                 .unwrap()
                 .iter()
                 .find(|node| node["source_record"]["payload"]["node_kind"] == "literal")
                 .unwrap()
-        };
+        }
         let old_literal = find_literal(&before);
         let updated_literal = find_literal(&after);
         assert_ne!(

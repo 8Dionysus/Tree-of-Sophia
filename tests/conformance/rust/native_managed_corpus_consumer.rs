@@ -321,7 +321,7 @@ pub(super) fn exercise_managed_native_corpus(
     )
     .unwrap();
     let proof = projection.receipt();
-    let program = "scripts/tos_corpus_index_common.py";
+    let program = "rust/crates/tos-compiler/src/source_corpus.rs";
     let schema = "ToS/contracts/tos-corpus-index.schema.json";
     let compiler_inputs = BTreeMap::from([
         (program, hash_file(&repository.join(program)).to_hex()),

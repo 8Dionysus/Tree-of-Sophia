@@ -358,7 +358,7 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
         base,
     );
     stale_context.request_raw = serde_json::to_vec(&stale_request).unwrap();
-    let mut stale_worker = claim_worker();
+    let mut stale_worker = schemas(&cut, deadline, &cancel);
     assert!(matches!(
         checked_command(
             &stale_context,
