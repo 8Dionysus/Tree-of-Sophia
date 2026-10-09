@@ -2,6 +2,10 @@
 //! pair. This writes only a private data candidate and a compact witness; the
 //! installed software owner performs pair verification and promotion later.
 
+use crate::source_creation_store::IsolatedCreationRoot;
+use crate::source_current_cut::foundation_capture::{
+    AuthoredDiagnosticCapture, AuthoredDiagnosticCaptureLimits,
+};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{
@@ -28,19 +32,15 @@ use tos_compiler::{
     native_cold_resources::LinuxCgroupColdOpenResourceHold, native_snapshot,
     native_snapshot_manifest as manifest, private_tmpfs_stage::PrivateTmpfsStageIsolation,
 };
-use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_foundation::{
     Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, SourceRevision, parse_json,
 };
-use tos_source_store::{CorpusCutReader, SoftwareComponentSelectionV1};
+use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_source_store::{
     CaptureGitRequest, CaptureRestoreLimits, CorpusReader, CutReadLimits, GitCaptureLimits,
     ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
-use crate::source_creation_store::IsolatedCreationRoot;
-use crate::source_current_cut::foundation_capture::{
-    AuthoredDiagnosticCapture, AuthoredDiagnosticCaptureLimits,
-};
+use tos_source_store::{CorpusCutReader, SoftwareComponentSelectionV1};
 use tos_validation::FormatProfile;
 use tos_validation::executor::{
     BatchBudget, BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget,
@@ -52,10 +52,8 @@ const CORPUS_BUILD_REQUEST_SCHEMA: &str = "tos_native_corpus_build_request_v1";
 const CORPUS_PROJECTION_CHECK_REQUEST_SCHEMA: &str =
     "tos_native_corpus_projection_check_request_v1";
 const RESULT_SCHEMA: &str = "tos_native_managed_original_produce_result_v2";
-const QUERY_VOCABULARY_PATH: &str =
-    "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
-const SCHEMA_WORKER_SOURCE_PATH: &str =
-    "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
+const QUERY_VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
+const SCHEMA_WORKER_SOURCE_PATH: &str = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
 const COLD_SCHEMA: &str = "tos_native_managed_original_cold_witness_v1";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
 const MAX_RESULT_BYTES: usize = 4 * 1024 * 1024;
@@ -1991,8 +1989,7 @@ pub(crate) fn validate_direct_projection_request(
         || limits.max_schema_receipt_bytes == 0
         || limits.max_schema_receipt_bytes > 4 * 1024 * 1024
         || limits.worker_cpu_seconds == 0
-        || limits.worker_cpu_seconds
-            > ExecutorBudget::MAX_SCALAR_CPU_SECONDS
+        || limits.worker_cpu_seconds > ExecutorBudget::MAX_SCALAR_CPU_SECONDS
         || limits.worker_address_space_bytes < 64 * 1024 * 1024
         || limits.worker_address_space_bytes > limits.working_ram_bytes
         || limits.max_worker_image_bytes == 0
@@ -2023,10 +2020,7 @@ pub(crate) fn validate_direct_projection_request(
     Ok(())
 }
 
-fn verify_direct_worker_image(
-    worker: &ExactWorkerIdentity,
-    max_bytes: u64,
-) -> Result<()> {
+fn verify_direct_worker_image(worker: &ExactWorkerIdentity, max_bytes: u64) -> Result<()> {
     if measure_direct_worker_image(&worker.absolute_path, max_bytes)? != worker.sha256 {
         return Err(Refusal("selected schema worker image changed or digest differs").into());
     }
@@ -2123,12 +2117,9 @@ fn direct_projection_request_from_argv(
     if limits_profile != "repo-validation-v1"
         || worker_environment.is_empty()
         || worker_environment.len() > 128
-        || !worker_environment
-            .bytes()
-            .enumerate()
-            .all(|(index, byte)| {
-                byte == b'_' || byte.is_ascii_uppercase() || (index > 0 && byte.is_ascii_digit())
-            })
+        || !worker_environment.bytes().enumerate().all(|(index, byte)| {
+            byte == b'_' || byte.is_ascii_uppercase() || (index > 0 && byte.is_ascii_digit())
+        })
     {
         return Err(Refusal("native direct projection argv selection invalid").into());
     }
@@ -2149,15 +2140,13 @@ fn direct_projection_request_from_argv(
         .checked_add(Duration::from_secs(limits.max_build_seconds))
         .ok_or(Refusal("native direct projection deadline overflow"))?;
     let cancelled = AtomicBool::new(false);
-    let (software_git_commit, software_git_tree) = resolve_software_git_identity(
-        &repository_root,
-        selected_commit,
-        deadline,
-        &cancelled,
-    )?;
+    let (software_git_commit, software_git_tree) =
+        resolve_software_git_identity(&repository_root, selected_commit, deadline, &cancelled)?;
     let worker_path = std::env::var_os(worker_environment)
         .map(PathBuf::from)
-        .ok_or(Refusal("native selected schema worker environment is unset"))?;
+        .ok_or(Refusal(
+            "native selected schema worker environment is unset",
+        ))?;
     if !worker_path.is_absolute() {
         return Err(Refusal("native selected schema worker path must be absolute").into());
     }
@@ -2169,11 +2158,8 @@ fn direct_projection_request_from_argv(
     if !absolute_bounded(worker_utf8) {
         return Err(Refusal("native selected schema worker path invalid").into());
     }
-    let schema_worker_sha256 = measure_direct_worker_image(
-        &worker_path,
-        limits.max_worker_image_bytes,
-    )?
-    .to_hex();
+    let schema_worker_sha256 =
+        measure_direct_worker_image(&worker_path, limits.max_worker_image_bytes)?.to_hex();
     let request = DirectRepositoryProjectionRequest {
         repository_root,
         software_git_commit,
@@ -2194,11 +2180,7 @@ fn compare_direct_projection_product(
 ) -> Result<Value> {
     let path = repository_root.join(path);
     no_symlink_path(&path)?;
-    let (mut file, stamp) = open_regular(
-        &path,
-        max_bytes,
-        rustix::process::getuid().as_raw(),
-    )?;
+    let (mut file, stamp) = open_regular(&path, max_bytes, rustix::process::getuid().as_raw())?;
     let mut actual = Vec::new();
     (&mut file)
         .take(max_bytes.saturating_add(1))
@@ -2211,7 +2193,10 @@ fn compare_direct_projection_product(
         return Err(Refusal("native direct projection byte parity differs").into());
     }
     Ok(json_object([
-        ("path", json!(path.strip_prefix(repository_root)?.to_string_lossy())),
+        (
+            "path",
+            json!(path.strip_prefix(repository_root)?.to_string_lossy()),
+        ),
         ("size_bytes", json!(stamp.size)),
         ("sha256", json!(Digest256::of_bytes(candidate).to_hex())),
         ("matches", json!(true)),
@@ -2224,9 +2209,11 @@ fn compare_direct_projection_product(
 /// same bounded source window.
 pub(crate) fn with_direct_repository_projection<T>(
     request: &DirectRepositoryProjectionRequest,
-    consume: impl FnOnce(&crate::source_corpus_index_projection::NativeCorpusIndexProducts)
-        -> Result<T>,
-) -> Result<(crate::source_corpus_index_projection::NativeCorpusIndexProducts, T)> {
+    consume: impl FnOnce(&crate::source_corpus_index_projection::NativeCorpusIndexProducts) -> Result<T>,
+) -> Result<(
+    crate::source_corpus_index_projection::NativeCorpusIndexProducts,
+    T,
+)> {
     validate_direct_projection_request(request)?;
     let limits = request.limits;
     let started = Instant::now();
@@ -2339,10 +2326,9 @@ pub(crate) fn with_direct_repository_projection<T>(
     let component_paths = [QUERY_VOCABULARY_PATH, SCHEMA_WORKER_SOURCE_PATH]
         .into_iter()
         .map(|path| {
-            RelativePath::parse(path)
-                .map_err(|_| -> Box<dyn StdError> {
-                    Box::new(Refusal("native direct projection component path invalid"))
-                })
+            RelativePath::parse(path).map_err(|_| -> Box<dyn StdError> {
+                Box::new(Refusal("native direct projection component path invalid"))
+            })
         })
         .collect::<Result<Vec<_>>>()?;
     let components = software.select_components(&component_paths)?;
@@ -2387,13 +2373,13 @@ pub(crate) fn with_direct_repository_projection<T>(
         max_capture_write_bytes: limits.max_capture_write_bytes,
         max_recheck_read_bytes: limits.max_recheck_read_bytes,
         max_callback_and_fence_state_bytes: limits.max_callback_and_fence_state_bytes,
-        callback_owned_heap_state_upper_bound_bytes:
-            limits.callback_owned_heap_state_upper_bound_bytes,
+        callback_owned_heap_state_upper_bound_bytes: limits
+            .callback_owned_heap_state_upper_bound_bytes,
         final_fence_workspace_upper_bound_bytes: limits.final_fence_workspace_upper_bound_bytes,
     };
     let worker_image_digest = worker.sha256;
-    let ((products, consumed), _) = crate::source_current_cut::foundation_capture::
-        with_authored_diagnostic_capture(
+    let ((products, consumed), _) =
+        crate::source_current_cut::foundation_capture::with_authored_diagnostic_capture(
             &mut sources,
             &isolated,
             worker_image_digest,
@@ -2412,9 +2398,10 @@ pub(crate) fn with_direct_repository_projection<T>(
                             .ok_or(Refusal("native direct authored byte cap exceeded"))
                     })?;
                     if source_bytes > limits.max_source_bytes
-                        || cut.current().members().any(|member| {
-                            member.size_bytes > limits.max_member_bytes
-                        })
+                        || cut
+                            .current()
+                            .members()
+                            .any(|member| member.size_bytes > limits.max_member_bytes)
                     {
                         return Err(Refusal("native direct authored member budget exceeded").into());
                     }
@@ -2439,11 +2426,10 @@ pub(crate) fn with_direct_repository_projection<T>(
                         SCHEMA_WORKER_SOURCE_PATH,
                         &request.schema_worker_sha256,
                     )?;
-                    let profile =
-                        manifest::NativeSelectedRuntimeSourceProfile::from_current_cut(
-                            cut,
-                            software_binding,
-                        )?;
+                    let profile = manifest::NativeSelectedRuntimeSourceProfile::from_current_cut(
+                        cut,
+                        software_binding,
+                    )?;
                     let revision = cut.current().revision();
                     let source_home_path = RelativePath::parse("ToS/source_home.manifest.json")
                         .map_err(|_| Refusal("native source-home manifest path invalid"))?;
@@ -2516,8 +2502,11 @@ pub(crate) fn with_direct_repository_projection<T>(
                         evidence_refs: Vec::new(),
                         previous_native_snapshot: None,
                     };
-                    let projection_limits =
-                        source_projection_limits(&projection_source, &projection_request, deadline)?;
+                    let projection_limits = source_projection_limits(
+                        &projection_source,
+                        &projection_request,
+                        deadline,
+                    )?;
                     let recheck = || -> tos_compiler::Result<()> {
                         if cancelled.load(std::sync::atomic::Ordering::Relaxed)
                             || Instant::now() >= deadline
@@ -2529,8 +2518,7 @@ pub(crate) fn with_direct_repository_projection<T>(
                                 .digest
                                 .to_hex()
                                 != profile.membership_root
-                            || software.selection().source_git_commit
-                                != request.software_git_commit
+                            || software.selection().source_git_commit != request.software_git_commit
                             || software.selection().source_git_tree != request.software_git_tree
                             || software.selection().capture_manifest_sha256
                                 != capture.manifest_sha256
@@ -2566,13 +2554,12 @@ pub(crate) fn with_direct_repository_projection<T>(
                                 ));
                             }
                         }
-                        verify_direct_worker_image(&worker, limits.max_worker_image_bytes).map_err(
-                            |_| {
+                        verify_direct_worker_image(&worker, limits.max_worker_image_bytes)
+                            .map_err(|_| {
                                 tos_compiler::Error::Invalid(
                                     "native direct selected schema worker image changed",
                                 )
-                            },
-                        )?;
+                            })?;
                         Ok(())
                     };
                     let stage_root = workspace.path();
@@ -2646,7 +2633,10 @@ fn check_direct_repository_projection(
             "comparison_root",
             json!(request.repository_root.display().to_string()),
         ),
-        ("outcome", json!("corpus-index-and-bibliographic-graph-match")),
+        (
+            "outcome",
+            json!("corpus-index-and-bibliographic-graph-match"),
+        ),
         ("software_git_commit", json!(request.software_git_commit)),
         ("software_git_tree", json!(request.software_git_tree)),
         (
@@ -2660,9 +2650,7 @@ fn check_direct_repository_projection(
         ),
         (
             "source_membership_sha256",
-            json!(products
-                .bibliographic_receipt
-                .source_membership_sha256),
+            json!(products.bibliographic_receipt.source_membership_sha256),
         ),
         ("persistent_write_performed", json!(false)),
         ("grants_source_admission", json!(false)),
@@ -3636,7 +3624,9 @@ fn direct_projection_request_from_args(
         return Ok((read_direct_repository_projection_request_file(path)?, None));
     }
     if args.len() != 8 {
-        return Err(Refusal("native projection argv requires four exact option/value pairs").into());
+        return Err(
+            Refusal("native projection argv requires four exact option/value pairs").into(),
+        );
     }
     let mut values = BTreeMap::<String, String>::new();
     for pair in args.chunks_exact(2) {
@@ -3648,10 +3638,7 @@ fn direct_projection_request_from_args(
             .ok_or(Refusal("native projection argv value must be UTF-8"))?;
         if !matches!(
             name,
-            "--repo-root"
-                | "--software-commit"
-                | "--schema-worker-env"
-                | "--limits-profile"
+            "--repo-root" | "--software-commit" | "--schema-worker-env" | "--limits-profile"
         ) || values.insert(name.to_owned(), value.to_owned()).is_some()
         {
             return Err(Refusal("native projection argv options differ or repeat").into());
@@ -3699,7 +3686,8 @@ pub fn run_corpus_projection_check(
                 }
             }
             _ => {
-                let _ = diagnostics.write_all(b"native direct projection result exceeded output cap\n");
+                let _ =
+                    diagnostics.write_all(b"native direct projection result exceeded output cap\n");
                 2
             }
         },
@@ -3717,7 +3705,11 @@ pub fn run_corpus_projection_check_args(
 ) -> i32 {
     if args.len() == 1 && args[0].to_str() == Some("--help") {
         let usage = b"usage: tos-native-owner-command corpus-projection-check --repo-root ABS --software-commit HEAD|HEX40 --schema-worker-env ENV_NAME --limits-profile repo-validation-v1\n       tos-native-owner-command corpus-projection-check --request ABS_JSON\n";
-        return if output.write_all(usage).is_ok() { 0 } else { 2 };
+        return if output.write_all(usage).is_ok() {
+            0
+        } else {
+            2
+        };
     }
     let result = (|| -> Result<Value> {
         let (request, profile) = direct_projection_request_from_args(args)?;
@@ -3741,7 +3733,8 @@ pub fn run_corpus_projection_check_args(
                 }
             }
             _ => {
-                let _ = diagnostics.write_all(b"native direct projection result exceeded output cap\n");
+                let _ =
+                    diagnostics.write_all(b"native direct projection result exceeded output cap\n");
                 2
             }
         },

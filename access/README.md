@@ -1354,13 +1354,14 @@ The implementation follows the WebMCP Community Group draft shape current at
 `AbortSignal`, and execution cancellation through callback options. This is an
 experimental browser surface, not a ToS authority or availability guarantee.
 
-## Independent projection utilities
+## Partitioned projection transport
 
-The portable [partitioned projection store](contracts/projection-store.v1.md)
-and [bounded Merkle diff](contracts/projection-diff.v1.md) are explicit library
-utilities. Their adoption does not switch source exports, compile a query
-store, change adapters, or activate source-to-prepared updates. The diff requires
-a caller-admitted exact baseline and never certifies skipped target parts.
+Native Rust readers use the shared
+[`tos_partitioned_projection_v1` format](../ToS/contracts/partitioned-projection.schema.json)
+for bounded source-carrier access. The format transports immutable roots and
+content-addressed parts; it does not establish source admission, provenance,
+rights or semantic acceptance. Access ships no separate Python projection
+store, diff or mutation library.
 
 The access-only native software archive has the executable member
 `access/src/tos_access/tos-access`, beside its software-owned `web_dist`.
@@ -1793,12 +1794,11 @@ The public `ToSAccessCore` and `NativeAccessCore` facades delegate runtime
 operations to the installed Rust product. Source-construction helpers remain
 separate maintainer APIs and do not supply an alternate runtime engine.
 
-The imported `tos_access.doctor.doctor_report` diagnostic executes the installed
-Rust doctor through `native_prefix` (or `TOS_NATIVE_PREFIX`). Its existing
-`tos_root`, `profile`, and `require_mcp` keywords select the same native report;
-not-ready results remain dictionaries with `ok: false`, rather than process
-errors. `tos --native-prefix /absolute/installed doctor --json` uses this
-same path. Missing installed software refuses instead of running Python rules.
+Run the installed Rust diagnostic with
+`tos --native-prefix /absolute/installed doctor --json`. `--root`, `--profile`,
+and `--require-mcp` select its source-backed checks. Readiness and failure
+status come from the native command; there is no Python doctor adapter or
+fallback.
 
 Data selection is independent of software: an explicit `tos_root` selects the
 source diagnostic, and omission uses the native installed runtime-data route.

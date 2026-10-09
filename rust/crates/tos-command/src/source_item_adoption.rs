@@ -1543,12 +1543,12 @@ const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_work_expression.rs",
     "rust/crates/tos-command/src/source_expression_responsibility.rs",
     "rust/crates/tos-command/src/source_read_owner.rs",
-    "scripts/source_bibliographic_topology.py",
     "scripts/source_metadata_snapshot.py",
     "scripts/source_witness_human_forms.py",
     "scripts/source_record_profiles.py",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
-    "scripts/build_source_resource_inventories.py",
+    "rust/crates/tos-command/src/source_item_inventory.rs",
+    "rust/crates/tos-command/src/source_item_inventory_extended.rs",
     "rust/crates/tos-command/src/source_item_deposit.rs",
 ];
 
@@ -3360,3 +3360,7 @@ pub(crate) fn current_result_fields(
     current_grant(fs, ctx, &config, limits.deadline, cancelled)?;
     Ok(result)
 }
+
+#[cfg(test)]
+#[path = "source_item_adoption_tests.rs"]
+mod tests;

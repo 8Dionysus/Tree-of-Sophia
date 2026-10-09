@@ -1,10 +1,10 @@
 //! Explicit native transfer target passage entry; no implicit source discovery.
 use std::{io::Write, path::PathBuf};
 use tos_compiler::{
-    transfer_target_passages::{self, Action, Options},
     research_execution::ResearchExecution,
+    transfer_target_passages::{self, Action, Options},
 };
-const HELP:&str="tos transfer-target-passages --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--generation NAME --event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nExact private bbox slices for the frozen twenty-page / thirty-five-route transfer frame. Build and check require explicit private roots. Tracked validation reads no PDF. The default v1 retains historical provenance; a fresh generation requires a new event ID and fresh output paths. Build requires an admitted output quota. No text, alignment, gold, canon or publication admission.\n";
+const HELP: &str = "tos transfer-target-passages --source-root ABS --build|--check|--validate-tracked [--local-input-root ABS --local-output-root ABS] [--generation NAME --event-id ID] [--max-seconds 1..600] [--scratch-bytes RESERVED_BYTES]\n\nExact private bbox slices for the frozen twenty-page / thirty-five-route transfer frame. Build and check require explicit private roots. Tracked validation reads no PDF. The default v1 retains historical provenance; a fresh generation requires a new event ID and fresh output paths. Build requires an admitted output quota. No text, alignment, gold, canon or publication admission.\n";
 pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Option<i32> {
     if args.first().map(String::as_str) != Some("transfer-target-passages") {
         return None;
@@ -57,7 +57,12 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
         {
             return Err("roots must be absolute".into());
         }
-        let action=match mode.ok_or("action required")? {"--build"=>Action::Build,"--check"=>Action::Check,"--validate-tracked"=>Action::ValidateTracked,_=>unreachable!()};
+        let action = match mode.ok_or("action required")? {
+            "--build" => Action::Build,
+            "--check" => Action::Check,
+            "--validate-tracked" => Action::ValidateTracked,
+            _ => unreachable!(),
+        };
         let seconds = seconds
             .as_deref()
             .unwrap_or("180")

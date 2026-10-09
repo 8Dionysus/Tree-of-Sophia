@@ -9,6 +9,8 @@ use crate::source_admission_store::PreparedV2SuccessorLocatorV2;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use rustix::fs::{AtFlags, Mode, OFlags, RenameFlags};
 use rustix::io::Errno;
+#[cfg(test)]
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -40,6 +42,37 @@ const PROFILED_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v2";
 const CANONICAL_FORM_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v3";
 const SOURCE_READSET_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v4";
 const COMPLETION_SCHEMA: &str = "tos_selected_metadata_completion_v1";
+
+#[cfg(test)]
+thread_local! {
+    static INTERRUPT_ITEM_SECOND_GUARD: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Deterministically leave a real Item retained plan between durable retain
+/// and publication-head selection. This exists only in unit-test builds.
+#[cfg(test)]
+pub(crate) fn interrupt_item_second_guard_once_for_test() {
+    INTERRUPT_ITEM_SECOND_GUARD.with(|armed| armed.set(true));
+}
+
+#[cfg(test)]
+fn item_second_guard_result(
+    summary: &JsonValue,
+    guard_result: SourceCommandResult<()>,
+) -> SourceCommandResult<()> {
+    let is_item_authorization = summary
+        .object_get("authorization")
+        .and_then(|authorization| authorization.object_get("schema_version"))
+        .and_then(JsonValue::as_str)
+        == Some("tos_item_adoption_authorization_v1");
+    if is_item_authorization && INTERRUPT_ITEM_SECOND_GUARD.with(|armed| armed.replace(false)) {
+        Err(SourceCommandError::Conflict(
+            "test interrupted Item after retained plan before publication head",
+        ))
+    } else {
+        guard_result
+    }
+}
 
 #[derive(Clone)]
 pub(crate) struct PublicationSnapshot {
@@ -3517,7 +3550,7 @@ impl WorkCorpusFence<'_> {
             self.fs, &id, &manifest, &digest, &frozen, deadline, cancelled,
         )?;
         let journal_members = journal_members(&id, &frozen)?;
-        guard(
+        let second_guard = guard(
             &frozen.summary,
             WorkGuard {
                 full_membership: true,
@@ -3525,7 +3558,10 @@ impl WorkCorpusFence<'_> {
                 pending_state: None,
                 prior_completion_ready: current.is_some(),
             },
-        )?;
+        );
+        #[cfg(test)]
+        let second_guard = item_second_guard_result(&frozen.summary, second_guard);
+        second_guard?;
         opened.check_files(&frozen, Some(false), deadline, cancelled)?;
         if let Some(hooks) = source_hooks.as_mut() {
             let readset = frozen

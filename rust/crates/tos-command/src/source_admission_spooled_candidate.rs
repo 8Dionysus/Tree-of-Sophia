@@ -1450,16 +1450,21 @@ impl<'host> SpoolCandidate<'host> {
         // never a rollback or a silently retained success artifact.
         let result = result.and_then(|receipt| {
             self.cleanup_packed_sources_after_seal().map_err(|cause| {
-                io::Error::new(cause.kind(), SpooledPublicationCommittedRefusal {
-                    revision: receipt.revision,
-                    manifest_sha256: receipt.manifest_sha256,
-                    source_artifact: receipt.source_artifact.clone(),
-                    rootset_sha256: receipt.rootset_sha256,
-                    batch_sha256: receipt.fence.batch_sha256,
-                    validator_sha256: receipt.fence.validator_sha256,
-                    persistent_manifest_custody: Some(Arc::clone(&receipt.persistent_manifest_custody)),
-                    cause,
-                })
+                io::Error::new(
+                    cause.kind(),
+                    SpooledPublicationCommittedRefusal {
+                        revision: receipt.revision,
+                        manifest_sha256: receipt.manifest_sha256,
+                        source_artifact: receipt.source_artifact.clone(),
+                        rootset_sha256: receipt.rootset_sha256,
+                        batch_sha256: receipt.fence.batch_sha256,
+                        validator_sha256: receipt.fence.validator_sha256,
+                        persistent_manifest_custody: Some(Arc::clone(
+                            &receipt.persistent_manifest_custody,
+                        )),
+                        cause,
+                    },
+                )
             })?;
             Ok(receipt)
         });
@@ -3055,7 +3060,9 @@ impl<'host> SpoolCandidate<'host> {
             if self.batch.base_revision.is_some()
                 || self.candidate_payload(digest)?.map(|row| row.0) != Some(size)
             {
-                return Err(invalid("initial object is not in the selected candidate pack"));
+                return Err(invalid(
+                    "initial object is not in the selected candidate pack",
+                ));
             }
             self.verify_object_source_accounted(digest, size)
         })();

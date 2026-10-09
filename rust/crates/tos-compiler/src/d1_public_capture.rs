@@ -731,7 +731,9 @@ impl<'budget> CreationState<'budget> {
         // Both guards were continuously charged during conversion. Move the
         // original string/number custody into the result guard before releasing
         // old container geometry. No live value receives a temporary refund.
-        output_hold.admitted = output_hold.admitted.checked_add(input_hold.admitted)
+        output_hold.admitted = output_hold
+            .admitted
+            .checked_add(input_hold.admitted)
             .ok_or(Error::Budget("strict value custody transfer overflow"))?;
         input_hold.admitted = 0;
         drop(input_hold);
@@ -740,58 +742,94 @@ impl<'budget> CreationState<'budget> {
     }
     fn serde_transfer_workspace_upper(&self, value: &JsonValue) -> Result<usize> {
         fn add(left: usize, right: usize) -> Result<usize> {
-            left.checked_add(right).ok_or(Error::Budget("strict value conversion state"))
+            left.checked_add(right)
+                .ok_or(Error::Budget("strict value conversion state"))
         }
         fn walk(state: &CreationState<'_>, value: &JsonValue, depth: usize) -> Result<usize> {
             state.charge_work(1)?;
-            if depth > 96 { return Err(Error::Budget("strict value conversion depth")); }
+            if depth > 96 {
+                return Err(Error::Budget("strict value conversion depth"));
+            }
             match value {
                 // UTF8 strings and object keys are moved from the admitted
                 // Foundation tree, so conversion allocates no replacement text.
                 JsonValue::Null | JsonValue::Bool(_) | JsonValue::String(_) => Ok(0),
-                JsonValue::Number(n) => n.lexeme.len().checked_mul(4)
+                JsonValue::Number(n) => n
+                    .lexeme
+                    .len()
+                    .checked_mul(4)
                     .and_then(|n| n.checked_add(128))
                     .ok_or(Error::Budget("strict numeric conversion state")),
                 JsonValue::Array(rows) => {
-                    let mut bytes = rows.len().checked_mul(std::mem::size_of::<serde_json::Value>())
+                    let mut bytes = rows
+                        .len()
+                        .checked_mul(std::mem::size_of::<serde_json::Value>())
                         .ok_or(Error::Budget("strict array conversion state"))?;
-                    for row in rows { bytes = add(bytes, walk(state, row, depth + 1)?)?; }
+                    for row in rows {
+                        bytes = add(bytes, walk(state, row, depth + 1)?)?;
+                    }
                     Ok(bytes)
                 }
                 JsonValue::Object(fields) => {
-                    let mut bytes = crate::knowledge_normalization::serde_object_slots_upper(fields.len())?;
-                    for (_, value) in fields { bytes = add(bytes, walk(state, value, depth + 1)?)?; }
+                    let mut bytes =
+                        crate::knowledge_normalization::serde_object_slots_upper(fields.len())?;
+                    for (_, value) in fields {
+                        bytes = add(bytes, walk(state, value, depth + 1)?)?;
+                    }
                     Ok(bytes)
                 }
             }
         }
-        let frames = 97usize.checked_mul(std::mem::size_of::<JsonValue>() + std::mem::size_of::<serde_json::Value>() + 512)
+        let frames = 97usize
+            .checked_mul(
+                std::mem::size_of::<JsonValue>() + std::mem::size_of::<serde_json::Value>() + 512,
+            )
             .ok_or(Error::Budget("strict conversion frame state"))?;
         add(frames, walk(self, value, 0)?)
     }
-    fn transfer_foundation_value(&self, value: JsonValue, depth: usize) -> Result<serde_json::Value> {
+    fn transfer_foundation_value(
+        &self,
+        value: JsonValue,
+        depth: usize,
+    ) -> Result<serde_json::Value> {
         self.charge_work(1)?;
-        if depth > 96 { return Err(Error::Budget("strict value conversion depth")); }
+        if depth > 96 {
+            return Err(Error::Budget("strict value conversion depth"));
+        }
         use serde_json::Value as V;
         Ok(match value {
             JsonValue::Null => V::Null,
             JsonValue::Bool(v) => V::Bool(v),
-            JsonValue::String(v) => V::String(v.into_utf8().ok_or(Error::Invalid("strict serde unpaired surrogate"))?),
+            JsonValue::String(v) => V::String(
+                v.into_utf8()
+                    .ok_or(Error::Invalid("strict serde unpaired surrogate"))?,
+            ),
             JsonValue::Number(n) => {
                 self.charge_work(n.lexeme.len())?;
-                V::Number(n.lexeme.parse().map_err(|_| Error::Invalid("strict serde number conversion"))?)
+                V::Number(
+                    n.lexeme
+                        .parse()
+                        .map_err(|_| Error::Invalid("strict serde number conversion"))?,
+                )
             }
             JsonValue::Array(rows) => {
                 let mut output = Vec::with_capacity(rows.len());
-                for row in rows { output.push(self.transfer_foundation_value(row, depth + 1)?); }
+                for row in rows {
+                    output.push(self.transfer_foundation_value(row, depth + 1)?);
+                }
                 V::Array(output)
             }
             JsonValue::Object(fields) => {
                 let mut output = serde_json::Map::with_capacity(fields.len());
                 for (key, value) in fields {
-                    let key = key.into_utf8().ok_or(Error::Invalid("strict serde unpaired key surrogate"))?;
+                    let key = key
+                        .into_utf8()
+                        .ok_or(Error::Invalid("strict serde unpaired key surrogate"))?;
                     self.charge_work(key.len())?;
-                    if output.insert(key, self.transfer_foundation_value(value, depth + 1)?).is_some() {
+                    if output
+                        .insert(key, self.transfer_foundation_value(value, depth + 1)?)
+                        .is_some()
+                    {
                         return Err(Error::Invalid("strict conversion duplicate key"));
                     }
                 }
@@ -829,22 +867,37 @@ impl<'budget> CreationState<'budget> {
     }
     /// Recheck only composition-sensitive limits of an already strictly parsed
     /// tree. Keys, numeric lexemes and UTF8 were admitted with its constituents.
-    pub(crate) fn check_serde_structure(&self, value: &serde_json::Value, limits: JsonLimits) -> Result<()> {
-        fn walk(state: &CreationState<'_>, value: &serde_json::Value, limits: JsonLimits,
-                depth: usize, visited: &mut usize) -> Result<()> {
+    pub(crate) fn check_serde_structure(
+        &self,
+        value: &serde_json::Value,
+        limits: JsonLimits,
+    ) -> Result<()> {
+        fn walk(
+            state: &CreationState<'_>,
+            value: &serde_json::Value,
+            limits: JsonLimits,
+            depth: usize,
+            visited: &mut usize,
+        ) -> Result<()> {
             state.charge_work(1)?;
-            if depth > limits.max_depth.min(96) || *visited >= limits.max_visits
-                || state.json_visits.get() >= state.max_json_visits {
+            if depth > limits.max_depth.min(96)
+                || *visited >= limits.max_visits
+                || state.json_visits.get() >= state.max_json_visits
+            {
                 return Err(Error::Budget("owned composed JSON structure"));
             }
             *visited += 1;
             state.json_visits.set(state.json_visits.get() + 1);
             match value {
                 serde_json::Value::Array(rows) => {
-                    for row in rows { walk(state, row, limits, depth + 1, visited)?; }
+                    for row in rows {
+                        walk(state, row, limits, depth + 1, visited)?;
+                    }
                 }
                 serde_json::Value::Object(fields) => {
-                    for row in fields.values() { walk(state, row, limits, depth + 1, visited)?; }
+                    for row in fields.values() {
+                        walk(state, row, limits, depth + 1, visited)?;
+                    }
                 }
                 _ => {}
             }
@@ -957,14 +1010,22 @@ impl<'budget> CreationState<'budget> {
                 self.owner
                     .charge_work(raw.len())
                     .map_err(|_| io::Error::other("owned model count work"))?;
-                self.len = self.len.checked_add(raw.len())
+                self.len = self
+                    .len
+                    .checked_add(raw.len())
                     .filter(|n| *n <= self.cap)
                     .ok_or_else(|| io::Error::other("owned model encode bytes"))?;
                 Ok(raw.len())
             }
-            fn flush(&mut self) -> io::Result<()> { Ok(()) }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
         }
-        let mut count = Count { owner: self, len: 0, cap };
+        let mut count = Count {
+            owner: self,
+            len: 0,
+            cap,
+        };
         serde_json::to_writer(&mut count, value)
             .map_err(|_| Error::Budget("owned model encode count"))?;
         self.json_encoded_exact_result(value, count.len, cap)
@@ -986,15 +1047,20 @@ impl<'budget> CreationState<'budget> {
         }
         impl Write for Emit<'_, '_> {
             fn write(&mut self, raw: &[u8]) -> io::Result<usize> {
-                self.owner.charge_work(raw.len())
+                self.owner
+                    .charge_work(raw.len())
                     .map_err(|_| io::Error::other("owned model emit work"))?;
-                self.raw.len().checked_add(raw.len())
+                self.raw
+                    .len()
+                    .checked_add(raw.len())
                     .filter(|n| *n <= self.cap)
                     .ok_or_else(|| io::Error::other("owned model changed encoded size"))?;
                 self.raw.extend_from_slice(raw);
                 Ok(raw.len())
             }
-            fn flush(&mut self) -> io::Result<()> { Ok(()) }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
         }
         let mut raw = Vec::new();
         raw.try_reserve_exact(exact_len)
@@ -1002,7 +1068,11 @@ impl<'budget> CreationState<'budget> {
         if raw.capacity() != exact_len {
             return Err(Error::Budget("owned model encode allocation capacity"));
         }
-        let mut writer = Emit { owner: self, raw, cap: exact_len };
+        let mut writer = Emit {
+            owner: self,
+            raw,
+            cap: exact_len,
+        };
         serde_json::to_writer(&mut writer, value)
             .map_err(|_| Error::Budget("owned model encode emit"))?;
         if writer.raw.len() != exact_len {
@@ -1448,16 +1518,23 @@ impl CreationStateHold<'_, '_> {
     /// bounded heap geometry. This can release an admitted peak, never grow it.
     pub(crate) fn finish_value_construction(&mut self, value: &serde_json::Value) -> Result<()> {
         let heap = crate::knowledge_normalization::serde_retained_heap_upper_with_check(
-            value, 0, &mut || self.owner.charge_work(1),
+            value,
+            0,
+            &mut || self.owner.charge_work(1),
         )?;
-        let upper = std::mem::size_of::<serde_json::Value>().checked_add(heap)
+        let upper = std::mem::size_of::<serde_json::Value>()
+            .checked_add(heap)
             .ok_or(Error::Budget("constructed value retained state overflow"))?;
         // Both are conservative bounds. Opaque Number storage can give the
         // retained walk a looser bound than the original decoder admission;
         // retain that already proved peak instead of minting more capacity.
         let retained = self.admitted.min(upper);
         let released = self.admitted - retained;
-        let remaining = self.owner.retained.get().checked_sub(released)
+        let remaining = self
+            .owner
+            .retained
+            .get()
+            .checked_sub(released)
             .ok_or(Error::Budget("constructed value state transfer mismatch"))?;
         self.owner.active()?;
         self.owner.retained.set(remaining);
@@ -1468,7 +1545,11 @@ impl CreationStateHold<'_, '_> {
     /// Transfer already admitted state to the capture lifetime without another
     /// reservation or a transient refund while the returned value stays live.
     fn into_persistent(mut self) -> Result<()> {
-        let persistent = self.owner.persistent.get().checked_add(self.admitted)
+        let persistent = self
+            .owner
+            .persistent
+            .get()
+            .checked_add(self.admitted)
             .ok_or(Error::Budget("runtime persistent value transfer overflow"))?;
         self.owner.active()?;
         self.owner.persistent.set(persistent);
@@ -1863,13 +1944,20 @@ fn creation_json_with_limits<'a>(
     // performed. Errors retain every admitted prefix instead of refunding it.
     let available = owner.remaining(0)?;
     let mut admit = |bytes: usize, visits: usize| {
-        let failure = || tos_foundation::FoundationError::new(
-            tos_foundation::FoundationErrorCode::BudgetExceeded,
-            "runtime carrier creation parse work/visits",
-        );
-        let total = owner.json_visits.get().checked_add(visits)
-            .filter(|n| *n <= owner.max_json_visits).ok_or_else(failure)?;
-        owner.charge_work(bytes.checked_add(visits).ok_or_else(failure)?)
+        let failure = || {
+            tos_foundation::FoundationError::new(
+                tos_foundation::FoundationErrorCode::BudgetExceeded,
+                "runtime carrier creation parse work/visits",
+            )
+        };
+        let total = owner
+            .json_visits
+            .get()
+            .checked_add(visits)
+            .filter(|n| *n <= owner.max_json_visits)
+            .ok_or_else(failure)?;
+        owner
+            .charge_work(bytes.checked_add(visits).ok_or_else(failure)?)
             .map_err(|_| failure())?;
         owner.json_visits.set(total);
         Ok(())
@@ -2726,8 +2814,10 @@ fn strict_value_owned<'a>(
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("runtime carrier strict value limits"))?;
     let (value, hold) = owner.serde_scoped_with_limits(raw, limits)?;
-    Ok(CreationSerde { value, _hold: Some(hold) })
-
+    Ok(CreationSerde {
+        value,
+        _hold: Some(hold),
+    })
 }
 
 fn strict_value(raw: &[u8], cap: usize) -> Result<serde_json::Value> {
@@ -7137,7 +7227,6 @@ impl PublicCapture {
     }
 }
 
-
 #[cfg(test)]
 mod construction_phase_tests {
     use super::*;
@@ -7153,25 +7242,42 @@ mod construction_phase_tests {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args(["--exact", "d1_public_capture::construction_phase_tests::construction_peak_transfers_only_live_value_state", "--nocapture"])
                 .env(CHILD, "1").output().unwrap();
-            assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            assert!(
+                output.status.success(),
+                "{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
             return;
         }
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let remaining = |bytes: usize| (4 * 1024 * 1024usize).checked_sub(bytes)
-            .ok_or(Error::Budget("test original state"));
+        let remaining = |bytes: usize| {
+            (4 * 1024 * 1024usize)
+                .checked_sub(bytes)
+                .ok_or(Error::Budget("test original state"))
+        };
         let heap = sqlite_budget::DedicatedSessionSqliteHeap::establish(
-            1024 * 1024, &remaining, deadline, &cancelled,
-        ).unwrap();
+            1024 * 1024,
+            &remaining,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
         let work = Arc::new(AtomicU64::new(0));
         let vm = Arc::new(AtomicU64::new(0));
         let budget = RuntimeKnowledgeOwnedBudget {
-            remaining_after_retained: &remaining, original_work: &work,
-            original_work_limit: 1_000_000, original_sql_vm: &vm,
-            original_sql_vm_limit: 1_000_000, original_sqlite_heap: &heap,
-            remaining_json_visits: 10_000, owner_deadline: deadline,
-            operation_deadline: deadline, cancelled: &cancelled,
+            remaining_after_retained: &remaining,
+            original_work: &work,
+            original_work_limit: 1_000_000,
+            original_sql_vm: &vm,
+            original_sql_vm_limit: 1_000_000,
+            original_sqlite_heap: &heap,
+            remaining_json_visits: 10_000,
+            owner_deadline: deadline,
+            operation_deadline: deadline,
+            cancelled: &cancelled,
         };
         let state = CreationState::from_runtime_owned_budget(&budget).unwrap();
         let baseline = state.retained.get();
@@ -7181,11 +7287,15 @@ mod construction_phase_tests {
         let value = serde_json::Value::String(text);
         assert!(state.hold(3 * 1024 * 1024).is_err());
         peak.finish_value_construction(&value).unwrap();
-        assert_eq!(peak.admitted, std::mem::size_of::<serde_json::Value>() + 96 * 1024);
+        assert_eq!(
+            peak.admitted,
+            std::mem::size_of::<serde_json::Value>() + 96 * 1024
+        );
         assert_eq!(state.retained.get(), baseline + peak.admitted);
         assert!(work.load(Ordering::Acquire) > 0);
         drop(state.hold(3 * 1024 * 1024).unwrap());
-        drop(value); drop(peak);
+        drop(value);
+        drop(peak);
         assert_eq!(state.retained.get(), baseline);
 
         let raw = br#"{"z":["\u0416",1.2300],"a":{"b":true}}"#;
@@ -7193,15 +7303,27 @@ mod construction_phase_tests {
         let (decoded, hold) = state.serde_scoped_with_limits(raw, limits).unwrap();
         assert_eq!(decoded["z"][0].as_str(), Some("Ж"));
         assert_eq!(decoded["z"][1].as_number().unwrap().as_str(), "1.2300");
-        assert_eq!(decoded.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["z", "a"]);
+        assert_eq!(
+            decoded
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            ["z", "a"]
+        );
         assert_eq!(state.retained.get(), baseline + hold.admitted);
-        drop(decoded); drop(hold);
+        drop(decoded);
+        drop(hold);
         assert_eq!(state.retained.get(), baseline);
         // A conservative Number upper bound must not introduce a new refusal.
         let large_number = "9".repeat(256);
-        let (number, number_hold) = state.serde_scoped_with_limits(large_number.as_bytes(), limits).unwrap();
+        let (number, number_hold) = state
+            .serde_scoped_with_limits(large_number.as_bytes(), limits)
+            .unwrap();
         assert_eq!(number.as_number().unwrap().as_str(), large_number);
-        drop(number); drop(number_hold);
+        drop(number);
+        drop(number_hold);
         assert_eq!(state.retained.get(), baseline);
         // Compare the existing strict serde decoder for exact numeric spelling,
         // Unicode, insertion order and nested arrays. It is not a runtime path.
@@ -7211,65 +7333,101 @@ mod construction_phase_tests {
         ] {
             let previous = state.decode_serde_raw(raw).unwrap();
             let (next, hold) = state.serde_scoped_with_limits(raw, limits).unwrap();
-            assert_eq!(serde_json::to_vec(&next).unwrap(), serde_json::to_vec(&previous).unwrap());
-            drop(next); drop(hold);
+            assert_eq!(
+                serde_json::to_vec(&next).unwrap(),
+                serde_json::to_vec(&previous).unwrap()
+            );
+            drop(next);
+            drop(hold);
             assert_eq!(state.retained.get(), baseline);
         }
-        for raw in [br#"{"a":1,"\u0061":2}"#.as_slice(), br#"{} []"#.as_slice(), br#""\ud800""#.as_slice()] {
+        for raw in [
+            br#"{"a":1,"\u0061":2}"#.as_slice(),
+            br#"{} []"#.as_slice(),
+            br#""\ud800""#.as_slice(),
+        ] {
             assert!(state.serde_scoped_with_limits(raw, limits).is_err());
             assert_eq!(state.retained.get(), baseline);
         }
-        let long = serde_json::to_vec(&serde_json::json!({"text": "x".repeat(8192),"n":1.2300})).unwrap();
+        let long =
+            serde_json::to_vec(&serde_json::json!({"text": "x".repeat(8192),"n":1.2300})).unwrap();
         let mut old_work = 0;
         // Recreate the former grammar/geometry/second-parse sequence once.
         let before_work = work.load(Ordering::Acquire);
-        let old_document = creation_json_with_limits(&state, &long, JsonLimits::new(16384,96,10000,4096).unwrap()).unwrap();
-        state.charge_work(long.len()*2).unwrap();
-        let _ = crate::knowledge_normalization::serde_input_workspace_upper(&old_document, long.len()).unwrap();
+        let old_document = creation_json_with_limits(
+            &state,
+            &long,
+            JsonLimits::new(16384, 96, 10000, 4096).unwrap(),
+        )
+        .unwrap();
+        state.charge_work(long.len() * 2).unwrap();
+        let _ =
+            crate::knowledge_normalization::serde_input_workspace_upper(&old_document, long.len())
+                .unwrap();
         drop(old_document);
         let old = state.decode_serde_raw(&long).unwrap();
-        old_work += work.load(Ordering::Acquire)-before_work;
+        old_work += work.load(Ordering::Acquire) - before_work;
         let before_work = work.load(Ordering::Acquire);
-        let (next, hold) = state.serde_scoped_with_limits(&long, JsonLimits::new(16384,96,10000,4096).unwrap()).unwrap();
-        let new_work = work.load(Ordering::Acquire)-before_work;
-        assert_eq!(next,old);
-        assert!(new_work < old_work, "single parse must remove real work: old={old_work} new={new_work}");
+        let (next, hold) = state
+            .serde_scoped_with_limits(&long, JsonLimits::new(16384, 96, 10000, 4096).unwrap())
+            .unwrap();
+        let new_work = work.load(Ordering::Acquire) - before_work;
+        assert_eq!(next, old);
+        assert!(
+            new_work < old_work,
+            "single parse must remove real work: old={old_work} new={new_work}"
+        );
         eprintln!("strict conversion measured work old={old_work} new={new_work}");
-        drop(next);drop(hold);drop(old);
-        assert_eq!(state.retained.get(),baseline);
+        drop(next);
+        drop(hold);
+        drop(old);
+        assert_eq!(state.retained.get(), baseline);
         // Exact-length carriers eliminate only the count walk. The bytes and
         // their custody remain identical, including every refused callback.
         let value: serde_json::Value = serde_json::from_slice(&long).unwrap();
         let expected = serde_json::to_vec(&value).unwrap();
         let before = work.load(Ordering::Acquire);
-        state.with_json_encoded(&value, 16384, |bytes| {
-            assert_eq!(bytes, expected);
-            assert!(state.retained.get() >= baseline + expected.len());
-            Ok(())
-        }).unwrap();
+        state
+            .with_json_encoded(&value, 16384, |bytes| {
+                assert_eq!(bytes, expected);
+                assert!(state.retained.get() >= baseline + expected.len());
+                Ok(())
+            })
+            .unwrap();
         let counted_work = work.load(Ordering::Acquire) - before;
         assert_eq!(state.retained.get(), baseline);
         let before = work.load(Ordering::Acquire);
-        state.with_json_encoded_exact(&value, expected.len(), 16384, |bytes| {
-            assert_eq!(bytes, expected);
-            assert!(state.retained.get() >= baseline + expected.len());
-            Ok(())
-        }).unwrap();
+        state
+            .with_json_encoded_exact(&value, expected.len(), 16384, |bytes| {
+                assert_eq!(bytes, expected);
+                assert!(state.retained.get() >= baseline + expected.len());
+                Ok(())
+            })
+            .unwrap();
         let exact_work = work.load(Ordering::Acquire) - before;
         assert_eq!(counted_work, 2 * exact_work);
         assert_eq!(exact_work, expected.len() as u64);
         assert_eq!(state.retained.get(), baseline);
         for declared in [0, expected.len() - 1, expected.len() + 1, 16385] {
             let mut called = false;
-            assert!(state.with_json_encoded_exact(&value, declared, 16384, |_| {
-                called = true; Ok(())
-            }).is_err());
+            assert!(
+                state
+                    .with_json_encoded_exact(&value, declared, 16384, |_| {
+                        called = true;
+                        Ok(())
+                    })
+                    .is_err()
+            );
             assert!(!called);
             assert_eq!(state.retained.get(), baseline);
         }
-        assert!(state.with_json_encoded_exact(&value, expected.len(), 16384, |_| {
-            Err::<(), _>(Error::Invalid("consumer refused"))
-        }).is_err());
+        assert!(
+            state
+                .with_json_encoded_exact(&value, expected.len(), 16384, |_| {
+                    Err::<(), _>(Error::Invalid("consumer refused"))
+                })
+                .is_err()
+        );
         assert_eq!(state.retained.get(), baseline);
         eprintln!("exact JSON emission work counted={counted_work} exact={exact_work}");
         // Parse work follows actual UTF8 bytes and grammar nodes. A large
@@ -7281,7 +7439,10 @@ mod construction_phase_tests {
         let parsed = creation_json_with_limits(&state, parse_raw, limits).unwrap();
         let used = state.json_visits.get() - before_visits;
         assert_eq!(used, 6);
-        assert_eq!(work.load(Ordering::Acquire) - before_work, (parse_raw.len() + used) as u64);
+        assert_eq!(
+            work.load(Ordering::Acquire) - before_work,
+            (parse_raw.len() + used) as u64
+        );
         drop(parsed);
         assert_eq!(state.retained.get(), baseline);
         let before_work = work.load(Ordering::Acquire);
@@ -7295,7 +7456,8 @@ mod construction_phase_tests {
         // even the first grammar node after its UTF8 span uses the budget.
         let limited_work = Arc::new(AtomicU64::new(0));
         let limited_budget = RuntimeKnowledgeOwnedBudget {
-            original_work: &limited_work, original_work_limit: parse_raw.len() as u64,
+            original_work: &limited_work,
+            original_work_limit: parse_raw.len() as u64,
             ..budget
         };
         let limited_state = CreationState::from_runtime_owned_budget(&limited_budget).unwrap();
@@ -7315,11 +7477,19 @@ mod construction_phase_tests {
         let mut interrupted = state.hold(1024).unwrap();
         let before = state.retained.get();
         cancelled.store(true, Ordering::Release);
-        assert!(interrupted.finish_value_construction(&serde_json::Value::Null).is_err());
+        assert!(
+            interrupted
+                .finish_value_construction(&serde_json::Value::Null)
+                .is_err()
+        );
         assert_eq!(state.retained.get(), before);
         cancelled.store(false, Ordering::Release);
         work.store(budget.original_work_limit, Ordering::Release);
-        assert!(interrupted.finish_value_construction(&serde_json::Value::Null).is_err());
+        assert!(
+            interrupted
+                .finish_value_construction(&serde_json::Value::Null)
+                .is_err()
+        );
         assert_eq!(state.retained.get(), before);
         drop(interrupted);
         assert_eq!(state.retained.get(), baseline);

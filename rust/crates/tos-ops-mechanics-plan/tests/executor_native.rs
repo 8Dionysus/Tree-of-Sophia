@@ -221,8 +221,19 @@ esac
 #[cfg(target_os = "linux")]
 #[test]
 fn native_validation_sequences_preserve_order_and_first_failure() {
-    use std::{fs, process::Command, time::{SystemTime, UNIX_EPOCH}};
-    let root = std::env::temp_dir().join(format!("tos-validation-lanes-{}-{}",std::process::id(),SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
+    use std::{
+        fs,
+        process::Command,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+    let root = std::env::temp_dir().join(format!(
+        "tos-validation-lanes-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     fs::create_dir_all(root.join("docs/validation")).unwrap();
     fs::write(
         root.join("docs/validation/validation_lanes.json"),

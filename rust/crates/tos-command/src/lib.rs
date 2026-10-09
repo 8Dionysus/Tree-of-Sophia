@@ -170,6 +170,7 @@ pub mod source_acquisition_cli;
 pub mod source_acquisition_contract;
 pub mod source_acquisition_handoff;
 pub mod source_payload_custody;
+pub mod source_payload_import;
 pub mod source_registry_acquisition;
 
 pub mod managed_native_original_cli;

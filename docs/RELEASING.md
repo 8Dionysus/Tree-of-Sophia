@@ -139,7 +139,7 @@ use the full suite; a missing or failed selector fails the required gate.
 Every run first prepares the three native CI executors with the pinned Rust
 compiler. The plan job records their source commit/tree, lock digest, toolchain
 and binary sizes/digests; software, Rust and the required gate reuse that same
-run's artifact and verify its identity before binding the Python entry wrappers.
+run's artifact and verify its identity before placing the native executors on PATH.
 Missing products or a failed plan fail closed. Documentation-only changes skip
 the software package and browser/Worker jobs, but still need this native selector
 prerequisite. Cargo cache reuse is an optimization, not evidence of identity.
@@ -204,16 +204,8 @@ worker bindings retain exact executable custody; request content cannot select
 a worker, owner config or invocation path. Family-specific profiles and
 authorized operations belong to the command owner.
 
-The current explicit local invocation path is runnable with the selected owner
-request on stdin:
-
-```sh
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
-  --owner-config /absolute/protected-owner-config.json \
-  --native-invocation /absolute/protected-native-invocation.json < /absolute/request.json
-```
-
-The portable installed Rust client is available without this checkout or Python:
+The portable installed Rust client consumes the selected owner request on
+stdin without requiring this checkout or a Python runtime:
 
 ```sh
 /absolute/prefix/bin/tos-native-owner-command source-commands \
@@ -242,14 +234,10 @@ needed by the selected receiver, not a source-field authority.
 The installed executable also accepts `--invocation ABSOLUTE_FILE` directly.
 Both routes must retain the same selected owner/source/rights/recovery and worker
 custody checks. Installing products does not construct an invocation, authorize a
-mutation, select a production corpus or switch a running cohort. Retain Python
-reference APIs while the remaining native handler successors are completed;
-the prepared normal mutation dispatcher uses the protected native invocation
-and fails closed when it is missing; it never silently runs a Python handler.
-The explicit `--legacy-oracle` / `run_legacy_oracle_command` route preserves the
-old independent reference behavior until the whole native handler consumer is
-accepted. Source preparation is distinct from composition, installed default
-availability and the final cohort switch.
+mutation, select a production corpus or switch a running cohort. The normal
+mutation dispatcher uses the protected native invocation and fails closed when
+it is missing. Source preparation is distinct from composition, installed
+default availability and the final cohort switch.
 
 ## Registry source-contract changes
 
@@ -287,9 +275,10 @@ The source-to-reader operation is explicit:
 
 1. Prepare a `tos_corpus_batch_v1` manifest naming the exact base revision,
    validator identity, source bytes/modes and any explicit retirements.
-2. Run `scripts/corpus_admit.py` with `--store`, `--batch`, `--input-root`
-   and `--grammar-root`. Historical evidence and payload custody use their
-   explicit options. A rejected batch leaves the accepted pointer unchanged.
+2. Run `tos-native-owner-command corpus-admit` with explicit `--store`,
+   `--batch`, `--input-root`, `--grammar-root` and protected `--invocation`
+   paths. Historical capture and payload custody use their explicit options
+   when selected. A rejected batch leaves the accepted pointer unchanged.
    General record/claim batches currently run a conservative full source audit;
    only the verified retirement transition has a scoped fast path.
 3. Produce a managed native Original candidate with

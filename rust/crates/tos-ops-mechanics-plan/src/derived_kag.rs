@@ -11,8 +11,7 @@ const TINY: &str = "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md";
 const CAPSULE: &str = "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md";
 const PRETTY: &str = "ToS/derived-exports/kag_export.json";
 const COMPACT: &str = "ToS/derived-exports/kag_export.min.json";
-const GENERATOR: &str =
-    "rust/crates/tos-ops-mechanics-plan/src/derived_kag.rs";
+const GENERATOR: &str = "rust/crates/tos-ops-mechanics-plan/src/derived_kag.rs";
 const PRIMARY_QUESTION: &str = "What source-owned tiny export keeps the current Zarathustra prologue route legible for downstream KAG consumers without replacing ToS authority?";
 const SUMMARY_50: &str =
     "Source-owned tiny export for the current Zarathustra prologue authority route.";

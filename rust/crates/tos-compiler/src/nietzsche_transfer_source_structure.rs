@@ -209,7 +209,11 @@ impl Witness {
             ),
         ])
     }
-    pub(super) fn verify(&mut self, ctx: &ResearchExecution, source: &ResearchExecution) -> Result<()> {
+    pub(super) fn verify(
+        &mut self,
+        ctx: &ResearchExecution,
+        source: &ResearchExecution,
+    ) -> Result<()> {
         for h in &mut self.held {
             h.verify(ctx)?;
         }

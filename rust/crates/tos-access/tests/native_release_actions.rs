@@ -145,14 +145,17 @@ fn create_archive(path: &Path, marker: &str) -> String {
                 *name,
                 SimpleFileOptions::default()
                     .compression_method(zip::CompressionMethod::Stored)
-                    .unix_permissions(if matches!(
-                        *name,
-                        "access/src/tos_access/tos-access" | "native/bin/tos-native-owner-command"
-                    ) {
-                        0o755
-                    } else {
-                        0o644
-                    }),
+                    .unix_permissions(
+                        if matches!(
+                            *name,
+                            "access/src/tos_access/tos-access"
+                                | "native/bin/tos-native-owner-command"
+                        ) {
+                            0o755
+                        } else {
+                            0o644
+                        },
+                    ),
             )
             .unwrap();
         writer.write_all(bytes).unwrap();
@@ -193,7 +196,11 @@ fn create_archive(path: &Path, marker: &str) -> String {
         .insert("archive_sha256".into(), serde_json::json!(digest));
     let mut sidecar_path = path.as_os_str().to_os_string();
     sidecar_path.push(".manifest.json");
-    fs::write(PathBuf::from(sidecar_path), serde_json::to_vec(&sidecar).unwrap()).unwrap();
+    fs::write(
+        PathBuf::from(sidecar_path),
+        serde_json::to_vec(&sidecar).unwrap(),
+    )
+    .unwrap();
     digest
 }
 
@@ -213,7 +220,8 @@ fn write_snapshot(
     let model_path = data.join("model.sqlite");
     fs::copy(&fixture.path, &model_path).unwrap();
     let measurement = if fs_verity {
-        tos_compiler::prepare_native_knowledge_artifact(&model_path, &fixture.stage_receipt).unwrap()
+        tos_compiler::prepare_native_knowledge_artifact(&model_path, &fixture.stage_receipt)
+            .unwrap()
     } else {
         tos_compiler::NativeFsVerityMeasurement {
             algorithm: "sha256".into(),
@@ -263,7 +271,8 @@ fn write_snapshot(
         ("data/relation.json", relation),
     ]);
     let source_declaration = include_bytes!("../../../../access/contracts/runtime-data.v1.json");
-    let compiler_program = include_bytes!("../../../../rust/crates/tos-compiler/src/source_corpus.rs");
+    let compiler_program =
+        include_bytes!("../../../../rust/crates/tos-compiler/src/source_corpus.rs");
     let source_binding = Digest256::of_bytes(source_declaration).to_hex();
     let compiler_binding = Digest256::of_bytes(compiler_program).to_hex();
     let mut manifest = serde_json::json!({
@@ -294,7 +303,10 @@ fn write_snapshot(
     if corrupt_model {
         fs::write(&model_path, b"corrupt after authenticated member census").unwrap();
     }
-    (Digest256::of_bytes(&manifest_raw).to_hex(), Digest256::of_bytes(&selection).to_hex())
+    (
+        Digest256::of_bytes(&manifest_raw).to_hex(),
+        Digest256::of_bytes(&selection).to_hex(),
+    )
 }
 
 fn deadline_ns() -> u64 {
@@ -302,7 +314,10 @@ fn deadline_ns() -> u64 {
         tv_sec: 0,
         tv_nsec: 0,
     };
-    assert_eq!(unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) }, 0);
+    assert_eq!(
+        unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) },
+        0
+    );
     (now.tv_sec as u64) * 1_000_000_000 + now.tv_nsec as u64 + 120_000_000_000
 }
 
@@ -337,10 +352,14 @@ fn install_archive(archive: &Path, prefix: &Path) -> Output {
         .arg("--prefix")
         .arg(prefix)
         .args([
-            "--max-total-bytes", "536870912",
-            "--max-archive-bytes", "536870912",
-            "--max-members", "16",
-            "--max-metadata-bytes", "262144",
+            "--max-total-bytes",
+            "536870912",
+            "--max-archive-bytes",
+            "536870912",
+            "--max-members",
+            "16",
+            "--max-metadata-bytes",
+            "262144",
         ]);
     bounded_command_output(command)
 }
@@ -451,7 +470,8 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
     let scratch = Scratch::new("actions");
     let archive = scratch.path().join("software.zip");
     let archive_sha = create_archive(&archive, "first");
-    let fixture = tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_original();
+    let fixture =
+        tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_original();
     let candidate = scratch.path().join("candidate");
     let (manifest_sha, selection_sha) = write_snapshot(
         &candidate,
@@ -467,9 +487,16 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
         scratch.path(),
         prepare_request(&archive, &candidate, deadline),
     );
-    assert!(prepared.status.success(), "{}", String::from_utf8_lossy(&prepared.stderr));
+    assert!(
+        prepared.status.success(),
+        "{}",
+        String::from_utf8_lossy(&prepared.stderr)
+    );
     let receipt: serde_json::Value = serde_json::from_slice(&prepared.stdout).unwrap();
-    assert_eq!(receipt["schema_version"], "tos_access_native_release_preparation_receipt_v1");
+    assert_eq!(
+        receipt["schema_version"],
+        "tos_access_native_release_preparation_receipt_v1"
+    );
     assert_eq!(receipt["admission"], "candidate-preparation-only");
     assert_eq!(receipt["candidate_manifest_sha256"], manifest_sha);
     assert_eq!(receipt["candidate_selection_sha256"], selection_sha);
@@ -483,7 +510,11 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
 
     let bad_abi = scratch.path().join("bad-abi");
     let (bad_manifest_sha, _) = write_snapshot(
-        &bad_abi, &fixture, "unsupported-fixture-abi", false, false,
+        &bad_abi,
+        &fixture,
+        "unsupported-fixture-abi",
+        false,
+        false,
         tos_compiler::knowledge_full_fixture::NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS,
     );
     let refused_abi = action(
@@ -492,12 +523,19 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
         prepare_request(&archive, &bad_abi, deadline_ns()),
     );
     assert!(!refused_abi.status.success());
-    assert!(String::from_utf8_lossy(&refused_abi.stderr).contains("compiler/ABI/source profile mismatch"));
+    assert!(
+        String::from_utf8_lossy(&refused_abi.stderr)
+            .contains("compiler/ABI/source profile mismatch")
+    );
     assert_ne!(bad_manifest_sha, manifest_sha);
 
     let corrupt = scratch.path().join("corrupt");
     write_snapshot(
-        &corrupt, &fixture, &fixture.expectation.model_abi, true, false,
+        &corrupt,
+        &fixture,
+        &fixture.expectation.model_abi,
+        true,
+        false,
         tos_compiler::knowledge_full_fixture::NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS,
     );
     let refused_corrupt = action(
@@ -524,7 +562,10 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
     let pair_id = receipt["pair_id"].as_str().unwrap();
     write_private(&release.join(format!("pairs/{pair_id}.json")), &pair_raw);
     let bindings_raw = canonical(&receipt["bindings"]);
-    write_private(&release.join(format!("bindings/{pair_id}.json")), &bindings_raw);
+    write_private(
+        &release.join(format!("bindings/{pair_id}.json")),
+        &bindings_raw,
+    );
     write_private(
         &release.join("current.json"),
         &canonical(&serde_json::json!({
@@ -542,9 +583,16 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
             "release_root":release,
         }),
     );
-    assert!(status.status.success(), "{}", String::from_utf8_lossy(&status.stderr));
+    assert!(
+        status.status.success(),
+        "{}",
+        String::from_utf8_lossy(&status.stderr)
+    );
     let status: serde_json::Value = serde_json::from_slice(&status.stdout).unwrap();
-    assert_eq!(status["schema_version"], "tos_access_native_release_status_receipt_v1");
+    assert_eq!(
+        status["schema_version"],
+        "tos_access_native_release_status_receipt_v1"
+    );
     assert_eq!(status["pair_id"], pair_id);
     assert_eq!(canonical(&status["pair"]), pair_raw);
     assert_eq!(canonical(&status["bindings"]), bindings_raw);
@@ -555,9 +603,10 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
     // is shared, while the view variant changes the selected data identity.
     let second_archive = scratch.path().join("software-second.zip");
     let second_archive_sha = create_archive(&second_archive, "second");
-    let second_fixture = tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_view_variant(
-        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1,
-    );
+    let second_fixture =
+        tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_view_variant(
+            tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1,
+        );
     let second_candidate = scratch.path().join("candidate-second");
     let (second_manifest_sha, second_selection_sha) = write_snapshot(
         &second_candidate,
@@ -577,12 +626,28 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
         "{}",
         String::from_utf8_lossy(&second_prepared.stderr)
     );
-    let second_receipt: serde_json::Value = serde_json::from_slice(&second_prepared.stdout).unwrap();
-    assert_eq!(second_receipt["candidate_manifest_sha256"], second_manifest_sha);
-    assert_eq!(second_receipt["candidate_selection_sha256"], second_selection_sha);
-    assert_eq!(second_receipt["pair"]["software_sha256"], second_archive_sha);
-    assert_ne!(second_receipt["pair"]["data_revision"], receipt["pair"]["data_revision"]);
-    assert_eq!(second_receipt["pair"]["corpus_revision"], receipt["pair"]["corpus_revision"]);
+    let second_receipt: serde_json::Value =
+        serde_json::from_slice(&second_prepared.stdout).unwrap();
+    assert_eq!(
+        second_receipt["candidate_manifest_sha256"],
+        second_manifest_sha
+    );
+    assert_eq!(
+        second_receipt["candidate_selection_sha256"],
+        second_selection_sha
+    );
+    assert_eq!(
+        second_receipt["pair"]["software_sha256"],
+        second_archive_sha
+    );
+    assert_ne!(
+        second_receipt["pair"]["data_revision"],
+        receipt["pair"]["data_revision"]
+    );
+    assert_eq!(
+        second_receipt["pair"]["corpus_revision"],
+        receipt["pair"]["corpus_revision"]
+    );
 
     let prefix_first = scratch.path().join("prefix-first");
     let installed_first = install_archive(&archive, &prefix_first);
@@ -622,14 +687,20 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
         &second_program,
         "native-release-promote",
         scratch.path(),
-        promotion_request(&second_receipt, &release_actions, &prefix_second, Some(first_pair_id)),
+        promotion_request(
+            &second_receipt,
+            &release_actions,
+            &prefix_second,
+            Some(first_pair_id),
+        ),
     );
     assert!(
         promoted_second.status.success(),
         "{}",
         String::from_utf8_lossy(&promoted_second.stderr)
     );
-    let promoted_second: serde_json::Value = serde_json::from_slice(&promoted_second.stdout).unwrap();
+    let promoted_second: serde_json::Value =
+        serde_json::from_slice(&promoted_second.stdout).unwrap();
     assert!(promoted_second["committed"].as_bool().unwrap());
     assert_eq!(promoted_second["pair_id"], second_receipt["pair_id"]);
     assert_eq!(promoted_second["previous"], receipt["pair_id"]);
@@ -660,7 +731,12 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
         &second_program,
         "native-release-promote",
         scratch.path(),
-        promotion_request(&second_receipt, &release_actions, &prefix_second, Some(first_pair_id)),
+        promotion_request(
+            &second_receipt,
+            &release_actions,
+            &prefix_second,
+            Some(first_pair_id),
+        ),
     );
     assert!(!failed_switch.status.success());
     fs::remove_file(undeclared).unwrap();
@@ -674,7 +750,11 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
             "release_root":release_actions,
         }),
     );
-    assert!(stable.status.success(), "{}", String::from_utf8_lossy(&stable.stderr));
+    assert!(
+        stable.status.success(),
+        "{}",
+        String::from_utf8_lossy(&stable.stderr)
+    );
     let stable: serde_json::Value = serde_json::from_slice(&stable.stdout).unwrap();
     assert_eq!(stable["pair_id"], receipt["pair_id"]);
     assert_eq!(stable["previous"], second_receipt["pair_id"]);
@@ -696,7 +776,11 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
                 second_receipt["pair"][field].as_str().unwrap(),
             ),
         );
-        assert!(revoked.status.success(), "{}", String::from_utf8_lossy(&revoked.stderr));
+        assert!(
+            revoked.status.success(),
+            "{}",
+            String::from_utf8_lossy(&revoked.stderr)
+        );
         let revoked: serde_json::Value = serde_json::from_slice(&revoked.stdout).unwrap();
         assert_eq!(revoked["kind"], kind);
         assert!(revoked["committed"].as_bool().unwrap());
@@ -706,7 +790,12 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
         &second_program,
         "native-release-promote",
         scratch.path(),
-        promotion_request(&second_receipt, &release_actions, &prefix_second, Some(first_pair_id)),
+        promotion_request(
+            &second_receipt,
+            &release_actions,
+            &prefix_second,
+            Some(first_pair_id),
+        ),
     );
     assert!(!refused_promotion.status.success());
     let refused_rollback = action_with(
@@ -726,7 +815,11 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
             "release_root":release_actions,
         }),
     );
-    assert!(stable.status.success(), "{}", String::from_utf8_lossy(&stable.stderr));
+    assert!(
+        stable.status.success(),
+        "{}",
+        String::from_utf8_lossy(&stable.stderr)
+    );
     let stable: serde_json::Value = serde_json::from_slice(&stable.stdout).unwrap();
     assert_eq!(stable["pair_id"], receipt["pair_id"]);
     assert_eq!(stable["previous"], second_receipt["pair_id"]);

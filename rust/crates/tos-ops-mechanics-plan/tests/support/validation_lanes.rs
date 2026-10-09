@@ -378,7 +378,9 @@ fn browser_behavior_runs_the_complete_native_node_playwright_suite() {
     assert_eq!(groups.len(), 1);
     let argv = groups[0]["command"].as_array().unwrap();
     assert_eq!(
-        argv.iter().map(|value| value.as_str().unwrap()).collect::<Vec<_>>(),
+        argv.iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<Vec<_>>(),
         vec!["node", "--test", "access/e2e/test_webmcp.mjs"]
     );
 
@@ -404,12 +406,13 @@ fn browser_behavior_runs_the_complete_native_node_playwright_suite() {
         "test_reader_positions_survive_pagehide_before_debounce",
     ];
     for name in expected {
-        assert!(source.contains(&format!("test('{name}'")), "missing browser case: {name}");
+        assert!(
+            source.contains(&format!("test('{name}'")),
+            "missing browser case: {name}"
+        );
     }
     assert!(source.contains("for(const failure of ['network','malformed'])"));
-    assert!(source.contains(
-        "test_source_metadata_remains_when_native_discovery_fails_${failure}"
-    ));
+    assert!(source.contains("test_source_metadata_remains_when_native_discovery_fails_${failure}"));
     assert_eq!(expected.len() + 2, 20);
 }
 
@@ -627,15 +630,13 @@ fn authored_source_foundation_lane_selects_the_native_full_audit_route() {
     assert_eq!(command[4], "--invocation");
     assert_eq!(command[5], "{foundation_invocation}");
     assert!(!steps.iter().any(|step| {
-        step["command"]
-            .as_array()
-            .is_some_and(|command| {
-                command.iter().any(|part| {
-                    part.as_str().is_some_and(|part| {
-                        part == "scripts/build_source_witness_catalog.py"
-                            || part == "scripts/validate_source_witness_foundation.py"
-                    })
+        step["command"].as_array().is_some_and(|command| {
+            command.iter().any(|part| {
+                part.as_str().is_some_and(|part| {
+                    part == "scripts/build_source_witness_catalog.py"
+                        || part == "scripts/validate_source_witness_foundation.py"
                 })
             })
+        })
     }));
 }

@@ -1102,10 +1102,9 @@ fn charge_packet(
 
 // Private external sort. It is never a selected component and is removed
 // before successful receipt publication. SQLite spill remains stage-owned.
-pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema =
-    crate::knowledge_stage::preparation_schema!(
-        table "corpus_capture_pending(collection TEXT NOT NULL,sort0 TEXT NOT NULL,sort1 TEXT NOT NULL,encounter INTEGER NOT NULL,packet BLOB NOT NULL,packet_sha256 BLOB NOT NULL,PRIMARY KEY(collection,sort0,sort1,encounter)) WITHOUT ROWID"
-    );
+pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema = crate::knowledge_stage::preparation_schema!(
+    table "corpus_capture_pending(collection TEXT NOT NULL,sort0 TEXT NOT NULL,sort1 TEXT NOT NULL,encounter INTEGER NOT NULL,packet BLOB NOT NULL,packet_sha256 BLOB NOT NULL,PRIMARY KEY(collection,sort0,sort1,encounter)) WITHOUT ROWID"
+);
 struct PendingRow {
     collection: CorpusOriginalCollection,
     sort0: String,
@@ -1292,12 +1291,11 @@ pub fn retain_captured_corpus_original_from_capture(
                 stage.charge_materialized(rows.len() as u64, physical_bytes)?;
                 stage.with_connection(WritePhase::Finalize, |db| {
                     let tx = db.transaction()?;
-                    let mut insert =
-                        tx.prepare(if layout.uses_carriers() {
-                            INSERT_ROW_CARRIER
-                        } else {
-                            INSERT_ROW
-                        })?;
+                    let mut insert = tx.prepare(if layout.uses_carriers() {
+                        INSERT_ROW_CARRIER
+                    } else {
+                        INSERT_ROW
+                    })?;
                     for (a, b, c, raw) in &rows {
                         check_originals(deadline, cancelled)?;
                         insert_original_row_with_layout(

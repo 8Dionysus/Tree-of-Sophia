@@ -501,7 +501,17 @@ pub(crate) fn page_with_layout(
 ) -> Result<PhilosophyOriginalPage> {
     let mut decode_work = 0;
     let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?;
-    page_with_layout_and_work(db, collection, after, max_rows, max_row_bytes, max_page_bytes, layout, &mut decode_work, work_cap)
+    page_with_layout_and_work(
+        db,
+        collection,
+        after,
+        max_rows,
+        max_row_bytes,
+        max_page_bytes,
+        layout,
+        &mut decode_work,
+        work_cap,
+    )
 }
 fn page_with_layout_and_work(
     db: &Connection,
@@ -531,7 +541,15 @@ fn page_with_layout_and_work(
         max_row_bytes as i64,
         max_rows as i64
     ])?;
-    let (rows, decoded_bytes) = crate::knowledge_original_rows::read(db, &mut scan, max_page_bytes, max_row_bytes, layout, decode_work, work_cap)?;
+    let (rows, decoded_bytes) = crate::knowledge_original_rows::read(
+        db,
+        &mut scan,
+        max_page_bytes,
+        max_row_bytes,
+        layout,
+        decode_work,
+        work_cap,
+    )?;
     let rows = rows
         .into_iter()
         .map(|(ordinal, raw)| {
@@ -741,7 +759,8 @@ pub(crate) fn verify(
                 KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
                 crate::KNOWLEDGE_CORPUS_MODEL_ABI,
                 KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
             ]
             .contains(&e.model_abi.as_str())
     {
@@ -1114,44 +1133,48 @@ fn verify_rows_owned(
                     .map_err(owned_schema_sql_error)?
                     .as_blob()
                     .map_err(|_| Error::Invalid("original packet column type"))?;
-                if ordinal < 0
-                    || ordinal as u64 != count
-                    || declared > l.max_row_bytes as u64
-                {
+                if ordinal < 0 || ordinal as u64 != count || declared > l.max_row_bytes as u64 {
                     return Err(Error::Invalid(
                         "philosophy original ordinal/length coverage",
                     ));
                 }
-                layout.with_sql_decoded(db, state, raw, Some(declared as usize), l.max_row_bytes, |raw| {
-                let row_work = raw.len() as u64 + 40;
-                *work = work
-                    .checked_add(row_work)
-                    .filter(|n| *n <= work_cap)
-                    .ok_or(Error::Budget("philosophy original cold work"))?;
-                state.charge_work(
-                    raw.len()
-                        .checked_mul(2)
-                        .and_then(|n| n.checked_add(40))
-                        .ok_or(Error::Budget("philosophy original hash work"))?,
+                layout.with_sql_decoded(
+                    db,
+                    state,
+                    raw,
+                    Some(declared as usize),
+                    l.max_row_bytes,
+                    |raw| {
+                        let row_work = raw.len() as u64 + 40;
+                        *work = work
+                            .checked_add(row_work)
+                            .filter(|n| *n <= work_cap)
+                            .ok_or(Error::Budget("philosophy original cold work"))?;
+                        state.charge_work(
+                            raw.len()
+                                .checked_mul(2)
+                                .and_then(|n| n.checked_add(40))
+                                .ok_or(Error::Budget("philosophy original hash work"))?,
+                        )?;
+                        if Digest256::of_bytes(raw).as_bytes() != &digest {
+                            return Err(Error::Invalid("philosophy original row digest differs"));
+                        }
+                        if collection == PhilosophyOriginalCollection::Header {
+                            header_with_state(raw, r, l.max_row_bytes, Some(state))?;
+                        } else {
+                            ordered_item(&mut h, count, raw);
+                        }
+                        count = count
+                            .checked_add(1)
+                            .filter(|n| *n <= wanted)
+                            .ok_or(Error::Invalid("philosophy original excess rows"))?;
+                        total = total
+                            .checked_add(raw.len() as u64)
+                            .filter(|n| *n <= l.max_total_bytes)
+                            .ok_or(Error::Budget("philosophy original bytes"))?;
+                        Ok(())
+                    },
                 )?;
-                if Digest256::of_bytes(raw).as_bytes() != &digest {
-                    return Err(Error::Invalid("philosophy original row digest differs"));
-                }
-                if collection == PhilosophyOriginalCollection::Header {
-                    header_with_state(raw, r, l.max_row_bytes, Some(state))?;
-                } else {
-                    ordered_item(&mut h, count, raw);
-                }
-                count = count
-                    .checked_add(1)
-                    .filter(|n| *n <= wanted)
-                    .ok_or(Error::Invalid("philosophy original excess rows"))?;
-                total = total
-                    .checked_add(raw.len() as u64)
-                    .filter(|n| *n <= l.max_total_bytes)
-                    .ok_or(Error::Budget("philosophy original bytes"))?;
-                Ok(())
-                })?;
             }
             Ok(())
         })?;
@@ -1242,7 +1265,8 @@ pub(crate) fn verify_with_owned_state(
                 KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
                 crate::KNOWLEDGE_CORPUS_MODEL_ABI,
                 KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
             ]
             .contains(&e.model_abi.as_str())
     {

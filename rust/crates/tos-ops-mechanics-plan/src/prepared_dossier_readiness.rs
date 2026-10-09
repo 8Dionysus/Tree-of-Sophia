@@ -1255,7 +1255,6 @@ fn input_pin(
     })
 }
 
-
 #[cfg(test)]
 mod native_action_contract_tests {
     use super::*;
@@ -1264,7 +1263,9 @@ mod native_action_contract_tests {
     fn selective_readiness_is_allowed_but_planting_is_aggregate_only() {
         assert_eq!(
             select_action(false, false, Some("table-i".into())).unwrap(),
-            PreparedDossierAction::Readiness { table_id: Some("table-i".into()) }
+            PreparedDossierAction::Readiness {
+                table_id: Some("table-i".into())
+            }
         );
         assert!(select_action(false, true, Some("table-i".into())).is_err());
         assert_eq!(
@@ -1275,14 +1276,18 @@ mod native_action_contract_tests {
 
     #[test]
     fn aggregate_planting_gate_fails_closed_for_any_unready_package() {
-        assert!(require_aggregate_readiness(&json!({
-            "ready_to_plant": false,
-            "required_supported_package_readiness": {
-                "table-i": true,
-                "table-ii": false,
-                "table-iii": true
-            }
-        })).unwrap_err().contains("table-ii"));
+        assert!(
+            require_aggregate_readiness(&json!({
+                "ready_to_plant": false,
+                "required_supported_package_readiness": {
+                    "table-i": true,
+                    "table-ii": false,
+                    "table-iii": true
+                }
+            }))
+            .unwrap_err()
+            .contains("table-ii")
+        );
         assert!(require_aggregate_readiness(&json!({"ready_to_plant": true})).is_ok());
     }
 }

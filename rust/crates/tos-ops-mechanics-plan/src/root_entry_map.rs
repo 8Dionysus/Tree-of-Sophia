@@ -512,35 +512,92 @@ mod tests {
         assert_eq!(p["owner_repo"], "Tree-of-Sophia");
         assert_eq!(p["surface_kind"], "root_entry_map");
         assert_eq!(p["public_root_ref"], "README.md");
-        assert_eq!(p["routes"][0]["surface_ref"], "ToS/public-compatibility/tos_tiny_entry_route.example.json");
-        assert_eq!(p["routes"][0]["verification_refs"], serde_json::json!([
-            "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-            "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md"
-        ]));
+        assert_eq!(
+            p["routes"][0]["surface_ref"],
+            "ToS/public-compatibility/tos_tiny_entry_route.example.json"
+        );
+        assert_eq!(
+            p["routes"][0]["verification_refs"],
+            serde_json::json!([
+                "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+                "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md"
+            ])
+        );
         let identity = &p["artifact_identity"];
-        assert_eq!(identity["artifact_class"], "tree_of_sophia_generated_readmodel_bundle");
+        assert_eq!(
+            identity["artifact_class"],
+            "tree_of_sophia_generated_readmodel_bundle"
+        );
         assert_eq!(identity["contract_version"], SCHEMA);
-        assert_eq!(identity["trust_layer"], serde_json::json!(["abi_contract_signature", "source_schema_validation"]));
-        assert!(identity["consumer_expectation"].as_str().unwrap().contains("same verified KAG export selection"));
+        assert_eq!(
+            identity["trust_layer"],
+            serde_json::json!(["abi_contract_signature", "source_schema_validation"])
+        );
+        assert!(
+            identity["consumer_expectation"]
+                .as_str()
+                .unwrap()
+                .contains("same verified KAG export selection")
+        );
         assert!(!render(identity).unwrap().to_lowercase().contains("c2pa"));
         let manifest = parse(include_bytes!("../../../../mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json")).unwrap();
         assert_eq!(manifest["public_safe"], true);
-        assert_eq!(manifest["artifact_source"]["kind"], "generated_public_readmodel_bundle");
+        assert_eq!(
+            manifest["artifact_source"]["kind"],
+            "generated_public_readmodel_bundle"
+        );
         assert_eq!(manifest["lifecycle"]["initial_state"], "candidate");
-        assert!(manifest["lifecycle"]["promotion_path"].as_array().unwrap().contains(&Value::String("release-ready".into())));
+        assert!(
+            manifest["lifecycle"]["promotion_path"]
+                .as_array()
+                .unwrap()
+                .contains(&Value::String("release-ready".into()))
+        );
         for field in ["registry_required", "subject_store_required"] {
             assert_eq!(manifest["consumer_contract"][field], true);
         }
-        assert_eq!(manifest["consumer_contract"]["admission_gate"], "fail_closed_consumer_admission");
+        assert_eq!(
+            manifest["consumer_contract"]["admission_gate"],
+            "fail_closed_consumer_admission"
+        );
         for (role, path) in [
-            ("philosophy_graph_views", "ToS/derived-exports/philosophy_graph_views.min.json"),
-            ("philosophy_atlas_projection", "ToS/derived-exports/philosophy_atlas_projection.min.json"),
+            (
+                "philosophy_graph_views",
+                "ToS/derived-exports/philosophy_graph_views.min.json",
+            ),
+            (
+                "philosophy_atlas_projection",
+                "ToS/derived-exports/philosophy_atlas_projection.min.json",
+            ),
         ] {
-            assert!(manifest["artifact_subjects"].as_array().unwrap().iter().any(|s| s["role"] == role && s["path"] == path));
+            assert!(
+                manifest["artifact_subjects"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|s| s["role"] == role && s["path"] == path)
+            );
         }
-        let commands = manifest["consumer_command"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>().join("\n");
-        for control in ["evidence-promote", "materialize-subjects", "trust-gate", "registry-latest", "--consumer-ref Tree-of-Sophia:generated-readmodel", "--source-repo Tree-of-Sophia", "--trust-root-mode host_managed"] {
-            assert!(commands.contains(control), "missing consumer control {control}");
+        let commands = manifest["consumer_command"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect::<Vec<_>>()
+            .join("\n");
+        for control in [
+            "evidence-promote",
+            "materialize-subjects",
+            "trust-gate",
+            "registry-latest",
+            "--consumer-ref Tree-of-Sophia:generated-readmodel",
+            "--source-repo Tree-of-Sophia",
+            "--trust-root-mode host_managed",
+        ] {
+            assert!(
+                commands.contains(control),
+                "missing consumer control {control}"
+            );
         }
     }
 }

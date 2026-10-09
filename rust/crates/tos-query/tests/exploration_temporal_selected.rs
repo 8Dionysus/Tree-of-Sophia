@@ -3,25 +3,25 @@
 use std::{
     collections::BTreeMap,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 use tos_compiler::knowledge_full_fixture::build_native_fixture;
 use tos_foundation::{
-    canonical_bytes_v1, parse_json, CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString,
-    JsonValue,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, canonical_bytes_v1,
+    parse_json,
 };
 use tos_query::knowledge_exploration::{
-    execute_selected_exploration, ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints,
-    ExplorationState, PreparedExplorationCheckpoint, EXPLORATION_INTENDED_USE,
-    EXPLORATION_OPERATION,
+    EXPLORATION_INTENDED_USE, EXPLORATION_OPERATION, ExplorationBudget, ExplorationCheckpoint,
+    ExplorationCheckpoints, ExplorationState, PreparedExplorationCheckpoint,
+    execute_selected_exploration,
 };
 use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
 use tos_query::{
-    bind_verified_knowledge, compare_temporal_operands, execute_selected_temporal, AbortProbe,
-    AbortReason, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget, InspectCurrentAuthority,
-    InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
+    AbortProbe, AbortReason, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget,
+    InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
+    bind_verified_knowledge, compare_temporal_operands, execute_selected_temporal,
 };
 fn get<'a>(v: &'a JsonValue, key: &str) -> &'a JsonValue {
     v.object_get(key).unwrap()
@@ -1012,11 +1012,13 @@ fn genuine_catalogue_temporal_source_profile_bytes_and_line_are_exact() {
         "comparison-year-numbering-unavailable",
         "absolute-date-envelope-unavailable",
     ] {
-        assert!(get(get(&result, "comparison"), "reasons")
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|reason| get(reason, "code").as_str() == Some(code)));
+        assert!(
+            get(get(&result, "comparison"), "reasons")
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|reason| get(reason, "code").as_str() == Some(code))
+        );
     }
 
     let mut drifted_value = value;
@@ -1040,10 +1042,12 @@ fn genuine_catalogue_temporal_source_profile_bytes_and_line_are_exact() {
         get(get(&result, "comparison"), "status").as_str(),
         Some("undetermined")
     );
-    assert!(get(get(&result, "comparison"), "reasons")
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|reason| get(reason, "code").as_str()
-            == Some("document-catalogue-exact-source-binding-inconsistent")));
+    assert!(
+        get(get(&result, "comparison"), "reasons")
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| get(reason, "code").as_str()
+                == Some("document-catalogue-exact-source-binding-inconsistent"))
+    );
 }

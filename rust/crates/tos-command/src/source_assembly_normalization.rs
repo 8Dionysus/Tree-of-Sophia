@@ -550,8 +550,7 @@ mod tests {
         let source_claim_bytes = tos_foundation::canonical_raw_bytes_v1(
             &serde_json::to_vec(&source_claim).unwrap(),
             tos_foundation::CanonicalProfile::SourceRecordDigestV1,
-            tos_foundation::JsonLimits::new(MAX_CANDIDATE_ROW_BYTES, 96, 1_000_000, 4096)
-                .unwrap(),
+            tos_foundation::JsonLimits::new(MAX_CANDIDATE_ROW_BYTES, 96, 1_000_000, 4096).unwrap(),
         )
         .unwrap();
         node_record["source_sha256"] = json!(Digest256::of_bytes(&source_claim_bytes).to_hex());

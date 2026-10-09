@@ -1,0 +1,27 @@
+{
+  "schema_version": "tos_source_witness_catalog_v3",
+  "record_files": {
+    "agent": "ToS/source-witnesses/catalog/agents.jsonl",
+    "place": "ToS/source-witnesses/catalog/places.jsonl",
+    "organization": "ToS/source-witnesses/catalog/organizations.jsonl",
+    "work": "ToS/source-witnesses/catalog/works.jsonl",
+    "expression": "ToS/source-witnesses/catalog/expressions.jsonl",
+    "edition": "ToS/source-witnesses/catalog/editions.jsonl",
+    "collection": "ToS/source-witnesses/catalog/collections.jsonl",
+    "item": "ToS/source-witnesses/catalog/items.jsonl",
+    "link": "ToS/source-witnesses/catalog/links.jsonl"
+  },
+  "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
+  "counts": {
+    "agent": 0,
+    "place": 0,
+    "organization": 0,
+    "work": 1,
+    "expression": 0,
+    "edition": 0,
+    "collection": 0,
+    "item": 0,
+    "link": 0,
+    "claim": 0
+  }
+}

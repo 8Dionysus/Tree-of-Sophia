@@ -26,7 +26,10 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text).unwrap();
     };
-    write("rust/crates/tos-ops-mechanics-plan/src/route_cards.rs", "// Native owner fixture\n");
+    write(
+        "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
+        "// Native owner fixture\n",
+    );
     write("scripts/harness.py", "# fixture route\n");
     let clean = "# AGENTS.md\r\n## Role\r\nSource route.\r\n## Read Before Editing\r\nRead README.md when public navigation is relevant.\r\n## Boundary Law\r\nREADME.md VALIDATION.md ROADMAP.md BOUNDARIES.md ToS/ mechanics/\r\n";
     write("AGENTS.md", clean);
@@ -66,7 +69,8 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
             .arg(program)
             .args(args)
             .current_dir(root)
-            .env_clear().env("PATH", "/usr/bin")
+            .env_clear()
+            .env("PATH", "/usr/bin")
             .output()
             .unwrap();
         assert!(
@@ -108,8 +112,18 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
     rebuild();
     let compare = |expected: i32| {
         let a = native(&["validate"]);
-        assert_eq!(a.status.code(), Some(expected), "{}{}", String::from_utf8_lossy(&a.stdout), String::from_utf8_lossy(&a.stderr));
-        assert!(a.stderr.is_empty(), "{}", String::from_utf8_lossy(&a.stderr));
+        assert_eq!(
+            a.status.code(),
+            Some(expected),
+            "{}{}",
+            String::from_utf8_lossy(&a.stdout),
+            String::from_utf8_lossy(&a.stderr)
+        );
+        assert!(
+            a.stderr.is_empty(),
+            "{}",
+            String::from_utf8_lossy(&a.stderr)
+        );
         String::from_utf8(a.stdout).unwrap()
     };
     compare(0);
@@ -137,8 +151,15 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
     let check_native = native(&["build", "--check", "--output", "candidate/route.json"]);
     assert!(check_native.status.success());
     let external = root.with_extension("external.json");
-    assert!(native(&["build", "--output", external.to_str().unwrap()]).status.success());
-    assert_eq!(fs::read(&external).unwrap(), fs::read(root.join("candidate/route.json")).unwrap());
+    assert!(
+        native(&["build", "--output", external.to_str().unwrap()])
+            .status
+            .success()
+    );
+    assert_eq!(
+        fs::read(&external).unwrap(),
+        fs::read(root.join("candidate/route.json")).unwrap()
+    );
     fs::remove_file(&external).unwrap();
     write("candidate/route.json", "stale\n");
     let check_native = native(&["build", "--check", "--output", "candidate/route.json"]);
@@ -148,23 +169,48 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
     rebuild();
     compare(0);
     for (body, refusal_count) in [
-        ("Read README.md for setup.\nReview README.md before editing.\n", 2),
+        (
+            "Read README.md for setup.\nReview README.md before editing.\n",
+            2,
+        ),
         ("Open README.md when public navigation changes.\n", 0),
-        ("Open README.md only when its human explanation is relevant.\n", 0),
-        ("## What lives here\nThis child retains only its class-local semantic delta.\n## Boundary\nInherit the nearest validation route.\n", 0),
+        (
+            "Open README.md only when its human explanation is relevant.\n",
+            0,
+        ),
+        (
+            "## What lives here\nThis child retains only its class-local semantic delta.\n## Boundary\nInherit the nearest validation route.\n",
+            0,
+        ),
     ] {
-        write("ToS/branch/AGENTS.md", &format!("# AGENTS.md\nThis card applies to branch metadata.\n{body}"));
+        write(
+            "ToS/branch/AGENTS.md",
+            &format!("# AGENTS.md\nThis card applies to branch metadata.\n{body}"),
+        );
         rebuild();
         let findings = compare(if refusal_count == 0 { 0 } else { 1 });
-        assert_eq!(findings.matches("unconditional README").count(), refusal_count, "{findings}");
+        assert_eq!(
+            findings.matches("unconditional README").count(),
+            refusal_count,
+            "{findings}"
+        );
     }
-    write("ToS/branch/AGENTS.md", "# AGENTS.md\nThis card applies to branch metadata.\n## Validation\nRun:\n## Boundary\n- First:\n- Second:\n");
+    write(
+        "ToS/branch/AGENTS.md",
+        "# AGENTS.md\nThis card applies to branch metadata.\n## Validation\nRun:\n## Boundary\n- First:\n- Second:\n",
+    );
     fs::remove_file(root.join("VALIDATION.md")).unwrap();
-    write("AGENTS.md", &clean.replace("VALIDATION.md", "validation owner"));
+    write(
+        "AGENTS.md",
+        &clean.replace("VALIDATION.md", "validation owner"),
+    );
     rebuild();
     let findings = compare(1);
     assert!(findings.contains("orphan extraction lead-in"), "{findings}");
-    assert!(findings.contains("missing nearest validation route"), "{findings}");
+    assert!(
+        findings.contains("missing nearest validation route"),
+        "{findings}"
+    );
     write("VALIDATION.md", "source\n");
     write("AGENTS.md", clean);
     let bad = "# AGENTS.md\nThis card applies to branch.\n## Role\nRead README.md first.\nUse `git` and `python scripts/missing.py` for routing.\nFOO=bar python scripts/missing.py\n```bash\npython scripts/missing.py\n```\n## Verify\n## Boundary\n- First:\n- Second:\n## Role\n## Operating Card\n| input | source |\n## Heading\u{a0}inside\nBody.\n## Heading\u{a0}inside\nBody.\n## Heading\u{200d}inside\nBody.\n## Heading\u{200d}inside\nBody.\n## Heading\u{e000}inside\nBody.\n## Heading\u{e000}inside\nBody.\nread README\u{301}\nTail:\n";

@@ -137,7 +137,9 @@ pub fn discover_commands(handler: Option<&str>) -> SourceCommandResult<Value> {
             .ok_or(SourceCommandError::Invalid("source discovery handlers"))?;
         handlers.retain(|value| value["handler_id"].as_str() == Some(handler));
         if handlers.len() != 1 {
-            return Err(SourceCommandError::Invalid("unknown source discovery handler"));
+            return Err(SourceCommandError::Invalid(
+                "unknown source discovery handler",
+            ));
         }
         catalog["handler_count"] = json!(1);
     }

@@ -1377,10 +1377,7 @@ fn assessment_feature_sources() -> [&'static str; 13] {
     ]
 }
 
-fn native_layer_journal_fixture(
-    root: &Path,
-    derived: bool,
-) -> Value {
+fn native_layer_journal_fixture(root: &Path, derived: bool) -> Value {
     let template = r#"
 import copy,json,sys,tempfile,unittest
 from pathlib import Path

@@ -300,6 +300,190 @@ fn budget() -> LensBudget {
 fn field<'a>(v: &'a JsonValue, k: &str) -> &'a JsonValue {
     v.object_get(k).unwrap()
 }
+fn field_mut<'a>(v: &'a mut JsonValue, k: &str) -> &'a mut JsonValue {
+    let JsonValue::Object(entries) = v else {
+        panic!("expected object while selecting {k}");
+    };
+    for (name, value) in entries {
+        if name.as_str() == Some(k) {
+            return value;
+        }
+    }
+    panic!("missing object field {k}");
+}
+fn replace_exact_string(value: &mut JsonValue, historical: &str, native: &str) {
+    let JsonValue::String(actual) = value else {
+        panic!("expected string availability metadata");
+    };
+    assert_eq!(actual.as_str(), Some(historical));
+    *value = JsonValue::String(tos_foundation::JsonString::from_utf8(native));
+}
+fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
+    // The pinned Python oracle predates the native route wording. Keep the
+    // source bundle exact and adapt only these eight availability statements;
+    // schemas, registry data and all other contract fields still compare byte
+    // for byte with the native response.
+    let contracts = field_mut(oracle, "contracts");
+    let api = field_mut(contracts, "api");
+    let operations = field_mut(api, "operations");
+    let JsonValue::Array(operations) = operations else {
+        panic!("knowledge API operations must be an array");
+    };
+    let mut adapted = 0;
+    for operation in operations {
+        let operation_id = field(operation, "operation_id")
+            .as_str()
+            .unwrap()
+            .to_owned();
+        match operation_id.as_str() {
+            "tos.source.read.capabilities" => {
+                replace_exact_string(
+                    field_mut(operation, "available_on"),
+                    "Python local HTTP, CLI and native MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability",
+                    "native local HTTP, CLI and MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability",
+                );
+                adapted += 1;
+            }
+            "tos.source.read.contracts" => {
+                replace_exact_string(
+                    field_mut(operation, "available_on"),
+                    "Python local HTTP, CLI and native MCP",
+                    "native local HTTP, CLI and MCP",
+                );
+                adapted += 1;
+            }
+            "tos.source.handle.discover" | "tos.source.record.read" => {
+                replace_exact_string(
+                    field_mut(operation, "available_on"),
+                    "explicitly selected Python source-owner service; no source mutation or rights grant",
+                    "explicitly selected native source-owner route; no source mutation or rights grant",
+                );
+                adapted += 1;
+            }
+            "tos.knowledge.search" => {
+                let modes = field_mut(operation, "modes");
+                let compressed = field_mut(modes, "compressed");
+                replace_exact_string(
+                    field_mut(compressed, "available_on"),
+                    "explicitly selected tos_local_prepared_read_model_v1 in Python",
+                    "explicitly selected tos_local_prepared_read_model_v1 in the native Rust owner",
+                );
+                adapted += 1;
+            }
+            "tos.knowledge.search.capabilities" => {
+                replace_exact_string(
+                    field_mut(operation, "available_on"),
+                    "Python local HTTP, CLI and native MCP; Cloudflare/D1 HTTP advertises its validated indexed-search engine",
+                    "native local HTTP, CLI and MCP; Cloudflare/D1 HTTP advertises its validated indexed-search engine",
+                );
+                adapted += 1;
+            }
+            "tos.knowledge.node.inspect" | "tos.knowledge.relation.inspect" => {
+                let targets = field_mut(operation, "source_read_targets");
+                replace_exact_string(
+                    field_mut(targets, "availability"),
+                    "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle",
+                    "target projection only; the native owner-bound source-read route must revalidate it before issuing a handle",
+                );
+                adapted += 1;
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(
+        adapted, 8,
+        "only the known historical route statements may adapt"
+    );
+}
+
+fn adapt_duplicate_inline_philosophy_oracle(oracle: &mut JsonValue) {
+    let cases = field_mut(oracle, "cases");
+    for (case_name, expected_rows, expected_unique) in [("view", 2, 1), ("view-full", 3, 2)] {
+        let case = field_mut(cases, case_name);
+        assert_eq!(
+            field(case, "node_count").as_u64(),
+            Some(expected_rows as u64)
+        );
+        let raw_ids = {
+            let rows_value = field_mut(case, "nodes");
+            let JsonValue::Array(rows) = rows_value else {
+                panic!("historical philosophy view nodes must be an array");
+            };
+            assert_eq!(
+                rows.len(),
+                expected_rows,
+                "raw {case_name} duplicate fixture"
+            );
+            let raw_ids = rows
+                .iter()
+                .map(|row| field(row, "node_id").as_str().unwrap().to_owned())
+                .collect::<Vec<_>>();
+            let mut unique_ids = Vec::<String>::new();
+            for id in &raw_ids {
+                if !unique_ids.contains(id) {
+                    unique_ids.push(id.clone());
+                }
+            }
+            assert_eq!(unique_ids.len(), expected_unique);
+            let duplicate_id = unique_ids
+                .iter()
+                .find(|id| raw_ids.iter().filter(|raw| *raw == *id).count() == 2)
+                .expect("historical duplicate-inline fixture must have one repeated node id");
+            let duplicate_rows = rows
+                .iter()
+                .filter(|row| field(row, "node_id").as_str() == Some(duplicate_id.as_str()))
+                .collect::<Vec<_>>();
+            assert_eq!(duplicate_rows.len(), 2);
+            assert_eq!(duplicate_rows[0], duplicate_rows[1]);
+            let mut kept_rows = Vec::<String>::new();
+            let mut deduplicated_rows = Vec::new();
+            for row in std::mem::take(rows) {
+                let id = field(&row, "node_id").as_str().unwrap().to_owned();
+                if !kept_rows.contains(&id) {
+                    kept_rows.push(id);
+                    deduplicated_rows.push(row);
+                }
+            }
+            assert_eq!(kept_rows, unique_ids);
+            *rows = deduplicated_rows;
+            raw_ids
+        };
+        let mut unique_ids = Vec::<String>::new();
+        for id in &raw_ids {
+            if !unique_ids.contains(id) {
+                unique_ids.push(id.clone());
+            }
+        }
+        assert_eq!(unique_ids.len(), expected_unique);
+        {
+            let view = field_mut(case, "view");
+            let node_ids_value = field_mut(view, "node_ids");
+            let JsonValue::Array(node_ids) = node_ids_value else {
+                panic!("historical philosophy view node_ids must be an array");
+            };
+            let raw_view_ids = node_ids
+                .iter()
+                .map(|id| id.as_str().unwrap().to_owned())
+                .collect::<Vec<_>>();
+            assert_eq!(raw_view_ids, raw_ids);
+            let mut kept_ids = Vec::<String>::new();
+            let mut deduplicated_ids = Vec::new();
+            for id in std::mem::take(node_ids) {
+                let text = id.as_str().unwrap().to_owned();
+                if !kept_ids.contains(&text) {
+                    kept_ids.push(text);
+                    deduplicated_ids.push(id);
+                }
+            }
+            assert_eq!(kept_ids, unique_ids);
+            *node_ids = deduplicated_ids;
+        }
+        *field_mut(case, "node_count") = JsonValue::Number(tos_foundation::JsonNumber {
+            kind: tos_foundation::JsonNumberKind::Int,
+            lexeme: expected_unique.to_string(),
+        });
+    }
+}
 fn canonical(v: &JsonValue) -> Vec<u8> {
     canonical_bytes_v1(
         v,
@@ -868,13 +1052,14 @@ json.dump(core.ToSAccessCore.knowledge_contracts(SimpleNamespace(tos_root=Path('
         .unwrap();
     let output = child.wait_with_output().unwrap();
     assert!(output.status.success());
-    let oracle = parse_json(
+    let mut oracle = parse_json(
         &output.stdout,
         JsonMode::PublishedStrict,
         JsonLimits::default(),
     )
     .unwrap()
     .into_root();
+    adapt_historical_contract_availability(&mut oracle);
     let mut model = cold
         .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
         .unwrap();
@@ -1547,13 +1732,23 @@ json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let oracle = parse_json(
+    let mut oracle = parse_json(
         &output.stdout,
         JsonMode::PublishedStrict,
         budget().inspect.json,
     )
     .unwrap()
     .into_root();
+    if matches!(
+        variant,
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateInlineV1
+    ) {
+        // This historical fixture intentionally repeats an inline node row.
+        // Prove the source duplicate exists, then compare the native bounded
+        // projection against its first-occurrence, id-deduplicated disclosure.
+        // The authored fixture bytes and every other output field stay intact.
+        adapt_duplicate_inline_philosophy_oracle(&mut oracle);
+    }
     let id = |name| field(&oracle, name).as_str().unwrap().to_owned();
     let path = |direction, from_id, to_id, excluded_edge_ids| PhilosophyReadRequest::Path {
         from_id,

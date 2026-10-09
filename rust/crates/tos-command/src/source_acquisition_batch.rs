@@ -602,6 +602,10 @@ mod rooted_file_tests {
     }
 }
 
+#[cfg(test)]
+#[path = "source_acquisition_batch_tests.rs"]
+mod native_acquisition_tests;
+
 /// Read and hash one file through a held custody-root descriptor.
 ///
 /// Every parent directory remains open during the read. Before returning,

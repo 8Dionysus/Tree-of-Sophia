@@ -103,3 +103,11 @@ The generic `scripts/partitioned_projection_common.py` helper is retained at
 no active source builder imports it. Rust corpus readers and artifact bundling
 remain the current consumers of the partitioned-carrier contract. The archived
 helper is historical evidence, never a maintained builder or reader fallback.
+
+The retired `source_payload_custody.py` adapter (12,694 bytes,
+SHA-256 `0705384b2982be92b6074bfd122491613bb861da8653bf3a8dbc423c7bcdc77d`)
+and `build_source_resource_inventories.py` adapter (6,193 bytes, SHA-256
+`31988286af420be8524230b0bd5618665ecc1de3e17e580cc8a4a126d2412023`) are
+preserved under their exact script stems. They are opaque historical wire
+facades only: the active custody and inventory commands execute the existing
+Rust owners through `tos-native-owner-command acquisition`.

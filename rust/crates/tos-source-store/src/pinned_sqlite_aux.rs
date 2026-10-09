@@ -1005,12 +1005,17 @@ impl AuxState {
     fn reserve_logical(&self, target: u64) -> bool {
         let previous = self.logical_current.load(Ordering::Acquire);
         if target > self.logical_cap {
-            self.io_budget.fail_file_limit("logical_growth_bytes", target, self.logical_cap);
+            self.io_budget
+                .fail_file_limit("logical_growth_bytes", target, self.logical_cap);
             return false;
         }
         if let Some(other) = &self.other {
             if other.reserve_logical(previous, target).is_err() {
-                self.io_budget.fail_file_limit("other_member_target_vs_aggregate_bytes", target, other.logical_cap);
+                self.io_budget.fail_file_limit(
+                    "other_member_target_vs_aggregate_bytes",
+                    target,
+                    other.logical_cap,
+                );
                 return false;
             }
         }
@@ -1037,7 +1042,8 @@ impl AuxState {
         self.logical_current.store(logical, Ordering::Release);
         self.allocated_current.store(allocated, Ordering::Release);
         if logical > self.logical_cap {
-            self.io_budget.fail_file_limit("observed_logical_bytes", logical, self.logical_cap);
+            self.io_budget
+                .fail_file_limit("observed_logical_bytes", logical, self.logical_cap);
             return false;
         }
         if physical_result.is_err() || allocated > self.allocated_cap {
@@ -1240,7 +1246,11 @@ impl AuxContext {
         }
         let (logical_cap, allocated_cap) = class.ceilings(self.limits);
         if logical_cap == 0 || allocated_cap == 0 {
-            self.io_budget.fail_file_limit("disabled_file_class_bytes", 1, logical_cap.min(allocated_cap));
+            self.io_budget.fail_file_limit(
+                "disabled_file_class_bytes",
+                1,
+                logical_cap.min(allocated_cap),
+            );
             return Err(budget_error("SQLite auxiliary file class is disabled"));
         }
         let counted_live = class != AuxClass::Main;
@@ -1248,7 +1258,11 @@ impl AuxContext {
             let current = self.live_aux.fetch_add(1, Ordering::AcqRel);
             if current >= self.limits.max_live_aux {
                 self.live_aux.fetch_sub(1, Ordering::AcqRel);
-                self.io_budget.fail_file_limit("live_aux_count", current.saturating_add(1) as u64, self.limits.max_live_aux as u64);
+                self.io_budget.fail_file_limit(
+                    "live_aux_count",
+                    current.saturating_add(1) as u64,
+                    self.limits.max_live_aux as u64,
+                );
                 return Err(budget_error("SQLite live auxiliary inode limit exceeded"));
             }
         }
@@ -1885,7 +1899,11 @@ impl PinnedSqliteAuxScope {
             || len > main.state.logical_cap
             || len > usize::MAX as u64
         {
-            self.request.io_budget.fail_file_limit("main_extraction_bytes", len, max_bytes.min(main.state.logical_cap));
+            self.request.io_budget.fail_file_limit(
+                "main_extraction_bytes",
+                len,
+                max_bytes.min(main.state.logical_cap),
+            );
             return Err(budget_error("SQLite auxiliary main extraction exceeds cap"));
         }
         let policy = AuxPolicy {

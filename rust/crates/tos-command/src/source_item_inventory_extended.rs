@@ -2055,6 +2055,93 @@ mod tests {
         output.extend_from_slice(&value.to_le_bytes());
     }
 
+    fn stored_zip_archive(entries: &[(&str, &[u8])]) -> Vec<u8> {
+        let mut body = Vec::new();
+        let mut directory = Vec::new();
+        for (name, payload) in entries {
+            let name_bytes = name.as_bytes();
+            let name_len = u16::try_from(name_bytes.len()).unwrap();
+            let size = u32::try_from(payload.len()).unwrap();
+            let crc = crc32fast::hash(payload);
+            let local_offset = u32::try_from(body.len()).unwrap();
+            put_le32(&mut body, 0x0403_4b50);
+            put_le16(&mut body, 20);
+            put_le16(&mut body, 0);
+            put_le16(&mut body, 0);
+            put_le16(&mut body, 0);
+            put_le16(&mut body, 0);
+            put_le32(&mut body, crc);
+            put_le32(&mut body, size);
+            put_le32(&mut body, size);
+            put_le16(&mut body, name_len);
+            put_le16(&mut body, 0);
+            body.extend_from_slice(name_bytes);
+            body.extend_from_slice(payload);
+
+            put_le32(&mut directory, 0x0201_4b50);
+            put_le16(&mut directory, 20);
+            put_le16(&mut directory, 20);
+            put_le16(&mut directory, 0);
+            put_le16(&mut directory, 0);
+            put_le16(&mut directory, 0);
+            put_le16(&mut directory, 0);
+            put_le32(&mut directory, crc);
+            put_le32(&mut directory, size);
+            put_le32(&mut directory, size);
+            put_le16(&mut directory, name_len);
+            put_le16(&mut directory, 0);
+            put_le16(&mut directory, 0);
+            put_le16(&mut directory, 0);
+            put_le16(&mut directory, 0);
+            put_le32(&mut directory, 0);
+            put_le32(&mut directory, local_offset);
+            directory.extend_from_slice(name_bytes);
+        }
+        let directory_offset = u32::try_from(body.len()).unwrap();
+        let directory_size = u32::try_from(directory.len()).unwrap();
+        body.extend_from_slice(&directory);
+        let count = u16::try_from(entries.len()).unwrap();
+        put_le32(&mut body, 0x0605_4b50);
+        put_le16(&mut body, 0);
+        put_le16(&mut body, 0);
+        put_le16(&mut body, count);
+        put_le16(&mut body, count);
+        put_le32(&mut body, directory_size);
+        put_le32(&mut body, directory_offset);
+        put_le16(&mut body, 0);
+        body
+    }
+
+    fn observe_current_file(
+        raw: &[u8],
+        media_type: &str,
+        declared_size: u64,
+        declared_sha256: &str,
+    ) -> Result<Value, String> {
+        let temporary = tempfile::tempdir().map_err(|error| error.to_string())?;
+        let path = temporary.path().join("source.bin");
+        fs::write(&path, raw).map_err(|error| error.to_string())?;
+        let mut file = File::open(&path).map_err(|error| error.to_string())?;
+        let request = json!({
+            "file_id":format!("tos.file.sha256.{declared_sha256}"),
+            "payload_basename":"source.bin",
+            "original_basename":"source.bin",
+            "media_type":media_type,
+            "byte_size":declared_size,
+            "sha256":declared_sha256
+        });
+        let cancelled = AtomicBool::new(false);
+        let mut authorize = || Ok(());
+        super::super::observe(
+            &mut file,
+            &request,
+            Instant::now() + Duration::from_secs(30),
+            &cancelled,
+            &mut authorize,
+        )
+        .map_err(|error| format!("{error:?}"))
+    }
+
     fn stored_zip_member(name: &str, payload: &[u8]) -> Vec<u8> {
         let name = name.as_bytes();
         let crc = crc32fast::hash(payload);
@@ -2108,7 +2195,7 @@ mod tests {
 
     #[test]
     fn legacy_xml_profiles_keep_page_counts_without_source_text() {
-        let scandata = br#"<book><bookData><leafCount>1</leafCount><dpi>300</dpi></bookData><pageData><page leafNum="0"><origWidth>1200</origWidth><origHeight>1800</origHeight></page></pageData></book>"#;
+        let scandata = br#"<book><bookData><leafCount>2</leafCount><dpi>600</dpi></bookData><pageData><page leafNum="0"><origWidth>100</origWidth><origHeight>200</origHeight></page><page leafNum="1"><origWidth>110</origWidth><origHeight>210</origHeight></page></pageData></book>"#;
         let inventory = fixture_inventory(
             "application/xml",
             "book_scandata.xml",
@@ -2116,7 +2203,17 @@ mod tests {
             "plain_utf8_file_v1",
         );
         assert_eq!(inventory["files"][0]["profile"], "scandata_pages_v1");
-        assert_eq!(inventory["files"][0]["summary"]["page_count"], 1);
+        assert_eq!(inventory["files"][0]["summary"]["page_count"], 2);
+        assert_eq!(
+            inventory["files"][0]["resources"][1]["locator"],
+            json!({
+                "page_index":2,
+                "leaf_number":1,
+                "width_pixels":110,
+                "height_pixels":210,
+                "resolution_dpi":600
+            })
+        );
 
         let djvu_xml = br#"<DjVuXML><BODY><OBJECT width="1200" height="1800"><PARAM name="DPI" value="300"/><PARAGRAPH><LINE><WORD>private phrase</WORD></LINE></PARAGRAPH></OBJECT></BODY></DjVuXML>"#;
         let inventory = fixture_inventory(
@@ -2202,6 +2299,149 @@ mod tests {
         let measured = fixture_inventory("text/plain", "plain.txt", payload, "plain_utf8_file_v1");
         assert_eq!(measured["files"][0]["profile"], "plain_utf8_file_v1");
         assert_eq!(measured["files"][0]["utf8_observation"]["crlf_count"], 1);
+    }
+
+    #[test]
+    fn native_item_builder_keeps_tei_and_jp2_structure_text_free() {
+        let tei = br##"<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body>
+            <pb n="1" facs="#f1"/><div n="1"><head>Private heading</head>
+            <p>Private source text.</p><div type="contents"><head>Contents</head></div>
+            </div></body></text></TEI>"##;
+        let tei_inventory = fixture_inventory(
+            "application/tei+xml",
+            "sample.xml",
+            tei,
+            "plain_utf8_file_v1",
+        );
+        let tei_file = &tei_inventory["files"][0];
+        assert_eq!(tei_file["profile"], "tei_structure_v1");
+        assert_eq!(tei_file["summary"]["page_break_count"], 1);
+        assert_eq!(tei_file["summary"]["division_count"], 2);
+        assert_eq!(tei_file["summary"]["max_division_depth"], 2);
+        assert_eq!(
+            tei_file["resources"][2]["locator"]["parent_resource_id"],
+            "tei-div-0001"
+        );
+        let encoded_tei = serde_json::to_string(&tei_inventory).unwrap();
+        assert!(!encoded_tei.contains("Private heading"));
+        assert!(!encoded_tei.contains("Private source text"));
+
+        let archive = stored_zip_archive(&[
+            ("sample_jp2/sample_0000.jp2", b"first-page"),
+            ("sample_jp2/sample_0001.jp2", b"second-page"),
+        ]);
+        let jp2_inventory = fixture_inventory(
+            "application/zip",
+            "sample_jp2.zip",
+            &archive,
+            "plain_utf8_file_v1",
+        );
+        let jp2 = &jp2_inventory["files"][0];
+        assert_eq!(jp2["profile"], "jp2_zip_pages_v1");
+        assert_eq!(jp2["summary"]["page_count"], 2);
+        assert_eq!(jp2["resources"][0]["locator"]["leaf_number"], 0);
+        assert_eq!(jp2["resources"][1]["locator"]["page_index"], 2);
+        assert_eq!(
+            jp2["resources"][1]["sha256"],
+            Digest256::of_bytes(b"second-page").to_hex()
+        );
+    }
+
+    #[test]
+    fn plain_utf8_preserves_exact_bytes_and_records_only_bounded_observations() {
+        let raw = b"\xef\xbb\xbf[remote](https://example.invalid)\r\n<script>no execution</script>\rCafe\xcc\x81\n";
+        let digest = Digest256::of_bytes(raw).to_hex();
+        let inventory = observe_current_file(raw, "text/markdown", raw.len() as u64, &digest)
+            .expect("bounded plain UTF-8 observation");
+        let observation = &inventory["utf8_observation"];
+        assert_eq!(inventory["file_sha256"], digest);
+        assert_eq!(observation["bom_byte_count"], 3);
+        assert_eq!(
+            observation["code_point_count"],
+            std::str::from_utf8(raw).unwrap().chars().count()
+        );
+        assert_eq!(observation["crlf_count"], 1);
+        assert_eq!(observation["lone_cr_count"], 1);
+        assert_eq!(observation["lone_lf_count"], 1);
+        assert_eq!(observation["terminal_newline"], "lf");
+        assert_eq!(observation["normalization_observation"], "nfd");
+        assert_eq!(observation["normalization_performed"], false);
+        assert_eq!(observation["markup_interpretation_performed"], false);
+        assert_eq!(inventory["resources"][0]["locator"]["byte_end"], raw.len());
+        let encoded = serde_json::to_string(&inventory).unwrap();
+        assert!(!encoded.contains("example.invalid"));
+        assert!(!encoded.contains("no execution"));
+    }
+
+    #[test]
+    fn plain_utf8_refuses_encoding_nul_size_and_fixity_drift() {
+        let valid = b"bounded source";
+        let digest = Digest256::of_bytes(valid).to_hex();
+        for (raw, size, sha) in [
+            (&b"\xff"[..], 1, Digest256::of_bytes(b"\xff").to_hex()),
+            (
+                &b"source\0text"[..],
+                11,
+                Digest256::of_bytes(b"source\0text").to_hex(),
+            ),
+            (valid.as_slice(), valid.len() as u64 + 1, digest.clone()),
+            (valid.as_slice(), valid.len() as u64, "0".repeat(64)),
+        ] {
+            assert!(observe_current_file(raw, "text/plain", size, &sha).is_err());
+        }
+        let oversized = vec![b'x'; MAX_PLAIN_UTF8_BYTES + 1];
+        let oversized_digest = Digest256::of_bytes(&oversized).to_hex();
+        assert!(
+            observe_current_file(
+                &oversized,
+                "text/plain",
+                oversized.len() as u64,
+                &oversized_digest,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn epub_profile_preserves_archive_and_spine_order_without_source_text() {
+        let container = br#"<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="EPUB/package.opf"/></rootfiles></container>"#;
+        let package = br#"<package xmlns="http://www.idpf.org/2007/opf"><manifest><item id="p1" href="page.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="p1"/></spine></package>"#;
+        let page = b"<html><body><p>Visible source words.</p></body></html>";
+        let archive = stored_zip_archive(&[
+            ("mimetype", b"application/epub+zip"),
+            ("META-INF/container.xml", container),
+            ("EPUB/package.opf", package),
+            ("EPUB/page.xhtml", page),
+        ]);
+        let digest = Digest256::of_bytes(&archive).to_hex();
+        let inventory = observe_current_file(
+            &archive,
+            "application/epub+zip",
+            archive.len() as u64,
+            &digest,
+        )
+        .expect("bounded EPUB inventory");
+        assert_eq!(inventory["profile"], "epub_resources_v1");
+        assert_eq!(inventory["summary"]["member_count"], 4);
+        assert_eq!(inventory["summary"]["spine_item_count"], 1);
+        let member = inventory["resources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["locator"]["member_path"] == "EPUB/page.xhtml")
+            .unwrap();
+        assert_eq!(member["locator"]["container_order"], 4);
+        assert_eq!(member["locator"]["spine_index"], 1);
+        assert!(member.get("content_fingerprint").is_some());
+        let encoded = serde_json::to_string(&inventory).unwrap();
+        assert!(!encoded.contains("Visible source words"));
+        assert!(
+            inventory["resources"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|row| row.get("text").is_none())
+        );
     }
 
     #[test]

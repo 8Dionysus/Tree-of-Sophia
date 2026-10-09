@@ -196,10 +196,15 @@ fn retained_original_provider_semantics_and_explicit_provenance_difference() {
         }
         for path in ["query_adapter_ref", "query_adapter_sha256"] {
             native["provenance"]["concept_predecessor"]
-                .as_object_mut().unwrap().remove(path);
+                .as_object_mut()
+                .unwrap()
+                .remove(path);
         }
-        assert_eq!(native, case["expected"],
-            "entire retained original result differs for {}:{}", request.language, request.query);
+        assert_eq!(
+            native, case["expected"],
+            "entire retained original result differs for {}:{}",
+            request.language, request.query
+        );
     }
 }
 

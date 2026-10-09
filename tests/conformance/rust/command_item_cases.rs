@@ -2,7 +2,6 @@
 use super::*;
 use serde_json::json;
 use std::os::unix::fs::PermissionsExt;
-use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
@@ -106,66 +105,6 @@ fn fixture_preflight(root: &Path, recovery: &Path, fixture: &Value) {
     );
 }
 
-fn python(
-    repository: &Path,
-    root: &Path,
-    recovery: &Path,
-    script: &str,
-    input: Option<&Value>,
-    deadline: Instant,
-) -> Value {
-    use std::io::{Read, Seek, SeekFrom, Write};
-    let mut stdin = tempfile::tempfile().unwrap();
-    if let Some(input) = input {
-        stdin
-            .write_all(&serde_json::to_vec(input).unwrap())
-            .unwrap();
-    }
-    stdin.seek(SeekFrom::Start(0)).unwrap();
-    let mut stdout = tempfile::tempfile().unwrap();
-    let mut stderr = tempfile::tempfile().unwrap();
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .arg(recovery)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdin(Stdio::from(stdin))
-        .stdout(Stdio::from(stdout.try_clone().unwrap()))
-        .stderr(Stdio::from(stderr.try_clone().unwrap()))
-        .spawn()
-        .unwrap();
-    let step = deadline.min(Instant::now() + Duration::from_secs(60));
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= step
-            || stdout.metadata().unwrap().len() > 1_048_576
-            || stderr.metadata().unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Item fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    stdout.seek(SeekFrom::Start(0)).unwrap();
-    stderr.seek(SeekFrom::Start(0)).unwrap();
-    let mut raw = Vec::new();
-    let mut errors = Vec::new();
-    stdout.read_to_end(&mut raw).unwrap();
-    stderr.read_to_end(&mut errors).unwrap();
-    assert!(
-        status.success(),
-        "Item fixture {}",
-        String::from_utf8_lossy(&errors)
-    );
-    assert!(Instant::now() < step && raw.len() <= 1_048_576 && errors.len() <= 1_048_576);
-    serde_json::from_slice(&raw).unwrap()
-}
 fn cli(
     repository: &Path,
     owner: &Path,
@@ -235,7 +174,10 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
     fs::set_permissions(&recovery, fs::Permissions::from_mode(0o700)).unwrap();
     let captured = super::native_python_fixture(
         "item-base",
-        &[("source-root", isolated.path()), ("recovery-root", &recovery)],
+        &[
+            ("source-root", isolated.path()),
+            ("recovery-root", &recovery),
+        ],
         NATIVE_OWNER_PATHS,
     );
     super::assert_native_python_fixture(&captured, FACTORY, NATIVE_OWNER_PATHS);
@@ -253,8 +195,8 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
     .unwrap();
     let authored = super::command_work_cases::authored_work_files(isolated.path());
     let mut capture_files = authored.clone();
-    for reference in NATIVE_OWNER_PATHS {
-        let reference = *reference;
+    for reference in fixture["implementations"].as_array().unwrap() {
+        let reference = reference.as_str().unwrap();
         assert!(
             capture_files
                 .insert(
@@ -421,14 +363,18 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
     fs::set_permissions(&opaque_recovery, fs::Permissions::from_mode(0o700)).unwrap();
     let opaque_capture = super::native_python_fixture(
         "item-opaque",
-        &[("source-root", &opaque_root), ("recovery-root", &opaque_recovery)],
+        &[
+            ("source-root", &opaque_root),
+            ("recovery-root", &opaque_recovery),
+        ],
         NATIVE_OWNER_PATHS,
     );
     super::assert_native_python_fixture(&opaque_capture, second, NATIVE_OWNER_PATHS);
     let second_fixture = opaque_capture.packets.get("factory").unwrap();
     let owner = opaque_root.join("item-owner.json");
     config = second_fixture["config"].clone();
-    let before_second = fs::read(opaque_root.join(fixture["edition_ref"].as_str().unwrap())).unwrap();
+    let before_second =
+        fs::read(opaque_root.join(fixture["edition_ref"].as_str().unwrap())).unwrap();
     let after_catalog = super::command_work_cases::authored_work_files(&opaque_root);
     let second_revision = super::validation_cut_cases::write_cut_store_on_base(
         &after_catalog,
@@ -460,7 +406,11 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
     );
     assert_eq!(bytes_only["deposit"]["metadata_committed"], false);
     assert!(bytes_only["receipt"].is_null());
-    assert!(!opaque_root.join(config["item_source_path"].as_str().unwrap()).exists());
+    assert!(
+        !opaque_root
+            .join(config["item_source_path"].as_str().unwrap())
+            .exists()
+    );
     assert_eq!(
         fs::read(opaque_root.join(fixture["edition_ref"].as_str().unwrap())).unwrap(),
         before_second
@@ -506,202 +456,5 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
     );
     assert_eq!(fs::read(&target).unwrap(), original);
     assert_eq!(fs::read(&input).unwrap(), original);
-    // Existing maintained interruption controls create a genuine retained
-    // source recipe. The separate native owner reconstructs every buffer and
-    // consumes the current explicit recovery grant for resume/rollback.
-    for decision in ["resume", "rollback", "orphan"] {
-        let branch = ItemFailureFixture::new();
-        let selected_root =
-            IsolatedCreationRoot::create(branch.path(), deadline, &cancelled).unwrap();
-        let recovery = branch.path().join("item-private-recovery");
-        fs::create_dir(&recovery).unwrap();
-        fs::set_permissions(&recovery, fs::Permissions::from_mode(0o700)).unwrap();
-        let captured = super::native_python_fixture(
-            "item-base",
-            &[("source-root", selected_root.path()), ("recovery-root", &recovery)],
-            NATIVE_OWNER_PATHS,
-        );
-        super::assert_native_python_fixture(&captured, FACTORY, NATIVE_OWNER_PATHS);
-        let fixture = captured.packets.get("factory").unwrap();
-        fixture_preflight(selected_root.path(), &recovery, &fixture);
-        let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
-        let mut config = fixture["config"].clone();
-        if decision == "rollback" {
-            config["payload_root"] = json!(selected_root.path().join("ToS/source-witnesses"));
-            fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
-        }
-        let before = fs::read(
-            selected_root
-                .path()
-                .join(fixture["edition_ref"].as_str().unwrap()),
-        )
-        .unwrap();
-        let authored = super::command_work_cases::authored_work_files(selected_root.path());
-        let mut files = authored.clone();
-        for reference in NATIVE_OWNER_PATHS {
-            let reference = *reference;
-            files.insert(
-                reference.into(),
-                fs::read(selected_root.path().join(reference)).unwrap(),
-            );
-        }
-        let (capture, _software, components) =
-            super::command_record_cases::captured_components(&files, deadline, &cancelled);
-        let store = branch.path().join("item-recovery-cut");
-        let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
-        let mut invocation = invocation.clone();
-        invocation["owner_config"] = json!(owner);
-        invocation["corpus_store"] = json!(store);
-        invocation["source_revision"] = json!(selected.0.to_prefixed());
-        invocation["original_source_revision"] = Value::Null;
-        invocation["software_capture"] = json!(capture.capture);
-        invocation["software_restored_root"] = json!(capture.restored);
-        invocation["software_selection"] = json!({"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()});
-        invocation["software_components"] = json!(
-            components
-                .members()
-                .map(|m| m.path.as_str())
-                .collect::<Vec<_>>()
-        );
-        let invocation_path = branch.path().join("native-item-recovery-invocation.json");
-        freeze_invocation(&invocation_path, &invocation);
-        let preview = cli(
-            &repository,
-            &owner,
-            &invocation_path,
-            &fixture["proposal"],
-            true,
-            deadline,
-        );
-        let original_request =
-            prepared_request(&preview, &format!("native-item-{decision}-recovery"));
-        let interrupted = r#"
-import json,sys,subprocess
-from pathlib import Path
-from unittest.mock import patch
-repository,root,recovery=map(Path,sys.argv[1:]);supplied=json.load(sys.stdin)
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_expression_commands as fixture
-import source_item_commands as item
-import source_commands as commands
-owner=root/'item-owner.json'
-if supplied['decision']=='orphan':
-    original=item.transactions._publish_state
-    interruption=OSError('existing synthetic pre-pending interruption')
-    def interrupt(root,state,previous):
-        if state['phase']=='pending':raise interruption
-        return original(root,state,previous)
-    with patch.object(item.transactions,'_publish_state',interrupt):
-        try:commands.run_legacy_oracle_command(owner,supplied['request'])
-        except OSError as error:
-            if error is not interruption:raise
-        else:raise AssertionError('actual maintained orphan interruption absent')
-    observed=item.transactions.inspect_transaction(root,item._transaction_id(supplied['request']))
-    assert observed['status']=='orphan'
-else:
-    result=subprocess.run([sys.executable,'-c',fixture.CRASH_WRITER,str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(owner),'2'],input=json.dumps(supplied['request']),text=True,capture_output=True,timeout=50)
-    if result.returncode!=86:
-        # Diagnose the same authentic failed producer, never manufacture a new
-        # prepared request or substitute an observation into its retained plan.
-        try:
-            actual=item.deposit.observe(json.loads(owner.read_bytes()))
-            expected={'inventory':supplied['request']['inventory'],'limitation':supplied['request']['inventory_limitation']}
-            selected={key:actual[key] for key in ('inventory','limitation')}
-            assert len(json.dumps(selected,ensure_ascii=False).encode())<=262144
-            differences=[];visited=0;truncated=False
-            enums={'media_type','profile','structural_role','resource_kind','limitation'}
-            def summary(value,key):
-                if key in enums and isinstance(value,str):return value[:160]
-                if value is None or isinstance(value,(bool,int)):return value
-                return type(value).__name__
-            def compare(left,right,path='',depth=0):
-                global visited,truncated
-                if visited>=4096 or depth>24 or len(differences)>=32:
-                    truncated=True;return
-                visited+=1
-                if type(left) is type(right) and isinstance(left,dict):
-                    for key in sorted(set(left)|set(right)):
-                        if visited>=4096 or len(differences)>=32:
-                            truncated=True;break
-                        compare(left.get(key),right.get(key),path+'/'+str(key)[:128],depth+1)
-                elif type(left) is type(right) and isinstance(left,list):
-                    for index in range(max(len(left),len(right))):
-                        if visited>=4096 or len(differences)>=32:
-                            truncated=True;break
-                        compare(left[index] if index<len(left) else None,right[index] if index<len(right) else None,path+'/'+str(index),depth+1)
-                elif type(left) is not type(right) or left!=right:
-                    key=path.rsplit('/',1)[-1]
-                    differences.append({'field':path[:512],'prepared':summary(left,key),'observed':summary(right,key)})
-            compare(expected,selected)
-            diagnostic=json.dumps({'item_failed_inventory_diff':differences,'visited':visited,'truncated':truncated},ensure_ascii=False,separators=(',',':'))
-            assert len(diagnostic.encode())<=16384
-            print(diagnostic,file=sys.stderr)
-        except Exception as diagnostic_error:
-            print('item_failed_inventory_diagnostic:'+type(diagnostic_error).__name__,file=sys.stderr)
-    assert result.returncode==86,(result.returncode,result.stdout,result.stderr)
-    observed=item.transactions.read_pending_transaction(root)
-    assert observed is not None
-print(json.dumps({'transaction_id':item._transaction_id(supplied['request'])}))
-"#;
-        let stopped = python(
-            &repository,
-            selected_root.path(),
-            &recovery,
-            interrupted,
-            Some(&json!({"request":original_request,"decision":decision})),
-            deadline,
-        );
-        config["allowed_operations"] = json!(["item.adoption.recover"]);
-        config["authority_ref"] = json!("test-only:current-exact-native-metadata-recovery");
-        fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
-        let recovery_request = json!({"schema_version":"tos_local_item_adoption_command_v1","operation":"item.adoption.recover","decision":if decision=="rollback"{"rollback"}else{"resume"},"transaction_id":stopped["transaction_id"],"expected_configuration":configured_digest(&config)});
-        let result = cli(
-            &repository,
-            &owner,
-            &invocation_path,
-            &recovery_request,
-            true,
-            deadline,
-        );
-        let original_bytes = fs::read(fixture["input"].as_str().unwrap()).unwrap();
-        let target = PathBuf::from(config["payload_root"].as_str().unwrap())
-            .join(
-                Path::new(config["item_source_path"].as_str().unwrap())
-                    .parent()
-                    .unwrap()
-                    .strip_prefix("ToS/source-witnesses")
-                    .unwrap(),
-            )
-            .join("payload")
-            .join(config["payload_basename"].as_str().unwrap());
-        assert_eq!(fs::read(&target).unwrap(), original_bytes);
-        if decision == "rollback" {
-            assert!(result["receipt"].is_null());
-            assert_eq!(result["deposit"]["state"], "rolled-back-retained");
-            assert!(
-                !selected_root
-                    .path()
-                    .join(config["item_source_path"].as_str().unwrap())
-                    .exists()
-            );
-            assert_eq!(
-                fs::read(
-                    selected_root
-                        .path()
-                        .join(fixture["edition_ref"].as_str().unwrap())
-                )
-                .unwrap(),
-                before
-            );
-        } else {
-            assert_eq!(result["deposit"]["metadata_committed"], true);
-            assert!(!result["receipt"].is_null());
-            assert!(
-                selected_root
-                    .path()
-                    .join(config["item_source_path"].as_str().unwrap())
-                    .exists()
-            );
-        }
-    }
+    // Pending publication and adoption resume/rollback are exercised through native owner tests.
 }

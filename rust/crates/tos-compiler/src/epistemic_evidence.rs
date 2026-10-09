@@ -1856,7 +1856,8 @@ mod tests {
         canon["scene_id"] = value!("canon-route");
         canon["posture"] = value!("canon-retained-evidence-open");
         canon["conclusion"]["canon_membership"] = value!(true);
-        canon["selections"] = value!([{ "mode":"corpus", "view_id":"route-graph", "item_ids":["n2"] }]);
+        canon["selections"] =
+            value!([{ "mode":"corpus", "view_id":"route-graph", "item_ids":["n2"] }]);
         canon["anchor_edge_ids"] = value!([]);
         source["scenes"].as_array_mut().unwrap().push(canon);
         write_source(root, &source);

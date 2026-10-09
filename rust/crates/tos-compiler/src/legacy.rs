@@ -356,11 +356,12 @@ pub fn partitioned_projection_closure(
     };
     check()?;
     let bytes = read_bounded(path, ROOT_CAP)?;
-    let root_text = std::str::from_utf8(&bytes)
-        .map_err(|_| Error::Invalid("projection root UTF-8"))?;
+    let root_text =
+        std::str::from_utf8(&bytes).map_err(|_| Error::Invalid("projection root UTF-8"))?;
     crate::prepared_source_binding::root_profile(
         root_text,
-        path.to_str().ok_or(Error::Invalid("projection root path"))?,
+        path.to_str()
+            .ok_or(Error::Invalid("projection root path"))?,
     )?;
     let reader = LegacyPartitionedNavigation {
         path: path.to_owned(),
@@ -385,10 +386,23 @@ pub fn partitioned_projection_closure(
         if *visits > 100_000 {
             return Err(Error::Budget("projection closure members"));
         }
-        let fields = ["kind", "prefix", "path", "sha256", "size_bytes", "decoded_bytes", "decoded_sha256", "count"];
-        if descriptor.as_object().is_none_or(|o| o.len() != fields.len() || fields.iter().any(|f| !o.contains_key(*f)))
+        let fields = [
+            "kind",
+            "prefix",
+            "path",
+            "sha256",
+            "size_bytes",
+            "decoded_bytes",
+            "decoded_sha256",
+            "count",
+        ];
+        if descriptor
+            .as_object()
+            .is_none_or(|o| o.len() != fields.len() || fields.iter().any(|f| !o.contains_key(*f)))
             || prefix.len() > 64
-            || !prefix.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            || !prefix
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
         {
             return Err(Error::Invalid("projection closure descriptor"));
         }
@@ -401,71 +415,127 @@ pub fn partitioned_projection_closure(
         let raw = reader.part_bytes(descriptor, prefix)?;
         if string(descriptor, "kind")? == "index" {
             let index = strict_value(&raw, INDEX_CAP)?;
-            if index.as_object().is_none_or(|o| o.len() != 4 || ["schema_version", "prefix", "count", "children"].iter().any(|k| !o.contains_key(*k)))
-                || string(&index, "schema_version")? != "tos_projection_partition_index_v1"
+            if index.as_object().is_none_or(|o| {
+                o.len() != 4
+                    || ["schema_version", "prefix", "count", "children"]
+                        .iter()
+                        .any(|k| !o.contains_key(*k))
+            }) || string(&index, "schema_version")? != "tos_projection_partition_index_v1"
                 || string(&index, "prefix")? != prefix
                 || number(&index, "count")? != count
                 || prefix.len() >= 64
             {
                 return Err(Error::Invalid("projection closure index"));
             }
-            let children = index["children"].as_object().filter(|v| !v.is_empty())
+            let children = index["children"]
+                .as_object()
+                .filter(|v| !v.is_empty())
                 .ok_or(Error::Invalid("projection closure children"))?;
             let mut total = 0u64;
             for (digit, child) in children {
-                if digit.len() != 1 || !digit.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+                if digit.len() != 1
+                    || !digit
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                {
                     return Err(Error::Invalid("projection closure branch"));
                 }
-                total = total.checked_add(visit(reader, child, &format!("{prefix}{digit}"), spec, paths, visits, check)?)
+                total = total
+                    .checked_add(visit(
+                        reader,
+                        child,
+                        &format!("{prefix}{digit}"),
+                        spec,
+                        paths,
+                        visits,
+                        check,
+                    )?)
                     .ok_or(Error::Budget("projection closure count"))?;
             }
-            if total != count { return Err(Error::Invalid("projection closure index count")); }
+            if total != count {
+                return Err(Error::Invalid("projection closure index count"));
+            }
         } else {
-            let text = std::str::from_utf8(&raw).map_err(|_| Error::Invalid("projection row UTF-8"))?;
+            let text =
+                std::str::from_utf8(&raw).map_err(|_| Error::Invalid("projection row UTF-8"))?;
             let mut previous = None::<String>;
             let mut total = 0u64;
             for line in text.lines() {
                 check()?;
                 let row = strict_value(line.as_bytes(), PART_CAP)?;
-                if row.as_object().is_none_or(|o| o.len() != 2 || !o.contains_key("key") || !o.contains_key("value")) {
+                if row.as_object().is_none_or(|o| {
+                    o.len() != 2 || !o.contains_key("key") || !o.contains_key("value")
+                }) {
                     return Err(Error::Invalid("projection closure row"));
                 }
                 let key = string(&row, "key")?;
-                if key.is_empty() || key.len() > 4096
+                if key.is_empty()
+                    || key.len() > 4096
                     || previous.as_deref().is_some_and(|old| key <= old)
-                    || !Digest256::of_bytes(key.as_bytes()).to_hex().starts_with(prefix)
+                    || !Digest256::of_bytes(key.as_bytes())
+                        .to_hex()
+                        .starts_with(prefix)
                 {
                     return Err(Error::Invalid("projection closure row order or placement"));
                 }
                 let value = &row["value"];
                 let field = &spec["key_field"];
                 if field.as_array().is_some_and(Vec::is_empty) {
-                    if key.len() != 20 || !key.bytes().all(|b| b.is_ascii_digit())
-                        || key.parse::<u64>().ok().is_none_or(|n| n >= spec["root"]["count"].as_u64().unwrap_or(0))
-                    { return Err(Error::Invalid("projection closure sequence position")); }
+                    if key.len() != 20
+                        || !key.bytes().all(|b| b.is_ascii_digit())
+                        || key
+                            .parse::<u64>()
+                            .ok()
+                            .is_none_or(|n| n >= spec["root"]["count"].as_u64().unwrap_or(0))
+                    {
+                        return Err(Error::Invalid("projection closure sequence position"));
+                    }
                 } else if !field.is_null() {
                     let expected = if let Some(fields) = field.as_array() {
-                        let selected = fields.iter().map(|f| {
-                            value.get(f.as_str().unwrap_or("")).and_then(Value::as_str)
-                                .filter(|s| !s.is_empty() && s.len() <= 4096)
-                                .ok_or(Error::Invalid("projection compound row key"))
-                        }).collect::<Result<Vec<_>>>()?;
-                        serde_json::to_string(&selected).map_err(|_| Error::Invalid("projection compound key"))?
+                        let selected = fields
+                            .iter()
+                            .map(|f| {
+                                value
+                                    .get(f.as_str().unwrap_or(""))
+                                    .and_then(Value::as_str)
+                                    .filter(|s| !s.is_empty() && s.len() <= 4096)
+                                    .ok_or(Error::Invalid("projection compound row key"))
+                            })
+                            .collect::<Result<Vec<_>>>()?;
+                        serde_json::to_string(&selected)
+                            .map_err(|_| Error::Invalid("projection compound key"))?
                     } else {
-                        value.get(field.as_str().unwrap_or("")).and_then(Value::as_str)
-                            .ok_or(Error::Invalid("projection row identity"))?.to_owned()
+                        value
+                            .get(field.as_str().unwrap_or(""))
+                            .and_then(Value::as_str)
+                            .ok_or(Error::Invalid("projection row identity"))?
+                            .to_owned()
                     };
-                    if expected != key { return Err(Error::Invalid("projection row key mismatch")); }
+                    if expected != key {
+                        return Err(Error::Invalid("projection row key mismatch"));
+                    }
                 }
                 previous = Some(key.to_owned());
-                total = total.checked_add(1).ok_or(Error::Budget("projection leaf count"))?;
+                total = total
+                    .checked_add(1)
+                    .ok_or(Error::Budget("projection leaf count"))?;
             }
-            if total != count { return Err(Error::Invalid("projection closure leaf count")); }
+            if total != count {
+                return Err(Error::Invalid("projection closure leaf count"));
+            }
         }
         Ok(count)
     }
     for spec in reader.manifest["collections"].as_object().unwrap().values() {
-        visit(&reader, &spec["root"], "", spec, &mut paths, &mut visits, &check)?;
+        visit(
+            &reader,
+            &spec["root"],
+            "",
+            spec,
+            &mut paths,
+            &mut visits,
+            &check,
+        )?;
     }
     check()?;
     if read_bounded(path, ROOT_CAP)? != bytes {

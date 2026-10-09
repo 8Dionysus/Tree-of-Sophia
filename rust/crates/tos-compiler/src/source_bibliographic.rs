@@ -170,12 +170,12 @@ pub fn supplied_bibliographic_identity(
 }
 
 use crate::source_witness_catalog::{
-    self as catalog, SourceCatalogLimits, SourceCatalogReceipt, SourceCatalogValidator,
-    BIBLIOGRAPHIC_FILES, CATALOG_SOURCE, CONTRACT_FILES, SOURCE_FILES,
+    self as catalog, BIBLIOGRAPHIC_FILES, CATALOG_SOURCE, CONTRACT_FILES, SOURCE_FILES,
+    SourceCatalogLimits, SourceCatalogReceipt, SourceCatalogValidator,
 };
 use crate::{Error, Result};
-use rusqlite::{params, OptionalExtension};
-use serde_json::{json, Value};
+use rusqlite::{OptionalExtension, params};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{Digest256, Digest256Hasher};
 const SCHEMA: &str = "ToS/contracts/source-witness-bibliographic-graph.schema.json";
@@ -1865,8 +1865,20 @@ mod descriptor_limit_tests {
         assert_eq!(node["properties"]["source_event"], event);
         assert!(node["properties"].get("inputs").is_none());
         assert!(node["properties"].get("outputs").is_none());
-        assert_eq!(node["properties"]["source_event"]["inputs"].as_array().unwrap().len(), 24);
-        assert_eq!(node["properties"]["source_event"]["outputs"].as_array().unwrap().len(), 24);
+        assert_eq!(
+            node["properties"]["source_event"]["inputs"]
+                .as_array()
+                .unwrap()
+                .len(),
+            24
+        );
+        assert_eq!(
+            node["properties"]["source_event"]["outputs"]
+                .as_array()
+                .unwrap()
+                .len(),
+            24
+        );
         assert!(encode(&node, OUTPUT_CAP).unwrap().len() <= OUTPUT_CAP);
     }
 

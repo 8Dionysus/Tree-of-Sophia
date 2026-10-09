@@ -110,13 +110,7 @@ fn assert_native_compressed_readback(source: &Path, prepared: &Path, node_id: &s
         .arg(prepared.join("binding.json"))
         .arg("--root")
         .arg(source)
-        .args([
-            "knowledge",
-            "search",
-            "Alpha",
-            "--mode",
-            "compressed",
-        ])
+        .args(["knowledge", "search", "Alpha", "--mode", "compressed"])
         .output()
         .expect("native prepared compressed search process");
     assert!(

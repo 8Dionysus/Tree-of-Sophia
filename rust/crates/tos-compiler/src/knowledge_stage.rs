@@ -567,12 +567,17 @@ pub enum KnowledgePayloadLayout {
 }
 impl KnowledgePayloadLayout {
     pub const fn uses_carriers(self) -> bool {
-        matches!(self, Self::CarrierOnceV1 | Self::CarrierOnceV2 | Self::CarrierOnceV3)
+        matches!(
+            self,
+            Self::CarrierOnceV1 | Self::CarrierOnceV2 | Self::CarrierOnceV3
+        )
     }
     pub const fn packed_bytes(self) -> bool {
         matches!(self, Self::CarrierOnceV2 | Self::CarrierOnceV3)
     }
-    pub const fn dictionary_bytes(self) -> bool { matches!(self, Self::CarrierOnceV3) }
+    pub const fn dictionary_bytes(self) -> bool {
+        matches!(self, Self::CarrierOnceV3)
+    }
     /// Format selection follows an already authenticated model ABI. Callers
     /// retain their independent whole-model and component compatibility checks.
     pub fn from_model_abi(abi: &str) -> Self {
@@ -583,14 +588,18 @@ impl KnowledgePayloadLayout {
             tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2 => {
                 Self::CarrierOnceV2
             }
-            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3 => Self::CarrierOnceV3,
+            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3 => {
+                Self::CarrierOnceV3
+            }
             _ => Self::InlineV1,
         }
     }
     pub const fn carrier_model_abi(self) -> Option<&'static str> {
         match self {
             Self::InlineV1 => None,
-            Self::CarrierOnceV3 => Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3),
+            Self::CarrierOnceV3 => {
+                Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3)
+            }
             Self::CarrierOnceV1 => {
                 Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1)
             }
@@ -613,7 +622,11 @@ impl KnowledgePayloadLayout {
         max_bytes: usize,
     ) -> Result<()> {
         if self.dictionary_bytes() && crate::knowledge_byte_codec::is_dictionary_frame(stored) {
-            crate::knowledge_byte_codec::dictionary_frame_metadata(stored,Some(expected_bytes),max_bytes)?;
+            crate::knowledge_byte_codec::dictionary_frame_metadata(
+                stored,
+                Some(expected_bytes),
+                max_bytes,
+            )?;
         } else if self.packed_bytes() {
             crate::knowledge_byte_codec::frame_metadata(stored, Some(expected_bytes), max_bytes)?;
         } else if expected_bytes == 0
@@ -624,41 +637,81 @@ impl KnowledgePayloadLayout {
         }
         Ok(())
     }
-    pub(crate) fn read_dictionary<'s,'b>(
-        self, db: &Connection, state: &'s crate::d1_public_capture::CreationState<'b>,
-        stored: &[u8], max_bytes: usize,
-    ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'s,'b>>> {
-        if self.dictionary_bytes() { crate::knowledge_byte_dictionary::read(db,state,stored,max_bytes) } else { Ok(None) }
+    pub(crate) fn read_dictionary<'s, 'b>(
+        self,
+        db: &Connection,
+        state: &'s crate::d1_public_capture::CreationState<'b>,
+        stored: &[u8],
+        max_bytes: usize,
+    ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'s, 'b>>> {
+        if self.dictionary_bytes() {
+            crate::knowledge_byte_dictionary::read(db, state, stored, max_bytes)
+        } else {
+            Ok(None)
+        }
     }
     pub(crate) fn with_sql_decoded<T>(
-        self, db: &Connection, state: &crate::d1_public_capture::CreationState<'_>,
-        stored: &[u8], expected: Option<usize>, max_bytes: usize,
+        self,
+        db: &Connection,
+        state: &crate::d1_public_capture::CreationState<'_>,
+        stored: &[u8],
+        expected: Option<usize>,
+        max_bytes: usize,
         consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
-        let dictionary=self.read_dictionary(db,state,stored,max_bytes)?;
-        self.with_decoded_dictionary(state,stored,dictionary.as_ref().map(|d|d.verified()).transpose()?,expected,max_bytes,consume)
+        let dictionary = self.read_dictionary(db, state, stored, max_bytes)?;
+        self.with_decoded_dictionary(
+            state,
+            stored,
+            dictionary.as_ref().map(|d| d.verified()).transpose()?,
+            expected,
+            max_bytes,
+            consume,
+        )
     }
     pub(crate) fn with_decoded_dictionary<T>(
-        self, state: &crate::d1_public_capture::CreationState<'_>, stored: &[u8],
-        dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>, expected: Option<usize>, max_bytes: usize,
+        self,
+        state: &crate::d1_public_capture::CreationState<'_>,
+        stored: &[u8],
+        dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>,
+        expected: Option<usize>,
+        max_bytes: usize,
         consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
         if self.dictionary_bytes() && crate::knowledge_byte_codec::is_dictionary_frame(stored) {
-            crate::knowledge_byte_codec::with_dictionary_decoded(state,stored,
-                dictionary.ok_or(Error::Invalid("selected byte dictionary absent"))?,expected,max_bytes,consume)
+            crate::knowledge_byte_codec::with_dictionary_decoded(
+                state,
+                stored,
+                dictionary.ok_or(Error::Invalid("selected byte dictionary absent"))?,
+                expected,
+                max_bytes,
+                consume,
+            )
         } else {
-            if dictionary.is_some() { return Err(Error::Invalid("unexpected byte dictionary")); }
-            self.with_decoded(state,stored,expected,max_bytes,consume)
+            if dictionary.is_some() {
+                return Err(Error::Invalid("unexpected byte dictionary"));
+            }
+            self.with_decoded(state, stored, expected, max_bytes, consume)
         }
     }
     pub(crate) fn with_encoded_dictionary<T>(
-        self, state: &crate::d1_public_capture::CreationState<'_>, dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>,
-        raw: &[u8], max_bytes: usize, consume: impl FnOnce(&[u8]) -> Result<T>,
+        self,
+        state: &crate::d1_public_capture::CreationState<'_>,
+        dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>,
+        raw: &[u8],
+        max_bytes: usize,
+        consume: impl FnOnce(&[u8]) -> Result<T>,
     ) -> Result<T> {
         match dictionary {
-            Some(dictionary) if self.dictionary_bytes() => crate::knowledge_byte_codec::with_dictionary_encoded(state,raw,dictionary,max_bytes,consume),
-            Some(_) => Err(Error::Invalid("dictionary encoder incompatible with model ABI")),
-            None => self.with_encoded(state,raw,max_bytes,consume),
+            Some(dictionary) if self.dictionary_bytes() => {
+                crate::knowledge_byte_codec::with_dictionary_encoded(
+                    state, raw, dictionary, max_bytes, consume,
+                )
+            }
+            Some(_) => Err(Error::Invalid(
+                "dictionary encoder incompatible with model ABI",
+            )),
+            None => self.with_encoded(state, raw, max_bytes, consume),
         }
     }
     pub(crate) fn with_decoded<T>(
@@ -885,8 +938,16 @@ enum StageStorageProfile {
 impl StageStorageProfile {
     fn geometry(self) -> (&'static std::ffi::CStr, i64, i64) {
         match self {
-            Self::Persistent => (c"PRAGMA main.page_size=4096; PRAGMA temp.page_size=4096", 4096, 4096),
-            Self::NativeProjection => (c"PRAGMA main.page_size=16384; PRAGMA temp.page_size=16384", 16384, 16384),
+            Self::Persistent => (
+                c"PRAGMA main.page_size=4096; PRAGMA temp.page_size=4096",
+                4096,
+                4096,
+            ),
+            Self::NativeProjection => (
+                c"PRAGMA main.page_size=16384; PRAGMA temp.page_size=16384",
+                16384,
+                16384,
+            ),
         }
     }
 }
@@ -899,9 +960,15 @@ pub(crate) struct PreparationSchema {
 // One authored table/index definition, two static physical schemas. Indexes
 // follow their table's schema under SQLite's CREATE INDEX rules.
 macro_rules! preparation_statement {
-    (main, table, $sql:literal) => { concat!("CREATE TABLE ", $sql, ";\n") };
-    (temporary, table, $sql:literal) => { concat!("CREATE TEMP TABLE ", $sql, ";\n") };
-    ($placement:ident, index, $sql:literal) => { concat!("CREATE INDEX ", $sql, ";\n") };
+    (main, table, $sql:literal) => {
+        concat!("CREATE TABLE ", $sql, ";\n")
+    };
+    (temporary, table, $sql:literal) => {
+        concat!("CREATE TEMP TABLE ", $sql, ";\n")
+    };
+    ($placement:ident, index, $sql:literal) => {
+        concat!("CREATE INDEX ", $sql, ";\n")
+    };
 }
 pub(crate) use preparation_statement;
 macro_rules! preparation_schema {
@@ -1037,10 +1104,16 @@ impl<'a> KnowledgeStage<'a> {
 
     /// Only the native full producer may opt in, before the first row. Other
     /// factories and existing callers retain their original inline layout.
-    pub(crate) fn enable_carrier_once_layout(&mut self, layout: KnowledgePayloadLayout) -> Result<()> {
+    pub(crate) fn enable_carrier_once_layout(
+        &mut self,
+        layout: KnowledgePayloadLayout,
+    ) -> Result<()> {
         let result = (|| {
             if self.poisoned
-                || !matches!(layout, KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3)
+                || !matches!(
+                    layout,
+                    KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3
+                )
                 || self.exact_receipt()?.binding.owner_profile
                     != "tos-native-projection-snapshot-v1"
                 || self.storage_profile != StageStorageProfile::NativeProjection
@@ -1066,8 +1139,11 @@ impl<'a> KnowledgeStage<'a> {
             self.check(WritePhase::Schema)?;
             if layout.dictionary_bytes() {
                 self.charge_public_work(crate::knowledge_byte_dictionary::DDL.len() as u64)?;
-                self.db().execute_batch(crate::knowledge_byte_dictionary::DDL)?;
-                self.create_preparation_tables(crate::knowledge_byte_dictionary::PREPARATION_SCHEMA)?;
+                self.db()
+                    .execute_batch(crate::knowledge_byte_dictionary::DDL)?;
+                self.create_preparation_tables(
+                    crate::knowledge_byte_dictionary::PREPARATION_SCHEMA,
+                )?;
                 for (_, drop_sql, create_sql) in COMPACT_ORDER_INDEXES {
                     self.charge_public_work((drop_sql.len() + create_sql.len()) as u64)?;
                     self.db().execute_batch(drop_sql)?;
@@ -1082,11 +1158,19 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     fn prepare_byte_dictionary(
-        &mut self, kind: &str, graph: &str, raw: &[u8],
+        &mut self,
+        kind: &str,
+        graph: &str,
+        raw: &[u8],
     ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'a, 'a>>> {
-        if !self.payload_layout.dictionary_bytes() { return Ok(None); }
-        let state = self.owned_creation_state().ok_or(Error::Invalid("dictionary producer owner absent"))?;
-        let (dictionary, rows, bytes) = crate::knowledge_byte_dictionary::prepare(self.db(), state, kind, graph, raw)?;
+        if !self.payload_layout.dictionary_bytes() {
+            return Ok(None);
+        }
+        let state = self
+            .owned_creation_state()
+            .ok_or(Error::Invalid("dictionary producer owner absent"))?;
+        let (dictionary, rows, bytes) =
+            crate::knowledge_byte_dictionary::prepare(self.db(), state, kind, graph, raw)?;
         self.charge_representation(rows, bytes)?;
         Ok(dictionary)
     }
@@ -1097,7 +1181,11 @@ impl<'a> KnowledgeStage<'a> {
     pub fn retain_exact_source_carrier(&mut self, packet: &[u8]) -> Result<ExactSourceCarrierRef> {
         self.retain_exact_source_carrier_for_family("source", packet)
     }
-    pub(crate) fn retain_exact_source_carrier_for_family(&mut self, family: &str, packet: &[u8]) -> Result<ExactSourceCarrierRef> {
+    pub(crate) fn retain_exact_source_carrier_for_family(
+        &mut self,
+        family: &str,
+        packet: &[u8],
+    ) -> Result<ExactSourceCarrierRef> {
         let result = self
             .retain_exact_source_carrier_inner(family, packet)
             .map_err(|error| self.annotate_sqlite_full(WritePhase::Normalized, error));
@@ -1141,7 +1229,8 @@ impl<'a> KnowledgeStage<'a> {
                     return Err(Error::Invalid("source carrier logical length differs"));
                 }
                 layout.with_sql_decoded(
-                    self.db(), state,
+                    self.db(),
+                    state,
                     stored,
                     Some(packet.len()),
                     self.limits.sqlite.max_row_bytes,
@@ -1886,7 +1975,9 @@ impl<'a> KnowledgeStage<'a> {
         let applied: i64 = if let Some(state) = stage.owned_creation_state() {
             stage_integer_owned(stage.db(), c"PRAGMA main.page_size", state)?
         } else {
-            stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0))?
+            stage
+                .db()
+                .query_row("PRAGMA main.page_size", [], |r| r.get(0))?
         };
         if applied != main_page_bytes {
             return Err(Error::Invalid("stage storage profile main page size"));
@@ -1925,7 +2016,9 @@ impl<'a> KnowledgeStage<'a> {
         let applied: i64 = if let Some(state) = stage.owned_creation_state() {
             stage_integer_owned(stage.db(), c"PRAGMA temp.page_size", state)?
         } else {
-            stage.db().query_row("PRAGMA temp.page_size", [], |r| r.get(0))?
+            stage
+                .db()
+                .query_row("PRAGMA temp.page_size", [], |r| r.get(0))?
         };
         if applied != temp_page_bytes {
             return Err(Error::Invalid("stage storage profile TEMP page size"));
@@ -2213,14 +2306,20 @@ impl<'a> KnowledgeStage<'a> {
                 return Err(Error::Invalid("stage write page phase"));
             }
             let (representation_rows, representation_bytes) = self.payload_write_overhead();
-            let max_representation_rows = max_rows.checked_mul(representation_rows)
+            let max_representation_rows = max_rows
+                .checked_mul(representation_rows)
                 .ok_or(Error::Budget("stage representation page rows"))?;
-            let max_representation_bytes = (max_rows as u64).checked_mul(representation_bytes)
+            let max_representation_bytes = (max_rows as u64)
+                .checked_mul(representation_bytes)
                 .ok_or(Error::Budget("stage representation page bytes"))?;
             if max_rows == 0
-                || max_rows.checked_add(max_representation_rows).is_none_or(|n| n > MAX_STAGE_PAGE_ROWS)
+                || max_rows
+                    .checked_add(max_representation_rows)
+                    .is_none_or(|n| n > MAX_STAGE_PAGE_ROWS)
                 || max_bytes == 0
-                || max_bytes.checked_add(max_representation_bytes).is_none_or(|n| n > MAX_STAGE_PAGE_BYTES)
+                || max_bytes
+                    .checked_add(max_representation_bytes)
+                    .is_none_or(|n| n > MAX_STAGE_PAGE_BYTES)
             {
                 return Err(Error::Budget("stage write page bounds"));
             }
@@ -2228,7 +2327,9 @@ impl<'a> KnowledgeStage<'a> {
             if !self.db().is_autocommit() {
                 return Err(Error::Invalid("stage write page nested transaction"));
             }
-            let generation = self.write_page_generation.checked_add(1)
+            let generation = self
+                .write_page_generation
+                .checked_add(1)
                 .ok_or(Error::Budget("stage write page generation"))?;
             self.execute_phase_batch(c"BEGIN IMMEDIATE", phase)?;
             self.write_page_generation = generation;
@@ -2254,7 +2355,13 @@ impl<'a> KnowledgeStage<'a> {
                 Ok(value) => value,
                 Err(error) => {
                     if matches!(&error, Error::Budget(_)) {
-                        eprintln!("Native stage page refused at {}:{} phase={phase:?} layout={:?} charges={:?}: {error}", caller.file(), caller.line(), self.payload_layout, self.write_page);
+                        eprintln!(
+                            "Native stage page refused at {}:{} phase={phase:?} layout={:?} charges={:?}: {error}",
+                            caller.file(),
+                            caller.line(),
+                            self.payload_layout,
+                            self.write_page
+                        );
                     }
                     let error = self.annotate_sqlite_full(phase, error);
                     // SQLite may already have aborted this transaction. Cleanup
@@ -2337,16 +2444,24 @@ impl<'a> KnowledgeStage<'a> {
             .is_some_and(|text| text.contains("stage_sqlite_full"))
         {
             for (schema, observed_pages, observed_size, byte_limit) in [
-                ("main", page_count, page_size, self.limits.sqlite.max_output_bytes),
-                ("temp", temp_page_count, temp_page_size, self.limits.max_temp_bytes),
+                (
+                    "main",
+                    page_count,
+                    page_size,
+                    self.limits.sqlite.max_output_bytes,
+                ),
+                (
+                    "temp",
+                    temp_page_count,
+                    temp_page_size,
+                    self.limits.max_temp_bytes,
+                ),
             ] {
                 if let Some(bytes) = observed_pages
                     .zip(observed_size)
                     .and_then(|(n, size)| n.checked_mul(size))
                 {
-                    if bytes <= byte_limit
-                        && self.charge_public_work(bytes).is_ok()
-                    {
+                    if bytes <= byte_limit && self.charge_public_work(bytes).is_ok() {
                         let state = self.owned_creation_state();
                         let hold = state.map(|state| state.hold(4096)).transpose();
                         if let Ok(_hold) = hold {
@@ -2368,7 +2483,9 @@ impl<'a> KnowledgeStage<'a> {
                                     };
                                     let name = row.get_ref(0)?.as_str()?;
                                     if name.len() > 128
-                                        || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                                        || !name
+                                            .bytes()
+                                            .all(|b| b.is_ascii_alphanumeric() || b == b'_')
                                     {
                                         break;
                                     }
@@ -2390,7 +2507,7 @@ impl<'a> KnowledgeStage<'a> {
                         }
                     }
                 }
-        }
+            }
         }
         let mut file_bytes = None;
         let mut fs_total_bytes = None;
@@ -2590,7 +2707,12 @@ impl<'a> KnowledgeStage<'a> {
     fn charge_representation(&mut self, rows: u64, bytes: u64) -> Result<()> {
         self.charge_materialized_kind(rows, bytes, true)
     }
-    fn charge_materialized_kind(&mut self, rows: u64, bytes: u64, representation: bool) -> Result<()> {
+    fn charge_materialized_kind(
+        &mut self,
+        rows: u64,
+        bytes: u64,
+        representation: bool,
+    ) -> Result<()> {
         let result = (|| {
             self.total_rows = self
                 .total_rows
@@ -2608,12 +2730,17 @@ impl<'a> KnowledgeStage<'a> {
             self.charge_public_work(bytes)?;
             if representation {
                 if let Some(page) = self.write_page.as_mut() {
-                    page.representation_rows = page.representation_rows.checked_add(rows)
+                    page.representation_rows = page
+                        .representation_rows
+                        .checked_add(rows)
                         .ok_or(Error::Budget("stage representation page rows"))?;
-                    page.representation_bytes = page.representation_bytes.checked_add(bytes)
+                    page.representation_bytes = page
+                        .representation_bytes
+                        .checked_add(bytes)
                         .ok_or(Error::Budget("stage representation page bytes"))?;
                     if page.representation_rows > page.max_representation_rows
-                        || page.representation_bytes > page.max_representation_bytes {
+                        || page.representation_bytes > page.max_representation_bytes
+                    {
                         return Err(Error::Budget("stage representation page rows/bytes"));
                     }
                 }
@@ -2686,11 +2813,17 @@ impl<'a> KnowledgeStage<'a> {
     fn payload_write_overhead(&self) -> (usize, u64) {
         let framing = if self.payload_layout.packed_bytes() {
             crate::knowledge_byte_codec::HEADER as u64
-        } else { 0 };
+        } else {
+            0
+        };
         if self.payload_layout.dictionary_bytes() {
-            (crate::knowledge_byte_dictionary::MAX_WRITE_ROWS,
-             framing + crate::knowledge_byte_dictionary::MAX_WRITE_BYTES as u64)
-        } else { (0, framing) }
+            (
+                crate::knowledge_byte_dictionary::MAX_WRITE_ROWS,
+                framing + crate::knowledge_byte_dictionary::MAX_WRITE_BYTES as u64,
+            )
+        } else {
+            (0, framing)
+        }
     }
     /// Data-row allowance after reserving format-owned physical writes. The
     /// combined rows/bytes never exceed the unchanged private Stage ceiling.
@@ -2851,7 +2984,8 @@ impl<'a> KnowledgeStage<'a> {
                 limits,
                 cap,
                 |stored, source_digest| {
-                    let reference = self.retain_exact_source_carrier_for_family(row.source_graph, source)?;
+                    let reference =
+                        self.retain_exact_source_carrier_for_family(row.source_graph, source)?;
                     if reference.packet_sha256() != &source_digest {
                         return Err(Error::Invalid("carrier source reference differs"));
                     }
@@ -3128,8 +3262,13 @@ impl<'a> KnowledgeStage<'a> {
                                         |value, source_digest| {
                                             // No write has occurred between this
                                             // owned SQL read and authentication.
-                                            state.charge_work(std::mem::size_of::<SourceCarrierReadReceipt>())?;
-                                            let source_receipt = (self.write_page.is_some() && !self.db().is_autocommit()).then(|| SourceCarrierReadReceipt {
+                                            state.charge_work(std::mem::size_of::<
+                                                SourceCarrierReadReceipt,
+                                            >(
+                                            ))?;
+                                            let source_receipt = (self.write_page.is_some()
+                                                && !self.db().is_autocommit())
+                                            .then(|| SourceCarrierReadReceipt {
                                                 stage_inode: self.inode,
                                                 sql_changes: self.db().total_changes(),
                                                 page_generation: self.write_page_generation,
@@ -3610,10 +3749,16 @@ impl<'a> KnowledgeStage<'a> {
         previous: Option<Digest256>,
     ) -> Result<()> {
         let result = (|| {
-            let state = self.owned_creation_state().ok_or(Error::Invalid("carrier update owner absent"))?;
-            let limits = crate::knowledge_normalization::SourceRow::json_limits(self.limits.sqlite.max_row_bytes)?;
+            let state = self
+                .owned_creation_state()
+                .ok_or(Error::Invalid("carrier update owner absent"))?;
+            let limits = crate::knowledge_normalization::SourceRow::json_limits(
+                self.limits.sqlite.max_row_bytes,
+            )?;
             state.with_serde_owned_with_limits(logical, limits, |value| {
-                self.replace_normalized_value_with_exact_source_if_current(relation, id, value, logical, source, previous, None)
+                self.replace_normalized_value_with_exact_source_if_current(
+                    relation, id, value, logical, source, previous, None,
+                )
             })
         })();
         self.poisoned |= result.is_err();
@@ -3624,14 +3769,25 @@ impl<'a> KnowledgeStage<'a> {
     /// verification and SQL CAS. A caller-supplied tree is not trusted merely
     /// because it was decoded earlier: the codec proves its emitted bytes.
     pub(crate) fn replace_finalized_value_if_current(
-        &mut self, relation: bool, id: &str, value: &serde_json::Value,
-        logical: &[u8], source: Option<&[u8]>, previous: Digest256,
+        &mut self,
+        relation: bool,
+        id: &str,
+        value: &serde_json::Value,
+        logical: &[u8],
+        source: Option<&[u8]>,
+        previous: Digest256,
         source_receipt: Option<SourceCarrierReadReceipt>,
     ) -> Result<()> {
         if self.payload_layout.uses_carriers() {
             if let Some(source) = source {
                 return self.replace_normalized_value_with_exact_source_if_current(
-                    relation, id, value, logical, source, Some(previous), source_receipt,
+                    relation,
+                    id,
+                    value,
+                    logical,
+                    source,
+                    Some(previous),
+                    source_receipt,
                 );
             }
         }
@@ -3639,8 +3795,13 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     fn replace_normalized_value_with_exact_source_if_current(
-        &mut self, relation: bool, id: &str, value: &serde_json::Value,
-        logical: &[u8], source: &[u8], previous: Option<Digest256>,
+        &mut self,
+        relation: bool,
+        id: &str,
+        value: &serde_json::Value,
+        logical: &[u8],
+        source: &[u8],
+        previous: Option<Digest256>,
         source_receipt: Option<SourceCarrierReadReceipt>,
     ) -> Result<()> {
         let result = (|| {
@@ -3655,37 +3816,66 @@ impl<'a> KnowledgeStage<'a> {
                 .map_err(|_| Error::Budget("carrier update row conversion"))?;
             let limits = crate::knowledge_normalization::SourceRow::json_limits(cap)?;
             self.charge_preparation_work(logical.len() as u64)?;
-                let actual=value.get("id").and_then(serde_json::Value::as_str)
-                    .ok_or(Error::Invalid("carrier update logical ID absent"))?;
-                state.charge_work(actual.len())?;
-                if actual!=id {return Err(Error::Invalid("carrier update logical ID differs"));}
-                state.charge_work(logical.len())?;
-                let digest=Digest256::of_bytes(logical);
-                crate::knowledge_payload_codec::with_factored_value_payload(state,value,logical,source,limits,limits,cap,
-                    |stored,source_digest| {
-                        if let Some(receipt) = source_receipt {
-                            state.charge_work(std::mem::size_of::<SourceCarrierReadReceipt>())?;
-                            if receipt.stage_inode != self.inode
-                                || self.write_page.is_none()
-                                || self.db().is_autocommit()
-                                || receipt.page_generation != self.write_page_generation
-                                || receipt.sql_changes != self.db().total_changes()
-                                || receipt.relation != relation
-                                || Some(receipt.previous) != previous
-                                || receipt.source_len != source.len()
-                                || receipt.source_digest != source_digest
-                            {
-                                return Err(Error::Invalid("carrier read receipt changed before update"));
-                            }
-                        } else {
-                            let reference=self.retain_exact_source_carrier(source)?;
-                            if reference.packet_sha256()!=&source_digest {return Err(Error::Invalid("carrier update source differs"));}
+            let actual = value
+                .get("id")
+                .and_then(serde_json::Value::as_str)
+                .ok_or(Error::Invalid("carrier update logical ID absent"))?;
+            state.charge_work(actual.len())?;
+            if actual != id {
+                return Err(Error::Invalid("carrier update logical ID differs"));
+            }
+            state.charge_work(logical.len())?;
+            let digest = Digest256::of_bytes(logical);
+            crate::knowledge_payload_codec::with_factored_value_payload(
+                state,
+                value,
+                logical,
+                source,
+                limits,
+                limits,
+                cap,
+                |stored, source_digest| {
+                    if let Some(receipt) = source_receipt {
+                        state.charge_work(std::mem::size_of::<SourceCarrierReadReceipt>())?;
+                        if receipt.stage_inode != self.inode
+                            || self.write_page.is_none()
+                            || self.db().is_autocommit()
+                            || receipt.page_generation != self.write_page_generation
+                            || receipt.sql_changes != self.db().total_changes()
+                            || receipt.relation != relation
+                            || Some(receipt.previous) != previous
+                            || receipt.source_len != source.len()
+                            || receipt.source_digest != source_digest
+                        {
+                            return Err(Error::Invalid(
+                                "carrier read receipt changed before update",
+                            ));
                         }
-                        self.charge_materialized(1,stored.len() as u64)?;
-                        self.charge_representation(0, if self.payload_layout.packed_bytes() { crate::knowledge_byte_codec::HEADER as u64 } else { 0 })?;
-                        let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
-                        let dictionary = self.prepare_byte_dictionary(if relation {"relation"} else {"node"}, family, stored)?;
-                        self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, stored, cap, |physical| {
+                    } else {
+                        let reference = self.retain_exact_source_carrier(source)?;
+                        if reference.packet_sha256() != &source_digest {
+                            return Err(Error::Invalid("carrier update source differs"));
+                        }
+                    }
+                    self.charge_materialized(1, stored.len() as u64)?;
+                    self.charge_representation(
+                        0,
+                        if self.payload_layout.packed_bytes() {
+                            crate::knowledge_byte_codec::HEADER as u64
+                        } else {
+                            0
+                        },
+                    )?;
+                    let family = value
+                        .get("source_graph")
+                        .and_then(serde_json::Value::as_str)
+                        .unwrap_or("updated");
+                    let dictionary = self.prepare_byte_dictionary(
+                        if relation { "relation" } else { "node" },
+                        family,
+                        stored,
+                    )?;
+                    self.payload_layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, stored, cap, |physical| {
                         self.with_connection(WritePhase::Normalized,|db| {
                             // Existing codec1 must retain the exact raw byte key.
                             // Inline rows may be factored from authentic supplied raw
@@ -3702,7 +3892,8 @@ impl<'a> KnowledgeStage<'a> {
                             Ok(())
                         })
                         })
-                    })
+                },
+            )
         })();
         self.poisoned |= result.is_err();
         result
@@ -3831,7 +4022,8 @@ impl<'a> KnowledgeStage<'a> {
                 limits,
                 cap,
                 |stored, source_digest| {
-                    let reference = self.retain_exact_source_carrier_for_family(row.source_graph, source)?;
+                    let reference =
+                        self.retain_exact_source_carrier_for_family(row.source_graph, source)?;
                     if reference.packet_sha256() != &source_digest {
                         return Err(Error::Invalid("carrier source reference differs"));
                     }
@@ -3910,7 +4102,8 @@ impl<'a> KnowledgeStage<'a> {
             if layout.packed_bytes() {
                 self.charge_representation(0, crate::knowledge_byte_codec::HEADER as u64)?;
             }
-            let dictionary = self.prepare_byte_dictionary("relation", row.source_graph, row.payload)?;
+            let dictionary =
+                self.prepare_byte_dictionary("relation", row.source_graph, row.payload)?;
             layout.with_encoded_dictionary(state, dictionary.as_ref().map(|d|d.verified()).transpose()?, row.payload, self.limits.sqlite.max_row_bytes, |physical| {
             if let Some((_, _, source_digest)) = logical {
                 stage_insert_owned(self.db(), c"INSERT INTO knowledge_relations (id,source_graph,native_id,from_id,to_id,predicate_id,relation_type_id,source_order,payload_len,payload_sha256,payload,payload_codec,source_packet_sha256) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,1,?12)",
@@ -4228,7 +4421,9 @@ impl<'a> KnowledgeStage<'a> {
             let result = consume(self, row.as_ref());
             drop(row);
             result.and_then(|value| {
-                if let Some(state) = self.owned_creation_state() { state.active()?; }
+                if let Some(state) = self.owned_creation_state() {
+                    state.active()?;
+                }
                 Ok(value)
             })
         })();
@@ -4247,12 +4442,20 @@ impl<'a> KnowledgeStage<'a> {
             valid_id(id)?;
             Ok(ScopedRawRow {
                 owned: Some(self.scoped_input_page_selected(
-                    source_graph, collection, None, 1, Some(id), state,
+                    source_graph,
+                    collection,
+                    None,
+                    1,
+                    Some(id),
+                    state,
                 )?),
                 legacy: None,
             })
         } else {
-            Ok(ScopedRawRow { owned: None, legacy: self.raw_by_id(source_graph, collection, id)? })
+            Ok(ScopedRawRow {
+                owned: None,
+                legacy: self.raw_by_id(source_graph, collection, id)?,
+            })
         }
     }
 
@@ -5280,18 +5483,52 @@ pub(crate) const SELECTED_EXPLICIT_INDEXES: &[(&str, &str)] = &[
 // information to these V3 rowid indexes; exact identity remains in the table
 // and its primary-key index. Older selected layouts retain their original SQL.
 const COMPACT_ORDER_INDEXES: &[(&str, &str, &str)] = &[
-    ("knowledge_nodes_source_order", "DROP INDEX knowledge_nodes_source_order", "CREATE INDEX knowledge_nodes_source_order ON knowledge_nodes(source_graph,source_order)"),
-    ("knowledge_nodes_entity", "DROP INDEX knowledge_nodes_entity", "CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order)"),
-    ("knowledge_nodes_native", "DROP INDEX knowledge_nodes_native", "CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order)"),
-    ("knowledge_relations_native", "DROP INDEX knowledge_relations_native", "CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order)"),
-    ("knowledge_relations_source_order", "DROP INDEX knowledge_relations_source_order", "CREATE INDEX knowledge_relations_source_order ON knowledge_relations(source_graph,source_order)"),
-    ("knowledge_relations_from", "DROP INDEX knowledge_relations_from", "CREATE INDEX knowledge_relations_from ON knowledge_relations(from_id,source_order)"),
-    ("knowledge_relations_to", "DROP INDEX knowledge_relations_to", "CREATE INDEX knowledge_relations_to ON knowledge_relations(to_id,source_order)"),
- ];
-pub(crate) fn selected_index_sql<'s>(layout: KnowledgePayloadLayout, name: &str, legacy: &'s str) -> &'s str {
+    (
+        "knowledge_nodes_source_order",
+        "DROP INDEX knowledge_nodes_source_order",
+        "CREATE INDEX knowledge_nodes_source_order ON knowledge_nodes(source_graph,source_order)",
+    ),
+    (
+        "knowledge_nodes_entity",
+        "DROP INDEX knowledge_nodes_entity",
+        "CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order)",
+    ),
+    (
+        "knowledge_nodes_native",
+        "DROP INDEX knowledge_nodes_native",
+        "CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order)",
+    ),
+    (
+        "knowledge_relations_native",
+        "DROP INDEX knowledge_relations_native",
+        "CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order)",
+    ),
+    (
+        "knowledge_relations_source_order",
+        "DROP INDEX knowledge_relations_source_order",
+        "CREATE INDEX knowledge_relations_source_order ON knowledge_relations(source_graph,source_order)",
+    ),
+    (
+        "knowledge_relations_from",
+        "DROP INDEX knowledge_relations_from",
+        "CREATE INDEX knowledge_relations_from ON knowledge_relations(from_id,source_order)",
+    ),
+    (
+        "knowledge_relations_to",
+        "DROP INDEX knowledge_relations_to",
+        "CREATE INDEX knowledge_relations_to ON knowledge_relations(to_id,source_order)",
+    ),
+];
+pub(crate) fn selected_index_sql<'s>(
+    layout: KnowledgePayloadLayout,
+    name: &str,
+    legacy: &'s str,
+) -> &'s str {
     if layout.dictionary_bytes() {
         for (compact_name, _, sql) in COMPACT_ORDER_INDEXES {
-            if name == *compact_name { return sql; }
+            if name == *compact_name {
+                return sql;
+            }
         }
     }
     legacy
@@ -5453,7 +5690,10 @@ fn selected_table_closure_with_layout_and_state(
         };
         if !(SELECTED_EXPLICIT_INDEXES
             .iter()
-            .any(|(expected_name, expected_sql)| name == *expected_name && sql == selected_index_sql(layout, expected_name, expected_sql))
+            .any(|(expected_name, expected_sql)| {
+                name == *expected_name
+                    && sql == selected_index_sql(layout, expected_name, expected_sql)
+            })
             || corpus_original
                 && crate::knowledge_corpus_original::INDEXES
                     .iter()
@@ -6719,7 +6959,9 @@ macro_rules! stage_schema_literal {
             r#"TABLE raw_records(
  source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,
  payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,
- PRIMARY KEY(source_graph,collection,id))"#, $raw_storage, ";\n",
+ PRIMARY KEY(source_graph,collection,id))"#,
+            $raw_storage,
+            ";\n",
             normalized_schema_literal!("", " WITHOUT ROWID")
         )
     };
@@ -6857,33 +7099,60 @@ mod tests {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args(["--exact", "knowledge_stage::tests::native_dictionary_stage_roundtrips_exact_source_and_normalized_bytes", "--nocapture"])
                 .env(CHILD, "1").output().unwrap();
-            assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+            assert!(
+                output.status.success(),
+                "{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
             return;
         }
         use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
         let deadline = Instant::now() + std::time::Duration::from_secs(60);
         let cancelled = Arc::new(AtomicBool::new(false));
-        let remaining = |bytes: usize| (32 * 1024 * 1024usize).checked_sub(bytes)
-            .ok_or(Error::Budget("dictionary Stage test retained bytes"));
+        let remaining = |bytes: usize| {
+            (32 * 1024 * 1024usize)
+                .checked_sub(bytes)
+                .ok_or(Error::Budget("dictionary Stage test retained bytes"))
+        };
         let heap = sqlite_budget::DedicatedSessionSqliteHeap::establish(
-            8 * 1024 * 1024, &remaining, deadline, &cancelled,
-        ).unwrap();
+            8 * 1024 * 1024,
+            &remaining,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
         let work = Arc::new(AtomicU64::new(0));
         let vm = Arc::new(AtomicU64::new(0));
         let budget = RuntimeKnowledgeOwnedBudget {
-            remaining_after_retained: &remaining, original_work: &work,
-            original_work_limit: 256 * 1024 * 1024, original_sql_vm: &vm,
-            original_sql_vm_limit: 10_000_000, original_sqlite_heap: &heap,
-            remaining_json_visits: 1_000_000, owner_deadline: deadline,
-            operation_deadline: deadline, cancelled: &cancelled,
+            remaining_after_retained: &remaining,
+            original_work: &work,
+            original_work_limit: 256 * 1024 * 1024,
+            original_sql_vm: &vm,
+            original_sql_vm_limit: 10_000_000,
+            original_sqlite_heap: &heap,
+            remaining_json_visits: 1_000_000,
+            owner_deadline: deadline,
+            operation_deadline: deadline,
+            cancelled: &cancelled,
         };
-        let state = crate::d1_public_capture::CreationState::from_runtime_owned_budget(&budget).unwrap();
-        let owner = Owner { checks: AtomicUsize::new(0) };
-        let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
+        let state =
+            crate::d1_public_capture::CreationState::from_runtime_owned_budget(&budget).unwrap();
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
         // Both dictionary families seal on the first row. Exact source spelling
         // intentionally differs from the serialized normalized representation.
-        let source = format!("{{ \"text\" : \"{}\", \"number\" : 1.2300, \"claim_ref\" : \"claim.test\" }}\n", "source words ".repeat(500)).into_bytes();
+        let source = format!(
+            "{{ \"text\" : \"{}\", \"number\" : 1.2300, \"claim_ref\" : \"claim.test\" }}\n",
+            "source words ".repeat(500)
+        )
+        .into_bytes();
         let source_value: serde_json::Value = serde_json::from_slice(&source).unwrap();
         {
             let logical = serde_json::json!({"id": "codec.exact", "attributes": {"text": source_value["text"]},
@@ -6891,23 +7160,52 @@ mod tests {
             let raw = serde_json::to_vec(&logical).unwrap();
             let mut mismatched = logical.clone();
             mismatched["id"] = serde_json::json!("codec.other");
-            let json_limits = crate::knowledge_normalization::SourceRow::json_limits(32768).unwrap();
+            let json_limits =
+                crate::knowledge_normalization::SourceRow::json_limits(32768).unwrap();
             let mut delivered = false;
-            assert!(crate::knowledge_payload_codec::with_factored_value_payload(
-                &state, &mismatched, &raw, &source, json_limits, json_limits, 32768,
-                |_, _| { delivered = true; Ok(()) },
-            ).is_err());
-            assert!(!delivered, "mismatched borrowed tree must not reach consumer");
+            assert!(
+                crate::knowledge_payload_codec::with_factored_value_payload(
+                    &state,
+                    &mismatched,
+                    &raw,
+                    &source,
+                    json_limits,
+                    json_limits,
+                    32768,
+                    |_, _| {
+                        delivered = true;
+                        Ok(())
+                    },
+                )
+                .is_err()
+            );
+            assert!(
+                !delivered,
+                "mismatched borrowed tree must not reach consumer"
+            );
             crate::knowledge_payload_codec::with_factored_value_payload(
-                &state, &logical, &raw, &source, json_limits, json_limits, 32768,
+                &state,
+                &logical,
+                &raw,
+                &source,
+                json_limits,
+                json_limits,
+                32768,
                 |stored, _| {
                     let physical: serde_json::Value = serde_json::from_slice(stored).unwrap();
                     assert!(physical["spine"]["attributes"]["text"].is_null());
                     assert!(physical["spine"]["source_record"]["payload"].is_null());
                     assert_eq!(logical["attributes"]["text"], source_value["text"]);
                     crate::knowledge_payload_codec::with_hydrated_value_payload(
-                        &state, stored, &source, json_limits, json_limits, 32768,
-                        raw.len(), Digest256::of_bytes(&raw), |value, source_digest| {
+                        &state,
+                        stored,
+                        &source,
+                        json_limits,
+                        json_limits,
+                        32768,
+                        raw.len(),
+                        Digest256::of_bytes(&raw),
+                        |value, source_digest| {
                             assert_eq!(source_digest, Digest256::of_bytes(&source));
                             assert_eq!(serde_json::to_vec(&value).unwrap(), raw);
                             assert_eq!(value["attributes"]["text"], source_value["text"]);
@@ -6916,18 +7214,33 @@ mod tests {
                         },
                     )?;
                     let mut delivered = false;
-                    assert!(crate::knowledge_payload_codec::with_hydrated_value_payload(
-                        &state, stored, &source, json_limits, json_limits, 32768,
-                        raw.len(), Digest256::of_bytes(b"wrong logical digest"), |_, _| {
-                            delivered = true; Ok(())
-                        },
-                    ).is_err());
+                    assert!(
+                        crate::knowledge_payload_codec::with_hydrated_value_payload(
+                            &state,
+                            stored,
+                            &source,
+                            json_limits,
+                            json_limits,
+                            32768,
+                            raw.len(),
+                            Digest256::of_bytes(b"wrong logical digest"),
+                            |_, _| {
+                                delivered = true;
+                                Ok(())
+                            },
+                        )
+                        .is_err()
+                    );
                     assert!(!delivered);
                     Ok(())
                 },
-            ).unwrap();
+            )
+            .unwrap();
         }
-        for layout in [KnowledgePayloadLayout::CarrierOnceV2, KnowledgePayloadLayout::CarrierOnceV3] {
+        for layout in [
+            KnowledgePayloadLayout::CarrierOnceV2,
+            KnowledgePayloadLayout::CarrierOnceV3,
+        ] {
             let candidate = stage_path("dictionary-roundtrip");
             let mut receipt = exact_receipt(RAW_ROOT);
             receipt.binding.owner_profile = "tos-native-projection-snapshot-v1".into();
@@ -6942,36 +7255,78 @@ mod tests {
             selected.sqlite.max_work_bytes = budget.original_work_limit;
             selected.sqlite.max_sql_vm_steps = budget.original_sql_vm_limit;
             let mut stage = KnowledgeStage::create_captured_native_snapshot_owned(
-                &candidate, selected, receipt, &owner, &quota,
-                Arc::clone(&vm), Arc::clone(&work), Arc::clone(&cancelled),
-                budget.original_work_limit, deadline, &remaining, &heap,
-                budget.original_sql_vm_limit, &state,
-            ).unwrap();
+                &candidate,
+                selected,
+                receipt,
+                &owner,
+                &quota,
+                Arc::clone(&vm),
+                Arc::clone(&work),
+                Arc::clone(&cancelled),
+                budget.original_work_limit,
+                deadline,
+                &remaining,
+                &heap,
+                budget.original_sql_vm_limit,
+                &state,
+            )
+            .unwrap();
             stage.enable_carrier_once_layout(layout).unwrap();
-            stage.ingest_input(InputRow {
-                source_graph: "fixture.graph", collection: "fixture/raw", id: "raw.1", payload: b"raw",
-            }).unwrap();
+            stage
+                .ingest_input(InputRow {
+                    source_graph: "fixture.graph",
+                    collection: "fixture/raw",
+                    id: "raw.1",
+                    payload: b"raw",
+                })
+                .unwrap();
             // The finalizer's exact raw witness is temporary. Repeated reads
             // must not reserve every previously dropped source row forever.
             let baseline = state.remaining(0).unwrap();
             for _ in 0..32 {
-                let raw = stage.scoped_raw_by_id("fixture.graph", "fixture/raw", "raw.1").unwrap();
+                let raw = stage
+                    .scoped_raw_by_id("fixture.graph", "fixture/raw", "raw.1")
+                    .unwrap();
                 assert_eq!(raw.as_ref().unwrap().payload, b"raw");
                 assert!(state.remaining(0).unwrap() < baseline);
                 drop(raw);
                 assert_eq!(state.remaining(0).unwrap(), baseline);
             }
-            assert!(stage.scoped_raw_by_id("fixture.graph", "fixture/raw", "absent").unwrap().as_ref().is_none());
+            assert!(
+                stage
+                    .scoped_raw_by_id("fixture.graph", "fixture/raw", "absent")
+                    .unwrap()
+                    .as_ref()
+                    .is_none()
+            );
             assert_eq!(state.remaining(0).unwrap(), baseline);
-            stage.with_raw_by_id_owned("fixture.graph", "fixture/raw", "raw.1", |_, raw| {
-                assert_eq!(raw.unwrap().payload, b"raw");
-                Ok(())
-            }).unwrap();
+            stage
+                .with_raw_by_id_owned("fixture.graph", "fixture/raw", "raw.1", |_, raw| {
+                    assert_eq!(raw.unwrap().payload, b"raw");
+                    Ok(())
+                })
+                .unwrap();
             assert_eq!(state.remaining(0).unwrap(), baseline);
-            stage.db().execute("UPDATE raw_records SET payload_sha256=zeroblob(32) WHERE id='raw.1'", []).unwrap();
-            assert!(stage.scoped_raw_by_id("fixture.graph", "fixture/raw", "raw.1").is_err());
+            stage
+                .db()
+                .execute(
+                    "UPDATE raw_records SET payload_sha256=zeroblob(32) WHERE id='raw.1'",
+                    [],
+                )
+                .unwrap();
+            assert!(
+                stage
+                    .scoped_raw_by_id("fixture.graph", "fixture/raw", "raw.1")
+                    .is_err()
+            );
             assert_eq!(state.remaining(0).unwrap(), baseline);
-            stage.db().execute("UPDATE raw_records SET payload_sha256=?1 WHERE id='raw.1'", [Digest256::of_bytes(b"raw").as_bytes().as_slice()]).unwrap();
+            stage
+                .db()
+                .execute(
+                    "UPDATE raw_records SET payload_sha256=?1 WHERE id='raw.1'",
+                    [Digest256::of_bytes(b"raw").as_bytes().as_slice()],
+                )
+                .unwrap();
             for order in 0..2 {
                 let id = format!("node.{order}");
                 let logical = serde_json::to_vec(&serde_json::json!({
@@ -6979,17 +7334,33 @@ mod tests {
                     "display": {"title": {"text": id, "language": "und"}},
                     "metadata": "normalized words ".repeat(400),
                     "source_record": {"payload": source_value, "field_map": {}}
-                })).unwrap();
-                let (seek, rows, bytes) = stage.exact_source_write_page_limits(1, 32768, 32768).unwrap();
+                }))
+                .unwrap();
+                let (seek, rows, bytes) = stage
+                    .exact_source_write_page_limits(1, 32768, 32768)
+                    .unwrap();
                 assert_eq!(seek, 1);
-                assert_eq!(rows, 2, "caller prices data rows; Stage owns format overhead");
-                stage.with_write_page(WritePhase::Normalized, rows, bytes, |stage| {
-                    stage.insert_node_with_exact_source(NodeRow {
-                        id: &id, source_graph: "fixture.graph", native_id: None,
-                        entity_id: None, kind_id: "kind.fixture", type_id: "type.fixture",
-                        source_order: order, payload: &logical,
-                    }, &source)
-                }).unwrap();
+                assert_eq!(
+                    rows, 2,
+                    "caller prices data rows; Stage owns format overhead"
+                );
+                stage
+                    .with_write_page(WritePhase::Normalized, rows, bytes, |stage| {
+                        stage.insert_node_with_exact_source(
+                            NodeRow {
+                                id: &id,
+                                source_graph: "fixture.graph",
+                                native_id: None,
+                                entity_id: None,
+                                kind_id: "kind.fixture",
+                                type_id: "type.fixture",
+                                source_order: order,
+                                payload: &logical,
+                            },
+                            &source,
+                        )
+                    })
+                    .unwrap();
                 let before_update = work.load(Ordering::Acquire);
                 stage.with_write_page(WritePhase::Finalize, 1, 32768, |stage| {
                     // Both entrypoints preserve exact bytes and the same CAS.
@@ -7012,12 +7383,18 @@ mod tests {
                         })?.ok_or(Error::Invalid("typed update fixture row absent"))
                     }
                 }).unwrap();
-                eprintln!("dictionary finalized complete update layout={layout:?} order={order} work={}", work.load(Ordering::Acquire)-before_update);
-                stage.with_node_payload_source_owned(&id, 32768, |_, actual, raw| {
-                    assert_eq!(actual, logical);
-                    assert_eq!(raw, Some(source.as_slice()));
-                    Ok(())
-                }).unwrap().unwrap();
+                eprintln!(
+                    "dictionary finalized complete update layout={layout:?} order={order} work={}",
+                    work.load(Ordering::Acquire) - before_update
+                );
+                stage
+                    .with_node_payload_source_owned(&id, 32768, |_, actual, raw| {
+                        assert_eq!(actual, logical);
+                        assert_eq!(raw, Some(source.as_slice()));
+                        Ok(())
+                    })
+                    .unwrap()
+                    .unwrap();
             }
             // The actual SQL consumer interface checks the same packed frames,
             // dictionaries, exact source and normalized digest in both forms.
@@ -7035,19 +7412,48 @@ mod tests {
                 let limits = crate::knowledge_normalization::SourceRow::json_limits(32768).unwrap();
                 let before = work.load(Ordering::Acquire);
                 let expected = crate::knowledge_payload_codec::with_sql_logical_payload(
-                    db, &state, layout, len, digest, stored, codec, Some(key), 32768,
-                    |raw| state.with_serde_owned_with_limits(raw, limits,
-                        |value| Ok(serde_json::to_vec(value).unwrap())),
-                ).unwrap();
+                    db,
+                    &state,
+                    layout,
+                    len,
+                    digest,
+                    stored,
+                    codec,
+                    Some(key),
+                    32768,
+                    |raw| {
+                        state.with_serde_owned_with_limits(raw, limits, |value| {
+                            Ok(serde_json::to_vec(value).unwrap())
+                        })
+                    },
+                )
+                .unwrap();
                 let byte_work = work.load(Ordering::Acquire) - before;
                 let before = work.load(Ordering::Acquire);
                 crate::knowledge_payload_codec::with_sql_logical_value(
-                    db, &state, layout, len, digest, stored, codec, Some(key), 32768,
-                    |value| { assert_eq!(serde_json::to_vec(value).unwrap(), expected); Ok(()) },
-                ).unwrap();
+                    db,
+                    &state,
+                    layout,
+                    len,
+                    digest,
+                    stored,
+                    codec,
+                    Some(key),
+                    32768,
+                    |value| {
+                        assert_eq!(serde_json::to_vec(value).unwrap(), expected);
+                        Ok(())
+                    },
+                )
+                .unwrap();
                 let typed_work = work.load(Ordering::Acquire) - before;
-                assert!(typed_work < byte_work, "typed={typed_work} byte={byte_work}");
-                eprintln!("SQL logical reader layout={layout:?} byte_work={byte_work} typed_work={typed_work}");
+                assert!(
+                    typed_work < byte_work,
+                    "typed={typed_work} byte={byte_work}"
+                );
+                eprintln!(
+                    "SQL logical reader layout={layout:?} byte_work={byte_work} typed_work={typed_work}"
+                );
                 for (bad_len, bad_digest, bad_codec, bad_key) in [
                     (len + 1, digest, codec, Some(key)),
                     (len, &[0u8; 32][..], codec, Some(key)),
@@ -7056,93 +7462,194 @@ mod tests {
                     (len, digest, codec, Some(&[0u8; 32][..])),
                 ] {
                     let mut delivered = false;
-                    assert!(crate::knowledge_payload_codec::with_sql_logical_value(
-                        db, &state, layout, bad_len, bad_digest, stored, bad_codec, bad_key, 32768,
-                        |_| { delivered = true; Ok(()) },
-                    ).is_err());
+                    assert!(
+                        crate::knowledge_payload_codec::with_sql_logical_value(
+                            db,
+                            &state,
+                            layout,
+                            bad_len,
+                            bad_digest,
+                            stored,
+                            bad_codec,
+                            bad_key,
+                            32768,
+                            |_| {
+                                delivered = true;
+                                Ok(())
+                            },
+                        )
+                        .is_err()
+                    );
                     assert!(!delivered);
                 }
                 // Joining valid constituents must still retain the logical
                 // depth/visit limits formerly enforced by the redundant parse.
                 let mut nested = serde_json::Value::Null;
-                for _ in 0..97 { nested = serde_json::json!([nested]); }
+                for _ in 0..97 {
+                    nested = serde_json::json!([nested]);
+                }
                 assert!(state.check_serde_structure(&nested, limits).is_err());
                 let tight = tos_foundation::JsonLimits::new(32768, 96, 2, 4096).unwrap();
-                assert!(state.check_serde_structure(&serde_json::json!([0,1]), tight).is_err());
+                assert!(
+                    state
+                        .check_serde_structure(&serde_json::json!([0, 1]), tight)
+                        .is_err()
+                );
             }
-            let count: u64 = stage.db().query_row("SELECT count(*) FROM knowledge_source_carriers", [], |row| row.get(0)).unwrap();
+            let count: u64 = stage
+                .db()
+                .query_row(
+                    "SELECT count(*) FROM knowledge_source_carriers",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
             assert_eq!(count, 1, "identical exact source retains one carrier");
             if layout.dictionary_bytes() {
-                let dictionaries: u64 = stage.db().query_row("SELECT count(*) FROM knowledge_byte_dictionaries", [], |row| row.get(0)).unwrap();
+                let dictionaries: u64 = stage
+                    .db()
+                    .query_row(
+                        "SELECT count(*) FROM knowledge_byte_dictionaries",
+                        [],
+                        |row| row.get(0),
+                    )
+                    .unwrap();
                 assert_eq!(dictionaries, 2);
-                let pending: u64 = stage.db().query_row("SELECT count(*) FROM temp.knowledge_byte_dictionary_pending", [], |row| row.get(0)).unwrap();
+                let pending: u64 = stage
+                    .db()
+                    .query_row(
+                        "SELECT count(*) FROM temp.knowledge_byte_dictionary_pending",
+                        [],
+                        |row| row.get(0),
+                    )
+                    .unwrap();
                 assert_eq!(pending, 2);
             }
             let title_roots = stage.core_roots().unwrap();
             let seal = crate::knowledge_global_titles::CompleteBaseNodes {
                 source_cut: stage.exact_receipt().unwrap().binding.source_cut.clone(),
-                node_count: title_roots.nodes, node_root_sha256: title_roots.node_sha256.clone(),
+                node_count: title_roots.nodes,
+                node_root_sha256: title_roots.node_sha256.clone(),
             };
             let before = work.load(Ordering::Acquire);
-            let titles = crate::knowledge_global_titles::prepare_global_titles(&mut stage, &seal,
+            let titles = crate::knowledge_global_titles::prepare_global_titles(
+                &mut stage,
+                &seal,
                 crate::knowledge_global_titles::GlobalTitleLimits {
-                    max_nodes: 2, max_page_rows: 1, max_page_bytes: 32768,
-                    max_node_bytes: 32768, max_title_bytes: 1024, max_work_bytes: 1024 * 1024,
-                }).unwrap();
+                    max_nodes: 2,
+                    max_page_rows: 1,
+                    max_page_bytes: 32768,
+                    max_node_bytes: 32768,
+                    max_title_bytes: 1024,
+                    max_work_bytes: 1024 * 1024,
+                },
+            )
+            .unwrap();
             assert_eq!(titles.title_count, 2);
-            eprintln!("global title typed scan layout={layout:?} work={}", work.load(Ordering::Acquire) - before);
+            eprintln!(
+                "global title typed scan layout={layout:?} work={}",
+                work.load(Ordering::Acquire) - before
+            );
             for order in 0..2 {
                 let id = format!("node.{order}");
-                let title = crate::knowledge_global_titles::endpoint_title(&mut stage, &titles, &id, 1024).unwrap();
+                let title =
+                    crate::knowledge_global_titles::endpoint_title(&mut stage, &titles, &id, 1024)
+                        .unwrap();
                 assert_eq!(title, serde_json::json!({"text": id, "language": "und"}));
             }
-            assert_eq!(stage.core_roots().unwrap().node_sha256, title_roots.node_sha256);
+            assert_eq!(
+                stage.core_roots().unwrap().node_sha256,
+                title_roots.node_sha256
+            );
             // The actual global finalizer reads a factored, packed row, adds an
             // inherited view, stamps its revision and CAS-writes it. Compare the
             // independent scalar normalization and preserve original source bytes.
-            stage.create_preparation_tables(crate::knowledge_inherited_views::PREPARATION_SCHEMA).unwrap();
+            stage
+                .create_preparation_tables(crate::knowledge_inherited_views::PREPARATION_SCHEMA)
+                .unwrap();
             stage.with_connection(WritePhase::Normalized, |db| {
                 db.execute("INSERT INTO knowledge_global_inherited_views(endpoint_id,view_id) VALUES('node.0','view.inherited')", [])?;
                 Ok(())
             }).unwrap();
-            let entity = include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
-            let registry = crate::KnowledgeRegistry::parse(entity,
-                include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json")).unwrap();
+            let entity = include_bytes!(
+                "../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json"
+            );
+            let registry = crate::KnowledgeRegistry::parse(
+                entity,
+                include_bytes!(
+                    "../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json"
+                ),
+            )
+            .unwrap();
             let roots = stage.core_roots().unwrap();
             let inherited = crate::knowledge_inherited_views::InheritedViewReceipt {
                 source_cut: stage.exact_receipt().unwrap().binding.source_cut.clone(),
-                relation_count: roots.relations, relation_root_sha256: roots.relation_sha256,
-                endpoint_evidence_rows: 0, inherited_view_rows: 1,
-                dependency_root_sha256: "0".repeat(64), final_graph_rows_written: false,
+                relation_count: roots.relations,
+                relation_root_sha256: roots.relation_sha256,
+                endpoint_evidence_rows: 0,
+                inherited_view_rows: 1,
+                dependency_root_sha256: "0".repeat(64),
+                final_graph_rows_written: false,
             };
             let mut expected = None;
-            stage.with_node_payload_source_owned("node.0", 32768, |_, raw, _| {
-                let mut value: serde_json::Value = serde_json::from_slice(raw).unwrap();
-                value["view_ids"] = serde_json::json!(["view.inherited"]);
-                crate::knowledge_normalization::stamp_content_revision(&mut value, 32768)?;
-                expected = Some(serde_json::to_vec(&value).unwrap());
-                Ok(())
-            }).unwrap().unwrap();
+            stage
+                .with_node_payload_source_owned("node.0", 32768, |_, raw, _| {
+                    let mut value: serde_json::Value = serde_json::from_slice(raw).unwrap();
+                    value["view_ids"] = serde_json::json!(["view.inherited"]);
+                    crate::knowledge_normalization::stamp_content_revision(&mut value, 32768)?;
+                    expected = Some(serde_json::to_vec(&value).unwrap());
+                    Ok(())
+                })
+                .unwrap()
+                .unwrap();
             let finalize_limits = crate::knowledge_native_finalize::NativeFinalizeLimits {
-                max_rows: 2, max_page_rows: 1, max_page_bytes: 32768, max_row_bytes: 32768,
-                max_view_ids_per_node: 8, max_context_sources: 8, max_work_bytes: 16 * 1024 * 1024,
+                max_rows: 2,
+                max_page_rows: 1,
+                max_page_bytes: 32768,
+                max_row_bytes: 32768,
+                max_view_ids_per_node: 8,
+                max_context_sources: 8,
+                max_work_bytes: 16 * 1024 * 1024,
             };
             let before_finalize = work.load(Ordering::Acquire);
             let finalized = crate::knowledge_native_finalize::finalize_native_graph_rows(
-                &mut stage, &registry, entity, &inherited, finalize_limits,
+                &mut stage,
+                &registry,
+                entity,
+                &inherited,
+                finalize_limits,
                 |_, _, _| Err(Error::Invalid("fixture has no claim references")),
-            ).unwrap();
-            eprintln!("full finalizer measured work layout={layout:?} work={}", work.load(Ordering::Acquire)-before_finalize);
-            assert_eq!((finalized.nodes, finalized.relations, finalized.readable_rows), (2, 0, 0));
-            stage.with_node_payload_source_owned("node.0", 32768, |_, raw, exact_source| {
-                assert_eq!(raw, expected.as_ref().unwrap());
-                assert_eq!(exact_source, Some(source.as_slice()));
-                Ok(())
-            }).unwrap().unwrap();
+            )
+            .unwrap();
+            eprintln!(
+                "full finalizer measured work layout={layout:?} work={}",
+                work.load(Ordering::Acquire) - before_finalize
+            );
+            assert_eq!(
+                (
+                    finalized.nodes,
+                    finalized.relations,
+                    finalized.readable_rows
+                ),
+                (2, 0, 0)
+            );
+            stage
+                .with_node_payload_source_owned("node.0", 32768, |_, raw, exact_source| {
+                    assert_eq!(raw, expected.as_ref().unwrap());
+                    assert_eq!(exact_source, Some(source.as_slice()));
+                    Ok(())
+                })
+                .unwrap()
+                .unwrap();
             let replay = crate::knowledge_native_finalize::finalize_native_graph_rows(
-                &mut stage, &registry, entity, &inherited, finalize_limits,
+                &mut stage,
+                &registry,
+                entity,
+                &inherited,
+                finalize_limits,
                 |_, _, _| Err(Error::Invalid("fixture has no claim references")),
-            ).unwrap();
+            )
+            .unwrap();
             assert_eq!(replay.node_root_sha256, finalized.node_root_sha256);
             // Inheritance uses the same typed reader for an actual packed
             // relation, including source-derived attributes and both endpoints.
@@ -7152,69 +7659,177 @@ mod tests {
                 "view_ids": ["view.inherited"], "attributes": {"text": source_value["text"]},
                 "source_record": {"payload": source_value, "field_map": {"attributes.text": "/text"}}
             })).unwrap();
-            let (_, rows, bytes) = stage.exact_source_write_page_limits(1, 32768, 32768).unwrap();
-            stage.with_write_page(WritePhase::Normalized, rows, bytes, |stage| {
-                stage.insert_relation_with_exact_source(RelationRow {
-                    id: "edge.0", source_graph: "fixture.graph", native_id: None,
-                    from_id: "node.0", to_id: "node.1", predicate_id: "related_to",
-                    relation_type_id: "tos.relation.unmapped", source_order: 0, payload: &relation,
-                }, &source)
-            }).unwrap();
+            let (_, rows, bytes) = stage
+                .exact_source_write_page_limits(1, 32768, 32768)
+                .unwrap();
+            stage
+                .with_write_page(WritePhase::Normalized, rows, bytes, |stage| {
+                    stage.insert_relation_with_exact_source(
+                        RelationRow {
+                            id: "edge.0",
+                            source_graph: "fixture.graph",
+                            native_id: None,
+                            from_id: "node.0",
+                            to_id: "node.1",
+                            predicate_id: "related_to",
+                            relation_type_id: "tos.relation.unmapped",
+                            source_order: 0,
+                            payload: &relation,
+                        },
+                        &source,
+                    )
+                })
+                .unwrap();
             // Run the actual late Claim join on packed carriers: a changed
             // context is CAS-written once; replay preserves its exact revision.
             let claim_limits = crate::knowledge_source_claims::ClaimNormalizeLimits {
-                max_raw_bytes: 32768, max_output_bytes: 32768, max_page_rows: 1,
-                max_contexts: 8, max_work_bytes: 1024 * 1024,
+                max_raw_bytes: 32768,
+                max_output_bytes: 32768,
+                max_page_rows: 1,
+                max_contexts: 8,
+                max_work_bytes: 1024 * 1024,
             };
-            let mut contexts = crate::knowledge_source_claims::prepare_claim_context_groups(&mut stage, claim_limits).unwrap();
+            let mut contexts = crate::knowledge_source_claims::prepare_claim_context_groups(
+                &mut stage,
+                claim_limits,
+            )
+            .unwrap();
             let context = serde_json::json!({"binding_role":"referenced-claim", "fields":{"review_status":{"value":"source-recorded"}}});
             let context_bytes = serde_json::to_vec(&context).unwrap();
-            let context_digest = Digest256::from_hex(&crate::knowledge_normalization::stable_digest(&context).unwrap()).unwrap();
+            let context_digest = Digest256::from_hex(
+                &crate::knowledge_normalization::stable_digest(&context).unwrap(),
+            )
+            .unwrap();
             let source_digest = Digest256::of_bytes(&source);
-            stage.with_connection(WritePhase::Normalized, |db| {
-                db.execute("INSERT INTO knowledge_claim_context_groups VALUES(?1,?2,0,?3,?4,?5,?6)",
-                    params!["fixture.graph","claim.test",context_digest.as_bytes().as_slice(),&context_bytes,"node.0",source_digest.as_bytes().as_slice()])?;
-                Ok(())
-            }).unwrap();
-            let mut root = Digest256Hasher::new(); root.update(b"tos-claim-context-groups-v1\0");
-            for (id, digest) in [("fixture.graph", &[][..]), ("claim.test",context_digest.as_bytes().as_slice()), ("node.0",source_digest.as_bytes().as_slice())] {
-                root.update(&(id.len() as u64).to_be_bytes()); root.update(id.as_bytes()); root.update(digest);
+            stage
+                .with_connection(WritePhase::Normalized, |db| {
+                    db.execute(
+                        "INSERT INTO knowledge_claim_context_groups VALUES(?1,?2,0,?3,?4,?5,?6)",
+                        params![
+                            "fixture.graph",
+                            "claim.test",
+                            context_digest.as_bytes().as_slice(),
+                            &context_bytes,
+                            "node.0",
+                            source_digest.as_bytes().as_slice()
+                        ],
+                    )?;
+                    Ok(())
+                })
+                .unwrap();
+            let mut root = Digest256Hasher::new();
+            root.update(b"tos-claim-context-groups-v1\0");
+            for (id, digest) in [
+                ("fixture.graph", &[][..]),
+                ("claim.test", context_digest.as_bytes().as_slice()),
+                ("node.0", source_digest.as_bytes().as_slice()),
+            ] {
+                root.update(&(id.len() as u64).to_be_bytes());
+                root.update(id.as_bytes());
+                root.update(digest);
             }
-            contexts.contexts = 1; contexts.root_sha256 = root.finalize().to_hex();
-            crate::knowledge_source_claims::verify_claim_context_groups(&mut stage, &contexts, claim_limits).unwrap();
-            let vocabulary = crate::QueryVocabulary::parse(include_bytes!("../tests/fixtures/query-vocabulary.v1.json"), &[
-                "indexed-node-edge-v1","candidate-relation-v1","canon-node-relation-v1","declared-identity-and-source-ref-joins-v1",
-                "philosophy-node-edge-v1","reified-bibliographic-claims-v1","repository-topology-v1","source-navigation-node-edge-v1",
-            ]).unwrap();
+            contexts.contexts = 1;
+            contexts.root_sha256 = root.finalize().to_hex();
+            crate::knowledge_source_claims::verify_claim_context_groups(
+                &mut stage,
+                &contexts,
+                claim_limits,
+            )
+            .unwrap();
+            let vocabulary = crate::QueryVocabulary::parse(
+                include_bytes!("../tests/fixtures/query-vocabulary.v1.json"),
+                &[
+                    "indexed-node-edge-v1",
+                    "candidate-relation-v1",
+                    "canon-node-relation-v1",
+                    "declared-identity-and-source-ref-joins-v1",
+                    "philosophy-node-edge-v1",
+                    "reified-bibliographic-claims-v1",
+                    "repository-topology-v1",
+                    "source-navigation-node-edge-v1",
+                ],
+            )
+            .unwrap();
             let before = work.load(Ordering::Acquire);
-            crate::knowledge_native::bind_native_claim_contexts(&mut stage, &vocabulary, &contexts, claim_limits, finalize_limits).unwrap();
-            eprintln!("Claim typed binding layout={layout:?} work={}",work.load(Ordering::Acquire)-before);
+            crate::knowledge_native::bind_native_claim_contexts(
+                &mut stage,
+                &vocabulary,
+                &contexts,
+                claim_limits,
+                finalize_limits,
+            )
+            .unwrap();
+            eprintln!(
+                "Claim typed binding layout={layout:?} work={}",
+                work.load(Ordering::Acquire) - before
+            );
             let mut joined_bytes = Vec::new();
-            stage.with_relation_payload_source_owned("edge.0",32768,|_,raw,exact| {
-                let value: serde_json::Value = serde_json::from_slice(raw).unwrap();
-                assert_eq!(value["semantics"]["assertion_contexts"],serde_json::json!([context]));
-                assert!(value["content_revision"].as_str().is_some());
-                assert_eq!(exact,Some(source.as_slice())); joined_bytes = raw.to_vec(); Ok(())
-            }).unwrap().unwrap();
-            crate::knowledge_native::bind_native_claim_contexts(&mut stage, &vocabulary, &contexts, claim_limits, finalize_limits).unwrap();
-            stage.with_relation_payload_source_owned("edge.0",32768,|_,raw,exact| {
-                assert_eq!(raw,joined_bytes); assert_eq!(exact,Some(source.as_slice())); Ok(())
-            }).unwrap().unwrap();
+            stage
+                .with_relation_payload_source_owned("edge.0", 32768, |_, raw, exact| {
+                    let value: serde_json::Value = serde_json::from_slice(raw).unwrap();
+                    assert_eq!(
+                        value["semantics"]["assertion_contexts"],
+                        serde_json::json!([context])
+                    );
+                    assert!(value["content_revision"].as_str().is_some());
+                    assert_eq!(exact, Some(source.as_slice()));
+                    joined_bytes = raw.to_vec();
+                    Ok(())
+                })
+                .unwrap()
+                .unwrap();
+            crate::knowledge_native::bind_native_claim_contexts(
+                &mut stage,
+                &vocabulary,
+                &contexts,
+                claim_limits,
+                finalize_limits,
+            )
+            .unwrap();
+            stage
+                .with_relation_payload_source_owned("edge.0", 32768, |_, raw, exact| {
+                    assert_eq!(raw, joined_bytes);
+                    assert_eq!(exact, Some(source.as_slice()));
+                    Ok(())
+                })
+                .unwrap()
+                .unwrap();
             let roots = stage.core_roots().unwrap();
             let seal = crate::knowledge_inherited_views::CompleteRelationSeal {
-                source_cut: inherited.source_cut.clone(), relation_count: 1,
+                source_cut: inherited.source_cut.clone(),
+                relation_count: 1,
                 relation_root_sha256: roots.relation_sha256,
             };
-            let joined = crate::knowledge_inherited_views::prepare_global_inherited_views(&mut stage, &seal,
+            let joined = crate::knowledge_inherited_views::prepare_global_inherited_views(
+                &mut stage,
+                &seal,
                 crate::knowledge_inherited_views::InheritedViewLimits {
-                    max_relations: 1, max_endpoint_evidence_rows: 2, max_view_tokens: 1,
-                    max_page_rows: 1, max_page_bytes: 32768, max_row_bytes: 32768,
+                    max_relations: 1,
+                    max_endpoint_evidence_rows: 2,
+                    max_view_tokens: 1,
+                    max_page_rows: 1,
+                    max_page_bytes: 32768,
+                    max_row_bytes: 32768,
                     max_work_bytes: 16 * 1024 * 1024,
-                }).unwrap();
-            assert_eq!((joined.relation_count, joined.endpoint_evidence_rows, joined.inherited_view_rows), (1, 2, 2));
+                },
+            )
+            .unwrap();
+            assert_eq!(
+                (
+                    joined.relation_count,
+                    joined.endpoint_evidence_rows,
+                    joined.inherited_view_rows
+                ),
+                (1, 2, 2)
+            );
             for endpoint in ["node.0", "node.1"] {
-                assert_eq!(crate::knowledge_inherited_views::endpoint_inherited_views(&mut stage, endpoint, 8).unwrap(),
-                    vec!["view.inherited".to_owned()]);
+                assert_eq!(
+                    crate::knowledge_inherited_views::endpoint_inherited_views(
+                        &mut stage, endpoint, 8
+                    )
+                    .unwrap(),
+                    vec!["view.inherited".to_owned()]
+                );
             }
             crate::knowledge_inherited_views::clear_inherited_views(&mut stage).unwrap();
             // Exercise the other producer path with a byte-tight inline page.
@@ -7222,22 +7837,42 @@ mod tests {
             // both insert and replacement pay framing/dictionary overhead here.
             for order in 0..32 {
                 let id = format!("tiny.{order}");
-                let logical = serde_json::to_vec(&serde_json::json!({"id": id, "source_graph": "tiny", "value": order})).unwrap();
-                stage.with_write_page(WritePhase::Normalized, 1, logical.len() as u64, |stage| {
-                    stage.insert_node(NodeRow {
-                        id: &id, source_graph: "tiny", native_id: None, entity_id: None,
-                        kind_id: "kind.fixture", type_id: "type.fixture", source_order: order + 2,
-                        payload: &logical,
+                let logical = serde_json::to_vec(
+                    &serde_json::json!({"id": id, "source_graph": "tiny", "value": order}),
+                )
+                .unwrap();
+                stage
+                    .with_write_page(WritePhase::Normalized, 1, logical.len() as u64, |stage| {
+                        stage.insert_node(NodeRow {
+                            id: &id,
+                            source_graph: "tiny",
+                            native_id: None,
+                            entity_id: None,
+                            kind_id: "kind.fixture",
+                            type_id: "type.fixture",
+                            source_order: order + 2,
+                            payload: &logical,
+                        })
                     })
-                }).unwrap();
-                stage.with_write_page(WritePhase::Finalize, 1, logical.len() as u64, |stage| {
-                    stage.replace_node_logical_payload_if_current(&id, &logical, None, Some(Digest256::of_bytes(&logical)))
-                }).unwrap();
-                stage.with_node_payload_source_owned(&id, 32768, |_, actual, raw| {
-                    assert_eq!(actual, logical);
-                    assert!(raw.is_none());
-                    Ok(())
-                }).unwrap().unwrap();
+                    .unwrap();
+                stage
+                    .with_write_page(WritePhase::Finalize, 1, logical.len() as u64, |stage| {
+                        stage.replace_node_logical_payload_if_current(
+                            &id,
+                            &logical,
+                            None,
+                            Some(Digest256::of_bytes(&logical)),
+                        )
+                    })
+                    .unwrap();
+                stage
+                    .with_node_payload_source_owned(&id, 32768, |_, actual, raw| {
+                        assert_eq!(actual, logical);
+                        assert!(raw.is_none());
+                        Ok(())
+                    })
+                    .unwrap()
+                    .unwrap();
             }
             if layout.dictionary_bytes() {
                 let samples: u64 = stage.db().query_row("SELECT samples FROM temp.knowledge_byte_dictionary_pending WHERE dictionary_kind='node' AND source_graph='tiny'", [], |row| row.get(0)).unwrap();
@@ -7248,42 +7883,96 @@ mod tests {
                 // source write. Refuse before changing the logical row; its
                 // original exact source remains readable after cold reopen.
                 let refusal = stage.with_write_page(WritePhase::Finalize, 1, 32768, |stage| {
-                    stage.with_normalized_payload_decoded_owned(false, "node.0", 32768, true, |stage, decoded, source| {
-                        let NormalizedLogical::Value { value, digest, source_receipt, .. } = decoded else {
-                            return Err(Error::Invalid("receipt control requires Value"));
-                        };
-                        stage.with_connection(WritePhase::Finalize, |db| {
-                            db.execute("UPDATE knowledge_source_carriers SET packet=packet", [])?;
-                            Ok(())
-                        })?;
-                        state.with_json_encoded(&value, 32768, |raw| {
-                            stage.replace_finalized_value_if_current(
-                                false, "node.0", &value, raw, source, digest, source_receipt,
-                            )
-                        })
-                    })?.ok_or(Error::Invalid("receipt control row absent"))
+                    stage
+                        .with_normalized_payload_decoded_owned(
+                            false,
+                            "node.0",
+                            32768,
+                            true,
+                            |stage, decoded, source| {
+                                let NormalizedLogical::Value {
+                                    value,
+                                    digest,
+                                    source_receipt,
+                                    ..
+                                } = decoded
+                                else {
+                                    return Err(Error::Invalid("receipt control requires Value"));
+                                };
+                                stage.with_connection(WritePhase::Finalize, |db| {
+                                    db.execute(
+                                        "UPDATE knowledge_source_carriers SET packet=packet",
+                                        [],
+                                    )?;
+                                    Ok(())
+                                })?;
+                                state.with_json_encoded(&value, 32768, |raw| {
+                                    stage.replace_finalized_value_if_current(
+                                        false,
+                                        "node.0",
+                                        &value,
+                                        raw,
+                                        source,
+                                        digest,
+                                        source_receipt,
+                                    )
+                                })
+                            },
+                        )?
+                        .ok_or(Error::Invalid("receipt control row absent"))
                 });
-                assert!(matches!(refusal, Err(Error::Invalid("carrier read receipt changed before update"))));
-                let digest: Vec<u8> = stage.db().query_row("SELECT payload_sha256 FROM knowledge_nodes WHERE id='node.0'", [], |row| row.get(0)).unwrap();
-                assert_eq!(digest, Digest256::of_bytes(expected.as_ref().unwrap()).as_bytes());
+                assert!(matches!(
+                    refusal,
+                    Err(Error::Invalid("carrier read receipt changed before update"))
+                ));
+                let digest: Vec<u8> = stage
+                    .db()
+                    .query_row(
+                        "SELECT payload_sha256 FROM knowledge_nodes WHERE id='node.0'",
+                        [],
+                        |row| row.get(0),
+                    )
+                    .unwrap();
+                assert_eq!(
+                    digest,
+                    Digest256::of_bytes(expected.as_ref().unwrap()).as_bytes()
+                );
             } else {
                 // Reserved representation rows cannot hide excess data writes.
                 let refusal = stage.with_write_page(WritePhase::Normalized, 1, 1, |stage| {
                     stage.charge_materialized(2, 1)
                 });
-                assert!(matches!(refusal, Err(Error::Budget("stage write page rows/bytes"))));
+                assert!(matches!(
+                    refusal,
+                    Err(Error::Budget("stage write page rows/bytes"))
+                ));
             }
             assert!(stage.poisoned);
             // Close the actual writer before opening a distinct read connection.
             // This tests physical cold decoding; full selected-model admission
             // remains the separate installed-consumer conformance route.
             stage.db.take().unwrap().close().unwrap();
-            let cold = Connection::open_with_flags(&candidate, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-            let stored: Vec<u8> = cold.query_row("SELECT packet FROM knowledge_source_carriers", [], |row| row.get(0)).unwrap();
-            layout.with_sql_decoded(&cold, &state, &stored, Some(source.len()), 32768, |actual| {
-                assert_eq!(actual, source);
-                Ok(())
-            }).unwrap();
+            let cold =
+                Connection::open_with_flags(&candidate, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+                    .unwrap();
+            let stored: Vec<u8> = cold
+                .query_row("SELECT packet FROM knowledge_source_carriers", [], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            layout
+                .with_sql_decoded(
+                    &cold,
+                    &state,
+                    &stored,
+                    Some(source.len()),
+                    32768,
+                    |actual| {
+                        assert_eq!(actual, source);
+                        Ok(())
+                    },
+                )
+                .unwrap();
             drop(cold);
             drop(stage);
             fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
@@ -7292,10 +7981,19 @@ mod tests {
 
     #[test]
     fn native_raw_input_pager_keeps_exact_bytes_under_temp_ceiling() {
-        let owner = Owner { checks: AtomicUsize::new(0) };
-        let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
         let candidate = stage_path("raw-input-geometry");
-        let payload = format!("{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n", "z".repeat(1500)).into_bytes();
+        let payload = format!(
+            "{{ \"text\" : \"{}\", \"number\" : 1.2300 }}\n",
+            "z".repeat(1500)
+        )
+        .into_bytes();
         let mut hash = Digest256Hasher::new();
         for n in 0..96 {
             let id = format!("fixture-{n:04}");
@@ -7311,30 +8009,58 @@ mod tests {
         selected.max_temp_bytes = 256 * 1024;
         selected.max_seek_bytes = 4096;
         let mut stage = KnowledgeStage::create_captured_native_snapshot(
-            &candidate, selected, receipt, &owner, &quota,
-            Arc::new(AtomicU64::new(0)), Arc::new(AtomicU64::new(0)),
-            Arc::new(AtomicBool::new(false)), selected.sqlite.max_work_bytes,
+            &candidate,
+            selected,
+            receipt,
+            &owner,
+            &quota,
+            Arc::new(AtomicU64::new(0)),
+            Arc::new(AtomicU64::new(0)),
+            Arc::new(AtomicBool::new(false)),
+            selected.sqlite.max_work_bytes,
             Instant::now() + std::time::Duration::from_secs(60),
-        ).unwrap();
+        )
+        .unwrap();
         for n in (0..96).rev() {
-            stage.ingest_input(InputRow {
-                source_graph: "fixture.graph", collection: "fixture/raw",
-                id: &format!("fixture-{n:04}"), payload: &payload,
-            }).unwrap();
+            stage
+                .ingest_input(InputRow {
+                    source_graph: "fixture.graph",
+                    collection: "fixture/raw",
+                    id: &format!("fixture-{n:04}"),
+                    payload: &payload,
+                })
+                .unwrap();
         }
         let mut after = None;
         for n in 0..96 {
-            let rows = stage.scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1).unwrap();
+            let rows = stage
+                .scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1)
+                .unwrap();
             assert_eq!(rows.rows.len(), 1);
             assert_eq!(rows.rows[0].id, format!("fixture-{n:04}"));
             assert_eq!(rows.rows[0].payload, payload);
-            assert_eq!(rows.rows[0].payload_sha256, Digest256::of_bytes(&payload).to_hex());
+            assert_eq!(
+                rows.rows[0].payload_sha256,
+                Digest256::of_bytes(&payload).to_hex()
+            );
             after = Some(rows.rows[0].id.clone());
         }
-        assert!(stage.scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1).unwrap().rows.is_empty());
+        assert!(
+            stage
+                .scan_input("fixture.graph", "fixture/raw", after.as_deref(), 1)
+                .unwrap()
+                .rows
+                .is_empty()
+        );
         assert_eq!(stage.verified_input_rows().unwrap(), 96);
-        let size: u64 = stage.db().query_row("PRAGMA temp.page_size", [], |r| r.get(0)).unwrap();
-        let pages: u64 = stage.db().query_row("PRAGMA temp.page_count", [], |r| r.get(0)).unwrap();
+        let size: u64 = stage
+            .db()
+            .query_row("PRAGMA temp.page_size", [], |r| r.get(0))
+            .unwrap();
+        let pages: u64 = stage
+            .db()
+            .query_row("PRAGMA temp.page_count", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(size, 16384);
         assert!(size * pages <= selected.max_temp_bytes);
         // The same source bytes and composite key exceed this ceiling in the
@@ -7342,9 +8068,22 @@ mod tests {
         let old = Connection::open_in_memory().unwrap();
         old.execute_batch("PRAGMA page_size=4096; CREATE TABLE raw_records(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID").unwrap();
         for n in (0..96).rev() {
-            old.execute("INSERT INTO raw_records VALUES(?1,?2,?3,?4,?5,?6)", params!["fixture.graph", "fixture/raw", format!("fixture-{n:04}"), payload.len(), Digest256::of_bytes(&payload).as_bytes().as_slice(), &payload]).unwrap();
+            old.execute(
+                "INSERT INTO raw_records VALUES(?1,?2,?3,?4,?5,?6)",
+                params![
+                    "fixture.graph",
+                    "fixture/raw",
+                    format!("fixture-{n:04}"),
+                    payload.len(),
+                    Digest256::of_bytes(&payload).as_bytes().as_slice(),
+                    &payload
+                ],
+            )
+            .unwrap();
         }
-        let old_pages: u64 = old.query_row("PRAGMA page_count", [], |r| r.get(0)).unwrap();
+        let old_pages: u64 = old
+            .query_row("PRAGMA page_count", [], |r| r.get(0))
+            .unwrap();
         assert!(old_pages * 4096 > selected.max_temp_bytes);
         drop(old);
         stage.close_inputs_for_full_components().unwrap();
@@ -7356,8 +8095,13 @@ mod tests {
 
     #[test]
     fn native_preparation_keeps_main_byte_cap_and_refuses_temp_overflow() {
-        let owner = Owner { checks: AtomicUsize::new(0) };
-        let quota = TestQuota { calls: AtomicUsize::new(0), deny: false };
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
         // Native provenance alone must not select a physical storage profile.
         for (native, native_provenance) in [(false, false), (false, true), (true, true)] {
             let candidate = stage_path("preparation-geometry");
@@ -7370,20 +8114,35 @@ mod tests {
             selected.max_temp_bytes = 256 * 1024;
             let mut stage = if native {
                 KnowledgeStage::create_captured_native_snapshot(
-                    &candidate, selected, receipt, &owner, &quota,
-                    Arc::new(AtomicU64::new(0)), Arc::new(AtomicU64::new(0)),
-                    Arc::new(AtomicBool::new(false)), selected.sqlite.max_work_bytes,
+                    &candidate,
+                    selected,
+                    receipt,
+                    &owner,
+                    &quota,
+                    Arc::new(AtomicU64::new(0)),
+                    Arc::new(AtomicU64::new(0)),
+                    Arc::new(AtomicBool::new(false)),
+                    selected.sqlite.max_work_bytes,
                     Instant::now() + std::time::Duration::from_secs(60),
                 )
             } else {
                 KnowledgeStage::create(&candidate, selected, receipt, &owner, &quota)
-            }.unwrap();
-            stage.create_preparation_tables(crate::knowledge_stage::preparation_schema!(
-            table r#"preparation_fixture(id INTEGER PRIMARY KEY,payload BLOB NOT NULL)"#,
-            index r#"preparation_fixture_payload ON preparation_fixture(payload)"#
-        )).unwrap();
-            let page_size: u64 = stage.db().query_row("PRAGMA main.page_size", [], |r| r.get(0)).unwrap();
-            let pages: u64 = stage.db().query_row("PRAGMA main.max_page_count", [], |r| r.get(0)).unwrap();
+            }
+            .unwrap();
+            stage
+                .create_preparation_tables(crate::knowledge_stage::preparation_schema!(
+                    table r#"preparation_fixture(id INTEGER PRIMARY KEY,payload BLOB NOT NULL)"#,
+                    index r#"preparation_fixture_payload ON preparation_fixture(payload)"#
+                ))
+                .unwrap();
+            let page_size: u64 = stage
+                .db()
+                .query_row("PRAGMA main.page_size", [], |r| r.get(0))
+                .unwrap();
+            let pages: u64 = stage
+                .db()
+                .query_row("PRAGMA main.max_page_count", [], |r| r.get(0))
+                .unwrap();
             assert_eq!(page_size, if native { 16384 } else { 4096 });
             assert_eq!(page_size * pages, selected.sqlite.max_output_bytes);
             for (schema, expected) in [("main", !native), ("temp", native)] {
@@ -7426,22 +8185,36 @@ mod tests {
                 stage.create_preparation_tables(schema).unwrap();
                 for (location, present) in [("main", !native), ("temp", native)] {
                     for name in tables.iter().chain(indices) {
-                        let count: u64 = stage.db().query_row(
-                            &format!("SELECT count(*) FROM {location}.sqlite_schema WHERE name=?1"),
-                            [name], |row| row.get(0),
-                        ).unwrap();
+                        let count: u64 = stage
+                            .db()
+                            .query_row(
+                                &format!(
+                                    "SELECT count(*) FROM {location}.sqlite_schema WHERE name=?1"
+                                ),
+                                [name],
+                                |row| row.get(0),
+                            )
+                            .unwrap();
                         assert_eq!(count, u64::from(present), "{location}.{name}");
                     }
                 }
                 for table in tables {
-                    stage.db().execute_batch(&format!("DROP TABLE {table}")).unwrap();
+                    stage
+                        .db()
+                        .execute_batch(&format!("DROP TABLE {table}"))
+                        .unwrap();
                 }
             }
             if native {
-                let error = stage.with_connection(WritePhase::Normalized, |db| {
-                    db.execute("INSERT INTO preparation_fixture VALUES(1,zeroblob(1048576))", [])?;
-                    Ok(())
-                }).unwrap_err();
+                let error = stage
+                    .with_connection(WritePhase::Normalized, |db| {
+                        db.execute(
+                            "INSERT INTO preparation_fixture VALUES(1,zeroblob(1048576))",
+                            [],
+                        )?;
+                        Ok(())
+                    })
+                    .unwrap_err();
                 assert!(matches!(error, Error::SqlitePhase {
                     error: rusqlite::Error::SqliteFailure(code, _), ..
                 } if code.code == rusqlite::ErrorCode::DiskFull));

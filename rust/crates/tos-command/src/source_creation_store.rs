@@ -67,6 +67,8 @@ pub use object_link::{
 };
 #[path = "source_work_expression.rs"]
 mod work_expression;
+#[cfg(test)]
+pub(crate) use work_expression::owner_test_support as native_owner_test_support;
 pub use work_expression::{
     WorkExpressionPreparation, WorkExpressionPublication, WorkRecoveryDecision,
     execute_isolated_work_expression_from_captures, prepare_isolated_work_expression_from_proposal,

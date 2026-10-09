@@ -693,19 +693,33 @@ pub(crate) fn glob_match(pattern: &str, path: &str) -> bool {
             '[' => {
                 let start = i + 1;
                 let mut end = start;
-                if chars.get(end) == Some(&'!') { end += 1; }
-                if chars.get(end) == Some(&']') { end += 1; }
-                while end < chars.len() && chars[end] != ']' { end += 1; }
+                if chars.get(end) == Some(&'!') {
+                    end += 1;
+                }
+                if chars.get(end) == Some(&']') {
+                    end += 1;
+                }
+                while end < chars.len() && chars[end] != ']' {
+                    end += 1;
+                }
                 if end == chars.len() {
                     re.push_str("\\[");
                 } else {
                     re.push('[');
                     let mut at = start;
-                    if chars.get(at) == Some(&'!') { re.push('^'); at += 1; }
-                    for c in &chars[at..end] {
-                        if *c == '-' { re.push('-'); } else { re.push_str(&regex::escape(&c.to_string())); }
+                    if chars.get(at) == Some(&'!') {
+                        re.push('^');
+                        at += 1;
                     }
-                    re.push(']'); i = end;
+                    for c in &chars[at..end] {
+                        if *c == '-' {
+                            re.push('-');
+                        } else {
+                            re.push_str(&regex::escape(&c.to_string()));
+                        }
+                    }
+                    re.push(']');
+                    i = end;
                 }
             }
 

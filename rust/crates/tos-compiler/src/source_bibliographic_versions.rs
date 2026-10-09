@@ -268,7 +268,9 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 .source()
                 .path_presence(path.as_str(), i.deadline(l), i.cancelled())
                 .map(|v| v == Some(tos_source_store::SourcePresenceV1::File))
-                .map_err(|error| crate::source_bibliographic_source::candidate_input_refusal(error)),
+                .map_err(|error| {
+                    crate::source_bibliographic_source::candidate_input_refusal(error)
+                }),
         }
     }
     pub(crate) fn visit_members(
@@ -340,7 +342,9 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                                 tos_validation::item_rules::ItemRefusal::Source(e.to_string())
                             })
                     })
-                    .map_err(|error| crate::source_bibliographic_source::candidate_input_refusal(error))?;
+                    .map_err(|error| {
+                        crate::source_bibliographic_source::candidate_input_refusal(error)
+                    })?;
                 if &coverage != i.coverage()
                     || observed_count != coverage.member_count()
                     || observed_count != coverage.membership().count
@@ -352,7 +356,9 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                 }
                 i.source()
                     .verify_current_fence(&coverage, i.deadline(l), i.cancelled())
-                    .map_err(|error| crate::source_bibliographic_source::candidate_input_refusal(error))?;
+                    .map_err(|error| {
+                        crate::source_bibliographic_source::candidate_input_refusal(error)
+                    })?;
             }
         }
         Ok(())
@@ -411,7 +417,9 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                         })
                         .map_err(|e| tos_validation::item_rules::ItemRefusal::Source(e.to_string()))
                 })
-                .map_err(|error| crate::source_bibliographic_source::candidate_input_refusal(error)),
+                .map_err(|error| {
+                    crate::source_bibliographic_source::candidate_input_refusal(error)
+                }),
         }
     }
     pub(crate) fn read(
@@ -508,7 +516,9 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
                                 })
                         },
                     )
-                    .map_err(|error| crate::source_bibliographic_source::candidate_input_refusal(error))?;
+                    .map_err(|error| {
+                        crate::source_bibliographic_source::candidate_input_refusal(error)
+                    })?;
                 result.ok_or(Error::Invalid(
                     "candidate bibliographic raw callback absent",
                 ))

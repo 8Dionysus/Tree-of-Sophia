@@ -23,30 +23,57 @@ pub(crate) struct HeaderCounts {
     cross_layer: u64,
 }
 impl HeaderCounts {
-    pub(crate) fn observe(&mut self, kind: usize, source: &str, value: &Value,
-                         state: Option<&CreationState<'_>>) -> Result<()> {
+    pub(crate) fn observe(
+        &mut self,
+        kind: usize,
+        source: &str,
+        value: &Value,
+        state: Option<&CreationState<'_>>,
+    ) -> Result<()> {
         let inc = |map: &mut BTreeMap<String, u64>, key: &str| -> Result<()> {
-            if let Some(state) = state { increment_count(map, key, state) }
-            else {
+            if let Some(state) = state {
+                increment_count(map, key, state)
+            } else {
                 let count = map.entry(key.to_owned()).or_default();
                 *count = count.checked_add(1).ok_or(Error::Budget("header count"))?;
                 Ok(())
             }
         };
-        self.rows[kind] = self.rows[kind].checked_add(1).ok_or(Error::Budget("header rows"))?;
-        if kind == 0 { inc(&mut self.sources, source)?; }
-        else if source == "semantic-interchange" {
-            self.cross_layer = self.cross_layer.checked_add(1).ok_or(Error::Budget("header cross-layer count"))?;
+        self.rows[kind] = self.rows[kind]
+            .checked_add(1)
+            .ok_or(Error::Budget("header rows"))?;
+        if kind == 0 {
+            inc(&mut self.sources, source)?;
+        } else if source == "semantic-interchange" {
+            self.cross_layer = self
+                .cross_layer
+                .checked_add(1)
+                .ok_or(Error::Budget("header cross-layer count"))?;
         }
-        let display_key = if kind == 0 { "summary_state" } else { "explanation_state" };
-        let display = value["display"][display_key].as_str()
+        let display_key = if kind == 0 {
+            "summary_state"
+        } else {
+            "explanation_state"
+        };
+        let display = value["display"][display_key]
+            .as_str()
             .ok_or(Error::Invalid("public D1 display state"))?;
         inc(&mut self.states[kind], display)?;
-        let mapping = if kind == 0 { "type_mapping" } else { "predicate_mapping" };
+        let mapping = if kind == 0 {
+            "type_mapping"
+        } else {
+            "predicate_mapping"
+        };
         self.mapped[kind] += u64::from(value[mapping]["status"] == "mapped");
-        let availability = if kind == 0 { "source_summary_available" } else { "source_explanation_available" };
+        let availability = if kind == 0 {
+            "source_summary_available"
+        } else {
+            "source_explanation_available"
+        };
         self.missing[kind] += u64::from(value["display"]["provenance"][availability] == false);
-        if let Some(state) = state { state.charge_work(source.len() + display.len() + 32)?; }
+        if let Some(state) = state {
+            state.charge_work(source.len() + display.len() + 32)?;
+        }
         Ok(())
     }
 }
@@ -61,12 +88,18 @@ impl ValidatedGraphSemantics {
         if counts.rows != [roots.nodes, roots.relations] {
             return Err(Error::Invalid("semantic header row coverage"));
         }
-        Ok(Self { report, counts, roots })
+        Ok(Self {
+            report,
+            counts,
+            roots,
+        })
     }
     fn counts_for(&self, roots: &CoreRoots) -> Result<&HeaderCounts> {
-        if self.roots.nodes != roots.nodes || self.roots.relations != roots.relations
+        if self.roots.nodes != roots.nodes
+            || self.roots.relations != roots.relations
             || self.roots.node_sha256 != roots.node_sha256
-            || self.roots.relation_sha256 != roots.relation_sha256 {
+            || self.roots.relation_sha256 != roots.relation_sha256
+        {
             return Err(Error::Invalid("semantic header graph changed"));
         }
         Ok(&self.counts)
@@ -160,7 +193,14 @@ fn build_public_header_captured(
         return Err(Error::Invalid("public D1 entity registry bytes"));
     }
     let roots = stage.core_roots()?;
-    let HeaderCounts { sources, states, mapped, missing, cross_layer, .. } = semantics.counts_for(&roots)?;
+    let HeaderCounts {
+        sources,
+        states,
+        mapped,
+        missing,
+        cross_layer,
+        ..
+    } = semantics.counts_for(&roots)?;
     let entity: Value = serde_json::from_slice(entity_bytes)
         .map_err(|_| Error::Invalid("public D1 entity registry JSON"))?;
     let definitions = entity["property_definitions"]
@@ -271,7 +311,8 @@ fn build_owned_header(
     if source_revision.len() != 64
         || !source_revision.bytes().all(|b| b.is_ascii_hexdigit())
         || semantics.report.get("valid") != Some(&Value::Bool(true))
-        || !semantics.report
+        || !semantics
+            .report
             .get("violations")
             .and_then(Value::as_array)
             .is_some_and(Vec::is_empty)
@@ -284,7 +325,14 @@ fn build_owned_header(
         return Err(Error::Invalid("public D1 entity registry bytes"));
     }
     let roots = stage.core_roots()?;
-    let HeaderCounts { sources, states, mapped, missing, cross_layer, .. } = semantics.counts_for(&roots)?;
+    let HeaderCounts {
+        sources,
+        states,
+        mapped,
+        missing,
+        cross_layer,
+        ..
+    } = semantics.counts_for(&roots)?;
     let entity_limits = tos_foundation::JsonLimits::new(4 * 1024 * 1024, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("owned header registry JSON"))?;
     let properties = state.with_serde_owned_with_limits(entity_bytes, entity_limits, |entity| {
@@ -408,18 +456,32 @@ mod tests {
             "display":{"explanation_state":"missing","provenance":{"source_explanation_available":false}},
             "predicate_mapping":{"status":"unmapped"}
         }), None).unwrap();
-        assert_eq!(counts.sources, BTreeMap::from([("alpha".into(), 2), ("beta".into(), 1)]));
+        assert_eq!(
+            counts.sources,
+            BTreeMap::from([("alpha".into(), 2), ("beta".into(), 1)])
+        );
         assert_eq!(counts.states[0].get("source"), Some(&3));
         assert_eq!(counts.states[1].get("missing"), Some(&1));
         assert_eq!(counts.mapped, [3, 0]);
         assert_eq!(counts.missing, [0, 1]);
         assert_eq!(counts.cross_layer, 1);
-        let mut roots = CoreRoots { nodes:3, relations:1, node_sha256:"a".repeat(64), relation_sha256:"b".repeat(64) };
-        let validated = ValidatedGraphSemantics::new(json!({"valid":true,"gaps":[]}), counts, roots.clone()).unwrap();
+        let mut roots = CoreRoots {
+            nodes: 3,
+            relations: 1,
+            node_sha256: "a".repeat(64),
+            relation_sha256: "b".repeat(64),
+        };
+        let validated =
+            ValidatedGraphSemantics::new(json!({"valid":true,"gaps":[]}), counts, roots.clone())
+                .unwrap();
         assert!(validated.counts_for(&roots).is_ok());
         roots.node_sha256 = "c".repeat(64);
         assert!(validated.counts_for(&roots).is_err());
         assert!(ValidatedGraphSemantics::new(json!({}), HeaderCounts::default(), roots).is_err());
-        assert!(HeaderCounts::default().observe(0, "alpha", &json!({}), None).is_err());
+        assert!(
+            HeaderCounts::default()
+                .observe(0, "alpha", &json!({}), None)
+                .is_err()
+        );
     }
 }

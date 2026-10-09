@@ -940,7 +940,18 @@ pub(crate) fn page_with_layout(
 ) -> Result<CorpusOriginalPage> {
     let mut decode_work = 0;
     let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?;
-    page_with_layout_and_work(db, collection, selector, after, max_rows, max_row_bytes, max_page_bytes, layout, &mut decode_work, work_cap)
+    page_with_layout_and_work(
+        db,
+        collection,
+        selector,
+        after,
+        max_rows,
+        max_row_bytes,
+        max_page_bytes,
+        layout,
+        &mut decode_work,
+        work_cap,
+    )
 }
 fn page_with_layout_and_work(
     db: &Connection,
@@ -978,7 +989,15 @@ fn page_with_layout_and_work(
     values.push(rusqlite::types::Value::Integer(max_rows as i64));
     let mut q = db.prepare(&sql)?;
     let mut scan = q.query(params_from_iter(values))?;
-    let (rows, bytes) = crate::knowledge_original_rows::read(db, &mut scan, max_page_bytes, max_row_bytes, layout, decode_work, work_cap)?;
+    let (rows, bytes) = crate::knowledge_original_rows::read(
+        db,
+        &mut scan,
+        max_page_bytes,
+        max_row_bytes,
+        layout,
+        decode_work,
+        work_cap,
+    )?;
     let next_ordinal = if rows.len() == max_rows {
         rows.last().map(|r| r.0 as u64)
     } else {
@@ -1076,7 +1095,14 @@ pub(crate) fn all_row_with_state_budget_and_layout(
     let mut decode_work = 0;
     let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?;
     let raw = crate::knowledge_original_rows::decode_packet_from_connection(
-        Some(db), borrowed, size as usize, max_row_bytes, raw_available, layout, &mut decode_work, work_cap,
+        Some(db),
+        borrowed,
+        size as usize,
+        max_row_bytes,
+        raw_available,
+        layout,
+        &mut decode_work,
+        work_cap,
     )?;
     crate::knowledge_original_rows::charge_decode_work(&mut decode_work, work_cap, raw.len())?;
     if digest != Digest256::of_bytes(&raw).as_bytes() {
@@ -1331,7 +1357,9 @@ pub(crate) fn verify_stage(
                 |r| r.get(0),
             )?;
             if abi
-                != layout.carrier_model_abi().unwrap_or(KNOWLEDGE_CORPUS_MODEL_ABI)
+                != layout
+                    .carrier_model_abi()
+                    .unwrap_or(KNOWLEDGE_CORPUS_MODEL_ABI)
                 || sha != r.descriptor_sha256
             {
                 return Err(Error::Invalid("corpus finish ABI/descriptor"));
@@ -1350,8 +1378,13 @@ pub(crate) fn verify(
     let found = present(db)?;
     if found != e.corpus_original_root_sha256.is_some()
         || found
-            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2]
-                .contains(&e.model_abi.as_str()))
+            != ([
+                KNOWLEDGE_CORPUS_MODEL_ABI,
+                KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+            ]
+            .contains(&e.model_abi.as_str()))
     {
         return Err(Error::Invalid("corpus original ABI/expected presence"));
     }
@@ -1626,10 +1659,7 @@ fn verify_rows_owned(
                     .map_err(owned_schema_sql_error)?
                     .as_blob()
                     .map_err(|_| Error::Invalid("original packet column type"))?;
-                if ordinal < 0
-                    || ordinal as u64 != n
-                    || declared > l.max_row_bytes as u64
-                {
+                if ordinal < 0 || ordinal as u64 != n || declared > l.max_row_bytes as u64 {
                     return Err(Error::Invalid("corpus original ordinal/length coverage"));
                 }
                 let mut index = [None; 7];
@@ -1659,58 +1689,65 @@ fn verify_rows_owned(
                         .checked_add(index[i].map_or(0, str::len))
                         .ok_or(Error::Budget("corpus original key bytes"))?;
                 }
-                layout.with_sql_decoded(db, state, raw, Some(declared as usize), l.max_row_bytes, |raw| {
-                let row_work = (raw.len() as u64)
-                    .checked_add(40)
-                    .ok_or(Error::Budget("corpus original row work"))?;
-                *work = work
-                    .checked_add(row_work)
-                    .filter(|n| *n <= cap)
-                    .ok_or(Error::Budget("corpus original cold work"))?;
-                state.charge_work(
-                    raw.len()
-                        .checked_mul(2)
-                        .and_then(|n| n.checked_add(40))
-                        .ok_or(Error::Budget("corpus original hash work"))?,
-                )?;
-                if Digest256::of_bytes(raw).as_bytes() != &digest {
-                    return Err(Error::Invalid("corpus original packet digest differs"));
-                }
-                let _header_digest = state.hold(64)?;
-                with_values(raw, l.max_row_bytes, Some(state), |v| {
-                    if collection == CorpusOriginalCollection::Header {
-                        if !v.is_object()
-                            || v["schema_version"] != "tos_corpus_index_v1"
-                            || Digest256::from_bytes(digest).to_hex() != r.header_sha256
-                            || CorpusOriginalCollection::ROWS
-                                .iter()
-                                .any(|c| v.get(c.as_str()).is_some())
-                            || v.get("source_navigation").is_some()
-                        {
-                            return Err(Error::Invalid("corpus detached original header"));
+                layout.with_sql_decoded(
+                    db,
+                    state,
+                    raw,
+                    Some(declared as usize),
+                    l.max_row_bytes,
+                    |raw| {
+                        let row_work = (raw.len() as u64)
+                            .checked_add(40)
+                            .ok_or(Error::Budget("corpus original row work"))?;
+                        *work = work
+                            .checked_add(row_work)
+                            .filter(|n| *n <= cap)
+                            .ok_or(Error::Budget("corpus original cold work"))?;
+                        state.charge_work(
+                            raw.len()
+                                .checked_mul(2)
+                                .and_then(|n| n.checked_add(40))
+                                .ok_or(Error::Budget("corpus original hash work"))?,
+                        )?;
+                        if Digest256::of_bytes(raw).as_bytes() != &digest {
+                            return Err(Error::Invalid("corpus original packet digest differs"));
                         }
-                    } else {
-                        order_item(&mut hash, n, raw);
-                    }
-                    if index != indexed_fields(collection, v)? {
-                        return Err(Error::Invalid("corpus original lookup binding"));
-                    }
-                    Ok(())
-                })?;
-                total = total
-                    .checked_add(raw.len() as u64)
-                    .filter(|n| *n <= l.max_total_bytes)
-                    .ok_or(Error::Budget("corpus original cold bytes"))?;
-                all = all
-                    .checked_add(1)
-                    .filter(|n| *n <= l.max_rows)
-                    .ok_or(Error::Budget("corpus original cold rows"))?;
-                n = n
-                    .checked_add(1)
-                    .filter(|n| *n <= target)
-                    .ok_or(Error::Invalid("corpus excess rows"))?;
-                Ok(())
-                })?;
+                        let _header_digest = state.hold(64)?;
+                        with_values(raw, l.max_row_bytes, Some(state), |v| {
+                            if collection == CorpusOriginalCollection::Header {
+                                if !v.is_object()
+                                    || v["schema_version"] != "tos_corpus_index_v1"
+                                    || Digest256::from_bytes(digest).to_hex() != r.header_sha256
+                                    || CorpusOriginalCollection::ROWS
+                                        .iter()
+                                        .any(|c| v.get(c.as_str()).is_some())
+                                    || v.get("source_navigation").is_some()
+                                {
+                                    return Err(Error::Invalid("corpus detached original header"));
+                                }
+                            } else {
+                                order_item(&mut hash, n, raw);
+                            }
+                            if index != indexed_fields(collection, v)? {
+                                return Err(Error::Invalid("corpus original lookup binding"));
+                            }
+                            Ok(())
+                        })?;
+                        total = total
+                            .checked_add(raw.len() as u64)
+                            .filter(|n| *n <= l.max_total_bytes)
+                            .ok_or(Error::Budget("corpus original cold bytes"))?;
+                        all = all
+                            .checked_add(1)
+                            .filter(|n| *n <= l.max_rows)
+                            .ok_or(Error::Budget("corpus original cold rows"))?;
+                        n = n
+                            .checked_add(1)
+                            .filter(|n| *n <= target)
+                            .ok_or(Error::Invalid("corpus excess rows"))?;
+                        Ok(())
+                    },
+                )?;
             }
             Ok(())
         })?;
@@ -1818,8 +1855,13 @@ pub(crate) fn verify_with_owned_state(
     let found = present_with_state(db, state)?;
     if found != e.corpus_original_root_sha256.is_some()
         || found
-            != ([KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1, tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2]
-                .contains(&e.model_abi.as_str()))
+            != ([
+                KNOWLEDGE_CORPUS_MODEL_ABI,
+                KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+            ]
+            .contains(&e.model_abi.as_str()))
     {
         return Err(Error::Invalid("corpus original ABI/expected presence"));
     }

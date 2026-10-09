@@ -869,14 +869,16 @@ fn bounded_graph<'a>(
             ids.insert(id);
         }
     }
-    Ok((
-        nodes
-            .iter()
-            .copied()
-            .filter(|n| ids.contains(s(get(n, "node_id"))))
-            .collect(),
-        selected_edges,
-    ))
+    let mut emitted_nodes = BTreeSet::new();
+    let selected_nodes = nodes
+        .iter()
+        .copied()
+        .filter(|node| {
+            let id = s(get(node, "node_id"));
+            ids.contains(id) && emitted_nodes.insert(id)
+        })
+        .collect();
+    Ok((selected_nodes, selected_edges))
 }
 fn bounded_clusters(
     clusters: &[&JsonValue],

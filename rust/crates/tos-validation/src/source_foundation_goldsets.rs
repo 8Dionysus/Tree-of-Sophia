@@ -1208,9 +1208,12 @@ fn inspect_source_foundation_goldset_root(
         let generator_digest = generator.get("sha256").and_then(Value::as_str);
         // The receipt binds a retained historical generator, not whichever
         // implementation is currently installed at the old entrypoint.
-        let generator_matches = if let (Some(reference), Some(digest)) = (generator_ref, generator_digest) {
-            checks.recorded_digest_matches(reference, digest)?
-        } else { false };
+        let generator_matches =
+            if let (Some(reference), Some(digest)) = (generator_ref, generator_digest) {
+                checks.recorded_digest_matches(reference, digest)?
+            } else {
+                false
+            };
         if !generator_matches {
             checks.issue(
                 &receipt.path,

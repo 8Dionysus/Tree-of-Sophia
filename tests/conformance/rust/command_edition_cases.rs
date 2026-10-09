@@ -3,7 +3,6 @@
 use super::*;
 use serde_json::json;
 use std::os::unix::fs::PermissionsExt;
-use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
@@ -27,97 +26,7 @@ for ref in implementations:
 note=case.expression_path.with_name('unrelated-note.txt');note.write_bytes(b'unchanged unrelated note\n')
 print(json.dumps({'config':case.config,'proposal':case.proposal(),'origin_claim':case.origin_request['claim'],'implementations':implementations,'owner':str(case.owner),'edition_ref':case.expression_ref,'work_ref':case.config['work_source_path'],'origin_ref':case.expression_path.with_name('source-claims.jsonl').relative_to(root).as_posix()},ensure_ascii=False))
 "#;
-const UPDATE: &str = r#"
-import json,sys
-from pathlib import Path
-repository,root,unused=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_edition_commands as fixture
-case=fixture.NativeEditionTests(methodName='runTest');case.root=root
-import test_source_expression_commands as origin_fixture
-case.origin=origin_fixture.NativeExpressionTests(methodName='runTest');case.origin.root=root
-case.origin.work_ref='ToS/source-witnesses/works/synthetic/parent/work.json';case.origin.work_path=root/case.origin.work_ref
-case.expression_ref=json.loads((root/'edition-owner.json').read_bytes())['expression_source_path']
-case.expression_path=root/case.expression_ref;case.owner=root/'edition-owner.json'
-case.config=json.loads(case.owner.read_bytes());case.expression=json.loads(case.expression_path.read_bytes())
-case.extra_records=[];case.extra_claims=[]
 
-action=json.load(sys.stdin)
-if action['action']=='next':
-    case.origin_request={'claim':action['origin_claim']}
-    case.select_child('second');case.owner.chmod(0o600)
-    print(json.dumps({'config':case.config,'proposal':case.proposal()}))
-elif action['action']=='rebuild':
-    case.rebuild();print('{}')
-elif action['action']=='crash':
-    pending=case.crash(action['request'])
-    case.config['allowed_operations']=[fixture.edition.RECOVERY]
-    case.config['principal_id']='model:synthetic-recoverer'
-    case.owner.write_text(json.dumps(case.config));case.owner.chmod(0o600)
-    print(json.dumps({'config':case.config,'request':case.recovery(pending,action['decision'])}))
-"#;
-fn python(
-    repository: &Path,
-    root: &Path,
-    recovery: &Path,
-    script: &str,
-    input: Option<&Value>,
-    deadline: Instant,
-) -> Value {
-    use std::io::{Read, Seek, SeekFrom, Write};
-    let mut stdin = tempfile::tempfile().unwrap();
-    if let Some(input) = input {
-        stdin
-            .write_all(&serde_json::to_vec(input).unwrap())
-            .unwrap();
-    }
-    stdin.seek(SeekFrom::Start(0)).unwrap();
-    let mut stdout = tempfile::tempfile().unwrap();
-    let mut stderr = tempfile::tempfile().unwrap();
-    let python =
-        std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter");
-    let mut child = Command::new(python)
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .arg(recovery)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdin(Stdio::from(stdin))
-        .stdout(Stdio::from(stdout.try_clone().unwrap()))
-        .stderr(Stdio::from(stderr.try_clone().unwrap()))
-        .spawn()
-        .unwrap();
-    let step = deadline.min(Instant::now() + Duration::from_secs(60));
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= step
-            || stdout.metadata().unwrap().len() > 1_048_576
-            || stderr.metadata().unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Edition fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    stdout.seek(SeekFrom::Start(0)).unwrap();
-    stderr.seek(SeekFrom::Start(0)).unwrap();
-    let mut raw = Vec::new();
-    let mut errors = Vec::new();
-    stdout.read_to_end(&mut raw).unwrap();
-    stderr.read_to_end(&mut errors).unwrap();
-    assert!(
-        status.success(),
-        "Edition fixture {}",
-        String::from_utf8_lossy(&errors)
-    );
-    assert!(Instant::now() < step && raw.len() <= 1_048_576 && errors.len() <= 1_048_576);
-    serde_json::from_slice(&raw).unwrap()
-}
 fn cli(
     repository: &Path,
     owner: &Path,
@@ -164,6 +73,48 @@ fn prepared_request(preview: &Value, id: &str) -> Value {
     request
 }
 
+fn second_identifier(value: &str) -> String {
+    value.replace(".first", ".second")
+}
+
+fn second_claim_form(value: &str) -> String {
+    value.replace(".first.", ".second.")
+}
+
+fn second_edition_fixture(config: &Value, proposal: &Value) -> (Value, Value) {
+    let mut config = config.clone();
+    let mut proposal = proposal.clone();
+    let old_edition = config["edition_id"].as_str().unwrap().to_owned();
+    let old_edition_path = config["edition_source_path"].as_str().unwrap().to_owned();
+    let old_claim = config["claim_id"].as_str().unwrap().to_owned();
+    let old_event = config["provenance_event_id"].as_str().unwrap().to_owned();
+    let old_edition_form = config["allowed_edition_form_ids"][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let old_claim_form = config["allowed_claim_form_ids"][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let replacements = vec![
+        (old_edition.clone(), second_identifier(&old_edition)),
+        (
+            old_edition_path.clone(),
+            old_edition_path.replace("/editions/first/", "/editions/second/"),
+        ),
+        (old_claim.clone(), second_identifier(&old_claim)),
+        (old_event.clone(), second_identifier(&old_event)),
+        (
+            old_edition_form.clone(),
+            second_claim_form(&old_edition_form),
+        ),
+        (old_claim_form.clone(), second_claim_form(&old_claim_form)),
+    ];
+    super::command_collection_cases::replace_json_values_for_sibling(&mut config, &replacements);
+    super::command_collection_cases::replace_json_values_for_sibling(&mut proposal, &replacements);
+    (config, proposal)
+}
+
 #[test]
 fn native_edition_cli_preserves_topology_cold_replay_and_retained_recovery() {
     let repository = super::validation_cut_cases::repository()
@@ -171,7 +122,7 @@ fn native_edition_cli_preserves_topology_cold_replay_and_retained_recovery() {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);
-    for decision in [None, Some("resume")] {
+    for _ in [()] {
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
@@ -209,8 +160,8 @@ fn native_edition_cli_preserves_topology_cold_replay_and_retained_recovery() {
                 && authored.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024
         );
         let mut capture_files = authored.clone();
-        for reference in &native_owner_paths {
-            let reference = *reference;
+        for reference in fixture["implementations"].as_array().unwrap() {
+            let reference = reference.as_str().unwrap();
             assert!(
                 capture_files
                     .insert(
@@ -260,161 +211,110 @@ fn native_edition_cli_preserves_topology_cold_replay_and_retained_recovery() {
         );
         assert_eq!(fs::read(&edition).unwrap(), before);
         let request = prepared_request(&preview, "native-edition-first");
-        if let Some(decision) = decision {
-            let renewal = python(
-                &repository,
-                isolated.path(),
-                isolated.path(),
-                UPDATE,
-                Some(&json!({"action":"crash","request":request,"decision":decision})),
-                deadline,
+        // Owner-specific interrupted publication is exercised by the in-crate WorkCorpusFence tests.
+
+        let mut bad = fixture["proposal"].clone();
+        bad["record"]["embodies_expression_refs"] = json!([]);
+        cli(&repository, &owner, &invocation_path, &bad, false, deadline);
+        let result = cli(
+            &repository,
+            &owner,
+            &invocation_path,
+            &request,
+            true,
+            deadline,
+        );
+        assert_eq!(result["replayed"], json!(false));
+        assert_eq!(result["grants_admission"], json!(false));
+        let forms: Value = serde_json::from_slice(&fs::read(&forms_path).unwrap()).unwrap();
+        assert_eq!(forms["prior_forms"], prior_forms["forms"]);
+        for group in result["materializations"].as_object().unwrap().values() {
+            assert!(
+                group
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|view| view["state"] == "ready")
             );
-            let result = cli(
-                &repository,
-                &owner,
-                &invocation_path,
-                &renewal["request"],
-                true,
-                deadline,
-            );
-            assert_eq!(result["recovery"]["committed"], json!(decision == "resume"));
-            assert_eq!(
-                result["recovery"]["publication"]["recovery_authorization"]["principal_id"],
-                json!("model:synthetic-recoverer")
-            );
-            assert_eq!(result["receipt"]["principal_id"], json!("model:synthetic"));
-            let parent: Value = serde_json::from_slice(&fs::read(&edition).unwrap()).unwrap();
-            assert_eq!(
-                parent["embodiment_claim_refs"],
-                json!([fixture["config"]["claim_id"]])
-            );
-        } else {
-            let mut bad = fixture["proposal"].clone();
-            bad["record"]["embodies_expression_refs"] = json!([]);
-            cli(&repository, &owner, &invocation_path, &bad, false, deadline);
-            let result = cli(
+        }
+        assert_eq!(
+            result["source_profiles"]["embodied_by"]["relation_type_id"],
+            json!("tos.relation.embodied-by")
+        );
+        let claim_path = isolated
+            .path()
+            .join(fixture["config"]["edition_source_path"].as_str().unwrap());
+        let claim_path = claim_path.with_file_name("source-claims.jsonl");
+        let claim_before = fs::read(&claim_path).unwrap();
+        let after = super::command_work_cases::authored_work_files(isolated.path());
+        fixture_bounds(&after);
+        let current =
+            super::validation_cut_cases::write_cut_store_on_base(&after, &store, Some(selected));
+        invocation["source_revision"] = json!(current.0.to_prefixed());
+        invocation["original_source_revision"] = json!(selected.0.to_prefixed());
+        freeze_invocation(&invocation_path, &invocation);
+        assert_eq!(
+            cli(
                 &repository,
                 &owner,
                 &invocation_path,
                 &request,
                 true,
-                deadline,
-            );
-            assert_eq!(result["replayed"], json!(false));
-            assert_eq!(result["grants_admission"], json!(false));
-            let forms: Value = serde_json::from_slice(&fs::read(&forms_path).unwrap()).unwrap();
-            assert_eq!(forms["prior_forms"], prior_forms["forms"]);
-            for group in result["materializations"].as_object().unwrap().values() {
-                assert!(
-                    group
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .all(|view| view["state"] == "ready")
-                );
-            }
-            assert_eq!(
-                result["source_profiles"]["embodied_by"]["relation_type_id"],
-                json!("tos.relation.embodied-by")
-            );
-            let claim_path = isolated
-                .path()
-                .join(fixture["config"]["edition_source_path"].as_str().unwrap());
-            let claim_path = claim_path.with_file_name("source-claims.jsonl");
-            let claim_before = fs::read(&claim_path).unwrap();
-            python(
-                &repository,
-                isolated.path(),
-                isolated.path(),
-                UPDATE,
-                Some(&json!({"action":"rebuild"})),
-                deadline,
-            );
-            let after = super::command_work_cases::authored_work_files(isolated.path());
-            fixture_bounds(&after);
-            let current = super::validation_cut_cases::write_cut_store_on_base(
-                &after,
-                &store,
-                Some(selected),
-            );
-            invocation["source_revision"] = json!(current.0.to_prefixed());
-            invocation["original_source_revision"] = json!(selected.0.to_prefixed());
-            freeze_invocation(&invocation_path, &invocation);
-            assert_eq!(
-                cli(
-                    &repository,
-                    &owner,
-                    &invocation_path,
-                    &request,
-                    true,
-                    deadline
-                )["replayed"],
-                json!(true)
-            );
-            let next = python(
-                &repository,
-                isolated.path(),
-                isolated.path(),
-                UPDATE,
-                Some(&json!({"action":"next","origin_claim":fixture["origin_claim"]})),
-                deadline,
-            );
-            invocation["original_source_revision"] = Value::Null;
-            freeze_invocation(&invocation_path, &invocation);
-            let next_preview = cli(
-                &repository,
-                &owner,
-                &invocation_path,
-                &next["proposal"],
-                true,
-                deadline,
-            );
-            let next_request = prepared_request(&next_preview, "native-edition-second");
+                deadline
+            )["replayed"],
+            json!(true)
+        );
+        let (next_config, next_proposal) =
+            second_edition_fixture(&fixture["config"], &fixture["proposal"]);
+        freeze_invocation(&owner, &next_config);
+        invocation["original_source_revision"] = Value::Null;
+        freeze_invocation(&invocation_path, &invocation);
+        let next_preview = cli(
+            &repository,
+            &owner,
+            &invocation_path,
+            &next_proposal,
+            true,
+            deadline,
+        );
+        let next_request = prepared_request(&next_preview, "native-edition-second");
+        cli(
+            &repository,
+            &owner,
+            &invocation_path,
+            &next_request,
+            true,
+            deadline,
+        );
+        let parent: Value = serde_json::from_slice(&fs::read(&edition).unwrap()).unwrap();
+        assert_eq!(
+            parent["embodiment_claim_refs"],
+            json!([fixture["config"]["claim_id"], next_config["claim_id"]])
+        );
+        assert_eq!(fs::read(&claim_path).unwrap(), claim_before);
+        let final_files = super::command_work_cases::authored_work_files(isolated.path());
+        fixture_bounds(&final_files);
+        let final_revision = super::validation_cut_cases::write_cut_store_on_base(
+            &final_files,
+            &store,
+            Some(current),
+        );
+        invocation["source_revision"] = json!(final_revision.0.to_prefixed());
+        invocation["original_source_revision"] = json!(selected.0.to_prefixed());
+        freeze_invocation(&owner, &fixture["config"]);
+        freeze_invocation(&invocation_path, &invocation);
+        assert_eq!(
             cli(
                 &repository,
                 &owner,
                 &invocation_path,
-                &next_request,
+                &request,
                 true,
-                deadline,
-            );
-            let parent: Value = serde_json::from_slice(&fs::read(&edition).unwrap()).unwrap();
-            assert_eq!(
-                parent["embodiment_claim_refs"],
-                json!([fixture["config"]["claim_id"], next["config"]["claim_id"]])
-            );
-            assert_eq!(fs::read(&claim_path).unwrap(), claim_before);
-            python(
-                &repository,
-                isolated.path(),
-                isolated.path(),
-                UPDATE,
-                Some(&json!({"action":"rebuild"})),
-                deadline,
-            );
-            let final_files = super::command_work_cases::authored_work_files(isolated.path());
-            fixture_bounds(&final_files);
-            let final_revision = super::validation_cut_cases::write_cut_store_on_base(
-                &final_files,
-                &store,
-                Some(current),
-            );
-            invocation["source_revision"] = json!(final_revision.0.to_prefixed());
-            invocation["original_source_revision"] = json!(selected.0.to_prefixed());
-            freeze_invocation(&owner, &fixture["config"]);
-            freeze_invocation(&invocation_path, &invocation);
-            assert_eq!(
-                cli(
-                    &repository,
-                    &owner,
-                    &invocation_path,
-                    &request,
-                    true,
-                    deadline
-                )["replayed"],
-                json!(true)
-            );
-        }
+                deadline
+            )["replayed"],
+            json!(true)
+        );
+
         assert_eq!(fs::read(&work).unwrap(), work_before);
         assert_eq!(fs::read(&note).unwrap(), note_before);
         assert_eq!(fs::read(&origin).unwrap(), origin_before);

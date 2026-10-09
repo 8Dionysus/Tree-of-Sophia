@@ -134,7 +134,6 @@ fn actual_cli_preserves_probe_owner_currentness_and_public_safety_diagnostics() 
         fs::write(path, payload).unwrap();
     };
 
-
     write(".agents/AGENTS.md", b"# Local owner\n");
     write(".agents/README.md", b"# Public entry\n");
     let mut source = manifest();
@@ -166,17 +165,31 @@ fn actual_cli_preserves_probe_owner_currentness_and_public_safety_diagnostics() 
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
     let command = || {
         let mut c = Command::new(&executable);
-        c.env_clear().env("PATH", "/usr/bin").arg("--repo-root").arg(&root)
-            .arg("--python").arg("/no-python-executable");
+        c.env_clear()
+            .env("PATH", "/usr/bin")
+            .arg("--repo-root")
+            .arg(&root)
+            .arg("--python")
+            .arg("/no-python-executable");
         c
     };
     let build = || {
         let out = command().arg("--agent-surface-build").output().unwrap();
-        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
     };
     let compare = || {
         let native = command().arg("--agent-surface-validate").output().unwrap();
-        assert_eq!(native.status.code(), Some(1), "{}{}", String::from_utf8_lossy(&native.stdout), String::from_utf8_lossy(&native.stderr));
+        assert_eq!(
+            native.status.code(),
+            Some(1),
+            "{}{}",
+            String::from_utf8_lossy(&native.stdout),
+            String::from_utf8_lossy(&native.stderr)
+        );
         String::from_utf8(native.stderr).unwrap()
     };
     write_manifest(&source);
@@ -368,7 +381,8 @@ fn actual_builder_preserves_nonempty_package_fixity_and_git_selection() {
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
     let compare = || -> Value {
         let native = Command::new(&executable)
-            .env_clear().env("PATH", "/usr/bin")
+            .env_clear()
+            .env("PATH", "/usr/bin")
             .arg("--repo-root")
             .arg(&root)
             .arg("--agent-surface-build")
@@ -383,7 +397,8 @@ fn actual_builder_preserves_nonempty_package_fixity_and_git_selection() {
         assert!(native.stderr.is_empty());
         let expected = fs::read(root.join(".agents/agent-surface.current.json")).unwrap();
         let checked = Command::new(&executable)
-            .env_clear().env("PATH", "/usr/bin")
+            .env_clear()
+            .env("PATH", "/usr/bin")
             .arg("--repo-root")
             .arg(&root)
             .arg("--agent-surface-build")
@@ -401,8 +416,14 @@ fn actual_builder_preserves_nonempty_package_fixity_and_git_selection() {
     assert_eq!(untracked["packages"][0]["companion_counts"]["assets"], 2);
     assert_eq!(untracked["package_inventory"]["skill_entrypoints"], 1);
     let before_ignored = untracked["packages"][0]["package_sha256"].clone();
-    write(".agents/skills/example/__pycache__/ignored.pyc", b"changed runtime cache");
-    write(".agents/skills/example/.deps/ignored.txt", b"changed runtime dependency");
+    write(
+        ".agents/skills/example/__pycache__/ignored.pyc",
+        b"changed runtime cache",
+    );
+    write(
+        ".agents/skills/example/.deps/ignored.txt",
+        b"changed runtime dependency",
+    );
     assert_eq!(compare()["packages"][0]["package_sha256"], before_ignored);
     assert!(
         Command::new("git")
@@ -548,15 +569,32 @@ fn external_kag_scope_requires_authored_routes_without_claiming_unselected_artif
     assert_eq!(check(&port), expected);
 }
 
-
 #[test]
 fn activation_and_description_parsing_keep_mapping_and_single_line_boundaries() {
-    use tos_ops_mechanics_plan::agent_surface::{boolean_scalar, policy_scalars, frontmatter_scalars, quoted_scalar_is_open};
-    assert!(boolean_scalar(Some("definitely-not-a-boolean"), "allow_implicit_invocation", "agents/openai.yaml").unwrap_err().to_string().contains("boolean literal"));
+    use tos_ops_mechanics_plan::agent_surface::{
+        boolean_scalar, frontmatter_scalars, policy_scalars, quoted_scalar_is_open,
+    };
+    assert!(
+        boolean_scalar(
+            Some("definitely-not-a-boolean"),
+            "allow_implicit_invocation",
+            "agents/openai.yaml"
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("boolean literal")
+    );
     for input in [
         "implicit_activation_policy: manual\npolicy:\n  implicit_activation_policy: invoke\n  allow_implicit_invocation: true\n",
         "policy:\n  implicit_activation_policy: invoke\n  allow_implicit_invocation: true\ndisplay:\n  implicit_activation_policy: manual\n  allow_implicit_invocation: false\n",
-    ] { assert!(policy_scalars(input,"agents/openai.yaml").unwrap_err().to_string().contains("immediate child of policy")); }
+    ] {
+        assert!(
+            policy_scalars(input, "agents/openai.yaml")
+                .unwrap_err()
+                .to_string()
+                .contains("immediate child of policy")
+        );
+    }
     assert!(frontmatter_scalars("metadata:\n  aoa_invocation_mode: explicit-only\nname: example\naoa_invocation_mode: explicit-preferred\n","SKILL.md").unwrap_err().to_string().contains("immediate child of metadata"));
     assert!(!quoted_scalar_is_open("'Nietzsche''s description'"));
     assert!(quoted_scalar_is_open("'Nietzsche''s description"));
@@ -564,5 +602,12 @@ fn activation_and_description_parsing_keep_mapping_and_single_line_boundaries() 
         "name: example\ndescription: >\n  This description is folded by YAML.\n",
         "description: 'The line ends with an escaped apostrophe ''\n  and continues physically.\n",
         "name: example\ndescription: \"first line\n  continuation line\n",
-    ] { assert!(frontmatter_scalars(input,"SKILL.md").unwrap_err().to_string().contains("multiline description")); }
+    ] {
+        assert!(
+            frontmatter_scalars(input, "SKILL.md")
+                .unwrap_err()
+                .to_string()
+                .contains("multiline description")
+        );
+    }
 }

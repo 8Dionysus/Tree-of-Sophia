@@ -180,9 +180,10 @@ fn selection_json(raw: &[u8], cap: usize, available_state: usize) -> Result<Json
         max_bytes: cap,
         ..state::METADATA_LIMITS
     };
-    let value = parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, available_state)
-        .map_err(|e| e.to_string())?
-        .into_root();
+    let value =
+        parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, available_state)
+            .map_err(|e| e.to_string())?
+            .into_root();
     let retained = value.retained_state_bytes().map_err(|e| e.to_string())?;
     let remainder = available_state
         .checked_sub(retained)
@@ -673,11 +674,7 @@ fn bootstrap(path: PathBuf, expected: Digest256, deadline: Instant) -> Result<Ve
     }
     held.raw(BOOTSTRAP_BYTES, &mut budget)
 }
-fn execute_prepare(
-    raw: &[u8],
-    original_ns: u64,
-    deadline: Instant,
-) -> Result<serde_json::Value> {
+fn execute_prepare(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<serde_json::Value> {
     const PREPARE_SCHEMA: &str = "tos_access_native_release_prepare_request_v1";
     let request = json(raw, BOOTSTRAP_BYTES, BOOTSTRAP_BYTES * 16)?;
     state::keys(
@@ -723,7 +720,11 @@ fn execute_prepare(
     if data_root.starts_with(&software_archive) || software_archive.starts_with(&data_root) {
         return Err("software archive and candidate data scopes overlap".into());
     }
-    let mut archive = Held::open(software_archive.clone(), limits.max_archive_bytes, &mut budget)?;
+    let mut archive = Held::open(
+        software_archive.clone(),
+        limits.max_archive_bytes,
+        &mut budget,
+    )?;
     budget.io(archive
         .stamp
         .2
@@ -748,8 +749,12 @@ fn execute_prepare(
     let running_image_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let mut running_image = Held::open(running_image_path, limits.max_image_bytes, &mut budget)?;
     let native_proof = field(verified_archive.manifest(), "native_access")?;
-    if running_image.stamp.2 != field(native_proof, "size_bytes")?.as_u64().ok_or("native image size absent")?
-        || running_image.digest != state::digest(native_proof, "sha256").map_err(|e| e.to_string())?
+    if running_image.stamp.2
+        != field(native_proof, "size_bytes")?
+            .as_u64()
+            .ok_or("native image size absent")?
+        || running_image.digest
+            != state::digest(native_proof, "sha256").map_err(|e| e.to_string())?
     {
         return Err("native archive does not contain this running release tool".into());
     }
@@ -933,8 +938,11 @@ fn execute_prepare(
 fn execute_status(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<serde_json::Value> {
     const STATUS_SCHEMA: &str = "tos_access_native_release_status_request_v1";
     let request = json(raw, BOOTSTRAP_BYTES, BOOTSTRAP_BYTES * 8)?;
-    state::keys(&request, &["schema_version", "work_deadline_ns", "release_root"])
-        .map_err(|e| e.to_string())?;
+    state::keys(
+        &request,
+        &["schema_version", "work_deadline_ns", "release_root"],
+    )
+    .map_err(|e| e.to_string())?;
     if text(&request, "schema_version")? != STATUS_SCHEMA
         || field(&request, "work_deadline_ns")?.as_u64() != Some(original_ns)
     {
@@ -970,13 +978,10 @@ fn execute_status(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<ser
             .ok_or("status request state overflow")?,
     )?;
     let root = absolute(text(&request, "release_root")?)?;
-    let mut charges = WriterCharges { budget: &mut budget };
-    let current = fs::current_release(
-        &root,
-        deadline,
-        BOOTSTRAP_BYTES,
-        &mut charges,
-    )?;
+    let mut charges = WriterCharges {
+        budget: &mut budget,
+    };
+    let current = fs::current_release(&root, deadline, BOOTSTRAP_BYTES, &mut charges)?;
     Ok(serde_json::json!({
         "schema_version":"tos_access_native_release_status_receipt_v1",
         "pair_id":current.pair_id,
@@ -1040,7 +1045,9 @@ fn execute_revoke(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<(St
     let digest = text(&request, "digest")?;
     let reason = text(&request, "reason")?;
     let owner_ref = text(&request, "owner_ref")?;
-    let mut charges = WriterCharges { budget: &mut budget };
+    let mut charges = WriterCharges {
+        budget: &mut budget,
+    };
     fs::revoke_digest(
         &root,
         kind,
@@ -1084,8 +1091,7 @@ fn execute(
         ]
     };
     state::keys(&request, expected_keys).map_err(|e| e.to_string())?;
-    if text(&request, "schema_version")?
-        != if rollback { ROLLBACK_SCHEMA } else { SCHEMA }
+    if text(&request, "schema_version")? != if rollback { ROLLBACK_SCHEMA } else { SCHEMA }
         || field(&request, "work_deadline_ns")?.as_u64() != Some(original_ns)
     {
         return Err("request schema/original monotonic deadline differs".into());
@@ -1114,133 +1120,138 @@ fn execute(
     )?;
     let release_root = absolute(text(&request, "release_root")?)?;
     let prefix = absolute(text(&request, "software_prefix")?)?;
-    let (pair, bindings, pair_raw, bindings_raw, expected_current, expected_manifest, expected_selection) =
-        if rollback {
-            let current = state::digest(&request, "expected_current")
-                .map_err(|e| e.to_string())?
-                .to_hex();
-            let target = {
-                let mut charges = WriterCharges { budget: &mut budget };
-                fs::previous_release(
-                    &release_root,
-                    &current,
-                    deadline,
-                    limits.max_metadata_bytes,
-                    &mut charges,
-                )?
+    let (
+        pair,
+        bindings,
+        pair_raw,
+        bindings_raw,
+        expected_current,
+        expected_manifest,
+        expected_selection,
+    ) = if rollback {
+        let current = state::digest(&request, "expected_current")
+            .map_err(|e| e.to_string())?
+            .to_hex();
+        let target = {
+            let mut charges = WriterCharges {
+                budget: &mut budget,
             };
-            if target.current != current {
-                return Err("rollback current release changed while selecting target".into());
-            }
-            let target_id = target.previous.clone();
-            let pair_raw = target.pair_raw;
-            let bindings_raw = target.bindings_raw;
-            let pair = json(
-                &pair_raw,
+            fs::previous_release(
+                &release_root,
+                &current,
+                deadline,
                 limits.max_metadata_bytes,
-                limits.max_state_bytes.saturating_sub(budget.state),
-            )?;
-            let bindings = json(
-                &bindings_raw,
-                limits.max_metadata_bytes,
-                limits.max_state_bytes.saturating_sub(budget.state),
-            )?;
-            let target_pair_id =
-                state::validate_release_pair(&pair, &pair_raw).map_err(|e| e.to_string())?;
-            state::validate_release_bindings(&bindings).map_err(|e| e.to_string())?;
-            if target_pair_id != target_id {
-                return Err("rollback selected pair differs from stored previous id".into());
-            }
-            budget.state(
-                pair_raw
-                    .len()
-                    .checked_add(bindings_raw.len())
-                    .and_then(|n| {
-                        n.checked_add(pair.retained_state_bytes().ok()?)
-                    })
-                    .and_then(|n| {
-                        n.checked_add(bindings.retained_state_bytes().ok()?)
-                    })
-                    .ok_or("rollback pair state plan overflow")?,
-            )?;
-            let data_root = absolute(text(&bindings, "data_root")?)?;
-            let expected_manifest =
-                state::digest(&pair, "data_manifest_sha256").map_err(|e| e.to_string())?;
-            let mut manifest = Held::open(
-                data_root.join("data/manifest.json"),
-                limits.max_metadata_bytes as u64,
-                &mut budget,
-            )?;
-            if manifest.digest != expected_manifest {
-                return Err("rollback previous manifest differs from stored pair".into());
-            }
-            let manifest_raw = manifest.raw(limits.max_metadata_bytes, &mut budget)?;
-            let manifest_value = json(
-                &manifest_raw,
-                limits.max_metadata_bytes,
-                limits.max_state_bytes.saturating_sub(budget.state),
-            )?;
-            budget.state(
-                manifest_raw
-                    .len()
-                    .checked_mul(4)
-                    .ok_or("rollback manifest state plan overflow")?,
-            )?;
-            budget.state(
-                manifest_value
-                    .retained_state_bytes()
-                    .map_err(|e| e.to_string())?,
-            )?;
-            let decoded = state::decode_native_manifest(&manifest_value, &manifest_raw, &pair)
-                .map_err(|e| e.to_string())?;
-            let mut selection = Held::open(
-                data_root.join(decoded.selection_path),
-                limits.max_metadata_bytes as u64,
-                &mut budget,
-            )?;
-            let expected_selection = selection.digest;
-            manifest.check(&budget)?;
-            selection.check(&budget)?;
-            (
-                pair,
-                bindings,
-                pair_raw,
-                bindings_raw,
-                Some(current),
-                expected_manifest,
-                expected_selection,
-            )
-        } else {
-            let pair = field(&request, "candidate_pair")?.clone();
-            let bindings = field(&request, "bindings")?.clone();
-            let pair_raw = canonical(&pair, limits.max_metadata_bytes)?;
-            let bindings_raw = canonical(&bindings, limits.max_metadata_bytes)?;
-            state::validate_release_pair(&pair, &pair_raw).map_err(|e| e.to_string())?;
-            state::validate_release_bindings(&bindings).map_err(|e| e.to_string())?;
-            budget.state(pair_raw.len() + bindings_raw.len())?;
-            let expected_current = match field(&request, "expected_current")? {
-                JsonValue::Null => None,
-                JsonValue::String(_) => Some(
-                    state::digest(&request, "expected_current")
-                        .map_err(|e| e.to_string())?
-                        .to_hex(),
-                ),
-                _ => return Err("expected_current must be digest/null".into()),
-            };
-            let expected_manifest =
-                state::digest(&request, "candidate_manifest_sha256").map_err(|e| e.to_string())?;
-            let expected_selection =
-                state::digest(&request, "candidate_selection_sha256").map_err(|e| e.to_string())?;
-            (
-                pair,
-                bindings,
-                pair_raw,
-                bindings_raw,
-                expected_current,
-                expected_manifest,
-                expected_selection,
-            )
+                &mut charges,
+            )?
         };
+        if target.current != current {
+            return Err("rollback current release changed while selecting target".into());
+        }
+        let target_id = target.previous.clone();
+        let pair_raw = target.pair_raw;
+        let bindings_raw = target.bindings_raw;
+        let pair = json(
+            &pair_raw,
+            limits.max_metadata_bytes,
+            limits.max_state_bytes.saturating_sub(budget.state),
+        )?;
+        let bindings = json(
+            &bindings_raw,
+            limits.max_metadata_bytes,
+            limits.max_state_bytes.saturating_sub(budget.state),
+        )?;
+        let target_pair_id =
+            state::validate_release_pair(&pair, &pair_raw).map_err(|e| e.to_string())?;
+        state::validate_release_bindings(&bindings).map_err(|e| e.to_string())?;
+        if target_pair_id != target_id {
+            return Err("rollback selected pair differs from stored previous id".into());
+        }
+        budget.state(
+            pair_raw
+                .len()
+                .checked_add(bindings_raw.len())
+                .and_then(|n| n.checked_add(pair.retained_state_bytes().ok()?))
+                .and_then(|n| n.checked_add(bindings.retained_state_bytes().ok()?))
+                .ok_or("rollback pair state plan overflow")?,
+        )?;
+        let data_root = absolute(text(&bindings, "data_root")?)?;
+        let expected_manifest =
+            state::digest(&pair, "data_manifest_sha256").map_err(|e| e.to_string())?;
+        let mut manifest = Held::open(
+            data_root.join("data/manifest.json"),
+            limits.max_metadata_bytes as u64,
+            &mut budget,
+        )?;
+        if manifest.digest != expected_manifest {
+            return Err("rollback previous manifest differs from stored pair".into());
+        }
+        let manifest_raw = manifest.raw(limits.max_metadata_bytes, &mut budget)?;
+        let manifest_value = json(
+            &manifest_raw,
+            limits.max_metadata_bytes,
+            limits.max_state_bytes.saturating_sub(budget.state),
+        )?;
+        budget.state(
+            manifest_raw
+                .len()
+                .checked_mul(4)
+                .ok_or("rollback manifest state plan overflow")?,
+        )?;
+        budget.state(
+            manifest_value
+                .retained_state_bytes()
+                .map_err(|e| e.to_string())?,
+        )?;
+        let decoded = state::decode_native_manifest(&manifest_value, &manifest_raw, &pair)
+            .map_err(|e| e.to_string())?;
+        let mut selection = Held::open(
+            data_root.join(decoded.selection_path),
+            limits.max_metadata_bytes as u64,
+            &mut budget,
+        )?;
+        let expected_selection = selection.digest;
+        manifest.check(&budget)?;
+        selection.check(&budget)?;
+        (
+            pair,
+            bindings,
+            pair_raw,
+            bindings_raw,
+            Some(current),
+            expected_manifest,
+            expected_selection,
+        )
+    } else {
+        let pair = field(&request, "candidate_pair")?.clone();
+        let bindings = field(&request, "bindings")?.clone();
+        let pair_raw = canonical(&pair, limits.max_metadata_bytes)?;
+        let bindings_raw = canonical(&bindings, limits.max_metadata_bytes)?;
+        state::validate_release_pair(&pair, &pair_raw).map_err(|e| e.to_string())?;
+        state::validate_release_bindings(&bindings).map_err(|e| e.to_string())?;
+        budget.state(pair_raw.len() + bindings_raw.len())?;
+        let expected_current = match field(&request, "expected_current")? {
+            JsonValue::Null => None,
+            JsonValue::String(_) => Some(
+                state::digest(&request, "expected_current")
+                    .map_err(|e| e.to_string())?
+                    .to_hex(),
+            ),
+            _ => return Err("expected_current must be digest/null".into()),
+        };
+        let expected_manifest =
+            state::digest(&request, "candidate_manifest_sha256").map_err(|e| e.to_string())?;
+        let expected_selection =
+            state::digest(&request, "candidate_selection_sha256").map_err(|e| e.to_string())?;
+        (
+            pair,
+            bindings,
+            pair_raw,
+            bindings_raw,
+            expected_current,
+            expected_manifest,
+            expected_selection,
+        )
+    };
     let pair = &pair;
     let bindings = &bindings;
     let data_root = absolute(text(bindings, "data_root")?)?;
@@ -1710,7 +1721,11 @@ pub fn run_if_requested(
             Some(if success { 0 } else { 1 })
         }
         Err(reason) => {
-            let _ = writeln!(stderr, "native release {action}: {}", reason.chars().take(512).collect::<String>());
+            let _ = writeln!(
+                stderr,
+                "native release {action}: {}",
+                reason.chars().take(512).collect::<String>()
+            );
             let _ = writeln!(
                 stdout,
                 "{}",

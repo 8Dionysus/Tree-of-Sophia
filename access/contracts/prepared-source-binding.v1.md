@@ -1,15 +1,19 @@
 # Private prepared source-root pairing
 
-`tos_access.prepared_source_binding` stores exact immutable projection root
-bytes, their part namespaces, source revision, participating source-publication
-token and named dependency digests in the **same SQLite file** as normalized
-rows. It does not turn a prepared reader into a source writer. These private
-locators and bytes are not included in public access packets.
+The native Rust `tos_compiler::prepared_source_binding` owner stores exact
+immutable projection root bytes, their part namespaces, source revision,
+participating source-publication token and named dependency digests in the
+**same SQLite file** as normalized rows. It does not turn a prepared reader
+into a source writer. These private locators and bytes are not included in
+public access packets.
 
-The source assembler constructs `PreparedSourceInputs(source_revision=...,
-source_publication=..., dependencies=..., roots=...)`; `roots` maps stable
-profile names to `ProjectionSnapshotView` values. The object retains only
-immutable encoded bytes; `value()` and `roots()` return detached observations.
+The source assembler parses a canonical `PreparedSourceInputs` value with
+`source_revision`, `source_publication`, `dependencies` and `roots`. Each
+stable profile root becomes a native `SourceProjectionRoot` containing its
+namespace path, exact root bytes and snapshot SHA-256; `value()` exposes a
+detached parsed observation. The independent partitioned projection schema is
+shared with Rust readers; Access no longer ships its former Python store,
+diff or mutation utility.
 The participating token is null for an unversioned baseline or the exact
 `sha256:` token, not a replacement for independent source-file guards. A source
 revision is selected by the assembler's versioned identity contract, never

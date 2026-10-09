@@ -535,7 +535,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 {
                     return Err(Error::Budget("controlled Original row bytes"));
                 }
-                let allocation = layout.physical_bound(length_usize)?
+                let allocation = layout
+                    .physical_bound(length_usize)?
                     .checked_add(32)
                     .ok_or(Error::Budget("controlled Original raw state"))?;
                 let _raw_hold = self.context.owned_state().hold(allocation)?;
@@ -544,17 +545,25 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     params![ordinal, collection_name, length],
                     |row| Ok((row.get(0)?, row.get(1)?)),
                 )?;
-                layout.with_sql_decoded(&self.connection, self.context.owned_state(), &raw, Some(length_usize), max_row_bytes, |raw| {
-                    self.charge_query_work(raw.len())?;
-                    let computed = Digest256::of_bytes(raw);
-                    if computed.as_bytes() != digest.as_slice() {
-                        return Err(Error::Invalid("controlled Original row digest"));
-                    }
-                    self.check_pin()?;
-                    self.context.with_foundation_owned_with_limits(raw, json, |value| {
-                        consume(receipt, ordinal, computed, raw, value)
-                    })
-                })?;
+                layout.with_sql_decoded(
+                    &self.connection,
+                    self.context.owned_state(),
+                    &raw,
+                    Some(length_usize),
+                    max_row_bytes,
+                    |raw| {
+                        self.charge_query_work(raw.len())?;
+                        let computed = Digest256::of_bytes(raw);
+                        if computed.as_bytes() != digest.as_slice() {
+                            return Err(Error::Invalid("controlled Original row digest"));
+                        }
+                        self.check_pin()?;
+                        self.context
+                            .with_foundation_owned_with_limits(raw, json, |value| {
+                                consume(receipt, ordinal, computed, raw, value)
+                            })
+                    },
+                )?;
                 self.check_pin()?;
                 Ok(ControlledOriginalRowRead {
                     ordinal: Some(ordinal),
@@ -1359,8 +1368,12 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let source_packet_sha256 = source_digest.as_deref().map(digest).transpose()?;
         let source_packet_sha256_joined = packet_digest.as_deref().map(digest).transpose()?;
         if let Some((packet, len)) = packet.as_ref().zip(source_len) {
-            layout.verify_physical_length(packet, usize::try_from(len)
-                .map_err(|_| Error::Invalid("controlled candidate source length"))?, max_payload_bytes)?;
+            layout.verify_physical_length(
+                packet,
+                usize::try_from(len)
+                    .map_err(|_| Error::Invalid("controlled candidate source length"))?,
+                max_payload_bytes,
+            )?;
         }
         if source_packet_sha256 != source_packet_sha256_joined {
             return Err(Error::Invalid("controlled candidate source packet join"));
@@ -1368,36 +1381,51 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         let physical_len = physical.len();
         let physical_bytes = physical;
         let source_packet_bytes = packet;
-        let decode = || crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
-            &self.connection, self.context,
-            layout,
-            &SelectedPayloadRow {
-                payload_codec: u8::try_from(codec)
-                    .map_err(|_| Error::Invalid("controlled candidate codec"))?,
-                physical: &physical_bytes,
-                logical_len: usize::try_from(logical_len)
-                    .map_err(|_| Error::Budget("controlled candidate logical length"))?,
-                logical_sha256: payload_sha256,
-                source_packet_sha256,
-                source_packet: source_packet_bytes.as_deref(),
-            },
-            JsonLimits::default(),
-            JsonLimits::default(),
-            max_payload_bytes,
-            |logical, context| {
-                if logical.len() > max_payload_bytes {
-                    return Err(Error::Budget("controlled logical candidate payload"));
-                }
-                context.charge_work(logical.len())?;
-                Ok(logical.to_vec())
-            },
-        );
+        let decode = || {
+            crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
+                &self.connection,
+                self.context,
+                layout,
+                &SelectedPayloadRow {
+                    payload_codec: u8::try_from(codec)
+                        .map_err(|_| Error::Invalid("controlled candidate codec"))?,
+                    physical: &physical_bytes,
+                    logical_len: usize::try_from(logical_len)
+                        .map_err(|_| Error::Budget("controlled candidate logical length"))?,
+                    logical_sha256: payload_sha256,
+                    source_packet_sha256,
+                    source_packet: source_packet_bytes.as_deref(),
+                },
+                JsonLimits::default(),
+                JsonLimits::default(),
+                max_payload_bytes,
+                |logical, context| {
+                    if logical.len() > max_payload_bytes {
+                        return Err(Error::Budget("controlled logical candidate payload"));
+                    }
+                    context.charge_work(logical.len())?;
+                    Ok(logical.to_vec())
+                },
+            )
+        };
         let (payload, dictionary_vm) = if layout.dictionary_bytes() {
-            let remaining_vm = max_vm_steps.checked_sub(vm_steps).filter(|n| *n > 0)
-                .ok_or(Error::Budget("controlled candidate dictionary VM remainder"))?;
-            crate::knowledge_payload_read::with_query_vm_window(self.context, &self.connection, remaining_vm, decode)?
-        } else { (decode()?, 0) };
-        let vm_steps = vm_steps.checked_add(dictionary_vm)
+            let remaining_vm = max_vm_steps
+                .checked_sub(vm_steps)
+                .filter(|n| *n > 0)
+                .ok_or(Error::Budget(
+                    "controlled candidate dictionary VM remainder",
+                ))?;
+            crate::knowledge_payload_read::with_query_vm_window(
+                self.context,
+                &self.connection,
+                remaining_vm,
+                decode,
+            )?
+        } else {
+            (decode()?, 0)
+        };
+        let vm_steps = vm_steps
+            .checked_add(dictionary_vm)
             .ok_or(Error::Budget("controlled candidate total VM"))?;
         if payload.len()
             != usize::try_from(logical_len)
@@ -1785,9 +1813,11 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                     }
                     // Both SQL Vec blobs may carry the V2 framing bytes in
                     // addition to the pre-existing payload envelope.
-                    let _frame_hold = context.owned_state().hold(
-                        if layout.packed_bytes() { 2 * crate::knowledge_byte_codec::HEADER } else { 0 },
-                    )?;
+                    let _frame_hold = context.owned_state().hold(if layout.packed_bytes() {
+                        2 * crate::knowledge_byte_codec::HEADER
+                    } else {
+                        0
+                    })?;
                     let (
                         Some(id),
                         Some(source_graph),
@@ -1823,7 +1853,6 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                         || (source_sha.is_some() != source_packet.is_some())
                         || (source_packet.is_some() != joined_source_sha.is_some())
                         || (source_packet.is_some() != source_len.is_some())
-
                     {
                         return Err(Error::Invalid("controlled legacy carrier row shape"));
                     }
@@ -1834,8 +1863,12 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                         Ok(Digest256::from_bytes(bytes))
                     };
                     if let Some((packet, length)) = source_packet.as_ref().zip(source_len) {
-                        layout.verify_physical_length(packet, usize::try_from(length)
-                            .map_err(|_| Error::Invalid("controlled carrier source length"))?, max_payload_bytes)?;
+                        layout.verify_physical_length(
+                            packet,
+                            usize::try_from(length)
+                                .map_err(|_| Error::Invalid("controlled carrier source length"))?,
+                            max_payload_bytes,
+                        )?;
                     }
                     let payload_sha256 = digest(&payload_sha)?;
                     let source_packet_sha256 = source_sha.as_deref().map(digest).transpose()?;
@@ -1856,7 +1889,8 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
                     limits.max_bytes = limits.max_bytes.min(max_payload_bytes);
                     let _decoded =
                         crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
-                            &self.connection, context,
+                            &self.connection,
+                            context,
                             layout,
                             &SelectedPayloadRow {
                                 payload_codec: u8::try_from(codec).map_err(|_| {

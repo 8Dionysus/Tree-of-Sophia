@@ -72,45 +72,143 @@ fn main() {
         std::process::exit(code);
     }
     #[cfg(not(target_arch = "wasm32"))]
-    if let Some(code) = tos_access::dta_technical_markup_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
+    if let Some(code) = tos_access::dta_technical_markup_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::transfer_source_passages_command::run_if_requested(
-        &args, &mut std::io::stdout(), &mut std::io::stderr(),
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
     ) {
         std::process::exit(code);
     }
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::transfer_candidates_command::run_if_requested(
-        &args, &mut std::io::stdout(), &mut std::io::stderr(),
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
     ) {
         std::process::exit(code);
     }
     #[cfg(not(target_arch = "wasm32"))]
-    if let Some(code) = tos_access::nietzsche_transfer_routes_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::jenseits_structure_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::visual_result_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::morphology_result_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::lexical_derivatives_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::jenseits_label_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::provenance_event_lab_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::synthetic_foundation_lab_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::authored_canon_bridge_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::antonovsky_collation_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::bounded_translation_input_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
-    if let Some(code) = tos_access::german_triangulation_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
+    if let Some(code) = tos_access::nietzsche_transfer_routes_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::jenseits_structure_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::visual_result_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::morphology_result_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::lexical_derivatives_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::jenseits_label_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::provenance_event_lab_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::synthetic_foundation_lab_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::authored_canon_bridge_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::antonovsky_collation_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::bounded_translation_input_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::german_triangulation_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::transfer_source_visible_command::run_if_requested(
-        &args, &mut std::io::stdout(), &mut std::io::stderr(),
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
     ) {
         std::process::exit(code);
     }
     #[cfg(not(target_arch = "wasm32"))]
-    if let Some(code) = tos_access::transfer_target_passages_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
+    if let Some(code) = tos_access::transfer_target_passages_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
     #[cfg(not(target_arch = "wasm32"))]
-    if let Some(code) = tos_access::transfer_metadata_command::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr()) {std::process::exit(code);}
+    if let Some(code) = tos_access::transfer_metadata_command::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::source_text_foundation_command::run_if_requested(
-        &args, &mut std::io::stdout(), &mut std::io::stderr(),
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
     ) {
         std::process::exit(code);
     }
@@ -123,7 +221,9 @@ fn main() {
         std::process::exit(code);
     }
     if let Some(code) = tos_access::standalone_validation::run_if_requested(
-        &args, &mut std::io::stdout(), &mut std::io::stderr(),
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
     ) {
         std::process::exit(code);
     }

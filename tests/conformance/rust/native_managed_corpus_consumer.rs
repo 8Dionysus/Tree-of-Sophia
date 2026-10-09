@@ -41,7 +41,9 @@ fn run_native_corpus_build(binary: &Path, request: &serde_json::Value) -> Output
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .env_remove("TOS_RELEASE_ROOT");
-    let mut child = command.spawn().expect("admitted native owner binary starts");
+    let mut child = command
+        .spawn()
+        .expect("admitted native owner binary starts");
     child
         .stdin
         .take()
@@ -795,7 +797,10 @@ pub(super) fn exercise_native_corpus_build(
     for row in products {
         let relative = row["path"].as_str().unwrap();
         let raw = fs::read(data.join(relative)).unwrap();
-        assert_eq!(Digest256::of_bytes(&raw).to_hex(), row["sha256"].as_str().unwrap());
+        assert_eq!(
+            Digest256::of_bytes(&raw).to_hex(),
+            row["sha256"].as_str().unwrap()
+        );
         let target = compare.path().join(relative);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
         fs::write(target, raw).unwrap();
@@ -807,7 +812,10 @@ pub(super) fn exercise_native_corpus_build(
     damaged_bytes[0] ^= 1;
     fs::write(&damaged, damaged_bytes).unwrap();
     let refused = run_native_corpus_build(&owner, &negative_request);
-    assert!(!refused.status.success(), "changed product must fail parity");
+    assert!(
+        !refused.status.success(),
+        "changed product must fail parity"
+    );
     assert!(refused.stdout.is_empty());
     assert!(!persistent_store.join(check_data_name).exists());
     assert!(!persistent_store.join(check_release_name).exists());
@@ -818,10 +826,10 @@ pub(super) fn exercise_native_corpus_build(
     let selection_path = data.join("native-selection.json");
     let selection_raw = fs::read(&selection_path).unwrap();
     let descriptor = fs::read(data.join(vocabulary_path)).unwrap();
-    let entities = fs::read(data.join("ToS/doctrine/semantic-interchange/entity-types.v1.json"))
-        .unwrap();
-    let relations = fs::read(data.join("ToS/doctrine/semantic-interchange/relation-types.v1.json"))
-        .unwrap();
+    let entities =
+        fs::read(data.join("ToS/doctrine/semantic-interchange/entity-types.v1.json")).unwrap();
+    let relations =
+        fs::read(data.join("ToS/doctrine/semantic-interchange/relation-types.v1.json")).unwrap();
     let selection = NativeKnowledgeSelection::decode(
         &selection_raw,
         &descriptor,
@@ -842,10 +850,19 @@ pub(super) fn exercise_native_corpus_build(
             .as_str()
             .unwrap()
     );
-    let base = software.temporary.path().join("native-corpus-build-readback");
+    let base = software
+        .temporary
+        .path()
+        .join("native-corpus-build-readback");
     fs::create_dir(&base).unwrap();
     let release_root = base.join("release");
-    publish_snapshot(&release_root, data_root, &consumer, &manifest, hash_file(&consumer));
+    publish_snapshot(
+        &release_root,
+        data_root,
+        &consumer,
+        &manifest,
+        hash_file(&consumer),
+    );
     assert_eq!(
         hash_file(&data.join("manifest.json")).to_hex(),
         built["data_manifest"]["sha256"].as_str().unwrap(),

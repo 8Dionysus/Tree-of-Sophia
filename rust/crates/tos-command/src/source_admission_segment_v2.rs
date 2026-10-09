@@ -269,9 +269,8 @@ mod rootset_descriptor_tests {
             let fields = document.root().as_array().unwrap();
             let expected: Vec<_> = object.into_iter().chain(identity).collect();
             assert_eq!(fields.len(), 1 + expected.len());
-            let (accounted, count) = revision_descriptor_refs(
-                &objects, &objects, &objects, &objects, object, identity,
-            );
+            let (accounted, count) =
+                revision_descriptor_refs(&objects, &objects, &objects, &objects, object, identity);
             assert_eq!(&accounted[4..count], expected.as_slice());
             for (index, (field, descriptor)) in fields[1..].iter().zip(expected).enumerate() {
                 assert_eq!(tree(field).unwrap(), *descriptor);

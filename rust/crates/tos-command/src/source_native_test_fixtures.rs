@@ -1,7 +1,9 @@
 //! Frozen, provenance-linked source fixtures captured before retirement of
 //! the maintained Python test factories. Only the isolated source_root changes.
+use flate2::read::GzDecoder;
 use serde_json::Value;
 use std::fs;
+use std::io::Read;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Component, Path};
 use tos_foundation::Digest256;
@@ -115,4 +117,120 @@ pub(crate) fn record_revision(repository: &Path, root: &Path, family: usize) -> 
 
 pub(crate) fn work_expression(repository: &Path, root: &Path) -> Value {
     packet(repository, root, "work-expression")
+}
+
+/// A single frozen Item fixture for owner-internal retained-orphan recovery.
+/// The captured root is preserved; only the four explicitly selected external
+/// locations in its protected grant are rebased into the isolated test root.
+pub(crate) fn item_orphan_recovery(_repository: &Path, root: &Path) -> Value {
+    const MANIFEST_SHA256: &str =
+        "6d024a3a1bca79603e5d6b1afb172f2ab774db6bd27eb08d64d7df6b032af9ad";
+    const ARCHIVE_SHA256: &str = "bc472cbb1c7f05010f9d96993efa478778d8e11c78a8a34b4f9c633e07899ef6";
+    const ARCHIVE: &[u8] =
+        include_bytes!("../tests/fixtures/native-item-recovery/item-base.tar.gz");
+    let manifest_raw = include_bytes!("../tests/fixtures/native-item-recovery/manifest.json");
+    assert_eq!(digest(manifest_raw), MANIFEST_SHA256);
+    let manifest: Value = serde_json::from_slice(manifest_raw).expect("Item fixture manifest");
+    assert_eq!(
+        manifest["schema_version"],
+        "tos_native_item_recovery_fixture_v1"
+    );
+    assert_eq!(
+        manifest["source"]["capture_run"],
+        "tos-combined-factory-capture-r2"
+    );
+    assert_eq!(manifest["source"]["factory_id"], "item-base");
+    assert_eq!(manifest["archive"]["sha256"], ARCHIVE_SHA256);
+    assert_eq!(digest(ARCHIVE), ARCHIVE_SHA256);
+
+    let mut decoded = Vec::new();
+    GzDecoder::new(ARCHIVE)
+        .read_to_end(&mut decoded)
+        .expect("decompress captured Item source fixture");
+    let mut offset = 0usize;
+    let mut packet_raw = None;
+    while offset + 512 <= decoded.len() {
+        let header = &decoded[offset..offset + 512];
+        if header.iter().all(|byte| *byte == 0) {
+            break;
+        }
+        let field = |range: std::ops::Range<usize>| {
+            let raw = &header[range];
+            let end = raw.iter().position(|byte| *byte == 0).unwrap_or(raw.len());
+            std::str::from_utf8(&raw[..end]).expect("USTAR header text")
+        };
+        let name = field(0..100);
+        let prefix = field(345..500);
+        let relative = if prefix.is_empty() {
+            name.to_owned()
+        } else {
+            format!("{prefix}/{name}")
+        };
+        let size_text = field(124..136).trim();
+        let size = if size_text.is_empty() {
+            0usize
+        } else {
+            usize::from_str_radix(size_text, 8).expect("USTAR member size")
+        };
+        let data_start = offset + 512;
+        let data_end = data_start.checked_add(size).expect("USTAR size overflow");
+        assert!(data_end <= decoded.len(), "truncated Item fixture archive");
+        let kind = header[156];
+        if relative == "packet.json" {
+            assert_eq!(kind, b'0');
+            packet_raw = Some(decoded[data_start..data_end].to_vec());
+        } else {
+            assert!(safe_relative(&relative), "unsafe Item fixture path");
+            let target = root.join(&relative);
+            if kind == b'5' {
+                fs::create_dir_all(&target).expect("create captured Item directory");
+                let mode_text = field(100..108).trim();
+                if !mode_text.is_empty() {
+                    let mode = u32::from_str_radix(mode_text, 8).expect("USTAR directory mode");
+                    fs::set_permissions(&target, fs::Permissions::from_mode(mode & 0o777))
+                        .expect("restore captured Item directory mode");
+                }
+            } else {
+                assert_eq!(kind, b'0', "only regular Item fixture files are accepted");
+                fs::create_dir_all(target.parent().unwrap()).expect("create Item source parent");
+                fs::write(&target, &decoded[data_start..data_end])
+                    .expect("materialize captured Item source");
+                let mode_text = field(100..108).trim();
+                let mode = u32::from_str_radix(mode_text, 8).expect("USTAR file mode");
+                fs::set_permissions(&target, fs::Permissions::from_mode(mode & 0o777))
+                    .expect("restore captured Item file mode");
+            }
+        }
+        offset = data_start + size.div_ceil(512) * 512;
+    }
+    let packet_raw = packet_raw.expect("captured Item fixture packet");
+    assert_eq!(digest(&packet_raw), manifest["archive"]["packet_sha256"]);
+    let mut packet: Value = serde_json::from_slice(&packet_raw).expect("captured Item packet");
+    let root = root.canonicalize().expect("isolated Item root");
+    let payload_root = root.join("canonical-payload-root");
+    fs::create_dir_all(&payload_root).expect("create selected Item payload root");
+    fs::set_permissions(&payload_root, fs::Permissions::from_mode(0o700))
+        .expect("protect selected Item payload root");
+    let recovery_root = root
+        .parent()
+        .expect("isolated Item root parent")
+        .join("item-private-recovery");
+    fs::create_dir_all(&recovery_root).expect("create selected Item recovery root");
+    fs::set_permissions(&recovery_root, fs::Permissions::from_mode(0o700))
+        .expect("protect selected Item recovery root");
+    let owner_path = root.join("item-owner.json");
+    let input_path = root.join("already-acquired.epub");
+    let config = &mut packet["config"];
+    config["source_root"] = Value::String(root.to_string_lossy().into_owned());
+    config["payload_root"] = Value::String(payload_root.to_string_lossy().into_owned());
+    config["input_path"] = Value::String(input_path.to_string_lossy().into_owned());
+    config["recovery_root"] = Value::String(recovery_root.to_string_lossy().into_owned());
+    let mut owner_raw = serde_json::to_vec_pretty(config).expect("rebase Item owner grant");
+    owner_raw.push(b'\n');
+    fs::write(&owner_path, owner_raw).expect("write isolated Item owner grant");
+    fs::set_permissions(&owner_path, fs::Permissions::from_mode(0o600))
+        .expect("protect isolated Item owner grant");
+    packet["owner"] = Value::String(owner_path.to_string_lossy().into_owned());
+    packet["input"] = Value::String(input_path.to_string_lossy().into_owned());
+    packet
 }

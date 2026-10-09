@@ -1,6 +1,6 @@
 //! Native source-payload custody compatibility owner.
 //!
-//! The maintained Python module is a wire adapter. This owner keeps manifest
+//! The retired Python module was a wire adapter. This owner keeps manifest
 //! selection, path validation, fixity, no-clobber publication and receipt
 //! generation in the same descriptor-based custody substrate used by the
 //! acquisition batch route.
@@ -1528,5 +1528,245 @@ pub fn invoke(request: &Value) -> Result<Value> {
         "write_receipt" => write_receipt(request),
         "cli" => cli(request),
         _ => Err(format!("unsupported custody operation: {operation}")),
+    }
+}
+
+#[cfg(test)]
+mod custody_retirement_tests {
+    use super::*;
+    use std::fs;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
+
+    const ITEM_REF: &str = "ToS/source-witnesses/works/fixture/editions/test/items/native-custody";
+    const MANIFEST_REF: &str =
+        "ToS/source-witnesses/works/fixture/editions/test/items/native-custody/item.manifest.json";
+
+    fn write_item_fixture(root: &Path, body: &[u8]) -> (PathBuf, PathBuf, PathBuf, PathBuf, Value) {
+        let metadata_root = root.join("metadata");
+        let source_root = root.join("payload-source");
+        let destination_root = root.join("payload-destination");
+        fs::create_dir_all(&metadata_root).unwrap();
+        fs::create_dir_all(&source_root).unwrap();
+        fs::create_dir_all(&destination_root).unwrap();
+        let source_tail = ITEM_REF.strip_prefix("ToS/source-witnesses/").unwrap();
+        let payload = source_root.join(source_tail).join("payload/witness.bin");
+        fs::create_dir_all(payload.parent().unwrap()).unwrap();
+        fs::write(&payload, body).unwrap();
+        let digest = file_digest(body);
+        let entry = json!({
+            "file_id":format!("tos.file.sha256.{}", digest["sha256"].as_str().unwrap()),
+            "relative_path":"payload/witness.bin",
+            "byte_size":body.len(),
+            "sha256":digest["sha256"]
+        });
+        let manifest_path = metadata_root.join(MANIFEST_REF);
+        fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
+        fs::write(
+            &manifest_path,
+            serde_json::to_vec(&json!({
+                "item_id":"tos.item.fixture.native-custody",
+                "payload_files":[entry]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        (
+            metadata_root,
+            source_root,
+            destination_root,
+            payload,
+            digest,
+        )
+    }
+
+    #[test]
+    fn manifest_copy_receipt_and_no_clobber_are_native_owned() {
+        let temporary = tempfile::tempdir().unwrap();
+        let (metadata, source, destination, _, _) =
+            write_item_fixture(temporary.path(), b"immutable witness bytes\n");
+        let entries = entries_from_item_manifest(&metadata, MANIFEST_REF, &source, "fixture")
+            .expect("selected Item manifest");
+        assert_eq!(entries.len(), 1);
+        let (rows, duplicates) = copy_entries(&entries, &destination, None).unwrap();
+        assert!(duplicates.is_empty());
+        assert_eq!(rows[0]["status"], "copied");
+        let copied = destination_path(&destination, &entries[0]).unwrap();
+        assert_eq!(fs::read(&copied).unwrap(), b"immutable witness bytes\n");
+        assert_eq!(fs::metadata(&copied).unwrap().mode() & 0o7777, 0o444);
+
+        let (again, _) = copy_entries(&entries, &destination, None).unwrap();
+        assert_eq!(again[0]["status"], "already_present");
+        fs::set_permissions(&copied, fs::Permissions::from_mode(0o644)).unwrap();
+        fs::write(&copied, b"different bytes").unwrap();
+        let (conflict, _) = copy_entries(&entries, &destination, None).unwrap();
+        assert_eq!(conflict[0]["status"], "conflict");
+        assert_eq!(fs::read(&copied).unwrap(), b"different bytes");
+
+        let receipt_path = temporary.path().join("custody-receipt.json");
+        write_receipt(&json!({
+            "path":receipt_path.to_string_lossy(),
+            "operation":"copy",
+            "rows":rows,
+            "duplicates":duplicates,
+            "missing":[],
+            "inputs":[]
+        }))
+        .expect("metadata-only receipt");
+        let receipt_bytes = fs::read(&receipt_path).unwrap();
+        let receipt: Value = serde_json::from_slice(&receipt_bytes).unwrap();
+        assert_eq!(
+            receipt["schema_version"],
+            "tos.source_payload_custody_receipt.v1"
+        );
+        let temporary_root = temporary.path().to_str().unwrap();
+        assert!(!String::from_utf8_lossy(&receipt_bytes).contains(temporary_root));
+        assert_eq!(fs::metadata(&receipt_path).unwrap().mode() & 0o7777, 0o600);
+        assert!(
+            write_receipt(&json!({
+                "path":receipt_path.to_string_lossy(),
+                "operation":"verify-again",
+                "rows":[],
+                "duplicates":[],
+                "missing":[],
+                "inputs":[]
+            }))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn native_cli_selects_item_manifest_and_writes_metadata_only_receipt() {
+        let temporary = tempfile::tempdir().unwrap();
+        let (metadata, source, destination, _, _) =
+            write_item_fixture(temporary.path(), b"selected through native CLI\n");
+        let receipt_path = temporary.path().join("cli-receipt.json");
+        let result = invoke(&json!({
+            "operation":"cli",
+            "command":"copy",
+            "payload_source_root":source.to_str().unwrap(),
+            "metadata_root":metadata.to_str().unwrap(),
+            "item_manifests":[MANIFEST_REF],
+            "inventories":[],
+            "destination_payload_root":destination.to_str().unwrap(),
+            "receipt":receipt_path.to_str().unwrap(),
+        }))
+        .expect("native custody command");
+        assert_eq!(result["status"], "completed");
+        assert_eq!(result["exit_code"], 0);
+        let receipt_bytes = fs::read(&receipt_path).expect("native custody receipt");
+        let receipt: Value = serde_json::from_slice(&receipt_bytes).expect("receipt JSON");
+        assert_eq!(receipt["operation"], "copy");
+        assert_eq!(receipt["counts"]["copied"], 1);
+        assert_eq!(receipt["rows"][0]["status"], "copied");
+        assert!(
+            !String::from_utf8_lossy(&receipt_bytes).contains(temporary.path().to_str().unwrap())
+        );
+    }
+
+    #[test]
+    fn inventory_selector_preserves_source_root_and_present_filter() {
+        let temporary = tempfile::tempdir().unwrap();
+        let (_, source, _, payload, digest) =
+            write_item_fixture(temporary.path(), b"inventory selection\n");
+        let relative = format!("{ITEM_REF}/payload/witness.bin");
+        let inventory_path = temporary.path().join("inventory.json");
+        fs::write(
+            &inventory_path,
+            serde_json::to_vec(&json!({
+                "files":[
+                    {
+                        "source_present":true,
+                        "item_ref":"tos.item.fixture.native-custody",
+                        "source_root":source.to_str().unwrap(),
+                        "file_ref":format!("tos.file.sha256.{}", digest["sha256"].as_str().unwrap()),
+                        "relative_ref":relative,
+                        "manifest_ref":MANIFEST_REF,
+                        "byte_size":payload.metadata().unwrap().len(),
+                        "sha256":digest["sha256"],
+                    },
+                    {
+                        "source_present":false,
+                        "item_ref":"tos.item.fixture.native-custody",
+                        "source_root":source.to_str().unwrap(),
+                        "file_ref":"tos.file.sha256.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "relative_ref":format!("{ITEM_REF}/payload/absent.bin"),
+                        "manifest_ref":MANIFEST_REF,
+                        "byte_size":1,
+                        "sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    }
+                ]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let selected = entries_from_inventory(&inventory_path, "files", "fixture", true)
+            .expect("present inventory rows");
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0]["item_id"], "tos.item.fixture.native-custody");
+        assert_eq!(selected[0]["source_root"], source.to_str().unwrap());
+        assert_eq!(selected[0]["sha256"], digest["sha256"]);
+        assert!(read_entry(&selected[0], None).is_ok());
+        let all = entries_from_inventory(&inventory_path, "files", "fixture", false)
+            .expect("all inventory rows");
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
+    fn registry_absence_paths_and_hard_link_policy_fail_closed() {
+        let temporary = tempfile::tempdir().unwrap();
+        let source_root = temporary.path().join("payload-source");
+        let metadata_root = temporary.path().join("metadata");
+        fs::create_dir_all(&source_root).unwrap();
+        fs::create_dir_all(&metadata_root).unwrap();
+        let source_tail = ITEM_REF.strip_prefix("ToS/source-witnesses/").unwrap();
+        let present = source_root.join(source_tail).join("payload/present.bin");
+        fs::create_dir_all(present.parent().unwrap()).unwrap();
+        let body = b"registry payload";
+        fs::write(&present, body).unwrap();
+        let digest = file_digest(body);
+        let absent_blob = "0".repeat(40);
+        let registry = temporary.path().join("registry.json");
+        fs::write(
+            &registry,
+            serde_json::to_vec(&json!({"targets":[{
+                "ids":{"item":"tos.item.fixture.native-custody"},
+                "paths":{"item_root":ITEM_REF},
+                "files":[
+                    {"basename":"present.bin","byte_size":body.len(),"git_blob_sha1":digest["git_blob_sha1"]},
+                    {"basename":"absent.bin","byte_size":9,"git_blob_sha1":absent_blob}
+                ]
+            }]}))
+            .unwrap(),
+        )
+        .unwrap();
+        let (entries, missing) = entries_from_registry_manifest(
+            &registry,
+            &source_root,
+            Some(&metadata_root),
+            "registry-fixture",
+        )
+        .unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(missing.len(), 1);
+        assert_eq!(missing[0]["status"], "missing");
+        assert_eq!(missing[0]["byte_size"], 9);
+        assert_eq!(
+            plan_entries(&entries, None, None).unwrap().0[0]["status"],
+            "source_verified"
+        );
+
+        let unsafe_root = temporary.path().join("unsafe-source-root");
+        fs::create_dir(&unsafe_root).unwrap();
+        let outside = temporary.path().join("outside");
+        fs::create_dir(&outside).unwrap();
+        symlink(&outside, unsafe_root.join("works")).unwrap();
+        assert!(payload_path(&unsafe_root, ITEM_REF, "payload/absent.bin").is_err());
+        assert!(payload_path(&source_root, ITEM_REF, "payload/../escape").is_err());
+
+        let alias = present.with_file_name("alias.bin");
+        fs::set_permissions(&present, fs::Permissions::from_mode(0o444)).unwrap();
+        fs::hard_link(&present, &alias).unwrap();
+        let uid = rustix::process::geteuid().as_raw();
+        assert!(digest_path(&present, Some(0o444), Some(uid), true, Some(&source_root)).is_err());
     }
 }

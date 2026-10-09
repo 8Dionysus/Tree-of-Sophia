@@ -415,11 +415,21 @@ pub fn parse_json_with_state_budget_and_check(
 /// Admission runs before each UTF8 byte span and grammar node. Refused work
 /// cannot reach parsing; the caller retains consumed work on every outcome.
 pub fn parse_json_with_state_budget_and_admission(
-    raw: &[u8], mode: JsonMode, limits: JsonLimits, available: usize,
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    available: usize,
     check: &mut dyn FnMut() -> Result<()>,
     admit: &mut dyn FnMut(usize, usize) -> Result<()>,
 ) -> Result<JsonDocument> {
-    parse_json_inner_with_admission(raw, mode, limits, Some((0, available)), Some(check), Some(admit))
+    parse_json_inner_with_admission(
+        raw,
+        mode,
+        limits,
+        Some((0, available)),
+        Some(check),
+        Some(admit),
+    )
 }
 
 /// Cooperatively check caller cancellation/deadline through the existing parser.

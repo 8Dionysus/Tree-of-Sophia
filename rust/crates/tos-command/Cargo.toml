@@ -22,6 +22,7 @@ tos-foundation = { path = "../tos-foundation" }
 tos-segment-store = { path = "../tos-segment-store" }
 tos-source-store = { path = "../tos-source-store" }
 tos-validation = { path = "../tos-validation" }
+jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 tos-compiler = { path = "../tos-compiler", features = ["preserve-order-workspace"] }
 tos-query = { path = "../tos-query" }
 serde = { version = "1", features = ["derive"] }

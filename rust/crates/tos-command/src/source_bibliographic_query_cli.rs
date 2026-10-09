@@ -35,7 +35,9 @@ fn refusal(message: impl Into<String>) -> std::io::Error {
 fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<QueryOptions, std::io::Error> {
     let mut args = args.into_iter().take(MAX_ARGUMENTS + 1).collect::<Vec<_>>();
     if args.len() > MAX_ARGUMENTS {
-        return Err(refusal("native bibliographic query exceeded its argument bound"));
+        return Err(refusal(
+            "native bibliographic query exceeded its argument bound",
+        ));
     }
     let mut options = QueryOptions::default();
     let mut index = 0;
@@ -51,7 +53,9 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<QueryOptions, 
                     .ok_or_else(|| refusal("--request requires an absolute request file"))?;
                 let path = PathBuf::from(value);
                 if !path.is_absolute() || options.request_path.replace(path).is_some() {
-                    return Err(refusal("--request must be supplied once with an absolute path"));
+                    return Err(refusal(
+                        "--request must be supplied once with an absolute path",
+                    ));
                 }
                 index += 1;
             }
@@ -106,7 +110,9 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<QueryOptions, 
     Ok(options)
 }
 
-fn read_request(path: PathBuf) -> Result<DirectRepositoryProjectionRequest, Box<dyn std::error::Error>> {
+fn read_request(
+    path: PathBuf,
+) -> Result<DirectRepositoryProjectionRequest, Box<dyn std::error::Error>> {
     let mut file = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK)
@@ -146,23 +152,36 @@ fn query(
 /// Run the argv query route. Query options retain the retired command's exact
 /// selector names and bounds; `--request` supplies the shared direct-source
 /// request envelope used by the native corpus parity checker.
-pub fn run_args(args: impl IntoIterator<Item = OsString>, output: &mut impl Write, diagnostics: &mut impl Write) -> i32 {
+pub fn run_args(
+    args: impl IntoIterator<Item = OsString>,
+    output: &mut impl Write,
+    diagnostics: &mut impl Write,
+) -> i32 {
     let options = match parse_args(args) {
         Ok(options) => options,
         Err(error) => {
-            let _ = writeln!(diagnostics, "native corpus projection query refused: {error}");
+            let _ = writeln!(
+                diagnostics,
+                "native corpus projection query refused: {error}"
+            );
             return 2;
         }
     };
     let pretty = options.pretty;
     let Some(path) = options.request_path.clone() else {
-        let _ = writeln!(diagnostics, "native corpus projection query refused: --request ABSOLUTE_JSON is required");
+        let _ = writeln!(
+            diagnostics,
+            "native corpus projection query refused: --request ABSOLUTE_JSON is required"
+        );
         return 2;
     };
     let request = match read_request(path) {
         Ok(request) => request,
         Err(error) => {
-            let _ = writeln!(diagnostics, "native corpus projection query refused: {error}");
+            let _ = writeln!(
+                diagnostics,
+                "native corpus projection query refused: {error}"
+            );
             return 2;
         }
     };
@@ -170,7 +189,10 @@ pub fn run_args(args: impl IntoIterator<Item = OsString>, output: &mut impl Writ
     let result = match query(&request, &options) {
         Ok(result) => result,
         Err(error) => {
-            let _ = writeln!(diagnostics, "native corpus projection query refused: {error}");
+            let _ = writeln!(
+                diagnostics,
+                "native corpus projection query refused: {error}"
+            );
             return 2;
         }
     };
@@ -182,11 +204,16 @@ pub fn run_args(args: impl IntoIterator<Item = OsString>, output: &mut impl Writ
     let result = match encoded {
         Ok(bytes) if (bytes.len() as u64).saturating_add(1) <= max_output_bytes => bytes,
         Ok(_) => {
-            let _ = diagnostics.write_all(b"native corpus projection query refused: result exceeds output byte budget\n");
+            let _ = diagnostics.write_all(
+                b"native corpus projection query refused: result exceeds output byte budget\n",
+            );
             return 2;
         }
         Err(error) => {
-            let _ = writeln!(diagnostics, "native corpus projection query refused: {error}");
+            let _ = writeln!(
+                diagnostics,
+                "native corpus projection query refused: {error}"
+            );
             return 2;
         }
     };
@@ -227,21 +254,44 @@ mod tests {
         assert_eq!(options.selectors["claim_ref"], "tos.claim.one");
         assert_eq!(options.selectors["subject_ref"], "tos.work.one");
         assert_eq!(options.selectors["normalized_ref"], "tos.place.one");
-        assert_eq!(parse_args(os(&["--request", "/tmp/p", "--predicate", "has_expression"]))
+        assert_eq!(
+            parse_args(os(&[
+                "--request",
+                "/tmp/p",
+                "--predicate",
+                "has_expression"
+            ]))
             .unwrap()
-            .limit, None);
+            .limit,
+            None
+        );
     }
 
     #[test]
     fn query_flags_require_one_selector_and_reject_duplicates_or_unknowns() {
         assert!(parse_args(os(&["--request", "/tmp/p"])).is_err());
-        assert!(parse_args(os(&[
-            "--request", "/tmp/p", "--claim-ref", "a", "--claim-ref", "b"
-        ]))
-        .is_err());
-        assert!(parse_args(os(&["--request", "/tmp/p", "--output", "/tmp/out", "--claim-ref", "a"]))
-            .is_err());
-        assert!(parse_args(os(&["--request", "relative", "--claim-ref", "a"]))
-            .is_err());
+        assert!(
+            parse_args(os(&[
+                "--request",
+                "/tmp/p",
+                "--claim-ref",
+                "a",
+                "--claim-ref",
+                "b"
+            ]))
+            .is_err()
+        );
+        assert!(
+            parse_args(os(&[
+                "--request",
+                "/tmp/p",
+                "--output",
+                "/tmp/out",
+                "--claim-ref",
+                "a"
+            ]))
+            .is_err()
+        );
+        assert!(parse_args(os(&["--request", "relative", "--claim-ref", "a"])).is_err());
     }
 }

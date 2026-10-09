@@ -1,9 +1,9 @@
 //! Native graph/view regression for exact prepared-dossier backlog carriage.
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tos_foundation::JsonLimits;
 use tos_query::{
-    philosophy_read::{compute_source_philosophy_view_diagnostic, PhilosophyReadBudget},
     AbortProbe, AbortReason, InspectBudget,
+    philosophy_read::{PhilosophyReadBudget, compute_source_philosophy_view_diagnostic},
 };
 
 struct NeverAbort;

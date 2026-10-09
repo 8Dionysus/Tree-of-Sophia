@@ -679,7 +679,11 @@ mod tests {
         let catalog = crate::source_native_cli::discover_commands(None).unwrap();
         assert_eq!(catalog["schema_version"], "tos_source_command_discovery_v1");
         assert_eq!(catalog["authorization_status"], "not_evaluated");
-        for key in ["grants_admission", "reads_owner_configuration", "reads_source_targets"] {
+        for key in [
+            "grants_admission",
+            "reads_owner_configuration",
+            "reads_source_targets",
+        ] {
             assert_eq!(catalog[key], false);
         }
         let handlers = catalog["handlers"].as_array().unwrap();

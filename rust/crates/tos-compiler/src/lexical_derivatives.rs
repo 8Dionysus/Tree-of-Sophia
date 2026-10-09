@@ -1,8 +1,8 @@
 //! Explicit, bounded private lexical derivatives. Source strings stay in the
 //! selected local output; the receipt carries only fixity and aggregate counts.
+pub mod morphology_result;
 pub mod recurrence;
 pub mod usage_context;
-pub mod morphology_result;
 use crate::{
     jenseits_numbered_structure::Held,
     research_execution::ResearchExecution,

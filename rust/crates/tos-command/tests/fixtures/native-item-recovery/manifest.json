@@ -1,0 +1,32 @@
+{
+  "schema_version": "tos_native_item_recovery_fixture_v1",
+  "source": {
+    "capture_run": "tos-combined-factory-capture-r2",
+    "capture_run_result_sha256": "5eaa9acc0fc932894c9ab06da085ac39a3926f679fe4ab54bd9990fbdd679fc9",
+    "capture_source_manifest_sha256": "b33552bb59152bc5f2740ab22200bb3edace621feb25a5a1b1fb8a087b56750b",
+    "repository_head": "1d33e8f3dcc360c7e39a3b72db13d97a0d188f23",
+    "factory_id": "item-base",
+    "factory_source_path": "tests/conformance/rust/command_item_cases.rs",
+    "factory_source_sha256": "30e1edd3e8a9eea9b69c4f1846bb7cab80f9dc00491f1526c620caa11cc3d365",
+    "factory_script_sha256": "5aa2102d4243a0b186fb10b3bfded58b6ccd3e8961ea85e73d8e1950b9fee41c"
+  },
+  "archive": {
+    "path": "item-base.tar.gz",
+    "sha256": "bc472cbb1c7f05010f9d96993efa478778d8e11c78a8a34b4f9c633e07899ef6",
+    "size_bytes": 305714,
+    "packet_sha256": "0b71f38319730055a1c2d6d21c3903bb381f971d49578cfa995766914bc4a277",
+    "derived_from_capture_archive_sha256": "9889b8ec3db04d79338d91d956623fe76ecd14dd1b5949ff7c7f108735359247",
+    "format": "gzip-compressed ustar",
+    "derivation": "Repacked from captured first item-base root to remove only unselected .record-revisions history and root a single selected source tree for native in-crate setup."
+  },
+  "setup": {
+    "rebased_only": [
+      "source_root",
+      "payload_root",
+      "input_path",
+      "recovery_root"
+    ],
+    "captured_authoring_and_metadata_bytes_preserved": true,
+    "unselected_record_revision_history_omitted": true
+  }
+}

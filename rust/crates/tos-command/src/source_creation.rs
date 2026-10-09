@@ -2173,8 +2173,7 @@ fn creation_dependency_snapshot(
         ),
     ]);
     if family == CreationFamily::Sign {
-        let promotion_implementation =
-            "rust/crates/tos-command/src/source_assessment_journal.rs";
+        let promotion_implementation = "rust/crates/tos-command/src/source_assessment_journal.rs";
         cmd::set(
             &mut snapshot,
             "promotion_implementation",

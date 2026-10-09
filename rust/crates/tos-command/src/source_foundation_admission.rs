@@ -3475,13 +3475,23 @@ mod refusal_transport_tests {
         let snapshot = NativeInvocationIoSnapshot::default();
         let refusal = NativeSpoolRefusal::retain(
             io::Error::other(Wrapped(io::Error::other(private))),
-            "native-v4 corpus publication", snapshot, snapshot, false, false,
+            "native-v4 corpus publication",
+            snapshot,
+            snapshot,
+            false,
+            false,
         );
         let encoded = serde_json::to_string(&refusal.packet()).unwrap();
         assert!(!encoded.contains(private));
         let packet: Value = serde_json::from_str(&encoded).unwrap();
-        assert_eq!(packet["primary_error_sha256"], Digest256::of_bytes(b"publication wrapper").to_hex());
-        assert_eq!(packet["primary_cause_sha256"][0], Digest256::of_bytes(private.as_bytes()).to_hex());
+        assert_eq!(
+            packet["primary_error_sha256"],
+            Digest256::of_bytes(b"publication wrapper").to_hex()
+        );
+        assert_eq!(
+            packet["primary_cause_sha256"][0],
+            Digest256::of_bytes(private.as_bytes()).to_hex()
+        );
         assert_eq!(packet["primary_causes_truncated"], false);
     }
 

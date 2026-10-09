@@ -5,9 +5,7 @@ use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::knowledge_base::{BaseNodeOverrides, KnowledgeBaseNormalizer};
 use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
-use crate::knowledge_stage::{
-    KnowledgeStage, NodeRow, RelationRow, WritePhase,
-};
+use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
@@ -827,7 +825,10 @@ fn prepare_inner(
                 .find(|e| e.collection == collection && COLLECTIONS.contains(&collection))
                 .ok_or(Error::Invalid("repository order collection"))?;
             if ordinal >= target.expected_count
-                || stage.scoped_raw_by_id(&source, collection, id)?.as_ref().is_none()
+                || stage
+                    .scoped_raw_by_id(&source, collection, id)?
+                    .as_ref()
+                    .is_none()
             {
                 return Err(Error::Invalid("repository order membership"));
             }
@@ -1294,7 +1295,11 @@ fn repository_owned_write_limits(
 ) -> Result<(TopologyLimits, usize)> {
     limits.validate()?;
     // Stage owns codec framing and dictionary overhead for every writer.
-    let physical_rows = if stage.payload_layout().uses_carriers() { 2 } else { 1 };
+    let physical_rows = if stage.payload_layout().uses_carriers() {
+        2
+    } else {
+        1
+    };
     let (rows, bytes) = stage.write_page_limits();
     let physical_bytes = limits
         .max_row_bytes

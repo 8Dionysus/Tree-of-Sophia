@@ -1,15 +1,15 @@
 # Versioned acquisition batch route
 
 The native `tos-command` acquisition owner implements the repeatable
-preparation and local transfer boundary for a new provider batch.
-`scripts/acquisition_batch.py` preserves the Python CLI and imported public
-API as a wire-only compatibility facade. It requires an installed
-`tos-native-owner-command` on `PATH`, or the explicitly selected
-`TOS_NATIVE_OWNER_COMMAND_BIN`; it never falls back to the frozen Python
-implementation. The native HTTP transport uses `/usr/bin/curl` with curlrc
-disabled, restricted HTTP/HTTPS protocols, a finite provider deadline and
-byte cap. Caller-supplied fixture fetchers supply bytes only when requested
-by the native attempt loop. The route is deliberately
+preparation and local transfer boundary for a new provider batch. Invoke
+`tos-native-owner-command acquisition` with a bounded JSONL request whose
+`family` is `batch` and whose operation is `prepare`, `acquire`, `verify_local`,
+or `measure_storage`. Select the installed owner binary through `PATH` or the
+explicit `TOS_NATIVE_OWNER_COMMAND_BIN`; the native route has no Python
+fallback. The native HTTP transport uses `/usr/bin/curl` with curlrc disabled,
+restricted HTTP/HTTPS protocols, a finite provider deadline and byte cap.
+Tests may supply fixture bytes through the native callback frame only when
+requested by the native attempt loop. The route is deliberately
 selection-driven: the caller supplies one immutable manifest matching
 `ToS/contracts/acquisition-batch.schema.json`, an explicit metadata root, and
 an empty output root. The route never discovers records by walking the
@@ -89,11 +89,10 @@ accepted revision, R2 transfer, publication decision, semantic review, canon
 change, or deployment receipt. Intake should select one or more explicit
 handoff paths and bind each selected handoff's manifest and fixity digests;
 the acquisition route intentionally provides no hardcoded historical batch
-list. The route-owned `scripts/acquisition_handoff_adapter.py` is the small
-consumer fixture for one selected handoff: it verifies those bindings and
-emits a private `tos_corpus_batch_v1` input root with explicit `source/` and
-`payload/` roots. It checks the selected revision against an explicit accepted
-store pointer and loads that pointer's cryptographically bound immutable
+list. The native `handoff` family is the consumer for one selected handoff: it
+verifies those bindings and emits a private `tos_corpus_batch_v1` input root
+with explicit `source/` and `payload/` roots. It checks the selected revision
+against an explicit accepted store pointer and loads that pointer's cryptographically bound immutable
 `revisions/<base_revision>/snapshot.json`. For every selected source path, the
 accepted-source view must contain the exact snapshot member and bytes; a path
 absent from the snapshot must also be absent from the view. An arbitrary empty
@@ -139,15 +138,14 @@ The hash inside the handoff cannot authenticate the handoff by itself. This
 also permits an older sealed handoff to be consumed when its exact manifest
 digest is independently retained.
 
-The corresponding registry and handoff scripts preserve
-their existing command and import entrypoints through the native owner.
+The registry and handoff families share the native owner-command entrypoint;
+no Python command or import facade is maintained for these routes.
 Historical Python behavior remains under `tests/oracles/acquisition/` solely as
 a frozen reference; tests that patch its Python internals establish oracle
 behavior. Native fixture acceptance uses real filesystem descriptors and an
 isolated local HTTP provider. Product build, installed consumer verification
-and source/CI landing are separate
-evidence stages; neither local fixture acquisition nor adapter transport
-establishes corpus admission or publication.
+and source/CI landing are separate evidence stages; neither local fixture
+acquisition nor transport establishes corpus admission or publication.
 
 ## Standalone retained-payload custody
 

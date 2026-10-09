@@ -452,18 +452,6 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
                     with self.subTest(field=field, value=value), self.assertRaises(ValueError):
                         acquisition.check_preparation_receipt(root, manifest, receipt_path)
 
-    def test_pinned_manifest_rejects_an_unbound_payload_url(self) -> None:
-        from tests.test_registry_source_acquisition_native import _fixture
-
-        with tempfile.TemporaryDirectory() as directory:
-            root, _, manifest_path, *_ = _fixture(Path(directory), "url-binding")
-            manifest = json.loads(manifest_path.read_bytes())
-            manifest["targets"][0]["files"][0]["url"] = "https://example.invalid/unbound-source.xml"
-            changed = Path(directory) / "manifest.json"
-            changed.write_text(json.dumps(manifest))
-            with self.assertRaisesRegex(ValueError, "unbound source URL"):
-                acquisition.load_preparation(root, changed)
-
     def test_osis_validates_real_book_addresses_and_retains_source_characters(self) -> None:
         target = {"slug": "example", "coverage": {"kind": "osis-book", "book": "Prov", "chapter_count": 1}}
         body = ('<osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace">'

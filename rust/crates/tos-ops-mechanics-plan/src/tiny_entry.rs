@@ -473,16 +473,36 @@ mod tests {
                 .any(|(_, m)| m.contains("should not carry command text"))
         );
 
-        for (path, token) in [(ROUTE_DOC_PATH, "## Source-first re-entry"), ("mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md", "docs/validation/validation_lanes.json")] {
-            let before=std::fs::read_to_string(root.join(path)).unwrap();write(path,&before.replace(token,"replaced-token"));
-            let rows=validate(&root,&mut RouteSources::new(&root).unwrap(),&cancel).unwrap();
-            assert!(rows.iter().any(|(_,m)|m.contains(token)),"{rows:?}");write(path,&before);
+        for (path, token) in [
+            (ROUTE_DOC_PATH, "## Source-first re-entry"),
+            (
+                "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md",
+                "docs/validation/validation_lanes.json",
+            ),
+        ] {
+            let before = std::fs::read_to_string(root.join(path)).unwrap();
+            write(path, &before.replace(token, "replaced-token"));
+            let rows = validate(&root, &mut RouteSources::new(&root).unwrap(), &cancel).unwrap();
+            assert!(rows.iter().any(|(_, m)| m.contains(token)), "{rows:?}");
+            write(path, &before);
         }
-        let mut changed=policy.clone();changed["documentation_requirements"][README_PATH]["required_tokens"].as_array_mut().unwrap().push(Value::from("new-owner-route-token"));
-        write(DOCUMENTATION_POLICY,&changed.to_string());
-        assert!(validate(&root,&mut RouteSources::new(&root).unwrap(),&cancel).unwrap().iter().any(|(_,m)|m.contains("new-owner-route-token")));
-        changed["documentation_requirements"]["../outside.md"]=changed["documentation_requirements"][README_PATH].clone();write(DOCUMENTATION_POLICY,&changed.to_string());
-        assert!(validate(&root,&mut RouteSources::new(&root).unwrap(),&cancel).is_err());write(DOCUMENTATION_POLICY,policy_text);
+        let mut changed = policy.clone();
+        changed["documentation_requirements"][README_PATH]["required_tokens"]
+            .as_array_mut()
+            .unwrap()
+            .push(Value::from("new-owner-route-token"));
+        write(DOCUMENTATION_POLICY, &changed.to_string());
+        assert!(
+            validate(&root, &mut RouteSources::new(&root).unwrap(), &cancel)
+                .unwrap()
+                .iter()
+                .any(|(_, m)| m.contains("new-owner-route-token"))
+        );
+        changed["documentation_requirements"]["../outside.md"] =
+            changed["documentation_requirements"][README_PATH].clone();
+        write(DOCUMENTATION_POLICY, &changed.to_string());
+        assert!(validate(&root, &mut RouteSources::new(&root).unwrap(), &cancel).is_err());
+        write(DOCUMENTATION_POLICY, policy_text);
         cancel.store(1, Ordering::Relaxed);
         assert!(validate(&root, &mut RouteSources::new(&root).unwrap(), &cancel).is_err());
         std::fs::remove_dir_all(root).unwrap();

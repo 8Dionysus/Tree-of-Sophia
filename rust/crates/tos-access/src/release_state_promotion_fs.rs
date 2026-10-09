@@ -262,7 +262,11 @@ impl Store {
         let lock = open_at(
             &root.file,
             OsStr::new(".release.lock"),
-            if create { libc::O_RDWR | libc::O_CREAT } else { libc::O_RDONLY },
+            if create {
+                libc::O_RDWR | libc::O_CREAT
+            } else {
+                libc::O_RDONLY
+            },
         )?;
         regular(&lock)?;
         let lock_mode = if create { libc::LOCK_EX } else { libc::LOCK_SH };
@@ -522,9 +526,8 @@ fn stored_records(
     if state::validate_release_pair(&pair, &pair_raw).map_err(|error| error.to_string())? != id {
         return Err("current pair filename digest differs".into());
     }
-    let bindings_raw =
-        read_optional(&store.bindings, &leaf, limits.max_bytes, deadline, charges)?
-            .ok_or("current immutable bindings absent")?;
+    let bindings_raw = read_optional(&store.bindings, &leaf, limits.max_bytes, deadline, charges)?
+        .ok_or("current immutable bindings absent")?;
     bindings(&bindings_raw, limits, deadline, charges)?;
     Ok((pair, pair_raw, bindings_raw))
 }
@@ -559,7 +562,11 @@ pub(super) fn previous_release(
     charges.state(
         std::mem::size_of::<Store>()
             + root.as_os_str().len()
-            + root.parent().ok_or("release parent absent")?.as_os_str().len()
+            + root
+                .parent()
+                .ok_or("release parent absent")?
+                .as_os_str()
+                .len()
             + root.file_name().ok_or("release leaf absent")?.len(),
     )?;
     let store = Store::acquire(root, deadline)?;
@@ -577,8 +584,7 @@ pub(super) fn previous_release(
     // As in the Python owner, corrupt current state blocks rollback even though
     // it is the pair being replaced.
     stored_records(&store, current, limits, deadline, charges)?;
-    let (_, pair_raw, bindings_raw) =
-        stored_records(&store, previous, limits, deadline, charges)?;
+    let (_, pair_raw, bindings_raw) = stored_records(&store, previous, limits, deadline, charges)?;
     store.check(deadline)?;
     if pointer(&store, limits, deadline, charges)?.as_ref() != Some(&original) {
         return Err("release pointer changed while reading rollback target".into());
@@ -616,15 +622,20 @@ pub(super) fn current_release(
     charges.state(
         std::mem::size_of::<Store>()
             + root.as_os_str().len()
-            + root.parent().ok_or("release parent absent")?.as_os_str().len()
+            + root
+                .parent()
+                .ok_or("release parent absent")?
+                .as_os_str()
+                .len()
             + root.file_name().ok_or("release leaf absent")?.len(),
     )?;
     let store = Store::open_existing(root, deadline)?;
     charges.verify_inputs()?;
-    let original = pointer(&store, limits, deadline, charges)?
-        .ok_or("no current release pointer exists")?;
+    let original =
+        pointer(&store, limits, deadline, charges)?.ok_or("no current release pointer exists")?;
     let pair_id = original.0.clone();
-    let (pair, pair_raw, bindings_raw) = stored_records(&store, &pair_id, limits, deadline, charges)?;
+    let (pair, pair_raw, bindings_raw) =
+        stored_records(&store, &pair_id, limits, deadline, charges)?;
     store.available(&pair, deadline)?;
     store.check(deadline)?;
     if pointer(&store, limits, deadline, charges)? != Some(original.clone()) {
@@ -988,10 +999,7 @@ fn publish_verified_pair_inner(
         return Err("expected_current does not match current release".into());
     }
     if rollback_to_previous
-        && original
-            .as_ref()
-            .and_then(|pointer| pointer.1.as_deref())
-            != Some(pair_id.as_str())
+        && original.as_ref().and_then(|pointer| pointer.1.as_deref()) != Some(pair_id.as_str())
     {
         return Err("rollback target is no longer the stored previous pair".into());
     }
@@ -1550,7 +1558,10 @@ mod tests {
             )
             .is_err()
         );
-        assert_eq!(std::fs::read(root.join("current.json")).unwrap(), original_pointer);
+        assert_eq!(
+            std::fs::read(root.join("current.json")).unwrap(),
+            original_pointer
+        );
 
         let rolled_back = rollback_verified_previous(
             &root,
@@ -1564,7 +1575,10 @@ mod tests {
         .unwrap();
         assert!(rolled_back.committed && rolled_back.durable);
         assert_eq!(rolled_back.pair_id, first.pair_id);
-        assert_eq!(rolled_back.previous.as_deref(), Some(second.pair_id.as_str()));
+        assert_eq!(
+            rolled_back.previous.as_deref(),
+            Some(second.pair_id.as_str())
+        );
         let pointer: serde_json::Value =
             serde_json::from_slice(&std::fs::read(root.join("current.json")).unwrap()).unwrap();
         assert_eq!(pointer["current"], first.pair_id);
@@ -1580,8 +1594,7 @@ mod tests {
         let first = publish(&root, &first_pair, &first_bindings, None).unwrap();
         let second_pair = pair("revoke-b");
         let second_bindings = binding("revoke-b");
-        let second =
-            publish(&root, &second_pair, &second_bindings, Some(&first.pair_id)).unwrap();
+        let second = publish(&root, &second_pair, &second_bindings, Some(&first.pair_id)).unwrap();
         let second_value = canonical(
             &second_pair,
             state::METADATA_LIMITS,
@@ -1658,8 +1671,7 @@ mod tests {
             let root = fixture.root();
             let target_pair = pair(&format!("rollback-target-{kind}"));
             let target_bindings = binding(&format!("rollback-target-{kind}"));
-            let target =
-                publish(&root, &target_pair, &target_bindings, None).unwrap();
+            let target = publish(&root, &target_pair, &target_bindings, None).unwrap();
             let current = publish(
                 &root,
                 &pair(&format!("rollback-current-{kind}")),
@@ -1699,7 +1711,10 @@ mod tests {
                 .is_err(),
                 "rollback restored revoked {kind} component"
             );
-            assert_eq!(std::fs::read(root.join("current.json")).unwrap(), pointer_before);
+            assert_eq!(
+                std::fs::read(root.join("current.json")).unwrap(),
+                pointer_before
+            );
             assert!(
                 root.join("revocations")
                     .join(kind)

@@ -75,13 +75,29 @@ fn route_harness_declared_task_consumer_preserves_provenance_and_refusals() {
     let executable = std::env::var_os("TOS_ROUTE_HARNESS_TEST_EXECUTABLE")
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-agents-route-harness").into());
     let run = |args: &[&str]| -> Output {
-        Command::new(&executable).env_clear().env("PATH", "/usr/bin")
-            .arg("--repo-root").arg(&root).args(args).current_dir(&root).output().unwrap()
+        Command::new(&executable)
+            .env_clear()
+            .env("PATH", "/usr/bin")
+            .arg("--repo-root")
+            .arg(&root)
+            .args(args)
+            .current_dir(&root)
+            .output()
+            .unwrap()
     };
     let compare = |args: &[&str], expected: i32| -> Output {
         let native = run(args);
-        assert_eq!(native.status.code(), Some(expected), "{}", String::from_utf8_lossy(&native.stderr));
-        assert!(native.stderr.is_empty(), "{}", String::from_utf8_lossy(&native.stderr));
+        assert_eq!(
+            native.status.code(),
+            Some(expected),
+            "{}",
+            String::from_utf8_lossy(&native.stderr)
+        );
+        assert!(
+            native.stderr.is_empty(),
+            "{}",
+            String::from_utf8_lossy(&native.stderr)
+        );
         native
     };
     let canonical = compare(&[], 0);
@@ -124,7 +140,10 @@ fn route_harness_declared_task_consumer_preserves_provenance_and_refusals() {
         serde_json::from_slice(&run(&["--volatile-timing"]).stdout).unwrap();
     for task in timing_native["tasks"].as_array_mut().unwrap() {
         assert!(task["time_to_owner_ms"].as_f64().unwrap() >= 0.0);
-        assert_eq!(task["route_resolution_measurement"], "Wall-clock duration of this harness lookup, measured for the current run.");
+        assert_eq!(
+            task["route_resolution_measurement"],
+            "Wall-clock duration of this harness lookup, measured for the current run."
+        );
     }
     write("dirty.txt", "dirty\n");
     let dirty: Value =
@@ -154,8 +173,23 @@ fn route_harness_declared_task_consumer_preserves_provenance_and_refusals() {
     let failed: Value = serde_json::from_slice(&compare(&[], 0).stdout).unwrap();
     assert_eq!(failed["route_success_count"], 0);
     assert_eq!(failed["tasks"][0]["missing_task_specific_law"]["count"], 1);
-    assert!(failed["tasks"][0]["budget"]["violations"].as_array().unwrap().iter().any(|v| v.as_str().unwrap().contains("inherited_context_tokens>1")));
-    assert!(failed["tasks"][1]["budget"]["violations"].as_array().unwrap().iter().any(|v| v.as_str().unwrap().contains("owner_handoff_context_tokens>")));
+    assert!(
+        failed["tasks"][0]["budget"]["violations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v.as_str().unwrap().contains("inherited_context_tokens>1"))
+    );
+    assert!(
+        failed["tasks"][1]["budget"]["violations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v
+                .as_str()
+                .unwrap()
+                .contains("owner_handoff_context_tokens>"))
+    );
     assert_eq!(
         failed["tasks"][0]["selected_validation"]["unknown_lanes"],
         json!(["unknown-lane"])
@@ -171,7 +205,10 @@ fn route_harness_declared_task_consumer_preserves_provenance_and_refusals() {
     let native = run(&["--check", "--output", output_arg]);
     let native_bytes = fs::read(&output).unwrap();
     assert_eq!(native.status.code(), Some(1));
-    assert_eq!(serde_json::from_slice::<Value>(&native_bytes).unwrap(), failed);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&native_bytes).unwrap(),
+        failed
+    );
     // Bounded native safety envelope: missing target remains a task failure,
     // while path escape, symlink and FIFO inputs/outputs fail closed.
     inventory["task_routes"][0]["target"] = "missing-target.md".into();
@@ -202,11 +239,9 @@ fn route_harness_declared_task_consumer_preserves_provenance_and_refusals() {
     let link = fixture.0.join("linked");
     std::os::unix::fs::symlink(root.join("branch"), &link).unwrap();
     assert_eq!(
-        run(
-            &["--output", link.join("escaped.json").to_str().unwrap()]
-        )
-        .status
-        .code(),
+        run(&["--output", link.join("escaped.json").to_str().unwrap()])
+            .status
+            .code(),
         Some(1)
     );
     assert!(!Path::new(&root.join("branch/escaped.json")).exists());

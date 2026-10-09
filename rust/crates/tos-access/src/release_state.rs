@@ -118,9 +118,9 @@ fn validate_release_revocation(
     for field in ["reason", "owner_ref"] {
         let value = text(value, field)?;
         if value.trim().is_empty()
-            || value.chars().any(|character| {
-                (character as u32) < 0x20 || character == '\u{7f}'
-            })
+            || value
+                .chars()
+                .any(|character| (character as u32) < 0x20 || character == '\u{7f}')
         {
             return Err(unavailable("release revocation text invalid"));
         }

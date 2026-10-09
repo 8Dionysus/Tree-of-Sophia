@@ -184,16 +184,20 @@ mod tests {
         let media = json!("text/plain");
         let original_size = json!(1);
 
-        assert!(index
-            .add(&item_a, &file, &sha, &original_size, &media)
-            .unwrap()
-            .is_empty());
+        assert!(
+            index
+                .add(&item_a, &file, &sha, &original_size, &media)
+                .unwrap()
+                .is_empty()
+        );
         // Maintained Python equality treats an integral JSON float and integer
         // as the same descriptor value.
-        assert!(index
-            .add(&item_b, &file, &sha, &json!(1.0), &media)
-            .unwrap()
-            .is_empty());
+        assert!(
+            index
+                .add(&item_b, &file, &sha, &json!(1.0), &media)
+                .unwrap()
+                .is_empty()
+        );
         assert!(index.contains(&item_a, &file));
         assert!(index.contains(&item_b, &file));
         assert!(!index.contains(&item_c, &file));
@@ -293,14 +297,11 @@ mod tests {
             "target_side": {"anchors": [target_anchor]}
         });
 
-        assert!(opening_sentence_plan_binding_issues(
-            &plan,
-            &source_packet,
-            &target_packet,
-            &alignment
-        )
-        .unwrap()
-        .is_empty());
+        assert!(
+            opening_sentence_plan_binding_issues(&plan, &source_packet, &target_packet, &alignment)
+                .unwrap()
+                .is_empty()
+        );
 
         let fields = [
             "anchor_ref",
@@ -330,9 +331,7 @@ mod tests {
                     match field {
                         "anchor_ref" => selected_anchor["anchor_ref"] = json!("drifted-anchor"),
                         "selector" => selected_anchor["selector"]["start"] = json!(0),
-                        "exact_sha256" => {
-                            selected_anchor["exact_sha256"] = json!("drifted-digest")
-                        }
+                        "exact_sha256" => selected_anchor["exact_sha256"] = json!("drifted-digest"),
                         "text_layer_ref" => {
                             selected_anchor["text_layer_ref"] = json!("drifted-layer")
                         }
@@ -386,13 +385,17 @@ mod tests {
             vec!["provision-activity interval starts after it ends"],
             provision_temporal_issues(&reversed)
         );
-        assert!(provision_temporal_issues(&json!({
-            "temporal": {"kind": "interval", "start": "1908", "end": "1909"}
-        }))
-        .is_empty());
-        assert!(provision_temporal_issues(&json!({
-            "temporal": {"kind": "date", "value": "1909"}
-        }))
-        .is_empty());
+        assert!(
+            provision_temporal_issues(&json!({
+                "temporal": {"kind": "interval", "start": "1908", "end": "1909"}
+            }))
+            .is_empty()
+        );
+        assert!(
+            provision_temporal_issues(&json!({
+                "temporal": {"kind": "date", "value": "1909"}
+            }))
+            .is_empty()
+        );
     }
 }

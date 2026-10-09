@@ -3,7 +3,6 @@ use super::*;
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::os::unix::fs::PermissionsExt;
-use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
@@ -33,87 +32,7 @@ for ref in implementations:
     p=root/ref;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((repository/ref).read_bytes());p.chmod(0o644)
 print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementations':implementations,'owner':str(case.owner)}))
 "#;
-const UPDATE: &str = r#"
-import json,sys
-from pathlib import Path
-repository,root,unused=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_link_commands as fixture
-case=fixture.NativeObjectLinkTests(methodName='runTest');case.root=root;case.owner=root/'link-owner.json'
-case.config=json.loads(case.owner.read_bytes());case.subject_ref=case.config['subject_source_path'];case.subject_path=root/case.subject_ref
-case.subject=json.loads(case.subject_path.read_bytes())
-action=json.load(sys.stdin)
-if action['action']=='oracle':
-    request=case.request();result=fixture.commands.run_legacy_oracle_command(case.owner,request)
-    print(json.dumps(result))
-elif action['action']=='rebuild':
-    case.rebuild();print('{}')
-elif action['action']=='crash':
-    request,pending=case.crash(edge=3)
-    case.config.update(principal_id='model:synthetic-recoverer',allowed_operations=[fixture.links.RECOVERY]);case.save_config();case.owner.chmod(0o600)
-    print(json.dumps({'request':request,'recovery':case.recovery(pending,action['decision'])}))
-"#;
-fn python(
-    repository: &Path,
-    root: &Path,
-    recovery: &Path,
-    script: &str,
-    input: Option<&Value>,
-    deadline: Instant,
-) -> Value {
-    use std::io::{Read, Seek, SeekFrom, Write};
-    let mut stdin = tempfile::tempfile().unwrap();
-    if let Some(input) = input {
-        assert!(serde_json::to_vec(input).unwrap().len() <= 1_048_576);
-        stdin
-            .write_all(&serde_json::to_vec(input).unwrap())
-            .unwrap();
-    }
-    stdin.seek(SeekFrom::Start(0)).unwrap();
-    let mut stdout = tempfile::tempfile().unwrap();
-    let mut stderr = tempfile::tempfile().unwrap();
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .arg(recovery)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdin(Stdio::from(stdin))
-        .stdout(Stdio::from(stdout.try_clone().unwrap()))
-        .stderr(Stdio::from(stderr.try_clone().unwrap()))
-        .spawn()
-        .unwrap();
-    let step = deadline.min(Instant::now() + Duration::from_secs(60));
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= step
-            || stdout.metadata().unwrap().len() > 1_048_576
-            || stderr.metadata().unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained ObjectLink fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    stdout.seek(SeekFrom::Start(0)).unwrap();
-    stderr.seek(SeekFrom::Start(0)).unwrap();
-    let mut raw = Vec::new();
-    let mut errors = Vec::new();
-    stdout.read_to_end(&mut raw).unwrap();
-    stderr.read_to_end(&mut errors).unwrap();
-    assert!(
-        status.success(),
-        "ObjectLink fixture {}",
-        String::from_utf8_lossy(&errors)
-    );
-    assert!(Instant::now() < step && raw.len() <= 1_048_576 && errors.len() <= 1_048_576);
-    serde_json::from_slice(&raw).unwrap()
-}
+
 fn cli(
     repository: &Path,
     owner: &Path,
@@ -188,6 +107,20 @@ fn read_link_body(root: &Path, config: &Value) -> (Value, Value, Value, Value, V
         read(&claim_forms),
         provenance,
     )
+}
+fn assert_form_set_owner(set: &Value, owner_id: &Value, form_id: &Value) {
+    assert_eq!(set["subject"]["id"], *owner_id);
+    let forms = set["forms"].as_array().unwrap();
+    assert_eq!(forms.len(), 1);
+    let form = &forms[0];
+    assert_eq!(form["form_id"], *form_id);
+    assert_eq!(form["form_version"], json!(1));
+    assert_eq!(form["subject"]["id"], *owner_id);
+    let bindings = form["bindings"].as_object().unwrap();
+    assert!(!bindings.is_empty());
+    for binding in bindings.values() {
+        assert_eq!(binding["record"]["id"], *owner_id);
+    }
 }
 // Consumer-only physical scratch envelope; library budgets stay unchanged.
 // Sixteen full fixture allocations cover source/oracle roots, archive capture,
@@ -302,7 +235,7 @@ fn bounded_successor(
 }
 
 #[test]
-fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
+fn native_object_link_cli_creates_and_cold_replays_original_package() {
     use super::command_text_cases::{alignment_image_digest, authored_text_files};
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
@@ -325,274 +258,198 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
         assert!(fs::metadata(image).unwrap().len() <= 536_870_912);
     }
     eprintln!(
-        "ObjectLink whole case: 3 source roots + oracle; 7 native CLI children (each Python-to-native exec), 8 Python fixture children plus 2 retained crash writers, 3 captured_components calls (6 direct Git +6 capture/restore Python children plus archive-tool internal Git); 360s whole deadline, 60s child, 1MiB stdout/stderr; each cut<=256 members/8MiB, native/worker<=512MiB; no native kill race"
+        "ObjectLink native consumer: one selected source root, native preview/create/cold replay; no Python action executor or dynamic oracle"
     );
-    for decision in [None, Some("resume"), Some("rollback")] {
-        let mut temporary = FailureFixture {
-            directory: Some(tempfile::tempdir().unwrap()),
-            physically_bounded: false,
-        };
-        eprintln!(
-            "ObjectLink actual iteration={:?} fixture={}",
-            decision,
-            temporary.path().display()
-        );
-        let isolated =
-            IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-        let native_owner_paths = [
-            "rust/crates/tos-command/src/source_object_link.rs",
-            "rust/crates/tos-command/src/source_native_object_link_cli.rs",
-        ];
-        let captured = super::native_python_fixture(
-            "object-link-base",
-            &[("source-root", isolated.path())],
-            &native_owner_paths,
-        );
-        super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
-        let fixture = captured.packets.get("factory").unwrap();
-        let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
-        let config = &fixture["config"];
-        let subject = isolated
-            .path()
-            .join(config["subject_source_path"].as_str().unwrap());
-        let before = fs::read(&subject).unwrap();
-        let sentinel = subject.parent().unwrap().join("payload/opaque.bin");
-        let private_before = fs::read(&sentinel).unwrap();
-        let mut files = authored_text_files(isolated.path());
-        for name in &native_owner_paths {
-            let name = *name;
-            files.insert(name.into(), fs::read(repository.join(name)).unwrap());
-        }
-        files.insert(
-            "rust/crates/tos-command/src/source_serialization.rs".into(),
-            fs::read(repository.join("rust/crates/tos-command/src/source_serialization.rs"))
-                .unwrap(),
-        );
-        let scratch_bound = physical_fixture_budget(&files);
-        temporary.physically_bounded = true;
-        // The publication guard rechecks authenticated software at this root.
-        // FACTORY copies the Python implementation cohort; include the native
-        // serialization source already selected into the same capture below.
-        let serialization_ref = "rust/crates/tos-command/src/source_serialization.rs";
-        let serialization_path = isolated.path().join(serialization_ref);
-        fs::create_dir_all(serialization_path.parent().unwrap()).unwrap();
-        fs::write(&serialization_path, &files[serialization_ref]).unwrap();
-        fs::set_permissions(&serialization_path, fs::Permissions::from_mode(0o644)).unwrap();
-        for (reference, raw) in files
-            .iter()
-            .filter(|(reference, _)| !reference.starts_with("ToS/"))
-        {
-            assert_eq!(
-                fs::read(isolated.path().join(reference)).unwrap(),
-                *raw,
-                "ObjectLink selected software physical copy: {reference}"
-            );
-        }
-        eprintln!(
-            "ObjectLink physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images supplied outside scratch",
-            scratch_bound
-        );
-        let (capture, _software, components) =
-            super::command_record_cases::captured_components(&files, deadline, &cancelled);
-        let authored: BTreeMap<String, Vec<u8>> = files
-            .iter()
-            .filter(|(name, _)| name.starts_with("ToS/"))
-            .map(|(name, raw)| (name.clone(), raw.clone()))
-            .collect();
-        let store = temporary.path().join("selected-store");
-        let base = super::validation_cut_cases::write_cut_store(&authored, &store);
-        let invocation_path = temporary.path().join("object-link-invocation.json");
-        let mut invocation = json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,
-            "native_executable":native,"native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
-            "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
-            "software_capture":capture.capture,"software_restored_root":capture.restored,
-            "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
-            "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
-            "schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},
-            "budgets":{"max_revisions":4,"max_members":256,"max_total_bytes":8388608,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
-        freeze_invocation(&invocation_path, &invocation);
-        if let Some(decision) = decision {
-            let pending = python(
-                &repository,
-                isolated.path(),
-                isolated.path(),
-                UPDATE,
-                Some(&json!({"action":"crash","decision":decision})),
-                deadline,
-            );
-            let pending_files = authored_text_files(isolated.path());
-            physical_fixture_budget(&pending_files);
-            let pending_revision =
-                bounded_successor(&authored, &pending_files, &store, base, "pending-recovery");
-            invocation["source_revision"] = json!(pending_revision.0.to_prefixed());
-            freeze_invocation(&invocation_path, &invocation);
-            let result = cli(
-                &repository,
-                &owner,
-                &invocation_path,
-                &pending["recovery"],
-                true,
-                deadline,
-            );
-            assert_eq!(
-                result["recovery"]["outcome"],
-                json!(if decision == "resume" {
-                    "committed"
-                } else {
-                    "rolled-back"
-                })
-            );
-            assert_eq!(
-                result["recovery"]["recovery_authorization"]["principal_id"],
-                json!("model:synthetic-recoverer")
-            );
-            if decision == "resume" {
-                assert_eq!(result["receipt"]["principal_id"], json!("model:synthetic"));
-                read_link_body(isolated.path(), config);
-            } else {
-                assert!(
-                    !isolated
-                        .path()
-                        .join(config["link_source_path"].as_str().unwrap())
-                        .exists()
-                );
-                assert!(
-                    !isolated
-                        .path()
-                        .join(config["claim_source_path"].as_str().unwrap())
-                        .exists()
-                );
-            }
-        } else {
-            let description = cli(
-                &repository,
-                &owner,
-                &invocation_path,
-                &json!({"schema_version":fixture["proposal"]["schema_version"],"operation":"describe"}),
-                true,
-                deadline,
-            );
-            assert_eq!(description["grants_admission"], json!(false));
-            let preview = cli(
-                &repository,
-                &owner,
-                &invocation_path,
-                &fixture["proposal"],
-                true,
-                deadline,
-            );
-            let request = link_request(&preview, &fixture["proposal"]);
-            let mut bad = request.clone();
-            bad["link"]["uri"] = json!("https://example.invalid/undelegated");
-            cli(&repository, &owner, &invocation_path, &bad, false, deadline);
-            let result = cli(
-                &repository,
-                &owner,
-                &invocation_path,
-                &request,
-                true,
-                deadline,
-            );
-            assert_eq!(result["replayed"], json!(false));
-            assert_eq!(result["grants_admission"], json!(false));
-            let native_body = read_link_body(isolated.path(), config);
-            assert_eq!(
-                native_body.1["qualifiers"]["availability_is_rights_conclusion"],
-                json!(false)
-            );
-            assert_eq!(
-                native_body.1["qualifiers"]["unknown_context"],
-                json!({"flag":false,"missing":null})
-            );
-            for group in result["materializations"].as_object().unwrap().values() {
-                assert!(
-                    group
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .all(|view| view["state"] == "ready")
-                );
-            }
-            let oracle =
-                IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-            let native_owner_paths = [
-                "rust/crates/tos-command/src/source_object_link.rs",
-                "rust/crates/tos-command/src/source_native_object_link_cli.rs",
-            ];
-            let captured = super::native_python_fixture(
-                "object-link-base",
-                &[("source-root", oracle.path())],
-                &native_owner_paths,
-            );
-            super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
-            let oracle_result = python(
-                &repository,
-                oracle.path(),
-                oracle.path(),
-                UPDATE,
-                Some(&json!({"action":"oracle"})),
-                deadline,
-            );
-            let oracle_body = read_link_body(oracle.path(), config);
-            assert_eq!(native_body.0, oracle_body.0);
-            assert_eq!(native_body.1, oracle_body.1);
-            assert_eq!(native_body.2, oracle_body.2);
-            assert_eq!(native_body.3, oracle_body.3);
-            assert_eq!(
-                native_body.4.pointer("/method/procedure/name"),
-                Some(&json!("native-object-link-serialization"))
-            );
-            assert_eq!(
-                oracle_body.4.pointer("/method/procedure/name"),
-                Some(&json!("native-object-link-metadata-serialization"))
-            );
-            for pointer in [
-                "/rights_and_visibility/publication_authorized",
-                "/review_and_authority/promotion_authorized",
-                "/review_and_authority/accepted_uses",
-            ] {
-                assert_eq!(
-                    native_body.4.pointer(pointer),
-                    oracle_body.4.pointer(pointer)
-                );
-            }
-            assert_eq!(result["source_profiles"], oracle_result["source_profiles"]);
-            python(
-                &repository,
-                isolated.path(),
-                isolated.path(),
-                UPDATE,
-                Some(&json!({"action":"rebuild"})),
-                deadline,
-            );
-            let current_files = authored_text_files(isolated.path());
-            physical_fixture_budget(&current_files);
-            let current = bounded_successor(
-                &authored,
-                &current_files,
-                &store,
-                base,
-                "committed-cold-replay",
-            );
-            invocation["source_revision"] = json!(current.0.to_prefixed());
-            invocation["original_source_revision"] = json!(base.0.to_prefixed());
-            freeze_invocation(&invocation_path, &invocation);
-            let retained = read_link_body(isolated.path(), config);
-            let retained_bytes = authored_text_files(isolated.path());
-            let replay = cli(
-                &repository,
-                &owner,
-                &invocation_path,
-                &request,
-                true,
-                deadline,
-            );
-            assert_eq!(replay["replayed"], json!(true));
-            assert_eq!(read_link_body(isolated.path(), config), retained);
-            assert_eq!(authored_text_files(isolated.path()), retained_bytes);
-        }
-        assert_eq!(fs::read(&subject).unwrap(), before);
-        assert_eq!(fs::read(&sentinel).unwrap(), private_before);
-        assert!(Instant::now() < deadline);
+    let mut temporary = FailureFixture {
+        directory: Some(tempfile::tempdir().unwrap()),
+        physically_bounded: false,
+    };
+    eprintln!("ObjectLink selected fixture={}", temporary.path().display());
+    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
+    let native_owner_paths = [
+        "rust/crates/tos-command/src/source_object_link.rs",
+        "rust/crates/tos-command/src/source_native_object_link_cli.rs",
+    ];
+    let captured = super::native_python_fixture(
+        "object-link-base",
+        &[("source-root", isolated.path())],
+        &native_owner_paths,
+    );
+    super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
+    let fixture = captured.packets.get("factory").unwrap();
+    let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
+    let config = &fixture["config"];
+    let subject = isolated
+        .path()
+        .join(config["subject_source_path"].as_str().unwrap());
+    let before = fs::read(&subject).unwrap();
+    let sentinel = subject.parent().unwrap().join("payload/opaque.bin");
+    let private_before = fs::read(&sentinel).unwrap();
+    let mut files = authored_text_files(isolated.path());
+    for name in fixture["implementations"].as_array().unwrap() {
+        let name = name.as_str().unwrap();
+        files.insert(name.into(), fs::read(repository.join(name)).unwrap());
     }
+    files.insert(
+        "rust/crates/tos-command/src/source_serialization.rs".into(),
+        fs::read(repository.join("rust/crates/tos-command/src/source_serialization.rs")).unwrap(),
+    );
+    let scratch_bound = physical_fixture_budget(&files);
+    temporary.physically_bounded = true;
+    // The publication guard rechecks authenticated software at this root.
+    // FACTORY copies the Python implementation cohort; include the native
+    // serialization source already selected into the same capture below.
+    let serialization_ref = "rust/crates/tos-command/src/source_serialization.rs";
+    let serialization_path = isolated.path().join(serialization_ref);
+    fs::create_dir_all(serialization_path.parent().unwrap()).unwrap();
+    fs::write(&serialization_path, &files[serialization_ref]).unwrap();
+    fs::set_permissions(&serialization_path, fs::Permissions::from_mode(0o644)).unwrap();
+    for (reference, raw) in files
+        .iter()
+        .filter(|(reference, _)| !reference.starts_with("ToS/"))
+    {
+        assert_eq!(
+            fs::read(isolated.path().join(reference)).unwrap(),
+            *raw,
+            "ObjectLink selected software physical copy: {reference}"
+        );
+    }
+    eprintln!(
+        "ObjectLink physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images supplied outside scratch",
+        scratch_bound
+    );
+    let (capture, _software, components) =
+        super::command_record_cases::captured_components(&files, deadline, &cancelled);
+    let authored: BTreeMap<String, Vec<u8>> = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect();
+    let store = temporary.path().join("selected-store");
+    let base = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let invocation_path = temporary.path().join("object-link-invocation.json");
+    let mut invocation = json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,
+        "native_executable":native,"native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
+        "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":256,"max_total_bytes":8388608,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    freeze_invocation(&invocation_path, &invocation);
+    // Owner-specific pending publication/recovery is covered by its in-crate WorkCorpusFence test.
+
+    let description = cli(
+        &repository,
+        &owner,
+        &invocation_path,
+        &json!({"schema_version":fixture["proposal"]["schema_version"],"operation":"describe"}),
+        true,
+        deadline,
+    );
+    assert_eq!(description["grants_admission"], json!(false));
+    let preview = cli(
+        &repository,
+        &owner,
+        &invocation_path,
+        &fixture["proposal"],
+        true,
+        deadline,
+    );
+    let request = link_request(&preview, &fixture["proposal"]);
+    let mut bad = request.clone();
+    bad["link"]["uri"] = json!("https://example.invalid/undelegated");
+    cli(&repository, &owner, &invocation_path, &bad, false, deadline);
+    let result = cli(
+        &repository,
+        &owner,
+        &invocation_path,
+        &request,
+        true,
+        deadline,
+    );
+    assert_eq!(result["replayed"], json!(false));
+    assert_eq!(result["grants_admission"], json!(false));
+    let native_body = read_link_body(isolated.path(), config);
+    assert_eq!(
+        native_body.1["qualifiers"]["availability_is_rights_conclusion"],
+        json!(false)
+    );
+    assert_eq!(
+        native_body.1["qualifiers"]["unknown_context"],
+        json!({"flag":false,"missing":null})
+    );
+    for group in result["materializations"].as_object().unwrap().values() {
+        assert!(
+            group
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|view| view["state"] == "ready")
+        );
+    }
+    assert_eq!(
+        native_body.0["record_id"],
+        fixture["proposal"]["link"]["record_id"]
+    );
+    assert_eq!(native_body.0["uri"], config["uri"]);
+    assert_eq!(native_body.0["observation_ref"], config["observation_ref"]);
+    assert_eq!(native_body.1["claim_id"], config["claim_id"]);
+    assert_eq!(native_body.1["predicate"], config["predicate"]);
+    assert_eq!(
+        native_body.4.pointer("/method/procedure/name"),
+        Some(&json!("native-object-link-serialization"))
+    );
+    assert_form_set_owner(
+        &native_body.2,
+        &config["link_id"],
+        &config["allowed_link_form_ids"][0],
+    );
+    assert_form_set_owner(
+        &native_body.3,
+        &config["claim_id"],
+        &config["allowed_claim_form_ids"][0],
+    );
+    let link_view = &result["materializations"]["link"][0];
+    let claim_view = &result["materializations"]["claim"][0];
+    assert_eq!(link_view["form"]["id"], config["allowed_link_form_ids"][0]);
+    assert_eq!(link_view["subject"]["id"], config["link_id"]);
+    assert_eq!(
+        claim_view["form"]["id"],
+        config["allowed_claim_form_ids"][0]
+    );
+    assert_eq!(claim_view["subject"]["id"], config["claim_id"]);
+    assert_eq!(
+        result["source_profiles"][config["predicate"].as_str().unwrap()]["relation_type_id"],
+        json!("tos.relation.described-by")
+    );
+    let current_files = authored_text_files(isolated.path());
+    physical_fixture_budget(&current_files);
+    let current = bounded_successor(
+        &authored,
+        &current_files,
+        &store,
+        base,
+        "committed-cold-replay",
+    );
+    invocation["source_revision"] = json!(current.0.to_prefixed());
+    invocation["original_source_revision"] = json!(base.0.to_prefixed());
+    freeze_invocation(&invocation_path, &invocation);
+    let retained = read_link_body(isolated.path(), config);
+    let retained_bytes = authored_text_files(isolated.path());
+    let replay = cli(
+        &repository,
+        &owner,
+        &invocation_path,
+        &request,
+        true,
+        deadline,
+    );
+    assert_eq!(replay["replayed"], json!(true));
+    assert_eq!(read_link_body(isolated.path(), config), retained);
+    assert_eq!(authored_text_files(isolated.path()), retained_bytes);
+
+    assert_eq!(fs::read(&subject).unwrap(), before);
+    assert_eq!(fs::read(&sentinel).unwrap(), private_before);
+    assert!(Instant::now() < deadline);
 }

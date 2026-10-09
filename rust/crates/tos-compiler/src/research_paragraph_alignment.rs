@@ -1778,7 +1778,10 @@ mod tests {
     }
     #[test]
     fn tracked_current_route_preserves_census_and_authority_ceiling() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap();
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap();
         let summary = validate_tracked(&root).expect("tracked alignment route validates");
         assert_eq!(summary["status"], "pass");
         assert_eq!(summary["packets"], 4);
@@ -1797,19 +1800,28 @@ mod tests {
 
     #[test]
     fn present_private_layers_rebuild_exactly() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap();
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap();
         let repo = ResearchExecution::new(&root, 180).unwrap();
-        let private_refs = (1..=4).flat_map(|part| {
-            let packet = load(&repo, &packet_ref(part)).unwrap();
-            ["source_side", "target_side"].into_iter().map(move |side| {
-                s(&packet[side]["text_layer_ref"]).unwrap().to_owned()
+        let private_refs = (1..=4)
+            .flat_map(|part| {
+                let packet = load(&repo, &packet_ref(part)).unwrap();
+                ["source_side", "target_side"]
+                    .into_iter()
+                    .map(move |side| s(&packet[side]["text_layer_ref"]).unwrap().to_owned())
             })
-        }).collect::<Vec<_>>();
-        if !private_refs.iter().all(|reference| root.join(reference).is_file()) {
+            .collect::<Vec<_>>();
+        if !private_refs
+            .iter()
+            .all(|reference| root.join(reference).is_file())
+        {
             eprintln!("skip: exact local German and Russian private layers are not present");
             return;
         }
-        let result = run(&root, &["--check".to_owned()]).expect("native exact private rebuild parity");
+        let result =
+            run(&root, &["--check".to_owned()]).expect("native exact private rebuild parity");
         assert_eq!(result["status"], "pass");
     }
 

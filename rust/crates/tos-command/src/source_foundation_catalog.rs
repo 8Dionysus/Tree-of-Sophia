@@ -1885,9 +1885,11 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
                 cancelled,
                 &observed_bytes,
             );
-            external_reads.set((readback_bytes.get() as u64)
-                .checked_add(observed_bytes.get() as u64)
-                .ok_or(Error::Budget("catalog external read count overflow"))?);
+            external_reads.set(
+                (readback_bytes.get() as u64)
+                    .checked_add(observed_bytes.get() as u64)
+                    .ok_or(Error::Budget("catalog external read count overflow"))?,
+            );
             let observation = observation?;
             generated_read_bytes = observation.read_bytes();
             generated_inputs = Some(observation);
@@ -1924,11 +1926,15 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
             .ok_or(Error::Invalid("catalog observation absent"))?;
         if let Some(candidate) = candidate_output.as_mut() {
             let rechecked = selected_generated.recheck(
-                &mut candidate.fresh_sources, limits.deadline, cancelled,
+                &mut candidate.fresh_sources,
+                limits.deadline,
+                cancelled,
             );
-            external_reads.set((candidate.candidate.cost().readback_bytes as u64)
-                .checked_add(selected_generated.read_bytes() as u64)
-                .ok_or(Error::Budget("catalog external read count overflow"))?);
+            external_reads.set(
+                (candidate.candidate.cost().readback_bytes as u64)
+                    .checked_add(selected_generated.read_bytes() as u64)
+                    .ok_or(Error::Budget("catalog external read count overflow"))?,
+            );
             rechecked?;
         } else {
             selected_generated.recheck(&mut sources.borrow_mut(), limits.deadline, cancelled)?;
@@ -1965,12 +1971,13 @@ fn compare_prepared_kernel<'candidate, 'stage, 'rows, B, D>(
             recheck()?;
             if let Some(selected) = generated_inputs.as_mut() {
                 if let Some(candidate) = candidate_output.as_mut() {
-                    let rechecked = selected.recheck(
-                        &mut candidate.fresh_sources, limits.deadline, cancelled,
+                    let rechecked =
+                        selected.recheck(&mut candidate.fresh_sources, limits.deadline, cancelled);
+                    external_reads.set(
+                        (candidate.candidate.cost().readback_bytes as u64)
+                            .checked_add(selected.read_bytes() as u64)
+                            .ok_or(Error::Budget("catalog external read count overflow"))?,
                     );
-                    external_reads.set((candidate.candidate.cost().readback_bytes as u64)
-                        .checked_add(selected.read_bytes() as u64)
-                        .ok_or(Error::Budget("catalog external read count overflow"))?);
                     rechecked?;
                 } else {
                     selected.recheck(&mut sources.borrow_mut(), limits.deadline, cancelled)?;

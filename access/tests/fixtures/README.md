@@ -11,10 +11,11 @@ independent of a live corpus.
 - Source path: ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json
 - Custody view: /srv/abyss-machine/artifacts/tos-corpus-custody-r2-20260913/main-integration-view/Tree-of-Sophia
 - Source root SHA-256: 788435774ef01ebb932cef90c6530280a09c06032a148318b533e51340827308
-- Selection: stream ProjectionReader, take the first claim_traces row whose
-  predicate is translated_by, retain edges whose claim_ref matches that
-  trace, and retain nodes whose node_id is the trace's claim node or an
-  endpoint of a retained edge.
+- Selection: in the captured source checkout, stream the then-current
+  projection reader, take the first claim_traces row whose predicate is
+  translated_by, retain edges whose claim_ref matches that trace, and retain
+  nodes whose node_id is the trace's claim node or an endpoint of a retained
+  edge. This describes fixture extraction provenance, not a shipped reader.
 - Counts: 1 claim_traces, 8 edges, 9 nodes
 - Fixture SHA-256: c9d52245beb5cebeef90981b5fb34f343088d385d1d2c9c733884c786eb95b77
 
@@ -63,7 +64,7 @@ read-only from the custody view below and are not source admission:
   those traces' `edge_ids`, and the closure of node endpoints from the
   retained edges plus each trace's claim, subject, and object nodes
 - Ordering: traces by `claim_ref`, edges by `edge_id`, and nodes by `node_id`,
-  matching the current `ProjectionReader` branch
+  matching the projection reader used when the fixture was extracted
 - Claim IDs:
   `tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani`,
   `tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments`,

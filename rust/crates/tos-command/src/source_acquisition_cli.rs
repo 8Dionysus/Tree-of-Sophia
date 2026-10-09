@@ -39,6 +39,7 @@ pub fn run() -> i32 {
             "handoff" => crate::source_acquisition_handoff::invoke(&request),
             "registry" => crate::source_registry_acquisition::invoke(&request),
             "custody" => crate::source_payload_custody::invoke(&request),
+            "payload-import" => crate::source_payload_import::invoke(&request),
             "inventory" => crate::source_item_inventory::invoke(&request),
             _ => Err("unsupported acquisition family".into()),
         }?;

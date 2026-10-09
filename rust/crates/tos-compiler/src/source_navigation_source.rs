@@ -15,7 +15,7 @@ use crate::source_witness_catalog::{
     self as catalog, SourceCatalogReceipt, SourceCatalogValidator,
 };
 use crate::{Error, Result};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub use crate::source_navigation_storage::NavigationStorageLimits;

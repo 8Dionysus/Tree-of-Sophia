@@ -3633,7 +3633,11 @@ fn inspect_provenance_v2(
                 .any(|message| *message == expected))
             };
         let mut mutated = state.clone_value_charged(&a, limits)?;
-        set_json_pointer(&mut mutated, "/method/command_capture", json!({"disclosure":"inline","argv":["synthetic-negative-command"],"argv_sha256":"0".repeat(64),"withholding_reason":null}));
+        set_json_pointer(
+            &mut mutated,
+            "/method/command_capture",
+            json!({"disclosure":"inline","argv":["synthetic-negative-command"],"argv_sha256":"0".repeat(64),"withholding_reason":null}),
+        );
         set_json_pointer(
             &mut mutated,
             "/method/command_capture/argv_sha256",
@@ -3732,7 +3736,11 @@ fn inspect_provenance_v2(
         )?;
 
         let mut mutated = state.clone_value_charged(&a, limits)?;
-        set_json_pointer(&mut mutated, "/reproducibility/classification", json!("replay_ready"));
+        set_json_pointer(
+            &mut mutated,
+            "/reproducibility/classification",
+            json!("replay_ready"),
+        );
         set_json_pointer(
             &mut mutated,
             "/method/command_capture/disclosure",

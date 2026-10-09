@@ -1,0 +1,33 @@
+{
+  "schema_version": "tos_local_object_link_create_owner_v1",
+  "uid": 1000,
+  "source_root": "$TOS_FIXTURE_ROOT",
+  "principal_id": "model:synthetic",
+  "maker_type": "model",
+  "authority_ref": "test:link-creation",
+  "expires_at": "2099-01-01T00:00:00Z",
+  "allowed_operations": [
+    "object.link.create",
+    "object.link.recover"
+  ],
+  "subject_id": "tos.work.synthetic.link-subject",
+  "subject_source_path": "ToS/source-witnesses/works/synthetic/link-subject/work.json",
+  "subject_record_type": "work",
+  "link_id": "tos.link.synthetic.object",
+  "link_source_path": "ToS/source-witnesses/links/synthetic/link.json",
+  "claim_id": "tos.claim.synthetic.object-link",
+  "claim_source_path": "ToS/source-witnesses/relations/synthetic-object-link/source-claims.jsonl",
+  "predicate": "described_by",
+  "provenance_event_id": "tos.event.synthetic.object-link",
+  "allowed_link_form_ids": [
+    "tos.form.synthetic.link-name"
+  ],
+  "allowed_claim_form_ids": [
+    "tos.form.synthetic.link-statement"
+  ],
+  "uri": "https://example.invalid/object",
+  "observation_ref": "https://example.invalid/observation",
+  "allowed_evidence_refs": [
+    "https://example.invalid/observation"
+  ]
+}

@@ -334,7 +334,10 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
                 } else {
                     &mut result.source_transition_base
                 };
-                if slot.replace(SourceRevision(Digest256::from_hex(value).map_err(invalid)?)).is_some() {
+                if slot
+                    .replace(SourceRevision(Digest256::from_hex(value).map_err(invalid)?))
+                    .is_some()
+                {
                     return Err(invalid("duplicate source transition original base"));
                 }
                 continue;
@@ -476,10 +479,17 @@ fn parse(args: &[OsString]) -> io::Result<Arguments> {
         ));
     }
     if result.verify_committed_revision.is_some()
-        && (result.batch.is_some() || result.initial_cut || result.identity_only
-            || result.authored_bootstrap_owner.is_some() || result.fresh_revision.is_some()
-            || result.source_transition_base.is_some() || result.indexed_input_root.is_some()) {
-        return Err(invalid("committed verification cannot select a source publication operation"));
+        && (result.batch.is_some()
+            || result.initial_cut
+            || result.identity_only
+            || result.authored_bootstrap_owner.is_some()
+            || result.fresh_revision.is_some()
+            || result.source_transition_base.is_some()
+            || result.indexed_input_root.is_some())
+    {
+        return Err(invalid(
+            "committed verification cannot select a source publication operation",
+        ));
     }
     let selected_scope = validation_profile
         .as_ref()
@@ -935,7 +945,9 @@ fn run_selected(
         }
         PreparedAdmissionExecution::Resident => {
             if args.verify_committed_revision.is_some() {
-                return Err(invalid("committed verification requires the protected spooled V2 route"));
+                return Err(invalid(
+                    "committed verification requires the protected spooled V2 route",
+                ));
             }
             if args.initial_cut {
                 return Err(invalid(
@@ -1734,13 +1746,17 @@ fn run_spooled_inner(
 
     if let Some(expected_revision) = args.verify_committed_revision {
         phase.set("explicit committed V2 verification");
-        let selected = resources.v2_case.as_ref()
-            .ok_or_else(|| invalid("committed verification requires selected V2 read/restore limits"))?;
-        let source_root = resources.v2_source_root.as_ref()
+        let selected = resources.v2_case.as_ref().ok_or_else(|| {
+            invalid("committed verification requires selected V2 read/restore limits")
+        })?;
+        let source_root = resources
+            .v2_source_root
+            .as_ref()
             .filter(|root| root.path == store_path)
             .ok_or_else(|| invalid("committed verification original source root differs"))?;
         let profile = validator.prepared_v2_read_case_profile()?;
-        let read_limits = resources.v2_base_read_limits
+        let read_limits = resources
+            .v2_base_read_limits
             .ok_or_else(|| invalid("committed verification read limits absent"))?;
         // This is a new read/restore invocation. Its finite visit meter starts
         // once here from the original read envelope and is shared by lookup,
@@ -1749,8 +1765,13 @@ fn run_spooled_inner(
             resources.candidate_limits.candidate.max_read_bytes,
         )?;
         let mut reader = crate::source_admission_v2_reader::V2ReadSession::open_at_named_with_work(
-            store_path, &source_root.held, read_limits, profile.io.clone(), work.clone(),
-            deadline, cancelled.clone(),
+            store_path,
+            &source_root.held,
+            read_limits,
+            profile.io.clone(),
+            work.clone(),
+            deadline,
+            cancelled.clone(),
         )?;
         if reader.selected_revision() != expected_revision {
             return Err(invalid("committed verification selected revision differs"));
@@ -1759,19 +1780,30 @@ fn run_spooled_inner(
         // is only the reader; it never reissues the historical validator claim.
         reader.selected_native_admission_root()?;
         let roots = reader.current_roots();
-        let original_batch = roots.batch_sha256
+        let original_batch = roots
+            .batch_sha256
             .ok_or_else(|| invalid("committed verification original batch absent"))?;
         let original_base = roots.base_revision;
         let original_validator = roots.validator_sha256;
-        let accepted = reader.find_accepted_batch(
-            original_batch, original_base, original_validator,
-            resources.manifest_limits.max_manifest_bytes,
-        )?.filter(|accepted| accepted.revision == expected_revision)
+        let accepted = reader
+            .find_accepted_batch(
+                original_batch,
+                original_base,
+                original_validator,
+                resources.manifest_limits.max_manifest_bytes,
+            )?
+            .filter(|accepted| accepted.revision == expected_revision)
             .ok_or_else(|| invalid("committed verification exact history evidence absent"))?;
         drop(reader);
         let case = Some(run_selected_v2_case(
-            selected, profile, resources, store_path, expected_revision, deadline,
-            cancelled, std::mem::size_of::<crate::source_admission_v2_reader::AcceptedV2Publication>(),
+            selected,
+            profile,
+            resources,
+            store_path,
+            expected_revision,
+            deadline,
+            cancelled,
+            std::mem::size_of::<crate::source_admission_v2_reader::AcceptedV2Publication>(),
             work,
         ));
         return Ok(SpooledExecutionOutcome::Recovered { accepted, case });
@@ -2634,18 +2666,34 @@ mod validation_profile_forwarding_tests {
     #[test]
     fn explicit_verification_rejects_publication_selectors() {
         let revision = "1".repeat(64);
-        let base = ["--store", "/store", "--input-root", "/source",
-            "--grammar-root", "/grammar", "--invocation", "/invocation",
-            "--verify-committed-revision", revision.as_str()];
+        let base = [
+            "--store",
+            "/store",
+            "--input-root",
+            "/source",
+            "--grammar-root",
+            "/grammar",
+            "--invocation",
+            "/invocation",
+            "--verify-committed-revision",
+            revision.as_str(),
+        ];
         let args = base.iter().map(OsString::from).collect::<Vec<_>>();
         let parsed = parse(&args).unwrap();
-        assert_eq!(parsed.verify_committed_revision.unwrap().0.to_hex(), revision);
+        assert_eq!(
+            parsed.verify_committed_revision.unwrap().0.to_hex(),
+            revision
+        );
         assert!(parsed.batch.is_none() && !parsed.initial_cut);
-        for extra in [vec!["--batch", "/batch"], vec!["--initial-cut"],
-            vec!["--validator-identity"], vec!["--indexed-input-root", "/indexed"],
+        for extra in [
+            vec!["--batch", "/batch"],
+            vec!["--initial-cut"],
+            vec!["--validator-identity"],
+            vec!["--indexed-input-root", "/indexed"],
             vec!["--source-transition-base", revision.as_str()],
             vec!["--authored-bootstrap-owner", "/owner"],
-            vec!["--verify-committed-revision", revision.as_str()]] {
+            vec!["--verify-committed-revision", revision.as_str()],
+        ] {
             let mut combined = args.clone();
             combined.extend(extra.into_iter().map(OsString::from));
             assert!(parse(&combined).is_err());
@@ -2670,7 +2718,10 @@ mod validation_profile_forwarding_tests {
         let packet = refusal.cause_packet();
         assert_eq!(packet.publication_state, "committed");
         assert_eq!(packet.revision, refusal.revision.to_hex());
-        assert_eq!(packet.cause_sha256[0], Some(Digest256::of_bytes(private.as_bytes()).to_hex()));
+        assert_eq!(
+            packet.cause_sha256[0],
+            Some(Digest256::of_bytes(private.as_bytes()).to_hex())
+        );
         assert!(!packet.causes_truncated);
         let wire = serde_json::to_string(&packet).unwrap();
         assert!(!wire.contains("private"));

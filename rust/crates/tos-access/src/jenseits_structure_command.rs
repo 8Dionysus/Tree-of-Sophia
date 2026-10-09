@@ -167,7 +167,11 @@ pub fn run_if_requested(args: &[String], out: &mut dyn Write, err: &mut dyn Writ
             }
         }
         Err(e) => {
-            let _ = writeln!(err, "{} refused: {e}", command.unwrap_or("source structure"));
+            let _ = writeln!(
+                err,
+                "{} refused: {e}",
+                command.unwrap_or("source structure")
+            );
             1
         }
     })

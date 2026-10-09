@@ -409,8 +409,12 @@ pub(crate) fn with_logical_payload_for_verified_layout<T>(
     let _fixed = state.hold(fixed)?;
     state.active()?;
     let carrier = layout.uses_carriers();
-    if max_row_bytes == 0 || row.logical_len == 0 || row.logical_len > max_row_bytes
-        || row.physical.is_empty() || row.physical.len() > layout.physical_bound(max_row_bytes)? {
+    if max_row_bytes == 0
+        || row.logical_len == 0
+        || row.logical_len > max_row_bytes
+        || row.physical.is_empty()
+        || row.physical.len() > layout.physical_bound(max_row_bytes)?
+    {
         return Err(Error::Budget("selected logical payload bytes"));
     }
     let result = match row.payload_codec {
@@ -418,30 +422,49 @@ pub(crate) fn with_logical_payload_for_verified_layout<T>(
             if row.source_packet_sha256.is_some() || row.source_packet.is_some() {
                 return Err(Error::Invalid("selected inline source carrier"));
             }
-            layout.with_sql_decoded(db, state, row.physical, Some(row.logical_len), max_row_bytes, |raw| {
-                if charged_digest(state, raw)? != row.logical_sha256 {
-                    return Err(Error::Invalid("selected inline logical payload differs"));
-                }
-                consume(raw, context)
-            })
+            layout.with_sql_decoded(
+                db,
+                state,
+                row.physical,
+                Some(row.logical_len),
+                max_row_bytes,
+                |raw| {
+                    if charged_digest(state, raw)? != row.logical_sha256 {
+                        return Err(Error::Invalid("selected inline logical payload differs"));
+                    }
+                    consume(raw, context)
+                },
+            )
         }
         1 if carrier => {
-            let source = row.source_packet.ok_or(Error::Invalid("selected source carrier absent"))?;
-            let digest = row.source_packet_sha256.ok_or(Error::Invalid("selected carrier digest absent"))?;
+            let source = row
+                .source_packet
+                .ok_or(Error::Invalid("selected source carrier absent"))?;
+            let digest = row
+                .source_packet_sha256
+                .ok_or(Error::Invalid("selected carrier digest absent"))?;
             layout.with_sql_decoded(db, state, source, None, max_row_bytes, |source| {
                 if charged_digest(state, source)? != digest {
                     return Err(Error::Invalid("selected source carrier differs"));
                 }
                 layout.with_sql_decoded(db, state, row.physical, None, max_row_bytes, |stored| {
                     crate::knowledge_payload_codec::with_hydrated_payload(
-                        state, stored, source, stored_limits, source_limits,
-                        max_row_bytes, row.logical_len, row.logical_sha256,
+                        state,
+                        stored,
+                        source,
+                        stored_limits,
+                        source_limits,
+                        max_row_bytes,
+                        row.logical_len,
+                        row.logical_sha256,
                         |logical| consume(logical, context),
                     )
                 })
             })
         }
-        _ => Err(Error::Invalid("selected payload codec incompatible with ABI")),
+        _ => Err(Error::Invalid(
+            "selected payload codec incompatible with ABI",
+        )),
     };
     state.active()?;
     result
@@ -487,7 +510,8 @@ pub(crate) fn with_selected_logical_payload_owned<'budget, T>(
             return Err(Error::Invalid("selected payload ABI unsupported"));
         }
         let result = with_logical_payload_for_verified_layout(
-            model.connection(), context,
+            model.connection(),
+            context,
             layout,
             row,
             stored_limits,

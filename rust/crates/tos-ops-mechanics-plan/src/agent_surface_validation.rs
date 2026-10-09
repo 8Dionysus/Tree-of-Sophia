@@ -717,7 +717,10 @@ pub fn validate_manifest_with_sources(
                 "builder",
                 json!("rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs"),
             ),
-            ("validator", json!("rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs")),
+            (
+                "validator",
+                json!("rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs"),
+            ),
         ],
     );
     for key in ["owner_surface", "human_entrypoint", "builder", "validator"] {

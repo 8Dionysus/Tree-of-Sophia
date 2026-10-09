@@ -36,6 +36,21 @@ const ALLOWED_REPOSITORIES: &[&str] = &[
 
 type Result<T> = std::result::Result<T, String>;
 
+#[cfg(test)]
+thread_local! {
+    static TEST_FETCH_CALLBACK: RefCell<Option<Box<dyn Fn(&Value) -> Result<Vec<u8>>>>> = const { RefCell::new(None) };
+}
+
+fn fetch_source_bytes(payload: &Value) -> Result<Vec<u8>> {
+    #[cfg(test)]
+    if let Some(result) =
+        TEST_FETCH_CALLBACK.with(|callback| callback.borrow().as_ref().map(|fetch| fetch(payload)))
+    {
+        return result;
+    }
+    custody::fetch_request(payload)
+}
+
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value> {
     value
         .get(key)
@@ -2295,7 +2310,7 @@ fn transfer(
         let size = u64_field(entry, "byte_size")?;
         let body = if fetch_callback {
             let payload = json!({"url":url,"target_slug":text(target,"slug")?,"expected_byte_size":size,"expected_git_blob_sha1":text(entry,"git_blob_sha1")?});
-            custody::fetch_request(&payload)?
+            fetch_source_bytes(&payload)?
         } else {
             let metadata = "\n__TOS_HTTP_META__%{http_code}\n%{url_effective}";
             let args = vec![
@@ -3105,3 +3120,7 @@ fn install_target(
     )?;
     verify_target(root, target, payload_source_root)
 }
+
+#[cfg(test)]
+#[path = "source_registry_acquisition_tests.rs"]
+mod tests;

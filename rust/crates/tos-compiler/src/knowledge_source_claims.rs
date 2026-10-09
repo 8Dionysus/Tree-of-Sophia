@@ -196,7 +196,8 @@ pub(crate) fn claim_relation_material_witness(
         db.query_row("SELECT native_id,raw_sha256,CASE WHEN material_len=length(material) AND length(material)<=?3 THEN material ELSE NULL END,material_sha256 FROM knowledge_claim_relation_material WHERE source_graph=?1 AND id=?2",params![graph,id,max_bytes as i64],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(Error::from)
     })?;
     let raw_owner = stage.scoped_raw_by_id(graph, "edges", &native)?;
-    let raw = raw_owner.as_ref()
+    let raw = raw_owner
+        .as_ref()
         .ok_or(Error::Invalid("Claim material original absent"))?;
     if raw_sha != Digest256::of_bytes(&raw.payload).as_bytes()
         || material_sha != Digest256::of_bytes(&material).as_bytes()
@@ -1363,7 +1364,8 @@ pub fn prepare_claim_context_groups(
                     stage.owned_creation_state(),
                 )?;
                 let owner_row = stage.scoped_raw_by_id(&graph, "nodes", &native)?;
-                let owner = owner_row.as_ref()
+                let owner = owner_row
+                    .as_ref()
                     .ok_or(Error::Invalid("Claim group ordered source absent"))?;
                 charge(&mut work, owner.payload.len(), limits.max_work_bytes)?;
                 let owner_sha = Digest256::of_bytes(&owner.payload);
@@ -1482,7 +1484,8 @@ pub fn claim_context_sources(
     let mut result = Vec::new();
     for (native, sha) in owners {
         let raw_owner = stage.scoped_raw_by_id(graph, "nodes", &native)?;
-        let raw = raw_owner.as_ref()
+        let raw = raw_owner
+            .as_ref()
             .ok_or(Error::Invalid("Claim context witness absent"))?;
         if Digest256::of_bytes(&raw.payload).as_bytes().as_slice() != sha {
             return Err(Error::Invalid("Claim context witness digest"));
@@ -1498,7 +1501,9 @@ pub fn claim_context_sources(
         }) {
             ordered_claim_node_material(&raw.payload, limits.max_raw_bytes)?
         } else {
-            if let Some(state) = stage.owned_creation_state() { state.charge_work(raw.payload.len())?; }
+            if let Some(state) = stage.owned_creation_state() {
+                state.charge_work(raw.payload.len())?;
+            }
             raw.payload.clone()
         };
         charge(&mut work, material.len(), limits.max_work_bytes)?;

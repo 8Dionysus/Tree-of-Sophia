@@ -628,17 +628,32 @@ fingerprints and bounded counts. The inventory supplies text-free mechanical
 structure; reading, edition identification and rights assessment retain their
 owner routes.
 
-The maintained `scripts/build_source_resource_inventories.py` entrypoint is a
-thin wire facade to the native `source_item_inventory` owner. Its existing
-`--repo-root`, `--payload-source-root`, `--event-date`, `--plain-text-profile`,
-and `--check` interface still writes or checks each Item's declared
-`resource-inventory.json`; the native owner verifies payload fixity and the
-source-resource-inventory schema before writing. The Rust owner covers PDF,
-DjVu, DjVu XML, ABBYY XML gzip, JP2 ZIP, scandata XML, EPUB, plain UTF-8/text,
-JSON, TEI, and OSIS profiles. It has no Python parser fallback. The preserved
-Python implementation is test-only at
-`tests/oracles/source_resource_inventory/` for migration fixtures and historical
-reference behavior.
+The maintained resource-inventory route is `tos-native-owner-command acquisition`
+with a bounded one-line JSON request on stdin. It selects repository and payload
+roots explicitly, writes or checks each Item's declared `resource-inventory.json`,
+and verifies payload fixity and the source-resource-inventory schema before
+writing. Replace the example roots and date with the selected local source and
+run date. For a read-only check, set `check` to `true`:
+
+```json
+{"family":"inventory","operation":"build","repo_root":"/absolute/Tree-of-Sophia","payload_source_root":"/absolute/local/payload-root","event_date":"YYYY-MM-DD","check":true}
+```
+
+Omit `check` to regenerate declared inventories from the same verified payloads.
+The Rust owner covers PDF, DjVu, DjVu XML, ABBYY XML gzip, JP2 ZIP, scandata XML,
+EPUB, plain UTF-8/text, JSON, TEI, and OSIS profiles. The source-resource-inventory
+contract retains `build_source_resource_inventories.py` as its historical
+generator identifier; the Rust owner is the active producer. The preserved
+Python implementation is retained at `tests/oracles/source_resource_inventory/`
+for migration fixtures and historical reference behavior, not as a production
+fallback.
+
+Payload custody verification and copy receipts use the same native acquisition
+command (`family: custody`, `operation: cli`, `command: verify` or `copy`) with
+explicit payload roots and manifest/inventory selectors. The Rust owner checks
+fixity, no-follow path custody and no-clobber publication, then writes an
+immutable metadata-only receipt; it does not change rights, source assessment or
+admission status.
 The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
 Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
 and observed Unicode-form facts only. It neither rewrites bytes nor interprets
@@ -1270,10 +1285,10 @@ crosswalks and translation packets are unchanged.
 
 ## Rebuild local resource inventories
 
-The payloads may be absent from a public clone, so the inventory builder is a
-focused local operation rather than a release-gate download. Its authoritative
-local invocation and explicit payload-root requirement live in
-[`scripts/AGENTS.md`](../../scripts/AGENTS.md).
+The payloads may be absent from a public clone, so inventory generation is a
+focused local operation rather than a release-gate download. The native
+`family: inventory` request takes an explicit repository and payload root; the
+source-witness foundation lane remains the declared whole-tree validation route.
 
 The native owner preserves the maintained selector table below. Rows are
 separate branches where the same media type selects a distinct profile. The

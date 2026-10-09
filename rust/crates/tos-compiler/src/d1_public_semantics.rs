@@ -3023,10 +3023,14 @@ pub(crate) fn fixture_final_semantics(
             })
         },
     );
-    assert!(matches!(
-        changed,
-        Err(Error::Invalid("semantic final rows changed or incomplete"))
-    ), "mutation control reached {:?}", changed.as_ref().err());
+    assert!(
+        matches!(
+            changed,
+            Err(Error::Invalid("semantic final rows changed or incomplete"))
+        ),
+        "mutation control reached {:?}",
+        changed.as_ref().err()
+    );
     stage
         .with_connection(WritePhase::Finalize, |db| {
             db.execute(

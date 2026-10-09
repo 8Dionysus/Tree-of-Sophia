@@ -155,12 +155,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     }
     git(
         &git_root,
-        &[
-            "add",
-            "--",
-            "ToS",
-            "rust/crates/tos-compiler/src/lib.rs",
-        ],
+        &["add", "--", "ToS", "rust/crates/tos-compiler/src/lib.rs"],
     );
     git(
         &git_root,
@@ -1035,7 +1030,10 @@ fn native_corpus_composition_case(installed: bool) {
     // The native capture binds one exact maintained compiler implementation
     // beside the authored ToS cut; neither one becomes the other's authority.
     let compiler = "rust/crates/tos-compiler/src/lib.rs";
-    captured.insert(compiler.into(), fs::read(repository.join(compiler)).unwrap());
+    captured.insert(
+        compiler.into(),
+        fs::read(repository.join(compiler)).unwrap(),
+    );
     let worker_source = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
     captured.insert(
         worker_source.into(),

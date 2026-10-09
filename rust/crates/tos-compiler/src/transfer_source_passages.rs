@@ -174,8 +174,20 @@ fn xml_page(node: &Node, number: usize, abbyy: bool, body_y_min: f64) -> Result<
 }
 // The compressed bytes are held by the exact file owner. The XML stream is
 // bounded independently and only requested page trees survive a page boundary.
-fn xml_pages(ctx: &ResearchExecution,reader:impl Read,abbyy:bool,expected:usize,wanted:&BTreeSet<usize>,body_y_min:f64)->Result<BTreeMap<usize,Value>>{
- let mut result=BTreeMap::new();visit_xml_pages(ctx,reader,abbyy,expected,wanted,|page,node|{result.insert(page,xml_page(node,page,abbyy,body_y_min)?);Ok(())})?;Ok(result)
+fn xml_pages(
+    ctx: &ResearchExecution,
+    reader: impl Read,
+    abbyy: bool,
+    expected: usize,
+    wanted: &BTreeSet<usize>,
+    body_y_min: f64,
+) -> Result<BTreeMap<usize, Value>> {
+    let mut result = BTreeMap::new();
+    visit_xml_pages(ctx, reader, abbyy, expected, wanted, |page, node| {
+        result.insert(page, xml_page(node, page, abbyy, body_y_min)?);
+        Ok(())
+    })?;
+    Ok(result)
 }
 pub(super) fn visit_xml_pages(
     ctx: &ResearchExecution,
@@ -325,7 +337,9 @@ pub(super) fn visit_xml_pages(
         }
     }
     ensure(
-        page == expected && visited == wanted.len() && if abbyy { namespace } else { djvu_root_seen },
+        page == expected
+            && visited == wanted.len()
+            && if abbyy { namespace } else { djvu_root_seen },
         "source XML page closure drift",
     )?;
     Ok(())

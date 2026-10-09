@@ -55,9 +55,11 @@ fn decode_fixture_hex(raw: &str) -> Vec<u8> {
 fn safe_metadata_fixture_relative(raw: &str) -> PathBuf {
     let relative = Path::new(raw);
     assert!(!relative.as_os_str().is_empty() && !relative.is_absolute());
-    assert!(relative
-        .components()
-        .all(|part| matches!(part, Component::Normal(_))));
+    assert!(
+        relative
+            .components()
+            .all(|part| matches!(part, Component::Normal(_)))
+    );
     relative.to_owned()
 }
 fn collect_metadata_part(
@@ -78,7 +80,9 @@ fn collect_metadata_part(
     let role_prefix = format!("{role}.parts/");
     assert!(path.starts_with(role_prefix.as_str()));
     let stored_path = relative.to_string_lossy().into_owned();
-    let manifest = entries.get(&stored_path).expect("every root descriptor is frozen");
+    let manifest = entries
+        .get(&stored_path)
+        .expect("every root descriptor is frozen");
     let size = descriptor["size_bytes"].as_u64().unwrap();
     assert!(size <= 8_388_608);
     assert_eq!(manifest["bytes"].as_u64(), Some(size));
@@ -88,7 +92,10 @@ fn collect_metadata_part(
         .iter()
         .find(|entry| entry["role"].as_str() == Some(role))
         .expect("part manifest binds each root role");
-    assert_eq!(required(binding, "namespace_path"), format!("derived/{role}.json").as_str());
+    assert_eq!(
+        required(binding, "namespace_path"),
+        format!("derived/{role}.json").as_str()
+    );
     assert_eq!(required(binding, "root_snapshot_sha256"), root_sha);
     for field in [
         "kind",
@@ -99,9 +106,15 @@ fn collect_metadata_part(
         "decoded_bytes",
         "count",
     ] {
-        assert_eq!(binding[field], descriptor[field], "{role} {stored_path} {field}");
+        assert_eq!(
+            binding[field], descriptor[field],
+            "{role} {stored_path} {field}"
+        );
     }
-    assert!(seen.insert(stored_path.clone()), "duplicate frozen part path");
+    assert!(
+        seen.insert(stored_path.clone()),
+        "duplicate frozen part path"
+    );
     *total_bytes = total_bytes.checked_add(size).unwrap();
     assert!(*total_bytes <= 16_777_216);
     let source = fixture_dir.join(&relative);
@@ -113,19 +126,36 @@ fn collect_metadata_part(
     );
     if required(descriptor, "kind") == "index" {
         let raw = fs::read(&source).unwrap();
-        assert_eq!(Digest256::of_bytes(&raw).to_hex(), required(descriptor, "sha256"));
-        assert_eq!(raw.len() as u64, descriptor["decoded_bytes"].as_u64().unwrap());
-        assert_eq!(Digest256::of_bytes(&raw).to_hex(), required(descriptor, "decoded_sha256"));
+        assert_eq!(
+            Digest256::of_bytes(&raw).to_hex(),
+            required(descriptor, "sha256")
+        );
+        assert_eq!(
+            raw.len() as u64,
+            descriptor["decoded_bytes"].as_u64().unwrap()
+        );
+        assert_eq!(
+            Digest256::of_bytes(&raw).to_hex(),
+            required(descriptor, "decoded_sha256")
+        );
         let index: Value = serde_json::from_slice(&raw).unwrap();
-        assert_eq!(required(&index, "schema_version"), "tos_projection_partition_index_v1");
+        assert_eq!(
+            required(&index, "schema_version"),
+            "tos_projection_partition_index_v1"
+        );
         assert_eq!(required(&index, "prefix"), expected_prefix);
         assert_eq!(index["count"], descriptor["count"]);
         let children = index["children"].as_object().unwrap();
         let mut child_count = 0u64;
         for (key, child) in children {
             assert_eq!(key.len(), 1);
-            assert!(key.bytes().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit()));
-            child_count = child_count.checked_add(child["count"].as_u64().unwrap()).unwrap();
+            assert!(
+                key.bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+            );
+            child_count = child_count
+                .checked_add(child["count"].as_u64().unwrap())
+                .unwrap();
             collect_metadata_part(
                 fixture_dir,
                 role,
@@ -150,7 +180,10 @@ fn materialize_metadata_parts(
     deadline: Instant,
 ) {
     let manifest = read_packet(&fixture_dir.join("parts-manifest.json"));
-    assert_eq!(required(&manifest, "schema_version"), "tos_native_metadata_fixture_parts_v1");
+    assert_eq!(
+        required(&manifest, "schema_version"),
+        "tos_native_metadata_fixture_parts_v1"
+    );
     let files = manifest["files"].as_array().unwrap();
     assert!(!files.is_empty() && files.len() <= 512);
     let mut entries = BTreeMap::new();
@@ -167,7 +200,10 @@ fn materialize_metadata_parts(
         assert!(entries.insert(path, row.clone()).is_none());
         let source = fixture_dir.join(relative);
         assert_eq!(fs::metadata(&source).unwrap().len(), bytes);
-        assert_eq!(native_child::bounded_sha_before(&source, 8_388_608, deadline).to_hex(), required(row,"sha256"));
+        assert_eq!(
+            native_child::bounded_sha_before(&source, 8_388_608, deadline).to_hex(),
+            required(row, "sha256")
+        );
     }
     assert_eq!(manifest["total_bytes"].as_u64(), Some(total_bytes));
     let roots = packet["source_inputs"]["roots"].as_object().unwrap();
@@ -176,17 +212,30 @@ fn materialize_metadata_parts(
     assert_eq!(root_rows.len(), roots.len());
     let mut seen = BTreeSet::new();
     let mut descriptor_bytes = 0u64;
-    for role in ["bibliographic-claims", "source-catalog", "source-navigation"] {
+    for role in [
+        "bibliographic-claims",
+        "source-catalog",
+        "source-navigation",
+    ] {
         let root_item = &roots[role];
         let root_text = required(root_item, "root_json");
         let root_bytes = root_text.as_bytes();
         let root_sha = required(root_item, "snapshot_sha256");
         assert_eq!(Digest256::of_bytes(root_bytes).to_hex(), root_sha);
         let root: Value = serde_json::from_slice(root_bytes).unwrap();
-        assert_eq!(required(&root, "schema_version"), "tos_partitioned_projection_v1");
-        let row = root_rows.iter().find(|entry| entry["role"].as_str() == Some(role)).unwrap();
+        assert_eq!(
+            required(&root, "schema_version"),
+            "tos_partitioned_projection_v1"
+        );
+        let row = root_rows
+            .iter()
+            .find(|entry| entry["role"].as_str() == Some(role))
+            .unwrap();
         assert_eq!(required(row, "snapshot_sha256"), root_sha);
-        assert_eq!(row["root_json_bytes"].as_u64(), Some(root_bytes.len() as u64));
+        assert_eq!(
+            row["root_json_bytes"].as_u64(),
+            Some(root_bytes.len() as u64)
+        );
         let mut role_parts = 0u64;
         for collection in root["collections"].as_object().unwrap().values() {
             collect_metadata_part(
@@ -200,11 +249,18 @@ fn materialize_metadata_parts(
                 deadline,
                 &mut descriptor_bytes,
             );
-            role_parts = seen.iter().filter(|path| path.contains(&format!("/{role}.parts/"))).count() as u64;
+            role_parts = seen
+                .iter()
+                .filter(|path| path.contains(&format!("/{role}.parts/")))
+                .count() as u64;
         }
         assert_eq!(row["part_file_count"].as_u64(), Some(role_parts));
     }
-    assert_eq!(seen.len(), entries.len(), "captured part set equals embedded-root closure");
+    assert_eq!(
+        seen.len(),
+        entries.len(),
+        "captured part set equals embedded-root closure"
+    );
     assert_eq!(seen, entries.keys().cloned().collect());
     for path in seen {
         assert!(Instant::now() < deadline);
@@ -224,8 +280,14 @@ fn materialize_metadata_predecessor(
 ) -> (PathBuf, PathBuf, PathBuf) {
     const FIXTURE_ROOT: &str = "/__tos_fixture__/metadata-source";
     assert_eq!(required(packet, "source_root"), FIXTURE_ROOT);
-    assert_eq!(required(packet, "db_path"), format!("{FIXTURE_ROOT}/derived/prepared.sqlite").as_str());
-    assert_eq!(required(packet, "owner_config"), format!("{FIXTURE_ROOT}/metadata-addition-owner.json").as_str());
+    assert_eq!(
+        required(packet, "db_path"),
+        format!("{FIXTURE_ROOT}/derived/prepared.sqlite").as_str()
+    );
+    assert_eq!(
+        required(packet, "owner_config"),
+        format!("{FIXTURE_ROOT}/metadata-addition-owner.json").as_str()
+    );
     let source_root = workspace.join("metadata-source");
     fs::create_dir(&source_root).unwrap();
     fs::set_permissions(&source_root, fs::Permissions::from_mode(0o700)).unwrap();
@@ -233,7 +295,11 @@ fn materialize_metadata_predecessor(
     let db_path = source_root.join("derived/prepared.sqlite");
     let owner_path = source_root.join("metadata-addition-owner.json");
     let roots = packet["source_inputs"]["roots"].as_object_mut().unwrap();
-    for role in ["bibliographic-claims", "source-catalog", "source-navigation"] {
+    for role in [
+        "bibliographic-claims",
+        "source-catalog",
+        "source-navigation",
+    ] {
         let captured = format!("{FIXTURE_ROOT}/derived/{role}.json");
         assert_eq!(required(&roots[role], "namespace_path"), captured.as_str());
         roots.get_mut(role).unwrap()["namespace_path"] =
@@ -267,10 +333,15 @@ fn materialize_metadata_predecessor(
     assert!(source_inputs_raw.len() <= 1_048_576);
     let source_inputs_sha = Digest256::of_bytes(&source_inputs_raw).to_hex();
     let connection = rusqlite::Connection::open(&db_path).unwrap();
-    let changed = connection.execute(
-        "UPDATE prepared_source_state SET inputs=?1,sha256=?2 WHERE singleton=1",
-        rusqlite::params![std::str::from_utf8(&source_inputs_raw).unwrap(), source_inputs_sha],
-    ).unwrap();
+    let changed = connection
+        .execute(
+            "UPDATE prepared_source_state SET inputs=?1,sha256=?2 WHERE singleton=1",
+            rusqlite::params![
+                std::str::from_utf8(&source_inputs_raw).unwrap(),
+                source_inputs_sha
+            ],
+        )
+        .unwrap();
     assert_eq!(changed, 1, "one frozen prepared-source row is rebased");
     drop(connection);
     materialize_metadata_parts(fixture_dir, packet, &source_root, deadline);
@@ -293,14 +364,20 @@ fn verify_frozen_metadata_evidence(fixture_dir: &Path, deadline: Instant) {
     for artifact in artifacts {
         assert!(Instant::now() < deadline);
         let relative = Path::new(required(artifact, "path"));
-        assert!(relative.components().all(|part| matches!(part, Component::Normal(_))));
+        assert!(
+            relative
+                .components()
+                .all(|part| matches!(part, Component::Normal(_)))
+        );
         let path = fixture_dir.join(relative);
         assert!(path.starts_with(fixture_dir));
         let cap = match relative.file_name().unwrap().to_str().unwrap() {
             "prepared-before.sqlite" => 629_145_600,
             "prepared-before.packet.json" | "full-union-oracle.json" => 16_777_216,
             "owner-before.json" | "source-create-receipt.json" => 1_048_576,
-            "export-capture-manifest.json" | "oracle-capture-manifest.json" | "parts-manifest.json" => 1_048_576,
+            "export-capture-manifest.json"
+            | "oracle-capture-manifest.json"
+            | "parts-manifest.json" => 1_048_576,
             _ => panic!("unexpected frozen Metadata evidence file"),
         };
         assert_eq!(
@@ -462,7 +539,10 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         .expect("native capture returns its exact Git tree")
         .to_owned();
     assert_eq!(manifest["source_git_commit"].as_str().unwrap(), commit);
-    assert_eq!(manifest["source_git_tree"].as_str().unwrap(), source_git_tree);
+    assert_eq!(
+        manifest["source_git_tree"].as_str().unwrap(),
+        source_git_tree
+    );
     let selection = SoftwareCaptureSelectionV1 {
         source_git_commit: commit,
         source_git_tree,

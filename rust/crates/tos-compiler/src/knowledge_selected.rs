@@ -539,7 +539,8 @@ pub(crate) fn validate(
         }
         (
             crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
-                | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1 | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
             Some(nav),
             Some(phi),
             Some(corpus),
@@ -2806,8 +2807,21 @@ pub(crate) fn verify_schema_with_layout(
     })?;
     knowledge_stage::verify_selected_payload_ddl(db, layout, Some(state))?;
     if layout.dictionary_bytes() {
-        owned_schema_ddl(db, "knowledge_byte_dictionaries", None, Some(crate::knowledge_byte_dictionary::DDL.trim_end_matches(';')), state)?;
-        owned_schema_columns(db, "knowledge_byte_dictionaries", &["dictionary_sha256:BLOB:1", "dictionary:BLOB:0"], &[], layout, state)?;
+        owned_schema_ddl(
+            db,
+            "knowledge_byte_dictionaries",
+            None,
+            Some(crate::knowledge_byte_dictionary::DDL.trim_end_matches(';')),
+            state,
+        )?;
+        owned_schema_columns(
+            db,
+            "knowledge_byte_dictionaries",
+            &["dictionary_sha256:BLOB:1", "dictionary:BLOB:0"],
+            &[],
+            layout,
+            state,
+        )?;
     }
     for (table, hash) in SELECTED_TABLES {
         if !(carrier && matches!(table, "knowledge_nodes" | "knowledge_relations")) {
@@ -3189,7 +3203,9 @@ fn scan_core_with_owned_context(
             };
             let source_packet = match statement.value_ref(9).map_err(owned_schema_sql_error)? {
                 rusqlite::types::ValueRef::Null => None,
-                rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= layout.physical_bound(limits.max_row_bytes)? => {
+                rusqlite::types::ValueRef::Blob(bytes)
+                    if bytes.len() <= layout.physical_bound(limits.max_row_bytes)? =>
+                {
                     let length = statement.integer(8).map_err(owned_schema_sql_error)?;
                     let length = usize::try_from(length)
                         .map_err(|_| Error::Invalid("core source packet length"))?;
@@ -3221,7 +3237,8 @@ fn scan_core_with_owned_context(
             let json = JsonLimits::new(limits.max_row_bytes, 96, visits, 4096)
                 .map_err(|_| Error::Budget("core codec JSON limits"))?;
             crate::knowledge_payload_read::with_logical_payload_for_verified_layout(
-                db, context,
+                db,
+                context,
                 layout,
                 &row,
                 json,

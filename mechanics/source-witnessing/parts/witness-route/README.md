@@ -57,16 +57,16 @@ The ordered checks remain in `docs/validation/validation_lanes.json` under
 queue or resource inventory does not accept source text, translation, semantics,
 canon, public transfer or deployment.
 
-The implemented bounded acquisition entrypoint is
-the native registry acquisition owner, reached through the thin
-`scripts/acquire_registry_sources.py` facade: `verify-preparation` checks the frozen
-manifest and retained evidence; `acquire` requires the actual preparation
-checkpoint receipt; `verify-local` opens and verifies the exact installed files.
-New acquisitions must explicitly select `--payload-source-root`, the durable
-source-witness root whose relative Item paths contain `payload/`. Metadata and
-review records stay in the source checkout; payload custody must survive its
-worktree. Pass that same root to `verify-local` and to the foundation validator
-with `--require-local-payloads`. Existing retained files can be copied and
+The bounded registry route is the native acquisition owner, invoked through
+`tos-native-owner-command acquisition` with `family` set to `registry`.
+`registry.verify_preparation` checks the frozen manifest and retained evidence;
+`registry.acquire` requires the actual preparation checkpoint receipt;
+`registry.verify_local` opens and verifies the exact installed files. Select the
+durable payload root explicitly in `payload_source_root`; its relative Item
+paths contain `payload/`. Metadata and review records stay in the source
+checkout; payload custody must survive its worktree. Pass that same root to
+`registry.verify_local` and to the foundation validator with
+`--require-local-payloads`. Existing retained files can be copied and
 independently verified with the native custody owner behind the thin
 `scripts/source_payload_custody.py` compatibility facade. The `verify` and
 `copy` commands and imported API require the selected
@@ -78,8 +78,9 @@ The frozen Python reference is test-only at
 `tests/oracles/acquisition/source_payload_custody.py`. Custody and fixity do
 not admit an Item, assess rights, or authorize publication.
 
-For a growing provider queue, use the versioned batch route in
-`scripts/acquisition_batch.py` with the
+For a growing provider queue, invoke the native batch route through
+`tos-native-owner-command acquisition` with `family` set to `batch` and an
+operation of `prepare`, `acquire`, or `verify_local`, using the
 `ToS/contracts/acquisition-batch.schema.json` manifest. It copies only the
 explicitly selected reviewed records into a new handoff, writes one
 batch-level provenance delta bound to the exact base revision, and acquires
@@ -94,10 +95,10 @@ remain distinct for each Item/File destination; the provenance delta lists
 that File ID once. The acquisition journal isolates
 source failures and allows restart; `receipts/handoff-*.json` reports `admission_status` as
 `not-admitted` even when all bytes have been verified. The independent fixity
-receipt is a separate handoff input for the corpus-intake owner. The
-route-owned `scripts/acquisition_handoff_adapter.py` verifies one selected
-handoff against the accepted-store pointer and accepted source bytes, then
-emits the existing `tos_corpus_batch_v1` input shape for `corpus_admit` without
+receipt is a separate handoff input for the corpus-intake owner. The native
+`handoff` family on the same acquisition command verifies one selected handoff
+against the accepted-store pointer and accepted source bytes, then emits the
+existing `tos_corpus_batch_v1` input shape for `corpus-admit` without
 performing admission; it remains separate from the legacy seven-package
 converter.
 The separate frozen-plan import route in
@@ -122,7 +123,7 @@ earlier preparations.
 
 An additional language version may extend an existing Work only through a
 prepared `existing_work` binding to its retained exact preimage and SHA-256.
-The acquisition helper permits only the new Expression claim refs and the
+The native registry owner permits only the new Expression claim refs and the
 Work's next record version; it preserves all previous fields and claims and
 fails on live preimage drift. Expression, Edition and Item records remain new
 identities. A later `operation_date` names its discovery/acquisition events

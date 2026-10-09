@@ -755,15 +755,14 @@ struct DependencyRow {
     claim_ref: Option<String>,
     context_json: Option<Vec<u8>>,
 }
-pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema =
-    crate::knowledge_stage::preparation_schema!(
-        table r#"knowledge_navigation_relation_dependencies(
+pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema = crate::knowledge_stage::preparation_schema!(
+    table r#"knowledge_navigation_relation_dependencies(
  edge_id TEXT PRIMARY KEY, raw_sha256 BLOB NOT NULL CHECK(length(raw_sha256)=32),
  from_id TEXT NOT NULL, to_id TEXT NOT NULL, claim_ref TEXT,
  direct_context_json BLOB)"#,
-        index r#"knowledge_navigation_relation_claim_seek
- ON knowledge_navigation_relation_dependencies(claim_ref,edge_id)"#,
-    );
+    index r#"knowledge_navigation_relation_claim_seek
+ON knowledge_navigation_relation_dependencies(claim_ref,edge_id)"#,
+);
 
 fn create_table(stage: &mut KnowledgeStage<'_>) -> Result<()> {
     stage.create_preparation_tables(PREPARATION_SCHEMA)

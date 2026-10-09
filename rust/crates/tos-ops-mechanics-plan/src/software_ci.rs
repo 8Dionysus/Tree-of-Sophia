@@ -487,7 +487,12 @@ mod tests {
             (vec!["README.md", "docs/RELEASING.md"], "none", false, false),
             (vec!["access/web/src/Graph.tsx"], "browser", false, false),
             (vec!["access/e2e/test_webmcp.mjs"], "browser", false, false),
-            (vec!["access/src/tos_access/native_access_core.py"], "reader", true, false),
+            (
+                vec!["access/src/tos_access/native_access_core.py"],
+                "reader",
+                true,
+                false,
+            ),
             (
                 vec!["access/tests/test_software_boundary.py"],
                 "reader",

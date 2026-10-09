@@ -1506,3 +1506,7 @@ pub(crate) fn current_result_fields(
         ("grants_admission", JsonValue::Bool(false)),
     ]))
 }
+
+#[cfg(test)]
+#[path = "source_object_link_tests.rs"]
+mod tests;

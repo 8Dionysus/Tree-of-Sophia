@@ -19,14 +19,14 @@ use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::CutWorkerLimits;
 
-fn repository() -> PathBuf {
+pub(crate) fn repository() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../..")
         .canonicalize()
         .unwrap()
 }
 
-fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
+pub(crate) fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut directories = vec![root.join("ToS")];
     let mut files = BTreeMap::new();
     let mut total = 0usize;
@@ -62,7 +62,7 @@ fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
     files
 }
 
-fn cut(
+pub(crate) fn cut(
     files: &BTreeMap<String, Vec<u8>>,
     root: &Path,
     deadline: Instant,
@@ -132,7 +132,7 @@ fn canonical_corpus_manifest(value: &serde_json::Value) -> Vec<u8> {
     .unwrap()
 }
 
-fn software(
+pub(crate) fn software(
     repository: &Path,
     files: &BTreeMap<String, Vec<u8>>,
     scratch: &Path,
@@ -238,7 +238,7 @@ fn software(
     (software, components)
 }
 
-fn worker(
+pub(crate) fn worker(
     cut: &CorpusCutReader,
     deadline: Instant,
     cancelled: &AtomicBool,

@@ -107,11 +107,11 @@ pub use knowledge_navigation_original::{
     retain_navigation_original,
 };
 mod controlled_cold_model;
+mod knowledge_byte_codec;
+mod knowledge_byte_dictionary;
 mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
-mod knowledge_byte_codec;
-mod knowledge_byte_dictionary;
 mod knowledge_payload_codec;
 pub mod knowledge_payload_read;
 pub mod knowledge_philosophy_display;
@@ -174,7 +174,6 @@ pub mod source_corpus;
 mod source_navigation_packets;
 pub mod source_navigation_source;
 mod source_navigation_storage;
-pub mod source_registry;
 pub mod source_philosophy;
 pub mod source_philosophy_atlas;
 pub mod source_philosophy_dossier_docx;
@@ -183,6 +182,7 @@ pub mod source_philosophy_graph;
 pub mod source_philosophy_multilingual;
 pub mod source_philosophy_post_planting;
 mod source_philosophy_support;
+pub mod source_registry;
 pub use source_philosophy_support::PhilosophySourceReadProfile;
 pub mod source_philosophy_views;
 pub mod source_witness_catalog;
@@ -1048,18 +1048,18 @@ pub mod zarathustra_lexical_validate;
 mod zarathustra_lexical_morphology_validate;
 mod zarathustra_lexical_usage_validate;
 
+pub mod dta_technical_markup;
+pub mod opening_sentence_alignment;
 pub mod research_concept_workbench;
 pub mod research_eternal_return;
 pub mod research_eternal_return_concept;
 pub mod research_execution;
-pub mod source_text_foundation;
-pub mod dta_technical_markup;
-pub mod target_text_foundation;
-pub mod opening_sentence_alignment;
-pub mod transfer_route_readiness;
 pub mod research_morphology_theme;
 pub mod research_paragraph_alignment;
 pub mod research_parallel_lexical;
+pub mod source_text_foundation;
+pub mod target_text_foundation;
+pub mod transfer_route_readiness;
 
 mod research_reading_discourse;
 mod research_reading_formulas;
@@ -1074,8 +1074,8 @@ pub use native_snapshot::{
     with_native_knowledge_snapshot_from_capture_with_owned_budget_and_layout,
 };
 
-pub mod transfer_target_passages;
 pub mod transfer_source_passages;
+pub mod transfer_target_passages;
 
 pub mod transfer_candidates;
 
@@ -1096,8 +1096,8 @@ pub mod authored_canon_bridge;
 
 pub mod provenance_event_lab;
 
-pub mod jenseits_label_correspondence;
 pub mod constructor_library;
+pub mod jenseits_label_correspondence;
 
 pub mod nietzsche_transfer_source_routes;
 

@@ -688,9 +688,7 @@ fn scan_source(meter: &mut Meter) -> Result<(), String> {
         "access/packaging",
         "access/web/src",
     ];
-    let mut paths = vec![
-        "access/web/index.html".to_owned(),
-    ];
+    let mut paths = vec!["access/web/index.html".to_owned()];
     let mut visited_entries = 0u64;
     for relative in ROOTS {
         let start = meter.root_path.join(relative);

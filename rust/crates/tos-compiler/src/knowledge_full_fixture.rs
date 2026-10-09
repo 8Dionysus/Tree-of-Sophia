@@ -246,16 +246,20 @@ pub fn build_fixture() -> FullKnowledgeFixture {
 }
 
 pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullKnowledgeFixture {
-    build_fixture_configured(report,false,None)
+    build_fixture_configured(report, false, None)
 }
 pub(crate) fn build_fixture_with_prepared_catalog() -> FullKnowledgeFixture {
-    build_fixture_configured(None,true,None)
+    build_fixture_configured(None, true, None)
 }
 #[cfg(test)]
 pub(crate) fn build_fixture_with_final_semantics(fused: bool) -> FullKnowledgeFixture {
-    build_fixture_configured(None,true,Some(fused))
+    build_fixture_configured(None, true, Some(fused))
 }
-fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool, final_semantics: Option<bool>) -> FullKnowledgeFixture {
+fn build_fixture_configured(
+    report: Option<Value>,
+    reduce_catalog: bool,
+    final_semantics: Option<bool>,
+) -> FullKnowledgeFixture {
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
     let relation_bytes =
@@ -458,51 +462,129 @@ fn build_fixture_configured(report: Option<Value>, reduce_catalog: bool, final_s
         limits.seal.max_header_bytes = crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES;
     }
     let prepared = if reduce_catalog {
-        let entity:Value=serde_json::from_slice(entity_bytes).unwrap();
-        let relation:Value=serde_json::from_slice(relation_bytes).unwrap();
-        let mut reduction=crate::catalog::CatalogReduction::new(&entity,&relation,&descriptor,&vocabulary,limits.catalog,None).unwrap();
-        let (ceiling,streamed)=if let Some(fused)=final_semantics {
-            #[cfg(test)] {
-                let (semantics,ceiling)=crate::d1_public_semantics::fixture_final_semantics(
-                    &mut stage,&registry,entity_bytes,relation_bytes,&mut reduction,limits.catalog,fused);
-                header["counts"]["semantic_validation"]=semantics.report;
-                (ceiling,true)
+        let entity: Value = serde_json::from_slice(entity_bytes).unwrap();
+        let relation: Value = serde_json::from_slice(relation_bytes).unwrap();
+        let mut reduction = crate::catalog::CatalogReduction::new(
+            &entity,
+            &relation,
+            &descriptor,
+            &vocabulary,
+            limits.catalog,
+            None,
+        )
+        .unwrap();
+        let (ceiling, streamed) = if let Some(fused) = final_semantics {
+            #[cfg(test)]
+            {
+                let (semantics, ceiling) = crate::d1_public_semantics::fixture_final_semantics(
+                    &mut stage,
+                    &registry,
+                    entity_bytes,
+                    relation_bytes,
+                    &mut reduction,
+                    limits.catalog,
+                    fused,
+                );
+                header["counts"]["semantic_validation"] = semantics.report;
+                (ceiling, true)
             }
-            #[cfg(not(test))] { let _=fused;unreachable!("final semantics fixture is test-only") }
+            #[cfg(not(test))]
+            {
+                let _ = fused;
+                unreachable!("final semantics fixture is test-only")
+            }
         } else {
-            let ceiling=stage.with_connection(WritePhase::Finalize,|db|reduction.begin(db)).unwrap();
-        // Fixture-only delivery of tiny admitted inline rows. Production feeds
-        // the authenticated Value from the semantic pass without this parse.
-        stage.with_connection(WritePhase::Finalize,|db| {
-            for (table,is_relation) in [("knowledge_nodes",false),("knowledge_relations",true)] {
-                let mut statement=db.prepare(&format!("SELECT payload,source_order FROM {table} ORDER BY source_order"))?;
-                let mut rows=statement.query([])?;
-                while let Some(row)=rows.next()? {
-                    let raw:Vec<u8>=row.get(0)?;
-                    let value:Value=serde_json::from_slice(&raw).unwrap();
-                    let get=|key:&str|value[key].as_str().unwrap();
-                    let order=row.get(1)?;
-                    if is_relation {
-                        reduction.relation(db,&value,get("id"),get("source_graph"),get("from_id"),get("to_id"),get("predicate_id"),get("relation_type_id"),order,raw.len() as i64)?;
-                    } else {
-                        reduction.node(db,&value,get("id"),get("source_graph"),get("kind_id"),get("type_id"),order,raw.len() as i64)?;
+            let ceiling = stage
+                .with_connection(WritePhase::Finalize, |db| reduction.begin(db))
+                .unwrap();
+            // Fixture-only delivery of tiny admitted inline rows. Production feeds
+            // the authenticated Value from the semantic pass without this parse.
+            stage
+                .with_connection(WritePhase::Finalize, |db| {
+                    for (table, is_relation) in
+                        [("knowledge_nodes", false), ("knowledge_relations", true)]
+                    {
+                        let mut statement = db.prepare(&format!(
+                            "SELECT payload,source_order FROM {table} ORDER BY source_order"
+                        ))?;
+                        let mut rows = statement.query([])?;
+                        while let Some(row) = rows.next()? {
+                            let raw: Vec<u8> = row.get(0)?;
+                            let value: Value = serde_json::from_slice(&raw).unwrap();
+                            let get = |key: &str| value[key].as_str().unwrap();
+                            let order = row.get(1)?;
+                            if is_relation {
+                                reduction.relation(
+                                    db,
+                                    &value,
+                                    get("id"),
+                                    get("source_graph"),
+                                    get("from_id"),
+                                    get("to_id"),
+                                    get("predicate_id"),
+                                    get("relation_type_id"),
+                                    order,
+                                    raw.len() as i64,
+                                )?;
+                            } else {
+                                reduction.node(
+                                    db,
+                                    &value,
+                                    get("id"),
+                                    get("source_graph"),
+                                    get("kind_id"),
+                                    get("type_id"),
+                                    order,
+                                    raw.len() as i64,
+                                )?;
+                            }
+                        }
                     }
-                }
-            }
-            Ok(())
-        }).unwrap();
-            (ceiling,false)
+                    Ok(())
+                })
+                .unwrap();
+            (ceiling, false)
         };
-        let proof=reduction.finish_prepared(&mut stage,&header,&[],&vocabulary,&descriptor_bytes,&registry).unwrap();
-        let mut different_header=header.clone();
-        different_header["source_revision"]=json!("f".repeat(64));
-        assert!(proof.into_packet(&mut stage,&different_header,&vocabulary,&registry).is_err());
-        let prepared=reduction.finish_prepared(&mut stage,&header,&[],&vocabulary,&descriptor_bytes,&registry).unwrap();
-        stage.with_connection(WritePhase::Finalize,|db|if streamed {
-            crate::catalog::CatalogReduction::cleanup_final_rows(db,ceiling)
-        } else {crate::catalog::CatalogReduction::cleanup(db,ceiling)}).unwrap();
+        let proof = reduction
+            .finish_prepared(
+                &mut stage,
+                &header,
+                &[],
+                &vocabulary,
+                &descriptor_bytes,
+                &registry,
+            )
+            .unwrap();
+        let mut different_header = header.clone();
+        different_header["source_revision"] = json!("f".repeat(64));
+        assert!(
+            proof
+                .into_packet(&mut stage, &different_header, &vocabulary, &registry)
+                .is_err()
+        );
+        let prepared = reduction
+            .finish_prepared(
+                &mut stage,
+                &header,
+                &[],
+                &vocabulary,
+                &descriptor_bytes,
+                &registry,
+            )
+            .unwrap();
+        stage
+            .with_connection(WritePhase::Finalize, |db| {
+                if streamed {
+                    crate::catalog::CatalogReduction::cleanup_final_rows(db, ceiling)
+                } else {
+                    crate::catalog::CatalogReduction::cleanup(db, ceiling)
+                }
+            })
+            .unwrap();
         Some(prepared)
-    } else { None };
+    } else {
+        None
+    };
     finish_fixture_with_limits(
         stage,
         path,

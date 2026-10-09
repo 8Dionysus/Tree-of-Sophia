@@ -388,7 +388,9 @@ impl Scan {
             match cache.lookup(text) {
                 Ok(Some(result)) => return Ok(result),
                 Ok(None) => (),
-                Err(error) => self.disable_cache(format!("read failure; recomputing uncached: {error}")),
+                Err(error) => {
+                    self.disable_cache(format!("read failure; recomputing uncached: {error}"))
+                }
             }
         }
         let result = patterns.content_issue(text)?;
@@ -538,7 +540,10 @@ pub fn validate(root: &Path) -> io::Result<Vec<String>> {
 
 /// Explicit local feedback hints never replace live path and content reads.
 /// Invalid cache selection refuses; optional storage failure recomputes normally.
-pub fn validate_with_feedback(root: &Path, selected: Option<&Path>) -> io::Result<ValidationReport> {
+pub fn validate_with_feedback(
+    root: &Path,
+    selected: Option<&Path>,
+) -> io::Result<ValidationReport> {
     if !root.is_absolute() || fs::canonicalize(root)? != root {
         return Err(invalid(
             "active naming root must be absolute without symlinks",
@@ -567,10 +572,16 @@ pub fn validate_with_feedback(root: &Path, selected: Option<&Path>) -> io::Resul
     if let Some(cache) = scan.cache.take() {
         scan.feedback = Some(cache.stats());
         if let Err(error) = cache.finish() {
-            scan.disable_cache(format!("close failure; cache writes may be incomplete: {error}"));
+            scan.disable_cache(format!(
+                "close failure; cache writes may be incomplete: {error}"
+            ));
         }
     }
-    Ok(ValidationReport { issues: scan.issues, feedback: scan.feedback, warnings: scan.warnings })
+    Ok(ValidationReport {
+        issues: scan.issues,
+        feedback: scan.feedback,
+        warnings: scan.warnings,
+    })
 }
 
 #[cfg(test)]

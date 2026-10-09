@@ -3885,10 +3885,14 @@ mod tests {
 
     #[test]
     fn intermediate_routes_do_not_consume_output_catalog_entries_or_bytes() {
-        let portable = crate::native_snapshot_manifest::portable_native_snapshot_limits(600).unwrap();
+        let portable =
+            crate::native_snapshot_manifest::portable_native_snapshot_limits(600).unwrap();
         assert_eq!(portable.full.catalog.max_catalog_entries, 100_000);
         assert_eq!(portable.full.catalog.max_catalog_bytes, 16 * 1024 * 1024);
-        assert_eq!(portable.full.catalog.max_aggregate_entries, portable.full.catalog.max_rows);
+        assert_eq!(
+            portable.full.catalog.max_aggregate_entries,
+            portable.full.catalog.max_rows
+        );
         assert!(portable.full.catalog.max_aggregate_bytes as u64 <= portable.stage.max_temp_bytes);
         let (db, mut header, entity, relation, vocab) = fixture("concept");
         // This exercises an empty reduction with unused intermediate routes;
@@ -3901,20 +3905,34 @@ mod tests {
             max_aggregate_bytes: 64 * 1024,
             ..CatalogLimits::default()
         };
-        let mut reduction = CatalogReduction::new(
-            &entity, &relation, &descriptor, &vocab, limits, None,
-        ).unwrap();
+        let mut reduction =
+            CatalogReduction::new(&entity, &relation, &descriptor, &vocab, limits, None).unwrap();
         let ceiling = reduction.begin(&db).unwrap();
         let before = reduction.finish(&db, &header, &[]).unwrap();
-        db.execute_batch("WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<256)
-            INSERT INTO cmp_catalog_node_routes SELECT 'unused:'||x,'[]','[]' FROM n;").unwrap();
+        db.execute_batch(
+            "WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<256)
+            INSERT INTO cmp_catalog_node_routes SELECT 'unused:'||x,'[]','[]' FROM n;",
+        )
+        .unwrap();
         let after = reduction.finish(&db, &header, &[]).unwrap();
         assert_eq!(before.sha256, after.sha256);
         reduction.limits.max_aggregate_entries = 128;
-        assert!(reduction.finish(&db, &header, &[]).unwrap_err().to_string().contains("catalog aggregate entries"));
+        assert!(
+            reduction
+                .finish(&db, &header, &[])
+                .unwrap_err()
+                .to_string()
+                .contains("catalog aggregate entries")
+        );
         reduction.limits.max_aggregate_entries = 512;
         reduction.limits.max_aggregate_bytes = 1024;
-        assert!(reduction.finish(&db, &header, &[]).unwrap_err().to_string().contains("catalog aggregate bytes"));
+        assert!(
+            reduction
+                .finish(&db, &header, &[])
+                .unwrap_err()
+                .to_string()
+                .contains("catalog aggregate bytes")
+        );
         reduction.limits.max_aggregate_bytes = 64 * 1024;
         reduction.limits.max_catalog_bytes = 128;
         assert!(reduction.finish(&db, &header, &[]).is_err());

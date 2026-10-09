@@ -4,7 +4,8 @@ pub(super) const OUTPUT_PATH: &str = "ToS/source-witnesses/works/friedrich-nietz
 pub(super) const ANCHOR_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-anchors.v1.jsonl";
 pub(super) const PROVENANCE_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl";
 pub(super) const LOCAL_CONTENT_ROOT: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-target-passages/v1";
-pub(super) const SCHEMA_PATH: &str = "ToS/contracts/transfer-target-passage-candidate-set.schema.json";
+pub(super) const SCHEMA_PATH: &str =
+    "ToS/contracts/transfer-target-passage-candidate-set.schema.json";
 pub(super) const SOURCE_ANCHOR_SCHEMA_PATH: &str = "ToS/contracts/source-anchor.schema.json";
 pub(super) const ITEM_DIR: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf";
 pub(super) const MANIFEST_PATH: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json";
@@ -18,6 +19,9 @@ pub(super) const GENE_ROUTES: &str = "ToS/source-witnesses/works/friedrich-nietz
 pub(super) const ANTI_MAP: &str = "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json";
 pub(super) const ANTI_ROUTES: &str = "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json";
 pub(super) const PDFTOTEXT_VERSION: &str = "26.01.0";
-pub(super) const EVENT_ID: &str = "tos.event.segmentation.golden-kernel-transfer-target-passages-v1.2026-08-08";
-pub(super) const SET_ID: &str = "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-v1";
-pub(super) const SCHEMA_REF: &str = "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json";
+pub(super) const EVENT_ID: &str =
+    "tos.event.segmentation.golden-kernel-transfer-target-passages-v1.2026-08-08";
+pub(super) const SET_ID: &str =
+    "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-v1";
+pub(super) const SCHEMA_REF: &str =
+    "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json";

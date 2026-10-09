@@ -1,5 +1,5 @@
-//! One retained historical Claim owner lifecycle over the maintained Python
-//! oracle and the fixed native child. Synthetic inputs grant no admission.
+//! One retained historical Claim owner lifecycle over a frozen fixture packet
+//! and direct native CLI calls. Synthetic inputs grant no admission.
 use super::*;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -11,198 +11,10 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_source_store::{ReadLimits, SoftwareCaptureReader};
 
-const FIXTURE: &str = r#"
-import copy,hashlib,json,resource,shutil,sys
-from pathlib import Path
-resource.setrlimit(resource.RLIMIT_CPU,(45,45))
-resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824))
-repo,bounded_root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),
-    str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),
-    str(repo/'scripts'),str(repo/'access/tests')]
-import source_assembly_fixture
-from source_assembly_fixture import SourceAssemblyFixture
-import source_commands as commands
-import source_historical_claims as legacy
-import source_revisions as packages
-import test_historical_claim_adapter as maintained
-
-oracle_calls=0
-def oracle(owner,request):
-    global oracle_calls
-    oracle_calls+=1
-    return commands.run_legacy_oracle_command(owner,request)
-
-class ExistingRoot:
-    def __enter__(self): return str(bounded_root)
-    def __exit__(self,*args): return False
-class TempfileProxy:
-    def __init__(self,wrapped): self.wrapped=wrapped
-    def __getattr__(self,name): return getattr(self.wrapped,name)
-    def TemporaryDirectory(self,*args,**kwargs): return ExistingRoot()
-
-old_tempfile=source_assembly_fixture.tempfile
-source_assembly_fixture.tempfile=TempfileProxy(old_tempfile)
-try:
-    assembly=SourceAssemblyFixture(code_root=repo,
-        source_root=repo/'access/tests/fixtures/source-assembly')
-    with assembly.historical_fixture() as (root,history,real,old_claims,rebuild):
-        rebuild()
-        record={**copy.deepcopy(history[0][1]),
-            'record_id':'tos.historical-event.creation-fixture',
-            'extensions':{'unknown':{'negative':False,'missing':None}}}
-        claims=[{**copy.deepcopy(claim),'claim_id':f'tos.claim.creation-fixture-{index}',
-            'subject_ref':record['record_id']} for index,claim in enumerate(old_claims)]
-        relative='ToS/source-witnesses/history/new-subject/historical-event.json'
-        config={'schema_version':'tos_local_historical_create_owner_v1','uid':__import__('os').getuid(),
-            'principal_id':'software:test-fixture','maker_type':'software','source_root':str(root),
-            'source_path':relative,'record_id':record['record_id'],
-            'authority_ref':'synthetic-test-only:creation-not-assessment',
-            'allowed_form_ids':['tos.form.creation-name','tos.form.creation-hover'],
-            'allowed_claim_ids':[claim['claim_id'] for claim in claims],
-            'allowed_operations':[commands.CREATION_OPERATION],
-            'expires_at':'2099-01-01T00:00:00Z'}
-        owner=root/'owner.json'
-        owner.write_text(json.dumps(config))
-        context=oracle(owner,{'schema_version':'tos_local_source_command_v1','operation':'describe'})
-        if context['target_exists'] or context['allowed_operations']!=['historical.create']:
-            raise RuntimeError('maintained historical creation context differs')
-        request={'schema_version':'tos_local_source_command_v1','operation':'historical.create',
-            'command_id':'synthetic:create-first','expected_configuration':context['owner_configuration'],
-            'expected_source':None,'expected_revision':None,'record':record,'claims':claims,
-            'forms':[{'form_id':'tos.form.creation-name','field_id':'metadata.preferred-name'},
-                {'form_id':'tos.form.creation-hover','field_id':'metadata.source-note'}]}
-        prepared=oracle(owner,{'schema_version':'tos_local_source_command_v1','operation':'prepare',
-            'record':record})
-        if (root/relative).parent.exists() or not prepared.get('prepared_source'):
-            raise RuntimeError('maintained historical source preparation differs')
-        initial_preview=oracle(owner,{'schema_version':'tos_local_source_command_v1',
-            'operation':'prepare-create','record':record,'claims':claims,'forms':request['forms']})
-        request['expected_dependencies']=initial_preview['expected_dependencies']
-        if (root/relative).parent.exists():
-            raise RuntimeError('maintained historical creation preview wrote its target')
-        for ref in (*legacy.CONTRACT_REFS,'ToS/contracts/provenance-event-v2.schema.json',
-                'ToS/contracts/human-form.schema.json','ToS/contracts/human-form-set.schema.json',
-                'ToS/contracts/human-form-template.schema.json'):
-            path=root/ref
-            path.parent.mkdir(parents=True,exist_ok=True)
-            path.write_bytes((repo/ref).read_bytes())
-        config.update(schema_version='tos_local_historical_create_owner_v2',
-            provenance_event_id='tos.event.creation-fixture')
-        date={**copy.deepcopy(request['claims'][0]),'claim_id':'tos.claim.creation-fixture-date',
-            'predicate':'historical_dating','object':{'kind':'date-assertion','role':'historical-time',
-                'calendar':None,'year_numbering':None,'certainty':'uncertain','value':'1900-01-01',
-                'source_wording':{'text':'Synthetic date only','language':'en'}},
-            'qualifiers':{'synthetic_evidence_limit':
-                'No historical claim; temporal reader fixture only.'}}
-        request['claims'].append(date)
-        config['allowed_claim_ids'].append(date['claim_id'])
-        owner.write_text(json.dumps(config))
-        for claim in request['claims']:
-            claim['provenance_event_ref']=config['provenance_event_id']
-        preview=oracle(owner,{'schema_version':'tos_local_source_command_v1',
-            'operation':'prepare-create','record':request['record'],'claims':request['claims'],
-            'forms':request['forms']})
-        request.update(expected_configuration=preview['owner_configuration'],
-            expected_dependencies=preview['expected_dependencies'])
-        created=oracle(owner,request)
-        record_path=root/config['source_path']
-        stream_path=record_path.with_name(legacy.BASENAME)
-        original_package=packages._package(stream_path.parent)
-        if created['receipt']['files'][legacy.BASENAME]['sha256']!=commands._digest(
-                original_package[legacy.BASENAME]):
-            raise RuntimeError('maintained captured Claim stream differs')
-
-        case=maintained.HistoricalClaimAdapterTests(methodName='runTest')
-        case.root=root
-        case.creation_owner=owner
-        case.creation_config=config
-        case.creation_request=request
-        case.record_path=record_path
-        case.path=stream_path
-        case.original=original_package
-        revision_owner,revision_config=case.grant(0)
-        proposal=case.proposal(0)
-        revision_preview_request={'schema_version':'tos_local_source_command_v1',
-            'operation':'prepare-revise',**proposal}
-        revision_preview=oracle(revision_owner,revision_preview_request)
-        revision_request={'schema_version':'tos_local_source_command_v1','operation':'claim.revise',
-            'command_id':f'test:legacy-0-{revision_preview["source"]["version"]}',
-            'expected_source':revision_preview['source'],'expected_revision':revision_preview['revision'],
-            'expected_configuration':revision_preview['owner_configuration'],
-            'expected_dependencies':revision_preview['expected_dependencies'],
-            'expected_inputs':revision_preview['source_bindings'],**proposal}
-        revision_result=oracle(revision_owner,revision_request)
-        revision_replay=oracle(revision_owner,revision_request)
-        inspected=oracle(revision_owner,{'schema_version':'tos_local_source_command_v1',
-            'operation':'inspect-version','source':revision_preview['source']})
-        after_revision=packages._package(stream_path.parent)
-
-        form_config={key:value for key,value in revision_config.items()
-            if key not in {'allowed_fields','allowed_qualifier_fields','allowed_evidence_refs'}}
-        form_config.update(schema_version=legacy.FORM_CONFIG,allowed_operations=['form.create'],
-            allowed_form_ids=['tos.form.synthetic-historical-extra-name'],
-            allowed_form_field_ids=['claim.name'])
-        form_owner=root/'form-owner.json'
-        form_owner.write_text(json.dumps(form_config))
-        form_prepare_request={'schema_version':'tos_local_source_command_v1','operation':'prepare',
-            'form_id':form_config['allowed_form_ids'][0],'field_id':'claim.name'}
-        form_preview=oracle(form_owner,form_prepare_request)
-        form_request={'schema_version':'tos_local_source_command_v1','operation':'apply',
-            'command_id':'test:legacy-form','expected_source':form_preview['source'],
-            'expected_revision':form_preview['revision'],
-            'expected_configuration':form_preview['owner_configuration'],
-            'changes':[form_preview['prepared_change']]}
-        form_result=oracle(form_owner,form_request)
-        form_replay=oracle(form_owner,form_request)
-        final_package=packages._package(stream_path.parent)
-        form_path=commands.claim_forms_path(stream_path,request['claims'][0]['claim_id'])
-        if final_package[legacy.BASENAME]!=after_revision[legacy.BASENAME]:
-            raise RuntimeError('maintained form writer changed the historical Claim stream')
-        archive_ref=revision_result['receipt']['archive_path']
-        if not archive_ref.startswith('ToS/source-witnesses/.record-revisions/'):
-            raise RuntimeError('maintained Claim archive path is not receipt-bound')
-        archive_path=root/archive_ref
-        if archive_path.is_symlink():
-            raise RuntimeError('maintained synthetic archive unexpectedly became a symlink')
-        if archive_path.exists(): shutil.rmtree(archive_path)
-        current_package=packages._package(stream_path.parent)
-        for name in current_package.keys()-original_package.keys():
-            (stream_path.parent/name).unlink()
-        for name,raw in original_package.items():
-            (stream_path.parent/name).write_bytes(raw)
-        print(json.dumps({'root':str(root),'source_path':config['source_path'],
-            'stream_path':stream_path.relative_to(root).as_posix(),
-            'generated_prefix':stream_path.parent.relative_to(root).as_posix()+'/',
-            'claim_id':request['claims'][0]['claim_id'],
-            'record_id':config['record_id'],'revision_owner':str(revision_owner),
-            'form_owner':str(form_owner),'revision_config':revision_config,
-            'form_config':form_config,'revision_preview_request':revision_preview_request,
-            'revision_request':revision_request,'form_prepare_request':form_prepare_request,
-            'form_request':form_request,'archive_path':archive_ref,
-            'claim_form_path':form_path.relative_to(root).as_posix(),
-            'initial_stream_sha256':hashlib.sha256(original_package[legacy.BASENAME]).hexdigest(),
-            'revised_stream_sha256':hashlib.sha256(after_revision[legacy.BASENAME]).hexdigest(),
-            'final_form_payload':json.loads(final_package[form_path.name]),
-            'oracle_calls':oracle_calls,
-            'expected':{'revision_preview':revision_preview,'revision_result':revision_result,
-                'revision_replay':revision_replay,'inspect':inspected,'form_preview':form_preview,
-                'form_result':form_result,'form_replay':form_replay}},
-            ensure_ascii=False,allow_nan=False,separators=(',',':')))
-finally:
-    source_assembly_fixture.tempfile=old_tempfile
-"#;
-
 #[derive(Default)]
 struct ProcessLedger {
-    direct_spawns: usize,
     git_spawns: usize,
-    capture_python_spawns: usize,
-    capture_git_spawns: usize,
-    fixture_python_spawns: usize,
-    native_cli_python_spawns: usize,
-    native_owner_spawns: usize,
-    native_schema_worker_spawns: usize,
+    native_cli_spawns: usize,
 }
 
 fn canonical(value: &Value) -> Vec<u8> {
@@ -236,8 +48,7 @@ fn bounded_process(
         .env("GIT_CONFIG_KEY_0", "core.packedGitWindowSize")
         .env("GIT_CONFIG_VALUE_0", "16m")
         .env("GIT_CONFIG_KEY_1", "core.packedGitLimit")
-        .env("GIT_CONFIG_VALUE_1", "64m")
-        .env("PYTHONDONTWRITEBYTECODE", "1");
+        .env("GIT_CONFIG_VALUE_1", "64m");
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
     let mut child = command
@@ -247,7 +58,6 @@ fn bounded_process(
         .stderr(Stdio::from(errors.try_clone().unwrap()))
         .spawn()
         .unwrap();
-    ledger.direct_spawns = ledger.direct_spawns.checked_add(1).unwrap();
     let step_deadline = deadline.min(Instant::now() + Duration::from_secs(75));
     let status = loop {
         if let Some(status) = child.try_wait().unwrap() {
@@ -276,26 +86,6 @@ fn bounded_process(
     output.read_to_end(&mut output_bytes).unwrap();
     errors.read_to_end(&mut error_bytes).unwrap();
     (status, output_bytes, error_bytes)
-}
-
-fn fixture(repository: &Path, root: &Path, deadline: Instant, ledger: &mut ProcessLedger) -> Value {
-    let script = root.parent().unwrap().join("legacy-claim-fixture.py");
-    fs::write(&script, FIXTURE).unwrap();
-    let mut command = Command::new(crate::maintained_python());
-    command
-        .args(["-c", "import resource,runpy,sys;resource.setrlimit(resource.RLIMIT_CPU,(45,45));resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));p=sys.argv[1];sys.argv=sys.argv[1:];runpy.run_path(p,run_name='__main__')"])
-        .arg(&script)
-        .arg(repository)
-        .arg(root);
-    ledger.fixture_python_spawns = ledger.fixture_python_spawns.checked_add(1).unwrap();
-    let (status, output, errors) =
-        bounded_process(&mut command, deadline, 4_194_304, 1_048_576, ledger);
-    assert!(
-        status.success(),
-        "Legacy Claim fixture: {}",
-        String::from_utf8_lossy(&errors)
-    );
-    serde_json::from_slice(&output).unwrap()
 }
 
 fn source_members(root: &Path, deadline: Instant) -> (BTreeMap<String, Vec<u8>>, u64) {
@@ -386,81 +176,24 @@ fn selected_software(
                 .bytes()
                 .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
     );
+
     let temporary = tempfile::tempdir().unwrap();
     let capture = temporary.path().join("software-capture");
     let restored = temporary.path().join("software-restored");
-    let tool = temporary.path().join("corpus_archive.py");
-    let source = {
-        let mut command = Command::new("git");
-        command
-            .arg("-C")
-            .arg(repository)
-            .arg("show")
-            .arg(format!("{commit}:scripts/corpus_archive.py"));
-        ledger.git_spawns += 1;
-        bounded_process(&mut command, deadline, 1_048_576, 1_048_576, ledger)
-    };
-    assert!(source.0.success());
-    fs::write(&tool, source.1).unwrap();
-    let wrapper = "import resource,runpy,sys;resource.setrlimit(resource.RLIMIT_CPU,(20,20));resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name='__main__')";
-    let mut capture_command = Command::new(crate::maintained_python());
-    capture_command
-        .args(["-c", wrapper])
-        .arg(&tool)
-        .arg("capture")
-        .arg("--repo-root")
-        .arg(repository)
-        .arg("--commit")
-        .arg(&commit)
-        .arg("--output")
-        .arg(&capture);
-    for name in names {
-        capture_command.arg("--include-prefix").arg(name);
-    }
-    ledger.capture_python_spawns += 1;
-    let captured = bounded_process(&mut capture_command, deadline, 1_048_576, 1_048_576, ledger);
-    assert!(
-        captured.0.success(),
-        "software capture: {}",
-        String::from_utf8_lossy(&captured.2)
+    let prefixes = names.iter().map(String::as_str).collect::<Vec<_>>();
+    let cancelled = AtomicBool::new(false);
+    let selection = super::source_cut_cases::capture_software_archive(
+        repository, &commit, &prefixes, &capture, deadline, &cancelled,
     );
-    // corpus_archive.capture performs two git rev-parse calls, one git
-    // ls-tree call, and one git cat-file --batch process for this capture.
-    ledger.capture_git_spawns += 4;
-    ledger.direct_spawns += 4;
-    let mut restore_command = Command::new(crate::maintained_python());
-    restore_command
-        .args(["-c", wrapper])
-        .arg(&tool)
-        .arg("restore")
-        .arg("--capture")
-        .arg(&capture)
-        .arg("--output")
-        .arg(&restored);
-    ledger.capture_python_spawns += 1;
-    let restored_run =
-        bounded_process(&mut restore_command, deadline, 1_048_576, 1_048_576, ledger);
-    assert!(
-        restored_run.0.success(),
-        "software restore: {}",
-        String::from_utf8_lossy(&restored_run.2)
+    super::source_cut_cases::restore_software_archive(
+        &capture, &restored, &selection, deadline, &cancelled,
     );
-    let manifest_raw = fs::read(capture.join("capture.json")).unwrap();
-    assert!(manifest_raw.len() <= 1_048_576);
-    let manifest: Value = serde_json::from_slice(&manifest_raw).unwrap();
-    assert_eq!(manifest["source_git_commit"], commit);
-    let selection = tos_source_store::SoftwareCaptureSelectionV1 {
-        source_git_commit: commit,
-        source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
-        capture_manifest_sha256: tos_foundation::Digest256::of_bytes(&manifest_raw),
-    };
     let fixture = super::source_cut_cases::SoftwareCaptureFixture {
         temporary,
         capture,
         restored,
         selection,
     };
-    let cancelled = AtomicBool::new(false);
     let software = SoftwareCaptureReader::open(
         &fixture.capture,
         &fixture.restored,
@@ -608,7 +341,6 @@ fn comparable_form_payload(value: &Value, request: &Value, verify_actual: bool) 
 }
 
 fn native_call(
-    repository: &Path,
     owner: &Path,
     invocation_path: &Path,
     invocation: &Value,
@@ -617,21 +349,77 @@ fn native_call(
     ledger: &mut ProcessLedger,
 ) -> Value {
     assert!(Instant::now() < deadline);
+    assert_eq!(
+        invocation["owner_config"].as_str(),
+        Some(owner.to_string_lossy().as_ref()),
+        "direct native CLI invocation selects the expected owner"
+    );
     fs::write(invocation_path, canonical(invocation)).unwrap();
     fs::set_permissions(invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
-    // Each successful owner call starts the CLI, the protected owner, and
-    // one disposable schema worker child.
-    ledger.direct_spawns = ledger.direct_spawns.checked_add(3).unwrap();
-    ledger.native_cli_python_spawns += 1;
-    ledger.native_owner_spawns += 1;
-    ledger.native_schema_worker_spawns += 1;
-    let response = super::command_text_cases::alignment_native_cli(
-        repository,
-        owner,
-        invocation_path,
-        request,
-        deadline,
+
+    let executable = PathBuf::from(
+        invocation["native_executable"]
+            .as_str()
+            .expect("selected native owner executable"),
     );
+    assert!(executable.is_absolute());
+    let mut input = tempfile::tempfile().unwrap();
+    input.write_all(&canonical(request)).unwrap();
+    input.seek(SeekFrom::Start(0)).unwrap();
+    let mut output = tempfile::tempfile().unwrap();
+    let mut errors = tempfile::tempfile().unwrap();
+    let mut command = Command::new(executable);
+    command
+        .args(["source-commands", "--invocation"])
+        .arg(invocation_path);
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+        .env("GIT_NO_REPLACE_OBJECTS", "1")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .stdin(Stdio::from(input))
+        .stdout(Stdio::from(output.try_clone().unwrap()))
+        .stderr(Stdio::from(errors.try_clone().unwrap()));
+    let mut child = command.process_group(0).spawn().unwrap();
+    ledger.native_cli_spawns = ledger.native_cli_spawns.checked_add(1).unwrap();
+    let step_deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= step_deadline
+            || output.metadata().unwrap().len() > 4_194_304
+            || errors.metadata().unwrap().len() > 1_048_576
+        {
+            let _ = Command::new("/usr/bin/kill")
+                .args(["-KILL", "--", &format!("-{}", child.id())])
+                .status();
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("bounded native Legacy Claim command refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(Instant::now() < step_deadline);
+    assert!(output.metadata().unwrap().len() <= 4_194_304);
+    assert!(errors.metadata().unwrap().len() <= 1_048_576);
+    output.seek(SeekFrom::Start(0)).unwrap();
+    errors.seek(SeekFrom::Start(0)).unwrap();
+    let mut output_bytes = Vec::new();
+    let mut error_bytes = Vec::new();
+    output.read_to_end(&mut output_bytes).unwrap();
+    errors.read_to_end(&mut error_bytes).unwrap();
+    assert!(
+        status.success(),
+        "native CLI output={} stderr={}",
+        String::from_utf8_lossy(&output_bytes),
+        String::from_utf8_lossy(&error_bytes)
+    );
+    let response: Value = serde_json::from_slice(&output_bytes).unwrap();
     assert_eq!(
         response["schema_version"],
         "tos_local_native_source_result_v1"
@@ -651,8 +439,45 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     let root = temporary.path().join("historical-source-root");
     fs::create_dir(&root).unwrap();
     fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
-    let fixture = fixture(&repository, &root, deadline, &mut ledger);
-    let root = PathBuf::from(fixture["root"].as_str().unwrap());
+    let native_owner_paths = [
+        "rust/crates/tos-command/src/bin/tos-native-owner-command.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+        "rust/crates/tos-command/src/source_native_legacy_claim_cli.rs",
+        "rust/crates/tos-command/src/source_native_claim_cli.rs",
+        "rust/crates/tos-command/src/source_native_forms_cli.rs",
+        "rust/crates/tos-command/src/source_native_revisions_cli.rs",
+        "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
+        "rust/crates/tos-command/src/source_legacy_claim_store.rs",
+        "rust/crates/tos-command/src/source_creation_store.rs",
+        "rust/crates/tos-command/src/source_command.rs",
+        "rust/crates/tos-command/src/source_claims.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_revisions.rs",
+        "rust/crates/tos-command/src/source_operation.rs",
+        "rust/crates/tos-command/src/source_sign_native.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+    ];
+    let captured = super::native_python_fixture(
+        "legacy-claim",
+        &[("fixture-root", &root)],
+        &native_owner_paths,
+    );
+    assert_eq!(
+        captured.capture_identity.factory_script_sha256,
+        "ed7495e1ae3a2d534090c3fb78fef2e5540553d657b5c85d22b505212b93fb8a",
+        "historical Python fixture identity is pinned by the captured manifest"
+    );
+    assert_eq!(
+        captured.capture_identity.factory_source_path,
+        "tests/conformance/rust/command_legacy_claim_cases.rs"
+    );
+    assert_eq!(captured.capture_identity.factory_source_symbol, "FIXTURE");
+    assert_eq!(
+        captured.capture_identity.packet_sha256,
+        "ec936f4ca270f21041d0e5b82b69eded498b5936bc94f2a5384600fce86ac6b5"
+    );
+    let fixture = &captured.packets["factory"];
+    let root = captured.root;
     let revision_owner = PathBuf::from(fixture["revision_owner"].as_str().unwrap());
     let form_owner = PathBuf::from(fixture["form_owner"].as_str().unwrap());
     fs::set_permissions(&revision_owner, fs::Permissions::from_mode(0o600)).unwrap();
@@ -678,28 +503,15 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     );
 
     let mut software_names = vec![
-        "access/tests/source_assembly_fixture.py",
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/places/chemnitz/place.json",
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py",
-        "mechanics/growth-cycle/tests/test_source_commands.py",
-        "mechanics/growth-cycle/tests/test_historical_claim_adapter.py",
-        "scripts/source_witness_bibliographic_graph_common.py",
-        "scripts/build_source_witness_catalog.py",
-        "scripts/source_record_profiles.py",
-        "scripts/source_witness_human_forms.py",
-        "scripts/source_metadata_snapshot.py",
-        "scripts/corpus_archive.py",
         "rust/crates/tos-command/src/bin/tos-native-owner-command.rs",
         "rust/crates/tos-command/src/source_native_cli.rs",
         "rust/crates/tos-command/src/source_native_legacy_claim_cli.rs",
+        "rust/crates/tos-command/src/source_native_claim_cli.rs",
+        "rust/crates/tos-command/src/source_native_forms_cli.rs",
+        "rust/crates/tos-command/src/source_native_revisions_cli.rs",
         "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
         "rust/crates/tos-command/src/source_legacy_claim_store.rs",
         "rust/crates/tos-command/src/source_creation_store.rs",
@@ -710,7 +522,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
         "rust/crates/tos-command/src/source_operation.rs",
         "rust/crates/tos-command/src/source_sign_native.rs",
         "rust/crates/tos-command/src/source_serialization.rs",
-        "tests/conformance/rust/command_legacy_claim_cases.rs",
     ]
     .into_iter()
     .map(str::to_owned)
@@ -731,14 +542,11 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
         .unwrap()
         .len();
-    let python = crate::maintained_python().canonicalize().unwrap();
-    let python_bytes = fs::metadata(&python).unwrap().len();
     assert!(native_bytes <= 536_870_912 && worker_bytes <= 536_870_912);
-    assert!(consumer_bytes <= 536_870_912 && python_bytes <= 536_870_912);
+    assert!(consumer_bytes <= 536_870_912);
     let selected_image_bytes = native_bytes
         .checked_add(consumer_bytes)
         .and_then(|sum| sum.checked_add(worker_bytes))
-        .and_then(|sum| sum.checked_add(python_bytes))
         .unwrap();
     assert!(Instant::now() < deadline);
     let (capture, _software, components) =
@@ -792,7 +600,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     let expected = &fixture["expected"];
     let revision_preview_request = &fixture["revision_preview_request"];
     let preview = native_call(
-        &repository,
         &revision_owner,
         &invocation_path,
         &invocation,
@@ -813,7 +620,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     revision_request["expected_dependencies"] = preview["expected_dependencies"].clone();
     revision_request["expected_inputs"] = preview["source_bindings"].clone();
     let revised = native_call(
-        &repository,
         &revision_owner,
         &invocation_path,
         &invocation,
@@ -849,7 +655,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
         super::command_form_cases::successor(&revised_authored, &store, current_revision);
     invocation["source_revision"] = Value::String(revised_revision.0.to_prefixed());
     let replay = native_call(
-        &repository,
         &revision_owner,
         &invocation_path,
         &invocation,
@@ -867,7 +672,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     assert_eq!(replay_archive, archive_ref);
     assert_eq!(replay["replayed"], true);
     let inspected = native_call(
-        &repository,
         &revision_owner,
         &invocation_path,
         &invocation,
@@ -886,7 +690,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
 
     invocation["owner_config"] = Value::String(form_owner.to_string_lossy().into_owned());
     let form_preview = native_call(
-        &repository,
         &form_owner,
         &invocation_path,
         &invocation,
@@ -906,7 +709,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     form_request["expected_configuration"] = form_preview["owner_configuration"].clone();
     form_request["changes"] = serde_json::json!([form_preview["prepared_change"].clone()]);
     let form_result = native_call(
-        &repository,
         &form_owner,
         &invocation_path,
         &invocation,
@@ -951,7 +753,6 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
         super::command_form_cases::successor(&final_authored, &store, revised_revision);
     invocation["source_revision"] = Value::String(final_revision.0.to_prefixed());
     let form_replay = native_call(
-        &repository,
         &form_owner,
         &invocation_path,
         &invocation,
@@ -968,25 +769,11 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     assert_eq!(form_replay["replayed"], true);
     assert_eq!(form_replay["grants_admission"], false);
     assert!(Instant::now() < deadline);
-    assert_eq!(ledger.git_spawns, 2);
-    assert_eq!(ledger.capture_python_spawns, 2);
-    assert_eq!(ledger.capture_git_spawns, 4);
-    assert_eq!(ledger.fixture_python_spawns, 1);
-    assert_eq!(ledger.native_cli_python_spawns, 7);
-    assert_eq!(ledger.native_owner_spawns, 7);
-    assert_eq!(ledger.native_schema_worker_spawns, 7);
-    assert_eq!(ledger.direct_spawns, 30);
+    assert_eq!(ledger.git_spawns, 1);
+    assert_eq!(ledger.native_cli_spawns, 7);
 
     eprintln!(
-        "Legacy Claim F={max_fixture_bytes} bytes/{max_fixture_files} files (max authored state {max_authored_bytes} bytes; initial closure {fixture_bytes} bytes/{fixture_files} files), E={native_bytes}, C={consumer_bytes}, W={worker_bytes}, P={python_bytes}, E+C+W+P={selected_image_bytes}; direct_process_spawns={} (git={}, capture_python={}, capture_git={}, fixture_python={}, native_cli_python={}, native_owner_children={}, native_schema_workers={}); legacy_oracle_calls={}",
-        ledger.direct_spawns,
-        ledger.git_spawns,
-        ledger.capture_python_spawns,
-        ledger.capture_git_spawns,
-        ledger.fixture_python_spawns,
-        ledger.native_cli_python_spawns,
-        ledger.native_owner_spawns,
-        ledger.native_schema_worker_spawns,
-        fixture["oracle_calls"].as_u64().unwrap()
+        "Legacy Claim F={max_fixture_bytes} bytes/{max_fixture_files} files (max authored state {max_authored_bytes} bytes; initial closure {fixture_bytes} bytes/{fixture_files} files), E={native_bytes}, C={consumer_bytes}, W={worker_bytes}, E+C+W={selected_image_bytes}; native_cli_spawns={}",
+        ledger.native_cli_spawns
     );
 }

@@ -22,16 +22,31 @@ pub fn lab_command_matches(builder: &Value, event: &Value, row: &Value, id: &str
     let command = &event["method"]["command_capture"];
     match builder["ref"].as_str() {
         Some("scripts/build_provenance_event_v2_lab.py") => {
-            let expected = json!(["python", "scripts/build_provenance_event_v2_lab.py", "--variant", id]);
+            let expected = json!([
+                "python",
+                "scripts/build_provenance_event_v2_lab.py",
+                "--variant",
+                id
+            ]);
             command["argv"] == expected && row["captured_command"] == expected
         }
         Some("rust/crates/tos-compiler/src/provenance_event_lab.rs") => {
-            let operation = match id { "A" => "identity-copy", "B" => "unicode-nfc", "C" => "ascii-strict-negative-control", _ => return false };
+            let operation = match id {
+                "A" => "identity-copy",
+                "B" => "unicode-nfc",
+                "C" => "ascii-strict-negative-control",
+                _ => return false,
+            };
             command["disclosure"] == "withheld_digest_only"
-                && command["argv"].is_null() && row["captured_command"].is_null()
-                && command["argv_sha256"].as_str().is_some_and(|d|d.len()==64 && d.bytes().all(|b|b.is_ascii_hexdigit()))
+                && command["argv"].is_null()
+                && row["captured_command"].is_null()
+                && command["argv_sha256"]
+                    .as_str()
+                    .is_some_and(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_hexdigit()))
                 && command["argv_sha256"] == row["captured_command_sha256"]
-                && command["withholding_reason"].as_str().is_some_and(|r|!r.is_empty())
+                && command["withholding_reason"]
+                    .as_str()
+                    .is_some_and(|r| !r.is_empty())
                 && event["method"]["procedure"]["name"] == operation
                 && event["responsibility"][0]["evidence_binding"] == *builder
                 && event["method"]["software_components"][0]["artifact_ref"] == builder["ref"]
@@ -529,7 +544,7 @@ impl ProvenanceRules {
             match mutation {
                 0 => {
                     changed["method"]["command_capture"] = json!({"disclosure":"inline","argv":["synthetic-negative-command"],"argv_sha256":zero,"withholding_reason":null});
-                },
+                }
                 1 => changed["entities"]["outputs"][0]["sha256"] = json!(zero),
                 2 => changed["derivations"][0]["output_entity_ref"] = json!("outside:event-output"),
                 3 => {

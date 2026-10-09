@@ -2271,58 +2271,119 @@ mod retained_document_tests {
     }
 }
 
-
 #[cfg(test)]
 mod retained_language_packet_tests {
     use super::*;
 
     fn rows(root: &Path, relative: &str) -> Vec<Value> {
-        std::fs::read_to_string(root.join(relative)).unwrap().lines()
+        std::fs::read_to_string(root.join(relative))
+            .unwrap()
+            .lines()
             .filter(|line| !line.trim().is_empty())
-            .map(|line| serde_json::from_str(line).unwrap()).collect()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect()
     }
 
     #[test]
     fn table_one_and_two_language_packets_cover_selected_text_corpora() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
         for (table, count) in [("i", 347usize), ("ii", 388usize)] {
-            let nodes = rows(&root, &format!("ToS/philosophy/graph-workbench/proposed-nodes/table-{table}-prepared-dossiers.jsonl"));
-            let packets = rows(&root, &format!("ToS/philosophy/graph-workbench/language-packets/table-{table}-text-bearing-nodes.jsonl"));
-            let source_by_id: BTreeMap<String, &Value> = nodes.iter()
-                .filter_map(|row| row["candidate_id"].as_str().map(|id| (id.to_owned(), row))).collect();
-            let source_ids: BTreeSet<String> = nodes.iter()
+            let nodes = rows(
+                &root,
+                &format!(
+                    "ToS/philosophy/graph-workbench/proposed-nodes/table-{table}-prepared-dossiers.jsonl"
+                ),
+            );
+            let packets = rows(
+                &root,
+                &format!(
+                    "ToS/philosophy/graph-workbench/language-packets/table-{table}-text-bearing-nodes.jsonl"
+                ),
+            );
+            let source_by_id: BTreeMap<String, &Value> = nodes
+                .iter()
+                .filter_map(|row| row["candidate_id"].as_str().map(|id| (id.to_owned(), row)))
+                .collect();
+            let source_ids: BTreeSet<String> = nodes
+                .iter()
                 .filter(|row| row["node_kind"] == "text_corpus")
-                .filter_map(|row| row["candidate_id"].as_str().map(str::to_owned)).collect();
-            let packet_ids: BTreeSet<String> = packets.iter()
-                .filter_map(|row| row["node_ref"]["id"].as_str().map(str::to_owned)).collect();
+                .filter_map(|row| row["candidate_id"].as_str().map(str::to_owned))
+                .collect();
+            let packet_ids: BTreeSet<String> = packets
+                .iter()
+                .filter_map(|row| row["node_ref"]["id"].as_str().map(str::to_owned))
+                .collect();
             assert_eq!(packets.len(), count);
             assert_eq!(packet_ids, source_ids);
             assert!(packets.iter().all(|row| {
                 let title = &row["title_block"];
                 row["schema_version"] == "tos_philosophy_text_bearing_language_packet_v1"
                     && row["node_ref"]["id_kind"] == "candidate_id"
-                    && row["language_registry_ref"] == "ToS/philosophy/atlas/multilingual/language-registry.json"
-                    && row["text_bearing_nodes_contract_ref"] == "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
-                    && title.as_object().is_some_and(|value| value.len() == 3 && value.contains_key("original") && value.contains_key("ru") && value.contains_key("en"))
-                    && ["source", "reviewed", "draft", "pending"].contains(&title["ru"]["translation_status"].as_str().unwrap_or(""))
-                    && ["source", "reviewed", "draft", "pending"].contains(&title["en"]["translation_status"].as_str().unwrap_or(""))
-                    && row["relation_pressure"].as_array().is_some_and(|relations| relations.iter().all(|r| r["target_status"] == "unresolved"))
+                    && row["language_registry_ref"]
+                        == "ToS/philosophy/atlas/multilingual/language-registry.json"
+                    && row["text_bearing_nodes_contract_ref"]
+                        == "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
+                    && title.as_object().is_some_and(|value| {
+                        value.len() == 3
+                            && value.contains_key("original")
+                            && value.contains_key("ru")
+                            && value.contains_key("en")
+                    })
+                    && ["source", "reviewed", "draft", "pending"]
+                        .contains(&title["ru"]["translation_status"].as_str().unwrap_or(""))
+                    && ["source", "reviewed", "draft", "pending"]
+                        .contains(&title["en"]["translation_status"].as_str().unwrap_or(""))
+                    && row["relation_pressure"]
+                        .as_array()
+                        .is_some_and(|relations| {
+                            relations.iter().all(|r| r["target_status"] == "unresolved")
+                        })
             }));
             let first_title = &packets.first().expect("nonempty language packets")["title_block"];
             assert_eq!(first_title["original"]["attestation_status"], "unknown");
-            assert_eq!(first_title["original"]["review_status"], "pending_original_witness");
-            let predicates: BTreeSet<String> = packets[0]["relation_pressure"].as_array().unwrap().iter()
-                .filter_map(|row| row["predicate"].as_str().map(str::to_owned)).collect();
-            assert_eq!(predicates, BTreeSet::from(["has_original_language".into(), "uses_script".into(), "has_witness".into()]));
+            assert_eq!(
+                first_title["original"]["review_status"],
+                "pending_original_witness"
+            );
+            let predicates: BTreeSet<String> = packets[0]["relation_pressure"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|row| row["predicate"].as_str().map(str::to_owned))
+                .collect();
+            assert_eq!(
+                predicates,
+                BTreeSet::from([
+                    "has_original_language".into(),
+                    "uses_script".into(),
+                    "has_witness".into()
+                ])
+            );
             assert!(packets.iter().all(|row| {
-                row["title_block"]["en"]["value"].as_str().is_some_and(|value| !value.chars().any(|c| ('\u{0400}'..='\u{04ff}').contains(&c)))
+                row["title_block"]["en"]["value"]
+                    .as_str()
+                    .is_some_and(|value| {
+                        !value
+                            .chars()
+                            .any(|c| ('\u{0400}'..='\u{04ff}').contains(&c))
+                    })
             }));
             if table == "ii" {
-                let manual: Vec<&Value> = packets.iter().filter(|row| row["review_posture"] == "manual_review_required").collect();
+                let manual: Vec<&Value> = packets
+                    .iter()
+                    .filter(|row| row["review_posture"] == "manual_review_required")
+                    .collect();
                 assert_eq!(manual.len(), 173);
                 for packet in manual {
-                    let source = source_by_id.get(packet["node_ref"]["id"].as_str().unwrap()).unwrap();
-                    for field in ["review_posture", "review_reason", "master_status", "master_confidence"] {
+                    let source = source_by_id
+                        .get(packet["node_ref"]["id"].as_str().unwrap())
+                        .unwrap();
+                    for field in [
+                        "review_posture",
+                        "review_reason",
+                        "master_status",
+                        "master_confidence",
+                    ] {
                         assert_eq!(packet[field], source[field]);
                     }
                 }

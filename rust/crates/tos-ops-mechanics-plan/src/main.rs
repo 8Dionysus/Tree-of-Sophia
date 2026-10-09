@@ -64,7 +64,12 @@ enum Action {
     SourceHome,
     WitnessStructureValidate,
     PhilosophyTopology,
-    SourceAnchorPrepare { atlas: String, table: u64, row: u64, label: String },
+    SourceAnchorPrepare {
+        atlas: String,
+        table: u64,
+        row: u64,
+        label: String,
+    },
     SemanticRegistryTransition,
     #[cfg(feature = "compiler-backed-validators")]
     PhilosophyGraphViews,
@@ -115,7 +120,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut witness_structure_validate = false;
     let mut philosophy_topology = false;
     let mut source_anchor_prepare = false;
-    let (mut anchor_atlas, mut anchor_table, mut anchor_row, mut anchor_label) = (None, None, None, None);
+    let (mut anchor_atlas, mut anchor_table, mut anchor_row, mut anchor_label) =
+        (None, None, None, None);
     let mut semantic_registry_transition = false;
     let mut agent_surface_build = false;
     let mut agent_surface_validate = false;
@@ -162,11 +168,17 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--mechanics-topology-validate" => mechanics_topology_validate = true,
             "--active-naming-validate" => active_naming_validate = true,
             "--feedback-cache" => {
-                if semantic.feedback_cache.is_some() { return Err("duplicate feedback cache selection".into()); }
-                semantic.feedback_cache = Some(PathBuf::from(args.next().ok_or("missing feedback cache path")?));
+                if semantic.feedback_cache.is_some() {
+                    return Err("duplicate feedback cache selection".into());
+                }
+                semantic.feedback_cache = Some(PathBuf::from(
+                    args.next().ok_or("missing feedback cache path")?,
+                ));
             }
             option if option.starts_with("--feedback-cache=") => {
-                if semantic.feedback_cache.is_some() { return Err("duplicate feedback cache selection".into()); }
+                if semantic.feedback_cache.is_some() {
+                    return Err("duplicate feedback cache selection".into());
+                }
                 semantic.feedback_cache = Some(PathBuf::from(&option["--feedback-cache=".len()..]));
             }
             "--source-home" => source_home = true,
@@ -175,8 +187,22 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--prepare-source-anchor" => source_anchor_prepare = true,
             "--atlas-row" => anchor_atlas = Some(args.next().ok_or("missing atlas row")?),
             "--source-label" => anchor_label = Some(args.next().ok_or("missing source label")?),
-            "--source-table-index" => anchor_table = Some(args.next().ok_or("missing source table index")?.parse::<u64>().map_err(|_|"invalid source table index")?),
-            "--source-row-index" => anchor_row = Some(args.next().ok_or("missing source row index")?.parse::<u64>().map_err(|_|"invalid source row index")?),
+            "--source-table-index" => {
+                anchor_table = Some(
+                    args.next()
+                        .ok_or("missing source table index")?
+                        .parse::<u64>()
+                        .map_err(|_| "invalid source table index")?,
+                )
+            }
+            "--source-row-index" => {
+                anchor_row = Some(
+                    args.next()
+                        .ok_or("missing source row index")?
+                        .parse::<u64>()
+                        .map_err(|_| "invalid source row index")?,
+                )
+            }
             "--semantic-registry-transition" => semantic_registry_transition = true,
             "--agent-surface-build" => agent_surface_build = true,
             "--agent-surface-validate" => agent_surface_validate = true,
@@ -293,7 +319,11 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
                 || decision_index_build
                 || root_entry_map_build
                 || agents_route_currentness_build))
-        || (!source_anchor_prepare && (anchor_atlas.is_some() || anchor_table.is_some() || anchor_row.is_some() || anchor_label.is_some()))
+        || (!source_anchor_prepare
+            && (anchor_atlas.is_some()
+                || anchor_table.is_some()
+                || anchor_row.is_some()
+                || anchor_label.is_some()))
         || (fetch_budget_bases && !agent_surface_validate)
         || (semantic.feedback_cache.is_some() && !active_naming_validate)
         || (semantic.output.is_some()
@@ -361,7 +391,12 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             return Err("compiler-backed validators are unavailable in this build".into());
         }
     } else if source_anchor_prepare {
-        Action::SourceAnchorPrepare { atlas: anchor_atlas.ok_or("--atlas-row is required")?, table: anchor_table.ok_or("--source-table-index is required")?, row: anchor_row.ok_or("--source-row-index is required")?, label: anchor_label.ok_or("--source-label is required")? }
+        Action::SourceAnchorPrepare {
+            atlas: anchor_atlas.ok_or("--atlas-row is required")?,
+            table: anchor_table.ok_or("--source-table-index is required")?,
+            row: anchor_row.ok_or("--source-row-index is required")?,
+            label: anchor_label.ok_or("--source-label is required")?,
+        }
     } else if philosophy_topology {
         Action::PhilosophyTopology
     } else if agent_surface_build {
@@ -434,7 +469,11 @@ fn main() {
                 }
             }
             let args = env::args().skip(2).collect::<Vec<_>>();
-            std::process::exit(tos_ops_mechanics_plan::artifact_bundle::cli(&args, product_started, &CANCEL));
+            std::process::exit(tos_ops_mechanics_plan::artifact_bundle::cli(
+                &args,
+                product_started,
+                &CANCEL,
+            ));
         }
         #[cfg(not(all(feature = "compiler-backed-validators", target_os = "linux")))]
         {

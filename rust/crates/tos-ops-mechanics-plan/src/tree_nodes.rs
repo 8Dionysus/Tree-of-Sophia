@@ -219,23 +219,63 @@ mod tests {
     }
     #[test]
     fn native_names_require_explicit_opt_in_and_preserve_legacy_schema() {
-        let v=validator(include_bytes!("../../../../ToS/contracts/tos-node-contract.schema.json")).unwrap();
-        let mut legacy: Value=serde_json::from_str(include_str!("../../../../ToS/public-compatibility/event_node.example.json")).unwrap();
-        for key in ["schema_version","record_version","preferred_label","variant_labels","field_languages"] { legacy.as_object_mut().unwrap().remove(key); }
-        assert!(v.is_valid(&legacy));
-        let mut source=legacy.clone();
-        source["schema_version"]=json!("tos_canonical_node_v1");source["record_version"]=json!(1);
-        source["preferred_label"]=json!("Synthetic name");
-        source["variant_labels"]=json!([{"value":"Синтетическое имя","language":"ru","script":"Cyrl","source_ref":"synthetic:wording","status":"unverified"}]);
-        source["field_languages"]=json!({"preferred_label":{"language":"en","script":"Latn"},"distilled_thesis":{"language":null,"script":null,"qualification":{"unknown":false}}});
-        assert!(v.is_valid(&source));
-        for (key,value) in [("record_version",json!(0)),("record_version",json!(true)),("record_version",json!(9007199254740992u64)),("schema_version",json!("tos_canonical_node_v2")),("record_id",source["node_id"].clone()),("field_languages",json!({"notes":{"language":"en","script":null}}))] {
-            let mut changed=source.clone();changed[key]=value;assert!(!v.is_valid(&changed),"{key}: {changed}");
+        let v = validator(include_bytes!(
+            "../../../../ToS/contracts/tos-node-contract.schema.json"
+        ))
+        .unwrap();
+        let mut legacy: Value = serde_json::from_str(include_str!(
+            "../../../../ToS/public-compatibility/event_node.example.json"
+        ))
+        .unwrap();
+        for key in [
+            "schema_version",
+            "record_version",
+            "preferred_label",
+            "variant_labels",
+            "field_languages",
+        ] {
+            legacy.as_object_mut().unwrap().remove(key);
         }
-        for key in ["schema_version","record_version"] { let mut changed=source.clone();changed.as_object_mut().unwrap().remove(key);assert!(!v.is_valid(&changed)); }
-        for key in ["preferred_label","variant_labels","field_languages"] { let mut changed=legacy.clone();changed[key]=source[key].clone();assert!(!v.is_valid(&changed)); }
-        let mut malformed=synthetic();malformed["language_witnesses"]=json!([null,{"segments":"unreadable"}]);assert!(!v.is_valid(&malformed));
-        let bytes=serde_json::to_vec(&synthetic()).unwrap();let mut bom=vec![239,187,191];bom.extend_from_slice(&bytes);assert!(parse(&bom).is_err());assert!(parse(b"[]").unwrap().is_array());
+        assert!(v.is_valid(&legacy));
+        let mut source = legacy.clone();
+        source["schema_version"] = json!("tos_canonical_node_v1");
+        source["record_version"] = json!(1);
+        source["preferred_label"] = json!("Synthetic name");
+        source["variant_labels"] = json!([{"value":"Синтетическое имя","language":"ru","script":"Cyrl","source_ref":"synthetic:wording","status":"unverified"}]);
+        source["field_languages"] = json!({"preferred_label":{"language":"en","script":"Latn"},"distilled_thesis":{"language":null,"script":null,"qualification":{"unknown":false}}});
+        assert!(v.is_valid(&source));
+        for (key, value) in [
+            ("record_version", json!(0)),
+            ("record_version", json!(true)),
+            ("record_version", json!(9007199254740992u64)),
+            ("schema_version", json!("tos_canonical_node_v2")),
+            ("record_id", source["node_id"].clone()),
+            (
+                "field_languages",
+                json!({"notes":{"language":"en","script":null}}),
+            ),
+        ] {
+            let mut changed = source.clone();
+            changed[key] = value;
+            assert!(!v.is_valid(&changed), "{key}: {changed}");
+        }
+        for key in ["schema_version", "record_version"] {
+            let mut changed = source.clone();
+            changed.as_object_mut().unwrap().remove(key);
+            assert!(!v.is_valid(&changed));
+        }
+        for key in ["preferred_label", "variant_labels", "field_languages"] {
+            let mut changed = legacy.clone();
+            changed[key] = source[key].clone();
+            assert!(!v.is_valid(&changed));
+        }
+        let mut malformed = synthetic();
+        malformed["language_witnesses"] = json!([null,{"segments":"unreadable"}]);
+        assert!(!v.is_valid(&malformed));
+        let bytes = serde_json::to_vec(&synthetic()).unwrap();
+        let mut bom = vec![239, 187, 191];
+        bom.extend_from_slice(&bytes);
+        assert!(parse(&bom).is_err());
+        assert!(parse(b"[]").unwrap().is_array());
     }
-
 }

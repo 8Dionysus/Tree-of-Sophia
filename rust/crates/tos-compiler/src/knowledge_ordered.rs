@@ -316,20 +316,19 @@ impl Drop for OrderedKnowledgeSink<'_, '_> {
     }
 }
 
-pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema =
-    crate::knowledge_stage::preparation_schema!(
-        table r#"knowledge_node_candidates(
+pub(crate) const PREPARATION_SCHEMA: crate::knowledge_stage::PreparationSchema = crate::knowledge_stage::preparation_schema!(
+    table r#"knowledge_node_candidates(
  id TEXT PRIMARY KEY,source_graph TEXT NOT NULL,native_id TEXT,entity_id TEXT,
  kind_id TEXT NOT NULL,type_id TEXT NOT NULL,payload_len INTEGER NOT NULL,
  payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL) WITHOUT ROWID"#,
-        index r#"knowledge_node_candidates_order ON knowledge_node_candidates(source_graph,id)"#,
-        table r#"knowledge_relation_candidates(
+    index r#"knowledge_node_candidates_order ON knowledge_node_candidates(source_graph,id)"#,
+    table r#"knowledge_relation_candidates(
  id TEXT PRIMARY KEY,source_graph TEXT NOT NULL,native_id TEXT,
  from_id TEXT NOT NULL,to_id TEXT NOT NULL,predicate_id TEXT NOT NULL,
  relation_type_id TEXT NOT NULL,payload_len INTEGER NOT NULL,
  payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL) WITHOUT ROWID"#,
-        index r#"knowledge_relation_candidates_order ON knowledge_relation_candidates(source_graph,id)"#,
-    );
+    index r#"knowledge_relation_candidates_order ON knowledge_relation_candidates(source_graph,id)"#,
+);
 
 const NODE_FINAL: &str = "INSERT INTO knowledge_nodes
  SELECT id,source_graph,native_id,entity_id,kind_id,type_id,

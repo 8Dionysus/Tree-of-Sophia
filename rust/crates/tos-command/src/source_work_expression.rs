@@ -3161,6 +3161,11 @@ pub fn execute_isolated_work_expression_from_captures(
 #[path = "source_work_expression_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+pub(crate) mod owner_test_support {
+    pub(crate) use super::tests::{authored, cut, repository, software, worker};
+}
+
 /// Observe one already committed native Work creation after a cold reopen.
 /// The original selected cut authenticates the request and predecessor; the
 /// current complete cut and native compound reader own later sibling/correction

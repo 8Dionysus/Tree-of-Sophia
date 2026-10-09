@@ -23,8 +23,7 @@ REPO_ROOT = ACCESS_ROOT.parent
 sys.path.insert(0, str(ACCESS_ROOT / "src"))
 
 from tos_access.core import ToSAccessCore
-from tos_access.locations import data_root, program_path
-from tos_access import locations
+from tos_access.locations import data_root
 
 
 def standalone_validator():
@@ -162,29 +161,6 @@ class SoftwareBoundaryTests(unittest.TestCase):
         self.assertIs(SourceReadError, platform_error)
         self.assertEqual(NativeMCPServer.__module__, 'tos_access.native_mcp')
         core.close()
-
-    def test_imported_doctor_preserves_profile_and_not_ready_report(self):
-        from types import SimpleNamespace
-        from tos_access.doctor import doctor_report
-        report = {'schema_version': 'tos_access_doctor_report_v1', 'profile': 'abyssos',
-                  'ok': False, 'checks': [{'check_id': 'owned', 'ok': False}],
-                  'required_failures': ['owned'], 'tos_root': '/owned/source'}
-        calls = []
-        def packets(arguments, **options):
-            calls.append((arguments, options))
-            return iter([report])
-        with patch.dict(sys.modules, {'tos_access.native_io': SimpleNamespace(native_packets=packets)}):
-            self.assertIs(doctor_report(tos_root='/owned/source', profile='abyssos',
-                                       require_mcp=False, native_prefix='/owned/software'), report)
-            self.assertEqual(calls[0][0], ['--root', '/owned/source', 'doctor', '--json',
-                                         '--profile', 'abyssos', '--require-mcp', 'false'])
-            self.assertEqual(calls[0][1], {'prefix': '/owned/software', 'frame_cap': 65536,
-                                         'input_cap': 1, 'valid_returncodes': (0, 1)})
-            with self.assertRaisesRegex(ValueError, 'unknown access profile'):
-                doctor_report(profile='unknown')
-            with self.assertRaisesRegex(TypeError, 'require_mcp'):
-                doctor_report(require_mcp='false')
-            self.assertEqual(len(calls), 1)
 
     def test_native_mcp_sdk_joins_the_shared_exchange_owner(self):
         from contextlib import contextmanager
@@ -795,22 +771,6 @@ server.run(transport='streamable-http')
         with self.assertRaises(ValueError):
             NativeMCPServer('/selected/software', ['--root', 'bad\0path'])
 
-    def test_installed_package_cannot_fall_back_to_unrelated_library_paths(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            package = Path(temporary) / "venv/lib/python3.12/site-packages/tos_access"
-            access = package.parents[1]
-            relative = Path("access/contracts/exploration-request.v1.schema.json")
-            foreign = access.parent / relative
-            foreign.parent.mkdir(parents=True)
-            foreign.write_text('{"foreign":true}')
-            foreign_web = access / "web/dist/assets/tos-graph.js"
-            foreign_web.parent.mkdir(parents=True)
-            foreign_web.write_text("foreign browser code")
-            with patch.object(locations, "PACKAGE_ROOT", package), patch.object(locations, "ACCESS_ROOT", access):
-                self.assertEqual(program_path(relative), package / "runtime_data" / relative)
-                self.assertFalse(program_path(relative).exists())
-                self.assertIsNone(locations.web_root())
-
     def test_program_validation_needs_no_corpus_or_runtime(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -863,7 +823,7 @@ server.run(transport='streamable-http')
             (contracts / "exploration-request.v1.schema.json").write_text('{"malicious_override":true}')
             core = ToSAccessCore.discover(tos_root=root)
             result = core.knowledge_exploration_contracts()
-            expected = json.loads(program_path("access/contracts/exploration-request.v1.schema.json").read_text())
+            expected = json.loads((ACCESS_ROOT / "contracts/exploration-request.v1.schema.json").read_text())
             self.assertEqual(result["request"], expected)
             self.assertNotIn("malicious_override", result["request"])
 

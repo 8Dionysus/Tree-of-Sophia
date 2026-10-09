@@ -2289,15 +2289,22 @@ mod executor_refusal_tests {
     #[test]
     fn multiple_source_causes_preserve_only_bounded_redacted_tokens() {
         let first = bounded_source_cause("receiver-source", "df-c-0123456789ab", "private input A");
-        let second = bounded_source_cause("receiver-source", "df-c-fedcba987654", "private input B");
+        let second =
+            bounded_source_cause("receiver-source", "df-c-fedcba987654", "private input B");
         let reason = format!("source-causes:{first}|{second}");
         assert!(is_bounded_source_cause(&reason));
-        assert_eq!(receiver_refusal(ItemRefusal::Source(reason.clone())).to_string(), reason);
+        assert_eq!(
+            receiver_refusal(ItemRefusal::Source(reason.clone())).to_string(),
+            reason
+        );
         for bad in [
             "source-causes:".to_owned(),
             format!("source-causes:{first}|private input B"),
             format!("source-causes:{first}|source-causes:{second}"),
-            format!("source-causes:{}", vec![first; MAX_SOURCE_CAUSES + 1].join("|")),
+            format!(
+                "source-causes:{}",
+                vec![first; MAX_SOURCE_CAUSES + 1].join("|")
+            ),
         ] {
             assert!(!is_bounded_source_cause(&bad));
         }

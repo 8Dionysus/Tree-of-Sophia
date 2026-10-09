@@ -5070,13 +5070,18 @@ mod tests {
         let deadline = Instant::now() + Duration::from_secs(5);
         let cancel = AtomicBool::new(false);
         drop(AdmissionStore::create(&path, deadline, &cancel).unwrap());
-        let held = File::from(rustix::fs::open(
-            &path,
-            OFlags::PATH | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-            Mode::empty(),
-        ).unwrap());
-        let first = AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
-        let second = AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
+        let held = File::from(
+            rustix::fs::open(
+                &path,
+                OFlags::PATH | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+            .unwrap(),
+        );
+        let first =
+            AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
+        let second =
+            AdmissionStore::open_existing_at_named(&path, &held, deadline, &cancel).unwrap();
         let collect = |store: &AdmissionStore| {
             let (root, _, _) = store.backup_namespaces().unwrap();
             assert_eq!(identity(root).unwrap(), identity(&held).unwrap());
@@ -5089,7 +5094,9 @@ mod tests {
             names
         };
         let names = collect(&first);
-        assert!(names.contains("objects") && names.contains("revisions") && names.contains("staging"));
+        assert!(
+            names.contains("objects") && names.contains("revisions") && names.contains("staging")
+        );
         assert_eq!(collect(&second), names);
         // A held inode must still match the requested named store.
         let other = temporary.path().join("other");

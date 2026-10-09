@@ -498,7 +498,6 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/places/chemnitz/place.json",
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
         "access/tests/source_agent_publication_fixture.py",
-        "access/tests/source_assembly_fixture.py",
         "access/tests/test_source_metadata_publication.py",
         "mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json",
         "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",

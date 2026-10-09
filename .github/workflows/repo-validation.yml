@@ -457,15 +457,7 @@ jobs:
             /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
             /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json
-            # Exact maintained Python oracles imported by selected-lens integration tests.
-            /access/tests/test_access_contract.py
-            /access/tests/fixture_support.py
-            /access/tests/test_source_navigation_file_rights.py
-            /access/pyproject.toml
             /access/src/
-            /access/packaging/archive_common.py
-            /access/packaging/data_compile_common.py
-            /access/packaging/validate_standalone.py
             /access/deploy/cloudflare-worker/migrations/0001-exploration.sql
             /access/contracts/exploration-request.v1.schema.json
             /access/contracts/exploration-request.v2.schema.json
@@ -523,7 +515,6 @@ jobs:
             /quests/TOS-Q-0002.yaml
             /quests/TOS-Q-0003.yaml
             /quests/TOS-Q-0004.yaml
-            /requirements-dev.txt
             /ToS/doctrine/semantic-interchange/
             /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
@@ -748,12 +739,6 @@ jobs:
           "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
             --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
           chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
-      - name: Setup Python for Unicode 16 differential oracles
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: "3.14"
-      - name: Install maintained Python fixture dependencies
-        run: python -m pip install -r requirements-dev.txt
       - name: Install pinned Rust toolchain and WASM target
         run: |
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
@@ -780,7 +765,7 @@ jobs:
           TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
-        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --run rust_workspace --lane-timeout-ms 5400000'
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --lane-timeout-ms 5400000'
       - name: Verify durable command transactions against PostgreSQL
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home

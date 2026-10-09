@@ -33,8 +33,8 @@ pub use json::{
     emit_python_compact_json_with_state_budget_and_visits_and_check,
     emit_python_pretty_sorted_json_with_state_budget, emit_value_preserved_json,
     order_json_object_members_with_check, parse_json, parse_json_profile, parse_json_with_check,
-    parse_json_with_state_budget, parse_json_with_state_budget_and_check,
-    parse_json_with_state_budget_and_admission,
+    parse_json_with_state_budget, parse_json_with_state_budget_and_admission,
+    parse_json_with_state_budget_and_check,
 };
 pub use knowledge_model_abi::{
     KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1, KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1,

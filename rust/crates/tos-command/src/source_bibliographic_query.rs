@@ -8,8 +8,7 @@ use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::Digest256;
 
-const GRAPH_REF: &str =
-    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json";
+const GRAPH_REF: &str = "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json";
 const GRAPH_SCHEMA: &str = "tos_source_witness_bibliographic_graph_v1";
 const QUERY_SCHEMA: &str = "tos_source_witness_bibliographic_query_result_v1";
 const MAX_QUERY_LIMIT: u64 = 100;
@@ -160,7 +159,11 @@ pub fn query_verified_projection(
             .pointer("/properties/identity_ref")
             .and_then(Value::as_str);
         let object_ref = (object.get("node_kind").and_then(Value::as_str) == Some("identity"))
-            .then(|| object.pointer("/properties/identity_ref").and_then(Value::as_str))
+            .then(|| {
+                object
+                    .pointer("/properties/identity_ref")
+                    .and_then(Value::as_str)
+            })
             .flatten();
         let mut normalized_refs = BTreeSet::new();
         if let Some(ids) = trace.get("normalized_identity_node_ids") {
@@ -187,9 +190,7 @@ pub fn query_verified_projection(
                 }
                 "subject_ref" => subject_ref,
                 "object_ref" => object_ref,
-                "normalized_ref" => normalized_refs
-                    .contains(expected)
-                    .then_some(expected),
+                "normalized_ref" => normalized_refs.contains(expected).then_some(expected),
                 _ => None,
             };
             if actual != Some(expected) {
@@ -231,7 +232,11 @@ pub fn query_verified_projection(
         }
     }
     for edges in selected_edges.values_mut() {
-        edges.sort_by_key(|edge| edge.get("edge_id").and_then(Value::as_str).unwrap_or_default());
+        edges.sort_by_key(|edge| {
+            edge.get("edge_id")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+        });
     }
 
     let mut matches = Vec::with_capacity(selected_traces.len());
@@ -242,10 +247,11 @@ pub fn query_verified_projection(
             .pointer("/properties/source_claim")
             .ok_or("claim node lacks exact source_claim return")?;
         if source_claim.get("claim_id").and_then(Value::as_str) != Some(claim_ref)
-            || digest(&canonical(source_claim)?)
-                != required_text(trace, "source_claim_sha256")?
+            || digest(&canonical(source_claim)?) != required_text(trace, "source_claim_sha256")?
         {
-            return Err(format!("{claim_ref}: source-return identity or digest differs"));
+            return Err(format!(
+                "{claim_ref}: source-return identity or digest differs"
+            ));
         }
         let edges = selected_edges
             .remove(claim_ref)
@@ -384,7 +390,10 @@ mod tests {
         assert_eq!(query["status"], "ok");
         assert_eq!(query["result_count"], 1);
         assert_eq!(query["matches"][0]["claim_ref"], "tos.claim.query-fixture");
-        assert_eq!(query["matches"][0]["source_return"]["source_claim"]["claim_id"], "tos.claim.query-fixture");
+        assert_eq!(
+            query["matches"][0]["source_return"]["source_claim"]["claim_id"],
+            "tos.claim.query-fixture"
+        );
         assert_eq!(query["matches"][0]["edges"][0]["edge_id"], "edge:fixture");
         assert_eq!(query["query"]["match_semantics"], "all_selectors");
         let rendered = serde_json::to_string(&query).unwrap();
@@ -395,17 +404,21 @@ mod tests {
     #[test]
     fn query_requires_a_selector_and_refuses_unbounded_match_limit() {
         let graph = graph_bytes();
-        assert!(query_verified_projection(&graph, &json!({}), None, 1024 * 1024)
+        assert!(
+            query_verified_projection(&graph, &json!({}), None, 1024 * 1024)
+                .unwrap_err()
+                .contains("at least one exact query selector")
+        );
+        assert!(
+            query_verified_projection(
+                &graph,
+                &json!({"review_status":"unreviewed"}),
+                Some(101),
+                1024 * 1024,
+            )
             .unwrap_err()
-            .contains("at least one exact query selector"));
-        assert!(query_verified_projection(
-            &graph,
-            &json!({"review_status":"unreviewed"}),
-            Some(101),
-            1024 * 1024,
-        )
-        .unwrap_err()
-        .contains("1 to 100"));
+            .contains("1 to 100")
+        );
     }
 
     #[test]
@@ -430,10 +443,10 @@ mod tests {
             .remove("projection_fingerprint")
             .unwrap();
         let fingerprint = digest(&canonical(&graph).unwrap());
-        graph.as_object_mut().unwrap().insert(
-            "projection_fingerprint".into(),
-            json!(fingerprint),
-        );
+        graph
+            .as_object_mut()
+            .unwrap()
+            .insert("projection_fingerprint".into(), json!(fingerprint));
         let raw = canonical(&graph).unwrap();
 
         let query = query_verified_projection(
@@ -464,14 +477,16 @@ mod tests {
     #[test]
     fn query_refuses_a_result_larger_than_its_declared_output_budget() {
         let graph = graph_bytes();
-        assert!(query_verified_projection(
-            &graph,
-            &json!({"claim_ref":"tos.claim.query-fixture"}),
-            None,
-            1,
-        )
-        .unwrap_err()
-        .contains("exceeds output byte budget"));
+        assert!(
+            query_verified_projection(
+                &graph,
+                &json!({"claim_ref":"tos.claim.query-fixture"}),
+                None,
+                1,
+            )
+            .unwrap_err()
+            .contains("exceeds output byte budget")
+        );
     }
 
     #[test]
@@ -496,7 +511,8 @@ mod tests {
         trace["claim_ref"] = json!("tos.claim.query-fixture-second");
         trace["claim_node_id"] = json!("claim:second");
         trace["claim_sha256"] = json!(second_sha);
-        trace["source_claim_file_ref"] = json!("ToS/source-witnesses/relations/query-fixture/claims.jsonl");
+        trace["source_claim_file_ref"] =
+            json!("ToS/source-witnesses/relations/query-fixture/claims.jsonl");
         trace["source_claim_line"] = json!(2);
         trace["source_claim_sha256"] = json!(second_sha);
         graph["claim_traces"].as_array_mut().unwrap().push(trace);
@@ -511,13 +527,15 @@ mod tests {
             .unwrap()
             .insert("projection_fingerprint".into(), json!(fingerprint));
 
-        assert!(query_verified_projection(
-            &canonical(&graph).unwrap(),
-            &json!({"review_status":"unreviewed"}),
-            Some(1),
-            1024 * 1024,
-        )
-        .unwrap_err()
-        .contains("exceeding explicit limit 1"));
+        assert!(
+            query_verified_projection(
+                &canonical(&graph).unwrap(),
+                &json!({"review_status":"unreviewed"}),
+                Some(1),
+                1024 * 1024,
+            )
+            .unwrap_err()
+            .contains("exceeding explicit limit 1")
+        );
     }
 }

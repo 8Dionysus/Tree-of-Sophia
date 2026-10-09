@@ -2055,7 +2055,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             item_schemas.source_resource_count(),
             item_schemas
                 .source_resource_metadata_state_bytes()
-                .ok_or_else(|| incomplete("candidate selected schema metadata state unavailable"))?,
+                .ok_or_else(|| {
+                    incomplete("candidate selected schema metadata state unavailable")
+                })?,
         )?;
         let schema_controller = item_schemas
             .diagnostics_v2_controller_state_upper_bound(schema_limits.max_instance_bytes, 4096)
@@ -2169,7 +2171,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .checked_sub(callback_held)
                 .and_then(|state| state.checked_sub(callback_header_state))
                 .ok_or_else(|| {
-                    incomplete("candidate simultaneous callback state exceeds its fixed reservation")
+                    incomplete(
+                        "candidate simultaneous callback state exceeds its fixed reservation",
+                    )
                 })?
                 .min(records_operation.state_bytes);
             if callback_state_bytes > working_ram || callback_workspace_state == 0 {
@@ -2177,7 +2181,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     view.execution_limits,
                     view.remaining_budget,
                     records_ticket,
-                    incomplete("candidate simultaneous callback state exceeds its fixed reservation"),
+                    incomplete(
+                        "candidate simultaneous callback state exceeds its fixed reservation",
+                    ),
                 );
             }
             input
@@ -2191,7 +2197,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             let callback_result_state = std::mem::size_of::<(usize, u64)>();
             let records_callback_state = callback_workspace_state
                 .checked_sub(callback_result_state)
-                .ok_or_else(|| incomplete("candidate callback result header exceeds reservation"))?;
+                .ok_or_else(|| {
+                    incomplete("candidate callback result header exceeds reservation")
+                })?;
             let mut records_profile = records_operation;
             records_profile.state_bytes = records_callback_state;
             let records_schema_request_state = records_callback_state.max(1);
@@ -2244,7 +2252,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .set_shared_schema_worker_quota(worker_quota.clone())
                 .map_err(owner)?;
 
-            let stored_operation_state = callback_workspace_state.min(defaults_limits.max_row_state_bytes);
+            let stored_operation_state =
+                callback_workspace_state.min(defaults_limits.max_row_state_bytes);
             let stored_page_state = (stored_operation_state / 3).max(1);
             let page_state = NonZeroUsize::new(stored_page_state)
                 .ok_or_else(|| incomplete("candidate stored page-state ceiling is zero"))?;
@@ -2269,13 +2278,15 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .execution_limits
                 .item_limits(records_profile)
                 .map_err(FoundationOrchestratorError::Command)?;
-            let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
-                usize::try_from(item_limits.max_total_bytes)
-                    .map_err(|_| incomplete("candidate bibliography query-byte range"))?,
-            )
-            .map_err(owner)?;
+            let biblio_query_rows =
+                tos_validation::biblio_rules::biblio_query_row_operation_budget(
+                    usize::try_from(item_limits.max_total_bytes)
+                        .map_err(|_| incomplete("candidate bibliography query-byte range"))?,
+                )
+                .map_err(owner)?;
             let event_json_cap = item_limits.max_state_bytes.min(
-                usize::try_from(item_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX),
+                usize::try_from(item_limits.max_total_bytes.min(usize::MAX as u64))
+                    .unwrap_or(usize::MAX),
             );
             if event_json_cap < 2 {
                 return fail_window(
@@ -3347,7 +3358,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 remaining_write,
             )?;
 
-            (index, verified_records, records_cost_state, record_executor, remaining_write)
+            (
+                index,
+                verified_records,
+                records_cost_state,
+                record_executor,
+                remaining_write,
+            )
         };
 
         let catalog_ticket = open_window(
@@ -3366,7 +3383,8 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
         // both success and refusal; no unknown whole-invocation allowance is spent.
         let catalog_external_reads = std::cell::Cell::new(0);
         let catalog_attempt = (|| {
-            let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
+            let catalog_identity_state =
+                worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
             let catalog_state_cap = catalog_operation
                 .state_bytes
                 .checked_sub(catalog_identity_state)
@@ -3391,10 +3409,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .map_err(owner)?;
             if observed_catalog_members == 0
                 || observed_catalog_members > max_members
-                || u64::try_from(observed_catalog_members).ok() != Some(view.coverage.member_count())
+                || u64::try_from(observed_catalog_members).ok()
+                    != Some(view.coverage.member_count())
                 || observed_catalog_bytes != fence.source_bytes
             {
-                return Err(incomplete("candidate catalog current-source census refused"));
+                return Err(incomplete(
+                    "candidate catalog current-source census refused",
+                ));
             }
             let max_catalog_members = observed_catalog_members.min(4096).max(1);
             let max_catalog_files = max_members.min((u64::MAX - 1) as usize).max(1) as u64;
@@ -3455,7 +3476,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             let max_claim_rows = (catalog_limits.max_rows.min(16_384) as usize)
                 .min(max_claim_bytes / catalog_limits.max_output_row_bytes.max(1));
             if max_claim_rows == 0 {
-                return Err(incomplete("candidate catalog Claim cohort exceeds state reservation"));
+                return Err(incomplete(
+                    "candidate catalog Claim cohort exceeds state reservation",
+                ));
             }
             let biblio_catalog_limits = view
                 .execution_limits
@@ -3502,10 +3525,10 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 max_receipts: catalog_max_checks.max(1),
                 max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
             };
-            let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
-                .execution_limits
-                .catalog_worker_limits(catalog_worker_shape)
-                .map_err(FoundationOrchestratorError::Command)?;
+            let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) =
+                view.execution_limits
+                    .catalog_worker_limits(catalog_worker_shape)
+                    .map_err(FoundationOrchestratorError::Command)?;
             // Fresh catalog files are staged bytes read back for comparison, not the
             // final CLI receipt. Both physical and cumulative read meters still apply.
             let max_generated_bytes = usize::try_from(
@@ -3609,11 +3632,11 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                         &location[..6],
                     );
                     return Err(owner(ItemRefusal::Source(
-                            crate::source_admission_spooled_index::bounded_source_cause(
-                                "receiver-source",
-                                &site,
-                                result.path(),
-                            ),
+                        crate::source_admission_spooled_index::bounded_source_cause(
+                            "receiver-source",
+                            &site,
+                            result.path(),
+                        ),
                     )));
                 }
                 FoundationCatalogOutcome::Complete(result) => {
@@ -3637,7 +3660,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 .as_ref()
                 .ok_or_else(|| incomplete("candidate catalog produced no fresh sink"))?;
             if !fresh.eof_verified() || catalog_result.fresh_sources.is_none() {
-                return Err(incomplete("candidate fresh catalog EOF or source evidence is missing"));
+                return Err(incomplete(
+                    "candidate fresh catalog EOF or source evidence is missing",
+                ));
             }
             let catalog_state = catalog_retained_state(&catalog_result.outcome)?
                 .checked_add(catalog_identity_state)
@@ -3651,7 +3676,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                     .map_err(|_| incomplete("candidate catalog generated read range"))?,
             )?;
             if catalog_external_reads.get() != catalog_read {
-                return Err(incomplete("candidate catalog external read observation differs"));
+                return Err(incomplete(
+                    "candidate catalog external read observation differs",
+                ));
             }
             let io_after_catalog = candidate
                 .io_usage()
@@ -3675,7 +3702,9 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
                 || fresh.cost().output_bytes as u64 > catalog_free.tmpfs_bytes
                 || fresh.cost().created_inodes as u64 > catalog_free.tmpfs_inodes
             {
-                return Err(incomplete("candidate catalog evidence exceeds the invocation reservation"));
+                return Err(incomplete(
+                    "candidate catalog evidence exceeds the invocation reservation",
+                ));
             }
             let catalog_quota_after = worker_quota
                 .usage()
@@ -3735,7 +3764,13 @@ pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'canc
             view.remaining_write_bytes,
             remaining_write,
         )?;
-        (index, verified_records, records_cost_state, record_executor, remaining_write)
+        (
+            index,
+            verified_records,
+            records_cost_state,
+            record_executor,
+            remaining_write,
+        )
     };
     let remaining = view
         .remaining_budget
