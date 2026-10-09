@@ -249,60 +249,16 @@ pub fn discover(root: &Path, python: &str) -> io::Result<Plan> {
     let mut test_file_count = 0;
     for home in homes(root, &mut visited)? {
         let tests = named_files(&home.join("tests"), "test", &mut visited)?;
-        let expected: Option<&[&str]> = match relative(root, &home)?.as_str() {
-            "mechanics/agon/parts/threshold-registry" => {
-                Some(&["test_tos_agon_threshold_intake_registry.py"])
+        // Native assertion ownership follows the package/part home. The
+        // replaced Python tests are no longer executable discovery inputs.
+        let native = matches!(relative(root, &home)?.as_str(),
+            "mechanics/agon/parts/threshold-registry" |
+            "mechanics/experience" | "mechanics/questbook");
+        if native {
+            if !tests.is_empty() {
+                return Err(invalid("native mechanics home contains unreviewed Python tests"));
             }
-            "mechanics/experience" => Some(&[
-                "test_experience_candidate_adoption_write_guard_contracts.py",
-                "test_experience_governance_boundary_contracts.py",
-                "test_experience_installation_service_office_contracts.py",
-            ]),
-            "mechanics/questbook" => Some(&["test_validate_questbook_surface.py"]),
-            _ => None,
-        };
-        if let Some(expected) = expected {
-            let actual = tests
-                .iter()
-                .map(|path| {
-                    path.file_name()
-                        .and_then(|name| name.to_str())
-                        .unwrap_or("")
-                })
-                .collect::<Vec<_>>();
-            if actual != expected {
-                return Err(invalid(
-                    "native mechanics reference-file set changed; review assertion coverage before execution",
-                ));
-            }
-            // These files are frozen reference evidence for the retained native
-            // assertions, not a second maintained assertion authority. Refuse
-            // changed methods as well as changed filenames until owner review.
-            for path in &tests {
-                let digest = match path.file_name().and_then(|name| name.to_str()) {
-                    Some("test_experience_candidate_adoption_write_guard_contracts.py") => {
-                        "93772ada0074667f2924ed8ad4b0e59d0d106de8e92c273ffcf1ed19e296e894"
-                    }
-                    Some("test_experience_governance_boundary_contracts.py") => {
-                        "d4ea8c24cb7d7347bfd81c6ffd98082b5aa349d8397d411c908a294724f423f2"
-                    }
-                    Some("test_experience_installation_service_office_contracts.py") => {
-                        "bb7dea48655f31502359b44456f8b1ad67c5ca373ee62f9cf5ad25441c26abfc"
-                    }
-                    Some("test_validate_questbook_surface.py") => {
-                        "690e049d3ee96c161f475b10fef70656ea80672760255b5bb2987bf2e877dcee"
-                    }
-                    Some("test_tos_agon_threshold_intake_registry.py") => {
-                        "719ac8ea10af77e450c11a8bd06e70d2d2077113da55f182c0430c45a12d1403"
-                    }
-                    _ => return Err(invalid("unmapped native mechanics reference file")),
-                };
-                if tos_foundation::Digest256::of_bytes(&fs::read(path)?).to_hex() != digest {
-                    return Err(invalid(
-                        "native mechanics reference bytes changed; review retained assertions before execution",
-                    ));
-                }
-            }
+            test_homes.insert(home.clone());
         }
         if !tests.is_empty() {
             test_file_count += tests.len();
@@ -315,8 +271,8 @@ pub fn discover(root: &Path, python: &str) -> io::Result<Plan> {
             script_homes.insert(home);
         }
     }
-    if test_file_count == 0 {
-        return Err(invalid("no mechanics-local unittest files were discovered"));
+    if test_homes.is_empty() {
+        return Err(invalid("no mechanics-local contract homes were discovered"));
     }
     let mut commands = Vec::new();
     for home in test_homes {
@@ -670,30 +626,13 @@ mod tests {
     }
 
     #[test]
-    fn supported_contract_homes_use_native_assertions_and_growth_stays_reference() {
+    fn supported_contract_homes_need_no_python_files_and_growth_stays_reference() {
         let root = fixture();
-        for file in [
-            "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
-            "mechanics/experience/tests/test_experience_candidate_adoption_write_guard_contracts.py",
-            "mechanics/experience/tests/test_experience_governance_boundary_contracts.py",
-            "mechanics/experience/tests/test_experience_installation_service_office_contracts.py",
-            "mechanics/questbook/tests/test_validate_questbook_surface.py",
-            "mechanics/growth-cycle/tests/test_contract.py",
-        ] {
-            touch(&root, file);
-            if !file.contains("growth-cycle") {
-                fs::write(
-                    root.join(file),
-                    fs::read(
-                        Path::new(env!("CARGO_MANIFEST_DIR"))
-                            .join("../../..")
-                            .join(file),
-                    )
-                    .unwrap(),
-                )
-                .unwrap();
-            }
+        for home in ["mechanics/agon/parts/threshold-registry",
+                     "mechanics/experience", "mechanics/questbook"] {
+            fs::create_dir_all(root.join(home)).unwrap();
         }
+        touch(&root, "mechanics/growth-cycle/tests/test_contract.py");
         touch(&root, "mechanics/fixture/scripts/build_fixture.py");
         touch(&root, "mechanics/fixture/scripts/validate_fixture.py");
         let plan = discover(&root, "/must-not-run-python").unwrap();
@@ -715,28 +654,10 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(reference.len(), 1);
         assert_eq!(reference[0].home, "mechanics/growth-cycle");
-        let reference_path =
-            root.join("mechanics/questbook/tests/test_validate_questbook_surface.py");
-        let original = fs::read(&reference_path).unwrap();
-        fs::write(
-            &reference_path,
-            b"def test_new_unmapped_assertion(): pass\n",
-        )
-        .unwrap();
-        assert!(
-            discover(&root, "python")
-                .unwrap_err()
-                .to_string()
-                .contains("reference bytes changed")
-        );
-        fs::write(&reference_path, original).unwrap();
+        assert_eq!(plan.test_file_count, 1);
         touch(&root, "mechanics/questbook/tests/test_unmapped.py");
-        assert!(
-            discover(&root, "python")
-                .unwrap_err()
-                .to_string()
-                .contains("reference-file set changed")
-        );
+        assert!(discover(&root, "python").unwrap_err().to_string()
+            .contains("unreviewed Python tests"));
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -748,7 +669,7 @@ mod tests {
             discover(&root, "python")
                 .unwrap_err()
                 .to_string()
-                .contains("unittest")
+                .contains("contract homes")
         );
         fs::remove_dir_all(root).unwrap();
     }

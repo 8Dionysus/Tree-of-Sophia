@@ -10,14 +10,14 @@
 | owner | `mechanics/agon/parts/threshold-registry/` |
 | next route | threshold review, not canon write |
 | tools | config, schemas, example, generated companion, part-local registry builder, part-local validator |
-| check | `python scripts/run_mechanics_local_tests.py` |
+| check | `tos-ops-mechanics-plan --repo-root ABS --local-contracts mechanics/agon/parts/threshold-registry` |
 
 ## Payload
 
 - `config/tos_agon_threshold_intakes.config.json`
 - `scripts/build_tos_agon_threshold_intake_registry.py`
 - `scripts/validate_tos_agon_threshold_intake_registry.py`
-- `tests/test_tos_agon_threshold_intake_registry.py`
+- Native retained assertions: `rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs`
 - `schemas/tos-agon-threshold-intake-registry.schema.json`
 - `examples/tos_agon_threshold_intake_registry.example.json`
 - `generated/tos_agon_threshold_intake_registry.min.json`

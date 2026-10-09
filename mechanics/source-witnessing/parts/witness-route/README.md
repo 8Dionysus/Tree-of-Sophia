@@ -10,7 +10,7 @@
 | owner | `mechanics/source-witnessing/parts/witness-route/` |
 | next route | `ToS/source-witnesses/`, `ToS/philosophy/`, or `ToS/candidate-intake/` |
 | tools | source-home manifest and witness manifests |
-| check | `python scripts/validate_tos_source_home.py` |
+| check | `tos-ops-mechanics-plan --repo-root ABS --source-home` |
 
 ## Registry-to-source operation
 

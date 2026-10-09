@@ -353,3 +353,28 @@ pub fn run(root: &Path, cancel: &AtomicI32) -> io::Result<i32> {
     let signal = cancel.load(Ordering::Relaxed);
     Ok(if signal != 0 { 128 + signal } else { code })
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn source_home_manifest_matches_its_declared_schema() {
+        let schema: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../../../../ToS/contracts/tos-source-home.schema.json"
+        ))
+        .unwrap();
+        let manifest: serde_json::Value =
+            serde_json::from_slice(include_bytes!("../../../../ToS/source_home.manifest.json"))
+                .unwrap();
+        assert_eq!(
+            manifest["$schema"],
+            "https://tree-of-sophia.local/ToS/contracts/tos-source-home.schema.json"
+        );
+        let validator = jsonschema::options()
+            .with_draft(jsonschema::Draft::Draft202012)
+            .should_validate_formats(false)
+            .offline()
+            .build(&schema)
+            .unwrap();
+        assert!(validator.is_valid(&manifest));
+    }
+}

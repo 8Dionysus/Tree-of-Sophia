@@ -573,21 +573,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_semantic_registry_transition.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "validator_behavior",
-      "validation_lane": "semantic_registry_transition",
-      "owner_surface": "ToS/doctrine/semantic-interchange/README.md",
-      "protects": "explicit immutable baseline admission, missing baseline/object failure, separately authorized first introduction without invented comparison or erased history, version bumps, retained historical schema routes and identity meaning, compatible metadata/Claim extensions, Git replacement rejection and release/CI wiring; not semantic compatibility acceptance",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_semantic_registry_transition.py",
-      "failure_route": "Fix baseline binding, shared semantic transition validation or declared release wiring without weakening historical meaning and reader routes.",
-      "disposition": "keep"
-    },
-    {
       "path": "access/tests/test_readable_context.py",
       "home": "access",
       "home_scope": "product-local",
@@ -993,21 +978,6 @@
       "disposition": "keep"
     },
     {
-      "path": "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
-      "home": "mechanics/agon/parts/threshold-registry",
-      "home_scope": "part-local",
-      "family": "mechanics_generated_parity",
-      "validation_lane": "mechanics_local",
-      "owner_surface": "mechanics/agon/parts/threshold-registry/README.md",
-      "protects": "Agon threshold registry generated payload and validator",
-      "coverage_authority": "mechanics_local lane discovery",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
-      "failure_route": "Fix mechanics/agon/parts/threshold-registry source, builder, or validator before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_current_direction_routes.py",
       "home": "tests",
       "home_scope": "root",
@@ -1023,21 +993,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_decision_indexes.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "generated_parity",
-      "validation_lane": "generated_parity",
-      "owner_surface": "docs/decisions/AGENTS.md",
-      "protects": "decision index rendering and canonical decision ids",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_decision_indexes.py",
-      "failure_route": "Fix docs/decisions owner surfaces or decision index builder before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_docs_verify_routes.py",
       "home": "tests",
       "home_scope": "root",
@@ -1050,51 +1005,6 @@
       "runtime_cost": "fast",
       "focused_target": "tests/test_docs_verify_routes.py",
       "failure_route": "Fix root README, ROADMAP and CONTRIBUTING against TOS-D-0008 and DESIGN.AGENTS.md before changing the public-entry guard; inherited cards and stronger operation/source owners keep their separate contracts.",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/experience/tests/test_experience_candidate_adoption_write_guard_contracts.py",
-      "home": "mechanics/experience/tests",
-      "home_scope": "mechanic-level",
-      "family": "mechanics_schema_contract",
-      "validation_lane": "experience_contracts",
-      "owner_surface": "mechanics/experience/AGENTS.md",
-      "protects": "experience candidate-review/adoption/write-guard/pattern-review schema contracts",
-      "coverage_authority": "Experience package test home discovery",
-      "mode": "blocking",
-      "runtime_cost": "medium",
-      "focused_target": "mechanics/experience/tests/test_experience_candidate_adoption_write_guard_contracts.py",
-      "failure_route": "Fix mechanics/experience parts before changing contract expectations.",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/experience/tests/test_experience_governance_boundary_contracts.py",
-      "home": "mechanics/experience/tests",
-      "home_scope": "mechanic-level",
-      "family": "mechanics_schema_contract",
-      "validation_lane": "experience_contracts",
-      "owner_surface": "mechanics/experience/parts/governance-boundary/README.md",
-      "protects": "experience governance-boundary schema contracts",
-      "coverage_authority": "Experience package test home discovery",
-      "mode": "blocking",
-      "runtime_cost": "medium",
-      "focused_target": "mechanics/experience/tests/test_experience_governance_boundary_contracts.py",
-      "failure_route": "Fix mechanics/experience/parts/governance-boundary before changing contract expectations.",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/experience/tests/test_experience_installation_service_office_contracts.py",
-      "home": "mechanics/experience/tests",
-      "home_scope": "mechanic-level",
-      "family": "mechanics_schema_contract",
-      "validation_lane": "experience_contracts",
-      "owner_surface": "mechanics/experience/AGENTS.md",
-      "protects": "experience installation/service-office schema contracts",
-      "coverage_authority": "Experience package test home discovery",
-      "mode": "blocking",
-      "runtime_cost": "medium",
-      "focused_target": "mechanics/experience/tests/test_experience_installation_service_office_contracts.py",
-      "failure_route": "Fix mechanics/experience installation and service-office parts before changing contract expectations.",
       "disposition": "keep"
     },
     {
@@ -1578,21 +1488,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_tos_source_home_schema.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "source_home_contract",
-      "validation_lane": "source_home",
-      "owner_surface": "ToS/contracts/tos-source-home.schema.json",
-      "protects": "ToS source-home schema and manifest payload shape",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_tos_source_home_schema.py",
-      "failure_route": "Fix the source-home schema or manifest before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_validate_philosophy_topology.py",
       "home": "tests",
       "home_scope": "root",
@@ -1605,21 +1500,6 @@
       "runtime_cost": "medium",
       "focused_target": "tests/test_validate_philosophy_topology.py",
       "failure_route": "Fix ToS/philosophy topology or validator behavior before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/questbook/tests/test_validate_questbook_surface.py",
-      "home": "mechanics/questbook/tests",
-      "home_scope": "mechanic-level",
-      "family": "mechanics_validator_behavior",
-      "validation_lane": "mechanics_local",
-      "owner_surface": "mechanics/questbook/scripts/validate_questbook_surface.py",
-      "protects": "questbook validator behavior for obligations, public quest YAML, dispatch schemas, and compatibility examples",
-      "coverage_authority": "mechanics_local lane discovery",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "mechanics/questbook/tests/test_validate_questbook_surface.py",
-      "failure_route": "Fix mechanics/questbook source surfaces or validator behavior before changing test expectations.",
       "disposition": "keep"
     },
     {

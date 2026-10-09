@@ -509,3 +509,26 @@ the same real hosts; that mode verifies behavior and does not claim a new build.
 All three operations share native child-process custody, cancellation, a default
 900-second child limit, a 3600-second operation limit, and 16 MiB output per
 child. Caller-selected resource/storage admission remains external.
+
+
+The source-home validator and decision builder/validator are native commands:
+`--source-home`, `--decision-index-build [--check]` and
+`--decision-records-validate`. Their Python implementations and replaced tests
+are retired. Source-home schema assertions run in Rust. Decision tests use
+fixed reviewed output bytes and explicit refusal cases with an empty PATH;
+record validation remains separate from generated-index currentness.
+
+The semantic-registry transition gate is a native command. Its thirteen native
+CLI tests preserve immutable baseline selection, independent version advances,
+historical schema and reader identity, initial-introduction authority, and
+Git replacement, shallow-history and graft refusal. Git is the explicit host
+operation; the former Python gate and wrapper are retired. The historical
+reader path remains an identity sentinel for earlier commits, never a fallback.
+
+Agon, Experience and Questbook retain their package-local schema and mutation
+assertions in the native `--local-contracts HOME` command and
+`tests/mechanics_contracts.rs`. Their five replaced Python test files are
+retired. Native discovery selects the existing owner homes directly and
+refuses new unreviewed Python tests there; it no longer hashes retired source
+files to discover a supported command. `experience_contracts` runs that same
+native consumer through the validation lane.

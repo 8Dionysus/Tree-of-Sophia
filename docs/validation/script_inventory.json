@@ -261,26 +261,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/validate_semantic_registry_transition.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/doctrine/semantic-interchange/README.md",
-      "source_truth": [
-        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-        "access/src/tos_access/knowledge.py"
-      ],
-      "reads": [
-        "explicit immutable baseline commit registry/contract JSON and current working-tree registry/contract bytes; current shared semantic transition validator"
-      ],
-      "writes": [],
-      "side_effects": "mechanical change validation and exact compared-source digests only; no automatic baseline selection, Git replacement objects, fetch, source writes, baseline code execution, runtime dependency or semantic acceptance",
-      "validation_lane": "semantic_registry_transition",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_semantic_registry_transition.py",
-      "disposition": "keep"
-    },
-    {
       "path": "access/packaging/profile_backend.py",
       "family": "projection_validator",
       "organ_lane": "projection/generated",
@@ -3172,29 +3152,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/generate_decision_indexes.py",
-      "family": "projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "docs/decisions/AGENTS.md",
-      "source_truth": [
-        "docs/decisions/TOS-D-*.md",
-        "docs/decisions/indexes/index_contract.yaml",
-        "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
-      ],
-      "reads": [
-        "docs/decisions/TOS-D-*.md",
-        "docs/decisions/indexes/index_contract.yaml"
-      ],
-      "writes": [
-        "docs/decisions/indexes/ unless --check is used"
-      ],
-      "side_effects": "tracked generated decision indexes; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
-      "validation_lane": "generated_parity",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_decision_indexes.py",
-      "disposition": "keep"
-    },
-    {
       "path": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py",
       "family": "helper",
       "organ_lane": "mechanics/part-owned",
@@ -3454,27 +3411,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/validate_decision_records.py",
-      "family": "projection_validator",
-      "organ_lane": "projection/generated",
-      "owner_surface": "docs/decisions/AGENTS.md",
-      "source_truth": [
-        "docs/decisions/TOS-D-*.md",
-        "docs/decisions/indexes/index_contract.yaml",
-        "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
-      ],
-      "reads": [
-        "docs/decisions/TOS-D-*.md",
-        "docs/decisions/indexes/"
-      ],
-      "writes": [],
-      "side_effects": "validation output only; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
-      "validation_lane": "generated_parity",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_decision_indexes.py",
-      "disposition": "keep"
-    },
-    {
       "path": "scripts/validate_intake_pack.py",
       "family": "source_validator",
       "organ_lane": "source/topology",
@@ -3727,25 +3663,6 @@
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_post_planting_audit.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_tos_source_home.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/source_home.manifest.json",
-      "source_truth": [
-        "ToS/source_home.manifest.json",
-        "ToS/contracts/tos-source-home.schema.json"
-      ],
-      "reads": [
-        "ToS/source_home.manifest.json"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "source_home",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_tos_source_home_schema.py",
       "disposition": "keep"
     },
     {

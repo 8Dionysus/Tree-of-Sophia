@@ -1,7 +1,7 @@
 schema_version: tos_decision_index_contract_v1
 authority: docs/decisions/AGENTS.md
 source_records: docs/decisions/TOS-D-*.md
-generated_by: scripts/generate_decision_indexes.py
+generated_by: rust/crates/tos-ops-mechanics-plan/src/decision_records.rs
 generated_indexes:
   - docs/decisions/indexes/README.md
   - docs/decisions/indexes/by-number.md

@@ -1,18 +1,11 @@
-//! Receiving CLI parity against frozen pre-migration owner scripts.
-//! The oracle is test-only; maintained commands never invoke it as fallback.
+//! Actual native CLI contracts and seven reviewed generated-byte fixtures.
 #![cfg(target_os = "linux")]
 use std::{
     fs,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, Output},
     time::{SystemTime, UNIX_EPOCH},
 };
-const GENERATOR: &[u8] = include_bytes!(
-    "../../../../tests/fixtures/decision_records_oracle/generate_decision_indexes.py"
-);
-const VALIDATOR: &[u8] = include_bytes!(
-    "../../../../tests/fixtures/decision_records_oracle/validate_decision_records.py"
-);
 const INDEXES: &[&str] = &[
     "README.md",
     "by-number.md",
@@ -35,8 +28,6 @@ impl Fixture {
         ));
         fs::create_dir_all(&root).unwrap();
         let f = Self(root);
-        f.write("scripts/generate_decision_indexes.py", GENERATOR);
-        f.write("scripts/validate_decision_records.py", VALIDATOR);
         f.write("docs/decisions/AGENTS.md", b"# Owner\n");
         f.write("docs/decisions/README.md", b"# Entry\n");
         f.write("docs/decisions/TEMPLATE.md", b"# Template\n");
@@ -63,18 +54,6 @@ impl Fixture {
             text.as_bytes(),
         );
     }
-    fn oracle(&self, builder: bool, check: bool) -> Output {
-        let mut c = Command::new("/usr/bin/python3");
-        c.arg("-B").arg(self.0.join(if builder {
-            "scripts/generate_decision_indexes.py"
-        } else {
-            "scripts/validate_decision_records.py"
-        }));
-        if builder && check {
-            c.arg("--check");
-        }
-        c.output().unwrap()
-    }
     fn native(&self, builder: bool, check: bool) -> Output {
         let executable = std::env::var_os("TOS_DECISION_RECORDS_TEST_EXECUTABLE")
             .or_else(|| std::env::var_os("TOS_MECHANICS_TEST_EXECUTABLE"))
@@ -88,21 +67,7 @@ impl Fixture {
         if builder && check {
             c.arg("--check");
         }
-        c.output().unwrap()
-    }
-    fn compare(&self, builder: bool, check: bool) -> Output {
-        let oracle = self.oracle(builder, check);
-        let native = self.native(builder, check);
-        assert_eq!(
-            native.status.code(),
-            oracle.status.code(),
-            "native stderr:{}\noracle stderr:{}",
-            String::from_utf8_lossy(&native.stderr),
-            String::from_utf8_lossy(&oracle.stderr)
-        );
-        assert_eq!(native.stdout, oracle.stdout, "stdout parity");
-        assert_eq!(native.stderr, oracle.stderr, "stderr parity");
-        native
+        c.env("PATH", "").output().unwrap()
     }
     fn index(&self, p: &str) -> PathBuf {
         self.0.join("docs/decisions/indexes").join(p)
@@ -121,18 +86,27 @@ impl Drop for Fixture {
 #[test]
 fn receiving_cli_preserves_record_validation_and_all_seven_generated_bytes() {
     let f = Fixture::new();
-    let built = f.oracle(true, false);
+    let built = f.native(true, false);
     assert!(
         built.status.success(),
         "{}",
         String::from_utf8_lossy(&built.stdout)
     );
-    assert!(f.compare(false, false).status.success());
-    assert!(f.compare(true, true).status.success());
-    let expected = INDEXES
-        .iter()
-        .map(|p| fs::read(f.index(p)).unwrap())
-        .collect::<Vec<_>>();
+    assert!(f.native(false, false).status.success());
+    assert!(f.native(true, true).status.success());
+    let expected: &[&[u8]] = &[
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/README.md"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-number.md"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-date.md"),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-surface.md"),
+        include_bytes!(
+            "../../../../tests/fixtures/decision_records_oracle/expected/by-tos-layer.md"
+        ),
+        include_bytes!(
+            "../../../../tests/fixtures/decision_records_oracle/expected/by-tree-class.md"
+        ),
+        include_bytes!("../../../../tests/fixtures/decision_records_oracle/expected/by-guard.md"),
+    ];
     f.clear_indexes();
     let native = f.native(true, false);
     assert!(
@@ -145,19 +119,19 @@ fn receiving_cli_preserves_record_validation_and_all_seven_generated_bytes() {
     for (p, expected) in INDEXES.iter().zip(expected) {
         assert_eq!(
             fs::read(f.index(p)).unwrap(),
-            expected,
+            *expected,
             "byte parity for {p}"
         );
     }
-    assert!(f.compare(true, true).status.success());
+    assert!(f.native(true, true).status.success());
 }
 #[test]
 fn receiving_cli_preserves_stale_missing_and_typed_source_failure_order() {
     let f = Fixture::new();
-    assert!(f.oracle(true, false).status.success());
+    assert!(f.native(true, false).status.success());
     fs::write(f.index("by-date.md"), b"stale\n").unwrap();
     fs::remove_file(f.index("by-guard.md")).unwrap();
-    let stale = f.compare(true, true);
+    let stale = f.native(true, true);
     assert_eq!(stale.status.code(), Some(1));
     assert!(String::from_utf8(stale.stdout).unwrap().contains("Stale decision indexes:\n- docs/decisions/indexes/by-date.md\n- docs/decisions/indexes/by-guard.md\n"));
     let p = f.0.join("docs/decisions/TOS-D-0002-example.md");
@@ -168,14 +142,14 @@ fn receiving_cli_preserves_stale_missing_and_typed_source_failure_order() {
     fs::write(p, text).unwrap();
     f.write("docs/decisions/foreign.md", b"# Unowned root Markdown\n");
     f.write("docs/decisions/nested/extra.txt", b"Unmodeled\n");
-    let record = f.compare(false, false);
+    let record = f.native(false, false);
     assert_eq!(record.status.code(), Some(1));
     let body = String::from_utf8(record.stdout).unwrap();
     assert!(body.starts_with("Decision record validation failed.\n"));
     assert!(body.contains("duplicate Decision ID also used by"));
     assert!(body.contains("Original date must use YYYY-MM-DD"));
     assert!(body.contains("unmodeled decision-lane surface"));
-    assert_eq!(f.compare(true, true).status.code(), Some(1));
+    assert_eq!(f.native(true, true).status.code(), Some(1));
 }
 #[test]
 fn receiving_cli_preserves_empty_lane_contract_and_modeled_surface_boundaries() {
@@ -206,59 +180,11 @@ fn receiving_cli_preserves_empty_lane_contract_and_modeled_surface_boundaries() 
             "docs/decisions/indexes/index_contract.yaml",
             format!("modeled_surfaces:\n  - {entry}\n").as_bytes(),
         );
-        let out = f.compare(false, false);
+        let out = f.native(false, false);
         let body = String::from_utf8(out.stdout).unwrap();
         assert!(body.contains("no canonical decision records found"));
         assert!(body.contains("no decision records available for validation"));
         assert!(body.contains(diagnostic));
-        assert_eq!(f.compare(true, true).status.code(), Some(1));
+        assert_eq!(f.native(true, true).status.code(), Some(1));
     }
-}
-#[test]
-fn wrappers_select_native_before_importing_owner_helpers() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-    let f = Fixture::new();
-    for (name, bytes) in [
-        (
-            "validate_decision_records.py",
-            fs::read(root.join("scripts/validate_decision_records.py")).unwrap(),
-        ),
-        (
-            "generate_decision_indexes.py",
-            fs::read(root.join("scripts/generate_decision_indexes.py")).unwrap(),
-        ),
-    ] {
-        f.write(&format!("scripts/{name}"), &bytes);
-    }
-    let executable = std::env::var_os("TOS_DECISION_RECORDS_TEST_EXECUTABLE")
-        .or_else(|| std::env::var_os("TOS_MECHANICS_TEST_EXECUTABLE"))
-        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
-    let built = Command::new("/usr/bin/python3")
-        .arg("-B")
-        .arg(f.0.join("scripts/generate_decision_indexes.py"))
-        .env("TOS_OPS_MECHANICS_EXECUTOR", &executable)
-        .output()
-        .unwrap();
-    assert!(
-        built.status.success(),
-        "{}",
-        String::from_utf8_lossy(&built.stderr)
-    );
-    fs::write(
-        f.0.join("scripts/generate_decision_indexes.py"),
-        b"raise RuntimeError('owner helpers must not load for validator CLI')\n",
-    )
-    .unwrap();
-    let validated = Command::new("/usr/bin/python3")
-        .arg("-B")
-        .arg(f.0.join("scripts/validate_decision_records.py"))
-        .env("TOS_OPS_MECHANICS_EXECUTOR", &executable)
-        .output()
-        .unwrap();
-    assert!(
-        validated.status.success(),
-        "{}",
-        String::from_utf8_lossy(&validated.stderr)
-    );
-    assert_eq!(validated.stdout, b"[ok] decision records validated\n");
 }

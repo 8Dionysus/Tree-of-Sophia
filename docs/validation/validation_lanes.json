@@ -827,14 +827,11 @@
       {
         "label": "validate Experience contracts",
         "command": [
-          "python",
-          "-m",
-          "unittest",
-          "discover",
-          "-s",
-          "mechanics/experience/tests",
-          "-p",
-          "test*.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--local-contracts",
+          "mechanics/experience"
         ]
       }
     ],

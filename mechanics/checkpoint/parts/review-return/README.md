@@ -10,4 +10,4 @@
 | owner | `mechanics/checkpoint/parts/review-return/` |
 | next route | `ToS/review-ledger/`, `ToS/philosophy/`, or owning validator |
 | tools | review ledger and source-home manifest |
-| check | `python scripts/validate_tos_source_home.py` |
+| check | `tos-ops-mechanics-plan --repo-root ABS --source-home` |

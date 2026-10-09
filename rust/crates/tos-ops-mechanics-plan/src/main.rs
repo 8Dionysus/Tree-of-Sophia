@@ -1081,7 +1081,7 @@ fn main() {
                 ) {
                     plan.commands
                         .retain(|command| command.kind == "native_assertions");
-                    plan.test_file_count = 5;
+                    plan.test_file_count = 0; // Native assertions do not count retired Python files.
                     if plan.commands.len() != 3 {
                         return Err(std::io::Error::other(
                             "native mechanics contracts require all three supported homes",

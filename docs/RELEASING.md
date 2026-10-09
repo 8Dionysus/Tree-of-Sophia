@@ -254,7 +254,7 @@ availability and the final cohort switch.
 
 An authored semantic-registry change uses the independent
 `semantic_registry_transition` source lane. Select the full pre-change commit
-and run `python scripts/validate_semantic_registry_transition.py
+and run `tos-ops-mechanics-plan --repo-root ABS --semantic-registry-transition
 --baseline-commit FULL_COMMIT_OID --json`, or supply
 `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT` to the named validation lane. Retain
 that baseline and the comparison result with the source review. The owning
