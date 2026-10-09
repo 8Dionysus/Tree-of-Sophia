@@ -1,6 +1,6 @@
 //! Optional local performance hints for active_naming; never a release input.
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
-use std::fs::{self, File};
+use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -47,8 +47,6 @@ pub struct FeedbackStats {
 
 pub(super) struct FeedbackCache {
     connection: Connection,
-    // SQLite and its journal resolve below this held directory on Linux.
-    _parent: File,
     policy: String,
     stats: FeedbackStats,
 }
@@ -65,8 +63,7 @@ fn policy() -> String {
 }
 
 #[cfg(target_os = "linux")]
-fn held_cache(path: &Path) -> io::Result<(File, PathBuf)> {
-    use std::os::fd::AsRawFd;
+fn prepare_cache(path: &Path) -> io::Result<()> {
     use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
     let parent = path.parent().ok_or_else(|| invalid("cache parent missing"))?;
     fs::create_dir_all(parent)?;
@@ -75,14 +72,12 @@ fn held_cache(path: &Path) -> io::Result<(File, PathBuf)> {
     if metadata.uid() != unsafe { libc::geteuid() } || metadata.mode() & 0o022 != 0 {
         return Err(invalid("feedback cache parent must be owned and not writable by other users"));
     }
-    let anchored = PathBuf::from(format!("/proc/self/fd/{}", held.as_raw_fd()))
-        .join(path.file_name().ok_or_else(|| invalid("cache filename missing"))?);
     let mut options = fs::OpenOptions::new();
     options.read(true).write(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
-    let file = match options.open(&anchored) {
+    let file = match options.open(path) {
         Ok(file) => file,
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
-            options.create_new(true).mode(0o600).open(&anchored)?
+            options.create_new(true).mode(0o600).open(path)?
         }
         Err(error) => return Err(error),
     };
@@ -92,18 +87,20 @@ fn held_cache(path: &Path) -> io::Result<(File, PathBuf)> {
     {
         return Err(invalid("feedback cache must be an owned single-link regular file under 64 MiB"));
     }
-    Ok((held, anchored))
+    Ok(())
 }
 
 #[cfg(not(target_os = "linux"))]
-fn held_cache(_path: &Path) -> io::Result<(File, PathBuf)> {
-    Err(io::Error::new(io::ErrorKind::Unsupported, "held feedback cache is supported on Linux"))
+fn prepare_cache(_path: &Path) -> io::Result<()> {
+    Err(io::Error::new(io::ErrorKind::Unsupported, "feedback cache is supported on Linux"))
 }
 
 impl FeedbackCache {
     pub(super) fn open(path: &Path, deadline: Instant) -> io::Result<Self> {
-        let (parent, anchored) = held_cache(path)?;
-        let connection = Connection::open_with_flags(&anchored,
+        prepare_cache(path)?;
+        // SQLite NOFOLLOW rejects symlinks anywhere in its canonical pathname.
+        // A /proc/self/fd alias would itself be a symlink, so use the selected path.
+        let connection = Connection::open_with_flags(path,
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW).map_err(sql)?;
         connection.busy_timeout(Duration::ZERO).map_err(sql)?;
         connection.progress_handler(1000, Some(move || Instant::now() >= deadline));
@@ -122,7 +119,7 @@ impl FeedbackCache {
         let policy = policy();
         connection.execute("DELETE FROM content_results WHERE policy != ?1", [&policy]).map_err(sql)?;
         connection.execute_batch("BEGIN").map_err(sql)?;
-        Ok(Self { connection, _parent: parent, policy,
+        Ok(Self { connection, policy,
             stats: FeedbackStats { path: path.into(), hits: 0, misses: 0 } })
     }
 
