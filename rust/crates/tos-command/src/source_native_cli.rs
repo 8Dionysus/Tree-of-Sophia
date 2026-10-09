@@ -149,6 +149,20 @@ pub fn discover_commands(handler: Option<&str>) -> SourceCommandResult<Value> {
 /// Complete one explicitly selected local invocation. Both protected owner
 /// files are independently reread by the Alignment entry at current use.
 pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {
+    run_selected(invocation_path, input, false)
+}
+
+/// Only the local owner-process CLI calls this private disclosure route.
+/// HTTP/source-command adapters continue to call `run` and cannot select it.
+pub fn run_private_text(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {
+    run_selected(invocation_path, input, true)
+}
+
+fn run_selected(
+    invocation_path: &Path,
+    input: impl Read,
+    private_owner_process: bool,
+) -> SourceCommandResult<Value> {
     let cancelled = Arc::new(AtomicBool::new(false));
     let deadline = Instant::now() + Duration::from_secs(60);
     let uid = rustix::process::getuid().as_raw();
@@ -164,6 +178,13 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let checked = cmd::parse(&raw)?;
     let invocation: Value = serde_json::from_slice(&cmd::canonical(&checked)?)
         .map_err(|_| SourceCommandError::Invalid("native invocation JSON"))?;
+    if private_owner_process
+        && text(&invocation, "schema_version")? != "tos_local_native_source_invocation_v1"
+    {
+        return Err(SourceCommandError::Denied(
+            "private text invocation profile",
+        ));
+    }
     if matches!(
         text(&invocation, "schema_version")?,
         "tos_local_native_corpus_read_invocation_v1"
@@ -285,6 +306,15 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         .object_get("schema_version")
         .and_then(|value| value.as_str())
         .unwrap_or("");
+    if private_owner_process != (operation == "native-text.read-private")
+        || private_owner_process
+            && (!source_invocation
+                || request_schema != "tos_local_native_private_text_read_request_v1")
+    {
+        return Err(SourceCommandError::Denied(
+            "private text requires local owner-process route",
+        ));
+    }
     let assessed_forms_request = request_schema
         == "tos_local_assessed_forms_materialization_request_v1"
         && operation == "materialize_assessed_forms";
@@ -516,6 +546,54 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             return Err(SourceCommandError::Unsupported(
                 "native assessment read request profile",
             ));
+        }
+        if private_owner_process {
+            if owner_schema != "tos_native_private_text_read_v1"
+                || invocation.get("assessment_schema_worker") != Some(&Value::Null)
+            {
+                return Err(SourceCommandError::Denied("private text owner family"));
+            }
+            cmd::exact_keys(
+                &request,
+                &["schema_version", "operation", "binding", "max_return_bytes"],
+            )?;
+            let source_root = absolute(cmd::text(&hint, "source_root")?)?;
+            let context_path = absolute(cmd::text(cmd::field(&hint, "owner_context")?, "path")?)?;
+            if absolute(text(&invocation, "owner_context")?)? != context_path {
+                return Err(SourceCommandError::Denied(
+                    "private text invocation context differs",
+                ));
+            }
+            let mut worker = selected_schema(&invocation, &cut, deadline, &cancelled)?;
+            let mut grant = crate::source_native_text_read::PrivateTextReadSelection::load(
+                &owner_path,
+                &source_root,
+                &mut worker,
+                deadline,
+                &cancelled,
+            )?;
+            let max_bytes = usize::try_from(cmd::integer(&request, "max_return_bytes")?)
+                .map_err(|_| SourceCommandError::Invalid("private text output budget"))?;
+            let output = crate::source_native_text_read::read_private_native_unit(
+                &mut grant,
+                &mut worker,
+                cmd::field(&request, "binding")?,
+                max_bytes,
+                deadline,
+                &cancelled,
+            )?;
+            if read_absolute(&selected, uid, true, raw.len(), deadline, &cancelled)? != raw
+                || read_absolute(&owner_path, uid, true, hint_raw.len(), deadline, &cancelled)?
+                    != hint_raw
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private text invocation or grant changed",
+                ));
+            }
+            return Ok(json!({"schema_version":"tos_local_native_source_result_v1",
+                "grants_admission":false,
+                "result":serde_json::from_slice::<Value>(&cmd::canonical(&output)?)
+                    .map_err(|_|SourceCommandError::Invalid("private text output JSON"))?}));
         }
         match owner_schema {
             "tos_local_assessment_owner_v1"

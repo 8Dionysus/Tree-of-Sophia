@@ -113,6 +113,12 @@ pub(crate) fn build_text_unit_packet(
             "native TextUnit exact text budget",
         ));
     }
+    // The immutable file digest covers all bytes; normalization applies only
+    // to the layer's declared absolute codepoint scope.
+    crate::source_sign_native::verified_representation_scope(
+        text,
+        cmd::field(layer, "representation")?,
+    )?;
     let layer = value(layer)?;
     let existing = existing_packet.map(value).transpose()?;
     let binding = value(binding)?;
@@ -156,6 +162,7 @@ pub(crate) fn build_text_unit_packet(
             .contains(&method["maker_kind"].as_str().ok_or(bad())?)
         || method["agent_ref"] != config["principal_id"]
         || method["provenance_event_ref"] != config["provenance_event_id"]
+        || (!method["locale"].is_null() && method["locale"] != rep["language"])
     {
         return Err(SourceCommandError::Invalid(
             "native TextUnit selected method or scheme",
@@ -384,6 +391,13 @@ pub(crate) fn build_text_unit_packet(
             ));
         }
         let mut inherited = packet["rights_and_visibility"].clone();
+        if visibility_rank(inherited["packet_visibility"].as_str().ok_or(bad())?)?
+            > visibility_rank("local_only")?
+        {
+            return Err(SourceCommandError::Denied(
+                "native TextUnit predecessor packet restriction",
+            ));
+        }
         inherited["packet_visibility"] = json!("local_only");
         inherited["publication_authorized"] = json!(false);
         let source_visibility = inherited["source_visibility"].as_str().ok_or(bad())?;
@@ -530,3 +544,7 @@ pub(crate) fn build_text_unit_packet(
     }
     Ok((foundation, bytes))
 }
+
+#[cfg(test)]
+#[path = "source_text_unit_proposal_tests.rs"]
+mod tests;

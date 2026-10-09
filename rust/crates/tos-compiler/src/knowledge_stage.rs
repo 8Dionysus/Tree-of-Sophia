@@ -7171,8 +7171,8 @@ mod tests {
             calls: AtomicUsize::new(0),
             deny: false,
         };
-        // Both dictionary families seal on the first row. Exact source spelling
-        // intentionally differs from the serialized normalized representation.
+        // V3 seals on the first large row; V4 gathers up to 32 KiB or 32 samples.
+        // Exact source spelling differs from the normalized representation.
         let source = format!(
             "{{ \"text\" : \"{}\", \"number\" : 1.2300, \"claim_ref\" : \"claim.test\" }}\n",
             "source words ".repeat(500)
@@ -7541,7 +7541,10 @@ mod tests {
                     )
                     .unwrap();
                 if layout == KnowledgePayloadLayout::CarrierOnceV4 {
-                    assert!(dictionaries >= 1);
+                    assert_eq!(
+                        dictionaries, 0,
+                        "V4 retains the short initial training group in TEMP"
+                    );
                 } else {
                     assert_eq!(dictionaries, 2);
                 }
@@ -7906,8 +7909,48 @@ mod tests {
             }
             if layout.dictionary_bytes() {
                 let samples: u64 = stage.db().query_row("SELECT samples FROM temp.knowledge_byte_dictionary_pending WHERE dictionary_kind='node' AND source_graph='tiny'", [], |row| row.get(0)).unwrap();
-                assert_eq!(samples, 32);
+                assert_eq!(
+                    samples,
+                    if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+                        64
+                    } else {
+                        32
+                    }
+                );
+                let dictionaries: u64 = stage
+                    .db()
+                    .query_row(
+                        "SELECT count(*) FROM knowledge_byte_dictionaries",
+                        [],
+                        |row| row.get(0),
+                    )
+                    .unwrap();
+                assert!(dictionaries > 0, "tiny family seals after 32 samples");
             }
+            let search = crate::knowledge_search::build_search_index(
+                &mut stage,
+                crate::knowledge_search::SearchBuildLimits {
+                    max_payload_bytes: 32768,
+                    max_document_chars: 32768,
+                    max_document_bytes: 131072,
+                    max_rank_field_bytes: 32768,
+                    max_postings: 100_000,
+                    max_work_bytes: 64 * 1024 * 1024,
+                    gram_batch_rows: 8,
+                },
+            )
+            .unwrap();
+            assert_eq!((search.node_documents, search.relation_documents), (34, 1));
+            assert_eq!(search.search_index_root_sha256.len(), 64);
+            stage.with_connection(WritePhase::Search, |db| {
+                let mut statement=db.prepare("SELECT identity_values,visible_values FROM search_documents WHERE kind='nodes' AND position=0")?;
+                let mut rows=statement.query([])?;let row=rows.next()?.unwrap();
+                let abi=layout.carrier_model_abi().unwrap();
+                let (a,b)=crate::knowledge_search_rank::decode_pair_owned(abi,row.get_ref(0)?,row.get_ref(1)?,32768,&state)?;
+                assert_eq!(a, r#"["node.0"]"#); assert_eq!(b,a);
+                assert_eq!(matches!(row.get_ref(0)?,rusqlite::types::ValueRef::Blob(_)),layout==KnowledgePayloadLayout::CarrierOnceV4);
+                Ok(())
+            }).unwrap();
             if layout.dictionary_bytes() {
                 // A receipt cannot hide even a byte-preserving intervening
                 // source write. Refuse before changing the logical row; its
@@ -8003,6 +8046,31 @@ mod tests {
                     },
                 )
                 .unwrap();
+            let mut statement=cold.prepare("SELECT first_position,last_position,postings,deltas FROM search_posting_blocks WHERE kind='nodes' AND gram=?1 ORDER BY last_position").unwrap();
+            let mut rows = statement.query([b"iny".as_slice()]).unwrap();
+            let mut positions = Vec::new();
+            while let Some(row) = rows.next().unwrap() {
+                let first: i64 = row.get(0).unwrap();
+                let last: i64 = row.get(1).unwrap();
+                let count: i64 = row.get(2).unwrap();
+                let bytes: Vec<u8> = row.get(3).unwrap();
+                positions.extend(
+                    crate::decode_posting_block_for_abi(
+                        layout.carrier_model_abi().unwrap(),
+                        first as u64,
+                        last as u64,
+                        count as u16,
+                        &bytes,
+                    )
+                    .unwrap(),
+                );
+                if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+                    assert_eq!(bytes.first(), Some(&0));
+                }
+            }
+            assert_eq!(positions, (2..34).collect::<Vec<u64>>());
+            drop(rows);
+            drop(statement);
             drop(cold);
             drop(stage);
             fs::remove_dir_all(candidate.parent().unwrap()).unwrap();

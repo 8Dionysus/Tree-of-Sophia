@@ -1735,6 +1735,26 @@ fn codepoint_span(text: &str, start: u64, end: u64) -> SourceCommandResult<&str>
     }
     Ok(&text[points[start]..points[end]])
 }
+/// Validate the declared layer scope without rebasing coordinates or
+/// normalizing bytes outside that scope. Derived full-file profiles still
+/// enforce their own whole-representation contract in `derived_content`.
+pub(crate) fn verified_representation_scope<'a>(
+    text: &'a str,
+    representation: &JsonValue,
+) -> SourceCommandResult<&'a str> {
+    let scope = cmd::field(representation, "text_scope")?;
+    let start = cmd::integer(scope, "start")?;
+    let end = cmd::integer(scope, "end")?;
+    if start >= end {
+        return Err(SourceCommandError::Invalid("native text scope is empty"));
+    }
+    let selected = codepoint_span(text, start, end)?;
+    check_normalization(
+        selected,
+        cmd::text(representation, "character_normalization")?,
+    )?;
+    Ok(selected)
+}
 fn check_normalization(text: &str, form: &str) -> SourceCommandResult<()> {
     use unicode_normalization::UnicodeNormalization;
     let same = match form {
@@ -2295,15 +2315,7 @@ pub(crate) fn resolve_owner_text_layer(
     )?;
     let text = std::str::from_utf8(&raw)
         .map_err(|_| SourceCommandError::Invalid("native owner Text exact UTF-8"))?;
-    let text_scope = cmd::field(rep, "text_scope")?;
-    if cmd::integer(text_scope, "start")? != 0
-        || cmd::integer(text_scope, "end")? != text.chars().count() as u64
-    {
-        return Err(SourceCommandError::Conflict(
-            "native owner Text scope differs",
-        ));
-    }
-    check_normalization(text, cmd::text(rep, "character_normalization")?)?;
+    verified_representation_scope(text, rep)?;
     native.derived_content(&layer, text)?;
     let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
@@ -2872,29 +2884,7 @@ pub(crate) fn read_disclosed_unit<R: SignNativeRead + ?Sized>(
     )?;
     let text = std::str::from_utf8(&content)
         .map_err(|_| SourceCommandError::Invalid("native return UTF8"))?;
-    let mut spans = Vec::new();
-    for anchor_ref in cmd::array(&binding, "ordered_anchor_refs")? {
-        let anchor = cmd::array(&packet, "anchors")?
-            .iter()
-            .find(|row| row.object_get("anchor_ref") == Some(anchor_ref))
-            .ok_or(SourceCommandError::Conflict(
-                "native ordered anchor missing",
-            ))?;
-        let selector = cmd::field(anchor, "selector")?;
-        spans.push(cmd::object(vec![
-            ("anchor_ref", anchor_ref.clone()),
-            ("selector", selector.clone()),
-            ("exact_sha256", cmd::field(anchor, "exact_sha256")?.clone()),
-            (
-                "text",
-                cmd::string(codepoint_span(
-                    text,
-                    cmd::integer(selector, "start")?,
-                    cmd::integer(selector, "end")?,
-                )?),
-            ),
-        ]));
-    }
+    let spans = disclosed_spans(&packet, &binding, text)?;
     if let Some(selection) = local {
         let current = selection.select(
             native.reader,
@@ -2991,4 +2981,198 @@ pub(crate) fn resolve_owner_binding<R: SignNativeRead + ?Sized>(
         input_snapshot,
         schema_digests: native.schemas,
     })
+}
+
+fn disclosed_spans(
+    packet: &JsonValue,
+    binding: &JsonValue,
+    text: &str,
+) -> SourceCommandResult<Vec<JsonValue>> {
+    let mut spans = Vec::new();
+    for anchor_ref in cmd::array(binding, "ordered_anchor_refs")? {
+        let anchor = cmd::array(packet, "anchors")?
+            .iter()
+            .find(|row| row.object_get("anchor_ref") == Some(anchor_ref))
+            .ok_or(SourceCommandError::Conflict(
+                "native ordered anchor missing",
+            ))?;
+        let selector = cmd::field(anchor, "selector")?;
+        spans.push(cmd::object(vec![
+            ("anchor_ref", anchor_ref.clone()),
+            ("selector", selector.clone()),
+            ("exact_sha256", cmd::field(anchor, "exact_sha256")?.clone()),
+            (
+                "text",
+                cmd::string(codepoint_span(
+                    text,
+                    cmd::integer(selector, "start")?,
+                    cmd::integer(selector, "end")?,
+                )?),
+            ),
+        ]));
+    }
+    Ok(spans)
+}
+
+/// The private delivery adapter must select the exact binding before invoking
+/// this owner transport. Metadata-only resolution proves neither a read grant
+/// nor content quality, and public flags cannot substitute for this route.
+pub(crate) fn read_private_disclosed_unit(
+    reader: &mut crate::source_text_owner::OwnerTextContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    selection: &crate::source_native_text_read::LocalTextReadSelection,
+    max_return_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    if !(1..=1_048_576).contains(&max_return_bytes) {
+        return Err(SourceCommandError::Invalid(
+            "private unit return byte budget",
+        ));
+    }
+    // This happens before the first binding metadata read.
+    let binding = binding.clone();
+    selection.selected_binding(&binding, None, deadline, cancelled)?;
+    let mut native = Native {
+        reader,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    let (_, layer, _) = native.resolve_member(&binding, NativeReadScope::MetadataOnly, false)?;
+    let mut private_transport = false;
+    for (reference, _) in native.cache.keys() {
+        private_transport |= native.reader.owner_local(reference)?;
+    }
+    private_transport |= native.reader.owner_local(cmd::text(
+        cmd::field(&layer, "representation")?,
+        "content_ref",
+    )?)?;
+    if !private_transport {
+        return Err(SourceCommandError::Denied(
+            "private text requires owner-local transport",
+        ));
+    }
+    let rep = cmd::field(&layer, "representation")?;
+    let selected = selection
+        .selected_binding(
+            &binding,
+            Some(cmd::field(rep, "rights_record_refs")?),
+            deadline,
+            cancelled,
+        )?
+        .clone();
+    let mut records = Vec::new();
+    let mut returned_rights = Vec::new();
+    for row in cmd::array(rep, "rights_record_refs")? {
+        let record = native
+            .record(cmd::text(row, "ref")?, Some(cmd::text(row, "sha256")?))?
+            .0;
+        returned_rights.push(cmd::object(vec![
+            ("ref", cmd::field(row, "ref")?.clone()),
+            ("sha256", cmd::field(row, "sha256")?.clone()),
+            ("record", record.clone()),
+        ]));
+        records.push(record);
+    }
+    native.local_research_rights(&layer, &records)?;
+    selection.verify(deadline, cancelled)?;
+    native.snapshot()?;
+    let (packet, layer, mut summary) =
+        native.resolve_member(&binding, NativeReadScope::ExactOwnerLocal, false)?;
+    // Private packet custody stays explicit in the returned existing summary.
+    summary = match summary {
+        JsonValue::Object(mut fields) => {
+            for (key, value) in &mut fields {
+                match key.as_str() {
+                    Some("public_content_declared" | "public_content_available") => {
+                        *value = JsonValue::Bool(false)
+                    }
+                    Some("effective_visibility")
+                        if matches!(
+                            value.as_str(),
+                            Some("public" | "public_metadata_only" | "controlled")
+                        ) =>
+                    {
+                        *value = cmd::string("local_only")
+                    }
+                    _ => (),
+                }
+            }
+            fields.push((
+                tos_foundation::JsonString::from_utf8("owner_local_transport"),
+                JsonValue::Bool(true),
+            ));
+            JsonValue::Object(fields)
+        }
+        _ => return Err(SourceCommandError::Invalid("private text summary")),
+    };
+    let rep = cmd::field(&layer, "representation")?;
+    let content = native.raw(
+        cmd::text(rep, "content_ref")?,
+        Some(cmd::text(rep, "content_sha256")?),
+        NativeReadKind::Content,
+    )?;
+    let text = std::str::from_utf8(&content)
+        .map_err(|_| SourceCommandError::Invalid("private return UTF8"))?;
+    let spans = disclosed_spans(&packet, &binding, text)?;
+    let snapshot = native.snapshot()?;
+    selection.selected_binding(
+        &binding,
+        Some(cmd::field(rep, "rights_record_refs")?),
+        deadline,
+        cancelled,
+    )?;
+    let result = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_native_private_unit_return_v1"),
+        ),
+        ("summary", summary),
+        (
+            "packet",
+            cmd::object(vec![
+                ("id", cmd::field(&binding, "packet_id")?.clone()),
+                ("version", cmd::field(&binding, "packet_version")?.clone()),
+                ("sha256", cmd::field(&binding, "packet_sha256")?.clone()),
+            ]),
+        ),
+        (
+            "layer_record_sha256",
+            cmd::field(cmd::field(&binding, "text_layer")?, "record_sha256")?.clone(),
+        ),
+        (
+            "representation_sha256",
+            cmd::field(rep, "content_sha256")?.clone(),
+        ),
+        ("spans", JsonValue::Array(spans)),
+        ("rights_records", JsonValue::Array(returned_rights)),
+        ("closure_fingerprint", cmd::string(&snapshot)),
+        ("local_conditions", selection.private_conditions(&selected)?),
+        (
+            "authority",
+            cmd::object(vec![
+                ("scope", cmd::string("owner-local-research")),
+                ("original_payload_returned", JsonValue::Bool(false)),
+                ("transport_scope", cmd::string("owner_process_only")),
+                ("external_publication_authorized", JsonValue::Bool(false)),
+                ("assessment_applied", JsonValue::Bool(false)),
+            ]),
+        ),
+    ]);
+    if cmd::canonical(&result)?.len() > max_return_bytes {
+        return Err(SourceCommandError::Unsupported(
+            "private unit return exceeds output-byte budget",
+        ));
+    }
+    selection.verify(deadline, cancelled)?;
+    native.reader.verify_current(deadline, cancelled)?;
+    native.tick()?;
+    Ok(result)
 }

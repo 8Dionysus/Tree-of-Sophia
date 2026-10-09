@@ -1218,11 +1218,6 @@ fn write_document_page(
     receipt: &mut SearchIndexReceipt,
     creation: Option<&CreationState<'_>>,
 ) -> Result<()> {
-    limits.validate()?;
-    check()?;
-    if page.is_empty() || page.len() > limits.gram_batch_rows {
-        return Err(Error::Budget("search document page rows"));
-    }
     write_document_page_with_codec(
         db, check, page, kind, run_id, limits, receipt, creation, false,
     )

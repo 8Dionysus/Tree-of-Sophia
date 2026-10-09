@@ -23,12 +23,23 @@ pub struct LocalTextReadSelection {
     raw: Vec<u8>,
     config: JsonValue,
     schema_raw: Vec<u8>,
+    schema_ref: &'static str,
     uid: u32,
 }
 impl LocalTextReadSelection {
     pub fn load(
         path: &Path,
         source_root: &Path,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        Self::load_profile(path, source_root, SCHEMA, worker, deadline, cancelled)
+    }
+    fn load_profile(
+        path: &Path,
+        source_root: &Path,
+        schema_ref: &'static str,
         worker: &mut CutWorkerSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -48,7 +59,7 @@ impl LocalTextReadSelection {
             crate::source_text_owner::read_absolute(path, uid, true, 262_144, deadline, cancelled)?;
         let config = cmd::parse(&raw)?;
         let schema_raw = crate::source_text_owner::read_absolute(
-            &source_root.join(SCHEMA),
+            &source_root.join(schema_ref),
             uid,
             false,
             65_536,
@@ -56,13 +67,13 @@ impl LocalTextReadSelection {
             cancelled,
         )?;
         let schema = cmd::parse(&schema_raw)?;
-        if cmd::text(&schema, "$id")? != format!("https://tree-of-sophia.local/{SCHEMA}")
-            || worker.contract_digest(SCHEMA) != Some(Digest256::of_bytes(&schema_raw))
+        if cmd::text(&schema, "$id")? != format!("https://tree-of-sophia.local/{schema_ref}")
+            || worker.contract_digest(schema_ref) != Some(Digest256::of_bytes(&schema_raw))
             || !worker
                 .check(
                     "native-local-text-read-selection",
                     &raw,
-                    SCHEMA,
+                    schema_ref,
                     deadline,
                     cancelled,
                 )
@@ -91,6 +102,7 @@ impl LocalTextReadSelection {
             raw,
             config,
             schema_raw,
+            schema_ref,
             uid,
         };
         result.verify(deadline, cancelled)?;
@@ -132,7 +144,7 @@ impl LocalTextReadSelection {
         let mandate_path =
             crate::source_text_owner::normalized_absolute(cmd::text(mandate, "path")?)?;
         if read(&self.path, true, 262_144)? != self.raw
-            || read(&self.source_root.join(SCHEMA), false, 65_536)? != self.schema_raw
+            || read(&self.source_root.join(self.schema_ref), false, 65_536)? != self.schema_raw
             || Digest256::of_bytes(&read(&mandate_path, false, 1_048_576)?).to_hex()
                 != cmd::text(mandate, "sha256")?
         {
@@ -142,14 +154,13 @@ impl LocalTextReadSelection {
         }
         Ok(())
     }
-    pub(crate) fn select<R: SignNativeRead + ?Sized>(
+    pub(crate) fn selected_binding(
         &self,
-        reader: &mut R,
         binding: &JsonValue,
-        rights: &JsonValue,
+        rights: Option<&JsonValue>,
         deadline: Instant,
         cancelled: &AtomicBool,
-    ) -> SourceCommandResult<JsonValue> {
+    ) -> SourceCommandResult<&JsonValue> {
         self.verify(deadline, cancelled)?;
         let key = Digest256::of_bytes(&cmd::canonical(binding)?).to_hex();
         let selected = cmd::array(&self.config, "selections")?
@@ -160,11 +171,49 @@ impl LocalTextReadSelection {
             .ok_or(SourceCommandError::Denied(
                 "local text exact binding not selected",
             ))?;
-        if !cmd::same(cmd::field(selected, "rights_record_refs")?, rights)? {
+        if let Some(rights) = rights {
+            if !cmd::same(cmd::field(selected, "rights_record_refs")?, rights)? {
+                return Err(SourceCommandError::Denied(
+                    "local text selected rights differ",
+                ));
+            }
+        }
+        Ok(selected)
+    }
+    pub(crate) fn private_conditions(
+        &self,
+        selected: &JsonValue,
+    ) -> SourceCommandResult<JsonValue> {
+        if self.schema_ref != PRIVATE_SCHEMA {
             return Err(SourceCommandError::Denied(
-                "local text selected rights differ",
+                "private text requires private selection",
             ));
         }
+        Ok(cmd::object(vec![
+            (
+                "selection_sha256",
+                cmd::string(&Digest256::of_bytes(&self.raw).to_hex()),
+            ),
+            (
+                "expires_at",
+                cmd::field(&self.config, "expires_at")?.clone(),
+            ),
+            (
+                "condition_review",
+                cmd::field(selected, "condition_review")?.clone(),
+            ),
+        ]))
+    }
+    pub(crate) fn select<R: SignNativeRead + ?Sized>(
+        &self,
+        reader: &mut R,
+        binding: &JsonValue,
+        rights: &JsonValue,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<JsonValue> {
+        self.verify(deadline, cancelled)?;
+        let selected = self.selected_binding(binding, Some(rights), deadline, cancelled)?;
         let mut remaining = 32_768;
         let mut notices = Vec::new();
         let mut roles = BTreeSet::new();
@@ -260,4 +309,117 @@ pub fn read_native_unit<R: NativeUnitRead + ?Sized>(
         deadline,
         cancelled,
     )
+}
+
+const PRIVATE_SCHEMA: &str = "ToS/contracts/native-private-text-read.schema.json";
+const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
+
+/// A separately selected private research grant. Its owner context is protected
+/// byte transport only. It is never an HTTP credential or a public source handle.
+pub struct PrivateTextReadSelection {
+    grant: LocalTextReadSelection,
+    context: crate::source_text_owner::OwnerTextContext,
+}
+impl PrivateTextReadSelection {
+    pub fn load(
+        path: &Path,
+        source_root: &Path,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let grant = LocalTextReadSelection::load_profile(
+            path,
+            source_root,
+            PRIVATE_SCHEMA,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        let selected = cmd::field(&grant.config, "owner_context")?;
+        let context_path =
+            crate::source_text_owner::normalized_absolute(cmd::text(selected, "path")?)?;
+        let raw = crate::source_text_owner::read_absolute(
+            &context_path,
+            grant.uid,
+            true,
+            65_536,
+            deadline,
+            cancelled,
+        )?;
+        if Digest256::of_bytes(&raw).to_hex() != cmd::text(selected, "sha256")? {
+            return Err(SourceCommandError::Denied(
+                "private text owner context differs",
+            ));
+        }
+        let schema = crate::source_text_owner::read_absolute(
+            &source_root.join(CONTEXT_SCHEMA),
+            grant.uid,
+            false,
+            65_536,
+            deadline,
+            cancelled,
+        )?;
+        let (context, _) = crate::source_text_owner::OwnerTextContext::select(
+            &context_path,
+            &schema,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        if context.public_root() != source_root {
+            return Err(SourceCommandError::Denied(
+                "private text owner context source differs",
+            ));
+        }
+        let result = Self { grant, context };
+        result.verify(deadline, cancelled)?;
+        Ok(result)
+    }
+    pub fn verify(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
+        self.grant.verify(deadline, cancelled)?;
+        let selected = cmd::field(&self.grant.config, "owner_context")?;
+        let context_path =
+            crate::source_text_owner::normalized_absolute(cmd::text(selected, "path")?)?;
+        let raw = crate::source_text_owner::read_absolute(
+            &context_path,
+            self.grant.uid,
+            true,
+            65_536,
+            deadline,
+            cancelled,
+        )?;
+        if Digest256::of_bytes(&raw).to_hex() != cmd::text(selected, "sha256")? {
+            return Err(SourceCommandError::Denied(
+                "private text owner context changed",
+            ));
+        }
+        self.context.snapshot(deadline, cancelled)?;
+        Ok(())
+    }
+}
+
+/// Return exact selected spans and their full recorded rights to the local
+/// owner process. Source rights and current grant checks precede text I/O and
+/// are rechecked before return. No original Item payload is opened.
+pub fn read_private_native_unit(
+    selection: &mut PrivateTextReadSelection,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    max_return_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    selection.verify(deadline, cancelled)?;
+    let result = crate::source_sign_native::read_private_disclosed_unit(
+        &mut selection.context,
+        worker,
+        binding,
+        &selection.grant,
+        max_return_bytes,
+        deadline,
+        cancelled,
+    )?;
+    selection.verify(deadline, cancelled)?;
+    Ok(result)
 }

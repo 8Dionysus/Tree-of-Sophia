@@ -242,3 +242,21 @@ identity and bytes for changes. The complete authenticated walk runs on the new
 copy, including packed frames, history, identities, membership and dependencies;
 no source-side verification result is reused as proof for the target. A corrupt
 copy may occupy its bounded reserved space but receives no current selector.
+
+## Protected private TextUnit reading
+
+`tos-native-owner-command private-text-read --invocation ABSOLUTE_INVOCATION`
+reads a request from stdin with `schema_version` set to
+`tos_local_native_private_text_read_request_v1`, operation
+`native-text.read-private`, an exact native `binding`, and `max_return_bytes`
+from 1 through 1048576. The existing protected native source invocation selects
+`owner_config` with `tos_native_private_text_read_v1`, its matching
+`owner_context`, current source/software captures and schema worker. The
+selection is independently issued, expires within one day, and names exact
+bindings, recorded rights and a mandate. Library callers use
+`PrivateTextReadSelection` and `read_private_native_unit`.
+
+Returned spans preserve source coordinates, exact UTF-8 and full rights records.
+The operation rechecks the grant, context, sources and schema before return;
+it neither opens original Item payloads nor changes source or publication
+state. The ordinary source-command/HTTP dispatcher refuses this operation.

@@ -383,6 +383,25 @@ pub(super) fn native_owner_cli_observation(
     request: &Value,
     deadline: Instant,
 ) -> (std::process::ExitStatus, Vec<u8>, Vec<u8>) {
+    native_owner_cli_observation_for_entry(
+        repository,
+        owner,
+        invocation,
+        request,
+        deadline,
+        "source-commands",
+    )
+}
+
+fn native_owner_cli_observation_for_entry(
+    repository: &Path,
+    owner: &Path,
+    invocation: &Path,
+    request: &Value,
+    deadline: Instant,
+    entry: &str,
+) -> (std::process::ExitStatus, Vec<u8>, Vec<u8>) {
+    assert!(matches!(entry, "source-commands" | "private-text-read"));
     use std::io::{Read, Seek, SeekFrom, Write};
     let mut input = tempfile::tempfile().unwrap();
     input.write_all(&alignment_owner_bytes(request)).unwrap();
@@ -397,7 +416,7 @@ pub(super) fn native_owner_cli_observation(
     assert_eq!(selected["native_executable"].as_str(), binary.to_str());
     let _ = repository;
     let mut child = Command::new(binary)
-        .arg("source-commands")
+        .arg(entry)
         .arg("--invocation")
         .arg(invocation)
         .stdin(Stdio::from(input))
@@ -948,6 +967,14 @@ pub(super) fn native_text_unit_seed(
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let source_ref = fixture["source_ref"].as_str().unwrap().to_owned();
+    // The historical fixture predates private-delivery configuration. Select
+    // the current maintained grammar as an authored input before capture.
+    let private_read_schema = "ToS/contracts/native-private-text-read.schema.json";
+    fs::write(
+        public.join(private_read_schema),
+        fs::read(repository.join(private_read_schema)).unwrap(),
+    )
+    .unwrap();
     let authored = authored_text_files(&public);
     let mut captured = authored.clone();
     for reference in &fixture_capture
@@ -1169,6 +1196,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         .tempdir()
         .unwrap();
     let seed = native_text_unit_seed(&repository, temporary.path(), deadline, &cancelled);
+    private_read_lifecycle(&repository, temporary.path(), &seed, deadline, &cancelled);
     assert!(seed.fixture_capture.packets.contains_key("factory"));
     assert!(seed.initial_layer_owner.is_file());
     assert!(seed.unit_owner.is_file());
@@ -1363,4 +1391,245 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         );
         assert!(!public.join(source_ref).exists());
     }
+}
+
+fn private_read_lifecycle(
+    repository: &Path,
+    root: &Path,
+    seed: &NativeTextUnitSeed,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) {
+    use tos_command::source_native_text_read::{
+        PrivateTextReadSelection, read_private_native_unit,
+    };
+    let packet = &seed.unit_record;
+    let unit = &packet["units"][0];
+    let segment = &packet["segmentations"][0];
+    let binding = serde_json::json!({"schema_version":"tos_native_text_unit_binding_v1",
+        "packet_ref":seed.unit_source_ref,
+        "packet_sha256":Digest256::of_bytes(&fs::read(seed.private_root.join(&seed.unit_source_ref)).unwrap()).to_hex(),
+        "packet_id":packet["packet_id"],"packet_version":packet["packet_version"],
+        "segmentation_id":segment["segmentation_id"],"segmentation_version":segment["segmentation_version"],
+        "unit_id":unit["unit_id"],"unit_version":unit["unit_version"],
+        "ordered_anchor_refs":unit["ordered_anchor_refs"],
+        "text_layer":seed.source_binding["text_layer"],"source_record_refs":seed.source_binding["source_record_refs"]});
+    let instant = |offset: &str| {
+        let output = Command::new("/usr/bin/date")
+            .args(["--utc", "--date", offset, "+%Y-%m-%dT%H:%M:%SZ"])
+            .output()
+            .unwrap();
+        assert!(output.status.success() && output.stdout.len() <= 32);
+        String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    };
+    let grant = serde_json::json!({"schema_version":"tos_native_private_text_read_v1",
+        "source_root":seed.public_root,"owner_uid":fs::metadata(&seed.owner_context).unwrap().uid(),
+        "issuer":"agent:synthetic-native-private-read",
+        "issued_at":instant("1 minute ago"),"expires_at":instant("1 hour"),
+        "transport_scope":"owner_process_only","external_publication_authorized":false,
+        "mandate":{"path":seed.initial_layer_owner,"sha256":Digest256::of_bytes(&fs::read(&seed.initial_layer_owner).unwrap()).to_hex(),"scope":"Synthetic private read fixture"},
+        "owner_context":{"path":seed.owner_context,"sha256":Digest256::of_bytes(&fs::read(&seed.owner_context).unwrap()).to_hex()},
+        "selections":[{"binding_sha256":Digest256::of_bytes(&tos_foundation::canonical_bytes_v1(&source_value(&binding),tos_foundation::CanonicalProfile::SourceCommandInputV1,tos_foundation::JsonLimits::default()).unwrap()).to_hex(),
+            "rights_record_refs":seed.layer_record["representation"]["rights_record_refs"],
+            "condition_review":"Synthetic local research; no external publication"}]});
+    let grant_path = root.join("private-read-grant.json");
+    let grant_raw = serde_json::to_vec(&grant).unwrap();
+    fs::write(&grant_path, &grant_raw).unwrap();
+    fs::set_permissions(&grant_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let mut worker = text_worker_with_image(&seed.cut, &seed.worker_image, deadline, cancelled);
+    let mut selected = PrivateTextReadSelection::load(
+        &grant_path,
+        &seed.public_root,
+        &mut worker,
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let result = read_private_native_unit(
+        &mut selected,
+        &mut worker,
+        &source_value(&binding),
+        65_536,
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let result: Value = serde_json::from_slice(
+        &tos_foundation::canonical_bytes_v1(
+            &result,
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+            tos_foundation::JsonLimits::default(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        result["schema_version"],
+        "tos_native_private_unit_return_v1"
+    );
+    assert_eq!(result["summary"]["content_verified"], true);
+    assert_eq!(result["summary"]["public_content_available"], false);
+    assert_eq!(result["summary"]["owner_local_transport"], true);
+    assert_eq!(
+        result["authority"]["external_publication_authorized"],
+        false
+    );
+    assert_eq!(result["authority"]["original_payload_returned"], false);
+    let text = std::str::from_utf8(&seed.initial_layer_content).unwrap();
+    for span in result["spans"].as_array().unwrap() {
+        let a = span["selector"]["start"].as_u64().unwrap() as usize;
+        let b = span["selector"]["end"].as_u64().unwrap() as usize;
+        assert_eq!(
+            span["text"],
+            text.chars().skip(a).take(b - a).collect::<String>()
+        );
+        assert_eq!(
+            span["exact_sha256"],
+            Digest256::of_bytes(span["text"].as_str().unwrap().as_bytes()).to_hex()
+        );
+    }
+    for row in result["rights_records"].as_array().unwrap() {
+        let reference = row["ref"].as_str().unwrap();
+        let owner_root = if reference.starts_with("ToS/source-witnesses/owner-local/") {
+            &seed.private_root
+        } else {
+            &seed.public_root
+        };
+        let raw = fs::read(owner_root.join(reference)).unwrap();
+        assert_eq!(
+            row["record"],
+            serde_json::from_slice::<Value>(&raw).unwrap()
+        );
+    }
+    let mut wrong = binding.clone();
+    wrong["packet_ref"] = serde_json::json!("ToS/source-witnesses/missing.json");
+    assert!(matches!(
+        read_private_native_unit(
+            &mut selected,
+            &mut worker,
+            &source_value(&wrong),
+            65_536,
+            deadline,
+            cancelled
+        ),
+        Err(tos_command::source_command::SourceCommandError::Denied(
+            "local text exact binding not selected"
+        ))
+    ));
+    assert!(
+        read_private_native_unit(
+            &mut selected,
+            &mut worker,
+            &source_value(&binding),
+            100,
+            deadline,
+            cancelled
+        )
+        .is_err()
+    );
+    fs::write(&grant_path, b"{}").unwrap();
+    assert!(selected.verify(deadline, cancelled).is_err());
+    fs::write(&grant_path, &grant_raw).unwrap();
+    drop(selected);
+    drop(worker);
+
+    let binary = PathBuf::from(std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").unwrap());
+    let schema = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    let capture = &seed._software_capture;
+    let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1",
+        "owner_config":grant_path,"owner_context":seed.owner_context,"assessment_schema_worker":null,
+        "native_executable":binary,"native_executable_sha256":alignment_image_digest(&binary).to_prefixed(),
+        "corpus_store":root.join("source-cut"),"source_revision":seed.cut.current().revision().0.to_prefixed(),
+        "original_source_revision":seed.cut.current().revision().0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":seed.components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":schema,"sha256":alignment_image_digest(&schema).to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    let invocation_path = root.join("private-read-invocation.json");
+    fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let request = serde_json::json!({"schema_version":"tos_local_native_private_text_read_request_v1","operation":"native-text.read-private","binding":binding,"max_return_bytes":65536});
+    let (status, raw, errors) = native_owner_cli_observation_for_entry(
+        repository,
+        &grant_path,
+        &invocation_path,
+        &request,
+        deadline,
+        "private-text-read",
+    );
+    assert!(status.success(), "{}", String::from_utf8_lossy(&errors));
+    let returned: Value = serde_json::from_slice(&raw).unwrap();
+    assert_eq!(returned["result"]["spans"], result["spans"]);
+    assert_eq!(
+        returned["result"]["rights_records"],
+        result["rights_records"]
+    );
+    let (status, raw, _) = native_owner_cli_observation(
+        repository,
+        &grant_path,
+        &invocation_path,
+        &request,
+        deadline,
+    );
+    assert!(!status.success());
+    assert!(
+        raw.is_empty(),
+        "ordinary command/HTTP route cannot disclose private text"
+    );
+    let rights_ref = seed.layer_record["representation"]["rights_record_refs"][0]["ref"]
+        .as_str()
+        .unwrap();
+    let rights_root = if rights_ref.starts_with("ToS/source-witnesses/owner-local/") {
+        &seed.private_root
+    } else {
+        &seed.public_root
+    };
+    let rights_path = rights_root.join(rights_ref);
+    let rights_raw = fs::read(&rights_path).unwrap();
+    let mut revoked: Value = serde_json::from_slice(&rights_raw).unwrap();
+    revoked["assessment_status"] = serde_json::json!("permission_denied");
+    fs::write(&rights_path, serde_json::to_vec(&revoked).unwrap()).unwrap();
+    let (status, raw, _) = native_owner_cli_observation_for_entry(
+        repository,
+        &grant_path,
+        &invocation_path,
+        &request,
+        deadline,
+        "private-text-read",
+    );
+    assert!(!status.success());
+    assert!(raw.is_empty());
+    fs::write(&rights_path, &rights_raw).unwrap();
+    let mut expired = grant.clone();
+    expired["issued_at"] = serde_json::json!("2000-01-01T00:00:00Z");
+    expired["expires_at"] = serde_json::json!("2000-01-01T01:00:00Z");
+    fs::write(&grant_path, serde_json::to_vec(&expired).unwrap()).unwrap();
+    let (status, raw, _) = native_owner_cli_observation_for_entry(
+        repository,
+        &grant_path,
+        &invocation_path,
+        &request,
+        deadline,
+        "private-text-read",
+    );
+    assert!(!status.success());
+    assert!(raw.is_empty());
+    fs::write(&grant_path, &grant_raw).unwrap();
+    let schema_ref = seed
+        .public_root
+        .join("ToS/contracts/native-private-text-read.schema.json");
+    let schema_raw = fs::read(&schema_ref).unwrap();
+    fs::write(&schema_ref, b"{}").unwrap();
+    let (status, raw, _) = native_owner_cli_observation_for_entry(
+        repository,
+        &grant_path,
+        &invocation_path,
+        &request,
+        deadline,
+        "private-text-read",
+    );
+    assert!(!status.success());
+    assert!(raw.is_empty());
+    fs::write(&schema_ref, &schema_raw).unwrap();
 }

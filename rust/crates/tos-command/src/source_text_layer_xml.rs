@@ -388,3 +388,7 @@ pub(crate) fn extract_xhtml_text(
     }
     Ok(output)
 }
+
+#[cfg(test)]
+#[path = "source_text_layer_xml_tests.rs"]
+mod tests;
