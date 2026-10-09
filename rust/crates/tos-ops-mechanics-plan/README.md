@@ -146,6 +146,8 @@ retain the maintained semantics within this profile. No remote fetch occurs.
 token-first maximal runs, exact content-only domain/provenance exceptions,
 experience route scope and active fields of mechanics topology. Generated KAG
 carriers and retired history remain outside the active naming source.
+The Python implementation and its test module are retired; Rust unit tests and
+the actual CLI scenario cover naming and optional feedback-cache behavior.
 
 On Linux, `--feedback-cache ABSOLUTE_SQLITE_FILE` selects an optional external
 local cache. Every path and file is still read live; only the pure content
@@ -213,11 +215,12 @@ and local writes need an outer wall guard. The disposable native/Python cases
 exercise those real callers; the Python scripts, route-docs lane and actual
 generated carriers remain active pending coordinated owner cutover.
 
-The accepted validation-lanes, release-check, software-CI, topology and default
-active-naming command entries replace themselves with selected installed tools.
+The accepted validation-lanes, release-check, software-CI and topology
+command entries replace themselves with selected installed tools. Active naming
+is invoked directly as `tos-ops-mechanics-plan --repo-root PATH --active-naming-validate`.
 `TOS_VALIDATION_LANES_EXECUTOR`, `TOS_RELEASE_CHECK_EXECUTOR` and
 `TOS_SOFTWARE_CI_EXECUTOR` select their corresponding standalone binaries;
-`TOS_OPS_MECHANICS_EXECUTOR` selects topology and naming modes. Each entry uses
+`TOS_OPS_MECHANICS_EXECUTOR` selects topology mode. Each retained entry uses
 its exact override or the corresponding PATH binary, without compile-on-call
 or fallback. Existing argparse spelling, interpreter adapter, environment and
 exit status are preserved. Imported Python APIs and the optional naming cache

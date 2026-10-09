@@ -3454,25 +3454,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/validate_active_naming.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "AGENTS.md",
-      "source_truth": [
-        "AGENTS.md",
-        "docs/decisions/TOS-D-0008-root-validation-route-unloading.md"
-      ],
-      "reads": [
-        "active repository text surfaces"
-      ],
-      "writes": [],
-      "side_effects": "validation output only by default; --feedback-cache may write a caller-selected SQLite cache outside the repository",
-      "validation_lane": "active_naming",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_validate_active_naming.py",
-      "disposition": "keep"
-    },
-    {
       "path": "scripts/validate_decision_records.py",
       "family": "projection_validator",
       "organ_lane": "projection/generated",
