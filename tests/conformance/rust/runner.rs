@@ -2,7 +2,7 @@
 //! OPS registers this as an integration test with serde_json and tempfile.
 
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -25,6 +25,145 @@ fn maintained_python() -> PathBuf {
         "maintained fixture interpreter is absolute"
     );
     python
+}
+
+fn maintained_input_witness(files: &std::collections::BTreeMap<String, Vec<u8>>) -> Value {
+    let entries: Vec<Value> = files
+        .iter()
+        .map(|(path, raw)| {
+            serde_json::json!({
+                "path": path,
+                "bytes": raw.len(),
+                "sha256": Digest256::of_bytes(raw).to_hex(),
+            })
+        })
+        .collect();
+    serde_json::json!({
+        "entry_count": entries.len(),
+        "total_bytes": files.values().map(Vec::len).sum::<usize>(),
+        "files": entries,
+    })
+}
+
+fn maintained_hex_map_witness(value: &Value) -> Value {
+    let entries: Vec<Value> = value
+        .as_object()
+        .expect("maintained fixture file map is an object")
+        .iter()
+        .map(|(path, encoded)| {
+            let encoded = encoded
+                .as_str()
+                .expect("maintained fixture bytes are hex strings");
+            serde_json::json!({
+                "path": path,
+                "hex_characters": encoded.len(),
+                "hex_encoding_sha256": Digest256::of_bytes(encoded.as_bytes()).to_hex(),
+            })
+        })
+        .collect();
+    serde_json::json!({"entry_count": entries.len(), "files": entries})
+}
+
+// Temporary, opt-in extraction hook for one owner-run migration capture. The
+// normal conformance lane never writes; source and input hashes make each
+// captured historical result independently reviewable.
+pub(crate) fn capture_maintained_python_oracle(
+    id: &str,
+    repository: &Path,
+    owner_sources: &[&str],
+    input_witness: Value,
+    output: &[u8],
+) {
+    let Some(directory) = std::env::var_os("TOS_LEGACY_ORACLE_CAPTURE_DIR") else {
+        return;
+    };
+    assert!(
+        id.bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-'),
+        "capture id uses lowercase ASCII, digits, and hyphens"
+    );
+    assert!(
+        output.len() <= 134_217_728,
+        "capture output is bounded to 128 MiB"
+    );
+    let directory = PathBuf::from(directory);
+    assert!(directory.is_absolute(), "capture directory is absolute");
+    fs::create_dir_all(&directory).unwrap();
+
+    fn collect(path: &Path, repository: &Path, rows: &mut Vec<Value>) {
+        let metadata = fs::symlink_metadata(path).unwrap();
+        if metadata.file_type().is_symlink() {
+            return;
+        }
+        if metadata.is_dir() {
+            let mut children: Vec<PathBuf> = fs::read_dir(path)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect();
+            children.sort();
+            for child in children {
+                collect(&child, repository, rows);
+            }
+            return;
+        }
+        if !metadata.is_file() {
+            return;
+        }
+        if path.extension().and_then(|extension| extension.to_str()) != Some("py")
+            && path.extension().and_then(|extension| extension.to_str()) != Some("rs")
+        {
+            return;
+        }
+        let raw = fs::read(path).unwrap();
+        rows.push(serde_json::json!({
+            "path": path.strip_prefix(repository).unwrap().to_string_lossy(),
+            "bytes": raw.len(),
+            "sha256": Digest256::of_bytes(&raw).to_hex(),
+        }));
+    }
+
+    let mut sources = Vec::new();
+    for source in owner_sources {
+        collect(&repository.join(source), repository, &mut sources);
+    }
+    sources.sort_by(|left, right| left["path"].as_str().cmp(&right["path"].as_str()));
+    assert!(
+        !sources.is_empty(),
+        "captured oracle records exact owner source hashes"
+    );
+    let source_revision = std::process::Command::new("git")
+        .arg("-C")
+        .arg(repository)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert!(source_revision.status.success());
+    let expected_path = directory.join(format!("{id}.expected.json"));
+    let provenance_path = directory.join(format!("{id}.provenance.json"));
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&expected_path)
+        .unwrap()
+        .write_all(output)
+        .unwrap();
+    let provenance = serde_json::json!({
+        "schema_version": "tos_legacy_python_oracle_capture_v1",
+        "oracle_id": id,
+        "repository_head": String::from_utf8(source_revision.stdout).unwrap().trim(),
+        "python_executable": maintained_python().to_string_lossy(),
+        "owner_sources": sources,
+        "input_witness": input_witness,
+        "output_bytes": output.len(),
+        "output_sha256": Digest256::of_bytes(output).to_hex(),
+    });
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&provenance_path)
+        .unwrap()
+        .write_all(&serde_json::to_vec_pretty(&provenance).unwrap())
+        .unwrap();
 }
 
 fn fixtures() -> PathBuf {

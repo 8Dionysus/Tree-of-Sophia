@@ -360,6 +360,17 @@ print(json.dumps(result,ensure_ascii=False,sort_keys=True,separators=(',',':')))
         "maintained Python repository oracle: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    crate::capture_maintained_python_oracle(
+        "repository-topology",
+        &repository,
+        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
+        json!({
+            "selected_authored_inputs": crate::maintained_input_witness(&authored),
+            "selected_software_inputs": crate::maintained_input_witness(&captured),
+            "fixture_git_commit": commit,
+        }),
+        &output.stdout,
+    );
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     let source = &vocabulary
         .sources
@@ -565,13 +576,22 @@ fn fixture_catalog_inputs(root: &Path) -> BTreeMap<String, Vec<u8>> {
     }
 
     let owner_local = root.join("ToS/source-witnesses/owner-local");
-    assert!(matches!(
-        fs::symlink_metadata(&owner_local),
-        Err(ref error) if error.kind() == std::io::ErrorKind::NotFound
-    ), "public catalog fixture contains reserved owner-local data");
+    assert!(
+        matches!(
+            fs::symlink_metadata(&owner_local),
+            Err(ref error) if error.kind() == std::io::ErrorKind::NotFound
+        ),
+        "public catalog fixture contains reserved owner-local data"
+    );
     let mut files = BTreeMap::new();
     let mut total = 0usize;
-    visit(root, &root.join("ToS/contracts"), true, &mut files, &mut total);
+    visit(
+        root,
+        &root.join("ToS/contracts"),
+        true,
+        &mut files,
+        &mut total,
+    );
     for path in [
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
@@ -803,16 +823,22 @@ pub(crate) fn native_catalog_fixture(
     }
 }
 
-pub(crate) fn publish_native_catalog_fixture(
-    repository: &Path,
-    root: &Path,
-    deadline: Instant,
-) {
+pub(crate) fn publish_native_catalog_fixture(repository: &Path, root: &Path, deadline: Instant) {
     let inputs = fixture_catalog_inputs(root);
     let catalog = native_catalog_fixture(repository, &inputs, deadline);
-    assert_eq!(catalog.manifest["schema_version"], "tos_source_witness_catalog_v3");
-    assert_eq!(catalog.manifest["generated_by"], "scripts/build_source_witness_catalog.py");
-    assert!(catalog.files.contains_key("ToS/source-witnesses/catalog/claims.jsonl"));
+    assert_eq!(
+        catalog.manifest["schema_version"],
+        "tos_source_witness_catalog_v3"
+    );
+    assert_eq!(
+        catalog.manifest["generated_by"],
+        "scripts/build_source_witness_catalog.py"
+    );
+    assert!(
+        catalog
+            .files
+            .contains_key("ToS/source-witnesses/catalog/claims.jsonl")
+    );
     for (relative, raw) in catalog.files {
         let target = root.join(&relative);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -880,6 +906,13 @@ print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] fo
         output.status.success(),
         "maintained catalog/bibliographic oracle: {}",
         String::from_utf8_lossy(&output.stderr)
+    );
+    crate::capture_maintained_python_oracle(
+        "catalog-bibliographic",
+        &repository,
+        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
+        json!({"selected_source_inputs": crate::maintained_input_witness(&files)}),
+        &output.stdout,
     );
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     let actual_files: BTreeMap<String, String> = native
@@ -1535,6 +1568,13 @@ sys.stdout.write(owner.render_payload(payload))
         "whole maintained corpus oracle: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    crate::capture_maintained_python_oracle(
+        "corpus-composition",
+        &repository,
+        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
+        json!({"selected_source_inputs": crate::maintained_input_witness(&files)}),
+        &output.stdout,
+    );
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), output.stdout.as_slice());
@@ -1976,6 +2016,7 @@ fn actual_whole_authored_philosophy_batch_plan_render_matches_maintained_python(
     }
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let authored_witness = crate::maintained_input_witness(&authored);
     // Drop duplicate fixture bytes before the two Value-based pure derivations.
     drop(authored);
     let read_limits = ReadLimits {
@@ -2192,6 +2233,25 @@ print(json.dumps({'atlas_counts':atlas['counts'],'graph_counts':graph['counts'],
         output.status.success(),
         "maintained whole phi oracle: {}",
         String::from_utf8_lossy(&output.stderr)
+    );
+    let oracle_witness = json!({
+        "source_revision": revision.0.to_prefixed(),
+        "selected_source_bytes": source_bytes,
+        "selected_source_inputs": authored_witness,
+    });
+    crate::capture_maintained_python_oracle(
+        "whole-authored-philosophy-summary",
+        &repository,
+        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
+        oracle_witness.clone(),
+        &output.stdout,
+    );
+    crate::capture_maintained_python_oracle(
+        "whole-authored-philosophy-graph",
+        &repository,
+        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
+        oracle_witness,
+        &fs::read(&expected_path).unwrap(),
     );
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     // Python transport accounting is an admission estimate, not a maintained

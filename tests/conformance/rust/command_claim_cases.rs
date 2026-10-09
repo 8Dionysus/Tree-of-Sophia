@@ -54,6 +54,7 @@ fn checked_command(
 // compared as data; this Python process is never a production serialization
 // producer, authority issuer or native admission substitute.
 fn maintained_oracle(
+    oracle_id: &str,
     files: &BTreeMap<String, Vec<u8>>,
     configuration: &Value,
     request: &Value,
@@ -113,7 +114,27 @@ fn maintained_oracle(
         "{}",
         String::from_utf8_lossy(&fs::read(stderr_path).unwrap())
     );
-    serde_json::from_slice(&fs::read(stdout_path).unwrap()).unwrap()
+    let raw = fs::read(stdout_path).unwrap();
+    let mut configuration_witness = configuration.clone();
+    if configuration_witness.get("source_root").is_some() {
+        configuration_witness["source_root"] = Value::String("<isolated-source-root>".into());
+    }
+    crate::capture_maintained_python_oracle(
+        oracle_id,
+        repository,
+        &[
+            "tests/conformance/rust/command_claim_cases.rs",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts",
+            "scripts",
+        ],
+        serde_json::json!({
+            "selected_source_inputs": crate::maintained_input_witness(files),
+            "configuration": configuration_witness,
+            "request": request,
+        }),
+        &raw,
+    );
+    serde_json::from_slice(&raw).unwrap()
 }
 
 // Generate the synthetic root's catalog with the existing native compiler
@@ -384,7 +405,13 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     )
     .unwrap();
     let preview_response = response(&preview);
-    let oracle = maintained_oracle(&files, &configuration, &proposal, &repository);
+    let oracle = maintained_oracle(
+        "claim-revision-initial",
+        &files,
+        &configuration,
+        &proposal,
+        &repository,
+    );
     assert_eq!(
         preview_response["expected_dependencies"], oracle["expected_dependencies"],
         "maintained dependency fingerprint"
@@ -771,7 +798,25 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         "{}",
         String::from_utf8_lossy(&fs::read(&oracle_stderr).unwrap())
     );
-    let oracle: Value = serde_json::from_slice(&fs::read(&oracle_stdout).unwrap()).unwrap();
+    let oracle_raw = fs::read(&oracle_stdout).unwrap();
+    let mut configuration_witness = configuration.clone();
+    configuration_witness["source_root"] = Value::String("<isolated-source-root>".into());
+    crate::capture_maintained_python_oracle(
+        "claim-creation",
+        &repository,
+        &[
+            "tests/conformance/rust/command_claim_cases.rs",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts",
+            "scripts",
+        ],
+        serde_json::json!({
+            "selected_source_inputs": crate::maintained_input_witness(&files),
+            "configuration": configuration_witness,
+            "request": preview_request,
+        }),
+        &oracle_raw,
+    );
+    let oracle: Value = serde_json::from_slice(&oracle_raw).unwrap();
     assert_eq!(expected["expected_dependencies"], oracle["dependencies"]);
     assert_eq!(expected["source_bindings"], oracle["bindings"]);
     assert_eq!(expected["prepared_files"], oracle["files"]);
@@ -1015,7 +1060,13 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         format!("{creation_home}/.{form_name}.writer.lock"),
         Vec::new(),
     );
-    let independent = maintained_oracle(&oracle_files, &revision_owner, &correction, &repository);
+    let independent = maintained_oracle(
+        "claim-revision-selected-history",
+        &oracle_files,
+        &revision_owner,
+        &correction,
+        &repository,
+    );
     assert_eq!(
         prepared["expected_dependencies"],
         independent["expected_dependencies"]
@@ -1554,8 +1605,13 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
                 );
             }
         }
-        let independent =
-            maintained_oracle(&oracle_files, &revision_owner, &correction, &repository);
+        let independent = maintained_oracle(
+            "claim-revision-collection-history",
+            &oracle_files,
+            &revision_owner,
+            &correction,
+            &repository,
+        );
         assert_eq!(
             prepared["expected_dependencies"],
             independent["expected_dependencies"]
@@ -2185,7 +2241,13 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
             );
         }
     }
-    let independent = maintained_oracle(&oracle_files, &revision_owner, &correction, &repository);
+    let independent = maintained_oracle(
+        "claim-revision-catalog-history",
+        &oracle_files,
+        &revision_owner,
+        &correction,
+        &repository,
+    );
     assert_eq!(
         prepared["expected_dependencies"],
         independent["expected_dependencies"]

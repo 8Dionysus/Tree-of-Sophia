@@ -953,6 +953,21 @@ finally:c.doCleanups()
         String::from_utf8_lossy(&oracle.stderr)
     );
     let compound_files: Value = serde_json::from_slice(&oracle.stdout).unwrap();
+    crate::capture_maintained_python_oracle(
+        "compound-source-family",
+        &owner,
+        &[
+            "tests/conformance/rust/validation_cut_cases.rs",
+            "mechanics/growth-cycle/tests",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts",
+            "scripts",
+        ],
+        serde_json::json!({
+            "selected_source_inputs": crate::maintained_input_witness(&before),
+            "python_fixture_source_map": crate::maintained_hex_map_witness(&compound_files),
+        }),
+        &oracle.stdout,
+    );
     // The maintained preparation oracle rebuilds its generated catalog in the
     // same directory. Keep those bytes available to that oracle, but use the
     // source-store's authored carrier law for both immutable source revisions.
@@ -1687,7 +1702,23 @@ finally:c.doCleanups()
             "maintained ObjectLink oracle: {}",
             String::from_utf8_lossy(&fs::read(&stderr_path).unwrap())
         );
-        let packet: Value = serde_json::from_slice(&fs::read(&stdout_path).unwrap()).unwrap();
+        let oracle_raw = fs::read(&stdout_path).unwrap();
+        let packet: Value = serde_json::from_slice(&oracle_raw).unwrap();
+        crate::capture_maintained_python_oracle(
+            &format!("object-link-{kind}"),
+            &repository(),
+            &[
+                "tests/conformance/rust/validation_cut_cases.rs",
+                "mechanics/growth-cycle/tests",
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts",
+                "scripts",
+            ],
+            serde_json::json!({
+                "case": kind,
+                "python_fixture_source_map": crate::maintained_hex_map_witness(&packet["files"]),
+            }),
+            &oracle_raw,
+        );
         let claim_path = required(&packet, "claim_path").to_owned();
         let mut files = selected_item_sources();
         let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -2679,6 +2710,18 @@ print(json.dumps(rows,ensure_ascii=False,allow_nan=False,separators=(',',':')))
         oracle.status.success(),
         "maintained owner oracle: {}",
         String::from_utf8_lossy(&oracle.stderr)
+    );
+    crate::capture_maintained_python_oracle(
+        "assessment-whole-view",
+        &repository(),
+        &[
+            "tests/conformance/rust/validation_cut_cases.rs",
+            "mechanics/growth-cycle/tests",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts",
+            "scripts",
+        ],
+        serde_json::json!({"fixture_factory": "test_knowledge_assessment.AssessmentPolicyTests"}),
+        &oracle.stdout,
     );
     let cases: Value = serde_json::from_slice(&oracle.stdout).unwrap();
     let cases = cases.as_array().unwrap();
