@@ -503,6 +503,7 @@ fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMet
         .iter()
         .map(|s| (*s).to_owned())
         .collect();
+    names.extend(tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS.iter().map(|name| (*name).to_owned()));
     // Fixed initial-creation rule inputs not carried by the catalog execution profile.
     names.insert("rust/crates/tos-command/src/source_private_claim.rs".to_owned());
     names.insert("rust/crates/tos-command/src/source_private_owner_store.rs".to_owned());
