@@ -254,6 +254,11 @@ print(json.dumps(r,ensure_ascii=False))"#;
                 .unwrap()
                 .remove(path);
         }
+        println!("RETAINED_READING_ORACLE {}", serde_json::to_string(&json!({
+            "query": request.query, "language": request.language, "limit": request.limit,
+            "include_semantic_neighbors": request.include_semantic_neighbors,
+            "group_by": request.group_by, "expected": oracle
+        })).unwrap());
         assert_eq!(
             native, oracle,
             "entire original synthetic result differs for {}:{}",
