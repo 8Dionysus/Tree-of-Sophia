@@ -32,7 +32,7 @@ packs, and vocabulary registries.
 ## Validation
 
 Use `rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs`,
-`mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`,
+`rust/crates/tos-ops-mechanics-plan/src/relation_pack.rs`,
 and the public mirror or export validator when those surfaces are affected.
 Select the `canon_contracts` route from [`ToS/VALIDATION.md`](../VALIDATION.md)
 after the authored class or relation surface and affected companion are known.
