@@ -1252,7 +1252,7 @@ fn parse_request(raw: &[u8]) -> Result<Value, String> {
         limits,
     )
     .map_err(|_| "request cannot be canonically encoded")?;
-    serde_json::from_slice(&canonical).map_err(|_| "request JSON could not be decoded")
+    serde_json::from_slice(&canonical).map_err(|_| "request JSON could not be decoded".to_owned())
 }
 
 pub fn run() -> i32 {

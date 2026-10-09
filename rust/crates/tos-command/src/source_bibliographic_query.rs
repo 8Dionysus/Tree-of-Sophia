@@ -79,7 +79,7 @@ pub fn query_verified_projection(
     if graph_bytes.len() as u64 > max_output_bytes {
         return Err("source graph exceeds query byte budget".into());
     }
-    let graph: Value = serde_json::from_slice(graph_bytes)
+    let mut graph: Value = serde_json::from_slice(graph_bytes)
         .map_err(|error| format!("cannot parse source graph: {error}"))?;
     if graph.get("schema_version").and_then(Value::as_str) != Some(GRAPH_SCHEMA) {
         return Err("source graph has an unexpected schema".into());
