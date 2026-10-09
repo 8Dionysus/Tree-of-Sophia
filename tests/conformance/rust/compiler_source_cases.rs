@@ -1607,6 +1607,25 @@ sys.stdout.write(owner.render_payload(payload))
         json!({"selected_source_inputs": crate::maintained_input_witness(&files)}),
         &output.stdout,
     );
+    let query_oracle_raw = fs::read(oracle_root.join("native-corpus-query-oracle.json")).unwrap();
+    crate::capture_maintained_python_oracle(
+        "corpus-query-cases",
+        &repository,
+        &[
+            "tests/conformance/rust/compiler_source_cases.rs",
+            "tests/conformance/rust/native_corpus_query.rs",
+            "scripts",
+            "access/src",
+        ],
+        json!({
+            "selected_source_inputs": crate::maintained_input_witness(&files),
+            "selected_source_paths": files.keys().cloned().collect::<Vec<_>>(),
+            "projection_output_bytes": output.stdout.len(),
+            "projection_output_sha256": Digest256::of_bytes(&output.stdout).to_hex(),
+            "index_output_path": output_path,
+        }),
+        &query_oracle_raw,
+    );
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), output.stdout.as_slice());
@@ -1711,22 +1730,12 @@ sys.stdout.write(owner.render_payload(payload))
     let selected_path = selected_dir.join("knowledge.sqlite3");
     // Keep the actual SQLite allocation compatible with the existing final
     // VACUUM's two-database temp reserve. This narrows output, not host quota.
-    let selected_logical_bytes = selected_rows
-        .values()
-        .flat_map(|rows| rows.values())
-        .try_fold(0u64, |total, raw| {
-            total.checked_add(u64::try_from(raw.len()).ok()?)
-        })
-        .expect("selected search input byte count");
-    const SEARCH_WORK_BYTES_PER_SELECTED_BYTE: u64 = 128;
-    const MAX_SELECTED_SEARCH_WORK_BYTES: u64 = 2 * 1024 * 1024 * 1024;
-    let search_work_bytes = selected_logical_bytes
-        .checked_mul(SEARCH_WORK_BYTES_PER_SELECTED_BYTE)
-        .expect("selected search work byte budget")
-        .min(MAX_SELECTED_SEARCH_WORK_BYTES);
+    let search_work_bytes = 2 * 1024 * 1024 * 1024;
     let mut selected_stage_limits = stage_limits;
-    // This independent fixture stage has a finite ceiling of 128 times the
-    // selected rows' logical bytes, capped at 2 GiB. It covers document
+    // This independent fixture stage has a finite 2 GiB work ceiling.
+    // selected_rows excludes repository and canon rows streamed from plans,
+    // so its raw length is not the complete normalized search workload.
+    // The ceiling covers document
     // materialization, trigram probes/rehash/sort, posting writes and merges,
     // and final root verification under separate row/posting/temp limits. This
     // is a fixture work ceiling, not a measured total or a production limit.
