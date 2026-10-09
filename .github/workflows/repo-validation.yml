@@ -438,7 +438,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16.14
+        # Same Docker Official Image, mirrored by ECR to avoid shared-runner Hub limits.
+        image: public.ecr.aws/docker/library/postgres:16.14@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
         env:
           POSTGRES_DB: tos_cmd_lab
           POSTGRES_USER: tos_cmd_lab
