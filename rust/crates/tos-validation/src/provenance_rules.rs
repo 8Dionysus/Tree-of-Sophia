@@ -946,10 +946,26 @@ mod tests {
             let manifest: Value = serde_json::from_slice(&members[LAB_MANIFEST]).unwrap();
             for field in ["contract", "builder"] {
                 let path = manifest[field]["ref"].as_str().unwrap();
-                let raw = std::fs::read(root.join(path)).unwrap();
                 let digest = manifest[field]["sha256"].as_str().unwrap();
-                members.insert(path.into(), raw.clone());
-                if Digest256::of_bytes(&raw).to_hex() != digest {
+                let raw = match std::fs::read(root.join(path)) {
+                    Ok(raw) => Some(raw),
+                    Err(error)
+                        if field == "builder" && error.kind() == std::io::ErrorKind::NotFound =>
+                    {
+                        None
+                    }
+                    Err(error) => panic!("read current lab {field} {path}: {error}"),
+                };
+                if let Some(raw) = &raw {
+                    members.insert(path.into(), raw.clone());
+                }
+                if raw
+                    .as_deref()
+                    .map(Digest256::of_bytes)
+                    .map(|value| value.to_hex())
+                    .as_deref()
+                    != Some(digest)
+                {
                     let archive = if field == "contract" {
                         format!("ToS/contracts/history/{digest}.json")
                     } else {
@@ -1000,12 +1016,12 @@ mod tests {
             max: usize,
             deadline: Instant,
         ) -> Result<Option<Vec<u8>>, ItemRefusal> {
-            // Current original path existence is required by the source route.
-            let Some(raw) = self.current(path, max, deadline)? else {
-                return Ok(None);
-            };
-            if Digest256::of_bytes(&raw).to_hex() == digest {
-                return Ok(Some(raw));
+            // Retired laboratory builders remain exact historical inputs. The
+            // fixture reads the retained bytes without executing the program.
+            if let Some(raw) = self.current(path, max, deadline)? {
+                if Digest256::of_bytes(&raw).to_hex() == digest {
+                    return Ok(Some(raw));
+                }
             }
             let archive = if path == CONTRACT {
                 format!("ToS/contracts/history/{digest}.json")

@@ -186,7 +186,7 @@ fn assert_artifact(output: &Path, receipt: &Value, maintenance: bool, search: &s
         .query_row("PRAGMA quick_check", [], |row| row.get(0))
         .expect("prepared SQLite integrity");
     assert_eq!(integrity, "ok");
-    assert!(has_table(&database, "catalog_state"));
+    assert_eq!(has_table(&database, "catalog_state"), maintenance);
     assert!(has_table(&database, "search_header"));
     assert_eq!(has_table(&database, "semantic_state"), maintenance);
     if maintenance {

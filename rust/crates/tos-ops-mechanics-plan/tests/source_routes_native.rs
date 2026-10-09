@@ -79,6 +79,7 @@ fn text(out: &Output) -> String {
     )
 }
 #[test]
+#[ignore = "data_release: complete authored tree and public-entry snapshot"]
 fn current_source_routes_run_natively_and_preserve_authority_bounds() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()

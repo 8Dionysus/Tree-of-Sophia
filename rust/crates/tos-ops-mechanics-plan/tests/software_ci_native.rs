@@ -292,11 +292,15 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     assert!(!package.contains("pip install"));
     assert!(package.find("mkdir -p -- \"$root/dist\"") < package.find("software build --root"));
     let receipts = run(one_step(software, "software-receipts"));
-    for line in receipts
-        .lines()
-        .filter(|line| line.trim().starts_with("cargo build") && !line.contains("--release"))
-    {
-        assert!(line.contains("--message-format=json") || line.trim_end().ends_with('\\'));
+    for line in receipts.lines().filter(|line| {
+        line.trim().starts_with("cargo build")
+            && !line.contains("--release")
+            && !line.contains("--bin tos-e2e-fixture")
+    }) {
+        assert!(
+            line.contains("--message-format=json") || line.trim_end().ends_with('\\'),
+            "production build lacks receipt output: {line}"
+        );
     }
     let rust = steps(jobs, "rust");
     let lane = one_step(rust, "--run rust_workspace");
@@ -366,6 +370,13 @@ fn edge_hosts_build_and_select_the_exact_native_product_before_checks() {
     let pos = |a| st.iter().position(|s| std::ptr::eq(s, a)).unwrap();
     assert!(pos(native) < pos(wasm) && pos(wasm) < pos(check));
     assert!(run(st.last().unwrap()).contains("npx wrangler deploy --dry-run"));
+}
+
+fn sparse_contains(patterns: &std::collections::BTreeSet<String>, path: &str) -> bool {
+    patterns.iter().any(|pattern| {
+        let included = pattern.strip_prefix('/').unwrap_or(pattern);
+        included == path || included.ends_with('/') && path.starts_with(included)
+    })
 }
 
 #[test]
@@ -497,8 +508,6 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/places/chemnitz/place.json",
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
-        "access/tests/source_agent_publication_fixture.py",
-        "access/tests/test_source_metadata_publication.py",
         "mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json",
         "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",
         "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
@@ -534,22 +543,12 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         "quests/TOS-Q-0002.yaml",
         "quests/TOS-Q-0003.yaml",
         "quests/TOS-Q-0004.yaml",
-        "tests/test_bibliographic_claim_assembler.py",
-        "tests/test_native_text_binding.py",
-        "tests/test_source_agent_publication.py",
-        "tests/test_source_catalog_projection.py",
-        "tests/test_source_catalog_slots.py",
-        "tests/test_source_claim_publication.py",
-        "tests/test_source_owner_claim_profiles.py",
-        "tests/test_source_owner_record_profiles.py",
-        "tests/test_source_witness_bibliographic_graph.py",
     ]);
     let required_fixtures: BTreeSet<&str> = BTreeSet::from([
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/provenance.jsonl",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json",
-        "tests/oracles/acquisition/acquisition_handoff_adapter.py",
         "tests/oracles/acquisition/source_payload_custody.py",
     ]);
     let software_schemas: BTreeSet<&str> = BTreeSet::from([
@@ -560,7 +559,7 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         BTreeSet::from(["ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json"]);
     for path in &required_sources {
         assert!(
-            rust.contains(&format!("/{path}")),
+            sparse_contains(&rust, path),
             "Rust sparse input missing: {path}"
         );
     }
@@ -600,7 +599,7 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
     );
     for path in &required_fixtures {
         assert!(
-            software.contains(&format!("/{path}")),
+            sparse_contains(&software, path),
             "software sparse input missing: {path}"
         );
     }
@@ -608,7 +607,7 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
     worker_schemas.extend(["ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json","ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json","ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json","ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"]);
     for path in &software_schemas {
         assert!(root.join(path).is_file());
-        assert!(software.contains(&format!("/{path}")));
+        assert!(sparse_contains(&software, path));
     }
     for path in &worker_schemas {
         assert!(root.join(path).is_file());

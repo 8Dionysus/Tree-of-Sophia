@@ -2285,6 +2285,7 @@ mod retained_language_packet_tests {
     }
 
     #[test]
+    #[ignore = "data_release: complete retained table-I and table-II language packets"]
     fn table_one_and_two_language_packets_cover_selected_text_corpora() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
         for (table, count) in [("i", 347usize), ("ii", 388usize)] {

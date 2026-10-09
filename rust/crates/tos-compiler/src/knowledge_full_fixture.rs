@@ -1116,6 +1116,39 @@ fn build_native_fixture_inner(
     )>,
     bounded_stage: Option<(StageLimits, std::time::Instant)>,
 ) -> FullKnowledgeFixture {
+    build_native_fixture_with_claim_source_inner(
+        semantic_joins,
+        retain_original,
+        originals,
+        philosophy_originals,
+        captured_corpus,
+        bounded_stage,
+        include_bytes!(
+            "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+        ),
+    )
+}
+
+/// Current-registry assembly fixture. Historical query fixtures keep their
+/// original source bytes; callers explicitly supply a new synthetic source.
+pub fn build_native_fixture_with_claim_source(source: &[u8]) -> FullKnowledgeFixture {
+    build_native_fixture_with_claim_source_inner(false, false, None, None, None, None, source)
+}
+
+fn build_native_fixture_with_claim_source_inner(
+    semantic_joins: bool,
+    retain_original: bool,
+    originals: Option<NavigationFixtureInputs<'_>>,
+    philosophy_originals: Option<PhilosophyFixtureInputs<'_>>,
+    captured_corpus: Option<(
+        &tos_source_store::SoftwareCaptureReader,
+        &tos_foundation::RelativePath,
+        std::time::Instant,
+        &std::sync::atomic::AtomicBool,
+    )>,
+    bounded_stage: Option<(StageLimits, std::time::Instant)>,
+    claim_source: &[u8],
+) -> FullKnowledgeFixture {
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
     let relation_bytes =
@@ -1152,10 +1185,7 @@ fn build_native_fixture_inner(
         ],
     )
     .unwrap();
-    let fixture: Value = serde_json::from_slice(include_bytes!(
-        "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
-    ))
-    .unwrap();
+    let fixture: Value = serde_json::from_slice(claim_source).unwrap();
     let subject = fixture["nodes"]
         .as_array()
         .unwrap()

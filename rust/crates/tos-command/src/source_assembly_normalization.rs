@@ -313,7 +313,9 @@ mod tests {
     use super::*;
     use std::collections::BTreeSet;
     use std::sync::OnceLock;
-    use tos_compiler::knowledge_full_fixture::{FullKnowledgeFixture, build_native_fixture};
+    use tos_compiler::knowledge_full_fixture::{
+        FullKnowledgeFixture, build_native_fixture_with_claim_source,
+    };
 
     struct Fixture {
         native: FullKnowledgeFixture,
@@ -323,12 +325,63 @@ mod tests {
     fn fixture() -> &'static Fixture {
         static FIXTURE: OnceLock<Fixture> = OnceLock::new();
         FIXTURE.get_or_init(|| {
-            let native = build_native_fixture();
-            let graph: Value = serde_json::from_slice(&native.graph_input_bytes).unwrap();
-            let source: Value = serde_json::from_slice(include_bytes!(
+            let mut source: Value = serde_json::from_slice(include_bytes!(
                 "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
             ))
             .unwrap();
+            // The frozen capture predates the current predicate registry. Build
+            // an explicit synthetic current pair through the same producer used
+            // by source admission, without rewriting the historical capture.
+            let entities: Value = serde_json::from_slice(include_bytes!(
+                "../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json"
+            ))
+            .unwrap();
+            let relations: Value = serde_json::from_slice(include_bytes!(
+                "../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json"
+            ))
+            .unwrap();
+            let originals = source["nodes"].as_array().unwrap().clone();
+            let mut rebound = 0;
+            for node in source["nodes"].as_array_mut().unwrap() {
+                if node["node_kind"] != "claim" {
+                    continue;
+                }
+                let claim = &node["properties"]["source_claim"];
+                let subject = originals
+                    .iter()
+                    .find(|candidate| {
+                        candidate["node_kind"] == "identity"
+                            && candidate["properties"]["identity_ref"] == claim["subject_ref"]
+                    })
+                    .unwrap();
+                let object = originals
+                    .iter()
+                    .find(|candidate| {
+                        candidate["node_kind"] == "literal"
+                            && candidate["properties"]["claim_ref"] == claim["claim_id"]
+                    })
+                    .unwrap();
+                let descriptor =
+                    tos_compiler::source_bibliographic::supplied_claim_navigation_descriptor(
+                        claim,
+                        subject,
+                        object,
+                        &relations,
+                        &entities,
+                        tos_compiler::source_bibliographic::BibliographicDocumentLimits {
+                            input_document_bytes: MAX_CANDIDATE_ROW_BYTES,
+                            output_row_bytes: MAX_CANDIDATE_ROW_BYTES,
+                        },
+                    )
+                    .unwrap()
+                    .unwrap();
+                node["properties"]["navigation_descriptor"] = descriptor;
+                rebound += 1;
+            }
+            assert!(rebound > 0);
+            let native =
+                build_native_fixture_with_claim_source(&serde_json::to_vec(&source).unwrap());
+            let graph: Value = serde_json::from_slice(&native.graph_input_bytes).unwrap();
             Fixture {
                 native,
                 graph,

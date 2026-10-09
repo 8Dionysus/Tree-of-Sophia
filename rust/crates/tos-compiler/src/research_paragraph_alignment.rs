@@ -1777,6 +1777,7 @@ mod tests {
         );
     }
     #[test]
+    #[ignore = "data_release: exact tracked translation-alignment corpus"]
     fn tracked_current_route_preserves_census_and_authority_ceiling() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../..")
@@ -1799,6 +1800,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "data_release: explicitly selected private translation layers"]
     fn present_private_layers_rebuild_exactly() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../..")

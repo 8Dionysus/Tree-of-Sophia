@@ -568,11 +568,15 @@ fn genuine_native_temporal_and_exploration_preserve_checkpoint_admission() {
                             Some("paused" | "complete" | "limit_reached")
                         ));
                         let page = get(&response, "page");
+                        // The cap selects primary nodes; complete edge endpoints
+                        // are additionally returned as contextual nodes.
                         assert!(
-                            get(page, "returned_nodes")
-                                .as_u64()
-                                .is_some_and(|count| count <= 1),
+                            get(page, "primary_node_ids").as_array().unwrap().len() <= 1,
                             "page node cap changed for {focus_id}/{profile}/{direction}"
+                        );
+                        assert_eq!(
+                            get(page, "returned_nodes").as_u64().unwrap() as usize,
+                            get(&response, "nodes").as_array().unwrap().len()
                         );
                         assert!(
                             get(page, "returned_relations")

@@ -200,8 +200,32 @@ fn retained_original_provider_semantics_and_explicit_provenance_difference() {
                 .unwrap()
                 .remove(path);
         }
+        // Each runtime builds new SQLite files. Their exact bytes are bound by
+        // the independently read manifests, while every semantic result still
+        // compares with the authenticated original provider packet.
+        let mut expected = case["expected"].clone();
+        for (section, field, reference, root) in [
+            (
+                "concept_predecessor",
+                "source_manifest_sha256",
+                "source_manifest_ref",
+                &fixture.roots.source_root,
+            ),
+            (
+                "reading_layer",
+                "manifest_sha256",
+                "manifest_ref",
+                &fixture.roots.analysis_root,
+            ),
+        ] {
+            let path = expected["provenance"][section][reference].as_str().unwrap();
+            let digest =
+                tos_foundation::Digest256::of_bytes(&fs::read(root.join(path)).unwrap()).to_hex();
+            assert_eq!(native["provenance"][section][field], digest);
+            expected["provenance"][section][field] = Value::String(digest);
+        }
         assert_eq!(
-            native, case["expected"],
+            native, expected,
             "entire retained original result differs for {}:{}",
             request.language, request.query
         );

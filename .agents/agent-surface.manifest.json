@@ -213,9 +213,9 @@
         "kag/provider-template.json",
         "kag/README.md",
         "kag/VALIDATION.md",
-        "scripts/validate_local_kag_provider.py",
-        "scripts/build_kag_export.py",
-        "scripts/publish_kag_release.py",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_provider_controls.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
         "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
         "docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md"
       ],
@@ -227,11 +227,11 @@
         "currentness_boundary": "authored software route only; no external integration is selected or checked by this agent-surface verdict",
         "builder": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "validator": "aoa-kag:scripts/validate_repo_local_kag_family.py",
-        "consumer_adapter": "scripts/validate_local_kag_provider.py",
+        "consumer_adapter": "rust/crates/tos-ops-mechanics-plan/src/kag_provider_controls.rs",
         "scope": "external_integration_release",
         "provider_template": "kag/provider-template.json",
         "owner_route": "kag/AGENTS.md",
-        "publication_route": "scripts/publish_kag_release.py",
+        "publication_route": "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
         "validation_route": "kag/VALIDATION.md"
       },
       "carrier_classes": [

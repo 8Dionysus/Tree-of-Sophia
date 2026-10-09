@@ -748,6 +748,60 @@ jobs:
             /tests/fixtures/decision_records_oracle/expected/by-surface.md.txt
             /tests/fixtures/decision_records_oracle/expected/by-tos-layer.md.txt
             /tests/fixtures/decision_records_oracle/expected/by-tree-class.md.txt
+            # Bounded owner inputs for native topology, KAG and source-anchor checks.
+            /README.md
+            /ROADMAP.md
+            /ToS/candidate-intake/zarathustra/reading-workbench-v1/README.md
+            /ToS/philosophy/atlas/README.md
+            /ToS/philosophy/atlas/master-tables/table-i/rows.jsonl
+            /ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl
+            /ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl
+            /ToS/philosophy/atlas/multilingual/README.md
+            /ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/atu2-green-sign-list/source-planting.json
+            /ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/atu3-lexical-lists/source-planting.json
+            /ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/born-kelley-2021-tribute-control/source-planting.json
+            /ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/cdlb-2021-6-quantitative-sign-use/source-planting.json
+            /ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/cdli-p000015/source-planting.json
+            /ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/dcclt-q000023/source-planting.json
+            /ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/branch.manifest.json
+            /ToS/philosophy/graph-workbench/review-packets/README.md
+            /ToS/philosophy/graph-workbench/views/README.md
+            /ToS/source-witnesses/README.md
+            /ToS/source-witnesses/discovery/candidates/README.md
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/README.md
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1/README.md
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2/README.md
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/README.md
+            /access/AGENTS.md
+            /access/README.md
+            /access/contracts/prepared-source-binding.v1.md
+            /access/contracts/source-agent-publication.v1.md
+            /access/contracts/source-assembly-normalization.v1.md
+            /access/contracts/source-commands.v1.json
+            /access/deploy/cloudflare-tunnel/
+            /access/deploy/cloudflare-tunnel/README.md
+            /access/e2e/README.md
+            /access/e2e/test_webmcp.mjs
+            /access/packaging/verify_ui_backend.mjs
+            /docs/RELEASING.md
+            /docs/testing/TEST_TOPOLOGY.md
+            /docs/validation/SCRIPT_TOPOLOGY.md
+            /docs/validation/script_inventory.json
+            /kag/AGENTS.md
+            /kag/VALIDATION.md
+            /mechanics/release-support/parts/artifact-bundles/README.md
+            /tests/test_antonovsky_1911_structural_paragraph_v2.py
+            /tests/test_antonovsky_1911_technical_markup.py
+            /tests/test_current_direction_routes.py
+            /tests/test_docs_verify_routes.py
+            /tests/test_inventory.json
+            /tests/test_roadmap_parity.py
+            /tests/test_tos_node_contract_schema.py
+            /ToS/philosophy/**/branch.manifest.json
+            /ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/source-anchor-backlog.jsonl
+            /ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:

@@ -4883,7 +4883,12 @@ mod selected_knowledge {
         assert!(permissions.contains("camera=()"));
         assert!(permissions.contains("geolocation=()"));
         let health = handle_get_with_software(&boot, "GET", "/health", profile, &site);
-        assert_eq!(health.status, 200);
+        // This deliberately minimal boot executor has no selected health owner.
+        // Serving static assets must not manufacture a healthy data receipt.
+        assert_eq!(health.status, 503);
+        assert!(
+            String::from_utf8_lossy(&health.body).contains("selected access health unavailable")
+        );
         let mut health_wire = vec![];
         write_response(&mut health_wire, health).unwrap();
         let health_headers = String::from_utf8(health_wire).unwrap();

@@ -3,13 +3,10 @@
 ToS publishes KAG independently from its software and corpus admission. This directory owns the bounded provider template and operator route.
 Published provider data lives in the selected immutable integration release.
 
-The maintained export and publication Python entrypoints delegate to
-`tos-kag-release` (`TOS_KAG_RELEASE_BIN` selects an explicitly prepared image).
-Provider controls use the same native module in publication; direct helper calls
-select `tos-kag-provider-controls` with `TOS_KAG_PROVIDER_CONTROLS_BIN`.
-The former Python implementations remain explicit compatibility oracles and
-are never fallback defaults. The selected aoa-kag producer and probe remain
-external owner adapters; moving ToS mechanics does not replace their authority.
+The installed `tos-kag-release` command owns export and publication. Provider
+controls use the same native module in publication; direct checks select
+`tos-kag-provider-controls`. Both commands are part of the native software
+package. Retained Python fixtures are historical compatibility evidence only.
 
 The native local contour refuses exports over 8 MiB, V1 revision manifests over
 64 MiB, generated releases over 1 GiB or 100,000 members, and manifests over

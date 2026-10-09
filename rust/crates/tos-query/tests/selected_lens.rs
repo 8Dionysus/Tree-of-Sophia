@@ -397,6 +397,45 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
         adapted, 8,
         "only the known historical route statements may adapt"
     );
+    // Registry v46 retires Python owner handles; the historical output remains
+    // independently authenticated before applying these authored route changes.
+    let registry = field_mut(contracts, "relation_type_registry");
+    assert_eq!(field(registry, "registry_version").as_u64(), Some(45));
+    *field_mut(registry, "registry_version") =
+        parse_json(b"46", JsonMode::PublishedStrict, JsonLimits::default())
+            .unwrap()
+            .into_root();
+    let JsonValue::Array(relations) = field_mut(registry, "relations") else {
+        panic!("registry relations");
+    };
+    let mut moved = 0;
+    for relation in relations {
+        let id = field(relation, "relation_type_id").as_str().unwrap();
+        let (old, new) = match id {
+            "tos.relation.philosophy-historical" | "tos.relation.philosophy-evidential" => (
+                "scripts/philosophy_graph_projection_common.py",
+                "ToS/philosophy/trunk/relation-kinds/README.md",
+            ),
+            "tos.relation.projection-pressure" => (
+                "scripts/philosophy_atlas_projection_common.py",
+                "ToS/philosophy/atlas/README.md",
+            ),
+            "tos.relation.projection-structure" => (
+                "scripts/philosophy_atlas_projection_common.py",
+                "ToS/philosophy/graph-workbench/README.md",
+            ),
+            _ => continue,
+        };
+        replace_exact_string(field_mut(relation, "owner_ref"), old, new);
+        moved += 1;
+    }
+    assert_eq!(moved, 4);
+    let JsonValue::Array(refs) = field_mut(registry, "source_refs") else {
+        panic!("registry source refs");
+    };
+    assert_eq!(refs.len(), 9);
+    refs.retain(|v| v.as_str() != Some("scripts/philosophy_graph_projection_common.py"));
+    assert_eq!(refs.len(), 8);
 }
 
 fn adapt_duplicate_inline_philosophy_oracle(oracle: &mut JsonValue) {
@@ -862,6 +901,109 @@ fn focus_request(value: &JsonValue) -> KnowledgeFocusRequest {
     }
     request
 }
+// The historical oracle's page positions and content remain frozen. Only
+// publication identity changes when the selected registry revision changes.
+fn rebind_historical_lens_cursors(oracle: JsonValue, publication: &JsonValue) -> JsonValue {
+    fn digest(value: &serde_json::Value, bytes: &mut Vec<u8>) {
+        use serde_json::Value;
+        match value {
+            Value::Null => bytes.extend_from_slice(b"n;"),
+            Value::Bool(value) => bytes.extend_from_slice(if *value { b"b1;" } else { b"b0;" }),
+            Value::Number(value) => {
+                let number = value.as_f64().unwrap();
+                let number = if number == 0.0 { 0.0 } else { number };
+                bytes.extend_from_slice(format!("d{:016x};", number.to_bits()).as_bytes());
+            }
+            Value::String(value) => {
+                bytes.extend_from_slice(format!("s{}:", value.len()).as_bytes());
+                bytes.extend_from_slice(value.as_bytes());
+            }
+            Value::Array(values) => {
+                bytes.extend_from_slice(format!("a{}[", values.len()).as_bytes());
+                for value in values {
+                    digest(value, bytes);
+                }
+                bytes.push(b']');
+            }
+            Value::Object(values) => {
+                bytes.extend_from_slice(format!("o{}{{", values.len()).as_bytes());
+                let sorted: std::collections::BTreeMap<_, _> = values.iter().collect();
+                for (key, value) in sorted {
+                    digest(&Value::String(key.clone()), bytes);
+                    digest(value, bytes);
+                }
+                bytes.push(b'}');
+            }
+        }
+    }
+    fn cursor(fingerprint: &str, position: usize) -> String {
+        const DIGITS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        let raw = format!(
+            "{{\"v\":1,\"fingerprint\":\"{fingerprint}\",\"n\":{position},\"r\":{position}}}"
+        );
+        let mut bits = 0_u32;
+        let mut available = 0;
+        let mut encoded = String::new();
+        for byte in raw.bytes() {
+            bits = (bits << 8) | u32::from(byte);
+            available += 8;
+            while available >= 6 {
+                available -= 6;
+                encoded.push(DIGITS[((bits >> available) & 63) as usize] as char);
+            }
+        }
+        if available > 0 {
+            encoded.push(DIGITS[((bits << (6 - available)) & 63) as usize] as char);
+        }
+        encoded
+    }
+    let cases = field(&oracle, "cases").as_array().unwrap();
+    let first = cases
+        .iter()
+        .find(|case| field(case, "name").as_str() == Some("paged-context"))
+        .unwrap();
+    let fingerprint = field(field(first, "packet"), "fingerprint")
+        .as_str()
+        .unwrap();
+    let publication: serde_json::Value = serde_json::from_slice(&canonical(publication)).unwrap();
+    let mut bytes = Vec::new();
+    digest(
+        &serde_json::json!({
+            "schema": "tos_published_lens_cursor_v1",
+            "publication": publication,
+            "fingerprint": fingerprint,
+        }),
+        &mut bytes,
+    );
+    let current = tos_foundation::Digest256::of_bytes(&bytes).to_hex();
+    let mut encoded = String::from_utf8(
+        canonical_bytes_v1(
+            &oracle,
+            CanonicalProfile::SourceRecordDigestV1,
+            JsonLimits::new(32 * 1024 * 1024, 96, 2_000_000, 4096).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    for position in 1..=6 {
+        let old = cursor(
+            "f5e77c4e6a6cb49ce73d13682a95cfe8cdbc47c31c6939036541dd256fc18d70",
+            position,
+        );
+        // One emitted page token and one subsequent request token. The stale
+        // token and all malformed-input cases are deliberately left intact.
+        assert_eq!(encoded.matches(&old).count(), 2);
+        encoded = encoded.replace(&old, &cursor(&current, position));
+    }
+    parse_json(
+        encoded.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::new(32 * 1024 * 1024, 96, 2_000_000, 4096).unwrap(),
+    )
+    .unwrap()
+    .into_root()
+}
+
 #[test]
 fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_disclosure() {
     let fixture = build_native_fixture();
@@ -879,7 +1021,7 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
         tos_foundation::Digest256::of_bytes(&catalog),
         bound.selection().catalog_packet_sha256
     );
-    let oracle = historical_oracle("lenses");
+    let oracle = rebind_historical_lens_cursors(historical_oracle("lenses"), &publication);
     let mut model = cold
         .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
         .unwrap();
@@ -2109,6 +2251,12 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
         *field_mut(&mut oracle, "source_sha") = value(&source_sha);
         *field_mut(&mut oracle, "root") = value(restored.to_string_lossy().as_ref());
         *field_mut(&mut oracle, "index") =
+            value(restored.join(source_path).to_string_lossy().as_ref());
+        let status = field_mut(field_mut(&mut oracle, "cases"), "status");
+        assert_eq!(field(status, "tos_root"), field(archived_oracle, "root"));
+        assert_eq!(field(status, "index_path"), field(archived_oracle, "index"));
+        *field_mut(status, "tos_root") = value(restored.to_string_lossy().as_ref());
+        *field_mut(status, "index_path") =
             value(restored.join(source_path).to_string_lossy().as_ref());
         let s = |name| field(&oracle, name).as_str().unwrap().to_owned();
         let mut fixture = build_native_fixture_with_captured_corpus(
