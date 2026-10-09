@@ -500,7 +500,7 @@ pub(crate) fn parse_arguments(
     Ok(parsed)
 }
 
-pub(crate) const HELP: &str = "usage: validate_source_witness_foundation [--repo-root PATH] [--validation-profile ID (native admission only; omit=full audit)] [--record-selection-manifest PATH (record closure profiles only)] [--indexed-input-root PATH (selected-generated-record-closure only)] [--require-local-payloads] [--payload-source-root PATH] [--source-anchor-v2-lab-only] [--source-text-layer-lab-only] [--provenance-v2-lab-only] [--semantic-annotation-v2-lab-only] [--translation-alignment-v1-lab-only] [--source-text-unit-v1-lab-only]\n";
+pub(crate) const HELP: &str = "usage: tos-native-owner-command foundation --repo-root PATH --invocation ABSOLUTE_PATH [--require-local-payloads] [--payload-source-root PATH]\n\nThe default route performs the complete source-witness foundation audit and checks generated catalog parity. The protected tos_local_native_foundation_invocation_v1 request selects the exact installed command and schema-worker digests plus finite source, CPU, private-stage, state and output budgets. Run inside the abyss-machine private-tmpfs owner launcher with its sealed ABYSS_STAGE_TICKET_FD and matching ABYSS_STAGE_ROOT. An explicit validation profile or lab-only option is not connected to this whole-operation route.\n";
 
 fn lab_output(lab: SourceFoundationLab) -> Result<(&'static str, &'static str), &'static str> {
     Ok(match lab {

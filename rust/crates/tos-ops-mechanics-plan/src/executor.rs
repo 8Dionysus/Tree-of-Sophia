@@ -175,19 +175,32 @@ pub(crate) fn capture_artifact_owner(
 ) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
     #[cfg(target_os = "linux")]
     {
-        let store = store.to_str().filter(|s| !s.is_empty())
+        let store = store
+            .to_str()
+            .filter(|s| !s.is_empty())
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "artifact store path"))?;
-        let plan = selected_plan(&[(String::new(), argv)], "tos_artifact_owner_capture_v1", "artifact_owner");
+        let plan = selected_plan(
+            &[(String::new(), argv)],
+            "tos_artifact_owner_capture_v1",
+            "artifact_owner",
+        );
         let mut streams = [Vec::new(), Vec::new()];
-        let overrides = [("ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ISOLATED_ROOT".into(), store.into())];
-        let code = native::run_captured_with_env(root, &plan, limits, cancel, &mut streams, &overrides)?;
+        let overrides = [(
+            "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ISOLATED_ROOT".into(),
+            store.into(),
+        )];
+        let code =
+            native::run_captured_with_env(root, &plan, limits, cancel, &mut streams, &overrides)?;
         let [stdout, stderr] = streams;
         Ok((code, stdout, stderr))
     }
     #[cfg(not(target_os = "linux"))]
     {
         let _ = (root, argv, store, limits, cancel);
-        Err(io::Error::new(io::ErrorKind::Unsupported, "artifact owner requires Linux process custody"))
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "artifact owner requires Linux process custody",
+        ))
     }
 }
 
@@ -609,6 +622,7 @@ mod native {
         argv: &[String],
         grace: Duration,
         overrides: &[(String, String)],
+        inherited_stage_ticket_fd: Option<i32>,
     ) -> io::Result<(Custody, File, File)> {
         let root = CString::new(root.as_os_str().as_bytes()).map_err(|_| error("NUL root"))?;
         let args: Result<Vec<CString>, _> =
@@ -650,6 +664,11 @@ mod native {
                     || libc::close_range(3, u32::MAX, 4) != 0
                 {
                     libc::_exit(126);
+                }
+                if let Some(fd) = inherited_stage_ticket_fd {
+                    if libc::fcntl(fd, libc::F_SETFD, 0) < 0 {
+                        libc::_exit(126);
+                    }
                 }
                 libc::execvpe(pointers[0], pointers.as_ptr(), envp.as_ptr());
                 libc::_exit(127);
@@ -727,6 +746,34 @@ mod native {
         }
     }
 
+    fn is_native_foundation_command(argv: &[String]) -> bool {
+        argv.first()
+            .and_then(|value| Path::new(value).file_name())
+            .and_then(|value| value.to_str())
+            == Some("tos-native-owner-command")
+            && argv.get(1).map(String::as_str) == Some("foundation")
+            && argv
+                .windows(2)
+                .any(|pair| pair[0] == "--invocation" && !pair[1].is_empty())
+    }
+
+    fn foundation_stage_ticket_fd(argv: &[String]) -> io::Result<Option<i32>> {
+        if !is_native_foundation_command(argv) {
+            return Ok(None);
+        }
+        let raw = std::env::var("ABYSS_STAGE_TICKET_FD")
+            .map_err(|_| error("native foundation lane requires issuer ABYSS_STAGE_TICKET_FD"))?;
+        let fd = raw
+            .parse::<i32>()
+            .ok()
+            .filter(|fd| *fd > 2)
+            .ok_or_else(|| error("invalid issuer ABYSS_STAGE_TICKET_FD"))?;
+        if unsafe { libc::fcntl(fd, libc::F_GETFD) } < 0 {
+            return Err(error("issuer ABYSS_STAGE_TICKET_FD is not open"));
+        }
+        Ok(Some(fd))
+    }
+
     fn write(fd: i32, mut bytes: &[u8], deadline: Instant, cancel: &AtomicI32) -> io::Result<()> {
         while !bytes.is_empty() {
             cancelled(cancel)?;
@@ -790,7 +837,16 @@ mod native {
         streams: &mut [Vec<u8>; 2],
         overrides: &[(String, String)],
     ) -> io::Result<i32> {
-        run_inner(root, plan, limits, cancel, Style::Capture, Some(streams), None, overrides)
+        run_inner(
+            root,
+            plan,
+            limits,
+            cancel,
+            Style::Capture,
+            Some(streams),
+            None,
+            overrides,
+        )
     }
 
     pub(super) fn run_product_until(
@@ -961,9 +1017,18 @@ mod native {
                         }
                     }
                 }
+                let inherited_stage_ticket_fd = match style {
+                    Style::Validation(_, _) => foundation_stage_ticket_fd(&argv)?,
+                    _ => None,
+                };
                 let mut cargo_stdout = Vec::new();
-                let (mut custody, stdout, stderr) =
-                    spawn(root, &argv, limits.cleanup_grace, &overrides)?;
+                let (mut custody, stdout, stderr) = spawn(
+                    root,
+                    &argv,
+                    limits.cleanup_grace,
+                    &overrides,
+                    inherited_stage_ticket_fd,
+                )?;
                 let _out_mode = Nonblocking::new(stdout.as_raw_fd())?;
                 let _err_mode = Nonblocking::new(stderr.as_raw_fd())?;
                 let mut eof = [false, false];
@@ -1150,6 +1215,29 @@ mod native {
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        #[test]
+        fn private_stage_ticket_is_forwarded_only_to_selected_foundation_command() {
+            assert!(is_native_foundation_command(&[
+                "/opt/tos/bin/tos-native-owner-command".into(),
+                "foundation".into(),
+                "--repo-root".into(),
+                "/source/Tree-of-Sophia".into(),
+                "--invocation".into(),
+                "/run/owner/foundation.json".into(),
+            ]));
+            assert!(!is_native_foundation_command(&[
+                "tos-native-owner-command".into(),
+                "source-commands".into(),
+                "--invocation".into(),
+                "/run/owner/commands.json".into(),
+            ]));
+            assert!(!is_native_foundation_command(&[
+                "tos-native-owner-command".into(),
+                "foundation".into(),
+                "--help".into(),
+            ]));
+        }
 
         #[test]
         fn aliased_output_descriptions_restore_original_flags() {

@@ -27,6 +27,19 @@ own owner surfaces.
 
 Inventories describe coverage. They are not command authority.
 
+The `source_witness_foundation` lane runs the native full audit and catalog
+parity through `tos-native-owner-command foundation`. Run it inside the
+abyss-machine private-tmpfs owner launcher, which supplies the sealed
+`ABYSS_STAGE_TICKET_FD` and matching `ABYSS_STAGE_ROOT`. Select the owner-issued
+protected invocation explicitly as
+`TOS_NATIVE_FOUNDATION_INVOCATION=/absolute/path/to/invocation.json`; it binds
+the installed command and schema-worker digests plus the finite source, CPU,
+stage, state and output budgets. The lane forwards that sealed FD only to the
+native foundation command, preserving the launcher's existing ticket checks.
+Without both the invocation selection and issuer ticket, `--run
+source_witness_foundation` refuses before the audit starts. `--check` only
+validates the authored lane manifest and does not need either input.
+
 Root and district `VALIDATION.md` files are human maps, not inherited prompt
 cards or second machine manifests. They may select a lane or preserve an
 external-owner procedure; exact internal sequence membership and order remain

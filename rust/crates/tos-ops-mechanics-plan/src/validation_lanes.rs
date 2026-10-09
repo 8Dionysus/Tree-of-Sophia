@@ -3,6 +3,7 @@
 //! not require an interpreter; a retained Python step requires explicit selection.
 
 use serde_json::Value;
+use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Read};
 use std::path::Path;
@@ -20,6 +21,8 @@ pub enum ReleasePhase {
 
 const MANIFEST: &str = "docs/validation/validation_lanes.json";
 const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
+const FOUNDATION_INVOCATION_ARGUMENT: &str = "{foundation_invocation}";
+const FOUNDATION_INVOCATION_ENV: &str = "TOS_NATIVE_FOUNDATION_INVOCATION";
 
 fn invalid(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message.into())
@@ -70,6 +73,77 @@ fn valid_command(value: Option<&Value>) -> bool {
                 .iter()
                 .all(|part| part.as_str().is_some_and(|part| !part.is_empty()))
     })
+}
+
+fn valid_foundation_invocation_selection(sequence: &str, command: &[String]) -> bool {
+    let positions: Vec<usize> = command
+        .iter()
+        .enumerate()
+        .filter_map(|(index, part)| (part == FOUNDATION_INVOCATION_ARGUMENT).then_some(index))
+        .collect();
+    if positions.is_empty() {
+        return true;
+    }
+    let invocation_positions: Vec<usize> = command
+        .iter()
+        .enumerate()
+        .filter_map(|(index, part)| (part == "--invocation").then_some(index))
+        .collect();
+    let root_positions: Vec<usize> = command
+        .iter()
+        .enumerate()
+        .filter_map(|(index, part)| (part == "--repo-root").then_some(index))
+        .collect();
+    sequence == "source_witness_foundation"
+        && Path::new(command.first().map(String::as_str).unwrap_or(""))
+            .file_name()
+            .and_then(|name| name.to_str())
+            == Some("tos-native-owner-command")
+        && command.get(1).is_some_and(|part| part == "foundation")
+        && positions.len() == 1
+        && invocation_positions.len() == 1
+        && root_positions.len() == 1
+        && command.get(invocation_positions[0] + 1) == Some(&command[positions[0]])
+        && invocation_positions[0].checked_add(1) == Some(positions[0])
+        && command
+            .get(root_positions[0] + 1)
+            .is_some_and(|path| !path.is_empty())
+}
+
+fn resolve_foundation_invocation(
+    command: &mut [String],
+    selected: Option<OsString>,
+) -> io::Result<()> {
+    let positions: Vec<usize> = command
+        .iter()
+        .enumerate()
+        .filter_map(|(index, part)| (part == FOUNDATION_INVOCATION_ARGUMENT).then_some(index))
+        .collect();
+    if positions.is_empty() {
+        return Ok(());
+    }
+    if positions.len() != 1 {
+        return Err(invalid("source-foundation invocation placeholder count"));
+    }
+    let selected = selected.ok_or_else(|| {
+        invalid(format!(
+            "source_witness_foundation requires {FOUNDATION_INVOCATION_ENV}"
+        ))
+    })?;
+    let selected = selected
+        .into_string()
+        .map_err(|_| invalid("source-foundation invocation path must be UTF-8"))?;
+    if selected.is_empty()
+        || selected.len() > 4096
+        || !Path::new(&selected).is_absolute()
+        || selected.contains('\0')
+    {
+        return Err(invalid(
+            "source-foundation invocation path must be absolute and bounded",
+        ));
+    }
+    command[positions[0]] = selected;
+    Ok(())
 }
 
 // Per-step deadlines are explicit Rust-lane source inputs, not global defaults.
@@ -261,6 +335,27 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
                     MANIFEST,
                     format!("{location}.command must be a non-empty string list"),
                 )?;
+            } else {
+                let command: Vec<String> = step["command"]
+                    .as_array()
+                    .expect("validated command array")
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect();
+                if command
+                    .iter()
+                    .any(|part| part == FOUNDATION_INVOCATION_ARGUMENT)
+                    && !valid_foundation_invocation_selection(sequence_id, &command)
+                {
+                    issue(
+                        &mut issues,
+                        MANIFEST,
+                        format!(
+                            "{location} must select a protected invocation only on the direct native foundation route"
+                        ),
+                    )?;
+                }
             }
             if let Err(error) = command_timeout_ms(sequence_id, step) {
                 issue(&mut issues, MANIFEST, format!("{location}: {error}"))?;
@@ -352,6 +447,18 @@ pub fn command_sequence_with_budgets(
                     *part = selected.to_owned();
                 }
             }
+        }
+        if parts
+            .iter()
+            .any(|part| part == FOUNDATION_INVOCATION_ARGUMENT)
+        {
+            if !valid_foundation_invocation_selection(sequence_id, &parts) {
+                return Err(invalid(
+                    "protected invocation placeholder is limited to the direct source-foundation lane",
+                ));
+            }
+            let selected = std::env::var_os(FOUNDATION_INVOCATION_ENV);
+            resolve_foundation_invocation(&mut parts, selected)?;
         }
         let executor_key = match parts[0].as_str() {
             "tos" => Some("TOS_NATIVE_PREPARED_CONSUMER_BIN"),
@@ -457,5 +564,59 @@ mod timeout_tests {
             let step = serde_json::json!({"command_timeout_ms": value});
             assert!(command_timeout_ms("rust_workspace", step.as_object().unwrap()).is_err());
         }
+    }
+}
+
+#[cfg(test)]
+mod foundation_invocation_tests {
+    use super::*;
+
+    #[test]
+    fn protected_invocation_placeholder_is_direct_and_explicit() {
+        let mut command = vec![
+            "tos-native-owner-command".to_owned(),
+            "foundation".to_owned(),
+            "--repo-root".to_owned(),
+            "/source/Tree-of-Sophia".to_owned(),
+            "--invocation".to_owned(),
+            FOUNDATION_INVOCATION_ARGUMENT.to_owned(),
+        ];
+        assert!(valid_foundation_invocation_selection(
+            "source_witness_foundation",
+            &command
+        ));
+        resolve_foundation_invocation(
+            &mut command,
+            Some(OsString::from(
+                "/run/abyss-machine/foundation-invocation.json",
+            )),
+        )
+        .unwrap();
+        assert_eq!(command[5], "/run/abyss-machine/foundation-invocation.json");
+        assert!(resolve_foundation_invocation(&mut command, None).is_ok());
+
+        let mut missing = vec![FOUNDATION_INVOCATION_ARGUMENT.to_owned()];
+        assert!(resolve_foundation_invocation(&mut missing, None).is_err());
+        assert!(!valid_foundation_invocation_selection(
+            "generated_parity",
+            &[
+                "tos-native-owner-command".to_owned(),
+                "foundation".to_owned(),
+                "--invocation".to_owned(),
+                FOUNDATION_INVOCATION_ARGUMENT.to_owned(),
+            ],
+        ));
+        assert!(
+            resolve_foundation_invocation(
+                &mut [
+                    "tos-native-owner-command".to_owned(),
+                    "foundation".to_owned(),
+                    "--invocation".to_owned(),
+                    FOUNDATION_INVOCATION_ARGUMENT.to_owned(),
+                ],
+                Some(OsString::from("relative/invocation.json")),
+            )
+            .is_err()
+        );
     }
 }

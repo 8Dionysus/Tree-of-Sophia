@@ -380,6 +380,24 @@ Full addresses, source references, IDs and digests remain unchanged in their
 existing fields even when the display's 240-character title or 1024-character
 description is shortened.
 
+The complete local source-witness audit and generated-catalog parity use the
+native owner directly through this lane, run inside the abyss-machine
+private-tmpfs owner launcher:
+
+```sh
+TOS_NATIVE_FOUNDATION_INVOCATION=/absolute/protected-invocation.json \
+  tos-validation-lanes --repo-root /absolute/Tree-of-Sophia --run source_witness_foundation
+```
+
+The owner-issued `tos_local_native_foundation_invocation_v1` request must bind
+the installed `tos-native-owner-command` and schema-worker digests and select
+finite source, CPU, private-stage, state and output budgets; omit an explicit
+validation profile so the route retains the complete declared audit. The
+launcher-provided sealed `ABYSS_STAGE_TICKET_FD` and `ABYSS_STAGE_ROOT` remain
+required and are verified by the native owner. The validation lane passes the
+FD only to this exact command. Missing or mismatched source, worker, invocation,
+or stage custody fails closed; no Python validation fallback is invoked.
+
 For an explicit source-first migration observation, run
 `TOS_NATIVE_PREFIX=/absolute/installed/prefix python scripts/source_witness_projection_coverage.py --invocation /absolute/protected-invocation.json --rows`
 from the repository. `--invocation` selects the actual Access executable digest,

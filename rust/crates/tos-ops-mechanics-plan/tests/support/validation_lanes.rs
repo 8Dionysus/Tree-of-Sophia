@@ -630,3 +630,38 @@ fn native_verifier_consumes_installed_symlink_entries_and_preserves_command_beha
         .unwrap();
     assert!(!bad.status.success());
 }
+
+#[test]
+fn authored_source_foundation_lane_selects_the_native_full_audit_route() {
+    let manifest = authored();
+    let steps = manifest["command_sequences"]["source_witness_foundation"]
+        .as_array()
+        .unwrap();
+    let foundation = steps
+        .iter()
+        .find(|step| {
+            let command = step["command"].as_array();
+            command.is_some_and(|command| {
+                command.first().and_then(Value::as_str) == Some("tos-native-owner-command")
+                    && command.get(1).and_then(Value::as_str) == Some("foundation")
+            })
+        })
+        .unwrap();
+    let command = foundation["command"].as_array().unwrap();
+    assert_eq!(command[2], "--repo-root");
+    assert_eq!(command[3], "{repo_root}");
+    assert_eq!(command[4], "--invocation");
+    assert_eq!(command[5], "{foundation_invocation}");
+    assert!(!steps.iter().any(|step| {
+        step["command"]
+            .as_array()
+            .is_some_and(|command| {
+                command.iter().any(|part| {
+                    part.as_str().is_some_and(|part| {
+                        part == "scripts/build_source_witness_catalog.py"
+                            || part == "scripts/validate_source_witness_foundation.py"
+                    })
+                })
+            })
+    }));
+}

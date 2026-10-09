@@ -715,18 +715,14 @@
         ]
       },
       {
-        "label": "check source-witness catalog parity",
+        "label": "validate the complete source-witness foundation and generated catalog through its Rust owner",
         "command": [
-          "python",
-          "scripts/build_source_witness_catalog.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate source-witness evidence spine",
-        "command": [
-          "python",
-          "scripts/validate_source_witness_foundation.py"
+          "tos-native-owner-command",
+          "foundation",
+          "--repo-root",
+          "{repo_root}",
+          "--invocation",
+          "{foundation_invocation}"
         ]
       },
       {
