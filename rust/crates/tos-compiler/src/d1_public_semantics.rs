@@ -4,11 +4,10 @@
 
 use crate::{
     Error, KnowledgeRegistry, Result,
-    d1_public_header::{HeaderCounts, ValidatedGraphSemantics},
     d1_public_capture::{
-        CreationState, CreationStateHold, MAX_ROW_BYTES, PublicCapture,
-        json as strict_json,
+        CreationState, CreationStateHold, MAX_ROW_BYTES, PublicCapture, json as strict_json,
     },
+    d1_public_header::{HeaderCounts, ValidatedGraphSemantics},
     knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, WritePhase},
 };
 use rusqlite::{OptionalExtension, Row, Statement, params, types::ValueRef};
@@ -400,21 +399,31 @@ fn record_cardinality(
 // every ordinary ASCII ID as if every byte required a six-byte JSON escape.
 fn semantic_gap_encoded_len(id: &str, kind: &str) -> Result<usize> {
     #[derive(serde::Serialize)]
-    struct Gap<'a> { id: &'a str, kind: &'a str }
+    struct Gap<'a> {
+        id: &'a str,
+        kind: &'a str,
+    }
     struct Count(usize);
     impl std::io::Write for Count {
         fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-            self.0 = self.0.checked_add(bytes.len())
+            self.0 = self
+                .0
+                .checked_add(bytes.len())
                 .ok_or_else(|| std::io::Error::other("semantic gap size overflow"))?;
             Ok(bytes.len())
         }
-        fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
     }
     let mut count = Count(0);
     serde_json::to_writer(&mut count, &Gap { id, kind })
         .map_err(|_| Error::Budget("public D1 semantic report bytes"))?;
     // One separator per element is a conservative allowance for the array.
-    count.0.checked_add(1).ok_or(Error::Budget("public D1 semantic report bytes"))
+    count
+        .0
+        .checked_add(1)
+        .ok_or(Error::Budget("public D1 semantic report bytes"))
 }
 
 fn push_gap(
@@ -1728,6 +1737,7 @@ pub(crate) fn validate_public_semantics(
         entity_bytes,
         relation_bytes,
         state,
+        None,
     )
 }
 
@@ -1737,6 +1747,7 @@ pub(crate) fn validate_native_snapshot_semantics(
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     relation_bytes: &[u8],
+    catalog: Option<&mut crate::catalog::CatalogReduction<'_, '_, '_>>,
 ) -> Result<ValidatedGraphSemantics> {
     if stage.public_build()
         || stage.exact_receipt()?.binding.owner_profile != "tos-native-projection-snapshot-v1"
@@ -1751,6 +1762,7 @@ pub(crate) fn validate_native_snapshot_semantics(
         entity_bytes,
         relation_bytes,
         state,
+        catalog,
     )
 }
 
@@ -1761,6 +1773,7 @@ fn validate_public_semantics_captured(
     entity_bytes: &[u8],
     relation_bytes: &[u8],
     state: Option<&CreationState<'_>>,
+    catalog: Option<&mut crate::catalog::CatalogReduction<'_, '_, '_>>,
 ) -> Result<ValidatedGraphSemantics> {
     let registry_work = entity_bytes
         .len()
@@ -1792,6 +1805,7 @@ fn validate_public_semantics_captured(
                     &entity,
                     &relation,
                     Some(state),
+                    catalog,
                 )
             })
         });
@@ -1800,7 +1814,7 @@ fn validate_public_semantics_captured(
         .map_err(|_| Error::Invalid("public D1 entity registry JSON"))?;
     let relation: Value = serde_json::from_slice(relation_bytes)
         .map_err(|_| Error::Invalid("public D1 relation registry JSON"))?;
-    validate_public_semantics_values(stage, capture, registry, &entity, &relation, None)
+    validate_public_semantics_values(stage, capture, registry, &entity, &relation, None, catalog)
 }
 
 fn validate_public_semantics_values(
@@ -1810,6 +1824,7 @@ fn validate_public_semantics_values(
     entity: &Value,
     relation: &Value,
     state: Option<&CreationState<'_>>,
+    mut catalog: Option<&mut crate::catalog::CatalogReduction<'_, '_, '_>>,
 ) -> Result<ValidatedGraphSemantics> {
     let entries_bytes = if let Some(state) = state {
         let bytes = registry_entries_owned_state(entity, "types", "type_id", state)?
@@ -1885,7 +1900,7 @@ fn validate_public_semantics_values(
         let mut claim_edges = db.prepare("SELECT to_id FROM knowledge_relations WHERE from_id=?1 AND relation_type_id=?2 LIMIT 2")?;
         let mut supporting_lookup = db.prepare("SELECT source_graph,id FROM knowledge_nodes WHERE entity_id=?1 AND type_id='tos.entity.claim'")?;
         {
-            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,type_id,entity_id,source_graph,payload_codec,source_packet_sha256 FROM knowledge_nodes ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,type_id,entity_id,source_graph FROM knowledge_nodes ORDER BY source_order" })?;
+            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,type_id,entity_id,source_graph,payload_codec,source_packet_sha256,id,kind_id,source_order FROM knowledge_nodes ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,type_id,entity_id,source_graph,0,NULL,id,kind_id,source_order FROM knowledge_nodes ORDER BY source_order" })?;
             let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
             while let Some(row) = rows.next()? {
                 if let Some(state) = state {
@@ -1920,6 +1935,9 @@ fn validate_public_semantics_values(
                         hierarchy_edges,
                     )?;
                     header_counts.observe(0, stored_source, value, state)?;
+                    if let Some(reduction)=catalog.as_deref_mut() {
+                        reduction.node(db,value,sql_text_ref(row,8)?,stored_source,sql_text_ref(row,9)?,stored_type,row.get(10)?, row.get(0)?)?;
+                    }
                     let type_id = string(value, "type_id").unwrap_or("");
                     registered_nodes += u64::from(entities.contains_key(type_id));
                     unmapped_nodes += u64::from(type_id == registry.fallback_entity_type_id());
@@ -2045,7 +2063,7 @@ fn validate_public_semantics_values(
             }
         }
         {
-            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,payload_codec,source_packet_sha256 FROM knowledge_relations ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order FROM knowledge_relations ORDER BY source_order" })?;
+            let mut statement = db.prepare(if layout.uses_carriers() { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)<=?1+17 THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,payload_codec,source_packet_sha256,id,predicate_id FROM knowledge_relations ORDER BY source_order" } else { "SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order,0,NULL,id,predicate_id FROM knowledge_relations ORDER BY source_order" })?;
             let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
             while let Some(row) = rows.next()? {
                 if let Some(state) = state {
@@ -2075,6 +2093,9 @@ fn validate_public_semantics_values(
                         return Err(Error::Invalid("public D1 indexed relation identity"));
                     }
                     header_counts.observe(1, stored_source, value, state)?;
+                    if let Some(reduction)=catalog.as_deref_mut() {
+                        reduction.relation(db,value,sql_text_ref(row,10)?,stored_source,stored_from,stored_to,sql_text_ref(row,11)?,stored_type,source_order, row.get(0)?)?;
+                    }
                     let id = string(value, "id").ok_or(Error::Invalid("public D1 relation ID"))?;
                     let relation_type = string(value, "relation_type_id")
                         .ok_or(Error::Invalid("public D1 relation type"))?;
@@ -2566,7 +2587,9 @@ fn validate_public_semantics_values(
         report.insert(name.into(), Value::from(count));
     }
     report.insert("gaps".into(), Value::Array(gaps));
-    if let Some(state) = state { state.retain(128 + std::mem::size_of::<crate::knowledge_stage::CoreRoots>())?; }
+    if let Some(state) = state {
+        state.retain(128 + std::mem::size_of::<crate::knowledge_stage::CoreRoots>())?;
+    }
     ValidatedGraphSemantics::new(Value::Object(report), header_counts, stage.core_roots()?)
 }
 
@@ -2575,10 +2598,16 @@ mod report_tests {
     use super::*;
     #[test]
     fn report_width_counts_real_json_escaping_and_keeps_all_gaps() {
-        for id in ["philosophy:edge:example", "\0\n\r\t\u{8}\u{c}\"\\", "Русский Größe 🦉\u{2028}"] {
+        for id in [
+            "philosophy:edge:example",
+            "\0\n\r\t\u{8}\u{c}\"\\",
+            "Русский Größe 🦉\u{2028}",
+        ] {
             let gap = json!({"id":id,"kind":"review-not-recorded"});
-            assert_eq!(semantic_gap_encoded_len(id, "review-not-recorded").unwrap(),
-                serde_json::to_vec(&gap).unwrap().len() + 1);
+            assert_eq!(
+                semantic_gap_encoded_len(id, "review-not-recorded").unwrap(),
+                serde_json::to_vec(&gap).unwrap().len() + 1
+            );
         }
         let mut bytes = 256usize;
         let mut old_bound = 256usize;

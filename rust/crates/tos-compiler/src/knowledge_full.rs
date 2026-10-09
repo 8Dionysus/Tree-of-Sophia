@@ -32,7 +32,7 @@ pub struct FullKnowledgeReceipt {
     pub seal: KnowledgeSealReceipt,
 }
 
-fn registry_value(
+pub(crate) fn registry_value(
     raw: &[u8],
     expected_sha256: &str,
     cap: usize,
@@ -73,6 +73,32 @@ pub fn compile_full_knowledge_components(
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
 ) -> Result<FullKnowledgeReceipt> {
+    compile_full_knowledge_components_prepared(
+        stage,
+        graph_header,
+        registry,
+        entity_registry_bytes,
+        relation_registry_bytes,
+        saved_lenses,
+        vocabulary,
+        descriptor_bytes,
+        limits,
+        None,
+    )
+}
+
+pub(crate) fn compile_full_knowledge_components_prepared(
+    stage: &mut KnowledgeStage<'_>,
+    graph_header: &Value,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    relation_registry_bytes: &[u8],
+    saved_lenses: &[Value],
+    vocabulary: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    limits: FullKnowledgeLimits,
+    prepared: Option<crate::catalog::PreparedCatalog>,
+) -> Result<FullKnowledgeReceipt> {
     if stage.public_build() {
         return Err(Error::Invalid(
             "public D1 stage cannot compile selected full model",
@@ -88,6 +114,7 @@ pub fn compile_full_knowledge_components(
         vocabulary,
         descriptor_bytes,
         limits,
+        prepared,
     );
     if result.is_err() {
         stage.poison();
@@ -106,6 +133,7 @@ fn compile_inner(
     vocabulary: &QueryVocabulary,
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
+    prepared: Option<crate::catalog::PreparedCatalog>,
 ) -> Result<FullKnowledgeReceipt> {
     if let Some(creation) = stage.owned_creation_state() {
         vocabulary.verify_authored_bytes_with_owned_state(descriptor_bytes, creation)?;
@@ -132,20 +160,23 @@ fn compile_inner(
     // copy. Capture it before taking the mutable SQLite connection.
     let creation = stage.owned_creation_state();
     let payload_layout = stage.payload_layout();
-    let packet: CatalogReceipt = stage.with_connection(WritePhase::Catalog, |db| {
-        compile_catalog_with_state(
-            db,
-            graph_header,
-            &entity,
-            &relation,
-            saved_lenses,
-            vocabulary,
-            descriptor_bytes,
-            limits.catalog,
-            creation,
-            payload_layout,
-        )
-    })?;
+    let packet: CatalogReceipt = match prepared {
+        Some(prepared) => prepared.into_packet(stage, graph_header, vocabulary, registry)?,
+        None => stage.with_connection(WritePhase::Catalog, |db| {
+            compile_catalog_with_state(
+                db,
+                graph_header,
+                &entity,
+                &relation,
+                saved_lenses,
+                vocabulary,
+                descriptor_bytes,
+                limits.catalog,
+                creation,
+                payload_layout,
+            )
+        })?,
+    };
     let catalog = materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)?;
     let search = build_search_index(stage, limits.search)?;
     let seal = seal_knowledge_model(
@@ -173,16 +204,27 @@ mod tests {
     #[test]
     fn complete_large_semantic_report_survives_seal_cold_read_and_restore() {
         use serde_json::json;
-        let gaps = (0..11_692).map(|i| json!({
-            "id":format!("philosophy:edge:candidate-relation:table-i-a001-relation-{i:05}"),
-            "kind":"review-not-recorded"
-        })).collect::<Vec<_>>();
+        let gaps = (0..11_692)
+            .map(|i| {
+                json!({
+                    "id":format!("philosophy:edge:candidate-relation:table-i-a001-relation-{i:05}"),
+                    "kind":"review-not-recorded"
+                })
+            })
+            .collect::<Vec<_>>();
         let report = json!({"valid":true,"violations":[],"gaps":gaps});
-        let mut fixture = crate::knowledge_full_fixture::build_fixture_with_semantic_report(Some(report.clone()));
+        let mut fixture =
+            crate::knowledge_full_fixture::build_fixture_with_semantic_report(Some(report.clone()));
         let read = |fixture: &crate::knowledge_full_fixture::FullKnowledgeFixture| {
             let selected = fixture.open().unwrap();
-            let raw: Vec<u8> = selected.connection().query_row(
-                "SELECT packet FROM graph_header WHERE singleton=1", [], |r| r.get(0)).unwrap();
+            let raw: Vec<u8> = selected
+                .connection()
+                .query_row(
+                    "SELECT packet FROM graph_header WHERE singleton=1",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
             assert!(raw.len() > 1024 * 1024);
             assert!(raw.len() < crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES);
             let header: serde_json::Value = serde_json::from_slice(&raw).unwrap();

@@ -1235,6 +1235,128 @@ fn valid_order(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
+fn ingest_nodes_value(
+    db: &Connection,
+    item: &Value,
+    entity_entries: &RegistryEntries<'_, '_, '_>,
+    fallback_type: &str,
+    route_defs: &[Route],
+    facets: &FacetNames<'_, '_, '_>,
+    id: &str,
+    source: &str,
+    kind: &str,
+    type_id: &str,
+    order: i64,
+    creation: Option<&CreationState<'_>>,
+) -> Result<()> {
+    ensure_row(item, id, source)?;
+    if text(item, "kind_id")? != kind || text(item, "type_id")? != type_id {
+        return Err(Error::Invalid("catalog node columns"));
+    }
+    if !entity_entries.contains_key(type_id) && type_id != fallback_type {
+        return Err(Error::Invalid("node type bypasses registry fallback"));
+    }
+    surface(db, NODE, item, order, &facets.names, creation)?;
+    count(db, NODE, "total", "", "", "")?;
+    count(db, NODE, "group", kind, "", "")?;
+    count(db, NODE, "type", type_id, "", "")?;
+    count(db, NODE, "group-type", kind, type_id, "")?;
+    let status = py_string_optional(path(item, "type_mapping.status"), creation)?;
+    count(db, NODE, "group-status", kind, &status.value, "")?;
+    if matches!(status.value.as_str(), "mapped" | "unmapped") {
+        count(db, NODE, "mapping", &status.value, "", "")?;
+    }
+    post(
+        db,
+        NODE,
+        "representative",
+        kind,
+        path(item, "display.kind_label").ok_or(Error::Invalid("node kind label"))?,
+        order,
+        0,
+        creation,
+    )?;
+    count(db, NODE, "source", source, "", "")?;
+    let state = py_string_optional(path(item, "display.summary_state"), creation)?;
+    count(db, NODE, "summary-state", &state.value, "", "")?;
+    if path(item, "display.provenance.source_summary_available") == Some(&Value::Bool(false)) {
+        count(db, NODE, "without-source", "", "", "")?;
+    }
+    if let Some(claim_type) = path(item, "semantics.claim.relation_type_id")
+        .and_then(Value::as_str)
+        .filter(|s| !s.is_empty())
+    {
+        count(db, NODE, "claim-type", claim_type, "", "")?;
+    }
+    let route_hold_bytes = route_defs.iter().try_fold(
+        route_defs
+            .len()
+            .checked_mul(2 * std::mem::size_of::<String>())
+            .ok_or(Error::Budget("catalog route row"))?,
+        |sum, route| {
+            sum.checked_add(
+                route
+                    .id
+                    .len()
+                    .checked_mul(2)
+                    .ok_or(Error::Budget("catalog route row"))?,
+            )
+            .ok_or(Error::Budget("catalog route row"))
+        },
+    )?;
+    let _route_row_hold = creation
+        .map(|owner| owner.hold(route_hold_bytes))
+        .transpose()?;
+    if let Some(owner) = creation {
+        owner.charge_work(route_hold_bytes)?;
+    }
+    let mut legacy = Vec::new();
+    legacy
+        .try_reserve_exact(route_defs.len())
+        .map_err(|_| Error::Budget("catalog route row"))?;
+    let mut typed = Vec::new();
+    typed
+        .try_reserve_exact(route_defs.len())
+        .map_err(|_| Error::Budget("catalog route row"))?;
+    for route in route_defs {
+        if route.kinds.iter().any(|k| k == kind) {
+            legacy.push(route.id.clone());
+        }
+        if !route.types.is_empty() && type_is_a(type_id, &route.types, entity_entries, creation)? {
+            typed.push(route.id.clone());
+            count(db, NODE, "route-type", &route.id, type_id, "")?;
+        }
+    }
+    if let Some(owner) = creation {
+        owner.with_json_encoded(&legacy, owner.remaining(0)?, |legacy_bytes| {
+            owner.charge_work(legacy_bytes.len())?;
+            owner.with_json_encoded(&typed, owner.remaining(0)?, |typed_bytes| {
+                owner.charge_work(typed_bytes.len())?;
+                let legacy = std::str::from_utf8(legacy_bytes)
+                    .map_err(|_| Error::Invalid("catalog routes JSON"))?;
+                let typed = std::str::from_utf8(typed_bytes)
+                    .map_err(|_| Error::Invalid("catalog routes JSON"))?;
+                db.execute(
+                    "INSERT INTO temp.cmp_catalog_node_routes VALUES(?1,?2,?3)",
+                    params![id, legacy, typed],
+                )?;
+                Ok(())
+            })
+        })?;
+    } else {
+        let legacy_json =
+            serde_json::to_string(&legacy).map_err(|_| Error::Invalid("catalog routes JSON"))?;
+        let typed_json =
+            serde_json::to_string(&typed).map_err(|_| Error::Invalid("catalog routes JSON"))?;
+        db.execute(
+            "INSERT INTO temp.cmp_catalog_node_routes VALUES(?1,?2,?3)",
+            params![id, legacy_json, typed_json],
+        )?;
+    }
+    Ok(())
+}
+
 fn ingest_nodes(
     db: &Connection,
     vocab: &Value,
@@ -1244,8 +1366,8 @@ fn ingest_nodes(
     limits: CatalogLimits,
     creation: Option<&CreationState<'_>>,
     layout: KnowledgePayloadLayout,
+    facets: &FacetNames<'_, '_, '_>,
 ) -> Result<u64> {
-    let facets = facet_names(vocab, NODE, creation)?;
     let codec_fields = if layout.uses_carriers() {
         "payload_codec,source_packet_sha256"
     } else {
@@ -1370,115 +1492,20 @@ fn ingest_nodes(
             "catalog node JSON",
             creation,
             |item| {
-                ensure_row(item, &id, &source)?;
-                if text(item, "kind_id")? != kind || text(item, "type_id")? != type_id {
-                    return Err(Error::Invalid("catalog node columns"));
-                }
-                if !entity_entries.contains_key(type_id.as_str()) && type_id != fallback_type {
-                    return Err(Error::Invalid("node type bypasses registry fallback"));
-                }
-                surface(db, NODE, item, order, &facets.names, creation)?;
-                count(db, NODE, "total", "", "", "")?;
-                count(db, NODE, "group", &kind, "", "")?;
-                count(db, NODE, "type", &type_id, "", "")?;
-                count(db, NODE, "group-type", &kind, &type_id, "")?;
-                let status = py_string_optional(path(item, "type_mapping.status"), creation)?;
-                count(db, NODE, "group-status", &kind, &status.value, "")?;
-                if matches!(status.value.as_str(), "mapped" | "unmapped") {
-                    count(db, NODE, "mapping", &status.value, "", "")?;
-                }
-                post(
+                ingest_nodes_value(
                     db,
-                    NODE,
-                    "representative",
+                    item,
+                    entity_entries,
+                    fallback_type,
+                    route_defs,
+                    &facets,
+                    &id,
+                    &source,
                     &kind,
-                    path(item, "display.kind_label").ok_or(Error::Invalid("node kind label"))?,
+                    &type_id,
                     order,
-                    0,
                     creation,
-                )?;
-                count(db, NODE, "source", &source, "", "")?;
-                let state = py_string_optional(path(item, "display.summary_state"), creation)?;
-                count(db, NODE, "summary-state", &state.value, "", "")?;
-                if path(item, "display.provenance.source_summary_available")
-                    == Some(&Value::Bool(false))
-                {
-                    count(db, NODE, "without-source", "", "", "")?;
-                }
-                if let Some(claim_type) = path(item, "semantics.claim.relation_type_id")
-                    .and_then(Value::as_str)
-                    .filter(|s| !s.is_empty())
-                {
-                    count(db, NODE, "claim-type", claim_type, "", "")?;
-                }
-                let route_hold_bytes = route_defs.iter().try_fold(
-                    route_defs
-                        .len()
-                        .checked_mul(2 * std::mem::size_of::<String>())
-                        .ok_or(Error::Budget("catalog route row"))?,
-                    |sum, route| {
-                        sum.checked_add(
-                            route
-                                .id
-                                .len()
-                                .checked_mul(2)
-                                .ok_or(Error::Budget("catalog route row"))?,
-                        )
-                        .ok_or(Error::Budget("catalog route row"))
-                    },
-                )?;
-                let _route_row_hold = creation
-                    .map(|owner| owner.hold(route_hold_bytes))
-                    .transpose()?;
-                if let Some(owner) = creation {
-                    owner.charge_work(route_hold_bytes)?;
-                }
-                let mut legacy = Vec::new();
-                legacy
-                    .try_reserve_exact(route_defs.len())
-                    .map_err(|_| Error::Budget("catalog route row"))?;
-                let mut typed = Vec::new();
-                typed
-                    .try_reserve_exact(route_defs.len())
-                    .map_err(|_| Error::Budget("catalog route row"))?;
-                for route in route_defs {
-                    if route.kinds.iter().any(|k| k == &kind) {
-                        legacy.push(route.id.clone());
-                    }
-                    if !route.types.is_empty()
-                        && type_is_a(&type_id, &route.types, entity_entries, creation)?
-                    {
-                        typed.push(route.id.clone());
-                        count(db, NODE, "route-type", &route.id, &type_id, "")?;
-                    }
-                }
-                if let Some(owner) = creation {
-                    owner.with_json_encoded(&legacy, owner.remaining(0)?, |legacy_bytes| {
-                        owner.charge_work(legacy_bytes.len())?;
-                        owner.with_json_encoded(&typed, owner.remaining(0)?, |typed_bytes| {
-                            owner.charge_work(typed_bytes.len())?;
-                            let legacy = std::str::from_utf8(legacy_bytes)
-                                .map_err(|_| Error::Invalid("catalog routes JSON"))?;
-                            let typed = std::str::from_utf8(typed_bytes)
-                                .map_err(|_| Error::Invalid("catalog routes JSON"))?;
-                            db.execute(
-                                "INSERT INTO temp.cmp_catalog_node_routes VALUES(?1,?2,?3)",
-                                params![id, legacy, typed],
-                            )?;
-                            Ok(())
-                        })
-                    })?;
-                } else {
-                    let legacy_json = serde_json::to_string(&legacy)
-                        .map_err(|_| Error::Invalid("catalog routes JSON"))?;
-                    let typed_json = serde_json::to_string(&typed)
-                        .map_err(|_| Error::Invalid("catalog routes JSON"))?;
-                    db.execute(
-                        "INSERT INTO temp.cmp_catalog_node_routes VALUES(?1,?2,?3)",
-                        params![id, legacy_json, typed_json],
-                    )?;
-                }
-                Ok(())
+                )
             },
         )?;
     }
@@ -1582,6 +1609,149 @@ fn with_endpoint_routes<T>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+fn ingest_relations_value(
+    db: &Connection,
+    item: &Value,
+    relation_entries: &RegistryEntries<'_, '_, '_>,
+    fallback_type: &str,
+    route_defs: &[Route],
+    cross_source_ids: &[Value],
+    facets: &FacetNames<'_, '_, '_>,
+    id: &str,
+    source: &str,
+    from: &str,
+    to: &str,
+    predicate: &str,
+    type_id: &str,
+    order: i64,
+    creation: Option<&CreationState<'_>>,
+) -> Result<()> {
+    ensure_row(item, id, source)?;
+    for (key, expected) in [
+        ("from_id", from),
+        ("to_id", to),
+        ("predicate_id", predicate),
+        ("relation_type_id", type_id),
+    ] {
+        if text(item, key)? != expected {
+            return Err(Error::Invalid("catalog relation columns"));
+        }
+    }
+    if !relation_entries.contains_key(type_id) && type_id != fallback_type {
+        return Err(Error::Invalid("relation type bypasses registry fallback"));
+    }
+    surface(db, RELATION, item, order, &facets.names, creation)?;
+    count(db, RELATION, "total", "", "", "")?;
+    count(db, RELATION, "group", predicate, "", "")?;
+    count(db, RELATION, "type", type_id, "", "")?;
+    count(db, RELATION, "group-type", predicate, type_id, "")?;
+    let status = py_string_optional(path(item, "predicate_mapping.status"), creation)?;
+    count(db, RELATION, "group-status", predicate, &status.value, "")?;
+    if matches!(status.value.as_str(), "mapped" | "unmapped") {
+        count(db, RELATION, "mapping", &status.value, "", "")?;
+    }
+    post(
+        db,
+        RELATION,
+        "representative",
+        predicate,
+        path(item, "display.label").ok_or(Error::Invalid("relation label"))?,
+        order,
+        0,
+        creation,
+    )?;
+    let state = py_string_optional(path(item, "display.explanation_state"), creation)?;
+    count(db, RELATION, "explanation-state", &state.value, "", "")?;
+    if path(item, "display.provenance.source_explanation_available") == Some(&Value::Bool(false)) {
+        count(db, RELATION, "without-source", "", "", "")?;
+    }
+    if let Some(owner) = creation {
+        let cross_source_work = cross_source_ids
+            .len()
+            .checked_mul(
+                source
+                    .len()
+                    .checked_add(std::mem::size_of::<Value>() + 32)
+                    .ok_or(Error::Budget("catalog cross-source lookup work"))?,
+            )
+            .ok_or(Error::Budget("catalog cross-source lookup work"))?;
+        owner.charge_work(cross_source_work)?;
+    }
+    if cross_source_ids.iter().any(|source_definition| {
+        source_definition.get("input_role").and_then(Value::as_str)
+            == Some("derived-cross-source-join")
+            && source_definition
+                .get("source_graph_id")
+                .and_then(Value::as_str)
+                == Some(source)
+    }) {
+        count(db, RELATION, "cross-layer", "", "", "")?;
+    }
+    with_endpoint_routes(db, from, creation, |left_l, left_t| {
+        with_endpoint_routes(db, to, creation, |right_l, right_t| {
+            if let Some(owner) = creation {
+                owner.charge_work(
+                    route_defs
+                        .len()
+                        .checked_mul(std::mem::size_of::<Route>())
+                        .ok_or(Error::Budget("catalog relation route work"))?,
+                )?;
+                let refs = left_l
+                    .len()
+                    .checked_add(right_l.len())
+                    .and_then(|n| n.checked_add(left_t.len()))
+                    .and_then(|n| n.checked_add(right_t.len()))
+                    .ok_or(Error::Budget("catalog relation route work"))?;
+                let mut route_work = 0usize;
+                for route in route_defs {
+                    let predicate_work =
+                        route.predicates.iter().try_fold(0usize, |sum, value| {
+                            sum.checked_add(value.len())
+                                .and_then(|n| n.checked_add(predicate.len()))
+                                .ok_or(Error::Budget("catalog relation route work"))
+                        })?;
+                    let relation_type_work =
+                        route.relation_types.iter().try_fold(0usize, |sum, value| {
+                            sum.checked_add(value.len())
+                                .and_then(|n| n.checked_add(type_id.len()))
+                                .ok_or(Error::Budget("catalog relation route work"))
+                        })?;
+                    let endpoint_work = refs
+                        .checked_mul(
+                            route
+                                .id
+                                .len()
+                                .checked_add(8)
+                                .ok_or(Error::Budget("catalog relation route work"))?,
+                        )
+                        .ok_or(Error::Budget("catalog relation route work"))?;
+                    route_work = route_work
+                        .checked_add(predicate_work)
+                        .and_then(|n| n.checked_add(relation_type_work))
+                        .and_then(|n| n.checked_add(endpoint_work))
+                        .ok_or(Error::Budget("catalog relation route work"))?;
+                }
+                owner.charge_work(route_work)?;
+            }
+            for route in route_defs {
+                if route.predicates.iter().any(|v| v == predicate)
+                    && (left_l.contains(&route.id.as_str()) || right_l.contains(&route.id.as_str()))
+                {
+                    count(db, RELATION, "route-predicate", &route.id, predicate, "")?;
+                }
+                if route.relation_types.iter().any(|v| v == type_id)
+                    && (left_t.contains(&route.id.as_str()) || right_t.contains(&route.id.as_str()))
+                {
+                    count(db, RELATION, "route-type", &route.id, type_id, "")?;
+                }
+            }
+            Ok(())
+        })
+    })?;
+    Ok(())
+}
+
 fn ingest_relations(
     db: &Connection,
     vocab: &Value,
@@ -1592,8 +1762,8 @@ fn ingest_relations(
     limits: CatalogLimits,
     creation: Option<&CreationState<'_>>,
     layout: KnowledgePayloadLayout,
+    facets: &FacetNames<'_, '_, '_>,
 ) -> Result<u64> {
-    let facets = facet_names(vocab, RELATION, creation)?;
     let codec_fields = if layout.uses_carriers() {
         "payload_codec,source_packet_sha256"
     } else {
@@ -1715,135 +1885,23 @@ fn ingest_relations(
             "catalog relation JSON",
             creation,
             |item| {
-                ensure_row(item, &id, &source)?;
-                for (key, expected) in [
-                    ("from_id", &from),
-                    ("to_id", &to),
-                    ("predicate_id", &predicate),
-                    ("relation_type_id", &type_id),
-                ] {
-                    if text(item, key)? != expected {
-                        return Err(Error::Invalid("catalog relation columns"));
-                    }
-                }
-                if !relation_entries.contains_key(type_id.as_str()) && type_id != fallback_type {
-                    return Err(Error::Invalid("relation type bypasses registry fallback"));
-                }
-                surface(db, RELATION, item, order, &facets.names, creation)?;
-                count(db, RELATION, "total", "", "", "")?;
-                count(db, RELATION, "group", &predicate, "", "")?;
-                count(db, RELATION, "type", &type_id, "", "")?;
-                count(db, RELATION, "group-type", &predicate, &type_id, "")?;
-                let status = py_string_optional(path(item, "predicate_mapping.status"), creation)?;
-                count(db, RELATION, "group-status", &predicate, &status.value, "")?;
-                if matches!(status.value.as_str(), "mapped" | "unmapped") {
-                    count(db, RELATION, "mapping", &status.value, "", "")?;
-                }
-                post(
+                ingest_relations_value(
                     db,
-                    RELATION,
-                    "representative",
+                    item,
+                    relation_entries,
+                    fallback_type,
+                    route_defs,
+                    cross_source_ids,
+                    &facets,
+                    &id,
+                    &source,
+                    &from,
+                    &to,
                     &predicate,
-                    path(item, "display.label").ok_or(Error::Invalid("relation label"))?,
+                    &type_id,
                     order,
-                    0,
                     creation,
-                )?;
-                let state = py_string_optional(path(item, "display.explanation_state"), creation)?;
-                count(db, RELATION, "explanation-state", &state.value, "", "")?;
-                if path(item, "display.provenance.source_explanation_available")
-                    == Some(&Value::Bool(false))
-                {
-                    count(db, RELATION, "without-source", "", "", "")?;
-                }
-                if let Some(owner) = creation {
-                    let cross_source_work = cross_source_ids
-                        .len()
-                        .checked_mul(
-                            source
-                                .len()
-                                .checked_add(std::mem::size_of::<Value>() + 32)
-                                .ok_or(Error::Budget("catalog cross-source lookup work"))?,
-                        )
-                        .ok_or(Error::Budget("catalog cross-source lookup work"))?;
-                    owner.charge_work(cross_source_work)?;
-                }
-                if cross_source_ids.iter().any(|source_definition| {
-                    source_definition.get("input_role").and_then(Value::as_str)
-                        == Some("derived-cross-source-join")
-                        && source_definition
-                            .get("source_graph_id")
-                            .and_then(Value::as_str)
-                            == Some(source.as_str())
-                }) {
-                    count(db, RELATION, "cross-layer", "", "", "")?;
-                }
-                with_endpoint_routes(db, &from, creation, |left_l, left_t| {
-                    with_endpoint_routes(db, &to, creation, |right_l, right_t| {
-                        if let Some(owner) = creation {
-                            owner.charge_work(
-                                route_defs
-                                    .len()
-                                    .checked_mul(std::mem::size_of::<Route>())
-                                    .ok_or(Error::Budget("catalog relation route work"))?,
-                            )?;
-                            let refs = left_l
-                                .len()
-                                .checked_add(right_l.len())
-                                .and_then(|n| n.checked_add(left_t.len()))
-                                .and_then(|n| n.checked_add(right_t.len()))
-                                .ok_or(Error::Budget("catalog relation route work"))?;
-                            let mut route_work = 0usize;
-                            for route in route_defs {
-                                let predicate_work =
-                                    route.predicates.iter().try_fold(0usize, |sum, value| {
-                                        sum.checked_add(value.len())
-                                            .and_then(|n| n.checked_add(predicate.len()))
-                                            .ok_or(Error::Budget("catalog relation route work"))
-                                    })?;
-                                let relation_type_work = route.relation_types.iter().try_fold(
-                                    0usize,
-                                    |sum, value| {
-                                        sum.checked_add(value.len())
-                                            .and_then(|n| n.checked_add(type_id.len()))
-                                            .ok_or(Error::Budget("catalog relation route work"))
-                                    },
-                                )?;
-                                let endpoint_work = refs
-                                    .checked_mul(
-                                        route
-                                            .id
-                                            .len()
-                                            .checked_add(8)
-                                            .ok_or(Error::Budget("catalog relation route work"))?,
-                                    )
-                                    .ok_or(Error::Budget("catalog relation route work"))?;
-                                route_work = route_work
-                                    .checked_add(predicate_work)
-                                    .and_then(|n| n.checked_add(relation_type_work))
-                                    .and_then(|n| n.checked_add(endpoint_work))
-                                    .ok_or(Error::Budget("catalog relation route work"))?;
-                            }
-                            owner.charge_work(route_work)?;
-                        }
-                        for route in route_defs {
-                            if route.predicates.iter().any(|v| v == &predicate)
-                                && (left_l.contains(&route.id.as_str())
-                                    || right_l.contains(&route.id.as_str()))
-                            {
-                                count(db, RELATION, "route-predicate", &route.id, &predicate, "")?;
-                            }
-                            if route.relation_types.iter().any(|v| v == &type_id)
-                                && (left_t.contains(&route.id.as_str())
-                                    || right_t.contains(&route.id.as_str()))
-                            {
-                                count(db, RELATION, "route-type", &route.id, &type_id, "")?;
-                            }
-                        }
-                        Ok(())
-                    })
-                })?;
-                Ok(())
+                )
             },
         )?;
     }
@@ -2944,126 +3002,394 @@ pub(crate) fn compile_catalog_with_state(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compile_catalog_from_descriptor(
-    db: &mut Connection,
-    graph_header: &Value,
-    entity_registry: &Value,
-    relation_registry: &Value,
-    saved_lenses: &[Value],
-    vocabulary: &QueryVocabulary,
-    descriptor: &Value,
-    limits: CatalogLimits,
+/// Internal token tied to the final core and the exact header/configuration.
+/// Only the shared row reduction can create it; it is not stored in the model.
+pub(crate) struct PreparedCatalog {
+    packet: CatalogReceipt,
+    roots: crate::knowledge_stage::CoreRoots,
+    header: Digest256,
+    descriptor: String,
+    entity: String,
+    relation: String,
+}
+fn prepared_header_digest(
+    header: &Value,
     creation: Option<&CreationState<'_>>,
-    layout: KnowledgePayloadLayout,
-) -> Result<CatalogReceipt> {
-    if text(entity_registry, "registry_id")? != vocabulary.entity_registry_id
-        || text(relation_registry, "registry_id")? != vocabulary.relation_registry_id
-    {
-        return Err(Error::Invalid("catalog registry identity"));
+) -> Result<Digest256> {
+    let cap = crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES;
+    match creation {
+        Some(state) => state.with_json_encoded(header, cap, |raw| {
+            state.charge_work(raw.len())?;
+            Ok(Digest256::of_bytes(raw))
+        }),
+        None => Ok(Digest256::of_bytes(&crate::knowledge_seal::canonical(
+            header, cap,
+        )?)),
     }
-    if descriptor
-        .get("catalog")
-        .and_then(|v| v.get("canonical_order"))
-        .and_then(Value::as_str)
-        != Some("source-graph-id-v1")
-    {
-        return Err(Error::Invalid("catalog source order profile"));
-    }
-    let entity_entries = registry_entries(entity_registry, "types", "type_id", creation)?;
-    let relation_entries =
-        registry_entries(relation_registry, "relations", "relation_type_id", creation)?;
-    let route_values = array(
-        descriptor
-            .get("overview")
-            .ok_or(Error::Invalid("overview vocabulary"))?,
-        "routes",
-    )?;
-    let mut route_bytes = route_values
-        .len()
-        .checked_mul(std::mem::size_of::<Route>())
-        .ok_or(Error::Budget("catalog route allocation"))?;
-    for route in route_values {
-        for field in [
-            "route_id",
-            "candidate_kind_ids",
-            "confirming_predicate_ids",
-            "candidate_type_ids",
-            "confirming_relation_type_ids",
-        ] {
-            let value = route
-                .get(field)
-                .ok_or(Error::Invalid("catalog route field"))?;
-            let mut bytes = 0usize;
-            match value {
-                Value::String(text) => {
-                    bytes = text.len();
-                }
-                Value::Array(values) => {
-                    bytes = values
-                        .len()
-                        .checked_mul(std::mem::size_of::<String>())
-                        .ok_or(Error::Budget("catalog route allocation"))?;
-                    for value in values {
-                        let text = value
-                            .as_str()
-                            .ok_or(Error::Invalid("catalog route string"))?;
-                        bytes = bytes
-                            .checked_add(text.len())
-                            .ok_or(Error::Budget("catalog route allocation"))?;
-                    }
-                }
-                _ => return Err(Error::Invalid("catalog route field")),
-            }
-            route_bytes = route_bytes
-                .checked_add(bytes)
-                .ok_or(Error::Budget("catalog route allocation"))?;
+}
+impl PreparedCatalog {
+    pub(crate) fn into_packet(
+        self,
+        stage: &mut crate::knowledge_stage::KnowledgeStage<'_>,
+        header: &Value,
+        vocabulary: &QueryVocabulary,
+        registry: &crate::KnowledgeRegistry,
+    ) -> Result<CatalogReceipt> {
+        let actual = stage.core_roots()?;
+        if actual.nodes != self.roots.nodes
+            || actual.relations != self.roots.relations
+            || actual.node_sha256 != self.roots.node_sha256
+            || actual.relation_sha256 != self.roots.relation_sha256
+            || vocabulary.descriptor_sha256 != self.descriptor
+            || registry.entity_sha256 != self.entity
+            || registry.relation_sha256 != self.relation
+            || prepared_header_digest(header, stage.owned_creation_state())? != self.header
+        {
+            return Err(Error::Invalid("prepared catalog final core/header binding"));
         }
+        Ok(self.packet)
     }
-    let _route_hold = creation.map(|owner| owner.hold(route_bytes)).transpose()?;
-    if let Some(creation) = creation {
-        creation.charge_work(route_bytes)?;
-    }
-    let route_defs = routes(descriptor)?;
-    if route_defs
-        .iter()
-        .map(|r| &r.id)
-        .ne(vocabulary.overview_route_ids.iter())
-    {
-        return Err(Error::Invalid("catalog vocabulary route mismatch"));
-    }
-    let original_temp_page_ceiling: u64 =
-        db.query_row("PRAGMA temp.max_page_count", [], |r| r.get(0))?;
-    db.execute_batch("SAVEPOINT cmp_catalog_build")?;
-    let result = (|| {
-        stage(db, limits)?;
-        let nodes = ingest_nodes(
-            db,
+}
+
+pub(crate) struct CatalogReduction<'a, 'state, 'budget> {
+    descriptor: &'a Value,
+    entity_registry: &'a Value,
+    relation_registry: &'a Value,
+    entity_entries: RegistryEntries<'a, 'state, 'budget>,
+    relation_entries: RegistryEntries<'a, 'state, 'budget>,
+    route_defs: Vec<Route>,
+    _route_hold: Option<CreationStateHold<'state, 'budget>>,
+    node_facets: FacetNames<'a, 'state, 'budget>,
+    relation_facets: FacetNames<'a, 'state, 'budget>,
+    creation: Option<&'state CreationState<'budget>>,
+    limits: CatalogLimits,
+    nodes: u64,
+    relations: u64,
+    prior_node: Option<(String, String, i64)>,
+    prior_relation: Option<(String, String, i64)>,
+    prior_node_hold: Option<CreationStateHold<'state, 'budget>>,
+    prior_relation_hold: Option<CreationStateHold<'state, 'budget>>,
+}
+impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
+    pub(crate) fn new(
+        entity_registry: &'a Value,
+        relation_registry: &'a Value,
+        descriptor: &'a Value,
+        vocabulary: &QueryVocabulary,
+        limits: CatalogLimits,
+        creation: Option<&'state CreationState<'budget>>,
+    ) -> Result<Self> {
+        if text(entity_registry, "registry_id")? != vocabulary.entity_registry_id
+            || text(relation_registry, "registry_id")? != vocabulary.relation_registry_id
+        {
+            return Err(Error::Invalid("catalog registry identity"));
+        }
+        if descriptor
+            .get("catalog")
+            .and_then(|v| v.get("canonical_order"))
+            .and_then(Value::as_str)
+            != Some("source-graph-id-v1")
+        {
+            return Err(Error::Invalid("catalog source order profile"));
+        }
+        let entity_entries = registry_entries(entity_registry, "types", "type_id", creation)?;
+        let relation_entries =
+            registry_entries(relation_registry, "relations", "relation_type_id", creation)?;
+        let route_values = array(
+            descriptor
+                .get("overview")
+                .ok_or(Error::Invalid("overview vocabulary"))?,
+            "routes",
+        )?;
+        let mut route_bytes = route_values
+            .len()
+            .checked_mul(std::mem::size_of::<Route>())
+            .ok_or(Error::Budget("catalog route allocation"))?;
+        for route in route_values {
+            for field in [
+                "route_id",
+                "candidate_kind_ids",
+                "confirming_predicate_ids",
+                "candidate_type_ids",
+                "confirming_relation_type_ids",
+            ] {
+                let value = route
+                    .get(field)
+                    .ok_or(Error::Invalid("catalog route field"))?;
+                let mut bytes = 0usize;
+                match value {
+                    Value::String(text) => {
+                        bytes = text.len();
+                    }
+                    Value::Array(values) => {
+                        bytes = values
+                            .len()
+                            .checked_mul(std::mem::size_of::<String>())
+                            .ok_or(Error::Budget("catalog route allocation"))?;
+                        for value in values {
+                            let text = value
+                                .as_str()
+                                .ok_or(Error::Invalid("catalog route string"))?;
+                            bytes = bytes
+                                .checked_add(text.len())
+                                .ok_or(Error::Budget("catalog route allocation"))?;
+                        }
+                    }
+                    _ => return Err(Error::Invalid("catalog route field")),
+                }
+                route_bytes = route_bytes
+                    .checked_add(bytes)
+                    .ok_or(Error::Budget("catalog route allocation"))?;
+            }
+        }
+        let _route_hold = creation.map(|owner| owner.hold(route_bytes)).transpose()?;
+        if let Some(creation) = creation {
+            creation.charge_work(route_bytes)?;
+        }
+        let route_defs = routes(descriptor)?;
+        if route_defs
+            .iter()
+            .map(|r| &r.id)
+            .ne(vocabulary.overview_route_ids.iter())
+        {
+            return Err(Error::Invalid("catalog vocabulary route mismatch"));
+        }
+        let node_facets = facet_names(descriptor, NODE, creation)?;
+        let relation_facets = facet_names(descriptor, RELATION, creation)?;
+        Ok(Self {
             descriptor,
-            &entity_entries,
-            text(entity_registry, "fallback_type_id")?,
-            &route_defs,
+            entity_registry,
+            relation_registry,
+            entity_entries,
+            relation_entries,
+            route_defs,
+            _route_hold,
+            node_facets,
+            relation_facets,
+            creation,
             limits,
-            creation,
-            layout,
-        )?;
-        let cross_source_ids = array(descriptor, "sources")?;
-        let relations = ingest_relations(
+            nodes: 0,
+            relations: 0,
+            prior_node: None,
+            prior_relation: None,
+            prior_node_hold: None,
+            prior_relation_hold: None,
+        })
+    }
+    pub(crate) fn begin(&self, db: &Connection) -> Result<u64> {
+        let ceiling: u64 = db.query_row("PRAGMA temp.max_page_count", [], |r| r.get(0))?;
+        db.execute_batch("SAVEPOINT cmp_catalog_build")?;
+        if let Err(error) = stage(db, self.limits) {
+            Self::cleanup(db, ceiling)?;
+            return Err(error);
+        }
+        Ok(ceiling)
+    }
+    pub(crate) fn cleanup(db: &Connection, ceiling: u64) -> Result<()> {
+        db.execute_batch("ROLLBACK TO cmp_catalog_build; RELEASE cmp_catalog_build")?;
+        let restored: u64 =
+            db.query_row(&format!("PRAGMA temp.max_page_count={ceiling}"), [], |r| {
+                r.get(0)
+            })?;
+        if restored != ceiling {
+            return Err(Error::Budget("catalog staging page ceiling restore"));
+        }
+        Ok(())
+    }
+    fn observe(&mut self, relation: bool, id: &str, source: &str, order: i64) -> Result<()> {
+        if !relation && self.relations != 0 {
+            return Err(Error::Invalid("catalog nodes after relations"));
+        }
+        let total = self
+            .nodes
+            .checked_add(self.relations)
+            .and_then(|n| n.checked_add(1))
+            .ok_or(Error::Budget("catalog rows"))?;
+        if total > self.limits.max_rows {
+            return Err(Error::Budget("catalog rows"));
+        }
+        let registered = array(self.descriptor, "sources")?;
+        let bytes = id
+            .len()
+            .checked_add(source.len())
+            .and_then(|n| n.checked_add(64))
+            .ok_or(Error::Budget("catalog source order allocation"))?;
+        let hold = self.creation.map(|owner| owner.hold(bytes)).transpose()?;
+        if let Some(owner) = self.creation {
+            owner.charge_work(bytes)?;
+            owner.charge_work(
+                registered
+                    .len()
+                    .checked_mul(
+                        source
+                            .len()
+                            .checked_add(std::mem::size_of::<&Value>() + 8)
+                            .ok_or(Error::Budget("catalog source lookup work"))?,
+                    )
+                    .ok_or(Error::Budget("catalog source lookup work"))?,
+            )?;
+        }
+        if !registered
+            .iter()
+            .any(|entry| entry.get("source_graph_id").and_then(Value::as_str) == Some(source))
+        {
+            return Err(Error::Invalid("unregistered catalog source"));
+        }
+        if relation {
+            valid_order(&mut self.prior_relation, source, id, order)?;
+            self.prior_relation_hold = hold;
+            self.relations += 1;
+        } else {
+            valid_order(&mut self.prior_node, source, id, order)?;
+            self.prior_node_hold = hold;
+            self.nodes += 1;
+        }
+        Ok(())
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn node(
+        &mut self,
+        db: &Connection,
+        item: &Value,
+        id: &str,
+        source: &str,
+        kind: &str,
+        type_id: &str,
+        order: i64,
+        logical_len: i64,
+    ) -> Result<()> {
+        if logical_len <= 0 || logical_len as u64 > self.limits.max_row_bytes as u64 {
+            return Err(Error::Budget("catalog row bytes"));
+        }
+        if let Some(state) = self.creation {
+            state.charge_work(id.len() + source.len() + kind.len() + type_id.len())?;
+        }
+        self.observe(false, id, source, order)?;
+        ingest_nodes_value(
             db,
-            descriptor,
-            &route_defs,
-            &relation_entries,
-            text(relation_registry, "fallback_relation_type_id")?,
-            &cross_source_ids,
-            CatalogLimits {
-                max_rows: limits
-                    .max_rows
-                    .checked_sub(nodes)
-                    .ok_or(Error::Budget("catalog rows"))?,
-                ..limits
-            },
-            creation,
-            layout,
+            item,
+            &self.entity_entries,
+            text(self.entity_registry, "fallback_type_id")?,
+            &self.route_defs,
+            &self.node_facets,
+            id,
+            source,
+            kind,
+            type_id,
+            order,
+            self.creation,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn relation(
+        &mut self,
+        db: &Connection,
+        item: &Value,
+        id: &str,
+        source: &str,
+        from: &str,
+        to: &str,
+        predicate: &str,
+        type_id: &str,
+        order: i64,
+        logical_len: i64,
+    ) -> Result<()> {
+        if logical_len <= 0 || logical_len as u64 > self.limits.max_row_bytes as u64 {
+            return Err(Error::Budget("catalog row bytes"));
+        }
+        if let Some(state) = self.creation {
+            state.charge_work(
+                id.len() + source.len() + from.len() + to.len() + predicate.len() + type_id.len(),
+            )?;
+        }
+        self.observe(true, id, source, order)?;
+        ingest_relations_value(
+            db,
+            item,
+            &self.relation_entries,
+            text(self.relation_registry, "fallback_relation_type_id")?,
+            &self.route_defs,
+            array(self.descriptor, "sources")?,
+            &self.relation_facets,
+            id,
+            source,
+            from,
+            to,
+            predicate,
+            type_id,
+            order,
+            self.creation,
+        )
+    }
+    pub(crate) fn finish_prepared(
+        &self,
+        stage: &mut crate::knowledge_stage::KnowledgeStage<'_>,
+        graph_header: &Value,
+        saved_lenses: &[Value],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
+        registry: &crate::KnowledgeRegistry,
+    ) -> Result<PreparedCatalog> {
+        if let Some(state) = self.creation {
+            state.charge_work(descriptor_bytes.len())?;
+        }
+        if Digest256::of_bytes(descriptor_bytes).to_hex() != vocabulary.descriptor_sha256 {
+            return Err(Error::Invalid("catalog vocabulary digest"));
+        }
+        input_preflight(
+            graph_header,
+            self.entity_registry,
+            self.relation_registry,
+            saved_lenses,
+            descriptor_bytes,
+            self.limits.max_catalog_bytes,
+            self.creation,
         )?;
+        let packet = stage.with_connection(crate::knowledge_stage::WritePhase::Finalize, |db| {
+            self.finish(db, graph_header, saved_lenses)
+        })?;
+        let roots = stage.core_roots()?;
+        if packet.node_count != roots.nodes || packet.relation_count != roots.relations {
+            return Err(Error::Invalid("catalog reduction completeness"));
+        }
+        let header = prepared_header_digest(graph_header, self.creation)?;
+        if let Some(state) = self.creation {
+            state.retain(
+                vocabulary.descriptor_sha256.len()
+                    + registry.entity_sha256.len()
+                    + registry.relation_sha256.len()
+                    + std::mem::size_of::<PreparedCatalog>(),
+            )?;
+        }
+        Ok(PreparedCatalog {
+            packet,
+            roots,
+            header,
+            descriptor: vocabulary.descriptor_sha256.clone(),
+            entity: registry.entity_sha256.clone(),
+            relation: registry.relation_sha256.clone(),
+        })
+    }
+    pub(crate) fn finish(
+        &self,
+        db: &Connection,
+        graph_header: &Value,
+        saved_lenses: &[Value],
+    ) -> Result<CatalogReceipt> {
+        let Self {
+            descriptor,
+            entity_registry,
+            relation_registry,
+            entity_entries,
+            relation_entries,
+            route_defs,
+            creation,
+            limits,
+            nodes,
+            relations,
+            ..
+        } = self;
+        let (creation, limits, nodes, relations) = (*creation, *limits, *nodes, *relations);
         if nodes
             .checked_add(relations)
             .ok_or(Error::Budget("catalog rows"))?
@@ -3156,17 +3482,63 @@ fn compile_catalog_from_descriptor(
             node_count: nodes,
             relation_count: relations,
         })
-    })();
-    let rollback = db.execute_batch("ROLLBACK TO cmp_catalog_build; RELEASE cmp_catalog_build");
-    let restored: rusqlite::Result<u64> = db.query_row(
-        &format!("PRAGMA temp.max_page_count={original_temp_page_ceiling}"),
-        [],
-        |r| r.get(0),
-    );
-    rollback?;
-    if restored? != original_temp_page_ceiling {
-        return Err(Error::Budget("catalog staging page ceiling restore"));
     }
+}
+
+fn compile_catalog_from_descriptor(
+    db: &mut Connection,
+    graph_header: &Value,
+    entity_registry: &Value,
+    relation_registry: &Value,
+    saved_lenses: &[Value],
+    vocabulary: &QueryVocabulary,
+    descriptor: &Value,
+    limits: CatalogLimits,
+    creation: Option<&CreationState<'_>>,
+    layout: KnowledgePayloadLayout,
+) -> Result<CatalogReceipt> {
+    let mut reduction = CatalogReduction::new(
+        entity_registry,
+        relation_registry,
+        descriptor,
+        vocabulary,
+        limits,
+        creation,
+    )?;
+    let ceiling = reduction.begin(db)?;
+    let result = (|| {
+        reduction.nodes = ingest_nodes(
+            db,
+            descriptor,
+            &reduction.entity_entries,
+            text(entity_registry, "fallback_type_id")?,
+            &reduction.route_defs,
+            limits,
+            creation,
+            layout,
+            &reduction.node_facets,
+        )?;
+        reduction.relations = ingest_relations(
+            db,
+            descriptor,
+            &reduction.route_defs,
+            &reduction.relation_entries,
+            text(relation_registry, "fallback_relation_type_id")?,
+            array(descriptor, "sources")?,
+            CatalogLimits {
+                max_rows: limits
+                    .max_rows
+                    .checked_sub(reduction.nodes)
+                    .ok_or(Error::Budget("catalog rows"))?,
+                ..limits
+            },
+            creation,
+            layout,
+            &reduction.relation_facets,
+        )?;
+        reduction.finish(db, graph_header, saved_lenses)
+    })();
+    CatalogReduction::cleanup(db, ceiling)?;
     result
 }
 
@@ -3248,6 +3620,135 @@ mod tests {
             "authority_boundary":{"is_source":false}});
         let vocab = QueryVocabulary::parse(VOCAB, ADAPTERS).unwrap();
         (db, header, entity, relation, vocab)
+    }
+
+    #[test]
+    fn borrowed_catalog_rows_preserve_packets_and_refuse_indexed_drift() {
+        let (mut db, header, entity, relation, vocab) = fixture("concept");
+        let expected = compile_catalog(
+            &mut db,
+            &header,
+            &entity,
+            &relation,
+            &[],
+            &vocab,
+            VOCAB,
+            CatalogLimits::default(),
+        )
+        .unwrap();
+        let descriptor: Value = serde_json::from_slice(VOCAB).unwrap();
+        let mut reduction = CatalogReduction::new(
+            &entity,
+            &relation,
+            &descriptor,
+            &vocab,
+            CatalogLimits::default(),
+            None,
+        )
+        .unwrap();
+        let ceiling = reduction.begin(&db).unwrap();
+        for (table, is_relation) in [("knowledge_nodes", false), ("knowledge_relations", true)] {
+            let mut statement = db
+                .prepare(&format!(
+                    "SELECT payload,source_order FROM {table} ORDER BY source_order"
+                ))
+                .unwrap();
+            let mut rows = statement.query([]).unwrap();
+            while let Some(row) = rows.next().unwrap() {
+                let raw: Vec<u8> = row.get(0).unwrap();
+                let value: Value = serde_json::from_slice(&raw).unwrap();
+                let order = row.get(1).unwrap();
+                let get = |key: &str| value[key].as_str().unwrap();
+                if is_relation {
+                    reduction
+                        .relation(
+                            &db,
+                            &value,
+                            get("id"),
+                            get("source_graph"),
+                            get("from_id"),
+                            get("to_id"),
+                            get("predicate_id"),
+                            get("relation_type_id"),
+                            order,
+                            raw.len() as i64,
+                        )
+                        .unwrap();
+                } else {
+                    reduction
+                        .node(
+                            &db,
+                            &value,
+                            get("id"),
+                            get("source_graph"),
+                            get("kind_id"),
+                            get("type_id"),
+                            order,
+                            raw.len() as i64,
+                        )
+                        .unwrap();
+                }
+            }
+        }
+        let observed = reduction.finish(&db, &header, &[]).unwrap();
+        CatalogReduction::cleanup(&db, ceiling).unwrap();
+        assert_eq!(observed.sha256, expected.sha256);
+        assert_eq!(observed.catalog, expected.catalog);
+        assert!(db.is_autocommit());
+        for changed in [
+            "id",
+            "kind_id",
+            "type_id",
+            "source_graph",
+            "order",
+            "length",
+        ] {
+            let mut reduction = CatalogReduction::new(
+                &entity,
+                &relation,
+                &descriptor,
+                &vocab,
+                CatalogLimits::default(),
+                None,
+            )
+            .unwrap();
+            let ceiling = reduction.begin(&db).unwrap();
+            let raw: Vec<u8> = db
+                .query_row(
+                    "SELECT payload FROM knowledge_nodes WHERE id='canon:a'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            let value: Value = serde_json::from_slice(&raw).unwrap();
+            let get = |key: &str| {
+                if changed == key {
+                    "wrong"
+                } else {
+                    value[key].as_str().unwrap()
+                }
+            };
+            assert!(
+                reduction
+                    .node(
+                        &db,
+                        &value,
+                        get("id"),
+                        get("source_graph"),
+                        get("kind_id"),
+                        get("type_id"),
+                        if changed == "order" { -1 } else { 0 },
+                        if changed == "length" {
+                            9 * 1024 * 1024
+                        } else {
+                            raw.len() as i64
+                        }
+                    )
+                    .is_err(),
+                "{changed}"
+            );
+            CatalogReduction::cleanup(&db, ceiling).unwrap();
+        }
     }
 
     #[test]

@@ -4310,37 +4310,121 @@ fn build_native_snapshot_from_capture_inner(
         families,
     ))?;
     check_snapshot_active(cancelled, deadline)?;
-    let semantics = native_snapshot_phase(capture, "semantics", ||
-        validate_native_snapshot_semantics(&mut stage, capture, &registry, &entity, &relation))?;
-    check_snapshot_active(cancelled, deadline)?;
-    let (processor, configuration) =
-        crate::d1_public_build::processor_binding(&repository, &descriptor, &entity, &relation)?;
-    let header = native_snapshot_phase(capture, "header", || build_native_snapshot_header(
-        &mut stage,
-        capture,
-        &registry,
-        &entity,
-        &source_revision,
-        processor,
-        configuration,
-        &semantics,
-    ))?;
-    check_snapshot_active(cancelled, deadline)?;
     let lenses = match state {
         Some(state) => saved_lenses_owned(capture, state)?,
         None => saved_lenses(capture)?,
     };
-    let full = native_snapshot_phase(capture, "full-components", || crate::compile_full_knowledge_components(
-        &mut stage,
-        &header,
-        &registry,
-        &entity,
-        &relation,
-        &lenses,
-        &vocabulary,
-        &descriptor,
-        limits.full,
-    ))?;
+    let (processor, configuration) =
+        crate::d1_public_build::processor_binding(&repository, &descriptor, &entity, &relation)?;
+    let (header, prepared_catalog, semantics) =
+        if let Some(creation) = state.filter(|_| payload_layout.uses_carriers()) {
+            let entity_value = crate::knowledge_full::registry_value(
+                &entity,
+                &registry.entity_sha256,
+                limits.full.max_registry_bytes,
+                Some(creation),
+            )?;
+            let relation_value = crate::knowledge_full::registry_value(
+                &relation,
+                &registry.relation_sha256,
+                limits.full.max_registry_bytes,
+                Some(creation),
+            )?;
+            vocabulary.verify_authored_bytes_with_owned_state(&descriptor, creation)?;
+            let descriptor_value =
+                creation.serde_owned(&descriptor, limits.full.catalog.max_catalog_bytes)?;
+            let mut reduction = crate::catalog::CatalogReduction::new(
+                &entity_value,
+                &relation_value,
+                &descriptor_value,
+                &vocabulary,
+                limits.full.catalog,
+                Some(creation),
+            )?;
+            let ceiling = stage.with_connection(WritePhase::Finalize, |db| reduction.begin(db))?;
+            let outcome = (|| {
+                let semantics = native_snapshot_phase(capture, "semantics-and-catalog", || {
+                    validate_native_snapshot_semantics(
+                        &mut stage,
+                        capture,
+                        &registry,
+                        &entity,
+                        &relation,
+                        Some(&mut reduction),
+                    )
+                })?;
+                check_snapshot_active(cancelled, deadline)?;
+                let header = native_snapshot_phase(capture, "header", || {
+                    build_native_snapshot_header(
+                        &mut stage,
+                        capture,
+                        &registry,
+                        &entity,
+                        &source_revision,
+                        processor,
+                        configuration,
+                        &semantics,
+                    )
+                })?;
+                let prepared = native_snapshot_phase(capture, "catalog-reduction", || {
+                    reduction.finish_prepared(
+                        &mut stage,
+                        &header,
+                        &lenses,
+                        &vocabulary,
+                        &descriptor,
+                        &registry,
+                    )
+                })?;
+                Ok((header, Some(prepared), semantics))
+            })();
+            // This cannot roll back core writes: materialization is complete before
+            // begin, and no core writer runs inside this savepoint.
+            let cleanup = stage.with_connection(WritePhase::Finalize, |db| {
+                crate::catalog::CatalogReduction::cleanup(db, ceiling)
+            });
+            match outcome {
+                Ok(value) => {
+                    cleanup?;
+                    value
+                }
+                Err(error) => return Err(error),
+            }
+        } else {
+            let semantics = native_snapshot_phase(capture, "semantics", || {
+                validate_native_snapshot_semantics(
+                    &mut stage, capture, &registry, &entity, &relation, None,
+                )
+            })?;
+            let header = native_snapshot_phase(capture, "header", || {
+                build_native_snapshot_header(
+                    &mut stage,
+                    capture,
+                    &registry,
+                    &entity,
+                    &source_revision,
+                    processor,
+                    configuration,
+                    &semantics,
+                )
+            })?;
+            (header, None, semantics)
+        };
+    check_snapshot_active(cancelled, deadline)?;
+    let full = native_snapshot_phase(capture, "full-components", || {
+        crate::knowledge_full::compile_full_knowledge_components_prepared(
+            &mut stage,
+            &header,
+            &registry,
+            &entity,
+            &relation,
+            &lenses,
+            &vocabulary,
+            &descriptor,
+            limits.full,
+            prepared_catalog,
+        )
+    })?;
     check_snapshot_active(cancelled, deadline)?;
     if full.seal.model_abi != abi || full.seal.managed_source_root_sha256.is_some() {
         return Err(Error::Invalid("native snapshot actual component ABI"));
