@@ -278,8 +278,8 @@
       "boundary_markers": ["weaker", "source authority", "generated"],
       "on_demand_surfaces": ["docs/decisions/README.md", "docs/decisions/TEMPLATE.md", "docs/VALIDATION.md", "docs/decisions/indexes/index_contract.yaml"],
       "validation_lanes": ["generated_parity", "route_docs"],
-      "validation_paths": ["scripts/generate_decision_indexes.py", "scripts/validate_decision_records.py"],
-      "completion_evidence": ["docs/decisions/AGENTS.md", "docs/decisions/indexes/index_contract.yaml", "scripts/validate_decision_records.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"],
+      "completion_evidence": ["docs/decisions/AGENTS.md", "docs/decisions/indexes/index_contract.yaml", "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"],
       "handoff_routes": ["docs/AGENTS.md"]
     },
     {

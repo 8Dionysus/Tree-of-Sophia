@@ -110,7 +110,7 @@ const EXPECTED_GENERATED_CARRIER_PATHS: &[&str] =
 const EXPECTED_GENERATED_CARRIER_PREFIXES: &[&str] =
     &["kag/indexes/", "kag/receipts/index_family_budget/"];
 fn canonical_source_map_routes() -> Value {
-    json!({"owner_surface": "docs/validation/README.md", "schema_ref": "docs/validation/documentation-family-map.schema.json", "currentness_schema_ref": "docs/validation/documentation-family-currentness.schema.json", "generated_currentness": "docs/validation/documentation-family.current.json", "builder": "scripts/build_documentation_family_currentness.py", "validator": "scripts/validate_documentation_cross_corpus.py"})
+    json!({"owner_surface": "docs/validation/README.md", "schema_ref": "docs/validation/documentation-family-map.schema.json", "currentness_schema_ref": "docs/validation/documentation-family-currentness.schema.json", "generated_currentness": "docs/validation/documentation-family.current.json", "builder": "rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs", "validator": "rust/crates/tos-ops-mechanics-plan/src/documentation_cross_corpus.rs"})
 }
 static NULL: Value = Value::Null;
 fn value<'a>(v: &'a Value, k: &str) -> &'a Value {

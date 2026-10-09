@@ -3854,51 +3854,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_documentation_family_currentness.py",
-      "family": "projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "docs/validation/documentation_family_map.json",
-      "source_truth": [
-        "docs/validation/documentation_family_map.json",
-        "docs/validation/documentation-family-map.schema.json",
-        "git ls-files -z",
-        "rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs"
-      ],
-      "reads": [
-        "authored family law and tracked textual, structured, and executable route surfaces"
-      ],
-      "writes": [
-        "docs/validation/documentation-family.current.json"
-      ],
-      "side_effects": "deterministic generated family/hash/currentness carrier only; no source, runtime, owner, or receipt mutation; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
-      "validation_lane": "cross_corpus_documentation",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_documentation_cross_corpus.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_documentation_cross_corpus.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "docs/validation/documentation_family_map.json",
-      "source_truth": [
-        "docs/validation/documentation_family_map.json",
-        "docs/validation/validation_lanes.json",
-        "docs/validation/documentation-family.current.json",
-        "existing owner validators named by the family map",
-        "rust/crates/tos-ops-mechanics-plan/src/documentation_cross_corpus.rs"
-      ],
-      "reads": [
-        "tracked Markdown routes, local executable references, explicit authority declarations, public authored surfaces, and selected context carriers"
-      ],
-      "writes": [],
-      "side_effects": "validation output only; it coordinates existing validators and does not promote carriers to source or acceptance; maintained executable dispatch uses selected installed native tos-ops-mechanics-plan without compile-on-call or fallback; retained Python functions are explicit comparison APIs",
-      "validation_lane": "cross_corpus_documentation",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_documentation_cross_corpus.py",
-      "disposition": "keep"
-    },
-    {
       "path": "scripts/build_zarathustra_parallel_lexical_candidates_v1.py",
       "family": "source_projection_builder",
       "organ_lane": "projection/generated",

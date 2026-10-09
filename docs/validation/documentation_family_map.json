@@ -5,8 +5,8 @@
   "schema_ref": "docs/validation/documentation-family-map.schema.json",
   "currentness_schema_ref": "docs/validation/documentation-family-currentness.schema.json",
   "generated_currentness": "docs/validation/documentation-family.current.json",
-  "builder": "scripts/build_documentation_family_currentness.py",
-  "validator": "scripts/validate_documentation_cross_corpus.py",
+  "builder": "rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs",
+  "validator": "rust/crates/tos-ops-mechanics-plan/src/documentation_cross_corpus.rs",
   "atlas_method": {
     "tracked_source": "git ls-files -z",
     "human_extensions": [
@@ -755,8 +755,7 @@
       },
       "validation_lane": "validation_authority",
       "authority_keys": [
-        "script_contract",
-        "generator_contract"
+        "script_contract"
       ]
     },
     {
@@ -812,7 +811,8 @@
       },
       "validation_lane": "rust_workspace",
       "authority_keys": [
-        "rust_executable_contract"
+        "rust_executable_contract",
+        "generator_contract"
       ]
     },
     {
@@ -1207,10 +1207,10 @@
     },
     {
       "id": "generator_contract",
-      "owner": "scripts/build_documentation_family_currentness.py",
+      "owner": "rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs",
       "strength": "generated",
-      "family_id": "scripts",
-      "family_owner": "scripts/AGENTS.md, validation_lanes.json, and the exact source owner"
+      "family_id": "rust",
+      "family_owner": "rust/README.md and the exact crate or source-contract owner"
     },
     {
       "id": "test_coverage_contract",
@@ -1409,7 +1409,7 @@
       "reuses": [
         "scripts/build_agents_route_currentness.py",
         "scripts/build_agent_surface_currentness.py",
-        "scripts/generate_decision_indexes.py"
+        "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
       ]
     },
     {

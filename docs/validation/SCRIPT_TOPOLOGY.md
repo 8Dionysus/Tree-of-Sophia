@@ -20,9 +20,9 @@ descriptive: a selected entry names its owner, inputs, side effects and test
 route. Executable checks evaluate software correctness; the release procedure governs
 landing.
 
-The cross-corpus pair is intentionally split. `build_documentation_family_currentness.py`
+The cross-corpus pair is intentionally split. `tos-ops-mechanics-plan --documentation-family-build`
 projects the authored `documentation_family_map.json` and the tracked Git
-surface into an exact hash/family carrier. `validate_documentation_cross_corpus.py`
+surface into an exact hash/family carrier. `tos-ops-mechanics-plan --documentation-cross-corpus-validate`
 coordinates that projection with the existing link, mechanics, decision,
 AGENTS-route, agent-surface, KAG, and public-entry contracts. Philosophical meaning, runtime status and receipt acceptance retain their
 source and decision owners.

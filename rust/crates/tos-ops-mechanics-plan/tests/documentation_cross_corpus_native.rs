@@ -5,7 +5,8 @@ use std::{
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tos_ops_mechanics_plan::documentation_cross_corpus as guards;
+use tos_ops_mechanics_plan::{documentation_cross_corpus as guards, documentation_family as family, route_cards::RouteSources};
+use std::sync::atomic::AtomicI32;
 fn map() -> Value {
     serde_json::from_str(include_str!(
         "../../../../docs/validation/documentation_family_map.json"
@@ -98,10 +99,10 @@ impl Fixture {
             "docs/validation/script_inventory.json",
             b"{\"script_surfaces\":[]}\n",
         );
-        fixture.write("scripts/build_documentation_family_currentness.py",include_bytes!("../../../../tests/fixtures/documentation_cross_corpus_oracle/build_documentation_family_currentness.py"));
-        fixture.write("scripts/validate_documentation_cross_corpus.py",include_bytes!("../../../../tests/fixtures/documentation_cross_corpus_oracle/validate_documentation_cross_corpus.py"));
-        fixture.write("scripts/validate_mechanics_topology.py",include_bytes!("../../../../tests/fixtures/documentation_cross_corpus_oracle/validate_mechanics_topology.py"));
-        fixture.write("scripts/validate_nested_agents.py",include_bytes!("../../../../tests/fixtures/documentation_cross_corpus_oracle/validate_nested_agents.py"));
+        for key in ["builder", "validator"] {
+            fixture.write(source[key].as_str().unwrap(), b"// Native owner fixture\n");
+        }
+        fixture.write("ToS/derived-exports/root_entry_map.min.json", b"{\"context_summary\":{}}\n");
         fixture.track();
         fixture.build();
         fixture
@@ -117,31 +118,26 @@ impl Fixture {
         );
     }
     fn build(&self) {
-        let out = Command::new("/usr/bin/python3")
-            .arg("-B")
-            .arg(
-                self.root
-                    .join("scripts/build_documentation_family_currentness.py"),
-            )
-            .output()
-            .unwrap();
+        let out = self.command().arg("--documentation-family-build").output().unwrap();
         assert!(
             out.status.success(),
             "{}",
             String::from_utf8_lossy(&out.stderr)
         );
     }
-    fn native(&self) -> Vec<(String, String)> {
+    fn command(&self) -> Command {
         let executable = std::env::var_os("TOS_DOCUMENTATION_TEST_EXECUTABLE")
             .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
-        let out = Command::new(executable)
-            .arg("--repo-root")
-            .arg(&self.root)
-            .arg("--python")
-            .arg("/usr/bin/python3")
-            .arg("--documentation-cross-corpus-validate")
-            .output()
-            .unwrap();
+        let mut command = Command::new(executable);
+        // Git is the declared tracked-file platform bridge. No Python fallback.
+        command.env_clear().env("PATH", "/usr/bin")
+            .arg("--repo-root").arg(&self.root)
+            .arg("--python").arg("/no-python-executable");
+        command
+    }
+    fn native(&self) -> Vec<(String, String)> {
+        let out = self.command().arg("--documentation-cross-corpus-validate")
+            .output().unwrap();
         assert!(
             matches!(out.status.code(), Some(0 | 1)),
             "native operation error: {}",
@@ -175,8 +171,8 @@ impl Fixture {
                 (location.to_string(), message.to_string())
             })
             .filter(|(location, message)| {
-                // The oracle requests reuse_existing=False. Select that same unique
-                // guard surface from the real CLI; owner composition has its own tests.
+                // Select this guard surface from the real coordinating CLI.
+                // Composed owner validators have their own bounded tests.
                 ![
                     "AGENTS-route validator: ",
                     "mechanics topology validator: ",
@@ -192,38 +188,7 @@ impl Fixture {
             })
             .collect()
     }
-    fn oracle(&self) -> Vec<(String, String)> {
-        let out=Command::new("/usr/bin/python3").arg("-B").arg("-c").arg("import sys,types,json,pathlib; root=pathlib.Path(sys.argv[1]);sys.path.insert(0,str(root/'scripts'));sys.modules['validate_decision_records']=types.ModuleType('validate_decision_records');sys.modules['validate_tiny_entry_route']=types.ModuleType('validate_tiny_entry_route');import validate_documentation_cross_corpus as validator;print(json.dumps(validator.run_validation(root,reuse_existing=False),ensure_ascii=False))").arg(&self.root).output().unwrap();
-        assert!(
-            out.status.success(),
-            "{}",
-            String::from_utf8_lossy(&out.stderr)
-        );
-        serde_json::from_slice(&out.stdout).unwrap()
-    }
-    fn compare(&self) -> Vec<(String, String)> {
-        let native = self.native();
-        let mut oracle = self.oracle();
-        assert_eq!(native.len(), oracle.len());
-        for (actual, expected) in native.iter().zip(&mut oracle) {
-            // Both readers reject the same missing public-entry operand. Their
-            // OS error prose differs; preserve the exact location and file path.
-            let operand = "ToS/derived-exports/root_entry_map.min.json";
-            if actual.0 == "context_probes#public_entry"
-                && expected.0 == actual.0
-                && actual.1 == format!("cannot measure probe: missing operand file: {operand}")
-                && expected.1
-                    == format!(
-                        "cannot measure probe: [Errno 2] No such file or directory: '{}'",
-                        self.root.join(operand).display()
-                    )
-            {
-                expected.1.clone_from(&actual.1);
-            }
-        }
-        assert_eq!(native, oracle);
-        native
-    }
+
 }
 #[test]
 fn source_authority_configuration_and_family_boundaries_remain_explicit() {
@@ -288,13 +253,9 @@ fn source_authority_configuration_and_family_boundaries_remain_explicit() {
     );
 }
 #[test]
-fn markdown_routes_fragments_reference_definitions_and_code_visibility_match_owner_oracle() {
+fn markdown_routes_fragments_reference_definitions_and_code_visibility_remain_checked() {
     let fixture = Fixture::new();
-    assert_eq!(fixture.compare(), vec![
-        ("docs/validation/documentation_family_map.json#kag".into(), "family owner conflicts with declaration kag_provider_route".into()),
-        ("docs/validation/documentation_family_map.json#kag".into(), "family owner conflicts with declaration kag_source_return".into()),
-        ("context_probes#public_entry".into(), "cannot measure probe: missing operand file: ToS/derived-exports/root_entry_map.min.json".into()),
-    ]);
+    assert_eq!(fixture.native(), vec![]);
     fixture.write(
         "docs/target.md",
         b"# Named target\n# Named target\n<a id=\"explicit\"></a>\n",
@@ -302,7 +263,7 @@ fn markdown_routes_fragments_reference_definitions_and_code_visibility_match_own
     fixture.write("docs/routes.md",b"[good](target.md#named-target-1)\n[missing](absent.md)\n[fragment](target.md#absent)\n[unresolved][unknown]\n[resolved][named]\n[named]: target.md#explicit\n[^note]: textual footnote prose\n`[ignored](inline-missing.md)`\n    [ignored](indented-missing.md)\n```\n[ignored](fenced-missing.md)\n```\n");
     fixture.track();
     fixture.build();
-    let findings = fixture.compare();
+    let findings = fixture.native();
     assert!(
         findings
             .iter()
@@ -335,7 +296,7 @@ fn executable_markers_are_command_local_and_do_not_exempt_neighbor_commands() {
     fixture.write("docs/routes.md",b"mechanics/demo/parts/probe/scripts/run.py\nexternal owner aoa-kag scripts/external.py; scripts/local.py\nexternal owner aoa-kag scripts/external.py, scripts/comma.py\n| aoa-kag scripts/external.py | scripts/cell.py |\nexternal owner aoa-kag scripts/external.py && scripts/joint.py\n");
     fixture.track();
     fixture.build();
-    let findings = fixture.compare();
+    let findings = fixture.native();
     for expected in [
         "scripts/local.py",
         "scripts/comma.py",
@@ -356,7 +317,7 @@ fn public_context_and_projection_mutations_are_checked_on_each_invocation() {
     fixture.write("README.md", b"/home/private OPENAI_API_KEY session_id\n");
     fixture.track();
     fixture.build();
-    let findings = fixture.compare();
+    let findings = fixture.native();
     for marker in ["/home/", "OPENAI_API_KEY", "session_id"] {
         assert!(
             findings
@@ -371,20 +332,20 @@ fn public_context_and_projection_mutations_are_checked_on_each_invocation() {
     fixture.build();
     assert!(
         fixture
-            .compare()
+            .native()
             .iter()
             .any(|v| v.1 == "context budget exceeded: 99999>2800")
     );
     fixture.write("docs/validation/documentation-family.current.json", b"{}\n");
     assert!(
         fixture
-            .compare()
+            .native()
             .iter()
             .any(|v| v.1 == "generated documentation family projection is stale")
     );
 }
 #[test]
-fn actual_builder_cli_matches_bytes_across_human_glob_contracts_and_binary_carriers() {
+fn actual_builder_cli_preserves_glob_counts_binary_fixity_order_and_output_contracts() {
     let fixture = Fixture::new();
     fixture.write("docs/binary.json", &[0xff, 0, 1]);
     fixture.write(
@@ -394,13 +355,11 @@ fn actual_builder_cli_matches_bytes_across_human_glob_contracts_and_binary_carri
     fixture.write("docs/alpha.txt", b"one\ntwo\n");
     fixture.write("docs/zeta.txt", b"three\n");
     fixture.track();
-    let executable = std::env::var_os("TOS_DOCUMENTATION_TEST_EXECUTABLE")
-        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
-    for pattern in [
-        ".agents/skills/**/agents/openai.yaml",
-        "docs/[a-m]*.txt",
-        "docs/[!a-m]*.txt",
-        "docs/[z-a]*.txt",
+    for (pattern, excluded) in [
+        (".agents/skills/**/agents/openai.yaml", 1),
+        ("docs/[a-m]*.txt", 1),
+        ("docs/[!a-m]*.txt", 1),
+        ("docs/[z-a]*.txt", 0),
     ] {
         let mut source = map();
         source["atlas_method"]["human_exclusion"] = json!(pattern);
@@ -415,9 +374,18 @@ fn actual_builder_cli_matches_bytes_across_human_glob_contracts_and_binary_carri
                 .join("docs/validation/documentation-family.current.json"),
         )
         .unwrap();
-        let result = Command::new(&executable)
-            .arg("--repo-root")
-            .arg(&fixture.root)
+        let current: Value = serde_json::from_slice(&expected).unwrap();
+        assert_eq!(current["coverage"]["human_scope"]["excluded_skill_launch_metadata"], excluded);
+        assert_eq!(current["tracked_source"], "git ls-files -z");
+        let records = current["tracked_surfaces"].as_array().unwrap();
+        let binary = records.iter().find(|r| r["path"] == "docs/binary.json").unwrap();
+        assert_eq!(binary["bytes"], 3);
+        assert_eq!(binary["sha256"], "942e1e2a66a427b6551732f758bc314f22b9cdec9365a3425c9184de299392b5");
+        assert_eq!(binary["surface_kind"], "structured");
+        assert!(records.windows(2).all(|p| p[0]["path"].as_str() < p[1]["path"].as_str()));
+        assert_eq!(current["coverage"]["unhandled_family_count"], 0);
+        assert_eq!(current["family_summaries"].as_array().unwrap().len(), source["families"].as_array().unwrap().len());
+        let result = fixture.command()
             .arg("--documentation-family-build")
             .output()
             .unwrap();
@@ -436,9 +404,7 @@ fn actual_builder_cli_matches_bytes_across_human_glob_contracts_and_binary_carri
             expected,
             "pattern={pattern}"
         );
-        let checked = Command::new(&executable)
-            .arg("--repo-root")
-            .arg(&fixture.root)
+        let checked = fixture.command()
             .args(["--documentation-family-build", "--check"])
             .output()
             .unwrap();
@@ -454,9 +420,7 @@ fn actual_builder_cli_matches_bytes_across_human_glob_contracts_and_binary_carri
             .join("docs/validation/documentation-family.current.json"),
     )
     .unwrap();
-    let output = Command::new(&executable)
-        .arg("--repo-root")
-        .arg(&fixture.root)
+    let output = fixture.command()
         .args([
             "--documentation-family-build",
             "--output",
@@ -480,13 +444,7 @@ fn actual_coordinator_cli_does_not_invent_an_ambient_kag_export_operation() {
     fixture.write("scripts/validate_local_kag_provider.py",b"from pathlib import Path\nPath('ambient-export-invoked').write_text('invalid ambient operation')\nraise SystemExit(77)\n");
     fixture.track();
     fixture.build();
-    let executable = std::env::var_os("TOS_DOCUMENTATION_TEST_EXECUTABLE")
-        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
-    let out = Command::new(&executable)
-        .arg("--repo-root")
-        .arg(&fixture.root)
-        .arg("--python")
-        .arg("/usr/bin/python3")
+    let out = fixture.command()
         .arg("--documentation-cross-corpus-validate")
         .output()
         .unwrap();
@@ -599,4 +557,157 @@ fn tracked_executable_route_card_cannot_disappear() {
             .to_string()
             .contains("tracked route card is missing: docs/AGENTS.md")
     );
+}
+
+#[test]
+fn source_map_binds_lanes_routes_public_requirements_and_executable_inventory() {
+    let fixture = Fixture::new();
+    let source = map();
+    let mut issues = Vec::new();
+    guards::validate_source_map(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &source, &mut issues).unwrap();
+    assert!(issues.is_empty(), "{issues:?}");
+    for (pointer, replacement, expected) in [
+        ("/families/0/validation_lane", json!("missing-lane"), "not in command authority"),
+        ("/generated_currentness", json!("README.md"), "canonical route"),
+        ("/public_authored_surfaces", json!([]), "public_authored_surfaces"),
+        ("/public_forbidden_markers", json!([]), "public_forbidden_markers"),
+        ("/atlas_method/structured_carrier_extensions", json!([".toml"]), "extension groups must exactly cover"),
+        ("/atlas_method/tracked_source", json!("find tracked -print0"), "tracked_source must match the builder operation"),
+        ("/context_probes/0/max_tokens", json!(9999), "canonical context contract"),
+    ] {
+        let mut changed = source.clone();
+        *changed.pointer_mut(pointer).unwrap() = replacement;
+        let mut issues = Vec::new();
+        guards::validate_source_map(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &changed, &mut issues).unwrap();
+        assert!(issues.iter().any(|v| v.1.contains(expected)), "{pointer}: {issues:?}");
+    }
+    for (field, required) in [("public_authored_surfaces", "README.md"), ("public_forbidden_markers", "BEGIN PRIVATE KEY")] {
+        let mut changed = source.clone();
+        changed[field].as_array_mut().unwrap().retain(|v| v != required);
+        let mut issues = Vec::new();
+        guards::validate_source_map(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &changed, &mut issues).unwrap();
+        assert!(issues.iter().any(|v| v.1.contains("missing required entries")), "{issues:?}");
+    }
+    let mut invalid = source;
+    invalid["atlas_method"]["tracked_source"] = json!("find tracked -print0");
+    let err = family::build_currentness_with_tracked(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &invalid, &[], &AtomicI32::new(0)).unwrap_err();
+    assert!(err.to_string().contains("tracked_source must match the builder operation"));
+}
+
+#[test]
+fn authority_and_surface_configuration_cannot_silently_drop_coverage() {
+    let source = map();
+    let mut harmless = Vec::new();
+    guards::validate_authority_declarations(&json!([{"id":"claim","owner":"README.md","strength":"authored"}]), &mut harmless, "authority_declarations").unwrap();
+    assert!(harmless.is_empty());
+    for missing_all in [true, false] {
+        let mut families = source["families"].clone();
+        if missing_all { families[0]["authority_keys"] = json!([]); }
+        else { families[0]["authority_keys"].as_array_mut().unwrap().retain(|k| k != "repository_identity"); }
+        let mut issues = Vec::new();
+        guards::validate_family_authority_claims(&families, &source["authority_declarations"], &mut issues).unwrap();
+        let expected = if missing_all { "non-empty list" } else { "not referenced by authority_keys" };
+        assert!(issues.iter().any(|v| v.1.contains(expected)), "{issues:?}");
+    }
+    for (field, replacement, expected) in [
+        ("include_extensions", json!([]), "include_extensions"),
+        ("exclude_prefixes", json!(["kag/indexes"]), "must end with '/'"),
+        ("exclude_prefixes", json!(["ToS/"]), "generated_carrier_prefixes"),
+        ("generated_carrier_prefixes", json!(["ToS/"]), "canonical generated carriers"),
+    ] {
+        let mut rules = source["surface_rules"].clone();
+        rules[field] = replacement;
+        let mut issues = Vec::new();
+        guards::validate_surface_rules(&rules, &mut issues).unwrap();
+        assert!(issues.iter().any(|v| v.1.contains(expected)), "{field}: {issues:?}");
+    }
+    let mut families = source["families"].clone();
+    families[0]["id"] = json!("unknown-family");
+    let mut issues = Vec::new();
+    guards::validate_family_match_rules(&families, &mut issues).unwrap();
+    assert!(issues.iter().any(|v| v.1.contains("canonical")), "{issues:?}");
+    let fixture = Fixture::new();
+    fixture.write("unowned-new-family/file.md", b"new tracked source\n");
+    fixture.track();
+    fixture.build();
+    assert!(fixture.native().iter().any(|v| v.1.contains("unhandled family count is 1: unowned-new-family/file.md")));
+}
+
+#[test]
+fn context_measures_use_declared_surfaces_and_preserve_limits() {
+    let fixture = Fixture::new();
+    fixture.write("one.md", b"one two three\n");
+    fixture.write("two.md", b"four five\n");
+    fixture.write("summary.json", b"{\"context_summary\":{\"one\":\"two\"}}\n");
+    fixture.write("wrong.json", b"{\"not_a_summary\":{}}\n");
+    fixture.write("nonobject.json", b"{\"context_summary\":[]}\n");
+    fixture.write("first.json", b"{\"task_routes\":[{\"inherited_context_tokens\":2}]}\n");
+    fixture.write("second.json", b"{\"task_routes\":[{\"inherited_context_tokens\":5}]}\n");
+    fixture.write("empty.json", b"{\"task_routes\":[]}\n");
+    for (measure, surfaces, maximum, expected) in [
+        ("sum", json!(["one.md", "two.md"]), 4, "context budget exceeded: 5>4"),
+        ("max", json!(["one.md", "two.md"]), 2, "context budget exceeded: 3>2"),
+        ("typo", json!(["one.md"]), 4, "unsupported context measure"),
+        ("sum", json!([]), 4, "surfaces must be a non-empty list"),
+        ("generated_summary", json!(["missing.json"]), 20, "cannot measure probe"),
+        ("generated_summary", json!(["wrong.json"]), 20, "lacks context_summary"),
+        ("generated_summary", json!(["nonobject.json"]), 20, "lacks context_summary"),
+        ("generated_summary", json!(["summary.json", "wrong.json"]), 20, "requires exactly one configured surface"),
+        ("agents_route_max_inherited", json!(["first.json", "second.json"]), 4, "context budget exceeded: 5>4"),
+        ("agents_route_max_inherited", json!(["empty.json"]), 4, "produced no inherited measurements"),
+    ] {
+        let probe = json!({"context_probes":[{"id":"test","surfaces":surfaces,"measure":measure,"max_tokens":maximum}]});
+        let mut issues = Vec::new();
+        guards::validate_context_probes(&mut RouteSources::new(&fixture.root).unwrap(), &probe, &mut issues).unwrap();
+        assert!(issues.iter().any(|v| v.1.contains(expected)), "{measure}: {issues:?}");
+    }
+    let probe = json!({"context_probes":[{"id":"summary","surfaces":["summary.json"],"measure":"generated_summary","max_tokens":2}]});
+    let mut issues = Vec::new();
+    let measured = guards::validate_context_probes(&mut RouteSources::new(&fixture.root).unwrap(), &probe, &mut issues).unwrap();
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(measured["summary"].to_string(), "2");
+}
+
+#[test]
+fn markdown_definition_and_executable_presence_are_rechecked_after_mutation() {
+    let fixture = Fixture::new();
+    fixture.write("docs/target.md", b"# Target\n");
+    fixture.write("docs/route.md", b"[guide][guide]\n[guide]: target.md\n");
+    let tracked = vec!["docs/route.md".into(), "docs/target.md".into()];
+    let mut issues = Vec::new();
+    guards::validate_markdown_routes(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &tracked, &mut issues).unwrap();
+    assert!(issues.is_empty(), "{issues:?}");
+    fixture.write("docs/route.md", b"[guide][guide]\n[guide]: missing.md\n");
+    guards::validate_markdown_routes(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &tracked, &mut issues).unwrap();
+    assert!(issues.iter().any(|v| v.1 == "broken local documentation route: missing.md"));
+    let target = "access/deploy/cloudflare-worker/scripts/build_runtime.sh";
+    fixture.write(target, b"# declared platform bridge\n");
+    fixture.write("docs/route.md", format!("Run `{target}`.\n").as_bytes());
+    fixture.write("docs/validation/script_inventory.json", &serde_json::to_vec(&json!({"script_surfaces":[{"path":target}]})).unwrap());
+    issues.clear();
+    guards::validate_executable_routes(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &tracked, &mut issues).unwrap();
+    assert!(issues.is_empty(), "{issues:?}");
+    fs::remove_file(fixture.root.join(target)).unwrap();
+    fixture.write("evals/AGENTS.md", b"Run `scripts/not-present.sh`.\n");
+    fixture.write("docs/decisions/TOS-D-9999-history.md", b"Decision ID: TOS-D-9999\nRun scripts/retired-historical.py\n");
+    fixture.write("docs/decisions/TOS-D-9998-wrong-identity.md", b"Decision ID: TOS-D-9997\nRun scripts/unaccepted-historical.py\n");
+    let tracked = ["docs/route.md".into(), "evals/AGENTS.md".into(), "docs/decisions/TOS-D-9999-history.md".into(), "docs/decisions/TOS-D-9998-wrong-identity.md".into()];
+    guards::validate_executable_routes(&fixture.root, &mut RouteSources::new(&fixture.root).unwrap(), &tracked, &mut issues).unwrap();
+    for expected in [target, "scripts/not-present.sh", "scripts/unaccepted-historical.py"] {
+        assert!(issues.iter().any(|v| v.1 == format!("stale executable reference: {expected}")), "{issues:?}");
+    }
+    assert!(!issues.iter().any(|v| v.1.contains("scripts/retired-historical.py")));
+}
+
+#[test]
+fn public_guard_allows_domain_terminology_and_rejects_host_receipt_markers() {
+    let fixture = Fixture::new();
+    let payload = json!({"public_authored_surfaces":["public.md"],"public_forbidden_markers":["/srv/","holder_pid"]});
+    fixture.write("public.md", b"The provider route is public-safe.\n");
+    let mut issues = Vec::new();
+    guards::validate_public_safety(&mut RouteSources::new(&fixture.root).unwrap(), &payload, &mut issues).unwrap();
+    assert!(issues.is_empty());
+    fixture.write("public.md", b"provider route /srv/private holder_pid\n");
+    guards::validate_public_safety(&mut RouteSources::new(&fixture.root).unwrap(), &payload, &mut issues).unwrap();
+    assert_eq!(issues.len(), 2);
 }

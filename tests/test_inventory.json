@@ -2103,21 +2103,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_documentation_cross_corpus.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "documentation_cross_corpus",
-      "validation_lane": "cross_corpus_documentation",
-      "owner_surface": "docs/validation/documentation_family_map.json",
-      "protects": "cross-family route closure, executable currentness, authority conflict, generated parity, family coverage, public safety, and context-budget guards",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_documentation_cross_corpus.py",
-      "failure_route": "Fix the authored family map, generated carrier, coordinator, or named owner validator before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_zarathustra_parallel_lexical_candidates_v1.py",
       "home": "tests",
       "home_scope": "root",

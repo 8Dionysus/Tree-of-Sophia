@@ -341,7 +341,7 @@ pub fn build_currentness_with_tracked(
             .len();
     check(s, cancel)?;
     Ok(
-        json!({"schema_version":"tos_documentation_family_currentness_v1","source_map":MAP_PATH,"source_map_sha256":Digest256::of_bytes(&s.bytes(MAP_PATH)?).to_hex(),"generated_by":"scripts/build_documentation_family_currentness.py","tracked_source":TRACKED_SOURCE,"tracked_surface_digest":digest.finalize().to_hex(),"atlas_method":atlas,
+        json!({"schema_version":"tos_documentation_family_currentness_v1","source_map":MAP_PATH,"source_map_sha256":Digest256::of_bytes(&s.bytes(MAP_PATH)?).to_hex(),"generated_by":"rust/crates/tos-ops-mechanics-plan/src/documentation_family.rs","tracked_source":TRACKED_SOURCE,"tracked_surface_digest":digest.finalize().to_hex(),"atlas_method":atlas,
  "coverage":{"tracked_path_count":projection_count,"tracked_surface_count":records.len(),"excluded_tracked_path_count":projection_count.checked_sub(records.len()).ok_or_else(||invalid("documentation coverage count underflow"))?,"excluded_generated_carrier_rules":excluded_rules,"unhandled_family_count":unhandled.len(),"unhandled_paths":unhandled,"surface_kind_counts":kinds,"human_scope":{"count":hc,"bytes":hb,"lines":hl,"family_counts":human_counts,"excluded_skill_launch_metadata":human_excluded}},
  "family_summaries":family_summaries,"context_summary":{"metric":"whitespace_tokens_v1","posture":"summary_first_records_on_demand","tracked_surface_count":records.len(),"family_count":families.len(),"unhandled_family_count":unhandled.len(),"record_loading":"machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt"},"tracked_surfaces":records}),
     )
