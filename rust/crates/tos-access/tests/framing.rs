@@ -605,12 +605,23 @@ fn unavailable_head_has_headers_without_an_error_body() {
 
 #[test]
 fn http_refuses_non_loopback_before_listening() {
-    let executor: Arc<dyn AccessExecutor> = Arc::new(Synthetic {
-        allowed: false,
-        calls: Mutex::new(vec![]),
-    });
-    let error = serve("0.0.0.0:0", executor, profile()).unwrap_err();
-    assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
+    for address in ["0.0.0.0:0", "[::]:0", "192.0.2.1:0", "example.invalid:0"] {
+        let executor: Arc<dyn AccessExecutor> = Arc::new(Synthetic {
+            allowed: false,
+            calls: Mutex::new(vec![]),
+        });
+        let error = serve(address, executor, profile()).unwrap_err();
+        assert_eq!(
+            error.kind(),
+            std::io::ErrorKind::PermissionDenied,
+            "{address}"
+        );
+        assert_eq!(
+            error.to_string(),
+            "native access HTTP must bind loopback",
+            "{address}"
+        );
+    }
 }
 
 struct SearchSynthetic {

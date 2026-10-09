@@ -65,6 +65,8 @@ pub(crate) mod foundation_rule_diagnostics;
 pub(crate) mod foundation_run;
 #[path = "source_foundation_selection.rs"]
 pub(crate) mod foundation_selection;
+#[path = "source_catalog_cli.rs"]
+pub mod source_catalog_cli;
 
 /// A verified controlled source generation, never a v1 SourceRevision.
 /// Installed current/history roots bind custody membership; the managed

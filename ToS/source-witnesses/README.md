@@ -13,6 +13,8 @@ Source-visible review evaluates meaning and quality, while the rights and
 publication owners decide permitted use. Each section below records its actual
 evidence and source-specific limits under that common law.
 
+The standalone native source-catalog route is `tos-native-owner-command source-catalog`. Run `check --repo-root ABS --invocation ABS` for the protected published-root foundation audit and catalog parity check. Run `build --repo-root ABS --invocation ABS --max-candidate-bytes N --max-stage-read-bytes N --max-state-bytes N` only with an owned-cold foundation invocation; it emits a bounded `TOS_SOURCE_CATALOG_CANDIDATE_V1` frame stream to stdout after the final source and metadata fences pass. `max-state-bytes` must cover the selected profile's derived peak for the candidate frame, largest catalog file, bounded manifest working set, and report. Both commands require the private-tmpfs issuer ticket supplied by the launcher. The candidate is not admitted into the authored source tree by this command.
+
 Curated authored records remain Git-backed. Bulk imports use immutable corpus
 revisions in permanent local storage, with permitted private R2 backups.
 Catalogs and projections are built into a separate data snapshot. The same

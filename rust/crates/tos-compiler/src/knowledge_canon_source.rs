@@ -1763,4 +1763,55 @@ mod exact_csv_read_tests {
             .is_err()
         );
     }
+
+    #[test]
+    fn exact_csv_unicode_byte_spans_and_unrepresentable_rows_refuse() {
+        let raw = "edge_id,note\r\n\r\ne1,\"λόγος\u{2028}first\r\nsecond\"\r\n".as_bytes();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + std::time::Duration::from_secs(1);
+        let selected = read_exact_authored_csv_row(
+            raw,
+            1,
+            &json!({"edge_id":"e1","note":"λόγος\u{2028}first\r\nsecond"}),
+            1024,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let start = selected["byte_offset"].as_u64().unwrap() as usize;
+        let length = selected["row_bytes"].as_u64().unwrap() as usize;
+        let selected_bytes = &raw[start..start + length];
+        assert_eq!(start, b"edge_id,note\r\n\r\n".len());
+        assert_eq!(
+            selected["raw_record"].as_str().unwrap().as_bytes(),
+            selected_bytes
+        );
+        let row_digest = Digest256::of_bytes(selected_bytes).to_hex();
+        let file_digest = Digest256::of_bytes(raw).to_hex();
+        assert_eq!(
+            selected["raw_record_sha256"].as_str(),
+            Some(row_digest.as_str())
+        );
+        assert_eq!(
+            selected["source_file_sha256"].as_str(),
+            Some(file_digest.as_str())
+        );
+
+        for (bytes, expected) in [
+            (
+                b"edge_id,edge_id\ne1,e2\n".as_slice(),
+                json!({"edge_id":"e1"}),
+            ),
+            (b"edge_id,\ne1,value\n".as_slice(), json!({"edge_id":"e1"})),
+            (
+                b"edge_id,note\ne1,value,extra\n".as_slice(),
+                json!({"edge_id":"e1","note":"value"}),
+            ),
+        ] {
+            assert!(
+                read_exact_authored_csv_row(bytes, 1, &expected, 1024, deadline, &cancelled)
+                    .is_err()
+            );
+        }
+    }
 }

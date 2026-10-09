@@ -1252,3 +1252,56 @@ pub fn apply_delta_with(
     writer.report.elapsed_micros = started.elapsed().as_micros().min(u64::MAX as u128) as u64;
     Ok(writer.report)
 }
+
+#[cfg(test)]
+mod reverse_frame_tests {
+    use super::*;
+
+    #[test]
+    fn reverse_frames_roundtrip_sparse_dense_and_maximum_dictionary_addresses() {
+        let sparse = [1, 129, 65_537, MAX_ADDRESS];
+        let (payload, digest) = encode_search_reverse(7, "node", &sparse).unwrap();
+        assert_eq!(
+            decode_search_reverse(7, "node", sparse.len(), &payload, &digest).unwrap(),
+            sparse
+        );
+
+        let dense: Vec<_> = (1..=BLOCK_SIZE as u64).collect();
+        let payload = encode_search_postings(&dense).unwrap();
+        assert_eq!(decode_search_postings(&payload).unwrap(), dense);
+    }
+
+    #[test]
+    fn reverse_frames_refuse_noncanonical_addresses_and_overflow() {
+        for addresses in [
+            &[][..],
+            &[0][..],
+            &[1, 1][..],
+            &[2, 1][..],
+            &[MAX_ADDRESS + 1][..],
+        ] {
+            assert!(encode_search_postings(addresses).is_err());
+        }
+        assert!(decode_search_postings(&[0x80]).is_err());
+        assert!(decode_search_postings(&[0x80, 0x00]).is_err());
+        assert!(decode_search_postings(&[0xff; 9]).is_err());
+        assert!(encode_search_reverse(0, "node", &[1]).is_err());
+        assert!(encode_search_reverse(1, "unsupported", &[1]).is_err());
+        assert!(encode_search_reverse(1, "node", &[2, 2]).is_err());
+    }
+
+    #[test]
+    fn reverse_frame_digest_binds_document_kind_count_and_payload() {
+        let (payload, digest) = encode_search_reverse(9, "relation", &[3, 8, 144]).unwrap();
+        assert_eq!(
+            decode_search_reverse(9, "relation", 3, &payload, &digest).unwrap(),
+            [3, 8, 144]
+        );
+        assert!(decode_search_reverse(10, "relation", 3, &payload, &digest).is_err());
+        assert!(decode_search_reverse(9, "node", 3, &payload, &digest).is_err());
+        assert!(decode_search_reverse(9, "relation", 2, &payload, &digest).is_err());
+        let mut changed = payload.clone();
+        changed[0] ^= 1;
+        assert!(decode_search_reverse(9, "relation", 3, &changed, &digest).is_err());
+    }
+}

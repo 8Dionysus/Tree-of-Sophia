@@ -8,6 +8,7 @@ license.workspace = true
 
 [features]
 load-readiness = ["dep:hmac", "dep:sha2"]
+e2e-fixture = []
 
 [dependencies]
 libc = "0.2"
@@ -47,3 +48,8 @@ path = "src/main.rs"
 name = "tos-load-readiness"
 path = "src/bin/tos-load-readiness.rs"
 required-features = ["load-readiness"]
+
+[[bin]]
+name = "tos-e2e-fixture"
+path = "src/bin/tos-e2e-fixture.rs"
+required-features = ["e2e-fixture"]

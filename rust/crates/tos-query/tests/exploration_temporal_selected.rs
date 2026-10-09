@@ -1,9 +1,7 @@
 #![cfg(not(target_arch = "wasm32"))]
-//! Native producer → exact selected read → independent maintained Python rules.
+//! Native producer and exact selected reads with explicit owner expectations.
 use std::{
     collections::BTreeMap,
-    io::Write,
-    process::{Command, Stdio},
     sync::{
         Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
@@ -23,7 +21,7 @@ use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCod
 use tos_query::{
     AbortProbe, AbortReason, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget,
     InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
-    bind_verified_knowledge, execute_selected_temporal,
+    bind_verified_knowledge, compare_temporal_operands, execute_selected_temporal,
 };
 fn get<'a>(v: &'a JsonValue, key: &str) -> &'a JsonValue {
     v.object_get(key).unwrap()
@@ -327,295 +325,692 @@ fn comparable(mut packet: JsonValue) -> JsonValue {
 fn cursor_request(cursor: &str) -> JsonValue {
     JsonValue::Object(vec![(JsonString::from_utf8("cursor"), text(cursor))])
 }
+fn selected_temporal_request(
+    source_revision: &str,
+    left_id: &str,
+    left_content_revision: &str,
+    right_id: &str,
+    right_content_revision: &str,
+) -> JsonValue {
+    object(vec![
+        ("schema_version", text("tos_temporal_comparison_request_v1")),
+        ("source_revision", text(source_revision)),
+        (
+            "left",
+            object(vec![
+                ("node_id", text(left_id)),
+                ("content_revision", text(left_content_revision)),
+            ]),
+        ),
+        (
+            "right",
+            object(vec![
+                ("node_id", text(right_id)),
+                ("content_revision", text(right_content_revision)),
+            ]),
+        ),
+    ])
+}
+
+fn mapped_type() -> JsonValue {
+    object(vec![("status", text("mapped"))])
+}
+
 #[test]
-fn genuine_selected_temporal_and_exploration_match_python_and_preserve_checkpoint_admission() {
+fn genuine_native_temporal_and_exploration_preserve_checkpoint_admission() {
     let fixture = build_native_fixture();
-    let mut child = Command::new("python3")
-        .arg(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tests/fixtures/native_exploration_temporal_oracle.py"
-        ))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(&fixture.graph_input_bytes)
-        .unwrap();
-    let output = child.wait_with_output().unwrap();
+    let graph = parse(&fixture.graph_input_bytes);
+    let source_revision = get(&graph, "source_revision").as_str().unwrap();
+    let graph_nodes = get(&graph, "nodes").as_array().unwrap();
+    let graph_relations = get(&graph, "relations").as_array().unwrap();
+    let claim_nodes = graph_nodes
+        .iter()
+        .filter(|node| {
+            get(node, "kind_id").as_str() == Some("claim")
+                && get(node, "type_id").as_str() == Some("tos.entity.claim")
+        })
+        .collect::<Vec<_>>();
     assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
+        !claim_nodes.is_empty(),
+        "native fixture must contain a source Claim"
     );
-    if let Some(directory) = std::env::var_os("TOS_NATIVE_QUERY_ORACLE_RECEIPT_DIR") {
-        let directory = std::path::PathBuf::from(directory);
-        assert!(
-            directory.is_absolute(),
-            "receipt directory must be absolute"
-        );
-        std::fs::create_dir_all(&directory).unwrap();
-        for (name, bytes) in [
-            ("graph_input.json", fixture.graph_input_bytes.as_slice()),
-            ("descriptor.json", fixture.descriptor_bytes.as_slice()),
-            ("python_oracle.json", output.stdout.as_slice()),
-        ] {
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(directory.join(name))
-                .unwrap();
-            file.write_all(bytes).unwrap();
-            file.sync_all().unwrap();
-        }
-    }
-    let oracle = parse_json(
-        &output.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits {
-            max_bytes: 16 * 1024 * 1024,
-            max_visits: 2_000_000,
-            ..JsonLimits::default()
-        },
-    )
-    .unwrap()
-    .into_root();
     assert_eq!(
-        get(&oracle, "input_sha256").as_str(),
-        Some(
-            Digest256::of_bytes(&fixture.graph_input_bytes)
-                .to_hex()
-                .as_str()
-        )
+        get(get(claim_nodes[0], "attributes"), "source_claim")
+            .object_get("claim_id")
+            .and_then(JsonValue::as_str),
+        Some("tos.claim.jenseits-1886-commission.date"),
+        "the fixture must keep its named reported commissioning Claim"
     );
+
     let cold = fixture.open().unwrap();
     let bound =
         bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
     let mut model = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
-    let mut actual_temporal = vec![];
-    for case in get(&oracle, "temporal").as_array().unwrap() {
-        let mut authority = Authority::new(
-            &bound,
-            tos_query::TEMPORAL_OPERATION,
-            tos_query::TEMPORAL_INTENDED_USE,
-        );
-        let mut packet = execute_selected_temporal(
-            &mut model,
-            &bound,
-            &mut authority,
-            get(case, "request"),
-            read_budget(),
-        )
-        .unwrap();
-        packet.recheck().unwrap();
-        assert_eq!(canonical(&parse(&packet)), canonical(get(case, "packet")));
-        actual_temporal.push(object(vec![
-            (
-                "request",
-                text(&String::from_utf8(canonical(get(case, "request"))).unwrap()),
-            ),
-            ("packet", text(std::str::from_utf8(&packet).unwrap())),
-        ]));
-    }
-    if let Some(directory) = std::env::var_os("TOS_NATIVE_QUERY_ORACLE_RECEIPT_DIR") {
-        let graph = parse(&fixture.graph_input_bytes);
-        let claim_source = fixture
-            .vocabulary
-            .sources
-            .iter()
-            .find(|source| source.adapter_profile == "reified-bibliographic-claims-v1")
-            .unwrap();
-        let rows = get(&graph, "nodes")
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|node| {
-                object(vec![
-                    ("id", get(node, "id").clone()),
-                    ("raw", text(&String::from_utf8(canonical(node)).unwrap())),
-                ])
-            })
-            .collect();
-        let replay = object(vec![
-            (
-                "source_revision",
-                text(bound.require_source_revision().unwrap()),
-            ),
-            ("claim_source_graph", text(&claim_source.source_graph_id)),
-            ("carriers", JsonValue::Array(rows)),
-            ("temporal", JsonValue::Array(actual_temporal)),
-        ]);
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(std::path::PathBuf::from(directory).join("temporal_transport.json"))
-            .unwrap();
-        file.write_all(&canonical(&replay)).unwrap();
-        file.sync_all().unwrap();
-    }
-    for case in get(&oracle, "exploration").as_array().unwrap() {
-        let work = get(case, "work").as_u64().unwrap() as usize;
-        let budget = exploration_budget(work);
-        let mut checkpoints = Checkpoints::default();
-        let mut request = get(case, "request").clone();
-        let mut replay_request = None;
-        let pages = get(case, "pages").as_array().unwrap();
-        for (index, expected) in pages.iter().enumerate() {
-            let mut authority =
-                Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
-            let mut packet = execute_selected_exploration(
-                &mut model,
-                &bound,
-                &mut authority,
-                &mut checkpoints,
-                &request,
-                budget,
-            )
-            .unwrap();
-            packet.recheck().unwrap();
-            let packet = parse(&packet);
-            assert_eq!(
-                canonical(&comparable(packet.clone())),
-                canonical(expected),
-                "exploration case {:?}, page {index}",
-                get(case, "request")
-            );
-            let next = get(get(&packet, "page"), "next_cursor").as_str();
-            if index == 0 {
-                replay_request = next.map(cursor_request);
-            }
-            if let Some(next) = next {
-                request = cursor_request(next)
-            } else {
-                assert_eq!(index + 1, pages.len())
-            }
-        }
-        // Replayed input is reauthorized and has an identical emitted packet.
-        if pages.len() > 1 {
-            let request = replay_request.unwrap();
-            let before = checkpoints.0.lock().unwrap().commits;
-            let mut authority =
-                Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
-            let result = execute_selected_exploration(
-                &mut model,
-                &bound,
-                &mut authority,
-                &mut checkpoints,
-                &request,
-                budget,
-            )
-            .unwrap();
-            assert_eq!(canonical(&comparable(parse(&result))), canonical(&pages[1]));
-            assert_eq!(checkpoints.0.lock().unwrap().commits, before);
-            authority.withdrawn = true;
-            assert!(matches!(
-                execute_selected_exploration(
-                    &mut model,
-                    &bound,
-                    &mut authority,
-                    &mut checkpoints,
-                    &request,
-                    budget
-                ),
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::StalePolicy,
-                    ..
-                })
-            ));
-        }
-    }
-    // A staged page refused at disclosure/capacity/cancellation never advances cursor.
-    let case = get(&oracle, "exploration")
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|case| {
-            get(case, "work").as_u64() == Some(2)
-                && get(case, "pages").as_array().unwrap().len() > 1
-        })
-        .expect("genuine selected fixture has resumable neighborhood");
-    let budget = exploration_budget(2);
-    let mut checkpoints = Checkpoints::default();
-    let mut authority = Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
-    let first = execute_selected_exploration(
+    let content_revision = get(claim_nodes[0], "content_revision").as_str().unwrap();
+    let claim_id = get(claim_nodes[0], "id").as_str().unwrap();
+    let temporal_request = selected_temporal_request(
+        source_revision,
+        claim_id,
+        content_revision,
+        claim_id,
+        content_revision,
+    );
+    let mut authority = Authority::new(
+        &bound,
+        tos_query::TEMPORAL_OPERATION,
+        tos_query::TEMPORAL_INTENDED_USE,
+    );
+    let mut packet = execute_selected_temporal(
         &mut model,
         &bound,
         &mut authority,
-        &mut checkpoints,
-        get(case, "request"),
-        budget,
+        &temporal_request,
+        read_budget(),
     )
     .unwrap();
-    let first = parse(&first);
-    let request = cursor_request(get(get(&first, "page"), "next_cursor").as_str().unwrap());
-    let before = checkpoints.0.lock().unwrap().commits;
-    checkpoints.0.lock().unwrap().refuse = true;
-    assert!(matches!(
-        execute_selected_exploration(
-            &mut model,
-            &bound,
-            &mut authority,
-            &mut checkpoints,
-            &request,
-            budget
-        ),
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::BudgetExceeded,
-            ..
-        })
-    ));
-    checkpoints.0.lock().unwrap().refuse = false;
-    authority.withdrawn = true;
-    assert!(matches!(
-        execute_selected_exploration(
-            &mut model,
-            &bound,
-            &mut authority,
-            &mut checkpoints,
-            &request,
-            budget
-        ),
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::StalePolicy,
-            ..
-        })
-    ));
-    authority.withdrawn = false;
-    for reason in [AbortReason::Cancelled, AbortReason::DeadlineExceeded] {
-        authority.probe = Some(Arc::new(Probe {
-            calls: AtomicUsize::new(0),
-            after: 8,
-            reason,
-        }));
-        let result = execute_selected_exploration(
-            &mut model,
-            &bound,
-            &mut authority,
-            &mut checkpoints,
-            &request,
-            budget,
-        );
-        assert!(matches!(
-            result,
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::Cancelled | SearchV2ErrorCode::DeadlineExceeded,
-                ..
-            })
-        ));
+    packet.recheck().unwrap();
+    let packet = parse(&packet);
+    assert_eq!(
+        get(get(&packet, "comparison"), "status").as_str(),
+        Some("comparable")
+    );
+    assert_eq!(
+        get(get(&packet, "comparison"), "relation").as_str(),
+        Some("equal")
+    );
+    assert_eq!(
+        get(get(&packet, "authority_boundary"), "creates_inferred_claim"),
+        &JsonValue::Bool(false)
+    );
+    assert_eq!(
+        get(get(&packet, "authority_boundary"), "performs_assessment"),
+        &JsonValue::Bool(false)
+    );
+
+    let nonclaim = graph_nodes
+        .iter()
+        .find(|node| node != &claim_nodes[0])
+        .expect("native fixture must include a non-Claim carrier");
+    let nonclaim_id = get(nonclaim, "id").as_str().unwrap();
+    let nonclaim_revision = get(nonclaim, "content_revision").as_str().unwrap();
+    let request = selected_temporal_request(
+        source_revision,
+        nonclaim_id,
+        nonclaim_revision,
+        claim_id,
+        content_revision,
+    );
+    let mut authority = Authority::new(
+        &bound,
+        tos_query::TEMPORAL_OPERATION,
+        tos_query::TEMPORAL_INTENDED_USE,
+    );
+    let packet =
+        execute_selected_temporal(&mut model, &bound, &mut authority, &request, read_budget())
+            .unwrap();
+    let packet = parse(&packet);
+    assert_eq!(
+        get(get(&packet, "comparison"), "status").as_str(),
+        Some("unsupported")
+    );
+    assert_eq!(
+        get(get(&packet, "comparison"), "relation"),
+        &JsonValue::Null
+    );
+
+    let mut sources = std::collections::BTreeSet::new();
+    for row in graph_nodes.iter().chain(graph_relations) {
+        if let Some(source) = get(row, "source_graph").as_str() {
+            sources.insert(source.to_owned());
+        }
     }
-    authority.probe = None;
-    assert_eq!(checkpoints.0.lock().unwrap().commits, before);
-    execute_selected_exploration(
+    assert!(!sources.is_empty());
+    let sources = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
+    let node_ids = graph_nodes
+        .iter()
+        .map(|node| get(node, "id").as_str().unwrap().to_owned())
+        .collect::<std::collections::BTreeSet<_>>();
+    let relation_ids = graph_relations
+        .iter()
+        .map(|relation| get(relation, "id").as_str().unwrap().to_owned())
+        .collect::<std::collections::BTreeSet<_>>();
+
+    // Exercise every fixture focus across both profiles and directions using
+    // the native owner directly. Bounded pages must stay on the selected graph,
+    // remain replayable, and terminate without the former Python oracle.
+    for work in [2, 512] {
+        let budget = exploration_budget(work);
+        for focus in graph_nodes {
+            let focus_id = get(focus, "id").as_str().unwrap();
+            for profile in ["all", "overview"] {
+                for direction in ["incoming", "outgoing", "either"] {
+                    let first_request = object(vec![
+                        ("focus_node_id", text(focus_id)),
+                        ("sources", sources.clone()),
+                        ("profile", text(profile)),
+                        ("direction", text(direction)),
+                        ("max_depth", parse(b"2")),
+                        ("page_nodes", parse(b"1")),
+                        ("page_relations", parse(b"1")),
+                    ]);
+                    let mut request = first_request.clone();
+                    let mut checkpoints = Checkpoints::default();
+                    let mut pages = Vec::new();
+                    let mut first_cursor = None;
+                    let mut completed = false;
+                    for page_number in 0..256 {
+                        let mut authority =
+                            Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
+                        let mut response = execute_selected_exploration(
+                            &mut model,
+                            &bound,
+                            &mut authority,
+                            &mut checkpoints,
+                            &request,
+                            budget,
+                        )
+                        .unwrap();
+                        response.recheck().unwrap();
+                        let response = parse(&response);
+                        assert_eq!(
+                            get(&response, "source_revision").as_str(),
+                            Some(source_revision)
+                        );
+                        assert_eq!(
+                            get(&response, "focus")
+                                .object_get("node_id")
+                                .and_then(JsonValue::as_str),
+                            Some(focus_id)
+                        );
+                        assert_eq!(
+                            get(&response, "schema").as_str(),
+                            Some("tos_exploration_result_v1")
+                        );
+                        assert!(matches!(
+                            get(&response, "status").as_str(),
+                            Some("paused" | "complete" | "limit_reached")
+                        ));
+                        let page = get(&response, "page");
+                        assert!(
+                            get(page, "returned_nodes")
+                                .as_u64()
+                                .is_some_and(|count| count <= 1),
+                            "page node cap changed for {focus_id}/{profile}/{direction}"
+                        );
+                        assert!(
+                            get(page, "returned_relations")
+                                .as_u64()
+                                .is_some_and(|count| count <= 1),
+                            "page relation cap changed for {focus_id}/{profile}/{direction}"
+                        );
+                        for node in get(&response, "nodes").as_array().unwrap() {
+                            assert!(node_ids.contains(get(node, "id").as_str().unwrap()));
+                        }
+                        for relation in get(&response, "relations").as_array().unwrap() {
+                            assert!(relation_ids.contains(get(relation, "id").as_str().unwrap()));
+                        }
+                        let next = get(page, "next_cursor").as_str();
+                        if page_number == 0 {
+                            first_cursor = next.map(str::to_owned);
+                        }
+                        pages.push(comparable(response.clone()));
+                        if let Some(next) = next {
+                            assert_eq!(get(&response, "status").as_str(), Some("paused"));
+                            request = cursor_request(next);
+                        } else {
+                            assert!(matches!(
+                                get(&response, "status").as_str(),
+                                Some("complete" | "limit_reached")
+                            ));
+                            completed = true;
+                            break;
+                        }
+                    }
+                    assert!(completed, "bounded exploration did not terminate");
+                    assert_eq!(checkpoints.0.lock().unwrap().commits, pages.len());
+                    if let (Some(cursor), Some(expected)) = (first_cursor, pages.get(1)) {
+                        let before = checkpoints.0.lock().unwrap().commits;
+                        let mut authority =
+                            Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
+                        let replay = execute_selected_exploration(
+                            &mut model,
+                            &bound,
+                            &mut authority,
+                            &mut checkpoints,
+                            &cursor_request(&cursor),
+                            budget,
+                        )
+                        .unwrap();
+                        assert_eq!(canonical(&comparable(parse(&replay))), canonical(expected));
+                        assert_eq!(checkpoints.0.lock().unwrap().commits, before);
+                        authority.withdrawn = true;
+                        assert!(matches!(
+                            execute_selected_exploration(
+                                &mut model,
+                                &bound,
+                                &mut authority,
+                                &mut checkpoints,
+                                &cursor_request(&cursor),
+                                budget
+                            ),
+                            Err(SearchV2Error {
+                                code: SearchV2ErrorCode::StalePolicy,
+                                ..
+                            })
+                        ));
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn genuine_relation_origin_keeps_exact_endpoint_closure_and_refuses_stale_revision() {
+    let fixture = build_native_fixture();
+    let graph = parse(&fixture.graph_input_bytes);
+    let source_revision = get(&graph, "source_revision").as_str().unwrap();
+    let nodes = get(&graph, "nodes").as_array().unwrap();
+    let relations = get(&graph, "relations").as_array().unwrap();
+    let relation = relations
+        .first()
+        .expect("native fixture must include a relation origin");
+    let mut source_names = std::collections::BTreeSet::new();
+    for row in nodes.iter().chain(relations) {
+        if let Some(source) = get(row, "source_graph").as_str() {
+            source_names.insert(source.to_owned());
+        }
+    }
+    let sources = JsonValue::Array(source_names.iter().map(|source| text(source)).collect());
+
+    let cold = fixture.open().unwrap();
+    let bound =
+        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+    let mut model = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
+    let relation_id = get(relation, "id").as_str().unwrap();
+    let from_id = get(relation, "from_id").as_str().unwrap();
+    let to_id = get(relation, "to_id").as_str().unwrap();
+    let request = object(vec![
+        ("schema_version", text("tos_exploration_request_v2")),
+        ("source_revision", text(source_revision)),
+        (
+            "origin",
+            object(vec![
+                ("kind", text("relation")),
+                ("id", text(relation_id)),
+                (
+                    "content_revision",
+                    get(relation, "content_revision").clone(),
+                ),
+            ]),
+        ),
+        ("sources", sources),
+        ("profile", text("all")),
+        ("direction", text("either")),
+        ("max_depth", parse(b"0")),
+        ("page_nodes", parse(b"2")),
+        ("page_relations", parse(b"1")),
+    ]);
+    let mut checkpoints = Checkpoints::default();
+    let mut authority = Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
+    let response = execute_selected_exploration(
         &mut model,
         &bound,
         &mut authority,
         &mut checkpoints,
         &request,
-        budget,
+        exploration_budget(512),
     )
     .unwrap();
+    response.recheck().unwrap();
+    let response = parse(&response);
+    assert_eq!(
+        get(&response, "schema").as_str(),
+        Some("tos_exploration_result_v2")
+    );
+    assert_eq!(
+        get(get(&response, "origin"), "kind").as_str(),
+        Some("relation")
+    );
+    assert_eq!(
+        get(get(&response, "origin"), "id").as_str(),
+        Some(relation_id)
+    );
+    let endpoints = get(get(&response, "origin"), "endpoints");
+    assert_eq!(
+        get(get(endpoints, "from"), "node_id").as_str(),
+        Some(from_id)
+    );
+    assert_eq!(get(get(endpoints, "to"), "node_id").as_str(), Some(to_id));
+    let context_relations = get(get(&response, "page"), "context_relation_ids")
+        .as_array()
+        .unwrap();
+    assert_eq!(context_relations, &[text(relation_id)]);
+    let returned_nodes = get(&response, "nodes").as_array().unwrap();
+    let returned_ids = returned_nodes
+        .iter()
+        .map(|node| get(node, "id").as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(returned_ids, [from_id, to_id].into_iter().collect());
+    assert!(returned_nodes.iter().any(|node| {
+        get(node, "id").as_str() == Some(from_id)
+            && get(node, "content_revision") == get(get(endpoints, "from"), "content_revision")
+    }));
+    assert!(returned_nodes.iter().any(|node| {
+        get(node, "id").as_str() == Some(to_id)
+            && get(node, "content_revision") == get(get(endpoints, "to"), "content_revision")
+    }));
+
+    let mut stale = request;
+    let mut origin = get(&stale, "origin").clone();
+    set(&mut origin, "content_revision", text(&"0".repeat(64)));
+    set(&mut stale, "origin", origin);
+    let mut authority = Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
+    assert!(matches!(
+        execute_selected_exploration(
+            &mut model,
+            &bound,
+            &mut authority,
+            &mut checkpoints,
+            &stale,
+            exploration_budget(512),
+        ),
+        Err(SearchV2Error {
+            code: SearchV2ErrorCode::StaleSelection,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn genuine_catalogue_temporal_source_profile_bytes_and_line_are_exact() {
+    const SOURCE_REF: &str =
+        "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl";
+    const CLAIM_DIGEST: &str = "b884e76996edac910334e3abf44cf0f82bee3be37d00c001e18e3295ebe3dee8";
+    let line = include_bytes!(
+        "../../../../ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl"
+    );
+    let mut data_lines = line
+        .split(|byte| *byte == b'\n')
+        .filter(|bytes| !bytes.is_empty());
+    let source = parse(data_lines.next().expect("catalogue Claim source line"));
+    assert!(
+        data_lines.next().is_none(),
+        "focused source file is one JSONL row"
+    );
+    let source_bytes = canonical(&source);
+    let source_digest = Digest256::of_bytes(&source_bytes).to_hex();
+    assert_eq!(
+        source_digest, CLAIM_DIGEST,
+        "canonical source Claim bytes drifted"
+    );
+    assert_eq!(
+        get(&source, "claim_id").as_str(),
+        Some("tos.claim.nietzsche-letter-705.catalogue-date")
+    );
+    assert_eq!(
+        get(&source, "schema_version").as_str(),
+        Some("tos_document_catalogue_claim_v1")
+    );
+    assert_eq!(
+        get(&source, "predicate").as_str(),
+        Some("document_catalogue_date")
+    );
+    assert_eq!(
+        get(&source, "subject_ref").as_str(),
+        Some("tos.letter.nietzsche-naumann-1886-705")
+    );
+
+    let registry = parse(include_bytes!(
+        "../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json"
+    ));
+    let relation = get(&registry, "relations")
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|relation| {
+            get(relation, "relation_type_id").as_str()
+                == Some("tos.relation.document-catalogue-date")
+        })
+        .expect("owned document-catalogue-date relation");
+    let profile = get(relation, "source_claim_profile").clone();
+    assert_eq!(
+        get(&profile, "reader").as_str(),
+        Some("document-catalogue-temporal-v1")
+    );
+    assert_eq!(
+        get(&profile, "assertion_layers").as_array(),
+        Some(&vec![text("bibliographic_assertion")])
+    );
+    assert_eq!(
+        get(
+            &get(&profile, "schemas").as_array().unwrap()[0],
+            "schema_ref"
+        )
+        .as_str(),
+        Some("ToS/contracts/document-catalogue-claim.schema.json")
+    );
+
+    let claim_id = get(&source, "claim_id").as_str().unwrap();
+    let subject_id = "source-claims:document:tos.letter.nietzsche-naumann-1886-705";
+    let claim_node_id = format!("source-claims:claim:{claim_id}");
+    let value_node_id = format!("literal:sha256:{}", {
+        let literal = object(vec![
+            ("claim_ref", text(claim_id)),
+            ("value", get(&source, "object").clone()),
+        ]);
+        Digest256::of_bytes(&canonical(&literal)).to_hex()
+    });
+    let source_line = parse(b"1");
+    let source_refs = JsonValue::Array(vec![text(SOURCE_REF)]);
+    let source_canonical = String::from_utf8(source_bytes.clone()).unwrap();
+    let claim_semantics = object(vec![
+        ("claim_id", get(&source, "claim_id").clone()),
+        ("claim_version", get(&source, "claim_version").clone()),
+        ("object_node_id", text(&value_node_id)),
+        ("subject_node_id", text(subject_id)),
+        (
+            "relation_type_id",
+            get(relation, "relation_type_id").clone(),
+        ),
+        ("source_predicate_id", get(&source, "predicate").clone()),
+        ("predicate_mapping_status", text("mapped")),
+        ("source_claim_profile", profile),
+        ("source_canonical_json", text(&source_canonical)),
+    ]);
+    let claim = object(vec![
+        ("id", text(&claim_node_id)),
+        ("native_id", text(&format!("claim:{claim_id}"))),
+        ("source_graph", text("source-claims")),
+        ("kind_id", text("claim")),
+        ("type_id", text("tos.entity.claim")),
+        ("type_mapping", mapped_type()),
+        ("content_revision", text(&"c".repeat(64))),
+        (
+            "attributes",
+            object(vec![
+                ("source_claim", source.clone()),
+                ("source_sha256", text(&source_digest)),
+                ("source_line", source_line.clone()),
+                ("source_refs", source_refs.clone()),
+            ]),
+        ),
+        ("semantics", object(vec![("claim", claim_semantics)])),
+        ("source_refs", source_refs.clone()),
+    ]);
+    let raw_value = get(&source, "object").clone();
+    let raw_digest = Digest256::of_bytes(&canonical(&raw_value)).to_hex();
+    let time = object(vec![
+        ("kind", get(&raw_value, "kind").clone()),
+        ("raw", raw_value.clone()),
+        ("calendar", get(&raw_value, "calendar").clone()),
+        (
+            "declared_year_numbering",
+            get(&raw_value, "year_numbering").clone(),
+        ),
+        ("certainty", get(&raw_value, "certainty").clone()),
+        ("precision", text("day")),
+        ("comparison_calendar", JsonValue::Null),
+        ("year_numbering", JsonValue::Null),
+        ("sort_start", JsonValue::Null),
+        ("sort_end", JsonValue::Null),
+        ("role", get(&raw_value, "role").clone()),
+        ("source_wording", get(&raw_value, "source_wording").clone()),
+        ("normalization_status", text("structured-source")),
+        ("source_field", text("object")),
+        (
+            "issues",
+            JsonValue::Array(vec![
+                text("calendar-not-comparable"),
+                text("year-numbering-not-comparable"),
+            ]),
+        ),
+    ]);
+    let value = object(vec![
+        ("id", text(&value_node_id)),
+        ("native_id", text(&value_node_id)),
+        ("source_graph", text("source-claims")),
+        ("type_id", text("tos.entity.temporal-assertion")),
+        ("type_mapping", mapped_type()),
+        ("content_revision", text(&"d".repeat(64))),
+        (
+            "attributes",
+            object(vec![
+                ("claim_ref", text(claim_id)),
+                ("value", raw_value.clone()),
+                ("source_sha256", text(&source_digest)),
+                ("value_sha256", text(&raw_digest)),
+                ("source_line", source_line.clone()),
+            ]),
+        ),
+        ("semantics", object(vec![("time", time)])),
+        ("source_refs", source_refs.clone()),
+    ]);
+    let subject = object(vec![
+        ("id", text(subject_id)),
+        ("entity_id", get(&source, "subject_ref").clone()),
+        ("source_graph", text("source-claims")),
+        ("type_id", text("tos.entity.document")),
+        ("type_mapping", mapped_type()),
+        (
+            "semantics",
+            object(vec![(
+                "type_ancestors",
+                JsonValue::Array(vec![text("tos.entity.document")]),
+            )]),
+        ),
+    ]);
+    let rows = BTreeMap::from([
+        (claim_node_id.clone(), vec![claim.clone()]),
+        (value_node_id.clone(), vec![value.clone()]),
+        (subject_id.to_owned(), vec![subject]),
+    ]);
+    let revision = "a".repeat(64);
+    let content_revision = "c".repeat(64);
+    let request = selected_temporal_request(
+        &revision,
+        &claim_node_id,
+        &content_revision,
+        &claim_node_id,
+        &content_revision,
+    );
+    let result = compare_temporal_operands(
+        &revision,
+        &request,
+        "source-claims",
+        |id| Ok(rows.get(id).cloned().unwrap_or_default()),
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        get(get(&result, "comparison"), "status").as_str(),
+        Some("undetermined")
+    );
+    assert_eq!(
+        get(get(&result, "comparison"), "relation"),
+        &JsonValue::Null
+    );
+    let returned_claim = get(get(&result, "left"), "claim");
+    let returned_value = get(get(&result, "left"), "value");
+    assert_eq!(
+        get(
+            get(&get(returned_claim, "semantics"), "claim"),
+            "source_canonical_json"
+        )
+        .as_str(),
+        Some(source_canonical.as_str())
+    );
+    assert_eq!(
+        get(get(returned_claim, "attributes"), "source_line"),
+        &source_line
+    );
+    assert_eq!(
+        get(get(returned_value, "attributes"), "source_line"),
+        &source_line
+    );
+    assert_eq!(
+        get(
+            get(&get(returned_claim, "semantics"), "claim"),
+            "source_claim_profile"
+        ),
+        get(relation, "source_claim_profile")
+    );
+    assert_eq!(
+        get(&get(&get(&result, "left"), "normalized_time"), "raw")
+            .object_get("role")
+            .and_then(JsonValue::as_str),
+        Some("catalogue-assigned-document-date")
+    );
+    assert_eq!(
+        get(
+            &get(&result, "authority_boundary"),
+            "creates_inferred_claim"
+        ),
+        &JsonValue::Bool(false)
+    );
+    for code in [
+        "declared-calendar-unavailable",
+        "declared-year-numbering-unavailable",
+        "comparison-calendar-unavailable",
+        "comparison-year-numbering-unavailable",
+        "absolute-date-envelope-unavailable",
+    ] {
+        assert!(
+            get(get(&result, "comparison"), "reasons")
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|reason| get(reason, "code").as_str() == Some(code))
+        );
+    }
+
+    let mut drifted_value = value;
+    let mut attributes = get(&drifted_value, "attributes").clone();
+    set(&mut attributes, "source_line", parse(b"2"));
+    set(&mut drifted_value, "attributes", attributes);
+    let drifted = BTreeMap::from([
+        (claim_node_id.clone(), vec![claim]),
+        (value_node_id, vec![drifted_value]),
+        (subject_id.to_owned(), rows.get(subject_id).unwrap().clone()),
+    ]);
+    let result = compare_temporal_operands(
+        &revision,
+        &request,
+        "source-claims",
+        |id| Ok(drifted.get(id).cloned().unwrap_or_default()),
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        get(get(&result, "comparison"), "status").as_str(),
+        Some("undetermined")
+    );
+    assert!(
+        get(get(&result, "comparison"), "reasons")
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| get(reason, "code").as_str()
+                == Some("document-catalogue-exact-source-binding-inconsistent"))
+    );
 }

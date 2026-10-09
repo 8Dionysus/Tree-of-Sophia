@@ -50,91 +50,10 @@ fn checked_command(
     run_claim_command_from_captures(ctx, cut, software, components, worker, deadline, cancel)
 }
 
-// Independent maintained owner oracle. Its output is bounded, ephemeral and
-// compared as data; this Python process is never a production serialization
-// producer, authority issuer or native admission substitute.
-fn maintained_oracle(
-    oracle_id: &str,
-    files: &BTreeMap<String, Vec<u8>>,
-    configuration: &Value,
-    request: &Value,
-    repository: &Path,
-) -> Value {
-    use std::process::{Command, Stdio};
-    let temporary = tempfile::tempdir().unwrap();
-    let root = temporary.path().join("source");
-    let mut total = 0usize;
-    for (name, raw) in files {
-        total += raw.len();
-        assert!(total <= 8_388_608);
-        let path = root.join(name);
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, raw).unwrap();
-    }
-    let mut config = configuration.clone();
-    config["source_root"] = Value::String(root.to_str().unwrap().into());
-    let config_path = temporary.path().join("owner.json");
-    let request_path = temporary.path().join("request.json");
-    fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
-    fs::write(&request_path, serde_json::to_vec(request).unwrap()).unwrap();
-    let stdout_path = temporary.path().join("oracle.stdout");
-    let stderr_path = temporary.path().join("oracle.stderr");
-    let script = "import json,sys\nfrom pathlib import Path\nr=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')]\nimport claim_revisions as c\nconfig=json.loads(Path(sys.argv[2]).read_text());request=json.loads(Path(sys.argv[3]).read_text());path=Path(config['source_root'])/config['source_path']\nfiles={p.name:p.read_bytes() for p in path.parent.iterdir() if p.is_file()};record=c._claims(files[path.name])[config['claim_id']]\n_,_,_,_,dependencies,bindings=c._proposal(config,path,files,record,request)\nprint(json.dumps({'expected_dependencies':dependencies,'source_bindings':bindings},ensure_ascii=False,sort_keys=True,separators=(',',':')))\n";
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(&config_path)
-        .arg(&request_path)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdout(Stdio::from(fs::File::create(&stdout_path).unwrap()))
-        .stderr(Stdio::from(fs::File::create(&stderr_path).unwrap()))
-        .spawn()
-        .unwrap();
-    let deadline = Instant::now() + Duration::from_secs(30);
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(&stdout_path).unwrap().len() > 1_048_576
-            || fs::metadata(&stderr_path).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Claim oracle refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(fs::metadata(&stdout_path).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(&stderr_path).unwrap().len() <= 1_048_576);
-    assert!(
-        status.success(),
-        "{}",
-        String::from_utf8_lossy(&fs::read(stderr_path).unwrap())
-    );
-    let raw = fs::read(stdout_path).unwrap();
-    let mut configuration_witness = configuration.clone();
-    if configuration_witness.get("source_root").is_some() {
-        configuration_witness["source_root"] = Value::String("<isolated-source-root>".into());
-    }
-    crate::capture_maintained_python_oracle(
-        oracle_id,
-        repository,
-        &[
-            "tests/conformance/rust/command_claim_cases.rs",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts",
-            "scripts",
-        ],
-        serde_json::json!({
-            "selected_source_inputs": crate::maintained_input_witness(files),
-            "configuration": configuration_witness,
-            "request": request,
-        }),
-        &raw,
-    );
-    serde_json::from_slice(&raw).unwrap()
+// Exact output of the historical Claim oracle, captured with its selected
+// fixture bytes and source hashes in the adjacent provenance record.
+fn maintained_oracle(oracle_id: &str) -> Value {
+    crate::frozen_legacy_python_oracle(oracle_id)
 }
 
 // Generate the synthetic root's catalog with the existing native compiler
@@ -405,13 +324,7 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     )
     .unwrap();
     let preview_response = response(&preview);
-    let oracle = maintained_oracle(
-        "claim-revision-initial",
-        &files,
-        &configuration,
-        &proposal,
-        &repository,
-    );
+    let oracle = maintained_oracle("claim-revision-initial");
     assert_eq!(
         preview_response["expected_dependencies"], oracle["expected_dependencies"],
         "maintained dependency fingerprint"
@@ -747,76 +660,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
                 .to_prefixed()
         )
     );
-    let script = "import json,sys;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')];import source_commands as c;owner=Path(sys.argv[2]);request=json.load(sys.stdin);v=c.run_legacy_oracle_command(owner,request);print(json.dumps({'dependencies':v['expected_dependencies'],'bindings':v['source_bindings'],'files':v['prepared_files']},ensure_ascii=False,separators=(',',':')))";
-    let oracle_stdout = temporary.path().join("claim-create-oracle.stdout");
-    let oracle_stderr = temporary.path().join("claim-create-oracle.stderr");
-    let mut oracle = std::process::Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(&repository)
-        .arg(&owner)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::from(
-            fs::File::create(&oracle_stdout).unwrap(),
-        ))
-        .stderr(std::process::Stdio::from(
-            fs::File::create(&oracle_stderr).unwrap(),
-        ))
-        .spawn()
-        .unwrap();
-    use std::io::Write;
-    oracle
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(&serde_json::to_vec(&preview_request).unwrap())
-        .unwrap();
-    let oracle_status = loop {
-        if let Some(status) = oracle.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(&oracle_stdout).unwrap().len() > 1_048_576
-            || fs::metadata(&oracle_stderr).unwrap().len() > 1_048_576
-        {
-            oracle.kill().unwrap();
-            oracle.wait().unwrap();
-            panic!("bounded maintained Claim creation oracle refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(
-        Instant::now() < deadline,
-        "maintained Claim oracle deadline"
-    );
-    assert!(fs::metadata(&oracle_stdout).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(&oracle_stderr).unwrap().len() <= 1_048_576);
-    assert!(
-        oracle_status.success(),
-        "{}",
-        String::from_utf8_lossy(&fs::read(&oracle_stderr).unwrap())
-    );
-    let oracle_raw = fs::read(&oracle_stdout).unwrap();
-    let mut configuration_witness = configuration.clone();
-    configuration_witness["source_root"] = Value::String("<isolated-source-root>".into());
-    crate::capture_maintained_python_oracle(
-        "claim-creation",
-        &repository,
-        &[
-            "tests/conformance/rust/command_claim_cases.rs",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts",
-            "scripts",
-        ],
-        serde_json::json!({
-            "selected_source_inputs": crate::maintained_input_witness(&files),
-            "configuration": configuration_witness,
-            "request": preview_request,
-        }),
-        &oracle_raw,
-    );
-    let oracle: Value = serde_json::from_slice(&oracle_raw).unwrap();
+    let oracle = crate::frozen_legacy_python_oracle("claim-creation");
     assert_eq!(expected["expected_dependencies"], oracle["dependencies"]);
     assert_eq!(expected["source_bindings"], oracle["bindings"]);
     assert_eq!(expected["prepared_files"], oracle["files"]);
@@ -1055,18 +899,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     .unwrap();
     drop(revision_preview_worker);
     let prepared = response(&prepared_correction);
-    let mut oracle_files = current_files.clone();
-    oracle_files.insert(
-        format!("{creation_home}/.{form_name}.writer.lock"),
-        Vec::new(),
-    );
-    let independent = maintained_oracle(
-        "claim-revision-selected-history",
-        &oracle_files,
-        &revision_owner,
-        &correction,
-        &repository,
-    );
+    let independent = maintained_oracle("claim-revision-selected-history");
     assert_eq!(
         prepared["expected_dependencies"],
         independent["expected_dependencies"]
@@ -1592,26 +1425,7 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         .unwrap();
         drop(revision_preview_worker);
         let prepared = response(&revision_preview);
-        let mut oracle_files = current_files.clone();
-        oracle_files.insert(format!("{home}/{lock_name}"), Vec::new());
-        let catalog_home = isolated.path().join("ToS/source-witnesses/catalog");
-        for entry in fs::read_dir(&catalog_home).unwrap() {
-            let entry = entry.unwrap();
-            if entry.file_type().unwrap().is_file() {
-                let leaf = entry.file_name().into_string().unwrap();
-                oracle_files.insert(
-                    format!("ToS/source-witnesses/catalog/{leaf}"),
-                    fs::read(entry.path()).unwrap(),
-                );
-            }
-        }
-        let independent = maintained_oracle(
-            &format!("claim-revision-identity-history-{version}"),
-            &oracle_files,
-            &revision_owner,
-            &correction,
-            &repository,
-        );
+        let independent = maintained_oracle(&format!("claim-revision-identity-history-{version}"));
         assert_eq!(
             prepared["expected_dependencies"],
             independent["expected_dependencies"]
@@ -2229,25 +2043,7 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
             .len(),
         1
     );
-    let mut oracle_files = current_files.clone();
-    oracle_files.insert(format!("{home}/{lock_name}"), Vec::new());
-    for entry in fs::read_dir(isolated.path().join("ToS/source-witnesses/catalog")).unwrap() {
-        let entry = entry.unwrap();
-        if entry.file_type().unwrap().is_file() {
-            let leaf = entry.file_name().into_string().unwrap();
-            oracle_files.insert(
-                format!("ToS/source-witnesses/catalog/{leaf}"),
-                fs::read(entry.path()).unwrap(),
-            );
-        }
-    }
-    let independent = maintained_oracle(
-        "claim-revision-catalog-history",
-        &oracle_files,
-        &revision_owner,
-        &correction,
-        &repository,
-    );
+    let independent = maintained_oracle("claim-revision-catalog-history");
     assert_eq!(
         prepared["expected_dependencies"],
         independent["expected_dependencies"]

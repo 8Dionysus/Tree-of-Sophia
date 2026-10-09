@@ -389,6 +389,134 @@ fn source_descend_matches_frozen_python_oracle() {
 }
 
 #[test]
+fn source_descend_preserves_unknown_json_values_in_selected_rows() {
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    let id = request.node_id.clone();
+    let mut selected = parse_json(
+        &model.nodes[&id].raw,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let extras = parse_json(
+        br#"{"unknown_big_integer":1234567890123456789012345678901234567890,"unknown_false":false,"unknown_zero":0,"unknown_null":null}"#,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let (JsonValue::Object(selected), JsonValue::Object(extras)) = (&mut selected, extras) else {
+        panic!("fixture records must be objects")
+    };
+    selected.extend(extras);
+    model.nodes.insert(
+        id.clone(),
+        raw(&JsonValue::Object(selected.clone()), &model.binding),
+    );
+
+    let packet = source_descend(&mut model, &request, budget()).unwrap();
+    let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let returned = field(actual.root(), "nodes")
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| string(node, "node_id") == id)
+        .expect("selected source row");
+    let expected = parse_json(
+        br#"{"unknown_big_integer":1234567890123456789012345678901234567890,"unknown_false":false,"unknown_zero":0,"unknown_null":null}"#,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    for (name, value) in match expected.root() {
+        JsonValue::Object(fields) => fields,
+        _ => unreachable!(),
+    } {
+        assert_eq!(
+            returned.object_get(name.as_str().unwrap()),
+            Some(value),
+            "unknown published field {} is preserved exactly",
+            name.as_str().unwrap()
+        );
+    }
+}
+
+#[test]
+fn source_descend_detects_selected_row_digest_drift() {
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    model.nodes.get_mut(&request.node_id).unwrap().sha256 = Digest256::of_bytes(b"forged row");
+    assert_eq!(
+        source_descend(&mut model, &request, budget())
+            .unwrap_err()
+            .code,
+        QueryErrorCode::CorruptSelectedCarrier
+    );
+}
+
+#[test]
+fn source_descend_selects_new_environment_rows_without_a_stale_index() {
+    let (mut model, _, _) = SyntheticReadModel::fixture();
+    let node_id = "tos.environment.native-fixture";
+    let node = parse_json(
+        br#"{"node_id":"tos.environment.native-fixture","node_kind":"environment","label":"Native fixture environment","source_ref":"ToS/access/fixtures/native-environment.json","properties":{}}"#,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    model
+        .nodes
+        .insert(node_id.into(), raw(&node, &model.binding));
+    let edge = parse_json(
+        r#"{"edge_id":"sn-native-environment","from_id":"tos.environment.native-fixture","predicate_id":"grounds","to_id":"α","edge_kind":"authored_source_planting","source_refs":["ToS/access/fixtures/native-environment-edge.json"]}"#.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    model
+        .edges
+        .insert(node_id.into(), vec![raw(&edge, &model.binding)]);
+    let request = SourceDescendRequest {
+        node_id: node_id.into(),
+        max_depth: 1,
+        limit: 10,
+        at_least_commit_seq: None,
+    };
+
+    let packet = source_descend(&mut model, &request, budget()).unwrap();
+    let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    assert_eq!(
+        field(field(actual.root(), "counts"), "nodes").as_u64(),
+        Some(2)
+    );
+    assert_eq!(
+        field(field(actual.root(), "counts"), "edges").as_u64(),
+        Some(1)
+    );
+    assert!(
+        field(actual.root(), "nodes")
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| {
+                value.object_get("node_id").and_then(JsonValue::as_str) == Some(node_id)
+            })
+    );
+    assert!(
+        field(actual.root(), "edges")
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| {
+                value.object_get("edge_id").and_then(JsonValue::as_str)
+                    == Some("sn-native-environment")
+            })
+    );
+}
+
+#[test]
 fn invalid_selected_authority_boundary_is_rejected() {
     let (mut model, _, request) = SyntheticReadModel::fixture();
     for invalid in [br#""""#.as_slice(), br#"{}"#.as_slice()] {

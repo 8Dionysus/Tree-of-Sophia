@@ -51,6 +51,7 @@ mod source_claim_publication_normalize;
 mod source_claim_publication_roots;
 pub mod source_claims;
 pub mod source_command;
+pub(crate) mod source_corpus_index_projection;
 pub mod source_creation;
 pub mod source_creation_store;
 pub mod source_current_cut;

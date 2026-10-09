@@ -7,7 +7,7 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
     use std::collections::{BTreeMap, BTreeSet};
     use std::os::unix::fs::PermissionsExt;
     use std::time::Instant;
-    use tos_access::{KnowledgeRequest, http::handle_post};
+    use tos_access::http::handle_post;
     let fixture = tos_compiler::knowledge_full_fixture::build_native_fixture_bounded(
         tos_compiler::knowledge_stage::StageLimits {
             sqlite: tos_compiler::Limits {
@@ -268,15 +268,167 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         "bounded fixture must complete, not merely produce a first page"
     );
     assert!(seen_nodes.contains(origin_id) && !seen_relations.is_empty());
-    // A withheld page must not change durable continuations on a stale fence.
-    let checkpoint_cap = 97 * 1024 * 1024;
-    let before_held = crate::native_child::bounded_sha(&checkpoint_path, checkpoint_cap);
-    let mut held = executor
-        .knowledge(
-            KnowledgeRequest::Explore(json(&request_raw)),
-            profile.deadline_probe(),
+    // Persistent cursors expire without resetting the selected source product.
+    let expiry_start = post(&executor, &request_raw);
+    let expiry_cursor = expiry_start["page"]["next_cursor"]
+        .as_str()
+        .expect("small first page pauses")
+        .to_owned();
+    let expired_body = serde_json::to_vec(&value!({"cursor":expiry_cursor.clone()})).unwrap();
+    {
+        let db = rusqlite::Connection::open(&checkpoint_path).unwrap();
+        db.execute(
+            "UPDATE checkpoints SET expires=0 WHERE token=?1",
+            [&expiry_cursor],
         )
         .unwrap();
+    }
+    assert_eq!(
+        handle_post(&executor, "/api/knowledge/explore", &expired_body, profile,).status,
+        410,
+        "expired persistent cursor must fail closed"
+    );
+
+    // A backwards wall clock blocks requests without resetting the durable
+    // cursor database. Restore the fixture clock after observing the refusal.
+    let last_time: i64 = {
+        let db = rusqlite::Connection::open(&checkpoint_path).unwrap();
+        db.query_row(
+            "SELECT last_time FROM checkpoint_meta WHERE singleton=1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap()
+    };
+    let future_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64
+        + 60_000;
+    {
+        let db = rusqlite::Connection::open(&checkpoint_path).unwrap();
+        db.execute(
+            "UPDATE checkpoint_meta SET last_time=?1 WHERE singleton=1",
+            [future_time],
+        )
+        .unwrap();
+    }
+    assert_eq!(
+        handle_post(&executor, "/api/knowledge/explore", &request_raw, profile).status,
+        503,
+        "backwards wall clock fails closed without resetting state"
+    );
+    {
+        let db = rusqlite::Connection::open(&checkpoint_path).unwrap();
+        db.execute(
+            "UPDATE checkpoint_meta SET last_time=?1 WHERE singleton=1",
+            [last_time],
+        )
+        .unwrap();
+    }
+
+    // Replacing a retained checkpoint path with a byte-identical copy is an
+    // ABA custody change. The reader rejects it rather than reopening/resetting.
+    let aba_path = dir.join("aba.sqlite");
+    let aba_executor = tos_access::prepared_local::PreparedLocalExecutor::open_with_checkpoints(
+        path.clone(),
+        binding_path.clone(),
+        None,
+        Some(aba_path.clone()),
+    )
+    .unwrap();
+    let displaced = dir.join("aba-displaced.sqlite");
+    fs::rename(&aba_path, &displaced).unwrap();
+    fs::copy(&displaced, &aba_path).unwrap();
+    let changed_path = handle_post(
+        &aba_executor,
+        "/api/knowledge/explore",
+        &request_raw,
+        profile,
+    );
+    assert_eq!(
+        changed_path.status, 409,
+        "replacement inode must be rejected"
+    );
+    fs::remove_file(&aba_path).unwrap();
+    fs::rename(&displaced, &aba_path).unwrap();
+    drop(aba_executor);
+
+    // A continuation held for delivery must not commit its successor after a
+    // concurrent source publication changes the selected snapshot.
+    let held_start = post(&executor, &request_raw);
+    let held_cursor = held_start["page"]["next_cursor"]
+        .as_str()
+        .expect("small first page pauses")
+        .to_owned();
+    // A persistent checkpoint whose encoded successor exceeds its admitted
+    // state cap is refused before cursor admission; the input state remains
+    // available for another consumer with a larger explicit budget.
+    {
+        use tos_query::knowledge_exploration::{ExplorationCheckpoint, ExplorationCheckpoints};
+        let default_read = tos_compiler::local_prepared::PreparedReadLimits {
+            max_response_bytes: tos_access::prepared_local::PREPARED_RESPONSE_BYTES,
+            ..Default::default()
+        };
+        let full_limits = tos_access::exploration_checkpoints::CheckpointLimits {
+            ttl: Duration::from_secs(900),
+            max_entries: 128,
+            max_encoded_bytes: 32 * 1024 * 1024,
+        };
+        let full_budget = tos_query::prepared_exploration::exploration_budget(default_read);
+        let snapshot = held_start["snapshot_revision"].as_str().unwrap();
+        let mut reader =
+            tos_access::persistent_exploration_checkpoints::PersistentExplorationCheckpoints::open(
+                &checkpoint_path,
+                &path,
+                full_limits,
+                full_budget,
+            )
+            .unwrap();
+        let ExplorationCheckpoint::State(state) = reader.load(&held_cursor, snapshot).unwrap()
+        else {
+            panic!("fresh cursor must retain a resumable state")
+        };
+        drop(reader);
+
+        let small_path = dir.join("capacity.sqlite");
+        let small_limits = tos_access::exploration_checkpoints::CheckpointLimits {
+            ttl: Duration::from_secs(900),
+            max_entries: 1,
+            max_encoded_bytes: 1024,
+        };
+        let mut small_budget = full_budget;
+        small_budget.max_state_bytes = 1;
+        small_budget.max_checkpoint_bytes = 1024;
+        small_budget.max_checkpoints = 1;
+        let mut small =
+            tos_access::persistent_exploration_checkpoints::PersistentExplorationCheckpoints::open(
+                &small_path,
+                &path,
+                small_limits,
+                small_budget,
+            )
+            .unwrap();
+        let result = small.prepare(
+            None,
+            snapshot,
+            Some(&state),
+            &json(&serde_json::to_vec(&held_start).unwrap()),
+            small_budget,
+        );
+        match result {
+            Err(error) => assert_eq!(
+                error.code,
+                tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded
+            ),
+            Ok(_) => panic!("successor larger than the checkpoint cap was admitted"),
+        }
+    }
+    let held_body = serde_json::to_vec(&value!({"cursor":held_cursor})).unwrap();
+    let held = handle_post(&executor, "/api/knowledge/explore", &held_body, profile);
+    assert_eq!(held.status, 200);
+    let checkpoint_cap = 97 * 1024 * 1024;
+    let before_held = crate::native_child::bounded_sha(&checkpoint_path, checkpoint_cap);
     // A real metadata-only successor invalidates old selections and held pages.
     let mut next_header = header.clone();
     let JsonValue::Object(fields) = &mut next_header else {
@@ -304,9 +456,12 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         Instant::now() + Duration::from_secs(10),
     )
     .unwrap();
+    let mut held_wire = Vec::new();
+    tos_access::http::write_response(&mut held_wire, held).unwrap();
     assert!(
-        held.fence.recheck().is_err(),
-        "no old page/cursor admission after currentness changes"
+        held_wire.starts_with(b"HTTP/1.1 409 "),
+        "no old page/cursor admission after currentness changes: {}",
+        String::from_utf8_lossy(&held_wire)
     );
     let stale = handle_post(
         &executor,
@@ -315,12 +470,46 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         profile,
     );
     assert_ne!(stale.status, 200);
-    drop(held);
-    drop(executor);
     assert_eq!(
         crate::native_child::bounded_sha(&checkpoint_path, checkpoint_cap),
         before_held,
-        "failed disclosure must roll back the persistent cursor transaction"
+        "failed continuation disclosure must roll back the persistent cursor transaction"
     );
+
+    // An incompatible private schema is preserved and rejected; startup does
+    // not silently create a fresh cursor database over it.
+    let schema_path = dir.join("schema.sqlite");
+    let _schema_executor =
+        tos_access::prepared_local::PreparedLocalExecutor::open_with_checkpoints(
+            path.clone(),
+            binding_path.clone(),
+            None,
+            Some(schema_path.clone()),
+        )
+        .unwrap();
+    {
+        let db = rusqlite::Connection::open(&schema_path).unwrap();
+        db.execute("UPDATE checkpoint_meta SET config='incompatible'", [])
+            .unwrap();
+    }
+    let schema_before = crate::native_child::bounded_sha(&schema_path, checkpoint_cap);
+    assert!(
+        tos_access::prepared_local::PreparedLocalExecutor::open_with_checkpoints(
+            path.clone(),
+            binding_path.clone(),
+            None,
+            Some(schema_path.clone()),
+        )
+        .is_err(),
+        "incompatible checkpoint schema must not be auto-migrated"
+    );
+    assert_eq!(
+        crate::native_child::bounded_sha(&schema_path, checkpoint_cap),
+        schema_before,
+        "refusal leaves the incompatible file untouched"
+    );
+
+    drop(_schema_executor);
+    drop(executor);
     fs::remove_dir_all(dir).unwrap();
 }

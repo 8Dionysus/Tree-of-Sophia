@@ -1296,6 +1296,35 @@ impl<'a> SourceCatalogValidator<'a> {
             .map_err(|e| Error::Source(format!("catalog schema operation finish:{e:?}")))
     }
 
+    /// Validate one completed owner projection through the already pinned
+    /// source-cut schema worker. Call before `finish`; this adds no second
+    /// schema process or independently selected contract set.
+    pub fn check_selected_document(
+        &self,
+        revision: SourceRevision,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+    ) -> Result<()> {
+        self.verify_schema_binding(revision)?;
+        let mut schemas = self
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        let valid = schemas
+            .check(path, raw, contract, self.deadline, self.cancelled)
+            .map_err(|refusal| {
+                Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    CatalogSchemaRefusal(refusal),
+                ))
+            })?;
+        if !valid {
+            return Err(Error::Invalid("selected native projection schema rejected"));
+        }
+        self.guard()
+    }
+
     /// Bounded exact execution observations, separate from source membership.
     pub fn schema_spool_receipts_after(
         &self,
@@ -2508,7 +2537,8 @@ fn source_files(
                     .checked_add(1)
                     .filter(|n| *n <= l.max_rows)
                     .ok_or(Error::Budget("catalog source rows"))?;
-                let (entry, project) = entry_record(stage, &file.payload, &file.id, c, validator, l)?;
+                let (entry, project) =
+                    entry_record(stage, &file.payload, &file.id, c, validator, l)?;
                 let id = text(&entry, "record_id")?;
                 let kind = text(&entry, "record_type")?;
                 let reserved = stage.with_connection(WritePhase::Catalog, |db| {
@@ -2678,7 +2708,7 @@ fn outputs(
     counts.insert("claim".into(), json!(claim_count));
     counts.insert("total".into(), json!(record_count + claim_count));
     let mut manifest = json!({"schema_version":"tos_source_witness_catalog_v3","owner_repo":"Tree-of-Sophia",
-        "source_root":"ToS/source-witnesses","generated_by":"scripts/build_source_witness_catalog.py",
+        "source_root":"ToS/source-witnesses","generated_by":"tos-native-owner-command source-catalog build",
         "record_schema_ref":CORPUS,"claim_schema_ref":CLAIM,"record_files":record_files,
         "claim_file":format!("{ROOT}claims.jsonl"),"counts":counts,"catalog_sha256":catalog_hash.finalize().to_hex(),
         "authority_boundary":"This generated catalog provides navigation to the tracked object and claim records that own its contents."});

@@ -336,42 +336,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     )
     .unwrap();
     render_repository_source_plan(&mut stage, &plan, &vocabulary, deadline, &cancelled).unwrap();
-    let python = r#"import json,pathlib,sys
-sys.path[:0]=[sys.argv[1]+'/scripts',sys.argv[1]+'/access/src']
-import tos_corpus_index_common as owner
-root=pathlib.Path(sys.argv[2]);owner.REPO_ROOT=root;owner.TOS_ROOT=root/'ToS'
-paths=tuple(sorted(p for p in (root/'ToS').rglob('*') if p.is_file()))
-diagnostics=[]
-result={'branches':owner.build_branches(owner.load_json(root/'ToS/source_home.manifest.json'),diagnostics),'manifests':owner.build_manifests(diagnostics,paths),'resources':owner.build_resources(paths)}
-assert not diagnostics,diagnostics
-print(json.dumps(result,ensure_ascii=False,sort_keys=True,separators=(',',':')))
-"#;
-    let output = Command::new(crate::maintained_python())
-        .args(["-c", python])
-        .arg(&repository)
-        .arg(&capture.restored)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "maintained Python repository oracle: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    crate::capture_maintained_python_oracle(
-        "repository-topology",
-        &repository,
-        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
-        json!({
-            "selected_authored_inputs": crate::maintained_input_witness(&authored),
-            "selected_software_inputs": crate::maintained_input_witness(&captured),
-            "fixture_git_commit": commit,
-        }),
-        &output.stdout,
-    );
-    let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let expected = crate::frozen_legacy_python_oracle("repository-topology");
     let source = &vocabulary
         .sources
         .iter()
@@ -903,50 +868,13 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     let deadline = Instant::now() + Duration::from_secs(60);
     let mut native = native_catalog_fixture(&repository, &files, deadline);
-    let fixture = tempfile::tempdir().unwrap();
-    // Python may write only private generated companions for its full oracle.
-    // The original cut and native stage already bind the independent source.
-    let oracle_root = fixture.path().join("maintained-oracle");
-    for (path, raw) in &files {
-        let target = oracle_root.join(path);
-        fs::create_dir_all(target.parent().unwrap()).unwrap();
-        fs::write(target, raw).unwrap();
-    }
-    let python = r#"
-import json,pathlib,sys
-sys.path.insert(0,str(pathlib.Path(sys.argv[1])/'scripts'))
-import build_source_witness_catalog as catalog
-import source_witness_bibliographic_graph_common as graph
-root=pathlib.Path(sys.argv[2]);outputs=catalog.render_outputs(root)
-for path,text in outputs.items():
-    target=root/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(text,encoding='utf-8')
-payload=graph.build_payload(root)
-manifest=json.loads(outputs[catalog.MANIFEST_PATH])
-files={str(path):text for path,text in outputs.items() if path!=catalog.MANIFEST_PATH}
-print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] for key in ('nodes','edges','claim_traces')}},ensure_ascii=False,sort_keys=True,separators=(',',':')))
-"#;
-    let output = Command::new(crate::maintained_python())
-        .args(["-c", python])
-        .arg(&repository)
-        .arg(&oracle_root)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "maintained catalog/bibliographic oracle: {}",
-        String::from_utf8_lossy(&output.stderr)
+    let mut expected = crate::frozen_legacy_python_oracle("catalog-bibliographic");
+    assert_eq!(
+        expected["manifest"]["generated_by"], "scripts/build_source_witness_catalog.py",
+        "the captured legacy producer identity remains explicit"
     );
-    crate::capture_maintained_python_oracle(
-        "catalog-bibliographic",
-        &repository,
-        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
-        json!({"selected_source_inputs": crate::maintained_input_witness(&files)}),
-        &output.stdout,
-    );
-    let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
+    expected["manifest"]["generated_by"] =
+        serde_json::Value::String("tos-native-owner-command source-catalog build".into());
     let actual_files: BTreeMap<String, String> = native
         .files
         .into_iter()
@@ -1088,7 +1016,6 @@ fn native_corpus_composition_case(installed: bool) {
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     phase(started, deadline, "selected-inputs-ready");
-    let fixture = tempfile::tempdir().unwrap();
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);
@@ -1565,70 +1492,11 @@ fn native_corpus_composition_case(installed: bool) {
         fs::create_dir_all(to.parent().unwrap()).unwrap();
         fs::write(to, raw).unwrap();
     }
-    let paths = fixture.path().join("source-paths.json");
-    fs::write(
-        &paths,
-        serde_json::to_vec(&files.keys().collect::<Vec<_>>()).unwrap(),
-    )
-    .unwrap();
-    let python = r#"
-import json,pathlib,sys
-sys.path[:0]=[sys.argv[1]+'/scripts',sys.argv[1]+'/access/src']
-import build_source_witness_catalog as catalog
-import tos_corpus_index_common as owner
-root=pathlib.Path(sys.argv[2]);owner.REPO_ROOT=root;owner.TOS_ROOT=root/'ToS'
-for path,text in catalog.render_outputs(root).items():
-    to=root/path;to.parent.mkdir(parents=True,exist_ok=True);to.write_text(text,encoding='utf-8')
-payload=owner.build_payload(source_paths=json.loads(pathlib.Path(sys.argv[3]).read_text()))
-sys.stdout.write(owner.render_payload(payload))
-"#;
-    let python = format!("{python}\n{NATIVE_CORPUS_QUERY_ORACLE}");
-    phase(started, deadline, "maintained-oracle-start");
-    let output = Command::new(crate::maintained_python())
-        .args(["-c", &python])
-        .arg(&repository)
-        .arg(&oracle_root)
-        .arg(&paths)
-        .arg(&output_path)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "whole maintained corpus oracle: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    crate::capture_maintained_python_oracle(
-        "corpus-composition",
-        &repository,
-        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
-        json!({"selected_source_inputs": crate::maintained_input_witness(&files)}),
-        &output.stdout,
-    );
-    let query_oracle_raw = fs::read(oracle_root.join("native-corpus-query-oracle.json")).unwrap();
-    crate::capture_maintained_python_oracle(
-        "corpus-query-cases",
-        &repository,
-        &[
-            "tests/conformance/rust/compiler_source_cases.rs",
-            "tests/conformance/rust/native_corpus_query.rs",
-            "scripts",
-            "access/src",
-        ],
-        json!({
-            "selected_source_inputs": crate::maintained_input_witness(&files),
-            "selected_source_paths": files.keys().cloned().collect::<Vec<_>>(),
-            "projection_output_bytes": output.stdout.len(),
-            "projection_output_sha256": Digest256::of_bytes(&output.stdout).to_hex(),
-            "index_output_path": output_path,
-        }),
-        &query_oracle_raw,
-    );
-    let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let expected_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
+    let expected: Value = serde_json::from_slice(&expected_raw).unwrap();
+    let query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     assert_eq!(projection.value(), &expected);
-    assert_eq!(projection.output_bytes(), output.stdout.as_slice());
+    assert_eq!(projection.output_bytes(), expected_raw.as_slice());
     phase(started, deadline, "maintained-oracle-matched");
     // A fresh independently declared selected stage receives actual family
     // outputs. Catalogue custody and private planner tables stay out of its DDL.
@@ -1995,6 +1863,7 @@ sys.stdout.write(owner.render_payload(payload))
         &selected,
         &projection,
         &expected,
+        &query_oracle,
         &oracle_root,
         &output_path,
         tos_query::corpus_read::CorpusReadBudget {
@@ -2022,7 +1891,6 @@ sys.stdout.write(owner.render_payload(payload))
 #[test]
 #[ignore = "requires admitted aggregate full authored philosophy batch window"]
 fn actual_whole_authored_philosophy_batch_plan_render_matches_maintained_python() {
-    use std::io::Read;
     use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
     use tos_compiler::source_philosophy::{
         PHILOSOPHY_CONTRACTS_PROFILE, PHILOSOPHY_CONTRACTS_ROLE, PHILOSOPHY_MEMBERS_PROFILE,
@@ -2072,7 +1940,6 @@ fn actual_whole_authored_philosophy_batch_plan_render_matches_maintained_python(
     }
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
-    let authored_witness = crate::maintained_input_witness(&authored);
     // Drop duplicate fixture bytes before the two Value-based pure derivations.
     drop(authored);
     let read_limits = ReadLimits {
@@ -2234,82 +2101,13 @@ fn actual_whole_authored_philosophy_batch_plan_render_matches_maintained_python(
     // Existing maintained builders derive the full atlas, view catalog and
     // graph from this same original cut. Only their generated inputs are bound
     // to newly derived values; source/schema bytes and all instances stay whole.
-    let python = r#"import hashlib,json,pathlib,sys
-sys.path.insert(0,sys.argv[1]+'/scripts')
-import philosophy_atlas_projection_common as a,philosophy_graph_views_common as v,philosophy_graph_projection_common as g,philosophy_multilingual_common as m
-root=pathlib.Path(sys.argv[2]);out=pathlib.Path(sys.argv[3])
-for owner in (a,v,g):owner.REPO_ROOT=root;owner.TOS_ROOT=root/'ToS'
-m.REPO_ROOT=root;m.LEDGER_PATH=root/m.LEDGER_REF
-atlas=a.build_payload();load=v.load_json
-v.load_json=lambda p:atlas if p==root/v.ATLAS_PROJECTION_REF else load(p)
-views=v.build_payload();loadg=g.load_json
-g.load_json=lambda p:atlas if p==root/g.ATLAS_PROJECTION_REF else views if p==root/g.GRAPH_VIEW_CATALOG_REF else loadg(p)
-graph=g.build_payload()
-def raw(value):return json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
-units=total=batches=context=receipt_strings=0;maximum=0
-resources=[json.loads(p.read_text()) for p in sorted((root/'ToS/contracts').glob('*.schema.json'))]
-resource_frame=sum(8+len(x['$id'].encode())+len(p.read_bytes()) for x,p in zip(resources,sorted((root/'ToS/contracts').glob('*.schema.json'))))
-for value,ref,contract in [(atlas,v.ATLAS_PROJECTION_REF,'ToS/contracts/philosophy-atlas-projection.schema.json'),(views,g.GRAPH_VIEW_CATALOG_REF,'ToS/contracts/philosophy-graph-views.schema.json'),(graph,'ToS/derived-exports/philosophy_graph_projection.min.json','ToS/contracts/philosophy-graph-projection.schema.json')]:
-    pending=count=0;schema_id=json.loads((root/contract).read_text())['$id']
-    for key in sorted(value):
-        values=value[key] if isinstance(value[key],list) else [value[key]]
-        for index,instance in enumerate(values):
-            size=len(raw(instance));maximum=max(maximum,size);units+=1;total+=size
-            if count==64 or pending+size>32*1024*1024:batches+=1;pending=count=0
-            pointer='/properties/'+key.replace('~','~0').replace('/','~1')+('/items' if isinstance(value[key],list) else '')
-            path=ref+'#/'+key+('/'+str(index) if isinstance(value[key],list) else '')
-            uri=schema_id+'#'+pointer
-            context+=24+len(str(count).encode())+len(path.encode())+len(uri.encode())
-            receipt_strings+=len(path.encode())+len((contract+'#'+pointer).encode())
-            pending+=size;count+=1
-    if count:batches+=1
-collections={}
-for name,key in [('nodes','node_id'),('edges','edge_id'),('views','view_id'),('clusters','cluster_id'),('review_packets','packet_id'),('unresolved_review_surfaces','surface_id')]:
-    h=hashlib.sha256()
-    for identity,row in sorted((x[key],raw(x)) for x in graph[name]):
-        identity=identity.encode();h.update(len(identity).to_bytes(8,'big'));h.update(identity);h.update(hashlib.sha256(row).digest())
-    collections[name]={'count':len(graph[name]),'root':h.hexdigest()}
-with out.open('wb') as stream:
-    for part in json.JSONEncoder(ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).iterencode(graph):stream.write(part.encode())
-    stream.write(b'\n')
-print(json.dumps({'atlas_counts':atlas['counts'],'graph_counts':graph['counts'],'collections':collections,'schema_units_estimate':units,'schema_batches_estimate':batches,'schema_raw_bytes_estimate':total,'schema_context_bytes_estimate':context,'schema_resource_frame_estimate':resource_frame,'schema_receipt_strings_estimate':receipt_strings,'schema_max_instance_estimate':maximum,'graph_bytes':out.stat().st_size},sort_keys=True))
-"#;
-    let expected_path = fixture.path().join("expected-whole-graph.json");
-    let output = Command::new(crate::maintained_python())
-        .args(["-c", python])
-        .arg(&repository)
-        .arg(&oracle_root)
-        .arg(&expected_path)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "maintained whole phi oracle: {}",
-        String::from_utf8_lossy(&output.stderr)
+    let expected = crate::frozen_legacy_python_oracle("whole-authored-philosophy-summary");
+    let graph_provenance =
+        crate::frozen_legacy_python_oracle_provenance("whole-authored-philosophy-graph");
+    assert_eq!(
+        graph_provenance["output_bytes"], expected["graph_bytes"],
+        "the complete historical graph stream length is retained"
     );
-    let oracle_witness = json!({
-        "source_revision": revision.0.to_prefixed(),
-        "selected_source_bytes": source_bytes,
-        "selected_source_inputs": authored_witness,
-    });
-    crate::capture_maintained_python_oracle(
-        "whole-authored-philosophy-summary",
-        &repository,
-        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
-        oracle_witness.clone(),
-        &output.stdout,
-    );
-    crate::capture_maintained_python_oracle(
-        "whole-authored-philosophy-graph",
-        &repository,
-        &["tests/conformance/rust/compiler_source_cases.rs", "scripts"],
-        oracle_witness,
-        &fs::read(&expected_path).unwrap(),
-    );
-    let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     // Python transport accounting is an admission estimate, not a maintained
     // output contract. Actual coverage/caps are enforced by native execution.
     assert!(expected["schema_units_estimate"].as_u64().unwrap() <= 65_536);
@@ -2380,9 +2178,7 @@ print(json.dumps({'atlas_counts':atlas['counts'],'graph_counts':graph['counts'],
             assert_eq!(collection.root_sha256, expected["root"].as_str().unwrap());
         }
     }
-    let mut expected_stream = fs::File::open(&expected_path).unwrap();
     let mut compared = 0u64;
-    let mut expected_hash = tos_foundation::Digest256Hasher::new();
     let actual_sha = render_philosophy_projection(
         &mut planner,
         &plan,
@@ -2394,22 +2190,17 @@ print(json.dumps({'atlas_counts':atlas['counts'],'graph_counts':graph['counts'],
         deadline,
         &cancelled,
         |actual| {
-            let mut expected = vec![0; actual.len()];
-            expected_stream.read_exact(&mut expected)?;
-            assert_eq!(
-                actual,
-                expected.as_slice(),
-                "maintained whole phi stream at byte {compared}"
-            );
-            expected_hash.update(&expected);
-            compared += actual.len() as u64;
+            compared += u64::try_from(actual.len()).unwrap();
             Ok(())
         },
     )
     .unwrap();
-    assert_eq!(actual_sha, expected_hash.finalize().to_hex());
+    assert_eq!(
+        actual_sha,
+        graph_provenance["output_sha256"].as_str().unwrap(),
+        "the complete native stream matches the frozen legacy full-output digest"
+    );
     assert_eq!(compared, expected["graph_bytes"].as_u64().unwrap());
-    assert_eq!(expected_stream.read(&mut [0]).unwrap(), 0);
     let target_collections = plan
         .receipt()
         .raw_collections

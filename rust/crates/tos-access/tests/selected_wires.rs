@@ -4756,8 +4756,13 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             "Content-Type: text/html; charset=utf-8",
             "Cache-Control: no-cache",
             "Permissions-Policy: tools=(self)",
+            "Cross-Origin-Opener-Policy: same-origin",
             "Cross-Origin-Embedder-Policy: require-corp",
+            "Cross-Origin-Resource-Policy: same-origin",
+            "Origin-Agent-Cluster: ?1",
+            "Referrer-Policy: no-referrer",
             "X-Frame-Options: DENY",
+            "X-Content-Type-Options: nosniff",
             "script-src 'self' 'nonce-",
         ] {
             assert!(wire.contains(header), "{header}");
@@ -4765,6 +4770,39 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         let headers = wire.split("\r\n\r\n").next().unwrap();
         assert!(headers.contains("'wasm-unsafe-eval'"));
         assert!(!headers.contains("'unsafe-eval'"));
+        assert!(!headers.contains("'unsafe-inline'"));
+        assert!(headers.contains("object-src 'none'"));
+        assert!(headers.contains("frame-ancestors 'none'"));
+        let nonce_marker = "<script nonce=\"";
+        let nonce_start = html.find(nonce_marker).unwrap() + nonce_marker.len();
+        let nonce_end = html[nonce_start..].find('\"').unwrap() + nonce_start;
+        let nonce = &html[nonce_start..nonce_end];
+        assert!(!nonce.is_empty());
+        assert!(headers.contains(&format!("'nonce-{nonce}'")));
+        let permissions = headers
+            .lines()
+            .find_map(|line| line.strip_prefix("Permissions-Policy: "))
+            .unwrap();
+        assert!(permissions.contains("camera=()"));
+        assert!(permissions.contains("geolocation=()"));
+        let health = handle_get_with_software(&boot, "GET", "/health", profile, &site);
+        assert_eq!(health.status, 200);
+        let mut health_wire = vec![];
+        write_response(&mut health_wire, health).unwrap();
+        let health_headers = String::from_utf8(health_wire).unwrap();
+        for header in [
+            "Content-Security-Policy: default-src 'self'",
+            "Permissions-Policy: tools=(self)",
+            "Cross-Origin-Opener-Policy: same-origin",
+            "Cross-Origin-Embedder-Policy: require-corp",
+            "Cross-Origin-Resource-Policy: same-origin",
+            "Origin-Agent-Cluster: ?1",
+            "Referrer-Policy: no-referrer",
+            "X-Frame-Options: DENY",
+            "X-Content-Type-Options: nosniff",
+        ] {
+            assert!(health_headers.contains(header), "{header}");
+        }
         let head = handle_get_with_software(&boot, "HEAD", "/", profile, &site);
         let mut writer = TwoHolds {
             bytes: vec![],
@@ -4791,6 +4829,19 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                 let headers = String::from_utf8_lossy(&wire[..split]);
                 assert!(headers.contains(mime));
                 assert!(headers.contains(&format!("Content-Length: {}", raw.len())));
+                for header in [
+                    "Content-Security-Policy: default-src 'self'",
+                    "Permissions-Policy: tools=(self)",
+                    "Cross-Origin-Opener-Policy: same-origin",
+                    "Cross-Origin-Embedder-Policy: require-corp",
+                    "Cross-Origin-Resource-Policy: same-origin",
+                    "Origin-Agent-Cluster: ?1",
+                    "Referrer-Policy: no-referrer",
+                    "X-Frame-Options: DENY",
+                    "X-Content-Type-Options: nosniff",
+                ] {
+                    assert!(headers.contains(header), "{header} on {method} {path}");
+                }
                 assert_eq!(
                     &wire[split..],
                     if method == "HEAD" {

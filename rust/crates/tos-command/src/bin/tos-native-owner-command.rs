@@ -105,19 +105,61 @@ fn main() {
             Err(_) => std::process::exit(2),
         }
     }
-    if std::env::args_os().nth(1).is_some_and(|arg| arg == "source-commands")
-        && std::env::args_os().nth(2).is_some_and(|arg| arg == "--discover")
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "source-catalog")
+    {
+        // One sentinel beyond the command's argument cap preserves refusal
+        // without allocating for an unbounded process argument sequence.
+        let args = std::env::args_os().skip(2).take(65).collect::<Vec<_>>();
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        let git_signal = std::sync::atomic::AtomicI32::new(0);
+        let result = tos_command::source_current_cut::source_catalog_cli::run(
+            &args,
+            &cancelled,
+            &git_signal,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        match result {
+            Ok(code) => std::process::exit(code),
+            Err(error) => {
+                eprintln!("native source catalog refused: {}", error.public_reason());
+                std::process::exit(2);
+            }
+        }
+    }
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "source-commands")
+        && std::env::args_os()
+            .nth(2)
+            .is_some_and(|arg| arg == "--discover")
     {
         let selector = match std::env::args_os().len() {
             3 => Ok(None),
-            5 if std::env::args_os().nth(3).is_some_and(|arg| arg == "--handler") => {
-                std::env::args_os().nth(4).unwrap().into_string()
+            5 if std::env::args_os()
+                .nth(3)
+                .is_some_and(|arg| arg == "--handler") =>
+            {
+                std::env::args_os()
+                    .nth(4)
+                    .unwrap()
+                    .into_string()
                     .map(Some)
-                    .map_err(|_| tos_command::source_command::SourceCommandError::Invalid("source discovery handler UTF-8"))
+                    .map_err(|_| {
+                        tos_command::source_command::SourceCommandError::Invalid(
+                            "source discovery handler UTF-8",
+                        )
+                    })
             }
-            _ => Err(tos_command::source_command::SourceCommandError::Invalid("source discovery arguments")),
+            _ => Err(tos_command::source_command::SourceCommandError::Invalid(
+                "source discovery arguments",
+            )),
         };
-        match selector.and_then(|handler| tos_command::source_native_cli::discover_commands(handler.as_deref())) {
+        match selector.and_then(|handler| {
+            tos_command::source_native_cli::discover_commands(handler.as_deref())
+        }) {
             Ok(catalog) => println!("{catalog}"),
             Err(error) => {
                 eprintln!("source command discovery refused: {error:?}");
@@ -145,7 +187,7 @@ fn main() {
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command http --help\n       tos-native-owner-command foundation --help\n       tos-native-owner-command corpus-admit --help\n       tos-native-owner-command capacity-fixture --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nUse source-commands --discover [--handler HANDLER_ID] for implementation-only discovery without source or owner access.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+            "usage: tos-native-owner-command source-commands --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command http --help\n       tos-native-owner-command foundation --help\n       tos-native-owner-command source-catalog --help\n       tos-native-owner-command corpus-admit --help\n       tos-native-owner-command capacity-fixture --help\n       tos-native-owner-command backup|restore --help\n       tos-native-owner-command source-capture --help\n\nSource commands read their request from stdin and require the selected invocation.\nUse source-commands --discover [--handler HANDLER_ID] for implementation-only discovery without source or owner access.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
         );
         return;
     }

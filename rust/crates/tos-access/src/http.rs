@@ -2,7 +2,7 @@
 
 use crate::{KnowledgeOperation, KnowledgeRequest, PreparedPacket};
 use std::io::{Read, Write};
-use std::net::{Shutdown, TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::sync::{
     Arc,
     atomic::{AtomicU64, AtomicUsize, Ordering},
@@ -1486,13 +1486,16 @@ fn installed_listener(
     profile: AccessProfile,
     startup_probe: Option<Arc<dyn AbortProbe>>,
 ) -> std::io::Result<(TcpListener, Option<Arc<crate::site::SoftwareSite>>)> {
-    let addresses = addr.to_socket_addrs()?.collect::<Vec<_>>();
-    if addresses.is_empty() || addresses.iter().any(|address| !address.ip().is_loopback()) {
+    // Accept only a numeric socket address. Resolving a hostname first could
+    // perform DNS before enforcing the loopback boundary, and a multi-answer
+    // name could bind a non-loopback interface unexpectedly.
+    let address = addr.parse::<SocketAddr>().ok();
+    let Some(address) = address.filter(|address| address.ip().is_loopback()) else {
         return Err(std::io::Error::new(
             std::io::ErrorKind::PermissionDenied,
             "native access HTTP must bind loopback",
         ));
-    }
+    };
     // Missing/unassembled software refuses only site routes; existing APIs
     // retain their independent explicit selected owner behavior.
     // Software admission uses one startup deadline; each request owns a fresh probe.
@@ -1502,7 +1505,7 @@ fn installed_listener(
             .deadline_probe()
     }))
     .map_err(|error| std::io::Error::other(format!("{}: {}", error.code_str(), error.message)))?;
-    let listener = TcpListener::bind(addresses.as_slice())?;
+    let listener = TcpListener::bind(address)?;
     Ok((listener, site))
 }
 

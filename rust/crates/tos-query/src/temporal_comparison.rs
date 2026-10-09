@@ -658,3 +658,416 @@ where
         ),
     ]))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+    use tos_foundation::{JsonMode, parse_json};
+
+    const REVISION: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const CONTENT: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const RAW: &str =
+        r#"{"kind":"date","wording":"Synthetic disputed date","extension":[false,null,[]]}"#;
+
+    fn parsed(raw: &str) -> JsonValue {
+        parse_json(
+            raw.as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .expect("fixture JSON is valid")
+        .into_root()
+    }
+
+    fn record_with_raw(
+        side: &str,
+        raw: &str,
+        start: i64,
+        end: i64,
+        role: &str,
+        calendar: &str,
+        numbering: &str,
+        precision: &str,
+        certainty: &str,
+        issues: &str,
+    ) -> (JsonValue, JsonValue) {
+        let claim_id = format!("claim-{side}");
+        let value_id = format!("value-{side}");
+        let claim = parsed(&format!(
+            r#"{{
+                "source_graph":"fixture","kind_id":"claim","type_id":"tos.entity.claim",
+                "type_mapping":{{"status":"mapped"}},"content_revision":"{CONTENT}",
+                "attributes":{{"source_claim":{{"claim_id":"{claim_id}","claim_version":1,
+                    "predicate":"historical_dating","object":{raw},"polarity":"negative",
+                    "review_status":"unreviewed","qualifiers":{{"extension":[false,null,[]]}}}}}},
+                "semantics":{{"claim":{{"claim_id":"{claim_id}","claim_version":1,
+                    "object_node_id":"{value_id}","source_predicate_id":"historical_dating",
+                    "predicate_mapping_status":"mapped"}}}},
+                "source_refs":["witness:synthetic"],"native_id":"{claim_id}"
+            }}"#,
+            CONTENT = CONTENT,
+        ));
+        let value = parsed(&format!(
+            r#"{{
+                "source_graph":"fixture","type_id":"tos.entity.temporal-assertion",
+                "type_mapping":{{"status":"mapped"}},"native_id":"{value_id}",
+                "attributes":{{"claim_ref":"{claim_id}","value":{raw}}},
+                "semantics":{{"time":{{"raw":{raw},"kind":"date-assertion","issues":{issues},
+                    "calendar":"{calendar}","declared_year_numbering":"{numbering}",
+                    "precision":"{precision}","certainty":"{certainty}",
+                    "comparison_calendar":"proleptic-gregorian","year_numbering":"astronomical",
+                    "sort_start":{start},"sort_end":{end},"role":"{role}"}}}},
+                "source_refs":["witness:synthetic","witness:shared"]
+            }}"#,
+        ));
+        (claim, value)
+    }
+
+    fn record(
+        side: &str,
+        start: i64,
+        end: i64,
+        role: &str,
+        calendar: &str,
+        numbering: &str,
+        precision: &str,
+        certainty: &str,
+        issues: &str,
+    ) -> (JsonValue, JsonValue) {
+        record_with_raw(
+            side, RAW, start, end, role, calendar, numbering, precision, certainty, issues,
+        )
+    }
+
+    fn request_with_revision(source_revision: &str, left_id: &str, right_id: &str) -> JsonValue {
+        object(vec![
+            ("schema_version", text("tos_temporal_comparison_request_v1")),
+            ("source_revision", text(source_revision)),
+            (
+                "left",
+                object(vec![
+                    ("node_id", text(left_id)),
+                    ("content_revision", text(CONTENT)),
+                ]),
+            ),
+            (
+                "right",
+                object(vec![
+                    ("node_id", text(right_id)),
+                    ("content_revision", text(CONTENT)),
+                ]),
+            ),
+        ])
+    }
+
+    fn request(left_id: &str, right_id: &str) -> JsonValue {
+        request_with_revision(REVISION, left_id, right_id)
+    }
+
+    fn compare(left: (JsonValue, JsonValue), right: (JsonValue, JsonValue)) -> JsonValue {
+        let rows = BTreeMap::from([
+            ("claim-left".to_owned(), vec![left.0]),
+            ("value-left".to_owned(), vec![left.1]),
+            ("claim-right".to_owned(), vec![right.0]),
+            ("value-right".to_owned(), vec![right.1]),
+        ]);
+        compare_temporal_operands(
+            REVISION,
+            &request("claim-left", "claim-right"),
+            "fixture",
+            |id| Ok(rows.get(id).cloned().unwrap_or_default()),
+            JsonLimits::default(),
+        )
+        .expect("valid selected fixture")
+    }
+
+    fn fixture(side: &str, start: i64, end: i64) -> (JsonValue, JsonValue) {
+        record(
+            side,
+            start,
+            end,
+            "historical-time",
+            "gregorian",
+            "astronomical",
+            "exact",
+            "exact",
+            "[]",
+        )
+    }
+
+    fn comparison(result: &JsonValue) -> (&str, Option<&str>) {
+        let value = field(result, "comparison");
+        (
+            get(value, "status").expect("comparison status"),
+            field(value, "relation").as_str(),
+        )
+    }
+
+    #[test]
+    fn declared_envelopes_cover_all_relations_and_inclusive_touching_bounds() {
+        for (left, right, expected) in [
+            ((1, 2), (3, 4), "before"),
+            ((3, 4), (1, 2), "after"),
+            ((1, 2), (1, 2), "equal"),
+            ((1, 5), (2, 4), "contains"),
+            ((2, 4), (1, 5), "contained-by"),
+            ((1, 3), (3, 5), "overlaps"),
+            ((1, 4), (3, 6), "overlaps"),
+        ] {
+            let result = compare(
+                fixture("left", left.0, left.1),
+                fixture("right", right.0, right.1),
+            );
+            assert_eq!(comparison(&result), ("comparable", Some(expected)));
+            assert_eq!(
+                field(
+                    &field(&result, "authority_boundary"),
+                    "creates_inferred_claim"
+                ),
+                &JsonValue::Bool(false)
+            );
+            assert_eq!(
+                field(&field(&result, "authority_boundary"), "performs_assessment"),
+                &JsonValue::Bool(false)
+            );
+        }
+    }
+
+    #[test]
+    fn uncertainty_roles_and_declared_calendars_never_become_false_relations() {
+        let uncertain = record(
+            "left",
+            1,
+            2,
+            "historical-time",
+            "gregorian",
+            "astronomical",
+            "approximate",
+            "exact",
+            "[]",
+        );
+        assert_eq!(
+            comparison(&compare(uncertain, fixture("right", 3, 4))),
+            ("undetermined", None)
+        );
+
+        let unsupported_calendar = record(
+            "left",
+            1,
+            2,
+            "historical-time",
+            "julian",
+            "astronomical",
+            "exact",
+            "exact",
+            "[]",
+        );
+        assert_eq!(
+            comparison(&compare(unsupported_calendar, fixture("right", 3, 4))).0,
+            "unsupported"
+        );
+
+        let mismatched_role = record(
+            "left",
+            1,
+            2,
+            "witness-time",
+            "gregorian",
+            "astronomical",
+            "exact",
+            "exact",
+            "[]",
+        );
+        let result = compare(mismatched_role, fixture("right", 3, 4));
+        assert_eq!(comparison(&result), ("unsupported", None));
+        assert!(
+            field(&field(&result, "comparison"), "reasons")
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|reason| get(reason, "code") == Some("different-time-roles"))
+        );
+
+        let same_unknown_role = record(
+            "left",
+            1,
+            2,
+            "invented-role",
+            "gregorian",
+            "astronomical",
+            "exact",
+            "exact",
+            "[]",
+        );
+        let same_unknown_role_right = record(
+            "right",
+            3,
+            4,
+            "invented-role",
+            "gregorian",
+            "astronomical",
+            "exact",
+            "exact",
+            "[]",
+        );
+        let result = compare(same_unknown_role, same_unknown_role_right);
+        assert_eq!(comparison(&result), ("unsupported", None));
+        assert!(
+            field(&field(&result, "comparison"), "reasons")
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|reason| get(reason, "code") == Some("unsupported-time-role"))
+        );
+    }
+
+    #[test]
+    fn exact_selection_preserves_source_details_and_rejects_alias_or_revision_drift() {
+        let result = compare(fixture("left", 1, 2), fixture("right", 3, 4));
+        let claim = field(&field(&result, "left"), "claim");
+        assert_eq!(field(claim, "native_id"), &text("claim-left"));
+        assert_eq!(field(claim, "content_revision"), &text(CONTENT));
+        assert_eq!(
+            field(&field(claim, "attributes"), "source_claim")
+                .object_get("polarity")
+                .unwrap(),
+            &text("negative")
+        );
+        assert_eq!(
+            field(&field(claim, "attributes"), "source_claim")
+                .object_get("qualifiers")
+                .unwrap()
+                .object_get("extension")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
+        assert_eq!(
+            field(&field(&result, "left"), "normalized_time")
+                .object_get("raw")
+                .unwrap(),
+            &parsed(RAW)
+        );
+        assert_eq!(
+            field(&field(&result, "authority_boundary"), "is_source"),
+            &JsonValue::Bool(false)
+        );
+
+        let left = fixture("left", 1, 2);
+        let right = fixture("right", 3, 4);
+        let rows = BTreeMap::from([
+            ("claim-left".to_owned(), vec![left.0]),
+            ("value-left".to_owned(), vec![left.1]),
+            ("claim-right".to_owned(), vec![right.0]),
+            ("value-right".to_owned(), vec![right.1]),
+        ]);
+        let alias_request = request("claim-left-native-alias", "claim-right");
+        assert_eq!(
+            compare_temporal_operands(
+                REVISION,
+                &alias_request,
+                "fixture",
+                |id| Ok(rows.get(id).cloned().unwrap_or_default()),
+                JsonLimits::default(),
+            )
+            .unwrap_err()
+            .code,
+            SearchV2ErrorCode::UnknownIdentifier,
+        );
+        let stale = request_with_revision(CONTENT, "claim-left", "claim-right");
+        assert_eq!(
+            compare_temporal_operands(
+                REVISION,
+                &stale,
+                "fixture",
+                |id| Ok(rows.get(id).cloned().unwrap_or_default()),
+                JsonLimits::default(),
+            )
+            .unwrap_err()
+            .code,
+            SearchV2ErrorCode::StaleSelection,
+        );
+    }
+
+    #[test]
+    fn malformed_request_and_temporal_provenance_fail_closed() {
+        let malformed = object(vec![
+            ("schema_version", text("tos_temporal_comparison_request_v1")),
+            ("source_revision", text(REVISION)),
+            (
+                "left",
+                request("claim-left", "claim-right")
+                    .object_get("left")
+                    .unwrap()
+                    .clone(),
+            ),
+            (
+                "right",
+                request("claim-left", "claim-right")
+                    .object_get("right")
+                    .unwrap()
+                    .clone(),
+            ),
+            ("alias", JsonValue::Null),
+        ]);
+        assert_eq!(
+            validate_temporal_request(&malformed).unwrap_err().code,
+            SearchV2ErrorCode::InvalidRequest
+        );
+
+        let (claim, _) = fixture("left", 1, 2);
+        let mismatched_value = record_with_raw(
+            "left",
+            r#"{"kind":"changed"}"#,
+            1,
+            2,
+            "historical-time",
+            "gregorian",
+            "astronomical",
+            "exact",
+            "exact",
+            "[]",
+        )
+        .1;
+        let result = compare((claim, mismatched_value), fixture("right", 3, 4));
+        assert_eq!(comparison(&result), ("undetermined", None));
+        assert!(
+            !field(&field(&result, "comparison"), "reasons")
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn json_boolean_aliases_and_unsafe_numeric_envelopes_are_refused() {
+        assert!(same_json(&parsed("1"), &parsed("1.0")));
+        assert!(!same_json(&parsed("true"), &parsed("1")));
+        assert!(!same_json(&parsed("1"), &parsed("1.5")));
+        assert_eq!(
+            safe_integer(&parsed("9007199254740991")),
+            Some(9_007_199_254_740_991)
+        );
+        assert_eq!(safe_integer(&parsed("9007199254740992")), None);
+        assert_eq!(safe_integer(&parsed("true")), None);
+
+        let unsafe_envelope = record(
+            "left",
+            9_007_199_254_740_992,
+            9_007_199_254_740_993,
+            "historical-time",
+            "gregorian",
+            "astronomical",
+            "exact",
+            "exact",
+            "[]",
+        );
+        assert_eq!(
+            comparison(&compare(unsafe_envelope, fixture("right", 3, 4))),
+            ("undetermined", None)
+        );
+    }
+}

@@ -1,43 +1,11 @@
 // Private continuation of the existing native corpus producer case.
 // This is finite selected projection mechanics, not a production rights issuer.
 
-const NATIVE_CORPUS_QUERY_ORACLE: &str = r#"
-from tos_access.core import ReferenceToSAccessCore
-index_path=root/sys.argv[4]
-index_path.parent.mkdir(parents=True,exist_ok=True)
-index_path.write_text(owner.render_payload(payload),encoding='utf-8')
-core=ReferenceToSAccessCore.discover(tos_root=root)
-def first(collection,key):
- return next(item for item in payload[collection] if isinstance(item,dict) and isinstance(item.get(key),str))
-node=first('nodes','node_id');pack=first('relation_packs','pack_id')
-edge=first('relation_edges','from_id');resource=first('resources','resource_kind')
-query=node.get('label') if isinstance(node.get('label'),str) else node['node_id']
-kind=resource.get('resource_kind');branch=resource.get('owner_branch')
-assert branch is None or isinstance(branch,str)
-cases={
- 'status':core.status(),'summary':core.summary(),
- 'search':core.search(query,limit=2),
- 'search-filtered':core.search('',limit=2,resource_kind=kind),
- 'resources':core.resources(resource_kind=kind,owner_branch=branch,limit=1),
- 'node':core.node(node['node_id']),'endpoint':core.node(edge['from_id']),
- 'pack':core.relation_pack(pack['pack_id']),
- 'topology':core.graph_view('corpus-topology',limit=1),
- 'route':core.graph_view('route-graph',limit=1),
- 'promotion':core.graph_view('promotion-flow',limit=1),
- 'packet':core.packet(query=' ',view_id='route-graph',limit=1),
- 'packet-empty':core.packet(query='',view_id='',limit=1),
-}
-(root/'native-corpus-query-oracle.json').write_text(json.dumps({
- 'node_id':node['node_id'],'endpoint_id':edge['from_id'],'pack_id':pack['pack_id'],
- 'query':query,'resource_kind':kind,'owner_branch':branch,
- 'tos_root':core.tos_root.as_posix(),'index_path':core.index_path.as_posix(),
- 'cases':cases},ensure_ascii=False,allow_nan=False),encoding='utf-8')
-"#;
-
 fn assert_native_corpus_query_packets(
     selected: &tos_compiler::knowledge_full_fixture::FullKnowledgeFixture,
     projection: &tos_compiler::source_corpus::NativeCorpusProjection,
     expected: &serde_json::Value,
+    oracle: &serde_json::Value,
     oracle_root: &std::path::Path,
     output_path: &str,
     budget: tos_query::corpus_read::CorpusReadBudget,
@@ -176,22 +144,53 @@ fn assert_native_corpus_query_packets(
     );
     let bound =
         bind_verified_knowledge(&cold, &selected.vocabulary, &selected.descriptor_bytes).unwrap();
-    let oracle = parse_json(
-        &std::fs::read(oracle_root.join("native-corpus-query-oracle.json")).unwrap(),
-        JsonMode::PublishedStrict,
-        budget.inspect.json,
-    )
-    .unwrap()
-    .into_root();
-    let field = |name| oracle.object_get(name).unwrap();
+    let captured_root = oracle["tos_root"].as_str().unwrap();
+    let captured_index = oracle["index_path"].as_str().unwrap();
+    let current_root = oracle_root.to_string_lossy().into_owned();
+    let current_index = oracle_root.join(output_path).to_string_lossy().into_owned();
+    let mut cases = oracle["cases"].clone();
+    fn rebase(
+        value: &mut serde_json::Value,
+        old_index: &str,
+        new_index: &str,
+        old_root: &str,
+        new_root: &str,
+    ) {
+        match value {
+            serde_json::Value::String(text) => {
+                *text = text
+                    .replace(old_index, new_index)
+                    .replace(old_root, new_root);
+            }
+            serde_json::Value::Array(values) => {
+                for child in values {
+                    rebase(child, old_index, new_index, old_root, new_root);
+                }
+            }
+            serde_json::Value::Object(values) => {
+                for child in values.values_mut() {
+                    rebase(child, old_index, new_index, old_root, new_root);
+                }
+            }
+            _ => {}
+        }
+    }
+    rebase(
+        &mut cases,
+        captured_index,
+        &current_index,
+        captured_root,
+        &current_root,
+    );
+    let field = |name| &oracle[name];
     let string = |name| field(name).as_str().unwrap().to_owned();
     let optional = |name| match field(name) {
-        JsonValue::Null => None,
+        serde_json::Value::Null => None,
         value => Some(value.as_str().unwrap().to_owned()),
     };
     let context = CorpusReadContext {
-        tos_root: string("tos_root"),
-        index_path: string("index_path"),
+        tos_root: current_root,
+        index_path: current_index,
     };
     let authority = |request: &R| {
         let policy = CurrentPolicyBinding {
@@ -299,8 +298,12 @@ fn assert_native_corpus_query_packets(
         let mut packet =
             execute_selected_corpus(&mut cold, &bound, &mut current, &context, request, budget)
                 .unwrap();
+        let raw = serde_json::to_vec(&cases[name]).unwrap();
+        let expected_value = parse_json(&raw, JsonMode::PublishedStrict, budget.inspect.json)
+            .unwrap()
+            .into_root();
         let expected = canonical_bytes_v1(
-            field("cases").object_get(name).unwrap(),
+            &expected_value,
             CanonicalProfile::SourceRecordDigestV1,
             budget.inspect.json,
         )
@@ -363,6 +366,12 @@ fn assert_native_corpus_query_packets(
     );
     requests
         .into_iter()
-        .map(|(name, request)| (request, field("cases").object_get(name).unwrap().clone()))
+        .map(|(name, request)| {
+            let raw = serde_json::to_vec(&cases[name]).unwrap();
+            let expected = parse_json(&raw, JsonMode::PublishedStrict, budget.inspect.json)
+                .unwrap()
+                .into_root();
+            (request, expected)
+        })
         .collect()
 }

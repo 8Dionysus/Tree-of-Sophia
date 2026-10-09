@@ -775,8 +775,8 @@ fn maintained_agent_creation_operation<
         CanonicalProfile, JsonLimits, JsonMode, RelativePath, canonical_bytes_v1, parse_json,
     };
     use tos_source_store::{
-        CorpusCutReader, CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader,
-        SoftwareCaptureSelectionV1,
+        CaptureGitRequest, CaptureRestoreLimits, CorpusCutReader, CorpusReader, CutReadLimits,
+        GitCaptureLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
     };
     use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
     use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
@@ -790,27 +790,6 @@ fn maintained_agent_creation_operation<
             JsonLimits::default(),
         )
         .unwrap()
-    }
-    fn clean(command: &mut Command) {
-        for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().starts_with("GIT_")
-                || key == "PYTHONPATH"
-                || key == "PYTHONHOME"
-            {
-                command.env_remove(key);
-            }
-        }
-        command
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .env("GIT_NO_REPLACE_OBJECTS", "1")
-            // The real capture/restore Git children share this fixture's 1GiB
-            // AS envelope. Keep their pack mmap windows bounded after scrubbing
-            // inherited Git configuration; source/object semantics stay exact.
-            .env("GIT_CONFIG_COUNT", "2")
-            .env("GIT_CONFIG_KEY_0", "core.packedGitWindowSize")
-            .env("GIT_CONFIG_VALUE_0", "16m")
-            .env("GIT_CONFIG_KEY_1", "core.packedGitLimit")
-            .env("GIT_CONFIG_VALUE_1", "64m");
     }
     let url = database_url();
     let mut lab = Lab::new(&url);
@@ -1028,8 +1007,8 @@ fn maintained_agent_creation_operation<
         .unwrap();
     let membership = cut.stream(revision).unwrap().expectation();
 
-    // Reuse the actual maintained software capture/restore program, selecting
-    // exact source paths from the composed commit rather than current markers.
+    // Reuse the native software capture/restore owner, selecting exact source
+    // paths from the composed commit rather than current markers.
     let commit_output = Command::new("git")
         .arg("-C")
         .arg(&repository)
@@ -1041,62 +1020,80 @@ fn maintained_agent_creation_operation<
         .unwrap()
         .trim()
         .to_owned();
-    let program = Command::new("git")
-        .arg("-C")
-        .arg(&repository)
-        .args(["show", &format!("{commit}:scripts/corpus_archive.py")])
-        .output()
-        .unwrap();
-    assert!(program.status.success());
-    let tool = root.0.join("corpus_archive.py");
-    fs::write(&tool, program.stdout).unwrap();
     let capture = root.0.join("software-capture");
     let restored = root.0.join("software-restored");
-    let mut command = Command::new("python3");
-    command
-        .arg(&tool)
-        .arg("capture")
-        .arg("--repo-root")
-        .arg(&repository)
-        .arg("--commit")
-        .arg(&commit)
-        .arg("--output")
-        .arg(&capture);
-    for name in files.keys().filter(|p| !p.starts_with("ToS/")) {
-        command.arg("--include-prefix").arg(name);
-    }
-    clean(&mut command);
-    let output = command.output().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let mut command = Command::new("python3");
-    command
-        .arg(&tool)
-        .arg("restore")
-        .arg("--capture")
-        .arg(&capture)
-        .arg("--output")
-        .arg(&restored);
-    clean(&mut command);
-    let output = command.output().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    let include_prefixes = files
+        .keys()
+        .filter(|path| !path.starts_with("ToS/"))
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(!include_prefixes.is_empty());
+    let exclude_prefixes = Vec::new();
+    let exclude_path_parts = Vec::new();
+    let capture_result = tos_source_store::capture_git(
+        CaptureGitRequest {
+            repository: &repository,
+            commit: &commit,
+            include_prefixes: &include_prefixes,
+            exclude_prefixes: &exclude_prefixes,
+            exclude_path_parts: &exclude_path_parts,
+            output: &capture,
+        },
+        GitCaptureLimits {
+            max_members: 16_384,
+            max_member_bytes: 8_388_608,
+            max_source_bytes: 536_870_912,
+            max_metadata_bytes: 67_108_864,
+            max_tree_bytes: 67_108_864,
+            max_archive_bytes: 536_870_912,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     let capture_raw = fs::read(capture.join("capture.json")).unwrap();
     let captured: serde_json::Value = serde_json::from_slice(&capture_raw).unwrap();
+    assert_eq!(
+        Digest256::of_bytes(&capture_raw),
+        capture_result.manifest_sha256
+    );
+    assert_eq!(
+        captured["source_git_commit"].as_str().unwrap(),
+        commit.as_str()
+    );
+    let source_git_tree = capture_result
+        .manifest
+        .object_get("source_git_tree")
+        .and_then(|value| value.as_str())
+        .expect("native capture returns its exact Git tree")
+        .to_owned();
+    assert_eq!(
+        captured["source_git_tree"].as_str().unwrap(),
+        source_git_tree
+    );
+    let software_selection = SoftwareCaptureSelectionV1 {
+        source_git_commit: commit.clone(),
+        source_git_tree,
+        capture_manifest_sha256: capture_result.manifest_sha256,
+    };
+    tos_source_store::restore_capture(
+        &capture,
+        &restored,
+        &software_selection,
+        CaptureRestoreLimits {
+            metadata: read_limits,
+            max_archive_bytes: 536_870_912,
+            max_decoded_bytes: 536_870_912,
+            max_source_bytes: 536_870_912,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     let software = SoftwareCaptureReader::open(
         &capture,
         &restored,
-        SoftwareCaptureSelectionV1 {
-            source_git_commit: commit,
-            source_git_tree: captured["source_git_tree"].as_str().unwrap().into(),
-            capture_manifest_sha256: Digest256::of_bytes(&capture_raw),
-        },
+        software_selection,
         read_limits,
         deadline,
         &cancelled,

@@ -424,7 +424,11 @@ fn walk_capture(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tos_foundation::{Digest256, JsonLimits};
+    use tos_foundation::{
+        CanonicalProfile, Digest256, JsonLimits, JsonNumber, JsonNumberKind, JsonString,
+        canonical_bytes_v1,
+    };
+
     struct Scratch(PathBuf);
     impl Drop for Scratch {
         fn drop(&mut self) {
@@ -432,8 +436,119 @@ mod tests {
         }
     }
 
+    fn json_string(value: &str) -> JsonValue {
+        JsonValue::String(JsonString::from_utf8(value))
+    }
+
+    fn json_number(value: u64) -> JsonValue {
+        JsonValue::Number(JsonNumber {
+            kind: JsonNumberKind::Int,
+            lexeme: value.to_string(),
+        })
+    }
+
+    fn json_array(values: &[String]) -> JsonValue {
+        JsonValue::Array(values.iter().map(|value| json_string(value)).collect())
+    }
+
+    fn json_object(values: Vec<(&str, JsonValue)>) -> JsonValue {
+        JsonValue::Object(
+            values
+                .into_iter()
+                .map(|(key, value)| (JsonString::from_utf8(key), value))
+                .collect(),
+        )
+    }
+
+    fn canonical(value: &JsonValue) -> Vec<u8> {
+        canonical_bytes_v1(
+            value,
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+        )
+        .unwrap()
+    }
+
+    fn write_capture_metadata(root: &Path, path: &str, data: &[u8], archive: &[u8]) -> Vec<u8> {
+        let mut git_blob = Sha1::new();
+        git_blob.update(format!("blob {}\0", data.len()).as_bytes());
+        git_blob.update(data);
+        let member = json_object(vec![
+            ("path", json_string(path)),
+            (
+                "git_blob_oid",
+                json_string(&format!("{:x}", git_blob.finalize())),
+            ),
+            ("size_bytes", json_number(data.len() as u64)),
+            ("sha256", json_string(&Digest256::of_bytes(data).to_hex())),
+            ("mode", json_number(0o755)),
+        ]);
+        let members = canonical(&member);
+        fs::write(root.join("members.jsonl"), &members).unwrap();
+
+        let commit = "1".repeat(40);
+        let tree = "2".repeat(40);
+        let manifest = json_object(vec![
+            ("schema_version", json_string("tos_corpus_capture_v2")),
+            ("source_git_commit", json_string(&commit)),
+            ("source_git_tree", json_string(&tree)),
+            ("include_prefixes", json_array(&["scripts".to_owned()])),
+            ("exclude_prefixes", json_array(&[])),
+            ("exclude_path_parts", json_array(&[])),
+            ("member_count", json_number(1)),
+            ("source_bytes", json_number(data.len() as u64)),
+            (
+                "members_sha256",
+                json_string(&Digest256::of_bytes(&members).to_hex()),
+            ),
+            (
+                "archive_sha256",
+                json_string(&Digest256::of_bytes(archive).to_hex()),
+            ),
+            ("archive_size_bytes", json_number(archive.len() as u64)),
+        ]);
+        let raw = canonical(&manifest);
+        fs::write(root.join("capture.json"), &raw).unwrap();
+        raw
+    }
+
+    fn synthetic_capture(root: &Path) -> (String, Vec<u8>, Vec<u8>) {
+        fs::create_dir(root).unwrap();
+        let path = format!("scripts/{}δοκιμή.py", "nested/".repeat(18));
+        let data = b"old bytes\x00\xff\n".to_vec();
+        // Keep restore coverage independent of the native Git capture path.
+        let gzip = flate2::GzBuilder::new()
+            .mtime(0)
+            .operating_system(255)
+            .write(Vec::new(), flate2::Compression::best());
+        let mut tar = tar::Builder::new(gzip);
+        let pax_path = !path.is_ascii() || path.len() > 100;
+        if pax_path {
+            tar.append_pax_extensions([("path", path.as_bytes())])
+                .unwrap();
+        }
+        let mut header = tar::Header::new_ustar();
+        header
+            .set_path(if pax_path { "PaxMember" } else { path.as_str() })
+            .unwrap();
+        header.set_entry_type(tar::EntryType::Regular);
+        header.set_mode(0o755);
+        header.set_size(data.len() as u64);
+        header.set_uid(0);
+        header.set_gid(0);
+        header.set_mtime(0);
+        header.set_username("").unwrap();
+        header.set_groupname("").unwrap();
+        header.set_cksum();
+        tar.append(&header, data.as_slice()).unwrap();
+        let archive = tar.into_inner().unwrap().finish().unwrap();
+        fs::write(root.join("source.tar.gz"), &archive).unwrap();
+        write_capture_metadata(root, &path, &data, &archive);
+        (path, data, archive)
+    }
+
     #[test]
-    fn python_pax_capture_restores_exact_bytes_and_rejects_corruption() {
+    fn native_pax_capture_restores_exact_bytes_and_rejects_corruption() {
         let dir = std::env::temp_dir().join(format!(
             "tos-capture-restore-{}-{}",
             std::process::id(),
@@ -444,33 +559,8 @@ mod tests {
         ));
         fs::DirBuilder::new().mode(0o700).create(&dir).unwrap();
         let scratch = Scratch(dir);
-        let script = r#"
-import sys,io,json,gzip,tarfile,hashlib
-from pathlib import Path
-root=Path(sys.argv[1]); root.mkdir()
-canon=lambda x:(json.dumps(x,sort_keys=True,separators=(',',':'),ensure_ascii=False)+'\n').encode()
-path='scripts/'+('nested/'*18)+'δοκιμή.py'; data=b'old bytes\x00\xff\n'
-row={'path':path,'git_blob_oid':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'size_bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'mode':493}
-with (root/'source.tar.gz').open('wb') as raw:
- with gzip.GzipFile(fileobj=raw,mode='wb',mtime=0,filename='') as gz:
-  with tarfile.open(fileobj=gz,mode='w|',format=tarfile.PAX_FORMAT) as tar:
-   info=tarfile.TarInfo(path); info.size=len(data); info.mode=493; tar.addfile(info,io.BytesIO(data))
-members=canon(row); (root/'members.jsonl').write_bytes(members)
-archive=(root/'source.tar.gz').read_bytes()
-manifest={'schema_version':'tos_corpus_capture_v2','source_git_commit':'1'*40,'source_git_tree':'2'*40,'include_prefixes':['scripts'],'exclude_prefixes':[],'exclude_path_parts':[],'member_count':1,'source_bytes':len(data),'members_sha256':hashlib.sha256(members).hexdigest(),'archive_sha256':hashlib.sha256(archive).hexdigest(),'archive_size_bytes':len(archive)}
-(root/'capture.json').write_bytes(canon(manifest))
-"#;
         let capture = scratch.0.join("capture");
-        assert!(
-            std::process::Command::new("python3")
-                .arg("-I")
-                .arg("-c")
-                .arg(script)
-                .arg(&capture)
-                .status()
-                .unwrap()
-                .success()
-        );
+        let (path, data, original_archive) = synthetic_capture(&capture);
         let selection = SoftwareCaptureSelectionV1 {
             source_git_commit: "1".repeat(40),
             source_git_tree: "2".repeat(40),
@@ -506,12 +596,13 @@ manifest={'schema_version':'tos_corpus_capture_v2','source_git_commit':'1'*40,'s
         )
         .unwrap();
         let member = reader.members().next().unwrap();
+        assert_eq!(member.path.as_str(), path);
         assert_eq!(
             reader
                 .read_current(&member.path, 16384, deadline, &cancelled)
                 .unwrap()
                 .unwrap(),
-            b"old bytes\x00\xff\n"
+            data
         );
         assert_eq!(
             fs::metadata(output.join(member.path.as_str()))
@@ -523,7 +614,7 @@ manifest={'schema_version':'tos_corpus_capture_v2','source_git_commit':'1'*40,'s
         assert!(
             restore_capture(&capture, &output, &selection, limits, deadline, &cancelled).is_err()
         );
-        let mut archive = fs::read(capture.join("source.tar.gz")).unwrap();
+        let mut archive = original_archive.clone();
         archive[10] ^= 1;
         fs::write(capture.join("source.tar.gz"), archive).unwrap();
         let rejected = scratch.0.join("rejected");
@@ -536,27 +627,13 @@ manifest={'schema_version':'tos_corpus_capture_v2','source_git_commit':'1'*40,'s
         assert!(!rejected.exists());
         // Restore the stream, corrupt only gzip CRC, then honestly rebind the
         // outer digest. The decoder still must reject it before receipting.
-        let mutate = r#"
-import sys,json,hashlib
-from pathlib import Path
-p=Path(sys.argv[1]); a=bytearray((p/'source.tar.gz').read_bytes()); a[10]^=1; a[-8]^=1
-(p/'source.tar.gz').write_bytes(a)
-m=json.loads((p/'capture.json').read_bytes()); m['archive_sha256']=hashlib.sha256(a).hexdigest()
-(p/'capture.json').write_bytes((json.dumps(m,sort_keys=True,separators=(',',':'))+'\n').encode())
-"#;
-        assert!(
-            std::process::Command::new("python3")
-                .arg("-I")
-                .arg("-c")
-                .arg(mutate)
-                .arg(&capture)
-                .status()
-                .unwrap()
-                .success()
-        );
+        let mut corrupt_crc = original_archive;
+        let crc_offset = corrupt_crc.len() - 8;
+        corrupt_crc[crc_offset] ^= 1;
+        fs::write(capture.join("source.tar.gz"), &corrupt_crc).unwrap();
+        let rebound_manifest = write_capture_metadata(&capture, &path, &data, &corrupt_crc);
         let mut rebound = selection.clone();
-        rebound.capture_manifest_sha256 =
-            Digest256::of_bytes(&fs::read(capture.join("capture.json")).unwrap());
+        rebound.capture_manifest_sha256 = Digest256::of_bytes(&rebound_manifest);
         let crc_output = scratch.0.join("bad-crc");
         assert!(
             restore_capture(

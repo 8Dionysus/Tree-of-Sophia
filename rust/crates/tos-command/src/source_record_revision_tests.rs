@@ -11,7 +11,10 @@ use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, SourceRevision, canonical_bytes_v1,
     parse_json,
 };
-use tos_source_store::{CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureSelectionV1};
+use tos_source_store::{
+    CaptureGitRequest, CaptureRestoreLimits, CorpusReader, CutReadLimits, GitCaptureLimits,
+    ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1, capture_git, restore_capture,
+};
 use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
@@ -41,18 +44,6 @@ fn bounded_child(mut child: std::process::Child, out: &Path, err: &Path, deadlin
     assert!(fs::metadata(out).unwrap().len() <= 1_048_576);
     assert!(fs::metadata(err).unwrap().len() <= 1_048_576);
     assert!(status.success(), "maintained Work setup failed");
-}
-
-fn clean_git(command: &mut Command) -> &mut Command {
-    for (key, _) in std::env::vars_os() {
-        if key.to_string_lossy().starts_with("GIT_") {
-            command.env_remove(key);
-        }
-    }
-    command
-        .env("GIT_NO_REPLACE_OBJECTS", "1")
-        .env("GIT_CONFIG_NOSYSTEM", "1")
-        .env("GIT_CONFIG_GLOBAL", "/dev/null")
 }
 
 fn authored(root: &Path) -> BTreeMap<String, Vec<u8>> {
@@ -171,125 +162,98 @@ fn software(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> (SoftwareCaptureReader, SoftwareComponentSelectionV1) {
-    let commit_out = scratch.join("commit.stdout");
-    let commit_err = scratch.join("commit.stderr");
-    bounded_child(
-        clean_git(
-            Command::new("git")
-                .arg("-C")
-                .arg(repository)
-                .args(["rev-parse", "HEAD^{commit}"]),
-        )
-        .stdout(Stdio::from(fs::File::create(&commit_out).unwrap()))
-        .stderr(Stdio::from(fs::File::create(&commit_err).unwrap()))
-        .spawn()
-        .unwrap(),
-        &commit_out,
-        &commit_err,
-        deadline,
-    );
-    let sha = String::from_utf8(fs::read(&commit_out).unwrap())
+    let commit_output = Command::new("git")
+        .arg("-C")
+        .arg(repository)
+        .args(["rev-parse", "HEAD^{commit}"])
+        .output()
+        .unwrap();
+    assert!(commit_output.status.success());
+    let commit = String::from_utf8(commit_output.stdout)
         .unwrap()
         .trim()
         .to_owned();
-    assert!(sha.len() == 40 && sha.bytes().all(|byte| byte.is_ascii_hexdigit()));
-    let archive_out = scratch.join("archive.stdout");
-    let archive_err = scratch.join("archive.stderr");
-    bounded_child(
-        clean_git(
-            Command::new("git")
-                .arg("-C")
-                .arg(repository)
-                .arg("show")
-                .arg(format!("{sha}:scripts/corpus_archive.py")),
-        )
-        .stdout(Stdio::from(fs::File::create(&archive_out).unwrap()))
-        .stderr(Stdio::from(fs::File::create(&archive_err).unwrap()))
-        .spawn()
-        .unwrap(),
-        &archive_out,
-        &archive_err,
-        deadline,
-    );
-    let tool = scratch.join("corpus_archive.py");
-    fs::write(&tool, fs::read(&archive_out).unwrap()).unwrap();
-    let capture = scratch.join("capture");
-    let restored = scratch.join("restored");
-    let names = files
+    assert!(commit.len() == 40 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
+    let capture = scratch.join("software-capture");
+    let restored = scratch.join("software-restored");
+    let include_prefixes = files
         .keys()
-        .filter(|name| !name.starts_with("ToS/"))
+        .filter(|path| !path.starts_with("ToS/"))
+        .cloned()
         .collect::<Vec<_>>();
-    let mut command = Command::new("python3");
-    command
-        .arg(&tool)
-        .arg("capture")
-        .arg("--repo-root")
-        .arg(repository)
-        .arg("--commit")
-        .arg(&sha)
-        .arg("--output")
-        .arg(&capture)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1");
-    for name in &names {
-        command.arg("--include-prefix").arg(name);
-    }
-    let capture_out = scratch.join("capture.stdout");
-    let capture_err = scratch.join("capture.stderr");
-    bounded_child(
-        command
-            .stdout(Stdio::from(fs::File::create(&capture_out).unwrap()))
-            .stderr(Stdio::from(fs::File::create(&capture_err).unwrap()))
-            .spawn()
-            .unwrap(),
-        &capture_out,
-        &capture_err,
-        deadline,
-    );
-    let restore_out = scratch.join("restore.stdout");
-    let restore_err = scratch.join("restore.stderr");
-    bounded_child(
-        Command::new("python3")
-            .arg(&tool)
-            .arg("restore")
-            .arg("--capture")
-            .arg(&capture)
-            .arg("--output")
-            .arg(&restored)
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdout(Stdio::from(fs::File::create(&restore_out).unwrap()))
-            .stderr(Stdio::from(fs::File::create(&restore_err).unwrap()))
-            .spawn()
-            .unwrap(),
-        &restore_out,
-        &restore_err,
-        deadline,
-    );
-    let manifest_raw = fs::read(capture.join("capture.json")).unwrap();
-    let manifest: serde_json::Value = serde_json::from_slice(&manifest_raw).unwrap();
-    let selection = SoftwareCaptureSelectionV1 {
-        source_git_commit: sha,
-        source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
-        capture_manifest_sha256: Digest256::of_bytes(&manifest_raw),
-    };
-    let software = SoftwareCaptureReader::open(
-        &capture,
-        &restored,
-        selection,
-        ReadLimits {
-            max_manifest_bytes: 1_048_576,
-            max_manifest_entries: 512,
-            max_selected_object_bytes: 2_097_152,
-            json: JsonLimits::default(),
+    assert!(!include_prefixes.is_empty());
+    let exclude_prefixes = Vec::new();
+    let exclude_path_parts = Vec::new();
+    let captured = capture_git(
+        CaptureGitRequest {
+            repository,
+            commit: &commit,
+            include_prefixes: &include_prefixes,
+            exclude_prefixes: &exclude_prefixes,
+            exclude_path_parts: &exclude_path_parts,
+            output: &capture,
+        },
+        GitCaptureLimits {
+            max_members: 16_384,
+            max_member_bytes: 8_388_608,
+            max_source_bytes: 536_870_912,
+            max_metadata_bytes: 67_108_864,
+            max_tree_bytes: 67_108_864,
+            max_archive_bytes: 536_870_912,
         },
         deadline,
         cancelled,
     )
     .unwrap();
-    let paths = names
+    let manifest_raw = fs::read(capture.join("capture.json")).unwrap();
+    let manifest: serde_json::Value = serde_json::from_slice(&manifest_raw).unwrap();
+    assert_eq!(Digest256::of_bytes(&manifest_raw), captured.manifest_sha256);
+    assert_eq!(manifest["source_git_commit"].as_str().unwrap(), commit);
+    let source_git_tree = captured
+        .manifest
+        .object_get("source_git_tree")
+        .and_then(|value| value.as_str())
+        .expect("native capture returns its exact Git tree")
+        .to_owned();
+    assert_eq!(
+        manifest["source_git_tree"].as_str().unwrap(),
+        source_git_tree
+    );
+    let selection = SoftwareCaptureSelectionV1 {
+        source_git_commit: commit,
+        source_git_tree,
+        capture_manifest_sha256: captured.manifest_sha256,
+    };
+    let read_limits = ReadLimits {
+        max_manifest_bytes: 1_048_576,
+        max_manifest_entries: 512,
+        max_selected_object_bytes: 2_097_152,
+        json: JsonLimits::default(),
+    };
+    restore_capture(
+        &capture,
+        &restored,
+        &selection,
+        CaptureRestoreLimits {
+            metadata: read_limits,
+            max_archive_bytes: 536_870_912,
+            max_decoded_bytes: 536_870_912,
+            max_source_bytes: 536_870_912,
+        },
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let software = SoftwareCaptureReader::open(
+        &capture,
+        &restored,
+        selection,
+        read_limits,
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let paths = include_prefixes
         .iter()
         .map(|name| RelativePath::parse(name).unwrap())
         .collect::<Vec<_>>();

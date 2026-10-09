@@ -58,6 +58,41 @@ fn selected(v: &Value, keys: &[&str]) -> Value {
     }
     Value::Object(object)
 }
+fn metadata_visible(rights: &Value) -> bool {
+    matches!(
+        rights
+            .get("packet_visibility")
+            .or_else(|| rights.get("record_visibility"))
+            .and_then(Value::as_str),
+        Some("public" | "public_metadata_only")
+    )
+}
+fn content_available(rights: &Value) -> bool {
+    let visibility = rights
+        .get("packet_visibility")
+        .or_else(|| rights.get("record_visibility"))
+        .and_then(Value::as_str);
+    visibility == Some("public")
+        && rights.get("publication_authorized") == Some(&Value::Bool(true))
+        && !rights
+            .get("private_source_used")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        && matches!(
+            rights
+                .get("effective_visibility")
+                .or_else(|| rights.get("source_content_visibility"))
+                .and_then(Value::as_str),
+            Some("public" | "public_synthetic")
+        )
+}
+fn visible_record(record: &Value, content: bool, fields: &[&str]) -> Value {
+    if content {
+        record.clone()
+    } else {
+        selected(record, fields)
+    }
+}
 impl Projector<'_> {
     fn charge(&mut self, v: &Value) -> Result<()> {
         if self.cancelled.load(Ordering::Relaxed) {
@@ -196,26 +231,10 @@ pub(crate) fn project_packet(
     }
     let null = Value::Null;
     let rights = packet.get("rights_and_visibility").unwrap_or(&null);
-    let visibility = rights
-        .get("packet_visibility")
-        .or_else(|| rights.get("record_visibility"))
-        .and_then(Value::as_str);
-    if !matches!(visibility, Some("public" | "public_metadata_only")) {
+    if !metadata_visible(rights) {
         return Ok(empty());
     }
-    let content = visibility == Some("public")
-        && rights.get("publication_authorized") == Some(&Value::Bool(true))
-        && !rights
-            .get("private_source_used")
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
-        && matches!(
-            rights
-                .get("effective_visibility")
-                .or_else(|| rights.get("source_content_visibility"))
-                .and_then(Value::as_str),
-            Some("public" | "public_synthetic")
-        );
+    let content = content_available(rights);
     if schema == "tos_semantic_annotation_packet_v2" && !content {
         return Ok(empty());
     }
@@ -301,21 +320,18 @@ pub(crate) fn project_packet(
         )
         .to_hex()
     );
-    let layer_record = if content {
-        layer.clone()
-    } else {
-        selected(
-            &layer,
-            &[
-                "text_layer_ref",
-                "language",
-                "immutable",
-                "position_unit",
-                "interval",
-                "visibility",
-            ],
-        )
-    };
+    let layer_record = visible_record(
+        &layer,
+        content,
+        &[
+            "text_layer_ref",
+            "language",
+            "immutable",
+            "position_unit",
+            "interval",
+            "visibility",
+        ],
+    );
     let layer_id = p.add(
         &identity,
         "text-layer",
@@ -357,20 +373,17 @@ pub(crate) fn project_packet(
                 "navigation reversed/unsupported anchor selector",
             ));
         }
-        let record = if content {
-            anchor.clone()
-        } else {
-            selected(
-                anchor,
-                &[
-                    "anchor_ref",
-                    "ordinal",
-                    "selector",
-                    "anchor_role",
-                    "text_layer_ref",
-                ],
-            )
-        };
+        let record = visible_record(
+            anchor,
+            content,
+            &[
+                "anchor_ref",
+                "ordinal",
+                "selector",
+                "anchor_role",
+                "text_layer_ref",
+            ],
+        );
         let id = p.add(
             text(anchor, "anchor_ref")?,
             "anchor",
@@ -383,25 +396,22 @@ pub(crate) fn project_packet(
         p.edge(&id, "anchored_in", &layer_id)?;
     }
     for unit in array(packet, "units")? {
-        let record = if content {
-            unit.clone()
-        } else {
-            selected(
-                unit,
-                &[
-                    "unit_id",
-                    "unit_version",
-                    "unit_kind",
-                    "surface_posture",
-                    "continuity",
-                    "ordered_anchor_refs",
-                    "parent_unit_refs",
-                    "ordered_child_unit_refs",
-                    "boundary_posture",
-                    "semantic_promotion",
-                ],
-            )
-        };
+        let record = visible_record(
+            unit,
+            content,
+            &[
+                "unit_id",
+                "unit_version",
+                "unit_kind",
+                "surface_posture",
+                "continuity",
+                "ordered_anchor_refs",
+                "parent_unit_refs",
+                "ordered_child_unit_refs",
+                "boundary_posture",
+                "semantic_promotion",
+            ],
+        );
         let id = p.add(
             text(unit, "unit_id")?,
             "text-unit",
@@ -506,4 +516,71 @@ pub(crate) fn project_packet(
         p.edge(&id, "asserted_by", &claim)?;
     }
     Ok(p.output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn metadata_only_text_projection_withholds_words_and_hashes() {
+        let metadata_rights = json!({
+            "packet_visibility":"public_metadata_only",
+            "publication_authorized":true,
+            "private_source_used":false,
+            "effective_visibility":"public"
+        });
+        assert!(metadata_visible(&metadata_rights));
+        assert!(!content_available(&metadata_rights));
+
+        let legacy_public_rights = json!({
+            "record_visibility":"public",
+            "publication_authorized":true,
+            "private_source_used":false,
+            "effective_visibility":"public_synthetic"
+        });
+        assert!(content_available(&legacy_public_rights));
+
+        let private_rights = json!({
+            "packet_visibility":"public",
+            "publication_authorized":true,
+            "private_source_used":true,
+            "effective_visibility":"public"
+        });
+        assert!(metadata_visible(&private_rights));
+        assert!(!content_available(&private_rights));
+        assert!(!metadata_visible(
+            &json!({"packet_visibility":"restricted"})
+        ));
+
+        let unit = json!({
+            "unit_id":"unit-1",
+            "unit_version":1,
+            "unit_kind":"paragraph",
+            "ordered_anchor_refs":["anchor-1"],
+            "semantic_promotion":false,
+            "exact_text":"private witness wording",
+            "exact_sha256":"word-digest",
+        });
+        let metadata = visible_record(
+            &unit,
+            false,
+            &[
+                "unit_id",
+                "unit_version",
+                "unit_kind",
+                "surface_posture",
+                "continuity",
+                "ordered_anchor_refs",
+                "parent_unit_refs",
+                "ordered_child_unit_refs",
+                "boundary_posture",
+                "semantic_promotion",
+            ],
+        );
+        assert_eq!(metadata["unit_id"], "unit-1");
+        assert!(!metadata.as_object().unwrap().contains_key("exact_text"));
+        assert!(!metadata.as_object().unwrap().contains_key("exact_sha256"));
+        assert_eq!(visible_record(&unit, true, &[]), unit);
+    }
 }
