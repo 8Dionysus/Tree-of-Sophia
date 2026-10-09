@@ -10,11 +10,10 @@ then builders `--check`, then validators; homes and names sort by path.
 explicit interpreter adapter (default `python`; choose an exact interpreter
 to match the former Python runner's `sys.executable`). `--execute` instead
 runs that same plan from the repository root, printing the progress lines and
-final success line used by `scripts/run_mechanics_local_tests.py`. The first
+final success line. The first
 nonzero child stops the lane with exit 1, as the former Python runner did;
 child stdout and stderr retain their streams. Diagnostic traceback wording
-and cross-stream interleaving are not compatibility promises. Plan output
-and discovery behavior are unchanged.
+and cross-stream interleaving are not compatibility promises. Plan shape and ordering are preserved; native owner homes no longer need interpreter files.
 
 Execution has explicit limits, optionally lowered or raised within the hard
 ceilings using these flags:
@@ -64,19 +63,14 @@ successful daemon cleanup, and syscall-unavailable refusal before tool start.
 A synthetic PID stream covers the prior count/byte cutoff without spawning
 thousands of live processes. No authored ToS meaning is admitted.
 
-`--execute` replaces the runner mechanism. The current plan keeps four Python
-unittest homes as independent safety oracles and the release-support artifact
-bundle validator under its stronger owner. Agon threshold registry, relation
-pack, Questbook, public mirror and Derived KAG checks use the native executable;
-mirror and KAG generation remain explicit opt-in actions, never implicit lane
-writes. This does not make the entire mechanics lane Rust-only. The compatibility
-entrypoint `scripts/run_mechanics_local_tests.py` replaces
-itself with the installed executor from `TOS_OPS_MECHANICS_EXECUTOR` or PATH,
-passing `sys.executable` as the Python adapter and the explicit default limits.
-It fails when that native binary is unavailable; it does not compile on demand
-or fall back to the old Python runner. The named lane can retain its existing
-entrypoint command. OPS owns installation and CI availability before cutover.
-The former discovery oracle remains at the pre-executor source commit.
+`--execute` runs the native Growth pipeline and other selected mechanics.
+Agon registry, relation pack, Questbook, public mirror and artifact bundle
+routes bind directly to their native owner flags by package/part home. The
+route survives removal of Python wrappers; unexpected Python builders or
+validators in those homes fail discovery. Artifact validation retains the
+source-owned runtime integration pause and uses the selected external owner
+CLI when enabled. Mirror sync and KAG generation remain explicit writes.
+The retained Growth Python assertions still require `--growth-python-oracle`.
 
 `--mechanics-topology-validate` is a separate read-only native candidate for
 the existing `mechanics_topology` lane. It checks package/part membership,

@@ -235,7 +235,7 @@ The current mechanics-local homes are:
   Questbook package owns obligation and dispatch compatibility validation while
   root `QUESTBOOK.md` and `quests/` remain public source records.
 
-`scripts/run_mechanics_local_tests.py` discovers these local homes and runs the
+`tos-ops-mechanics-plan --repo-root ROOT --execute` discovers these local homes and runs the
 related checks.
 
 ## Skill Helper Scripts

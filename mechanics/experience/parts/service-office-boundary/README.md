@@ -10,7 +10,7 @@
 | owner | `mechanics/experience/parts/service-office-boundary/` |
 | next route | service, office, or runtime owner |
 | tools | docs, schemas, examples |
-| check | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
+| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
 
 ## Payload
 

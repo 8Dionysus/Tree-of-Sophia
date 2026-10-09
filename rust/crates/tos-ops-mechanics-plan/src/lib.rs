@@ -182,54 +182,29 @@ fn relative(root: &Path, path: &Path) -> io::Result<String> {
     Ok(rendered.replace(std::path::MAIN_SEPARATOR, "/"))
 }
 
-fn mechanics_command(
-    root: &Path,
-    python: &str,
-    script: &Path,
-    check: bool,
-) -> io::Result<Vec<String>> {
-    let relative = relative(root, script)?;
-    let native_mode = match relative.as_str() {
-        "mechanics/agon/parts/threshold-registry/scripts/build_tos_agon_threshold_intake_registry.py" => {
-            Some("--threshold-registry-build")
-        }
-        "mechanics/agon/parts/threshold-registry/scripts/validate_tos_agon_threshold_intake_registry.py" => {
-            Some("--threshold-registry-validate")
-        }
-        "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py" => {
-            Some("--relation-pack-validate")
-        }
-        "mechanics/questbook/scripts/validate_questbook_surface.py" => Some("--questbook-validate"),
-        "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py" => {
-            Some("--public-mirror-validate")
-        }
-        _ => None,
-    };
-    if let Some(mode) = native_mode {
-        let executable = std::env::current_exe()?;
-        let executable = executable
-            .to_str()
-            .ok_or_else(|| invalid("non-UTF-8 native mechanics executable"))?;
-        let root = root
-            .to_str()
-            .ok_or_else(|| invalid("non-UTF-8 mechanics root"))?;
-        let mut argv = vec![
-            executable.to_owned(),
-            "--repo-root".into(),
-            root.into(),
-            mode.into(),
-        ];
-        if check {
-            argv.push("--check".into());
-        }
-        Ok(argv)
-    } else {
-        let mut argv = vec![python.into(), relative];
-        if check {
-            argv.push("--check".into());
-        }
-        Ok(argv)
-    }
+// Fixed owner routes survive retirement of their interpreter wrappers.
+// Package/part existence selects the route; source-owned flags select behavior.
+const NATIVE_MECHANICS: &[(&str, &str, &str, bool)] = &[
+    ("mechanics/agon/parts/threshold-registry", "builder_check", "--threshold-registry-build", true),
+    ("mechanics/agon/parts/threshold-registry", "validator", "--threshold-registry-validate", false),
+    ("mechanics/boundary-bridge/parts/public-mirror-sync", "validator", "--public-mirror-validate", false),
+    ("mechanics/questbook", "validator", "--questbook-validate", false),
+    ("mechanics/relation-weaving/parts/graph-promotion", "validator", "--relation-pack-validate", false),
+    ("mechanics/release-support/parts/artifact-bundles", "validator", "--artifact-bundle", false),
+];
+fn native_mechanics_command(root: &Path, mode: &str, check: bool) -> io::Result<Vec<String>> {
+    let mut argv = vec![
+        std::env::current_exe()?.to_str().ok_or_else(|| invalid("non-UTF-8 native mechanics executable"))?.into(),
+        mode.into(), "--repo-root".into(),
+        root.to_str().ok_or_else(|| invalid("non-UTF-8 mechanics root"))?.into(),
+    ];
+    if check { argv.push("--check".into()); }
+    Ok(argv)
+}
+fn mechanics_command(root: &Path, python: &str, script: &Path, check: bool) -> io::Result<Vec<String>> {
+    let mut argv = vec![python.into(), relative(root, script)?];
+    if check { argv.push("--check".into()); }
+    Ok(argv)
 }
 
 /// Discover the same package and part homes as the Python lane oracle.
@@ -267,7 +242,8 @@ pub fn discover(root: &Path, python: &str) -> io::Result<Plan> {
             test_homes.insert(home.clone());
         }
         let scripts = home.join("scripts");
-        if !named_files(&scripts, "build_", &mut visited)?.is_empty()
+        if NATIVE_MECHANICS.iter().any(|r| r.0 == relative(root, &home).unwrap_or_default())
+            || !named_files(&scripts, "build_", &mut visited)?.is_empty()
             || !named_files(&scripts, "validate_", &mut visited)?.is_empty()
         {
             script_homes.insert(home);
@@ -331,6 +307,18 @@ pub fn discover(root: &Path, python: &str) -> io::Result<Plan> {
     let mut validators = Vec::new();
     for home in script_homes {
         let home_string = relative(root, &home)?;
+        let routes: Vec<_> = NATIVE_MECHANICS.iter().filter(|r| r.0 == home_string).collect();
+        if !routes.is_empty() {
+            if !named_files(&home.join("scripts"), "build_", &mut visited)?.is_empty()
+                || !named_files(&home.join("scripts"), "validate_", &mut visited)?.is_empty() {
+                return Err(invalid("native mechanics home contains unreviewed Python scripts"));
+            }
+            for (_, kind, mode, check) in routes {
+                let command = Command { kind, home: home_string.clone(), argv: native_mechanics_command(root, mode, *check)? };
+                if *kind == "builder_check" { builders.push(command); } else { validators.push(command); }
+            }
+            continue;
+        }
         for script in named_files(&home.join("scripts"), "build_", &mut visited)? {
             builders.push(Command {
                 kind: "builder_check",
@@ -635,8 +623,7 @@ mod tests {
             fs::create_dir_all(root.join(home)).unwrap();
         }
         touch(&root, "mechanics/growth-cycle/tests/test_contract.py");
-        touch(&root, "mechanics/fixture/scripts/build_fixture.py");
-        touch(&root, "mechanics/fixture/scripts/validate_fixture.py");
+
         let plan = discover(&root, "/must-not-run-python").unwrap();
         let native = plan
             .commands
@@ -660,6 +647,28 @@ mod tests {
         touch(&root, "mechanics/questbook/tests/test_unmapped.py");
         assert!(discover(&root, "python").unwrap_err().to_string()
             .contains("unreviewed Python tests"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn fixed_native_routes_survive_wrapper_retirement_and_preserve_artifact_prefix() {
+        let root = fixture();
+        for home in ["mechanics/agon/parts/threshold-registry", "mechanics/experience", "mechanics/questbook",
+            "mechanics/boundary-bridge/parts/public-mirror-sync", "mechanics/relation-weaving/parts/graph-promotion",
+            "mechanics/release-support/parts/artifact-bundles"] {
+            fs::create_dir_all(root.join(home)).unwrap();
+        }
+        let plan = discover(&root, "/no-interpreter").unwrap();
+        assert_eq!(plan.test_file_count, 0);
+        assert_eq!(plan.commands.len(), 9);
+        assert_eq!(plan.commands.iter().filter(|c| c.kind == "builder_check").count(), 1);
+        assert_eq!(plan.commands.iter().filter(|c| c.kind == "validator").count(), 5);
+        assert!(plan.commands.iter().all(|c| !c.argv.iter().any(|v| v == "/no-interpreter" || v.ends_with(".py"))));
+        let artifact = plan.commands.iter().find(|c| c.home.ends_with("/artifact-bundles")).unwrap();
+        assert_eq!(artifact.argv[1], "--artifact-bundle");
+        assert_eq!(artifact.argv[2], "--repo-root");
+        touch(&root, "mechanics/questbook/scripts/validate_unreviewed.py");
+        assert!(discover(&root, "python").unwrap_err().to_string().contains("unreviewed Python scripts"));
         fs::remove_dir_all(root).unwrap();
     }
 

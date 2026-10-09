@@ -105,7 +105,7 @@ whole discovery, Claim or Growth equivalence. Execution remains to be verified.
 
 ## Native class planning
 
-`python scripts/run_mechanics_local_tests.py --growth-native-plan` describes the
+`tos-ops-mechanics-plan --repo-root ROOT --growth-native-plan` describes the
 existing native assertion pipeline without building or executing it. The installed
 Ops producer reads `native_test_routes` from this owner's contract, then reads the
 actual Cargo target declarations and Rust module declarations. Conformance command

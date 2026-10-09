@@ -10,13 +10,13 @@
 | owner | `mechanics/boundary-bridge/parts/public-mirror-sync/` |
 | stronger route | `ToS/canon/` keeps authored node authority; `ToS/public-compatibility/` keeps public mirror payloads |
 | next route | `ToS/public-compatibility/` and the bounded KAG seam when public exports consume the mirrors |
-| tools | `mechanics/boundary-bridge/parts/public-mirror-sync/scripts/sync_tree_examples.py`, `mechanics/boundary-bridge/parts/public-mirror-sync/scripts/tree_example_sync.py`, `mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |
+| tools | `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-sync`, `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-sync`, `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-validate` |
 | check | `tos-ops-mechanics-plan --repo-root . --public-mirror-validate` |
 
-## Payload
+## Implementation
 
-- `scripts/`
-
-The scripts are local because mirror sync is a repeatable bridge operation.
-The mirrored JSON payloads stay in `ToS/public-compatibility/`; they are public
-compatibility surfaces, not mechanics-owned source truth.
+The native owner is `rust/crates/tos-ops-mechanics-plan/src/public_mirror.rs`.
+Use `--public-mirror-sync` to write the declared mirrors and
+`--public-mirror-validate` for a read-only check, both with `--repo-root ROOT`.
+The mirrored JSON payloads stay in `ToS/public-compatibility/`; their authored
+source authority remains with the canonical nodes.

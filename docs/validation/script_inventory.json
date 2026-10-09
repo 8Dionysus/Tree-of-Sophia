@@ -521,45 +521,6 @@
       "disposition": "keep"
     },
     {
-      "path": "mechanics/agon/parts/threshold-registry/scripts/build_tos_agon_threshold_intake_registry.py",
-      "family": "projection_builder",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/agon/parts/threshold-registry/README.md",
-      "source_truth": [
-        "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",
-        "mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json"
-      ],
-      "reads": [
-        "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json"
-      ],
-      "writes": [
-        "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json unless --check is used"
-      ],
-      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
-      "validation_lane": "mechanics_local",
-      "ci_inclusion": "release",
-      "test_target": "rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/agon/parts/threshold-registry/scripts/validate_tos_agon_threshold_intake_registry.py",
-      "family": "projection_validator",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/agon/parts/threshold-registry/README.md",
-      "source_truth": [
-        "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json"
-      ],
-      "reads": [
-        "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json"
-      ],
-      "writes": [],
-      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
-      "validation_lane": "mechanics_local",
-      "ci_inclusion": "release",
-      "test_target": "rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs",
-      "disposition": "keep"
-    },
-    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
       "family": "knowledge_assessment_journal",
       "organ_lane": "mechanics/part-owned",
@@ -3145,61 +3106,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/run_mechanics_local_tests.py",
-      "family": "mechanics_local_runner",
-      "organ_lane": "mechanics/package",
-      "owner_surface": "mechanics/AGENTS.md",
-      "source_truth": [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json",
-        "rust/crates/tos-ops-mechanics-plan/src/growth_native_plan.rs",
-        "mechanics/*/tests/test*.py",
-        "mechanics/*/parts/*/tests/test*.py",
-        "mechanics/*/scripts/build_*.py",
-        "mechanics/*/parts/*/scripts/build_*.py",
-        "mechanics/*/scripts/validate_*.py",
-        "mechanics/*/parts/*/scripts/validate_*.py"
-      ],
-      "reads": [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json",
-        "rust/crates/tos-command/Cargo.toml",
-        "rust/crates/tos-command/src/*.rs",
-        "tests/conformance/rust/Cargo.toml",
-        "tests/conformance/rust/*.rs",
-        "mechanics/*/tests/test*.py",
-        "mechanics/*/parts/*/tests/test*.py",
-        "mechanics/*/scripts/*.py",
-        "mechanics/*/parts/*/scripts/*.py"
-      ],
-      "writes": [],
-      "side_effects": "runs discovered mechanics-local unittest, builder check, and validator commands",
-      "validation_lane": "mechanics_local",
-      "ci_inclusion": "release",
-      "test_target": "rust/crates/tos-ops-mechanics-plan/tests/documentation_cross_corpus_native.rs",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/sync_tree_examples.py",
-      "family": "compatibility_builder",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/boundary-bridge/parts/public-mirror-sync/README.md",
-      "source_truth": [
-        "mechanics/boundary-bridge/parts/public-mirror-sync/README.md",
-        "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/tree_example_sync.py",
-        "ToS/canon/**"
-      ],
-      "reads": [
-        "ToS/canon/**"
-      ],
-      "writes": [
-        "ToS/public-compatibility/*.example.json when sync is needed"
-      ],
-      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
-      "validation_lane": "canon_contracts",
-      "ci_inclusion": "focused-tests",
-      "test_target": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
-      "disposition": "keep"
-    },
-    {
       "path": "scripts/tos_corpus_index_common.py",
       "family": "projection_helper",
       "organ_lane": "shared-library",
@@ -3324,47 +3230,6 @@
       "disposition": "keep"
     },
     {
-      "path": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/tree_example_sync.py",
-      "family": "compatibility_helper",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/boundary-bridge/parts/public-mirror-sync/README.md",
-      "source_truth": [
-        "mechanics/boundary-bridge/parts/public-mirror-sync/README.md",
-        "ToS/canon/**"
-      ],
-      "reads": [
-        "ToS/canon/**"
-      ],
-      "writes": [],
-      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
-      "validation_lane": "canon_contracts",
-      "ci_inclusion": "focused-tests",
-      "test_target": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/questbook/scripts/validate_questbook_surface.py",
-      "family": "source_validator",
-      "organ_lane": "mechanics/package",
-      "owner_surface": "mechanics/questbook/AGENTS.md",
-      "source_truth": [
-        "QUESTBOOK.md",
-        "quests/*.yaml",
-        "mechanics/questbook/**"
-      ],
-      "reads": [
-        "QUESTBOOK.md",
-        "quests/*.yaml",
-        "mechanics/questbook/**"
-      ],
-      "writes": [],
-      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
-      "validation_lane": "questbook_surface",
-      "ci_inclusion": "release",
-      "test_target": "rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs",
-      "disposition": "keep"
-    },
-    {
       "path": "scripts/validate_tos_corpus_index.py",
       "family": "projection_validator",
       "organ_lane": "projection/generated",
@@ -3474,52 +3339,6 @@
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_post_planting_audit.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
-      "family": "projection_validator",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/boundary-bridge/parts/public-mirror-sync/README.md",
-      "source_truth": [
-        "mechanics/boundary-bridge/parts/public-mirror-sync/README.md",
-        "ToS/canon/**",
-        "ToS/public-compatibility/**"
-      ],
-      "reads": [
-        "ToS/canon/**",
-        "ToS/public-compatibility/**"
-      ],
-      "writes": [],
-      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
-      "validation_lane": "canon_contracts",
-      "ci_inclusion": "release",
-      "test_target": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py",
-      "family": "source_validator",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/relation-weaving/parts/graph-promotion/README.md",
-      "source_truth": [
-        "mechanics/relation-weaving/parts/graph-promotion/README.md",
-        "ToS/candidate-intake/**",
-        "ToS/canon/relations/**",
-        "ToS/canon/registries/**",
-        "ToS/doctrine/RELATION_PACK_CONTRACT.md",
-        "rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs"
-      ],
-      "reads": [
-        "ToS/candidate-intake/**",
-        "ToS/canon/relations/**",
-        "ToS/canon/registries/**"
-      ],
-      "writes": [],
-      "side_effects": "Required recipes and executable compatibility use installed native tos-ops-mechanics-plan; importable Python APIs are retained explicit test/comparison references, with no production fallback. Native builder/sync modes retain their declared generated-output writes.",
-      "validation_lane": "canon_contracts",
-      "ci_inclusion": "release",
-      "test_target": "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py",
       "disposition": "keep"
     },
     {

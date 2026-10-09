@@ -10,4 +10,4 @@
 | owner | `mechanics/method-growth/parts/node-method-spine/` |
 | next route | `ToS/doctrine/`, `ToS/contracts/`, or `scripts/` |
 | tools | `ToS/doctrine/NODE_CONTRACT.md`, `ToS/doctrine/RELATION_PACK_CONTRACT.md` |
-| check | `python rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs` |
+| check | `tos-ops-mechanics-plan --repo-root ROOT --tree-node-validate` |

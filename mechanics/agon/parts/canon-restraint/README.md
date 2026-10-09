@@ -10,7 +10,7 @@
 | owner | `mechanics/agon/parts/canon-restraint/` |
 | next route | `ToS/canon/` only after ToS review accepts a canon move |
 | tools | restraint docs and source-home validators |
-| check | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
+| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
 
 ## Payload
 

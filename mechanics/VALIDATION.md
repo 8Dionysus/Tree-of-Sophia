@@ -34,13 +34,13 @@ Use the explicit retained Growth oracle only when investigating or comparing
 reference behavior:
 
 ```bash
-python scripts/run_mechanics_local_tests.py --growth-python-oracle
+tos-ops-mechanics-plan --repo-root ROOT --execute --growth-python-oracle
 ```
 
 For the bounded three-home native mechanics cohort, use:
 
 ```bash
-python scripts/run_mechanics_local_tests.py --native-contracts-only
+tos-ops-mechanics-plan --repo-root ROOT --execute --native-contracts-only
 ```
 
 The five original Python files remain frozen reference evidence. Discovery checks
@@ -55,7 +55,7 @@ conformance behavior only; the retained Python oracle remains a separate
 comparison surface until its per-assertion removal conditions are reviewed.
 
 For a read-only source-owned native Growth class plan, use
-`python scripts/run_mechanics_local_tests.py --growth-native-plan`. It resolves
+`tos-ops-mechanics-plan --repo-root ROOT --growth-native-plan`. It resolves
 actual Cargo/Rust declarations and marks ignored assertions; it neither executes
 those classes nor establishes whole Growth equivalence.
 

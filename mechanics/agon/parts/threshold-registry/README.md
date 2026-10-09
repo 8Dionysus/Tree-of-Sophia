@@ -15,8 +15,8 @@
 ## Payload
 
 - `config/tos_agon_threshold_intakes.config.json`
-- `scripts/build_tos_agon_threshold_intake_registry.py`
-- `scripts/validate_tos_agon_threshold_intake_registry.py`
+- `tos-ops-mechanics-plan --repo-root ROOT --threshold-registry-build`
+- `tos-ops-mechanics-plan --repo-root ROOT --threshold-registry-validate`
 - Native retained assertions: `rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts.rs`
 - `schemas/tos-agon-threshold-intake-registry.schema.json`
 - `examples/tos_agon_threshold_intake_registry.example.json`

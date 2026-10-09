@@ -12,7 +12,7 @@
 | owner | `mechanics/rpg/` |
 | stronger route | `ToS/` owns philosophy and canon |
 | next route | [Reading Progression](parts/reading-progression/README.md) |
-| validation | `python rust/crates/tos-ops-mechanics-plan/src/mechanics_topology.rs` |
+| validation | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
 
 ## Active Route
 

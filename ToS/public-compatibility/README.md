@@ -36,5 +36,5 @@ Use:
 - `../canon/concept/becoming/node.json`
 - `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `../zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
-- `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py`
+- `tos-ops-mechanics-plan --repo-root ROOT --public-mirror-validate`
 - `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT`
