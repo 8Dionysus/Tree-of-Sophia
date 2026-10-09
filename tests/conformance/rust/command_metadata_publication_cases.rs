@@ -1044,7 +1044,7 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     let output_metadata = fs::metadata(&output).unwrap();
     assert_eq!(
         output_metadata.uid(),
-        fs::metadata(temporary.path()).unwrap().uid()
+        fs::metadata("/proc/self").unwrap().uid()
     );
     assert_eq!(output_metadata.mode() & 0o077, 0);
     let baseline = output.join("owner-stage-baseline");

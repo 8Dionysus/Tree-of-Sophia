@@ -899,3 +899,119 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::symlink;
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            static NEXT: AtomicUsize = AtomicUsize::new(0);
+            let p = std::env::temp_dir().join(format!(
+                "tos-native-desktop-test-{}-{}",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            ));
+            fs::create_dir(&p).unwrap();
+            fs::create_dir(p.join("assets")).unwrap();
+            for (name, raw) in [
+                ("constructor.html", b"<html>Sophia</html>".as_slice()),
+                ("library.json", b"{}"),
+                ("assets/app.js", b"document.title='Sophia'"),
+                ("receipt.json", b"private"),
+            ] {
+                fs::write(p.join(name), raw).unwrap();
+            }
+            Self(p)
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    fn get(root: &Path, route: &str, host: Option<&str>) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let allowed = files(root).unwrap();
+        let worker = std::thread::spawn(move || {
+            let (s, _) = listener.accept().unwrap();
+            request(s, port, &allowed, b"{\"identity\":true}").unwrap();
+        });
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        write!(
+            stream,
+            "GET {route} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
+            host.map(str::to_owned)
+                .unwrap_or_else(|| format!("127.0.0.1:{port}"))
+        )
+        .unwrap();
+        let mut raw = String::new();
+        stream.read_to_string(&mut raw).unwrap();
+        worker.join().unwrap();
+        raw
+    }
+    #[test]
+    fn native_http_preserves_display_allowlist_host_fence_and_identity() {
+        let fixture = Fixture::new();
+        for route in [
+            "/",
+            "/constructor.html",
+            "/library.json",
+            "/assets/app.js",
+            IDENTITY,
+        ] {
+            let r = get(&fixture.0, route, None);
+            assert!(r.starts_with("HTTP/1.1 200 "), "{route}");
+            assert!(r.contains("X-Content-Type-Options: nosniff"));
+        }
+        for route in [
+            "/receipt.json",
+            "/assets/../receipt.json",
+            "/assets/%2e%2e/receipt.json",
+            "/assets/",
+            "/assets/%00.js",
+        ] {
+            assert!(
+                get(&fixture.0, route, None).starts_with("HTTP/1.1 404 "),
+                "{route}"
+            );
+        }
+        assert!(get(&fixture.0, IDENTITY, Some("unrelated.example")).starts_with("HTTP/1.1 403 "));
+    }
+    #[test]
+    fn native_release_digest_excludes_private_neighbors_binds_assets_and_refuses_symlinks() {
+        let f = Fixture::new();
+        let before = release_digest(&f.0).unwrap();
+        fs::write(f.0.join("receipt.json"), b"different private receipt").unwrap();
+        assert_eq!(before, release_digest(&f.0).unwrap());
+        fs::write(f.0.join("assets/app.js"), b"changed").unwrap();
+        assert_ne!(before, release_digest(&f.0).unwrap());
+        assert!(serve(&f.0, 0, Some(&before), None).is_err());
+        symlink(f.0.join("receipt.json"), f.0.join("assets/secret")).unwrap();
+        assert!(files(&f.0).is_err());
+    }
+    #[test]
+    fn native_launch_configuration_and_dry_run_keep_profile_uncreated() {
+        let f = Fixture::new();
+        let runtime = f.0.join("runtime");
+        let config = f.0.join("config.json");
+        let exe = std::env::current_exe().unwrap();
+        let value = json!({"schema":"tos_sophia_demo_desktop_native_v1","release":f.0,"release_digest":release_digest(&f.0).unwrap(),"port":44339,"browser":"/usr/bin/true","profile":runtime.join("profile"),"cache":f.0.join("cache"),"runtime":runtime,"launcher":exe,"server":exe,"resource":"/usr/bin/true","service_unit":"tos-sophia-demo.service","worker_unit":"tos-sophia-demo-http.service"});
+        fs::write(&config, serde_json::to_vec(&value).unwrap()).unwrap();
+        assert_eq!(launch(&config, "--dry-run").unwrap(), 0);
+        assert!(!runtime.exists());
+        let loaded = load(&config).unwrap();
+        assert!(
+            !browser(&loaded)
+                .unwrap()
+                .iter()
+                .any(|arg| arg == "--no-sandbox")
+        );
+        let mut bad = value;
+        bad["profile"] = bad["cache"].clone();
+        fs::write(&config, serde_json::to_vec(&bad).unwrap()).unwrap();
+        assert!(load(&config).is_err());
+    }
+}
