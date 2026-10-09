@@ -1,7 +1,9 @@
-//! Actual maintained Claim fixture enters the native whole caller before BEGIN.
-//! The same committed DB/binding continues to native CLI, HTTP and MCP readers.
+//! Frozen maintained Claim/Agent fixtures enter the native whole callers before BEGIN.
+//! Their exact captured source, packet, prepared rows and independent full-graph oracle remain offline test data.
 use super::*;
+use flate2::read::GzDecoder;
 use serde_json::json;
+use std::io::{Cursor, Read, Write};
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::{
     collections::BTreeMap,
@@ -9,6 +11,7 @@ use std::{
     sync::{Arc, atomic::AtomicBool},
     time::{Duration, Instant},
 };
+use tar::Archive;
 use tos_command::source_claim_publication::{
     ClaimAdditionPublication, ClaimPublicationLimits, ClaimPublicationProgress,
     ReviewedClaimProfileTransition,
@@ -146,6 +149,322 @@ impl Drop for PublicationFailureFixture {
     }
 }
 
+const CLAIM_FIXTURE_BUNDLE_SCHEMA: &str = "tos_claim_publication_fixture_bundle_v1";
+const CLAIM_FIXTURE_SOURCE_HEAD: &str = "1d33e8f3dcc360c7e39a3b72db13d97a0d188f23";
+const CLAIM_FIXTURE_SOURCE_SHA256: &str =
+    "93b293020a9179f691599434c365336aaa3998b7f6f8deffd5b87f149619cc2d";
+const CLAIM_FIXTURE_PROVENANCE_SHA256: &str =
+    "e0c59bafd8de24f3bfc42bee4f025f51d86161eca190c5d77dbe65fea9b42f03";
+const CLAIM_FIXTURE_ARCHIVE_BYTES: u64 = 8 * 1024 * 1024;
+const CLAIM_FIXTURE_MEMBER_BYTES: u64 = 16 * 1024 * 1024;
+const CLAIM_FIXTURE_TOTAL_BYTES: u64 = 512 * 1024 * 1024;
+
+fn claim_fixture_bundle_dir() -> PathBuf {
+    fixtures().join("fixtures/source-claim-publication-v1")
+}
+
+fn claim_fixture_provenance() -> Value {
+    let raw = fs::read(claim_fixture_bundle_dir().join("provenance.json")).unwrap();
+    assert!(raw.len() <= 4 * 1024 * 1024);
+    assert_eq!(
+        Digest256::of_bytes(&raw).to_hex(),
+        CLAIM_FIXTURE_PROVENANCE_SHA256,
+        "frozen Claim/Agent fixture provenance changed"
+    );
+    let provenance: Value = serde_json::from_slice(&raw).unwrap();
+    assert_eq!(provenance["schema_version"], CLAIM_FIXTURE_BUNDLE_SCHEMA);
+    assert_eq!(provenance["repository_head"], CLAIM_FIXTURE_SOURCE_HEAD);
+    assert_eq!(
+        provenance["fixture_source_sha256"],
+        CLAIM_FIXTURE_SOURCE_SHA256
+    );
+    provenance
+}
+
+fn safe_fixture_relative_path(raw: &str) -> PathBuf {
+    let path = Path::new(raw);
+    assert!(!raw.is_empty() && !raw.contains('\\') && !raw.contains('\0'));
+    assert!(path.is_relative());
+    assert!(
+        path.components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)))
+    );
+    path.to_owned()
+}
+
+fn unpack_claim_fixture_capture(provenance: &Value, capture_name: &str, destination: &Path) {
+    let capture = &provenance["captures"][capture_name];
+    let archive_name = required(capture, "archive");
+    assert!(matches!(
+        archive_name,
+        "claim-pre.tar.gz" | "agent-pre.tar.gz"
+    ));
+    let archive_raw = fs::read(claim_fixture_bundle_dir().join(archive_name)).unwrap();
+    assert!(archive_raw.len() as u64 <= CLAIM_FIXTURE_ARCHIVE_BYTES);
+    assert_eq!(
+        archive_raw.len() as u64,
+        capture["archive_bytes"].as_u64().unwrap()
+    );
+    assert_eq!(
+        Digest256::of_bytes(&archive_raw).to_hex(),
+        required(capture, "archive_sha256")
+    );
+    assert!(destination.is_absolute() && !destination.exists());
+    fs::create_dir(destination).unwrap();
+    fs::set_permissions(destination, fs::Permissions::from_mode(0o700)).unwrap();
+
+    let expected_entries = capture["entries"].as_array().unwrap();
+    assert!(!expected_entries.is_empty() && expected_entries.len() <= 16_384);
+    let expected = expected_entries
+        .iter()
+        .map(|entry| {
+            let path = required(entry, "path").to_owned();
+            safe_fixture_relative_path(&path);
+            assert!(entry["mode"].as_u64().unwrap() <= 0o777);
+            (path, entry.clone())
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(
+        expected.len(),
+        expected_entries.len(),
+        "duplicate fixture manifest path"
+    );
+
+    let decoder = GzDecoder::new(Cursor::new(archive_raw));
+    let mut archive = Archive::new(decoder);
+    let mut seen = std::collections::BTreeSet::new();
+    let mut directories = Vec::new();
+    let mut total_file_bytes = 0u64;
+    let mut entry_count = 0usize;
+    for member in archive.entries().unwrap() {
+        let mut member = member.unwrap();
+        entry_count = entry_count.checked_add(1).unwrap();
+        assert!(entry_count <= 16_384);
+        let relative = member.path().unwrap().into_owned();
+        assert!(relative.is_relative());
+        assert!(
+            relative
+                .components()
+                .all(|component| matches!(component, std::path::Component::Normal(_)))
+        );
+        let relative_text = relative.to_str().expect("captured UTF-8 member path");
+        let expected_member = expected
+            .get(relative_text)
+            .expect("unmanifested fixture member");
+        assert!(
+            seen.insert(relative_text.to_owned()),
+            "duplicate tar member"
+        );
+        let mode = member.header().mode().unwrap();
+        assert_eq!(u64::from(mode), expected_member["mode"].as_u64().unwrap());
+        let output = destination.join(&relative);
+        match expected_member["kind"].as_str().unwrap() {
+            "directory" => {
+                assert!(member.header().entry_type().is_dir());
+                assert_eq!(member.header().size().unwrap(), 0);
+                fs::create_dir_all(&output).unwrap();
+                directories.push((output, mode));
+            }
+            "file" => {
+                assert!(member.header().entry_type().is_file());
+                let expected_bytes = expected_member["bytes"].as_u64().unwrap();
+                assert!(expected_bytes <= CLAIM_FIXTURE_MEMBER_BYTES);
+                assert_eq!(member.header().size().unwrap(), expected_bytes);
+                total_file_bytes = total_file_bytes.checked_add(expected_bytes).unwrap();
+                assert!(total_file_bytes <= CLAIM_FIXTURE_TOTAL_BYTES);
+                let mut raw = Vec::with_capacity(usize::try_from(expected_bytes).unwrap());
+                member.read_to_end(&mut raw).unwrap();
+                assert_eq!(raw.len() as u64, expected_bytes);
+                assert_eq!(
+                    Digest256::of_bytes(&raw).to_hex(),
+                    required(expected_member, "sha256"),
+                    "frozen fixture member changed: {relative_text}"
+                );
+                fs::create_dir_all(output.parent().unwrap()).unwrap();
+                let mut file = fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&output)
+                    .unwrap();
+                file.write_all(&raw).unwrap();
+                drop(file);
+                fs::set_permissions(&output, fs::Permissions::from_mode(mode)).unwrap();
+            }
+            kind => panic!("unsupported fixture member kind {kind}"),
+        }
+    }
+    assert_eq!(
+        seen.len(),
+        expected.len(),
+        "fixture capture member set changed"
+    );
+    assert_eq!(
+        total_file_bytes,
+        capture["aggregate_file_bytes"].as_u64().unwrap()
+    );
+    for (directory, mode) in directories.into_iter().rev() {
+        fs::set_permissions(directory, fs::Permissions::from_mode(mode)).unwrap();
+    }
+}
+
+fn source_command_canonical_bytes(value: &Value) -> Vec<u8> {
+    let raw = serde_json::to_vec(value).unwrap();
+    let limits = JsonLimits::new(8_388_608, 128, 2_000_000, 4096).unwrap();
+    let document = parse_json(&raw, JsonMode::PublishedStrict, limits).unwrap();
+    canonical_bytes_v1(
+        document.root(),
+        CanonicalProfile::SourceCommandInputV1,
+        limits,
+    )
+    .unwrap()
+}
+
+fn relocate_frozen_owner_configuration(path: &Path, source_root: &Path) -> Digest256 {
+    let mut configuration: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    configuration["source_root"] = json!(source_root.to_string_lossy());
+    configuration["uid"] = json!(fs::metadata(source_root).unwrap().uid());
+    let digest = Digest256::of_bytes(&source_command_canonical_bytes(&configuration));
+    fs::write(path, canonical_lf(&configuration)).unwrap();
+    digest
+}
+
+fn relocate_prepared_source_paths(
+    packet: &mut Value,
+    old_source_root: &str,
+    source_root: &Path,
+    db_path: &Path,
+) {
+    let roots = packet["source_inputs"]["roots"].as_object_mut().unwrap();
+    assert!(!roots.is_empty() && roots.len() <= 16);
+    for root in roots.values_mut() {
+        let old_path = Path::new(required(root, "namespace_path"));
+        let relative = old_path
+            .strip_prefix(old_source_root)
+            .expect("captured namespace root belongs to captured fixture root");
+        assert!(
+            relative
+                .components()
+                .all(|component| matches!(component, std::path::Component::Normal(_)))
+        );
+        root["namespace_path"] = json!(source_root.join(relative).to_string_lossy());
+    }
+    let inputs_raw = canonical_lf(&packet["source_inputs"]);
+    assert!(inputs_raw.len() <= 1_048_576);
+    let inputs_sha = Digest256::of_bytes(&inputs_raw).to_hex();
+    let connection = rusqlite::Connection::open(db_path).unwrap();
+    let changed = connection
+        .execute(
+            "UPDATE prepared_source_state SET inputs=?1,sha256=?2 WHERE singleton=1",
+            rusqlite::params![std::str::from_utf8(&inputs_raw).unwrap(), inputs_sha],
+        )
+        .unwrap();
+    assert_eq!(changed, 1, "one captured prepared-source row is relocated");
+    drop(connection);
+}
+
+fn capture_path(capture: &Value, name: &str) -> PathBuf {
+    safe_fixture_relative_path(required(&capture["relocated_paths"], name))
+}
+
+fn load_frozen_claim_fixture(workspace: &Path) -> PathBuf {
+    let provenance = claim_fixture_provenance();
+    let capture = &provenance["captures"]["claim_pre"];
+    let destination = workspace.join("claim-pre");
+    unpack_claim_fixture_capture(&provenance, "claim_pre", &destination);
+    let packet_path = destination.join(capture_path(capture, "packet"));
+    let source_root = destination.join(capture_path(capture, "source_root"));
+    let owner_path = destination.join(capture_path(capture, "owner_config"));
+    let db_path = destination.join(capture_path(capture, "db_path"));
+    assert!(source_root.is_dir() && owner_path.is_file() && db_path.is_file());
+    let old_configuration: Value = serde_json::from_slice(&fs::read(&owner_path).unwrap()).unwrap();
+    let old_source_root = required(&old_configuration, "source_root").to_owned();
+    let legacy_owner = source_root.join("owner.json");
+    relocate_frozen_owner_configuration(&legacy_owner, &source_root);
+    let configuration_digest = relocate_frozen_owner_configuration(&owner_path, &source_root);
+    let package = source_root.join("ToS/source-witnesses/relations/synthetic-publication-addition");
+    let request_path = package.join("source-create-request.json");
+    let receipt_path = package.join("source-create-receipt.json");
+    let mut request: Value = serde_json::from_slice(&fs::read(&request_path).unwrap()).unwrap();
+    request["expected_configuration"] = json!(configuration_digest.to_prefixed());
+    let request_raw = canonical_lf(&request);
+    let request_digest = Digest256::of_bytes(&source_command_canonical_bytes(&request));
+    fs::write(&request_path, &request_raw).unwrap();
+
+    let mut receipt: Value = serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
+    receipt["owner_configuration"] = json!(configuration_digest.to_prefixed());
+    receipt["request_digest"] = json!(request_digest.to_prefixed());
+    receipt["files"]["source-create-request.json"] = json!({
+        "bytes": request_raw.len(),
+        "sha256": Digest256::of_bytes(&request_raw).to_prefixed()
+    });
+    let receipt_raw = canonical_lf(&receipt);
+    fs::write(&receipt_path, &receipt_raw).unwrap();
+
+    let mut packet: Value = serde_json::from_slice(&fs::read(&packet_path).unwrap()).unwrap();
+    packet["db_path"] = json!(db_path.to_string_lossy());
+    packet["owner_config"] = json!(owner_path.to_string_lossy());
+    packet["receipt_path"] = json!(
+        destination
+            .join("claim-fixture.receipt.json")
+            .to_string_lossy()
+    );
+    packet["binding_path"] = json!(
+        destination
+            .join("claim-fixture.binding.json")
+            .to_string_lossy()
+    );
+    packet["expected_receipt_sha256"] = json!(Digest256::of_bytes(&receipt_raw).to_hex());
+    packet["expected_request_digest"] = json!(request_digest.to_prefixed());
+    relocate_prepared_source_paths(&mut packet, &old_source_root, &source_root, &db_path);
+    fs::write(&packet_path, canonical_lf(&packet)).unwrap();
+    packet_path
+}
+
+fn load_frozen_agent_fixture(workspace: &Path) -> PathBuf {
+    let provenance = claim_fixture_provenance();
+    let capture = &provenance["captures"]["agent_pre"];
+    let destination = workspace.join("agent-pre");
+    unpack_claim_fixture_capture(&provenance, "agent_pre", &destination);
+    let packet_path = destination.join(capture_path(capture, "packet"));
+    let source_root = destination.join(capture_path(capture, "source_root"));
+    let owner_path = destination.join(capture_path(capture, "owner_config"));
+    let db_path = destination.join(capture_path(capture, "db_path"));
+    let catalog_namespace_path = destination.join(capture_path(capture, "catalog_namespace_path"));
+    assert!(source_root.is_dir() && owner_path.is_file() && db_path.is_file());
+    assert!(catalog_namespace_path.is_file());
+    let old_configuration: Value = serde_json::from_slice(&fs::read(&owner_path).unwrap()).unwrap();
+    let old_source_root = required(&old_configuration, "source_root").to_owned();
+    let owner_digest = relocate_frozen_owner_configuration(&owner_path, &source_root);
+    let mut packet: Value = serde_json::from_slice(&fs::read(&packet_path).unwrap()).unwrap();
+    packet["source_root"] = json!(source_root.to_string_lossy());
+    packet["owner_config"] = json!(owner_path.to_string_lossy());
+    packet["db_path"] = json!(db_path.to_string_lossy());
+    packet["catalog_namespace_path"] = json!(catalog_namespace_path.to_string_lossy());
+    packet["python_preview"]["owner_configuration"] = json!(owner_digest.to_prefixed());
+    relocate_prepared_source_paths(&mut packet, &old_source_root, &source_root, &db_path);
+    fs::write(&packet_path, canonical_lf(&packet)).unwrap();
+    packet_path
+}
+
+fn frozen_agent_full_graph() -> Value {
+    let provenance = claim_fixture_provenance();
+    let capture = &provenance["captures"]["agent_post_oracle"];
+    assert_eq!(
+        capture["transaction_json_pointers"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    let raw = fs::read(claim_fixture_bundle_dir().join(required(capture, "path"))).unwrap();
+    assert_eq!(raw.len() as u64, capture["bytes"].as_u64().unwrap());
+    assert_eq!(
+        Digest256::of_bytes(&raw).to_hex(),
+        required(capture, "sha256")
+    );
+    serde_json::from_slice(&raw).unwrap()
+}
+
 #[test]
 fn maintained_claim_addition_whole_transaction_and_access() {
     let deadline = Instant::now() + Duration::from_secs(240);
@@ -180,34 +499,8 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         worker_sha.to_hex()
     );
     assert!(Instant::now() < deadline);
-    let repository = super::validation_cut_cases::repository();
     let workspace = PublicationFailureFixture::new("Claim addition");
-    let packet_path = if let Some(path) = std::env::var_os("TOS_NATIVE_CLAIM_PUBLICATION_FIXTURE") {
-        PathBuf::from(path)
-    } else {
-        let path = workspace.path().join("claim-fixture.json");
-        let mut command = Command::new(
-            std::env::var_os("TOS_MAINTAINED_PYTHON")
-                .expect("explicit maintained fixture interpreter"),
-        );
-        command
-            .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
-            .arg(workspace.path())
-            .arg(&path)
-            .env("PYTHONDONTWRITEBYTECODE", "1");
-        let output = native_child::bounded_output_before_diagnostic(
-            &mut command,
-            4096,
-            deadline.min(Instant::now() + Duration::from_secs(30)),
-            "claim.fixture-export",
-        );
-        assert!(
-            output.status.success(),
-            "maintained fixture export refused: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        path
-    };
+    let packet_path = load_frozen_claim_fixture(workspace.path());
     assert!(packet_path.is_absolute());
     let packet = read_packet(&packet_path);
     let db_path = PathBuf::from(required(&packet, "db_path"))
@@ -221,8 +514,6 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let config: Value = serde_json::from_slice(&config_raw).unwrap();
     let fixture_root = PathBuf::from(required(&config, "source_root"));
     assert!(fixture_root.is_absolute());
-    // The optional Python branch supplies its actual disposable fixture, never
-    // an authored repository or arbitrary host tree for this metadata walk.
     let temporary_base = std::env::temp_dir().canonicalize().unwrap();
     assert!(
         !fs::symlink_metadata(&fixture_root)
@@ -403,8 +694,8 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         None
     };
     // Explicit native auxiliary bootstrap over the SAME immutable predecessor.
-    // Preserve the original Python semantic rows in a bounded reference packet;
-    // no executable hash is relabeled on the imported index.
+    // Preserve the captured independent semantic rows in a bounded reference
+    // packet; no executable hash is relabeled on the imported index.
     let reference = workspace.path().join("python-semantic-reference.json");
     let mut semantic_reference = BTreeMap::new();
     let mut reference_bytes = 0usize;
@@ -484,9 +775,9 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             report_object_order(&typed(&packet["baseline_semantic_report"])),
             report_object_order(&report)
         );
-        // Import the independent Python catalog through the genuine native
+        // Import the frozen independent catalog through the genuine native
         // bootstrap, which reproduces its full catalog/header before binding
-        // the native auxiliary index. Never relabel the Python projector.
+        // the native auxiliary index. Never relabel the captured projector.
         for table in [
             "catalog_heads",
             "catalog_occurrences",
@@ -879,7 +1170,7 @@ pub(super) fn agent_catalog(packet: &Value, header: &Value) -> CatalogInputs {
     }
 }
 pub(super) fn agent_native_call(
-    repository: &Path,
+    _repository: &Path,
     owner: &Path,
     invocation: &Path,
     request: &Value,
@@ -890,22 +1181,15 @@ pub(super) fn agent_native_call(
     let input_raw = serde_json::to_vec(request).unwrap();
     assert!(input_raw.len() <= 1_048_576);
     input.write_all(&input_raw).unwrap();
-    let mut command = Command::new(
-        std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter"),
+    let native_command = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
+            .expect("exact native source owner command required"),
     );
+    assert!(native_command.is_absolute());
+    let mut command = Command::new(native_command);
     command
-        .arg(
-            repository.join(
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-            ),
-        )
-        .arg("--owner-config")
-        .arg(owner)
-        .arg("--native-invocation")
+        .arg("--invocation")
         .arg(invocation)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
         .stdin(std::process::Stdio::from(input.reopen().unwrap()));
     let output = native_child::bounded_output_before(
         &mut command,
@@ -1066,26 +1350,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .map(|(p, maximum)| native_child::bounded_sha_before(p, *maximum, deadline))
         .collect::<Vec<_>>();
     let workspace = PublicationFailureFixture::new("Agent correction");
-    let packet_path = workspace.path().join("agent-fixture.json");
-    let mut export = Command::new(
-        std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter"),
-    );
-    export
-        .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
-        .arg("agent")
-        .arg(workspace.path())
-        .arg(&packet_path)
-        .env("PYTHONDONTWRITEBYTECODE", "1");
-    let output = native_child::bounded_output_before(
-        &mut export,
-        4096,
-        deadline.min(Instant::now() + Duration::from_secs(60)),
-    );
-    assert!(
-        output.status.success(),
-        "Agent fixture: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    let packet_path = load_frozen_agent_fixture(workspace.path());
     let packet = read_packet(&packet_path);
     let root = PathBuf::from(required(&packet, "source_root"))
         .canonicalize()
@@ -1143,7 +1408,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     let initial_binding = typed(&packet["binding"]);
     let initial_catalog = agent_catalog(&packet, &packet["header"]);
     // Rebuild native auxiliary indexes from this fixture's exact prepared rows.
-    // Keep the independent Python catalog, header, and semantic report unchanged.
+    // Keep the frozen independent catalog, header, and semantic report unchanged.
     {
         let tx = connection.unchecked_transaction().unwrap();
         for table in [
@@ -1216,79 +1481,47 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     assert!(combined.values().map(Vec::len).sum::<usize>() <= 33_554_432 && combined.len() <= 2048);
     let capture = workspace.path().join("software-capture");
     let restored = workspace.path().join("software-restored");
-    let mut commit = Command::new("git");
+    let mut commit_command = Command::new("git");
     for (name, _) in std::env::vars_os() {
         if name.to_string_lossy().starts_with("GIT_") {
-            commit.env_remove(name);
+            commit_command.env_remove(name);
         }
     }
-    commit
+    commit_command
         .env("GIT_NO_REPLACE_OBJECTS", "1")
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("GIT_CONFIG_GLOBAL", "/dev/null");
-    commit
+    commit_command
         .arg("-C")
         .arg(&repository)
         .args(["rev-parse", "HEAD^{commit}"]);
-    let commit = native_child::bounded_output_before(&mut commit, 4096, deadline);
-    assert!(commit.status.success());
-    let commit = String::from_utf8(commit.stdout).unwrap().trim().to_owned();
+    let commit_output = native_child::bounded_output_before(&mut commit_command, 4096, deadline);
+    assert!(commit_output.status.success());
+    let commit = String::from_utf8(commit_output.stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
     assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
-    for restore in [false, true] {
-        let mut command = Command::new(
-            std::env::var_os("TOS_MAINTAINED_PYTHON")
-                .expect("explicit maintained fixture interpreter"),
-        );
-        for (name, _) in std::env::vars_os() {
-            if name.to_string_lossy().starts_with("GIT_") {
-                command.env_remove(name);
-            }
-        }
-        command
-            .env("GIT_NO_REPLACE_OBJECTS", "1")
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null");
-        command.arg(repository.join("scripts/corpus_archive.py"));
-        if restore {
-            command
-                .arg("restore")
-                .arg("--capture")
-                .arg(&capture)
-                .arg("--output")
-                .arg(&restored);
-        } else {
-            command
-                .arg("capture")
-                .arg("--repo-root")
-                .arg(&repository)
-                .arg("--commit")
-                .arg(&commit)
-                .arg("--output")
-                .arg(&capture);
-            for name in AGENT_RECORD_COMPONENTS {
-                command.arg("--include-prefix").arg(name);
-            }
-        }
-        command.env("PYTHONDONTWRITEBYTECODE", "1");
-        let output = native_child::bounded_output_before(
-            &mut command,
-            4096,
-            deadline.min(Instant::now() + Duration::from_secs(60)),
-        );
-        assert!(
-            output.status.success(),
-            "capture: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+    let prefixes = AGENT_RECORD_COMPONENTS.to_vec();
+    let selection = super::source_cut_cases::capture_software_archive(
+        &repository,
+        &commit,
+        &prefixes,
+        &capture,
+        deadline,
+        &cancel,
+    );
+    super::source_cut_cases::restore_software_archive(
+        &capture, &restored, &selection, deadline, &cancel,
+    );
     let capture_raw = fs::read(capture.join("capture.json")).unwrap();
     assert!(capture_raw.len() <= 1_048_576);
     let capture_manifest: Value = serde_json::from_slice(&capture_raw).unwrap();
-    let selection = SoftwareCaptureSelectionV1 {
-        source_git_commit: commit,
-        source_git_tree: required(&capture_manifest, "source_git_tree").to_owned(),
-        capture_manifest_sha256: Digest256::of_bytes(&capture_raw),
-    };
+    assert_eq!(required(&capture_manifest, "source_git_commit"), commit);
+    assert_eq!(
+        Digest256::of_bytes(&capture_raw),
+        selection.capture_manifest_sha256
+    );
     let software = SoftwareCaptureReader::open(
         &capture,
         &restored,
@@ -1500,28 +1733,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     );
     assert_eq!(prepared_before, agent_sql_snapshot(&connection, deadline));
     assert_eq!(agent_authored(&root, deadline), current_files);
-    let oracle_path = workspace.path().join("Agent-independent-oracle.json");
-    let mut oracle = Command::new(
-        std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter"),
-    );
-    oracle
-        .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
-        .arg("agent-oracle")
-        .arg(&packet_path)
-        .arg(&source_receipt)
-        .arg(&oracle_path)
-        .env("PYTHONDONTWRITEBYTECODE", "1");
-    let output = native_child::bounded_output_before(
-        &mut oracle,
-        4096,
-        deadline.min(Instant::now() + Duration::from_secs(60)),
-    );
-    assert!(
-        output.status.success(),
-        "Agent oracle: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let expected = read_packet(&oracle_path);
+    let expected = frozen_agent_full_graph();
     assert_eq!(agent_authored(&root, deadline), current_files);
     for kind in ["node", "relation"] {
         let actual: BTreeMap<String, Value> = connection

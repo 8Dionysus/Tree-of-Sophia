@@ -1630,9 +1630,11 @@ dependencies = [
 name = "tos-conformance"
 version = "0.0.0"
 dependencies = [
- "rusqlite",
- "serde_json",
- "tempfile",
+	"flate2",
+	"rusqlite",
+	"serde_json",
+	"tar",
+	"tempfile",
  "tos-access",
  "tos-command",
  "tos-compiler",

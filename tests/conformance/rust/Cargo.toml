@@ -7,8 +7,10 @@ rust-version.workspace = true
 license.workspace = true
 
 [dev-dependencies]
+flate2 = "1"
 rusqlite = { version = "0.37", features = ["bundled", "hooks"] }
 serde_json = "1"
+tar = "0.4"
 tempfile = "3"
 tos-command = { path = "../../../rust/crates/tos-command" }
 tos-compiler = { path = "../../../rust/crates/tos-compiler", features = ["test-fixture"] }
