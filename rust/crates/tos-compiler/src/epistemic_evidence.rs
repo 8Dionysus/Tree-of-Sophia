@@ -1826,7 +1826,7 @@ mod tests {
         let mut witness = "Источник Ω\n".as_bytes().to_vec();
         witness.resize(1_598_518, b'x');
         put(root, "docs/witness.md", &witness);
-        let corpus = value!({"schema_version":"tos_corpus_index_v1","nodes":[{"node_id":"n"}],"relation_edges":[{"edge_id":"e","owner_branch":"ToS/canon"}],"source_navigation":"x".repeat(3*1024*1024)});
+        let corpus = value!({"schema_version":"tos_corpus_index_v1","nodes":[{"node_id":"n"},{"node_id":"n2"}],"relation_edges":[{"edge_id":"e","owner_branch":"ToS/canon"}],"source_navigation":"x".repeat(3*1024*1024)});
         put(
             root,
             "ToS/derived-exports/tos_corpus_index.min.json",
@@ -1856,6 +1856,8 @@ mod tests {
         canon["scene_id"] = value!("canon-route");
         canon["posture"] = value!("canon-retained-evidence-open");
         canon["conclusion"]["canon_membership"] = value!(true);
+        canon["selections"] = value!([{ "mode":"corpus", "view_id":"route-graph", "item_ids":["n2"] }]);
+        canon["anchor_edge_ids"] = value!([]);
         source["scenes"].as_array_mut().unwrap().push(canon);
         write_source(root, &source);
         let raw = candidate(root, "positive.sqlite").unwrap();
