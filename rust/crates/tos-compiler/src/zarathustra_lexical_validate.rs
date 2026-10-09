@@ -1115,7 +1115,7 @@ mod retired_validator_regressions {
             "../../../../ToS/contracts/morphology-census-result-receipt.schema.json"
         ));
         let selector = format!("{uri}#/$defs/providerPosCountMap");
-        assert!(p.is_valid_value(&selector, &json!({"NOUN":1})).unwrap());
+        assert!(p.is_valid_value(&selector, &json!({"NN":1})).unwrap());
         assert!(
             !p.is_valid_value(&selector, &json!({"Übermensch":1}))
                 .unwrap()
@@ -1127,7 +1127,7 @@ mod retired_validator_regressions {
         let (uri, p) = probe(include_bytes!(
             "../../../../ToS/contracts/lexical-usage-context-row.schema.json"
         ));
-        let row = json!({"schema_version":"tos_lexical_usage_context_row_v1","context_id":format!("usage-context:sha256:{}","a".repeat(64)),"question_id":"zarathustra-work-identity-control-context-v1","form_key":format!("lexical-form:sha256:{}","a".repeat(64)),"exact_form_sha256":"a".repeat(64),"occurrence_id":"tos.occurrence.synthetic-control-000001","item_ref":"tos.item.synthetic-control","part_order":1,"source_file_sha256":"b".repeat(64),"token_ordinal":1,"page_resource_id":"tei-page:synthetic-1","section_resource_id":null,"text_node_path":"/TEI/text/body/p[1]/text()[1]","start_offset":0,"end_offset":23,"editorial_status":"witness-text","target_exact_form":"synthetic-control-token","left_exact_tokens":[],"right_exact_tokens":["neighbor"],"left_token_count":0,"right_token_count":1,"requested_window_each_side":24,"page_start_clipped":true,"page_end_clipped":true,"source_database_sha256":"a".repeat(64),"authority":"unreviewed-source-visible-method-control"});
+        let row = json!({"schema_version":"tos_lexical_usage_context_row_v1","context_id":format!("usage-context:sha256:{}","a".repeat(64)),"question_id":"zarathustra-work-identity-control-context-v1","form_key":"lexical-form:sha256:9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55","exact_form_sha256":"9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55","occurrence_id":"tos.occurrence.synthetic-control-000001","item_ref":"tos.item.synthetic-control","part_order":1,"source_file_sha256":"b".repeat(64),"token_ordinal":1,"page_resource_id":"tei-page:synthetic-1","section_resource_id":null,"text_node_path":"/TEI/text/body/p[1]/text()[1]","start_offset":0,"end_offset":23,"editorial_status":"witness-text","target_exact_form":"synthetic-control-token","left_exact_tokens":[],"right_exact_tokens":["neighbor"],"left_token_count":0,"right_token_count":1,"requested_window_each_side":24,"page_start_clipped":true,"page_end_clipped":true,"source_database_sha256":"a".repeat(64),"authority":"unreviewed-source-visible-method-control"});
         assert!(p.is_valid_value(&uri, &row).unwrap());
         for (key, value) in [
             ("lemma", json!("synthetic")),
