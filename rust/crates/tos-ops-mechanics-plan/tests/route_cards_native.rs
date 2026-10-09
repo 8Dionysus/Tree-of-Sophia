@@ -1,7 +1,7 @@
-//! Disposable whole-consumer oracle; source-only until OPS executes this fixture.
+//! Native route-card CLI contracts with explicit positive and refusal cases.
 #[cfg(target_os = "linux")]
 #[test]
-fn route_currentness_and_nested_consumers_match_maintained_python() {
+fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Output};
@@ -26,14 +26,7 @@ fn route_currentness_and_nested_consumers_match_maintained_python() {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text).unwrap();
     };
-    write(
-        "scripts/build_agents_route_currentness.py",
-        include_str!("../../../../scripts/build_agents_route_currentness.py"),
-    );
-    write(
-        "scripts/validate_nested_agents.py",
-        include_str!("../../../../scripts/validate_nested_agents.py"),
-    );
+    write("rust/crates/tos-ops-mechanics-plan/src/route_cards.rs", "// Native owner fixture\n");
     write("scripts/harness.py", "# fixture route\n");
     let clean = "# AGENTS.md\r\n## Role\r\nSource route.\r\n## Read Before Editing\r\nRead README.md when public navigation is relevant.\r\n## Boundary Law\r\nREADME.md VALIDATION.md ROADMAP.md BOUNDARIES.md ToS/ mechanics/\r\n";
     write("AGENTS.md", clean);
@@ -62,7 +55,7 @@ fn route_currentness_and_nested_consumers_match_maintained_python() {
     ] {
         write(path, "source\n");
     }
-    let inventory = serde_json::json!({"schema_version":"tos_agents_route_inventory_v1","owner_repo":"Tree-of-Sophia","owner_surface":"AGENTS.md","validator":"scripts/validate_nested_agents.py","currentness":".agents/agents-route.current.json","harness":"scripts/harness.py","route_card_discovery":{"root_cards":["AGENTS.md"],"route_roots":[".github","ToS","docs"],"preserved_non_cards":[]},"influencing_surfaces":[{"path":"README.md","role":"orientation"}],"context_budget":{"limit":1000.0,"tiny":1e-7},"scope_duplication_policy":{"byte_identical_nested_cards":"error"},"task_routes":[{"id":"handoff","target":"ToS/branch/target.md","owner_route":"docs/owner.md","on_demand_surfaces":["README.md","docs/owner.md"],"validation_paths":["VALIDATION.md"],"completion_evidence":["ToS/branch/target.md"],"handoff_routes":["aoa-memo"]}]});
+    let inventory = serde_json::json!({"schema_version":"tos_agents_route_inventory_v1","owner_repo":"Tree-of-Sophia","owner_surface":"AGENTS.md","validator":"rust/crates/tos-ops-mechanics-plan/src/route_cards.rs","currentness":".agents/agents-route.current.json","harness":"scripts/harness.py","route_card_discovery":{"root_cards":["AGENTS.md"],"route_roots":[".github","ToS","docs"],"preserved_non_cards":[]},"influencing_surfaces":[{"path":"README.md","role":"orientation"}],"context_budget":{"limit":1000.0,"tiny":1e-7},"scope_duplication_policy":{"byte_identical_nested_cards":"error"},"task_routes":[{"id":"handoff","target":"ToS/branch/target.md","owner_route":"docs/owner.md","on_demand_surfaces":["README.md","docs/owner.md"],"validation_paths":["VALIDATION.md"],"completion_evidence":["ToS/branch/target.md"],"handoff_routes":["aoa-memo"]}]});
     write(
         "docs/validation/agents_route_inventory.json",
         &serde_json::to_string_pretty(&inventory).unwrap(),
@@ -73,7 +66,7 @@ fn route_currentness_and_nested_consumers_match_maintained_python() {
             .arg(program)
             .args(args)
             .current_dir(root)
-            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .env_clear().env("PATH", "/usr/bin")
             .output()
             .unwrap();
         assert!(
@@ -102,23 +95,9 @@ fn route_currentness_and_nested_consumers_match_maintained_python() {
         full.extend_from_slice(args);
         invoke(&executable, &full)
     };
-    let python = |script: &str, args: &[&str]| -> Output {
-        let mut full = vec!["-B", script];
-        full.extend_from_slice(args);
-        invoke(Path::new("/usr/bin/python3"), &full)
-    };
     let rebuild = || {
         let a = native(&["build", "--output", "candidate/route.json"]);
-        let b = python(
-            "scripts/build_agents_route_currentness.py",
-            &["--output", "candidate/python.json"],
-        );
         assert!(a.status.success(), "{}", String::from_utf8_lossy(&a.stderr));
-        assert!(b.status.success(), "{}", String::from_utf8_lossy(&b.stderr));
-        assert_eq!(
-            fs::read(root.join("candidate/route.json")).unwrap(),
-            fs::read(root.join("candidate/python.json")).unwrap()
-        );
         fs::copy(
             root.join("candidate/route.json"),
             root.join(".agents/agents-route.current.json"),
@@ -129,21 +108,8 @@ fn route_currentness_and_nested_consumers_match_maintained_python() {
     rebuild();
     let compare = |expected: i32| {
         let a = native(&["validate"]);
-        let b = python("scripts/validate_nested_agents.py", &[]);
-        assert_eq!(
-            a.status.code(),
-            Some(expected),
-            "{}",
-            String::from_utf8_lossy(&a.stderr)
-        );
-        assert_eq!(
-            b.status.code(),
-            Some(expected),
-            "{}",
-            String::from_utf8_lossy(&b.stderr)
-        );
-        assert_eq!(a.stdout, b.stdout);
-        assert_eq!(a.stderr, b.stderr);
+        assert_eq!(a.status.code(), Some(expected), "{}", String::from_utf8_lossy(&a.stderr));
+        assert!(a.stderr.is_empty(), "{}", String::from_utf8_lossy(&a.stderr));
         String::from_utf8(a.stdout).unwrap()
     };
     compare(0);
@@ -169,24 +135,36 @@ fn route_currentness_and_nested_consumers_match_maintained_python() {
     );
     assert!(source.contains(&b'\r'));
     let check_native = native(&["build", "--check", "--output", "candidate/route.json"]);
-    let check_python = python(
-        "scripts/build_agents_route_currentness.py",
-        &["--check", "--output", "candidate/route.json"],
-    );
     assert!(check_native.status.success());
-    assert_eq!(check_native.stdout, check_python.stdout);
+    let external = root.with_extension("external.json");
+    assert!(native(&["build", "--output", external.to_str().unwrap()]).status.success());
+    assert_eq!(fs::read(&external).unwrap(), fs::read(root.join("candidate/route.json")).unwrap());
+    fs::remove_file(&external).unwrap();
     write("candidate/route.json", "stale\n");
     let check_native = native(&["build", "--check", "--output", "candidate/route.json"]);
-    let check_python = python(
-        "scripts/build_agents_route_currentness.py",
-        &["--check", "--output", "candidate/route.json"],
-    );
     assert_eq!(check_native.status.code(), Some(1));
-    assert_eq!(check_native.stdout, check_python.stdout);
     write("README.md", "changed source\n");
     assert!(compare(1).contains("generated AGENTS route currentness is stale"));
     rebuild();
     compare(0);
+    for (body, refusal_count) in [
+        ("Read README.md for setup.\nReview README.md before editing.\n", 2),
+        ("Open README.md when public navigation changes.\n", 0),
+        ("Open README.md only when its human explanation is relevant.\n", 0),
+        ("## What lives here\nThis child retains only its class-local semantic delta.\n", 0),
+    ] {
+        write("ToS/branch/AGENTS.md", &format!("# AGENTS.md\nThis card applies to branch metadata.\n{body}"));
+        rebuild();
+        let findings = compare(if refusal_count == 0 { 0 } else { 1 });
+        assert_eq!(findings.matches("unconditional README").count(), refusal_count, "{findings}");
+    }
+    write("ToS/branch/AGENTS.md", "# AGENTS.md\nThis card applies to branch metadata.\n## Validation\nRun:\n## Boundary\n- First:\n- Second:\n");
+    fs::remove_file(root.join("VALIDATION.md")).unwrap();
+    rebuild();
+    let findings = compare(1);
+    assert!(findings.contains("orphan extraction lead-in"), "{findings}");
+    assert!(findings.contains("missing nearest validation route"), "{findings}");
+    write("VALIDATION.md", "source\n");
     let bad = "# AGENTS.md\nThis card applies to branch.\n## Role\nRead README.md first.\nUse `git` and `python scripts/missing.py` for routing.\nFOO=bar python scripts/missing.py\n```bash\npython scripts/missing.py\n```\n## Verify\n## Boundary\n- First:\n- Second:\n## Role\n## Operating Card\n| input | source |\n## Heading\u{a0}inside\nBody.\n## Heading\u{a0}inside\nBody.\n## Heading\u{200d}inside\nBody.\n## Heading\u{200d}inside\nBody.\n## Heading\u{e000}inside\nBody.\n## Heading\u{e000}inside\nBody.\nread README\u{301}\nTail:\n";
     write("ToS/branch/AGENTS.md", bad);
     rebuild();
@@ -262,4 +240,6 @@ fn route_currentness_and_nested_consumers_match_maintained_python() {
     write("docs/validation/agents_route_inventory.json", "not-json\n");
     let findings = compare(1);
     assert!(findings.contains("route inventory is unreadable or malformed"));
+    fs::remove_file(root.join("docs/validation/agents_route_inventory.json")).unwrap();
+    assert!(compare(1).contains("route inventory is missing"));
 }

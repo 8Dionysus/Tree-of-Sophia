@@ -50,7 +50,7 @@ here in `validation_lanes.json`.
   registry only becomes useful after ToS grows a distinct validator-module
   surface.
 - AGENTS route topology routes to `agents_route_inventory.json`, its generated
-  currentness companion, and `scripts/agents_route_harness.py`; the harness checks deterministic route shape. Behavioral and semantic
+  currentness companion, and `rust/crates/tos-ops-mechanics-plan/src/route_harness.rs`; the harness checks deterministic route shape. Behavioral and semantic
 evaluation follow their respective eval routes.
 - Test topology routes to `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`,
   `tests/VALIDATION.md`, and `tests/test_inventory.json`.

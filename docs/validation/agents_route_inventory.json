@@ -2,9 +2,9 @@
   "schema_version": "tos_agents_route_inventory_v1",
   "owner_repo": "Tree-of-Sophia",
   "owner_surface": "DESIGN.AGENTS.md",
-  "validator": "scripts/validate_nested_agents.py",
+  "validator": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
   "currentness": ".agents/agents-route.current.json",
-  "harness": "scripts/agents_route_harness.py",
+  "harness": "rust/crates/tos-ops-mechanics-plan/src/route_harness.rs",
   "route_card_discovery": {
     "root_cards": ["AGENTS.md"],
     "route_roots": [
@@ -90,19 +90,15 @@
       "role": "executable validation command authority"
     },
     {
-      "path": "scripts/build_agents_route_currentness.py",
-      "role": "deterministic generated currentness builder for route-card hashes and stacks"
+      "path": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
+      "role": "native currentness builder and structural, inheritance, reference validator"
     },
     {
-      "path": "scripts/validate_nested_agents.py",
-      "role": "structural, inheritance, reference, and currentness validator"
-    },
-    {
-      "path": "scripts/agents_route_harness.py",
+      "path": "rust/crates/tos-ops-mechanics-plan/src/route_harness.rs",
       "role": "deterministic representative task-route and context-budget harness"
     },
     {
-      "path": "tests/test_nested_agents.py",
+      "path": "rust/crates/tos-ops-mechanics-plan/tests/route_cards_native.rs",
       "role": "focused positive and negative controls for route-card guard families"
     },
     {
@@ -152,7 +148,7 @@
       "boundary_markers": ["source witness", "canon", "generated"],
       "on_demand_surfaces": ["ToS/source-witnesses/README.md", "ToS/doctrine/CORPUS_FOUNDATION.md"],
       "validation_lanes": ["source_witness_foundation", "route_docs"],
-      "validation_paths": ["scripts/validate_source_witness_foundation.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["scripts/validate_source_witness_foundation.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": ["ToS/source-witnesses/AGENTS.md", "ToS/source-witnesses/README.md", "scripts/validate_source_witness_foundation.py"],
       "handoff_routes": ["ToS/candidate-intake/AGENTS.md", "ToS/review-ledger/AGENTS.md"]
     },
@@ -180,7 +176,7 @@
       "boundary_markers": ["tokenizer", "linguistic", "semantic"],
       "on_demand_surfaces": ["ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md", "ToS/contracts/source-text-unit-packet-v1.schema.json"],
       "validation_lanes": ["source_witness_foundation", "route_docs"],
-      "validation_paths": ["scripts/validate_source_witness_foundation.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["scripts/validate_source_witness_foundation.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": ["ToS/contracts/AGENTS.md", "ToS/contracts/source-text-unit-packet-v1.schema.json", "scripts/validate_source_witness_foundation.py"],
       "handoff_routes": ["ToS/review-ledger/AGENTS.md", "ToS/derived-exports/AGENTS.md"]
     },
@@ -194,7 +190,7 @@
       "boundary_markers": ["aligner", "translation", "canon"],
       "on_demand_surfaces": ["ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md", "ToS/contracts/translation-alignment-packet-v1.schema.json"],
       "validation_lanes": ["source_witness_foundation", "route_docs"],
-      "validation_paths": ["scripts/validate_source_witness_foundation.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["scripts/validate_source_witness_foundation.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": ["ToS/contracts/AGENTS.md", "ToS/contracts/translation-alignment-packet-v1.schema.json", "scripts/validate_source_witness_foundation.py"],
       "handoff_routes": ["ToS/review-ledger/AGENTS.md", "ToS/derived-exports/AGENTS.md"]
     },
@@ -208,7 +204,7 @@
       "boundary_markers": ["candidate", "review", "canon", "derived"],
       "on_demand_surfaces": ["ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md", "ToS/contracts/CORPUS_CONTRACTS.md", "ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md"],
       "validation_lanes": ["intake_contracts", "canon_contracts", "route_docs"],
-      "validation_paths": ["scripts/validate_intake_pack.py", "scripts/validate_tree_node_contracts.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["scripts/validate_intake_pack.py", "scripts/validate_tree_node_contracts.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": ["ToS/candidate-intake/AGENTS.md", "ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md", "scripts/validate_intake_pack.py"],
       "handoff_routes": ["ToS/review-ledger/AGENTS.md", "ToS/canon/AGENTS.md", "ToS/public-compatibility/AGENTS.md"]
     },
@@ -236,7 +232,7 @@
       "boundary_markers": ["read-only delivery", "does not author philosophical meaning", "optional; its absence", "publication"],
       "on_demand_surfaces": ["access/contracts/README.md", "access/contracts/runtime-data.v1.json", "access/profiles/standalone.v1.json"],
       "validation_lanes": ["standalone_access", "route_docs"],
-      "validation_paths": ["access/packaging/validate_standalone.py", "access/tests/test_access_contract.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["access/packaging/validate_standalone.py", "access/tests/test_access_contract.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": ["access/AGENTS.md", "access/README.md", "access/packaging/validate_standalone.py"],
       "handoff_routes": ["ToS/derived-exports/AGENTS.md", "access/integrations/abyssos/README.md"]
     },
@@ -264,7 +260,7 @@
       "boundary_markers": ["ToS", "runtime", "canon"],
       "on_demand_surfaces": ["mechanics/README.md", "mechanics/boundary-bridge/PARTS.md", "mechanics/boundary-bridge/PROVENANCE.md"],
       "validation_lanes": ["mechanics_topology", "mechanics_local", "route_docs"],
-      "validation_paths": ["scripts/validate_mechanics_topology.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["scripts/validate_mechanics_topology.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": ["mechanics/AGENTS.md", "mechanics/boundary-bridge/AGENTS.md", "mechanics/topology.json", "scripts/validate_mechanics_topology.py"],
       "handoff_routes": ["mechanics/boundary-bridge/parts/derived-kag-seam/README.md"]
     },
@@ -292,7 +288,7 @@
       "boundary_markers": ["source-owned", "release", "runtime"],
       "on_demand_surfaces": ["VALIDATION.md", "docs/validation/validation_lanes.json", "docs/validation/SCRIPT_TOPOLOGY.md", "docs/RELEASING.md", ".github/workflows/repo-validation.yml"],
       "validation_lanes": ["validation_authority", "release", "route_docs"],
-      "validation_paths": ["scripts/validation_lanes.py", "scripts/release_check.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["scripts/validation_lanes.py", "scripts/release_check.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": ["scripts/AGENTS.md", "docs/validation/validation_lanes.json", "scripts/release_check.py", ".github/workflows/repo-validation.yml"],
       "handoff_routes": [".github/AGENTS.md", "docs/RELEASING.md"]
     },
@@ -306,7 +302,7 @@
       "boundary_markers": ["proof authority", "runtime", "source surfaces"],
       "on_demand_surfaces": [".agents/README.md", ".agents/agent-surface.manifest.json", "docs/validation/agents_route_inventory.json"],
       "validation_lanes": ["agent_surface", "route_docs"],
-      "validation_paths": ["scripts/build_agent_surface_currentness.py", "scripts/validate_agent_surface.py", "scripts/validate_nested_agents.py"],
+      "validation_paths": ["scripts/build_agent_surface_currentness.py", "scripts/validate_agent_surface.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
       "completion_evidence": [".agents/AGENTS.md", ".agents/agent-surface.manifest.json", ".agents/agent-surface.current.json", "scripts/validate_agent_surface.py"],
       "handoff_routes": ["aoa-skills", "aoa-agents"]
     },

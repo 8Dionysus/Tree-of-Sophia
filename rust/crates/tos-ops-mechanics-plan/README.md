@@ -174,16 +174,16 @@ These are finite candidate limits and controls, not a whole repository run or
 optional-cache retirement result.
 
 `tos-route-cards --repo-root ABSOLUTE_PATH build [--check] [--output PATH]`
-and `validate` are explicit candidates for the maintained
-`build_agents_route_currentness.py` and `validate_nested_agents.py` consumers.
+and `validate` are the maintained route-card builder and validator.
 `tos-agents-route-harness --repo-root ABSOLUTE_PATH [--check] [--output PATH]`
-retains the maintained declared-task harness, including `--source-ref` and
+retains the declared-task harness, including `--source-ref` and
 `--volatile-timing`. Their shared snapshot reader preserves raw digests,
-Python16 text rules, target inheritance and a separate owner handoff. Native
-currentness keeps `generated_by="scripts/build_agents_route_currentness.py"`
-as a compatible format marker; this value does not prove that Python ran or
-identify the executable that produced those bytes. Authored cards and inventory
-retain their authority, and harness results make no model-behavior claim.
+Unicode text rules, target inheritance and a separate owner handoff. Generated
+currentness names `rust/crates/tos-ops-mechanics-plan/src/route_cards.rs` as its
+builder source. Authored cards and inventory retain their authority, and harness
+results make no model-behavior claim. The Python implementations and replaced
+tests are retired; the native CLI contracts preserve structural refusals,
+currentness, output paths, context budgets and source provenance.
 
 One source snapshot bounds raw input to 64 MiB / 8 MiB per file, with at most
 another 64 MiB of normalized cached text, 10,000 retained files/cards,

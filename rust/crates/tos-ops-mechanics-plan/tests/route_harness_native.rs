@@ -1,8 +1,7 @@
-//! One disposable actual-consumer fixture against maintained Python; no
-//! authored/generated production data or default command routes are changed.
+//! Native declared-task harness contracts and explicit source provenance.
 #[cfg(target_os = "linux")]
 #[test]
-fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance() {
+fn route_harness_declared_task_consumer_preserves_provenance_and_refusals() {
     use serde_json::{Value, json};
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -22,14 +21,6 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text).unwrap();
     };
-    write(
-        "scripts/agents_route_harness.py",
-        include_str!("../../../../scripts/agents_route_harness.py"),
-    );
-    write(
-        "scripts/build_agents_route_currentness.py",
-        include_str!("../../../../scripts/build_agents_route_currentness.py"),
-    );
     write(
         "AGENTS.md",
         "source review generated\r\nΟΣ ΟΣΑ İ\u{1c}bounded\r",
@@ -60,7 +51,7 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
             &serde_json::to_string_pretty(inventory).unwrap(),
         )
     };
-    // Keep a source float exponent spelling; Python parses then normalizes it.
+    // Retain compatibility with historical float exponent spelling.
     inventory["context_budget"]["additional_context_max_tokens"] =
         serde_json::from_str("1e3").unwrap();
     save(&inventory);
@@ -83,36 +74,14 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
     git(&["commit", "--quiet", "-m", "fixture"]);
     let executable = std::env::var_os("TOS_ROUTE_HARNESS_TEST_EXECUTABLE")
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-agents-route-harness").into());
-    let run = |native: bool, args: &[&str]| -> Output {
-        let mut command = if native {
-            let mut c = Command::new(&executable);
-            c.arg("--repo-root").arg(&root);
-            c
-        } else {
-            let mut c = Command::new("/usr/bin/python3");
-            c.arg("-B")
-                .arg(root.join("scripts/agents_route_harness.py"));
-            c
-        };
-        command.args(args).current_dir(&root).output().unwrap()
+    let run = |args: &[&str]| -> Output {
+        Command::new(&executable).env_clear().env("PATH", "/usr/bin")
+            .arg("--repo-root").arg(&root).args(args).current_dir(&root).output().unwrap()
     };
     let compare = |args: &[&str], expected: i32| -> Output {
-        let native = run(true, args);
-        let python = run(false, args);
-        assert_eq!(
-            native.status.code(),
-            Some(expected),
-            "{}",
-            String::from_utf8_lossy(&native.stderr)
-        );
-        assert_eq!(
-            python.status.code(),
-            Some(expected),
-            "{}",
-            String::from_utf8_lossy(&python.stderr)
-        );
-        assert_eq!(native.stdout, python.stdout);
-        assert_eq!(native.stderr, python.stderr);
+        let native = run(args);
+        assert_eq!(native.status.code(), Some(expected), "{}", String::from_utf8_lossy(&native.stderr));
+        assert!(native.stderr.is_empty(), "{}", String::from_utf8_lossy(&native.stderr));
         native
     };
     let canonical = compare(&[], 0);
@@ -142,7 +111,7 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
     assert_eq!(labelled["source_ref"], "immutable-ref");
     let output = fixture.0.join("nested/result.json");
     let output_arg = output.to_str().unwrap();
-    let native = run(true, &["--check", "--output", output_arg]);
+    let native = run(&["--check", "--output", output_arg]);
     assert_eq!(
         native.status.code(),
         Some(0),
@@ -150,25 +119,13 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
         String::from_utf8_lossy(&native.stderr)
     );
     let native_bytes = fs::read(&output).unwrap();
-    let python = run(false, &["--check", "--output", output_arg]);
-    assert_eq!(native.stdout, python.stdout);
-    assert_eq!(native_bytes, fs::read(&output).unwrap());
     assert_eq!(native_bytes, canonical.stdout);
     let mut timing_native: Value =
-        serde_json::from_slice(&run(true, &["--volatile-timing"]).stdout).unwrap();
-    let mut timing_python: Value =
-        serde_json::from_slice(&run(false, &["--volatile-timing"]).stdout).unwrap();
-    for value in [&mut timing_native, &mut timing_python] {
-        for task in value["tasks"].as_array_mut().unwrap() {
-            assert!(task["time_to_owner_ms"].as_f64().unwrap() >= 0.0);
-            assert_eq!(
-                task["route_resolution_measurement"],
-                "Wall-clock duration of this harness lookup, measured for the current run."
-            );
-            task["time_to_owner_ms"] = Value::Null;
-        }
+        serde_json::from_slice(&run(&["--volatile-timing"]).stdout).unwrap();
+    for task in timing_native["tasks"].as_array_mut().unwrap() {
+        assert!(task["time_to_owner_ms"].as_f64().unwrap() >= 0.0);
+        assert_eq!(task["route_resolution_measurement"], "Wall-clock duration of this harness lookup, measured for the current run.");
     }
-    assert_eq!(timing_native, timing_python);
     write("dirty.txt", "dirty\n");
     let dirty: Value =
         serde_json::from_slice(&compare(&["--source-ref", "immutable-ref"], 0).stdout).unwrap();
@@ -196,6 +153,9 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
     fs::remove_file(root.join("scripts/check.py")).unwrap();
     let failed: Value = serde_json::from_slice(&compare(&[], 0).stdout).unwrap();
     assert_eq!(failed["route_success_count"], 0);
+    assert_eq!(failed["tasks"][0]["missing_task_specific_law"]["count"], 1);
+    assert!(failed["tasks"][0]["budget"]["violations"].as_array().unwrap().iter().any(|v| v.as_str().unwrap().contains("inherited_context_tokens>1")));
+    assert!(failed["tasks"][1]["budget"]["violations"].as_array().unwrap().iter().any(|v| v.as_str().unwrap().contains("owner_handoff_context_tokens>")));
     assert_eq!(
         failed["tasks"][0]["selected_validation"]["unknown_lanes"],
         json!(["unknown-lane"])
@@ -208,12 +168,10 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
     );
     compare(&["--check"], 1);
     // Same existing CLI output/check ordering: failed check still writes result.
-    let native = run(true, &["--check", "--output", output_arg]);
+    let native = run(&["--check", "--output", output_arg]);
     let native_bytes = fs::read(&output).unwrap();
-    let python = run(false, &["--check", "--output", output_arg]);
     assert_eq!(native.status.code(), Some(1));
-    assert_eq!(native.stdout, python.stdout);
-    assert_eq!(native_bytes, fs::read(&output).unwrap());
+    assert_eq!(serde_json::from_slice::<Value>(&native_bytes).unwrap(), failed);
     // Bounded native safety envelope: missing target remains a task failure,
     // while path escape, symlink and FIFO inputs/outputs fail closed.
     inventory["task_routes"][0]["target"] = "missing-target.md".into();
@@ -221,31 +179,30 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
     compare(&["--check"], 1);
     inventory["task_routes"][0]["target"] = "../escape.md".into();
     save(&inventory);
-    assert_eq!(run(true, &[]).status.code(), Some(1));
+    assert_eq!(run(&[]).status.code(), Some(1));
     inventory["task_routes"][0]["target"] = "branch/target.md".into();
     save(&inventory);
     fs::remove_file(root.join("branch/target.md")).unwrap();
     std::os::unix::fs::symlink(root.join("AGENTS.md"), root.join("branch/target.md")).unwrap();
-    assert_eq!(run(true, &[]).status.code(), Some(1));
+    assert_eq!(run(&[]).status.code(), Some(1));
     fs::remove_file(root.join("branch/target.md")).unwrap();
     write("branch/target.md", "source\n");
     fs::remove_file(&output).unwrap();
     std::os::unix::fs::symlink(root.join("AGENTS.md"), &output).unwrap();
     let before = fs::read(root.join("AGENTS.md")).unwrap();
-    assert_eq!(run(true, &["--output", output_arg]).status.code(), Some(1));
+    assert_eq!(run(&["--output", output_arg]).status.code(), Some(1));
     assert_eq!(before, fs::read(root.join("AGENTS.md")).unwrap());
     fs::remove_file(&output).unwrap();
     use std::os::unix::ffi::OsStrExt;
     let fifo = std::ffi::CString::new(output.as_os_str().as_bytes()).unwrap();
     assert_eq!(unsafe { libc::mkfifo(fifo.as_ptr(), 0o600) }, 0);
-    assert_eq!(run(true, &["--output", output_arg]).status.code(), Some(1));
+    assert_eq!(run(&["--output", output_arg]).status.code(), Some(1));
     fs::remove_file(&output).unwrap();
     // An output directory symlink is rejected before writing through it.
     let link = fixture.0.join("linked");
     std::os::unix::fs::symlink(root.join("branch"), &link).unwrap();
     assert_eq!(
         run(
-            true,
             &["--output", link.join("escaped.json").to_str().unwrap()]
         )
         .status
@@ -253,7 +210,7 @@ fn route_harness_declared_task_consumer_matches_python_and_preserves_provenance(
         Some(1)
     );
     assert!(!Path::new(&root.join("branch/escaped.json")).exists());
-    // Empty present cards still participate in Python's newline join.
+    // Empty present cards still participate in the documented newline join.
     write("AGENTS.md", "");
     inventory["task_routes"][0]["required_markers"] = json!(["\ntask-law"]);
     save(&inventory);

@@ -186,7 +186,7 @@
       "label": "route docs",
       "layer": "agent-route-card",
       "mode": "blocking",
-      "owner_surface": "scripts/validate_nested_agents.py",
+      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
       "purpose": "Verify route-card inventory, inheritance, generated currentness, executable references, and deterministic context budgets without freezing ordinary prose as doctrine.",
       "command_sequence": "route_docs",
       "failure_route": "DESIGN.AGENTS.md",

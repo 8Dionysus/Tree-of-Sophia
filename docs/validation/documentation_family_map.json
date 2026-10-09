@@ -213,7 +213,7 @@
         ".agents/AGENTS.md",
         ".agents/VALIDATION.md",
         "docs/validation/agents_route_inventory.json",
-        "scripts/validate_nested_agents.py"
+        "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"
       ],
       "next_organ": [
         "nearest owner card",
@@ -1389,7 +1389,7 @@
       "id": "stale_executable_route",
       "kind": "command_and_script_reference",
       "reuses": [
-        "scripts/validate_nested_agents.py",
+        "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
         "scripts/validate_mechanics_topology.py",
         "docs/validation/script_inventory.json"
       ]
@@ -1407,7 +1407,7 @@
       "id": "generated_projection_mismatch",
       "kind": "source_builder_currentness",
       "reuses": [
-        "scripts/build_agents_route_currentness.py",
+        "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
         "scripts/build_agent_surface_currentness.py",
         "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
       ]
@@ -1432,7 +1432,7 @@
       "id": "context_budget",
       "kind": "progressive_disclosure_budget",
       "reuses": [
-        "scripts/agents_route_harness.py",
+        "rust/crates/tos-ops-mechanics-plan/src/route_harness.rs",
         "mechanics/topology.json",
         ".agents/agent-surface.manifest.json"
       ]
