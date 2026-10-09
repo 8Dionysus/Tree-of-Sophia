@@ -1013,3 +1013,130 @@ pub fn validate_with_capture(
         "authority_boundary": plan_authority_boundary,
     }))
 }
+
+#[cfg(test)]
+mod retired_validator_regressions {
+    use super::*;
+    use std::{
+        fs,
+        time::{Duration, SystemTime, UNIX_EPOCH},
+    };
+    use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
+
+    #[test]
+    fn exact_unicode_tokens_and_internal_joiners_survive_normalization() {
+        use crate::zarathustra_lexical::{LexicalLimits, normalize_form, word_spans};
+        let joiners = BTreeSet::from(['-', '\'', '’', '‐', '‑']);
+        let words = word_spans("Über-Mensch O’Connor Straße 123 -- Wort", &joiners, 1024).unwrap();
+        assert_eq!(
+            words.iter().map(|w| w.2.as_str()).collect::<Vec<_>>(),
+            ["Über-Mensch", "O’Connor", "Straße", "Wort"]
+        );
+        assert_eq!(
+            normalize_form(&words[0].2, LexicalLimits::maintained()).unwrap(),
+            "über-mensch"
+        );
+        assert_eq!(
+            normalize_form(&words[2].2, LexicalLimits::maintained()).unwrap(),
+            "strasse"
+        );
+        assert_eq!(words[2].2, "Straße");
+    }
+
+    #[test]
+    fn local_database_fixity_counts_and_absence_are_checked() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "tos-lexical-fixity-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(root.join("local-content")).unwrap();
+        let path = root.join("local-content/lexical.db");
+        let db = Connection::open(&path).unwrap();
+        db.execute_batch("CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE forms(id TEXT PRIMARY KEY); INSERT INTO forms VALUES('one');").unwrap();
+        db.execute(
+            "INSERT INTO metadata VALUES('plan_id',?1),('plan_sha256',?2)",
+            ["lexical-plan:test", &"a".repeat(64)],
+        )
+        .unwrap();
+        drop(db);
+        let bytes = fs::read(&path).unwrap();
+        let plan = json!({"plan_id":"lexical-plan:test"});
+        let mut projection = json!({"plan_sha256":"a".repeat(64),"local_projection_receipt":{"relative_path":"local-content/lexical.db","database_bytes":bytes.len(),"database_sha256":sha(&bytes),"table_counts":{"forms":1}}});
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let cancelled = AtomicBool::new(false);
+        let check =
+            |p: &Value| validate_local_database(1024 * 1024, &root, p, &plan, deadline, &cancelled);
+        check(&projection).unwrap();
+        projection["local_projection_receipt"]["table_counts"]["forms"] = json!(2);
+        assert!(check(&projection).unwrap_err().contains("count drift"));
+        projection["local_projection_receipt"]["table_counts"]["forms"] = json!(1);
+        fs::write(&path, [&bytes[..], b"drift"].concat()).unwrap();
+        assert!(check(&projection).unwrap_err().contains("byte-size drift"));
+        fs::remove_file(&path).unwrap();
+        assert!(check(&projection).is_err());
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    fn probe(raw: &[u8]) -> (String, SchemaBackendProbe) {
+        let v: Value = serde_json::from_slice(raw).unwrap();
+        let uri = v["$id"].as_str().unwrap().to_owned();
+        let probe = SchemaBackendProbe::new(
+            [SchemaResource {
+                uri: uri.clone(),
+                raw: raw.to_vec(),
+            }],
+            FormatProfile::LegacyPythonObserved20260923,
+        )
+        .unwrap();
+        (uri, probe)
+    }
+    #[test]
+    fn recurrence_and_morphology_schemas_refuse_source_and_semantic_fields() {
+        let (uri, p) = probe(include_bytes!(
+            "../../../../ToS/contracts/lexical-recurrence-projection.schema.json"
+        ));
+        let selector = format!("{uri}#/$defs/recurrenceRow");
+        let row = json!({"form_key":format!("lexical-form:sha256:{}","a".repeat(64)),"exact_form_sha256":"a".repeat(64),"normalized_form_sha256":"b".repeat(64),"occurrence_count":2,"part_range":1,"section_range":1,"page_range":1,"part_dp_millionths":500000,"maximum_part_share_millionths":1000000,"source_editorial_occurrence_count":0,"unsectioned_occurrence_count":0});
+        assert!(p.is_valid_value(&selector, &row).unwrap());
+        for (key, value) in [
+            ("sign_score", json!(0.9)),
+            ("exact_form", json!("Übermensch")),
+        ] {
+            let mut v = row.clone();
+            v[key] = value;
+            assert!(!p.is_valid_value(&selector, &v).unwrap());
+        }
+        let (uri, p) = probe(include_bytes!(
+            "../../../../ToS/contracts/morphology-census-result-receipt.schema.json"
+        ));
+        let selector = format!("{uri}#/$defs/providerPosCountMap");
+        assert!(p.is_valid_value(&selector, &json!({"NOUN":1})).unwrap());
+        assert!(
+            !p.is_valid_value(&selector, &json!({"Übermensch":1}))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn private_usage_row_does_not_admit_semantic_fields() {
+        let (uri, p) = probe(include_bytes!(
+            "../../../../ToS/contracts/lexical-usage-context-row.schema.json"
+        ));
+        let row = json!({"schema_version":"tos_lexical_usage_context_row_v1","context_id":format!("usage-context:sha256:{}","a".repeat(64)),"question_id":"zarathustra-work-identity-control-context-v1","form_key":format!("lexical-form:sha256:{}","a".repeat(64)),"exact_form_sha256":"a".repeat(64),"occurrence_id":"tos.occurrence.synthetic-control-000001","item_ref":"tos.item.synthetic-control","part_order":1,"source_file_sha256":"b".repeat(64),"token_ordinal":1,"page_resource_id":"tei-page:synthetic-1","section_resource_id":null,"text_node_path":"/TEI/text/body/p[1]/text()[1]","start_offset":0,"end_offset":23,"editorial_status":"witness-text","target_exact_form":"synthetic-control-token","left_exact_tokens":[],"right_exact_tokens":["neighbor"],"left_token_count":0,"right_token_count":1,"requested_window_each_side":24,"page_start_clipped":true,"page_end_clipped":true,"source_database_sha256":"a".repeat(64),"authority":"unreviewed-source-visible-method-control"});
+        assert!(p.is_valid_value(&uri, &row).unwrap());
+        for (key, value) in [
+            ("lemma", json!("synthetic")),
+            ("sign_score", json!(1.0)),
+            ("concept_ref", json!("tos.concept.synthetic")),
+        ] {
+            let mut v = row.clone();
+            v[key] = value;
+            assert!(!p.is_valid_value(&uri, &v).unwrap());
+        }
+    }
+}
