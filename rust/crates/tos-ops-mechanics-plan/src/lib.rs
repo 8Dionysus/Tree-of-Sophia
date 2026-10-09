@@ -65,6 +65,7 @@ pub mod route_harness;
 pub mod semantic_registry_transition;
 pub mod software_ci;
 pub mod source_home;
+pub mod witness_structure;
 pub mod threshold_registry;
 pub mod validation_lanes;
 

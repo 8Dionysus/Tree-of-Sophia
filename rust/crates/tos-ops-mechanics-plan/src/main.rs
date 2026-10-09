@@ -62,6 +62,7 @@ enum Action {
     KagSourceExportBuild,
     KagSourceExportVerify,
     SourceHome,
+    WitnessStructureValidate,
     PhilosophyTopology,
     SemanticRegistryTransition,
     #[cfg(feature = "compiler-backed-validators")]
@@ -109,6 +110,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut mechanics_topology_validate = false;
     let mut active_naming_validate = false;
     let mut source_home = false;
+    let mut witness_structure_validate = false;
     let mut philosophy_topology = false;
     let mut semantic_registry_transition = false;
     let mut agent_surface_build = false;
@@ -156,6 +158,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--mechanics-topology-validate" => mechanics_topology_validate = true,
             "--active-naming-validate" => active_naming_validate = true,
             "--source-home" => source_home = true,
+            "--witness-structure-validate" => witness_structure_validate = true,
             "--philosophy-topology" => philosophy_topology = true,
             "--semantic-registry-transition" => semantic_registry_transition = true,
             "--agent-surface-build" => agent_surface_build = true,
@@ -243,6 +246,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(mechanics_topology_validate)
         + usize::from(active_naming_validate)
         + usize::from(source_home)
+        + usize::from(witness_structure_validate)
         + usize::from(philosophy_topology)
         + usize::from(semantic_registry_transition)
         + usize::from(agent_surface_build)
@@ -372,6 +376,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         Action::DecisionRecordsValidate
     } else if decision_index_build {
         Action::DecisionIndexBuild { check }
+    } else if witness_structure_validate {
+        Action::WitnessStructureValidate
     } else if source_home {
         Action::SourceHome
     } else if mechanics_topology_validate {
@@ -535,7 +541,7 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
@@ -555,6 +561,7 @@ fn main() {
             | Action::TreeNodeValidate
             | Action::LivedWitnessValidate
             | Action::IntakePackValidate
+            | Action::WitnessStructureValidate
     ) {
         #[cfg(target_os = "linux")]
         unsafe {
@@ -875,6 +882,7 @@ fn main() {
             println!("Nested AGENTS route-card check passed for {count} files.");
             Ok(0)
         }),
+        Action::WitnessStructureValidate => root.canonicalize().and_then(|root| tos_ops_mechanics_plan::witness_structure::run(&root, &CANCEL)),
         Action::SourceHome => {
             #[cfg(target_os = "linux")]
             unsafe {
@@ -1128,6 +1136,7 @@ fn main() {
                     "decision records"
                 }
                 Action::SourceHome => "source home",
+                Action::WitnessStructureValidate => "witness structure",
                 Action::AgentsRouteCurrentnessBuild { .. } => "AGENTS route currentness",
                 Action::NestedAgentsValidate => "nested AGENTS route cards",
                 Action::AgentsRouteHarnessCheck => "AGENTS route harness",

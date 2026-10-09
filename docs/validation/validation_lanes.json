@@ -732,8 +732,10 @@
       {
         "label": "validate witness-structure correspondence",
         "command": [
-          "python",
-          "scripts/validate_witness_structure_correspondence.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--witness-structure-validate"
         ]
       },
       {
