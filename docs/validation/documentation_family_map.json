@@ -153,8 +153,8 @@
       "currentness_inputs": [
         ".agents/agent-surface.manifest.json",
         ".agents/README.md",
-        "scripts/build_agent_surface_currentness.py",
-        "scripts/validate_agent_surface.py"
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs"
       ],
       "next_organ": [
         "selected profile package",
@@ -1408,7 +1408,7 @@
       "kind": "source_builder_currentness",
       "reuses": [
         "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
-        "scripts/build_agent_surface_currentness.py",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
         "rust/crates/tos-ops-mechanics-plan/src/decision_records.rs"
       ]
     },
@@ -1424,7 +1424,7 @@
       "id": "public_safety",
       "kind": "authored_surface_marker_scan",
       "reuses": [
-        "scripts/validate_agent_surface.py",
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
         "ToS/zarathustra/public-entry/"
       ]
     },

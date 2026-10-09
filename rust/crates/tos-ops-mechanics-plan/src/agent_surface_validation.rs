@@ -715,9 +715,9 @@ pub fn validate_manifest_with_sources(
             ("generated_currentness", json!(CURRENTNESS_PATH)),
             (
                 "builder",
-                json!("scripts/build_agent_surface_currentness.py"),
+                json!("rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs"),
             ),
-            ("validator", json!("scripts/validate_agent_surface.py")),
+            ("validator", json!("rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs")),
         ],
     );
     for key in ["owner_surface", "human_entrypoint", "builder", "validator"] {

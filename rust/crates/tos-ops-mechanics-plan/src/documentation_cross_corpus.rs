@@ -1784,7 +1784,7 @@ fn validate_existing_owner_contracts(
             .join(" ");
         issue(
             issues,
-            "scripts/validate_agent_surface.py",
+            "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
             format!("agent-surface validator: {detail}"),
         )?;
     }

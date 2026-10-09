@@ -4,8 +4,8 @@
   "owner_surface": ".agents/AGENTS.md",
   "human_entrypoint": ".agents/README.md",
   "generated_currentness": ".agents/agent-surface.current.json",
-  "builder": "scripts/build_agent_surface_currentness.py",
-  "validator": "scripts/validate_agent_surface.py",
+  "builder": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
+  "validator": "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
   "context_budget": {
     "metric": "whitespace_tokens_v1",
     "discovery_description_max_words": 100,

@@ -532,3 +532,14 @@ retired. Native discovery selects the existing owner homes directly and
 refuses new unreviewed Python tests there; it no longer hashes retired source
 files to discover a supported command. `experience_contracts` runs that same
 native consumer through the validation lane.
+
+
+Agent-surface currentness and validation use `--agent-surface-build [--check]`
+and `--agent-surface-validate`. Their replaced Python builder, validator and
+executable test oracles are retired. Rust tests retain immutable profile binding,
+activation metadata, package fixity, tracked-file selection, context probes,
+public-safety and historical KAG receipt contracts. Historical receipt JSON is
+fixture data; its structural validity does not establish current source, shard
+or external producer-runtime identity. The default external-integration profile
+validates its authored publication routes without selecting an ambient KAG
+artifact or executing its producer.

@@ -3144,3 +3144,7 @@ fn verify_live_runtime(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "agent_surface_budget_tests.rs"]
+mod tests;

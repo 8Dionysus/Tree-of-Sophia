@@ -108,7 +108,7 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
     rebuild();
     let compare = |expected: i32| {
         let a = native(&["validate"]);
-        assert_eq!(a.status.code(), Some(expected), "{}", String::from_utf8_lossy(&a.stderr));
+        assert_eq!(a.status.code(), Some(expected), "{}{}", String::from_utf8_lossy(&a.stdout), String::from_utf8_lossy(&a.stderr));
         assert!(a.stderr.is_empty(), "{}", String::from_utf8_lossy(&a.stderr));
         String::from_utf8(a.stdout).unwrap()
     };
@@ -151,7 +151,7 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
         ("Read README.md for setup.\nReview README.md before editing.\n", 2),
         ("Open README.md when public navigation changes.\n", 0),
         ("Open README.md only when its human explanation is relevant.\n", 0),
-        ("## What lives here\nThis child retains only its class-local semantic delta.\n", 0),
+        ("## What lives here\nThis child retains only its class-local semantic delta.\n## Boundary\nInherit the nearest validation route.\n", 0),
     ] {
         write("ToS/branch/AGENTS.md", &format!("# AGENTS.md\nThis card applies to branch metadata.\n{body}"));
         rebuild();

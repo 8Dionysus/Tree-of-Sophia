@@ -302,8 +302,8 @@
       "boundary_markers": ["proof authority", "runtime", "source surfaces"],
       "on_demand_surfaces": [".agents/README.md", ".agents/agent-surface.manifest.json", "docs/validation/agents_route_inventory.json"],
       "validation_lanes": ["agent_surface", "route_docs"],
-      "validation_paths": ["scripts/build_agent_surface_currentness.py", "scripts/validate_agent_surface.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
-      "completion_evidence": [".agents/AGENTS.md", ".agents/agent-surface.manifest.json", ".agents/agent-surface.current.json", "scripts/validate_agent_surface.py"],
+      "validation_paths": ["rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs", "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
+      "completion_evidence": [".agents/AGENTS.md", ".agents/agent-surface.manifest.json", ".agents/agent-surface.current.json", "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs"],
       "handoff_routes": ["aoa-skills", "aoa-agents"]
     },
     {

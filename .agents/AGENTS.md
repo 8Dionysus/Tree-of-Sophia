@@ -40,5 +40,5 @@ owner repositories as stronger authority when the task touches their meaning.
 
 Select the `agent_surface` or `route_docs` route in the root
 [`VALIDATION.md`](../VALIDATION.md) after the touched owner surface is known.
-The lane manifest and its named `validate_nested_agents` validator remain the
-procedure owners.
+The lane manifest and its native route-card validator remain the procedure
+owners.

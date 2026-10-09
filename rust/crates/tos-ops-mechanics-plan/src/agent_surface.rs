@@ -530,7 +530,7 @@ pub fn build_currentness_with_sources(
     }
     check(s, cancel)?;
     Ok(
-        json!({"schema_version":"tos_agent_tool_owner_port_current_v1","owner_repo":manifest["owner_repo"],"source_manifest":MANIFEST_PATH,"manifest_sha256":Digest256::of_bytes(&raw).to_hex(),"builder":"scripts/build_agent_surface_currentness.py","package_inventory":inventory,"packages":packages,"profile_binding":binding,"legacy_projection":{"entry_count":legacy.len(),"legacy_ids":legacy},"task_probe_depths":depths,"owner_ports":ports}),
+        json!({"schema_version":"tos_agent_tool_owner_port_current_v1","owner_repo":manifest["owner_repo"],"source_manifest":MANIFEST_PATH,"manifest_sha256":Digest256::of_bytes(&raw).to_hex(),"builder":"rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs","package_inventory":inventory,"packages":packages,"profile_binding":binding,"legacy_projection":{"entry_count":legacy.len(),"legacy_ids":legacy},"task_probe_depths":depths,"owner_ports":ports}),
     )
 }
 pub fn rendered_currentness(root: &Path, cancel: &AtomicI32) -> io::Result<String> {
