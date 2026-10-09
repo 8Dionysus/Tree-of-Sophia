@@ -45,12 +45,20 @@ Current active test homes are root `tests/`, the standalone product-local
 `tests/AGENTS.md`; product-local and mechanics-local tests are covered by their
 nearest route cards and named validation lanes.
 
+The shared native documentation regression target is
+[`documentation_cross_corpus_native.rs`](../../rust/crates/tos-ops-mechanics-plan/tests/documentation_cross_corpus_native.rs).
+It also checks the retained script/test navigation records, scoped owners,
+side effects and advisory boundaries. The former topology Python tests and
+Python-only discovery/import helpers are retired. Cargo discovers Rust
+library and integration tests in their crate homes; navigation coverage is
+optional under TOS-D-0062.
+
 ## Home Scopes
 
 | Home Scope | Current Homes | Protects | Coverage Authority | Failure Route |
 | --- | --- | --- | --- | --- |
 | `root` | `tests/` | Repo-wide route docs, source-home schema, generated parity, validator behavior, validation authority, and release contour. | `tests/AGENTS.md` root test collection (including unittest cases) | Fix the named owner surface before editing test expectations. |
-| `product-local` | `access/tests/`; Python tests colocated under `access/web/constructor/` | Portable root discovery, shared query adapters, native MCP construction, browser action ABI, private fragment assembly, and standalone installation posture. | `access/AGENTS.md`, the `standalone_access` lane, and constructor-local validation named by the inventory | Fix the access core, adapter, contract, profile, or bundle boundary first. |
+| `product-local` | Rust crate library/integration tests under `rust/crates/<crate>/`; retained product tests under `access/` | Portable root discovery, shared query adapters, native MCP construction, browser action ABI, private fragment assembly, and standalone installation posture. | `access/AGENTS.md`, the `standalone_access` lane, and constructor-local validation named by the inventory | Fix the access core, adapter, contract, profile, or bundle boundary first. |
 | `mechanic-level` | `mechanics/experience/tests/`; `mechanics/questbook/tests/`; future `mechanics/<slug>/tests/` | One mechanic package's active topology or package-wide contracts. | package lane plus `mechanics_local` discovery | Fix the owning mechanic package, `PARTS.md`, schemas, examples, or local validator first. |
 | `part-local` | `mechanics/agon/parts/threshold-registry/tests/`; future `mechanics/<slug>/parts/<part>/tests/` | One mechanic part, its generated companion, registry, or handoff packet. | `mechanics_local` lane discovery | Fix the part-local source, builder, validator, and schema before widening to release. |
 | `agent-lane` | future `.agents/*/tests/` | Agent-surface operating guidance and local scenario contracts. | release or advisory lane, depending on owner decision | Fix the owning agent surface before treating the repo gate as clean. |

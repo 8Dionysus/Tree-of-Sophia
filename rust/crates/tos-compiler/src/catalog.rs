@@ -3890,7 +3890,10 @@ mod tests {
         assert_eq!(portable.full.catalog.max_catalog_bytes, 16 * 1024 * 1024);
         assert_eq!(portable.full.catalog.max_aggregate_entries, portable.full.catalog.max_rows);
         assert!(portable.full.catalog.max_aggregate_bytes as u64 <= portable.stage.max_temp_bytes);
-        let (db, header, entity, relation, vocab) = fixture("concept");
+        let (db, mut header, entity, relation, vocab) = fixture("concept");
+        // This exercises an empty reduction with unused intermediate routes;
+        // its declared counts must match the zero observed graph rows.
+        header["counts"] = json!({"nodes": 0, "relations": 0});
         let descriptor: Value = serde_json::from_slice(VOCAB).unwrap();
         let limits = CatalogLimits {
             max_catalog_entries: 64,

@@ -700,3 +700,129 @@ fn public_guard_allows_domain_terminology_and_rejects_host_receipt_markers() {
     guards::validate_public_safety(&mut RouteSources::new(&fixture.root).unwrap(), &payload, &mut issues).unwrap();
     assert_eq!(issues.len(), 2);
 }
+
+fn current_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..")
+}
+fn navigation_json(root: &std::path::Path, path: &str) -> Value {
+    serde_json::from_slice(&fs::read(root.join(path)).unwrap()).unwrap()
+}
+fn navigation_path(root: &std::path::Path, value: &Value) -> PathBuf {
+    let value = value.as_str().unwrap();
+    let path = std::path::Path::new(value);
+    assert!(!path.is_absolute() && path.components().all(|c| matches!(c, std::path::Component::Normal(_))), "{value}");
+    root.join(path)
+}
+#[test]
+fn script_navigation_keeps_unique_owners_side_effects_and_advisory_boundaries() {
+    use std::collections::BTreeSet;
+    let root = current_root();
+    let inventory = navigation_json(&root, "docs/validation/script_inventory.json");
+    let manifest = navigation_json(&root, "docs/validation/validation_lanes.json");
+    assert_eq!(inventory["owner_surface"], "docs/validation/SCRIPT_TOPOLOGY.md");
+    assert_eq!(inventory["command_authority"], "docs/validation/validation_lanes.json");
+    let required: BTreeSet<_> = ["path","family","organ_lane","owner_surface","source_truth","reads","writes","side_effects","validation_lane","ci_inclusion","test_target","disposition"].into_iter().collect();
+    let organ = ["source/topology","source/canon-contract","projection/generated","public-compatibility","mechanics/part-owned","mechanics/package","agent-skill/advisory","release","validation-authority","route-card","shared-library"];
+    let mut paths = BTreeSet::new();
+    let entries = inventory["script_surfaces"].as_array().unwrap();
+    assert!(!entries.is_empty());
+    for entry in entries {
+        let path = entry["path"].as_str().unwrap();
+        assert!(paths.insert(path), "duplicate navigation: {path}");
+        assert_eq!(entry.as_object().unwrap().keys().map(String::as_str).collect::<BTreeSet<_>>(), required, "{path}");
+        assert!(navigation_path(&root, &entry["path"]).is_file(), "{path}");
+        for key in ["owner_surface", "test_target"] { assert!(navigation_path(&root, &entry[key]).exists(), "{path}: {key} {}", entry[key]); }
+        assert!(organ.contains(&entry["organ_lane"].as_str().unwrap()), "{path}");
+        assert!(manifest["lanes"].get(entry["validation_lane"].as_str().unwrap()).is_some(), "{path}");
+        assert!(["release","focused-tests","inventory-only","advisory-only"].contains(&entry["ci_inclusion"].as_str().unwrap()), "{path}");
+        assert_eq!(entry["disposition"], "keep", "{path}");
+        for key in ["source_truth", "reads"] { assert!(!entry[key].as_array().unwrap().is_empty(), "{path}: {key}"); }
+        let writes = entry["writes"].as_array().unwrap();
+        let effects = entry["side_effects"].as_str().unwrap();
+        assert!(!effects.is_empty(), "{path}");
+        if !writes.is_empty() { assert_ne!(effects, "validation output only", "{path}"); assert_ne!(entry["validation_lane"], "active_naming", "{path}"); }
+        if effects == "validation output only" || entry["ci_inclusion"] == "advisory-only" { assert!(writes.is_empty(), "{path}"); }
+        if path.starts_with(".agents/skills/") {
+            assert_eq!(entry["family"], "skill_local_contract_tool", "{path}");
+            assert_eq!(entry["organ_lane"], "agent-skill/advisory", "{path}");
+            assert_eq!(entry["ci_inclusion"], "advisory-only", "{path}");
+            for steps in manifest["command_sequences"].as_object().unwrap().values() {
+                for step in steps.as_array().unwrap() {
+                    if let Some(command) = step.get("command").and_then(Value::as_array) { assert!(!command.iter().any(|v| v.as_str() == Some(path)), "advisory helper in hard gate: {path}"); }
+                }
+            }
+        }
+    }
+    // Navigation is optional under D-0062; it cannot require a row for every
+    // executable, native module or test, or store the command sequence.
+    let doc = fs::read_to_string(root.join("docs/validation/SCRIPT_TOPOLOGY.md")).unwrap();
+    for token in ["# ToS Script Topology", "## Command Authority", "## Script Families", "## Skill Helper Scripts", "validation_lanes.json", "skill_local_contract_tool", "Promotion Rule"] { assert!(doc.contains(token), "{token}"); }
+}
+fn test_home(path: &str) -> (String, String) {
+    let p: Vec<_> = path.split('/').collect();
+    if p.first() == Some(&"tests") { return ("root".into(), "tests".into()); }
+    if p.len() >= 3 && p[0] == "access" && (p.contains(&"tests") || p[..3] == ["access", "web", "constructor"]) { return ("product-local".into(), "access".into()); }
+    if p.len() >= 4 && p[0] == "rust" && p[1] == "crates" { return ("product-local".into(), p[..3].join("/")); }
+    if p.len() >= 4 && p[0] == "mechanics" && p[2] == "tests" { return ("mechanic-level".into(), p[..3].join("/")); }
+    if let Some(i) = p.iter().position(|v| *v == "tests") {
+        if p[0] == "mechanics" && p.contains(&"parts") && i >= 4 { return ("part-local".into(), p[..i].join("/")); }
+        if p[0] == ".agents" && p.len() >= 3 { return ("agent-lane".into(), p[..=i].join("/")); }
+    }
+    ("root".into(), p[..p.len()-1].join("/"))
+}
+fn is_navigation_command(text: &str) -> bool {
+    let words: Vec<_> = text.split_whitespace().collect();
+    words.windows(2).any(|p| ["python","python3","pytest","bash","sh","cargo"].contains(&p[0]))
+        || (text.contains("scripts/") && text.contains(".py"))
+}
+#[test]
+fn test_navigation_keeps_home_scopes_without_duplicating_command_authority() {
+    use std::collections::BTreeSet;
+    let root = current_root();
+    let inventory = navigation_json(&root, "tests/test_inventory.json");
+    let manifest = navigation_json(&root, "docs/validation/validation_lanes.json");
+    assert_eq!(inventory["owner_surface"], "docs/testing/TEST_TOPOLOGY.md");
+    assert_eq!(inventory["runner_authority"], "docs/testing/TEST_TOPOLOGY.md");
+    assert_eq!(inventory["command_authority"], "docs/validation/validation_lanes.json");
+    let required = ["path","home","home_scope","family","validation_lane","owner_surface","protects","coverage_authority","mode","runtime_cost","focused_target","failure_route","disposition"];
+    let mut paths = BTreeSet::new();
+    let entries = inventory["tests"].as_array().unwrap();
+    assert!(!entries.is_empty());
+    for entry in entries {
+        let path = entry["path"].as_str().unwrap();
+        assert!(paths.insert(path), "duplicate navigation: {path}");
+        assert!(required.iter().all(|k| entry.get(k).is_some()), "{path}");
+        assert!(navigation_path(&root, &entry["path"]).is_file(), "{path}");
+        assert!(navigation_path(&root, &entry["owner_surface"]).exists(), "{path}");
+        assert!(["blocking","release-only","advisory"].contains(&entry["mode"].as_str().unwrap()), "{path}");
+        assert!(["fast","medium","slow"].contains(&entry["runtime_cost"].as_str().unwrap()), "{path}");
+        assert!(manifest["lanes"].get(entry["validation_lane"].as_str().unwrap()).is_some(), "{path}");
+        assert!(!entry["protects"].as_str().unwrap().is_empty(), "{path}");
+        assert!(entry["failure_route"].as_str().unwrap().starts_with("Fix "), "{path}");
+        for key in ["focused_target", "coverage_authority"] { assert!(!is_navigation_command(entry[key].as_str().unwrap()), "{path}: {key}"); }
+        assert!(entry.get("command").is_none(), "{path}");
+        let (scope, home) = test_home(path);
+        assert_eq!(entry["home_scope"], scope, "{path}");
+        assert_eq!(entry["home"], home, "{path}");
+        if entry["family"].as_str().unwrap().starts_with("mechanics_") {
+            let owner = entry["owner_surface"].as_str().unwrap();
+            assert!(owner.starts_with("mechanics/") || owner.starts_with("scripts/"), "{path}");
+            if scope == "part-local" { assert_eq!(entry["validation_lane"], "mechanics_local", "{path}"); }
+            else if scope == "mechanic-level" { assert!(["mechanics_local","experience_contracts"].contains(&entry["validation_lane"].as_str().unwrap()), "{path}"); }
+            else { assert_eq!(scope, "root", "{path}"); assert!(["experience_contracts","generated_parity","questbook_surface","mechanics_topology"].contains(&entry["validation_lane"].as_str().unwrap()), "{path}"); }
+        }
+    }
+    for (path, scope, home) in [
+        ("access/web/constructor/desktop/test_desktop.py", "product-local", "access"),
+        ("access/web/constructor/test_build_fragments.py", "product-local", "access"),
+        ("access/tests/test_http_security.py", "product-local", "access"),
+        ("tests/example.rs", "root", "tests"),
+        ("access/web/constructor-tools/test_other.py", "root", "access/web/constructor-tools"),
+        ("rust/crates/tos-compiler/tests/example.rs", "product-local", "rust/crates/tos-compiler"),
+    ] { assert_eq!(test_home(path), (scope.into(), home.into())); }
+    let raw = serde_json::to_string(&inventory).unwrap();
+    for token in ["command_sequence", "python ", "pytest "] { assert!(!raw.contains(token), "{token}"); }
+    let doc = fs::read_to_string(root.join("docs/testing/TEST_TOPOLOGY.md")).unwrap();
+    for token in ["# ToS Test Topology", "## Route Shape", "## Home Scopes", "## Families", "## Inventory Rules", "docs/validation/validation_lanes.json", "root", "product-local", "mechanic-level", "part-local", "agent-lane"] { assert!(doc.contains(token), "{token}"); }
+    assert!(!doc.contains("python "));
+}

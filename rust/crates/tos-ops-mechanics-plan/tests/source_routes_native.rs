@@ -74,6 +74,8 @@ fn mechanics_document_routes_preserve_links_fragments_fences_and_tracked_executa
     f.write("mechanics/agon/scripts/untracked.sh","#!/bin/sh\nexit 0\n");f.write(doc,"Run `../../scripts/untracked.sh`.\n");
     let t=text(&invoke(&f.0,"--mechanics-topology-validate"));assert!(t.contains("absent from tracked script namespace"),"{t}");
     f.write(doc,"Run `scripts/missing.py`.\n");assert!(text(&invoke(&f.0,"--mechanics-topology-validate")).contains("stale executable reference"));
+    f.write(doc,"Run `../../scripts/run.sh`.\n");fs::remove_file(f.0.join("mechanics/agon/scripts/run.sh")).unwrap();
+    assert!(text(&invoke(&f.0,"--mechanics-topology-validate")).contains("stale executable reference"));
     f.write("mechanics/agon/target.md","# Present\n");
     for fence in ["```","~~~"] {
         let source=format!("[guide][route]\n[route]: ../../target.md#present\n\n{fence}python\nplan['authorization']['scope']\n[example](missing-example.md)\n[example]: missing-example-definition.md\n[fenced-only]: ../../target.md\n{fence}\n");f.write(doc,&source);

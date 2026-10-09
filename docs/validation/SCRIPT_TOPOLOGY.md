@@ -86,6 +86,12 @@ Each entry records:
 | `mechanics_local_runner` | Discovery of mechanic package-local and part-local tests, builders, and validators. | Runs the checks declared by discovered mechanics homes. |
 | `skill_local_contract_tool` | Deterministic helper contracts shipped with local agent skills. | Provides local advice under its owning skill contract. |
 
+The native documentation regression target
+[`documentation_cross_corpus_native.rs`](../../rust/crates/tos-ops-mechanics-plan/tests/documentation_cross_corpus_native.rs)
+checks the records retained in this navigation inventory, including unique
+paths, existing owners/test routes, declared side effects and advisory helper
+boundaries. It does not require every executable to acquire an inventory row.
+
 ## Root Scripts
 
 Root `scripts/*.py` currently own repo-wide builders, validators, release
