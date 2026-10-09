@@ -389,23 +389,22 @@ pub(super) fn native_owner_cli_observation(
     input.seek(SeekFrom::Start(0)).unwrap();
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
-    let mut child =
-        Command::new(crate::maintained_python())
-            .arg(repository.join(
-                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-            ))
-            .arg("--owner-config")
-            .arg(owner)
-            .arg("--native-invocation")
-            .arg(invocation)
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdin(Stdio::from(input))
-            .stdout(Stdio::from(output.try_clone().unwrap()))
-            .stderr(Stdio::from(errors.try_clone().unwrap()))
-            .spawn()
-            .unwrap();
+    let binary = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
+    );
+    let selected: Value = serde_json::from_slice(&fs::read(invocation).unwrap()).unwrap();
+    assert_eq!(selected["owner_config"].as_str(), owner.to_str());
+    assert_eq!(selected["native_executable"].as_str(), binary.to_str());
+    let _ = repository;
+    let mut child = Command::new(binary)
+        .arg("source-commands")
+        .arg("--invocation")
+        .arg(invocation)
+        .stdin(Stdio::from(input))
+        .stdout(Stdio::from(output.try_clone().unwrap()))
+        .stderr(Stdio::from(errors.try_clone().unwrap()))
+        .spawn()
+        .unwrap();
     let step_deadline = deadline.min(Instant::now() + Duration::from_secs(60));
     let status = loop {
         if let Some(status) = child.try_wait().unwrap() {

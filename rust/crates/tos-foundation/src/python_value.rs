@@ -159,10 +159,10 @@ fn contains_code_points(haystack: &[u16], needle: &[u16]) -> bool {
     }
     matched = 0;
     for unit in haystack {
-        while matched > 0 && *unit != needle[matched] {
+        while matched > 0 && unit != needle[matched] {
             matched = prefix[matched - 1];
         }
-        if *unit == needle[matched] {
+        if unit == needle[matched] {
             matched += 1;
             if matched == needle.len() {
                 return true;
