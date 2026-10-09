@@ -1967,32 +1967,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_lexical_index.py",
-      "family": "projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
-      "source_truth": [
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/item.manifest.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/resource-inventory.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/rights.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/payload/*.tei.xml",
-        "ToS/contracts/lexical-index-plan.schema.json",
-        "ToS/contracts/lexical-index-projection.schema.json"
-      ],
-      "reads": [
-        "the exact four local DTA TEI payloads plus their tracked manifests, resource inventories, rights records, and lexical plan"
-      ],
-      "writes": [
-        "the tracked hash-only lexical projection and an explicit gitignored local SQLite/FTS5 database unless --check is used"
-      ],
-      "side_effects": "tracked non-sequential hash/count/resource read model plus private source-bearing local search projection",
-      "validation_lane": "source_witness_foundation",
-      "ci_inclusion": "focused-tests",
-      "test_target": "rust/crates/tos-compiler/src/zarathustra_lexical.rs",
-      "disposition": "keep"
-    },
-    {
       "path": "rust/crates/tos-compiler/src/lexical_derivatives/recurrence.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -2167,6 +2141,32 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "rust/crates/tos-compiler/src/lexical_derivatives/morphology_context_result.rs",
+      "disposition": "keep"
+    },
+    {
+      "path": "rust/crates/tos-compiler/src/zarathustra_lexical.rs",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/rights.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/payload/*.tei.xml",
+        "ToS/contracts/lexical-index-plan.schema.json",
+        "ToS/contracts/lexical-index-projection.schema.json"
+      ],
+      "reads": [
+        "the exact four local DTA TEI payloads plus tracked manifests, resource inventories, rights records, and the lexical plan through a selected source cut"
+      ],
+      "writes": [
+        "a fresh private candidate under the explicit candidate root; canonical tracked outputs, local databases, and provenance are not overwritten"
+      ],
+      "side_effects": "native tos lexical-index build derives a bounded candidate from a pinned source cut and explicit local payload root; mechanical lexical observation only, with no German text acceptance, rights, semantic, canon, or publication decision",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "rust/crates/tos-compiler/src/zarathustra_lexical_validate.rs",
       "disposition": "keep"
     },
     {

@@ -53,7 +53,7 @@ string, sequence, context, or occurrence position. The baseline claims no
 sentence or sense boundary, creates no linguistic or semantic entity, opens
 no human backlog, and leaves `initial-sign-packet.v3.json` unchanged.
 
-The plan is `index-plan.v1.json`. The generated source-withholding companion
+The plan is `index-plan.v1.json`. The maintained producer is the native `tos lexical-index` command. Its `build` action writes a fresh private candidate from an explicit source cut; `validate-tracked` checks the read-only source closure and optional local database fixity. The prior active Python builder bytes are retained at `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/69e6475b17774b2aa41ab4be77050b6ada04ecba67cd8833c25b6d62e27502a2.py`; the earlier historical bytes remain at `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/44bb4f9ad6f3bcc76d877366a87efb77f0eacb6cc999eec0f461ab5f35c37372.py`. Existing provenance keeps the original `scripts/build_zarathustra_lexical_index.py` logical reference. Retained bytes are not executable fallbacks. The generated source-withholding companion
 (not cleared for publication) is:
 
 `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`

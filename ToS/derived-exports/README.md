@@ -167,7 +167,6 @@ Use:
 - `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-validate --kag-export EXPORT`
 - `python scripts/build_tos_corpus_index.py --check`
 - `python scripts/validate_tos_corpus_index.py`
-- `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`
 - `tos lexical-index validate-tracked --source-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`
 - `python scripts/build_philosophy_atlas_projection.py --check`
 - `python scripts/validate_philosophy_atlas_projection.py`
@@ -177,6 +176,8 @@ Use:
 - `python scripts/validate_philosophy_graph_projection.py`
 - `tos evidence-projection check --source-root "$PWD"`
 - `tos evidence-projection validate --source-root "$PWD"`
+
+The lexical maintainer is the native `tos lexical-index` command. `build` creates a fresh private candidate from an explicit source cut; it does not overwrite the retained projection or local database. `validate-tracked` checks the read-only source closure and optional local database fixity. Historical provenance keeps its original `scripts/build_zarathustra_lexical_index.py` reference; exact generator bytes are retained under `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/` and are not executable fallbacks.
 
 Select a private, already reserved scratch directory through
 `TOS_EVIDENCE_STAGING_PARENT` and its remaining byte quota through
