@@ -102,6 +102,8 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
             ItemOwner::select(&filesystem, &prepared_context, deadline, &cancelled).unwrap();
         let transaction_id = owner.transaction_id().unwrap();
         let item_path = owner.item_path.as_str().to_owned();
+        let publication_path = root.join("ToS/source-witnesses/.metadata-publication.json");
+        let publication_before = fs::read(&publication_path).unwrap();
         assert!(!root.join(&item_path).exists());
 
         // Fail the actual owner guard's second WorkCorpusFence call, after
@@ -196,33 +198,52 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
                 "Item recovery did not restore the exact selected side: {path}",
             );
         }
-        let terminal: serde_json::Value = serde_json::from_slice(
-            &fs::read(root.join("ToS/source-witnesses/.metadata-publication.json")).unwrap(),
-        )
-        .unwrap();
-        assert_eq!(terminal["phase"], "ready");
-        assert_eq!(terminal["transaction_id"], transaction_id);
-        assert_eq!(
-            terminal["outcome"],
-            if expect_commit {
-                "committed"
-            } else {
-                "rolled-back"
-            }
-        );
-        // Both decisions leave a durable terminal head and retained history.
-        // A selected transaction must refuse orphan recovery, not disappear.
-        assert!(matches!(
-            work_transaction::retained_item_orphan(
+        if expect_commit {
+            let terminal: serde_json::Value =
+                serde_json::from_slice(&fs::read(&publication_path).unwrap()).unwrap();
+            assert_eq!(terminal["phase"], "ready");
+            assert_eq!(terminal["transaction_id"], transaction_id);
+            assert_eq!(terminal["outcome"], "committed");
+            // Resuming selects the retained transaction as the durable head.
+            assert!(matches!(
+                work_transaction::retained_item_orphan(
+                    &filesystem,
+                    &transaction_id,
+                    deadline,
+                    &cancelled,
+                ),
+                Err(SourceCommandError::Conflict(
+                    "Item transaction is head selected; orphan recovery refused"
+                ))
+            ));
+        } else {
+            // This orphan never published a pending metadata head. Rolling
+            // back its byte deposit preserves the previous head and retained
+            // plan, rather than publishing a fictitious metadata transaction.
+            assert_eq!(fs::read(&publication_path).unwrap(), publication_before);
+            let retained = work_transaction::retained_item_orphan(
                 &filesystem,
                 &transaction_id,
                 deadline,
                 &cancelled,
-            ),
-            Err(SourceCommandError::Conflict(
-                "Item transaction is head selected; orphan recovery refused"
-            ))
-        ));
+            )
+            .unwrap()
+            .expect("unpublished Item plan remains retained after byte rollback");
+            assert_eq!(retained.0.transaction_id, transaction_id);
+            assert_eq!(
+                retained
+                    .0
+                    .files
+                    .iter()
+                    .map(|file| (
+                        file.path.as_str().to_owned(),
+                        file.before.clone(),
+                        file.after.clone(),
+                    ))
+                    .collect::<Vec<_>>(),
+                selected_files,
+            );
+        }
         assert!(
             work_transaction::read_pending(&filesystem, deadline, &cancelled)
                 .unwrap()
