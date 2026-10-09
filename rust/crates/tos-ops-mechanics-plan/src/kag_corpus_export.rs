@@ -707,7 +707,12 @@ mod tests {
                 _ => b"# exact corpus bytes\n".to_vec(),
             };
             let sha = digest(&raw);
-            write_new(&store.join("objects").join(&sha), &raw).unwrap();
+            let object = store.join("objects").join(&sha);
+            if object.exists() {
+                assert_eq!(fs::read(&object).unwrap(), raw);
+            } else {
+                write_new(&object, &raw).unwrap();
+            }
             files.push(json!({"path":path,"sha256":sha,"size_bytes":raw.len(),"mode":420}));
         }
         files.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
