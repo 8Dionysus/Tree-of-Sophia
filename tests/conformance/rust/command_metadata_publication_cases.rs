@@ -337,14 +337,25 @@ fn materialize_metadata_predecessor(
     // Relocate this frozen fixture before its preservation baseline. Every
     // physical source-state row must bind the same relocated input bytes.
     let old_source_sha: String = connection
-        .query_row("SELECT sha256 FROM prepared_source_state WHERE singleton=1", [], |row| row.get(0))
+        .query_row(
+            "SELECT sha256 FROM prepared_source_state WHERE singleton=1",
+            [],
+            |row| row.get(0),
+        )
         .unwrap();
-    assert_eq!(Digest256::of_bytes(&canonical_lf(&frozen_source_inputs)).to_hex(), old_source_sha);
+    assert_eq!(
+        Digest256::of_bytes(&canonical_lf(&frozen_source_inputs)).to_hex(),
+        old_source_sha
+    );
     connection.execute_batch("BEGIN IMMEDIATE").unwrap();
     for table in ["source_dependency_state", "agent_context_state"] {
         let (raw, sha): (String, String) = connection
-            .query_row(&format!("SELECT json,sha256 FROM {table} WHERE singleton=1"), [],
-                |row| Ok((row.get(0)?, row.get(1)?))).unwrap();
+            .query_row(
+                &format!("SELECT json,sha256 FROM {table} WHERE singleton=1"),
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
         assert!(raw.len() <= 1_048_576);
         assert_eq!(Digest256::of_bytes(raw.as_bytes()).to_hex(), sha);
         let mut state: Value = serde_json::from_str(&raw).unwrap();
@@ -352,14 +363,21 @@ fn materialize_metadata_predecessor(
         assert_eq!(state["binding"], packet["binding"]);
         // The historical export relocated prepared_source_state to its
         // portable root but retained this known reference in both dependents.
-        assert_eq!(state["source_inputs_sha256"],
-            "f2123f65b518e6bd2dddde1e6fc0276c556aaab2ea1cfd5d92064718850b16c3");
+        assert_eq!(
+            state["source_inputs_sha256"],
+            "f2123f65b518e6bd2dddde1e6fc0276c556aaab2ea1cfd5d92064718850b16c3"
+        );
         state["source_inputs_sha256"] = json!(source_inputs_sha);
         let bytes = canonical_lf(&state);
-        let changed = connection.execute(
-            &format!("UPDATE {table} SET json=?1,sha256=?2 WHERE singleton=1"),
-            rusqlite::params![std::str::from_utf8(&bytes).unwrap(), Digest256::of_bytes(&bytes).to_hex()]
-        ).unwrap();
+        let changed = connection
+            .execute(
+                &format!("UPDATE {table} SET json=?1,sha256=?2 WHERE singleton=1"),
+                rusqlite::params![
+                    std::str::from_utf8(&bytes).unwrap(),
+                    Digest256::of_bytes(&bytes).to_hex()
+                ],
+            )
+            .unwrap();
         assert_eq!(changed, 1);
     }
     let changed = connection
@@ -428,17 +446,11 @@ fn verify_frozen_metadata_evidence(fixture_dir: &Path, deadline: Instant) {
     }
 }
 
-struct PublishedMetadataFixture {
-    source_root: PathBuf,
-    model: PathBuf,
-    binding: PathBuf,
-    source_inputs: PathBuf,
-    record_id: Value,
-}
-
-// Both the regression and load preparation use this real native transaction.
-// Build in the final selected root: copying a published pair changes its paths.
-fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMetadataFixture {
+#[test]
+fn maintained_initial_metadata_whole_transaction_and_access() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let temporary = tempfile::tempdir().unwrap();
+    let workspace = temporary.path();
     let cancelled = Arc::new(AtomicBool::new(false));
     let repository = super::validation_cut_cases::repository();
     let consumer = PathBuf::from(
@@ -503,7 +515,11 @@ fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMet
         .iter()
         .map(|s| (*s).to_owned())
         .collect();
-    names.extend(tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS.iter().map(|name| (*name).to_owned()));
+    names.extend(
+        tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS
+            .iter()
+            .map(|name| (*name).to_owned()),
+    );
     // Fixed initial-creation rule inputs not carried by the catalog execution profile.
     names.insert("rust/crates/tos-command/src/source_private_claim.rs".to_owned());
     names.insert("rust/crates/tos-command/src/source_private_owner_store.rs".to_owned());
@@ -513,28 +529,48 @@ fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMet
         "rust/crates/tos-compiler/src/source_bibliographic.rs".to_owned(),
         "rust/crates/tos-compiler/src/source_bibliographic_render.rs".to_owned(),
     ]);
-    let mut software_files: BTreeMap<String, Vec<u8>> = names.iter()
+    let mut software_files: BTreeMap<String, Vec<u8>> = names
+        .iter()
         .map(|name| (name.clone(), fs::read(repository.join(name)).unwrap()))
         .collect();
     let provenance = read_packet(&fixture_dir.join("PROVENANCE.json"));
     let historical_commit = required(&provenance["capture"], "source_commit");
-    assert!(historical_commit.len() == 40 && historical_commit.bytes().all(|b| b.is_ascii_hexdigit()));
+    assert!(
+        historical_commit.len() == 40 && historical_commit.bytes().all(|b| b.is_ascii_hexdigit())
+    );
     for (reference, expected) in source_catalog["header"]["profile_bindings"]["execution"]
-        .as_object().unwrap() {
-        if reference.starts_with("ToS/") { continue; }
+        .as_object()
+        .unwrap()
+    {
+        if reference.starts_with("ToS/") {
+            continue;
+        }
         safe_metadata_fixture_relative(reference);
         let mut show = Command::new("git");
-        show.arg("-C").arg(&repository).arg("show").arg(format!("{historical_commit}:{reference}"));
+        show.arg("-C")
+            .arg(&repository)
+            .arg("show")
+            .arg(format!("{historical_commit}:{reference}"));
         for (name, _) in std::env::vars_os() {
-            if name.to_string_lossy().starts_with("GIT_") { show.env_remove(name); }
+            if name.to_string_lossy().starts_with("GIT_") {
+                show.env_remove(name);
+            }
         }
-        show.env("GIT_NO_REPLACE_OBJECTS", "1").env("GIT_CONFIG_NOSYSTEM", "1")
+        show.env("GIT_NO_REPLACE_OBJECTS", "1")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_CONFIG_GLOBAL", "/dev/null");
         let output = native_child::bounded_output_before(&mut show, 2_097_152, deadline);
         assert!(output.status.success());
         assert_eq!(expected["bytes"].as_u64(), Some(output.stdout.len() as u64));
-        assert_eq!(expected["sha256"], Digest256::of_bytes(&output.stdout).to_hex());
-        assert!(software_files.insert(reference.clone(), output.stdout).is_none());
+        assert_eq!(
+            expected["sha256"],
+            Digest256::of_bytes(&output.stdout).to_hex()
+        );
+        assert!(
+            software_files
+                .insert(reference.clone(), output.stdout)
+                .is_none()
+        );
         names.insert(reference.clone());
     }
     assert!(names.len() <= 64);
@@ -555,24 +591,48 @@ fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMet
     }
     let git = |args: &[&str]| {
         let mut command = Command::new("git");
-        command.arg("-C").arg(&software_repository)
-            .args(["-c", "core.hooksPath=/dev/null", "-c", "user.name=ToS synthetic fixture", "-c", "user.email=fixture@invalid"])
+        command
+            .arg("-C")
+            .arg(&software_repository)
+            .args([
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "user.name=ToS synthetic fixture",
+                "-c",
+                "user.email=fixture@invalid",
+            ])
             .args(args);
         for (name, _) in std::env::vars_os() {
-            if name.to_string_lossy().starts_with("GIT_") { command.env_remove(name); }
+            if name.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(name);
+            }
         }
-        command.env("GIT_NO_REPLACE_OBJECTS", "1").env("GIT_CONFIG_NOSYSTEM", "1")
+        command
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_CONFIG_GLOBAL", "/dev/null");
         let output = native_child::bounded_output_before(&mut command, 4096, deadline);
-        assert!(output.status.success(), "synthetic software capture Git operation");
+        assert!(
+            output.status.success(),
+            "synthetic software capture Git operation"
+        );
         output.stdout
     };
     git(&["init", "--quiet"]);
     git(&["add", "--all"]);
-    git(&["commit", "--quiet", "-m", "synthetic current and historical metadata software evidence"]);
+    git(&[
+        "commit",
+        "--quiet",
+        "-m",
+        "synthetic current and historical metadata software evidence",
+    ]);
     let capture = workspace.join("software-capture");
     let restored = workspace.join("software-restored");
-    let commit = String::from_utf8(git(&["rev-parse", "HEAD^{commit}"])).unwrap().trim().to_owned();
+    let commit = String::from_utf8(git(&["rev-parse", "HEAD^{commit}"]))
+        .unwrap()
+        .trim()
+        .to_owned();
     assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
     let include_prefixes = names.iter().cloned().collect::<Vec<_>>();
     let captured = capture_git(
@@ -929,13 +989,19 @@ fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMet
     drop(connection);
     private_json(&binding_path, &published["binding"]);
     let connection = rusqlite::Connection::open(&db_path).unwrap();
-    let selected_source_raw: String = connection.query_row(
-        "SELECT inputs FROM prepared_source_state WHERE singleton=1", [], |r| r.get(0)
-    ).unwrap();
+    let selected_source_raw: String = connection
+        .query_row(
+            "SELECT inputs FROM prepared_source_state WHERE singleton=1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
     assert!(selected_source_raw.len() <= 1_048_576);
     let selected_source: Value = serde_json::from_str(&selected_source_raw).unwrap();
     private_json(&source_path, &selected_source);
-    connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)").unwrap();
+    connection
+        .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
+        .unwrap();
     drop(connection);
     let old = tos_access::prepared_local::PreparedLocalExecutor::open(
         db_path.clone(),
@@ -970,17 +1036,6 @@ fn publish_metadata_fixture(workspace: &Path, deadline: Instant) -> PublishedMet
         assert_eq!(native_child::bounded_sha_before(path, cap, deadline), sha);
     }
     assert!(Instant::now() < deadline);
-    PublishedMetadataFixture {
-        source_root: root, model: db_path, binding: binding_path,
-        source_inputs: source_path, record_id: packet["record_id"].clone(),
-    }
-}
-
-#[test]
-fn maintained_initial_metadata_whole_transaction_and_access() {
-    let deadline = Instant::now() + Duration::from_secs(240);
-    let workspace = tempfile::tempdir().unwrap();
-    publish_metadata_fixture(workspace.path(), deadline);
 }
 
 struct LoadReadinessMcp {
@@ -1158,12 +1213,8 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let published = publish_metadata_fixture(&baseline, deadline);
-    let source_root = published.source_root;
-    let model = published.model;
-    let binding_path = published.binding;
-    let source_inputs_path = published.source_inputs;
-    let source_record_id = published.record_id;
+    let (source_root, model, binding_path, source_inputs_path, source_record_id) =
+        super::command_claim_publication_cases::publish_agent_load_fixture(&baseline, deadline);
 
     let forms = baseline.join("forms");
     fs::create_dir(&forms).unwrap();
@@ -1320,7 +1371,7 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     mcp.input.flush().unwrap();
     let search_request = json!({
         "jsonrpc":"2.0","id":101,"method":"tools/call",
-        "params":{"name":"tos_knowledge_search","arguments":{"mode":"compressed","query":"untouched","limit":3}}
+        "params":{"name":"tos_knowledge_search","arguments":{"mode":"compressed","query":"revision-fixture","limit":3}}
     });
     let discover_request = json!({
         "jsonrpc":"2.0","id":102,"method":"tools/call",

@@ -334,6 +334,7 @@ fn relocate_prepared_source_paths(
     source_root: &Path,
     db_path: &Path,
 ) {
+    let original_inputs_sha = Digest256::of_bytes(&canonical_lf(&packet["source_inputs"])).to_hex();
     let roots = packet["source_inputs"]["roots"].as_object_mut().unwrap();
     assert!(!roots.is_empty() && roots.len() <= 16);
     for root in roots.values_mut() {
@@ -352,6 +353,44 @@ fn relocate_prepared_source_paths(
     assert!(inputs_raw.len() <= 1_048_576);
     let inputs_sha = Digest256::of_bytes(&inputs_raw).to_hex();
     let connection = rusqlite::Connection::open(db_path).unwrap();
+    let original_sha: String = connection
+        .query_row(
+            "SELECT sha256 FROM prepared_source_state WHERE singleton=1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(original_sha, original_inputs_sha);
+    connection.execute_batch("BEGIN IMMEDIATE").unwrap();
+    for table in ["source_dependency_state", "agent_context_state"] {
+        let (raw, sha): (String, String) = connection
+            .query_row(
+                &format!("SELECT json,sha256 FROM {table} WHERE singleton=1"),
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert!(raw.len() <= 1_048_576);
+        assert_eq!(Digest256::of_bytes(raw.as_bytes()).to_hex(), sha);
+        let mut state: Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(canonical_lf(&state), raw.as_bytes());
+        assert_eq!(state["source_inputs_sha256"], original_sha);
+        assert_eq!(state["binding"], packet["binding"]);
+        state["source_inputs_sha256"] = json!(inputs_sha);
+        let raw = canonical_lf(&state);
+        assert_eq!(
+            connection
+                .execute(
+                    &format!("UPDATE {table} SET json=?1,sha256=?2 WHERE singleton=1"),
+                    rusqlite::params![
+                        std::str::from_utf8(&raw).unwrap(),
+                        Digest256::of_bytes(&raw).to_hex()
+                    ]
+                )
+                .unwrap(),
+            1
+        );
+    }
     let changed = connection
         .execute(
             "UPDATE prepared_source_state SET inputs=?1,sha256=?2 WHERE singleton=1",
@@ -359,6 +398,9 @@ fn relocate_prepared_source_paths(
         )
         .unwrap();
     assert_eq!(changed, 1, "one captured prepared-source row is relocated");
+    connection
+        .execute_batch("COMMIT; PRAGMA wal_checkpoint(TRUNCATE)")
+        .unwrap();
     drop(connection);
 }
 
@@ -443,6 +485,13 @@ fn load_frozen_agent_fixture(workspace: &Path) -> PathBuf {
     packet["python_preview"]["owner_configuration"] = json!(owner_digest.to_prefixed());
     relocate_prepared_source_paths(&mut packet, &old_source_root, &source_root, &db_path);
     fs::write(&packet_path, canonical_lf(&packet)).unwrap();
+    let lock = source_root.join("ToS/source-witnesses/.historical-create.writer.lock");
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&lock)
+        .unwrap();
+    fs::set_permissions(&lock, fs::Permissions::from_mode(0o600)).unwrap();
     packet_path
 }
 
@@ -1043,6 +1092,10 @@ pub(super) const AGENT_RECORD_COMPONENTS: &[&str] = &[
     "rust/crates/tos-command/src/source_sign_native.rs",
     "rust/crates/tos-command/src/source_text_owner.rs",
     "rust/crates/tos-command/src/source_work_transaction.rs",
+    "rust/crates/tos-command/src/source_private_claim.rs",
+    "rust/crates/tos-command/src/source_private_owner_store.rs",
+    "rust/crates/tos-command/src/source_creation_store.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
 ];
 pub(super) fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String, Vec<u8>> {
     agent_authored_capture(root, deadline, 33_554_432).0
@@ -1196,7 +1249,9 @@ pub(super) fn agent_native_call(
     assert!(
         output.status.success(),
         "actual Agent Record caller action={} operation={}: {}",
-        request["action"], request["operation"], String::from_utf8_lossy(&output.stderr)
+        request["action"],
+        request["operation"],
+        String::from_utf8_lossy(&output.stderr)
     );
     serde_json::from_slice(&output.stdout).unwrap()
 }
@@ -1313,12 +1368,13 @@ fn agent_physical(workspace: &Path, deadline: Instant) {
     assert!(bytes <= 508 * 1024 * 1024);
 }
 
-#[test]
-fn maintained_agent_record_correction_whole_transaction_and_access() {
+pub(super) fn publish_agent_load_fixture(
+    workspace: &Path,
+    deadline: Instant,
+) -> (PathBuf, PathBuf, PathBuf, PathBuf, Value) {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use tos_compiler::prepared_source_binding::read_prepared_source_inputs_transaction;
     use tos_source_store::{ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1};
-    let deadline = Instant::now() + Duration::from_secs(600);
     let cancel = Arc::new(AtomicBool::new(false));
     let repository = super::validation_cut_cases::repository();
     let owner_command = PathBuf::from(
@@ -1346,13 +1402,12 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .iter()
         .map(|(p, maximum)| native_child::bounded_sha_before(p, *maximum, deadline))
         .collect::<Vec<_>>();
-    let workspace = PublicationFailureFixture::new("Agent correction");
-    let packet_path = load_frozen_agent_fixture(workspace.path());
+    let packet_path = load_frozen_agent_fixture(workspace);
     let packet = read_packet(&packet_path);
     let root = PathBuf::from(required(&packet, "source_root"))
         .canonicalize()
         .unwrap();
-    assert!(root.starts_with(workspace.path().canonicalize().unwrap()));
+    assert!(root.starts_with(workspace.canonicalize().unwrap()));
     assert_eq!(
         fs::metadata(&root).unwrap().permissions().mode() & 0o777,
         0o700
@@ -1461,7 +1516,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         tx.commit().unwrap();
     }
     let original_files = agent_authored(&root, deadline);
-    let original_store = workspace.path().join("original-cut");
+    let original_store = workspace.join("original-cut");
     let original_revision =
         super::validation_cut_cases::write_cut_store(&original_files, &original_store);
     let _original =
@@ -1476,8 +1531,8 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         combined.insert((*name).to_owned(), raw);
     }
     assert!(combined.values().map(Vec::len).sum::<usize>() <= 33_554_432 && combined.len() <= 2048);
-    let capture = workspace.path().join("software-capture");
-    let restored = workspace.path().join("software-restored");
+    let capture = workspace.join("software-capture");
+    let restored = workspace.join("software-restored");
     let mut commit_command = Command::new("git");
     for (name, _) in std::env::vars_os() {
         if name.to_string_lossy().starts_with("GIT_") {
@@ -1526,7 +1581,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         ReadLimits {
             max_manifest_bytes: 1_048_576,
             max_manifest_entries: 512,
-            max_selected_object_bytes: 2_097_152,
+            max_selected_object_bytes: 33_554_432,
             json: JsonLimits::default(),
         },
         deadline,
@@ -1538,7 +1593,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .map(|p| RelativePath::parse(p).unwrap())
         .collect::<Vec<_>>();
     let _components = software.select_components(&component_paths).unwrap();
-    let invocation_path = workspace.path().join("agent-native-invocation.json");
+    let invocation_path = workspace.join("agent-native-invocation.json");
     let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":owner_command,"native_executable_sha256":images[1].to_prefixed(),"corpus_store":original_store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),"software_capture":capture,"software_restored_root":restored,"software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},"software_components":AGENT_RECORD_COMPONENTS,"schema_worker":{"absolute_path":worker_path,"sha256":images[2].to_prefixed()},"budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
@@ -1606,7 +1661,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         tx.rollback().unwrap();
         source
     };
-    let predecessor_binding = workspace.path().join("Agent-predecessor-binding.json");
+    let predecessor_binding = workspace.join("Agent-predecessor-binding.json");
     fs::write(
         &predecessor_binding,
         canonical_lf(&profile_result["binding"]),
@@ -1654,14 +1709,13 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         &packet["proposal"],
         deadline,
     ));
-    for field in [
-        "owner_configuration",
-        "source",
-        "revision",
-        "expected_dependencies",
-    ] {
+    for field in ["owner_configuration", "source", "revision"] {
         assert_eq!(preview[field], packet["python_preview"][field]);
     }
+    // Software dependencies bind the selected current native components; the
+    // frozen Python digest belongs to its historical implementation. Source
+    // identity and revision above still match the independent frozen oracle.
+    assert!(Digest256::from_prefixed(required(&preview, "expected_dependencies")).is_ok());
     let mut request = packet["proposal"].clone();
     request["operation"] = Value::String("record.revise".into());
     request["command_id"] = Value::String("synthetic:actual-native-Agent-correction".into());
@@ -1674,7 +1728,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     ] {
         request[field] = preview[prepared].clone();
     }
-    agent_physical(workspace.path(), deadline);
+    agent_physical(workspace, deadline);
     let source_result = checked_agent_record_result(agent_native_call(
         &repository,
         &owner,
@@ -1683,7 +1737,11 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         deadline,
     ));
     assert_eq!(source_result["replayed"], false);
-    let source_receipt = workspace.path().join("native-Record-receipt.json");
+    assert_eq!(
+        source_result["receipt"]["dependencies"],
+        preview["expected_dependencies"]
+    );
+    let source_receipt = workspace.join("native-Record-receipt.json");
     fs::write(&source_receipt, canonical_lf(&source_result)).unwrap();
     let current_files = agent_authored(&root, deadline);
     let current_store = original_store.clone();
@@ -1758,8 +1816,25 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         result["semantic_report"],
         expected["counts"]["semantic_validation"]
     );
-    let binding_path = workspace.path().join("Agent-binding.json");
-    fs::write(&binding_path, canonical_lf(&result["binding"])).unwrap();
+    let binding_path = workspace.join("Agent-binding.json");
+    write_protected(&binding_path, &result["binding"]);
+    let source_raw: String = connection
+        .query_row(
+            "SELECT inputs FROM prepared_source_state WHERE singleton=1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(source_raw.len() <= 1_048_576);
+    let source_inputs: Value = serde_json::from_str(&source_raw).unwrap();
+    assert!(
+        source_inputs["source_publication"].as_str().is_some(),
+        "real native Record transaction published a selected source token"
+    );
+    write_protected(&source_companion, &source_inputs);
+    connection
+        .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
+        .unwrap();
     drop(connection);
     if std::env::var_os("TOS_NATIVE_INSTALLED_SOFTWARE_SITE").as_deref()
         == Some(std::ffi::OsStr::new("1"))
@@ -1837,7 +1912,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         required(relation, "id"),
         deadline,
     );
-    agent_physical(workspace.path(), deadline);
+    agent_physical(workspace, deadline);
     for ((path, maximum), expected) in image_paths.iter().zip(images) {
         assert_eq!(
             native_child::bounded_sha_before(path, *maximum, deadline),
@@ -1845,4 +1920,18 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         );
     }
     assert!(Instant::now() < deadline);
+    (
+        root,
+        db_path,
+        binding_path,
+        source_companion,
+        packet["record_id"].clone(),
+    )
+}
+
+#[test]
+fn maintained_agent_record_correction_whole_transaction_and_access() {
+    let deadline = Instant::now() + Duration::from_secs(600);
+    let workspace = PublicationFailureFixture::new("Agent correction");
+    publish_agent_load_fixture(workspace.path(), deadline);
 }
