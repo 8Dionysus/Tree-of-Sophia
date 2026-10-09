@@ -1325,6 +1325,9 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
         receipt["generator"] = old["generator"].clone();
         receipt["mechanical_reconstruction"]["performed_by"] =
             old["mechanical_reconstruction"]["performed_by"].clone();
+        // Preserve the authored boundary of the pinned historical receipt.
+        // Fresh generations use the current boundary above.
+        receipt["authority_boundary"] = old["authority_boundary"].clone();
         if receipt != old {
             let mut paths = Vec::new();
             receipt_differences(&receipt, &old, "", &mut paths);
