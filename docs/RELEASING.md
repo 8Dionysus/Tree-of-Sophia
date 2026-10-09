@@ -25,14 +25,12 @@ owner surfaces.
    ```
 
    If `CARGO_TARGET_DIR` is set, use its absolute `debug` directory instead.
-   `scripts/software_ci.py` and its imported `main()` execute
-   `tos-software-ci`; a missing native executor refuses the operation.
-   Its explicitly named `reference_select`, `reference_check_docs`,
-   `reference_gate` and companion reference helpers are historical test
-   oracles used by `tests/test_software_ci.py`. They preserve distinct
-   selection/link/gate expectations and do not execute the maintained
-   production CI route. Native executor controls and workflow topology
-   assertions remain separate checks.
+   Run `tos-software-ci plan --repo-root /absolute/checkout --base BASE_REF`
+   for source selection and changed-document checks, or `tos-software-ci gate`
+   with the exact `CI_NEEDS` job results. CI authenticates and invokes the
+   same-run native executor directly. Native source-history tests cover
+   selection, Unicode links, failure propagation and required-job outcomes.
+   Workflow topology assertions remain separate checks.
    Run `python scripts/release_check.py`
    to check contracts, build browser assets and run program fixture tests.
    This command uses program fixtures and repository-owned dependencies.

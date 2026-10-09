@@ -1,4 +1,4 @@
-//! Explicit candidate for software CI selection. Python and CI remain active.
+//! Native software CI selection and required-job gate.
 use std::env;
 use std::fs;
 use std::io::{self, Write};

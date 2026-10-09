@@ -70,10 +70,10 @@ jobs:
           FULL_RELEASE: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           if [ "$FULL_RELEASE" = true ] || [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = 0000000000000000000000000000000000000000 ]; then
-            python scripts/software_ci.py plan --base HEAD --full
+            "$TOS_SOFTWARE_CI_EXECUTOR" plan --repo-root "$GITHUB_WORKSPACE" --base HEAD --full
           else
             git fetch --no-tags --depth=1 origin "$BASE_SHA"
-            python scripts/software_ci.py plan --base "$BASE_SHA"
+            "$TOS_SOFTWARE_CI_EXECUTOR" plan --repo-root "$GITHUB_WORKSPACE" --base "$BASE_SHA"
           fi
 
   software:
@@ -108,7 +108,6 @@ jobs:
             /tests/oracles/acquisition/acquisition_handoff_adapter.py
             /tests/oracles/acquisition/source_payload_custody.py
             /tests/test_file_membership.py
-            /tests/test_software_ci.py
             /tests/test_corpus_*.py
             /tests/test_local_stats_port.py
             /tests/test_build_kag_export.py
@@ -451,6 +450,8 @@ jobs:
             /rust-toolchain.toml
             /rust/
             /tests/conformance/rust/
+            /.github/workflows/repo-validation.yml
+            /.github/workflows/cloudflare-edge.yml
             /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
             /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json
@@ -829,4 +830,4 @@ jobs:
       - name: Require every selected check to pass
         env:
           CI_NEEDS: ${{ toJSON(needs) }}
-        run: python scripts/software_ci.py gate
+        run: '"$TOS_SOFTWARE_CI_EXECUTOR" gate'

@@ -248,10 +248,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
             include_str!("../../../../scripts/release_check.py"),
         ),
         (
-            "software_ci.py",
-            include_str!("../../../../scripts/software_ci.py"),
-        ),
-        (
             "validate_mechanics_topology.py",
             include_str!("../../../../scripts/validate_mechanics_topology.py"),
         ),
@@ -345,21 +341,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
         false,
     );
     inspect(
-        "software_ci.py",
-        "TOS_SOFTWARE_CI_EXECUTOR",
-        &["plan", "--ba=quoted ref $value", "--fu"],
-        vec![
-            selected.to_str().unwrap().into(),
-            "plan".into(),
-            "--repo-root".into(),
-            root.to_str().unwrap().into(),
-            "--base".into(),
-            "quoted ref $value".into(),
-            "--full".into(),
-        ],
-        false,
-    );
-    inspect(
         "validate_mechanics_topology.py",
         "TOS_OPS_MECHANICS_EXECUTOR",
         &["legacy ignored argument"],
@@ -372,28 +353,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
         &[],
         base(&["--active-naming-validate"]),
         false,
-    );
-    let installed = root.join("bin/tos-software-ci");
-    fs::copy(&selected, &installed).unwrap();
-    inspect(
-        "software_ci.py",
-        "TOS_SOFTWARE_CI_EXECUTOR",
-        &["gate"],
-        vec![installed.to_str().unwrap().into(), "gate".into()],
-        true,
-    );
-    let unavailable = Command::new("/usr/bin/python3")
-        .arg("-B")
-        .arg(root.join("scripts/software_ci.py"))
-        .arg("gate")
-        .env("TOS_SOFTWARE_CI_EXECUTOR", root.join("missing-native"))
-        .env("PATH", root.join("bin"))
-        .output()
-        .unwrap();
-    assert_eq!(unavailable.status.code(), Some(1));
-    assert!(unavailable.stdout.is_empty());
-    assert!(
-        String::from_utf8_lossy(&unavailable.stderr).contains("cannot execute native software CI")
     );
     let invalid = Command::new("/usr/bin/python3")
         .arg("-B")
@@ -416,7 +375,7 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     // Explicit cache branch remains Python-owned, independently of whether
     // native is installed. No real cache is written in this routing fixture.
     let compatibility = Command::new("/usr/bin/python3").arg("-B").arg("-c")
-        .arg("import pathlib,runpy,sys; root=pathlib.Path(sys.argv[1]); sys.path.insert(0,str(root/'scripts')); modules={n:runpy.run_path(str(root/'scripts'/n),run_name='tos_import_api') for n in ['validation_lanes.py','release_check.py','software_ci.py','validate_mechanics_topology.py','validate_active_naming.py']}; assert modules['software_ci.py']['reference_select'](['README.md'])['software_mode']=='none'; assert callable(modules['validation_lanes.py']['command_sequence']); assert callable(modules['release_check.py']['select_steps']); assert callable(modules['validate_mechanics_topology.py']['run_validation']); naming=modules['validate_active_naming.py']; seen=[]; naming['native_main'].__globals__['main']=lambda args:seen.append(args) or 23; assert naming['native_main'](['--feedback-cache=external.sqlite'])==23; assert seen==[['--feedback-cache=external.sqlite']]")
+        .arg("import pathlib,runpy,sys; root=pathlib.Path(sys.argv[1]); sys.path.insert(0,str(root/'scripts')); modules={n:runpy.run_path(str(root/'scripts'/n),run_name='tos_import_api') for n in ['validation_lanes.py','release_check.py','validate_mechanics_topology.py','validate_active_naming.py']}; assert callable(modules['validation_lanes.py']['command_sequence']); assert callable(modules['release_check.py']['select_steps']); assert callable(modules['validate_mechanics_topology.py']['run_validation']); naming=modules['validate_active_naming.py']; seen=[]; naming['native_main'].__globals__['main']=lambda args:seen.append(args) or 23; assert naming['native_main'](['--feedback-cache=external.sqlite'])==23; assert seen==[['--feedback-cache=external.sqlite']]")
         .arg(&root).env("TOS_OPS_MECHANICS_EXECUTOR",root.join("missing-native")).output().unwrap();
     assert!(
         compatibility.status.success(),

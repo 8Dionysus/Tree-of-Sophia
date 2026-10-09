@@ -81,7 +81,7 @@ def main() -> None:
         # Cargo's maintained package install supplies these separate command
         # products too. Consume their real compatibility entries from the same
         # fresh prefix, rather than assuming availability from a build receipt.
-        for name in ("validation_lanes", "release_check", "software_ci"):
+        for name in ("validation_lanes", "release_check"):
             shutil.copyfile(ROOT / f"scripts/{name}.py", fixture / f"scripts/{name}.py")
             environment[f"TOS_{name.upper()}_EXECUTOR"] = str(
                 install / "bin" / ("tos-" + name.replace("_", "-"))
@@ -128,7 +128,7 @@ def main() -> None:
         git("commit", "--quiet", "-m", "native package change")
         environment["GITHUB_OUTPUT"] = str(fixture / "selector-output")
         planned = subprocess.run(
-            [sys.executable, str(fixture / "scripts/software_ci.py"), "plan", "--base", base],
+            [str(install / "bin/tos-software-ci"), "plan", "--repo-root", str(fixture), "--base", base],
             cwd=fixture, env=environment, check=True, capture_output=True, text=True,
         )
         selection = json.loads(planned.stdout)
@@ -140,7 +140,7 @@ def main() -> None:
             "software": {"result": "success"}, "worker": {"result": "skipped"},
             "rust": {"result": "success"}}
         environment["CI_NEEDS"] = json.dumps(needs)
-        entry = [sys.executable, str(fixture / "scripts/software_ci.py"), "gate"]
+        entry = [str(install / "bin/tos-software-ci"), "gate"]
         subprocess.run(entry, cwd=fixture, env=environment, check=True)
         needs["plan"]["result"] = "failure"
         environment["CI_NEEDS"] = json.dumps(needs)

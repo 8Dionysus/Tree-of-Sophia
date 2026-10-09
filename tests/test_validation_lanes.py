@@ -105,7 +105,6 @@ class ValidationLaneTests(unittest.TestCase):
             'tests/test_corpus_source_retirement.py', 'tests/test_corpus_build_worker.py',
             'tests/test_build_kag_export.py',
             'tests/test_downstream_status.py', 'tests/test_publish_kag_release.py',
-            'tests/test_software_ci.py',
         ]
         self.assertEqual(len(selected), len(set(selected)))
         self.assertEqual([path for path in selected if path.startswith('access/tests/')], access_files)
