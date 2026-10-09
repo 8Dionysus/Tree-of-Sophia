@@ -295,8 +295,7 @@ fn build_inner(
                     .ok_or(Error::Budget("search document output work"))?;
                 creation.charge_work(output_bytes)?;
             }
-            row.payload = None;
-            drop(payload_hold);
+            let row_hold = retain_page_metadata(&mut row, row_hold, payload_hold, creation)?;
             if !page.is_empty()
                 && page_text_bytes
                     .checked_add(doc.text.len())
@@ -405,6 +404,33 @@ fn build_inner(
     receipt.distinct_grams = distinct;
     receipt.search_index_root_sha256 = root;
     Ok(receipt)
+}
+
+fn retain_page_metadata<'state, 'budget>(
+    row: &mut SourceRow,
+    row_hold: Option<CreationStateHold<'state, 'budget>>,
+    payload_hold: Option<CreationStateHold<'state, 'budget>>,
+    creation: Option<&'state CreationState<'budget>>,
+) -> Result<Option<CreationStateHold<'state, 'budget>>> {
+    row.payload = None;
+    drop(payload_hold);
+    // The normalized cursor envelope covers the transient payload and decoder.
+    // Only metadata survives into the sorted page. Admit its actual capacity
+    // before releasing the envelope, without any unaccounted live interval.
+    let metadata = creation.map(|owner| owner.hold(metadata_state_bytes(row)?)).transpose()?;
+    drop(row_hold);
+    Ok(metadata)
+}
+
+fn metadata_state_bytes(row: &SourceRow) -> Result<usize> {
+    if row.payload.is_some() {
+        return Err(Error::Invalid("search metadata still owns payload"));
+    }
+    [row.id.capacity(), row.source_graph.capacity(),
+        row.native_id.as_ref().map_or(0, String::capacity),
+        row.term_id.capacity(), row.payload_sha256.capacity()]
+        .into_iter().try_fold(std::mem::size_of::<SourceRow>(), |sum, n| sum.checked_add(n))
+        .ok_or(Error::Budget("search retained metadata state"))
 }
 
 fn fetch_next<'state, 'budget>(
@@ -2357,6 +2383,51 @@ mod tests {
             max_work_bytes: 1_000_000,
             gram_batch_rows: 2,
         }
+    }
+
+    #[test]
+    fn search_page_releases_dropped_normalized_payload_envelopes() {
+        use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
+        use std::sync::{Arc, atomic::{AtomicBool, AtomicU64}};
+        use std::time::{Duration, Instant};
+        const CHILD: &str = "TOS_SEARCH_PAGE_STATE_TEST_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let out = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "knowledge_search::tests::search_page_releases_dropped_normalized_payload_envelopes", "--nocapture"])
+                .env(CHILD, "1").output().unwrap();
+            assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+            return;
+        }
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancel = Arc::new(AtomicBool::new(false));
+        let remaining = |n: usize| (24 * 1024 * 1024usize).checked_sub(n)
+            .ok_or(Error::Budget("search test state"));
+        let heap = sqlite_budget::DedicatedSessionSqliteHeap::establish(
+            1024 * 1024, &remaining, deadline, &cancel).unwrap();
+        let work = Arc::new(AtomicU64::new(0));
+        let vm = Arc::new(AtomicU64::new(0));
+        let budget = RuntimeKnowledgeOwnedBudget {
+            remaining_after_retained: &remaining, original_work: &work,
+            original_work_limit: 1_000_000, original_sql_vm: &vm,
+            original_sql_vm_limit: 1_000_000, original_sqlite_heap: &heap,
+            remaining_json_visits: 10_000, owner_deadline: deadline,
+            operation_deadline: deadline, cancelled: &cancel,
+        };
+        let state = CreationState::from_runtime_owned_budget(&budget).unwrap();
+        let mut rows = Vec::new();
+        for position in 0..256 {
+            let envelope = state.hold(16 * 1024 * 1024).unwrap();
+            let mut row = SourceRow { position, id: format!("row-{position}"),
+                source_graph: "graph".into(), native_id: None, term_id: "node".into(),
+                payload_len: 1024, payload_sha256: vec![0; 32], payload: Some(vec![0; 1024]) };
+            assert!(metadata_state_bytes(&row).is_err());
+            let hold = retain_page_metadata(&mut row, Some(envelope), None, Some(&state)).unwrap();
+            assert!(row.payload.is_none());
+            rows.push((row, hold));
+        }
+        // A complete page leaves room for the next cursor's unchanged cap.
+        drop(state.hold(16 * 1024 * 1024).unwrap());
+        assert_eq!(rows.len(), 256);
     }
 
     #[test]
