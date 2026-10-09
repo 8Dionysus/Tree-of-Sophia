@@ -687,7 +687,7 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                 }
                 state.charge_work(kind.len() + gram.len() + deltas.len() + 24)?;
                 if crate::search_rank_fields_packed(&self.selection.model_abi) {
-                    state.charge_work(count as usize * 8)?;
+                    state.charge_work(postings as usize * 8)?;
                 }
                 let positions = crate::decode_posting_block_for_abi(
                     &self.selection.model_abi,

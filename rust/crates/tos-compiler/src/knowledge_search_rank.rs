@@ -4,6 +4,13 @@ use crate::{
 };
 use rusqlite::types::ValueRef;
 
+pub(crate) struct SqlField<'a>(pub(crate) ValueRef<'a>);
+impl rusqlite::ToSql for SqlField<'_> {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(rusqlite::types::ToSqlOutput::Borrowed(self.0))
+    }
+}
+
 pub fn search_rank_fields_packed(abi: &str) -> bool {
     abi == tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4
 }

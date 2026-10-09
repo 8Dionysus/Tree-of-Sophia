@@ -1296,7 +1296,7 @@ fn write_document_page_with_codec(
             params![kind,row.position,row.id,row.source_graph,
                 if kind == "nodes" { row.term_id.as_str() } else { "" },
                 if kind == "relations" { row.term_id.as_str() } else { "" },
-                doc.id_lower,doc.native_id_lower,identity,visible,
+                doc.id_lower,doc.native_id_lower,crate::knowledge_search_rank::SqlField(identity),crate::knowledge_search_rank::SqlField(visible),
                 doc.chars as i64,doc.digest.as_bytes().as_slice()],
         )?;
                 Ok(())
