@@ -1069,7 +1069,12 @@ impl SelectedSource {
         }
     }
 
-    fn recheck(&self, request: &Request, deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
+    fn recheck(
+        &mut self,
+        request: &Request,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<()> {
         match self {
             Self::Historical { census, .. } => Ok(census.recheck_manifest(deadline)?),
             Self::Current { runtime, .. } => runtime.recheck(
@@ -1301,6 +1306,8 @@ fn source_projection_limits(
 ) -> Result<crate::source_corpus_index_projection::CorpusIndexProjectionLimits> {
     use tos_compiler::source_bibliographic::BibliographicLimits;
     use tos_compiler::source_witness_catalog::SourceCatalogLimits;
+    let sqlite_cache_kib = u32::try_from(request.cold_open.sqlite_cache_kib)
+        .map_err(|_| Refusal("native SQLite cache cap conversion"))?;
     let source_file_cap = usize::try_from(source.max_member_bytes.min(8 * 1024 * 1024))
         .map_err(|_| Refusal("native source projection file cap conversion"))?
         .max(1);
@@ -1426,7 +1433,7 @@ fn source_projection_limits(
                     max_row_bytes: request.cold_open.max_row_bytes,
                     max_output_bytes: output_cap,
                     max_work_bytes: work_cap,
-                    sqlite_cache_kib: request.cold_open.sqlite_cache_kib,
+                    sqlite_cache_kib,
                     max_sql_vm_steps: request.cold_open.max_vm_steps,
                 },
                 max_temp_bytes: request.tmpfs_quota_bytes.min(64 * 1024 * 1024).max(1),
@@ -1533,8 +1540,7 @@ fn prepare_source_only_runtime(
     let read_limits = ReadLimits {
         max_manifest_bytes: 4_194_304,
         max_manifest_entries: source.max_members.min(4096) as usize,
-        max_selected_object_bytes: usize::try_from(source.max_total_bytes)
-            .map_err(|_| Refusal("native selected source byte cap conversion"))?,
+        max_selected_object_bytes: source.max_total_bytes,
         json: JsonLimits::default(),
     };
     let store = CorpusReader::open_existing(Path::new(&source.corpus_store), read_limits)?;
@@ -1573,9 +1579,9 @@ fn prepare_source_only_runtime(
     let component_paths = source
         .software_components
         .iter()
-        .map(|path| {
-            RelativePath::parse(path)
-                .map_err(|_| Refusal("native selected software component path invalid"))
+        .map(|path| -> Result<RelativePath> {
+            Ok(RelativePath::parse(path)
+                .map_err(|_| Refusal("native selected software component path invalid"))?)
         })
         .collect::<Result<Vec<_>>>()?;
     let components = software.select_components(&component_paths)?;
@@ -1700,12 +1706,14 @@ fn prepare_source_only_runtime(
     let evidence_stage = isolation.root().join("tos-native-evidence-stage.sqlite3");
     let mut evidence_limits =
         manifest::portable_native_snapshot_limits(request.max_build_seconds)?.capture;
+    let sqlite_cache_kib = u32::try_from(request.cold_open.sqlite_cache_kib)
+        .map_err(|_| Refusal("native SQLite cache cap conversion"))?;
     evidence_limits.max_input_bytes = source.max_total_bytes;
     evidence_limits.max_rows = request.cold_open.max_rows;
     evidence_limits.max_staging_bytes = request.tmpfs_quota_bytes;
     evidence_limits.max_work_bytes = request.max_work_bytes;
     evidence_limits.max_sql_vm_steps = request.cold_open.max_vm_steps;
-    evidence_limits.sqlite_cache_kib = request.cold_open.sqlite_cache_kib;
+    evidence_limits.sqlite_cache_kib = sqlite_cache_kib;
     let evidence = tos_compiler::epistemic_evidence::build(
         &source_root,
         &evidence_stage,
@@ -2066,7 +2074,7 @@ fn execute(mut request: Request) -> Result<Value> {
             .checked_add(capture.retained_state_upper_bound()?)
             .ok_or(Refusal("native Original capture owner census overflow"))?,
     );
-    let selected_source = match (
+    let mut selected_source = match (
         request.selected_snapshot.as_ref(),
         historical,
         source_runtime,
@@ -2160,7 +2168,8 @@ fn execute(mut request: Request) -> Result<Value> {
     let mut producer_usage = native_snapshot::NativeSnapshotCreationUsage::default();
     let mut result = None;
     let mut completion_error = None;
-    let consume = |snapshot_output: &native_snapshot::NativeSnapshotOutput<'_>, loan| {
+    let consume = |snapshot_output: &native_snapshot::NativeSnapshotOutput<'_>,
+                   loan: native_snapshot::NativeSnapshotOwnedReadLoan<'_, '_>| {
         let mut finish = || -> Result<Value> {
             let captured_members = selected_source.validate_capture_closure(&capture, deadline)?;
             let corpus_original = snapshot_output
