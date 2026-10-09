@@ -45,7 +45,8 @@ impl OriginalPlans {
             crate::knowledge_stage::KnowledgePayloadLayout::InlineV1 => self.expected_model_abi(),
             crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1
             | crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2
-            | crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3 => {
+            | crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3
+            | crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4 => {
                 layout.carrier_model_abi().expect("matched carrier layout")
             }
         }

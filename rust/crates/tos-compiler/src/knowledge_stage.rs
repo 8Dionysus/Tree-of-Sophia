@@ -564,19 +564,30 @@ pub enum KnowledgePayloadLayout {
     CarrierOnceV1,
     CarrierOnceV2,
     CarrierOnceV3,
+    CarrierOnceV4,
 }
 impl KnowledgePayloadLayout {
     pub const fn uses_carriers(self) -> bool {
         matches!(
             self,
-            Self::CarrierOnceV1 | Self::CarrierOnceV2 | Self::CarrierOnceV3
+            Self::CarrierOnceV1 | Self::CarrierOnceV2 | Self::CarrierOnceV3 | Self::CarrierOnceV4
         )
     }
     pub const fn packed_bytes(self) -> bool {
-        matches!(self, Self::CarrierOnceV2 | Self::CarrierOnceV3)
+        matches!(
+            self,
+            Self::CarrierOnceV2 | Self::CarrierOnceV3 | Self::CarrierOnceV4
+        )
     }
     pub const fn dictionary_bytes(self) -> bool {
-        matches!(self, Self::CarrierOnceV3)
+        matches!(self, Self::CarrierOnceV3 | Self::CarrierOnceV4)
+    }
+    pub(crate) const fn dictionary_capacity(self) -> usize {
+        if matches!(self, Self::CarrierOnceV4) {
+            crate::knowledge_byte_codec::DICTIONARY_WINDOW_BYTES
+        } else {
+            crate::knowledge_byte_codec::DICTIONARY_BYTES
+        }
     }
     /// Format selection follows an already authenticated model ABI. Callers
     /// retain their independent whole-model and component compatibility checks.
@@ -591,12 +602,18 @@ impl KnowledgePayloadLayout {
             tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3 => {
                 Self::CarrierOnceV3
             }
+            tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4 => {
+                Self::CarrierOnceV4
+            }
             _ => Self::InlineV1,
         }
     }
     pub const fn carrier_model_abi(self) -> Option<&'static str> {
         match self {
             Self::InlineV1 => None,
+            Self::CarrierOnceV4 => {
+                Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4)
+            }
             Self::CarrierOnceV3 => {
                 Some(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3)
             }
@@ -645,7 +662,7 @@ impl KnowledgePayloadLayout {
         max_bytes: usize,
     ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'s, 'b>>> {
         if self.dictionary_bytes() {
-            crate::knowledge_byte_dictionary::read(db, state, stored, max_bytes)
+            crate::knowledge_byte_dictionary::read_selected(db, state, stored, max_bytes, self)
         } else {
             Ok(None)
         }
@@ -763,7 +780,7 @@ ALTER TABLE knowledge_relations ADD COLUMN source_packet_sha256 BLOB CHECK((payl
 "#;
 
 pub const KNOWLEDGE_CARRIER_ONCE_MODEL_ABI: &str =
-    tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3;
+    tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4;
 
 /// An exact byte reference issued by the retaining Stage; not source authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1112,7 +1129,9 @@ impl<'a> KnowledgeStage<'a> {
             if self.poisoned
                 || !matches!(
                     layout,
-                    KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3
+                    KnowledgePayloadLayout::CarrierOnceV2
+                        | KnowledgePayloadLayout::CarrierOnceV3
+                        | KnowledgePayloadLayout::CarrierOnceV4
                 )
                 || self.exact_receipt()?.binding.owner_profile
                     != "tos-native-projection-snapshot-v1"
@@ -1138,11 +1157,11 @@ impl<'a> KnowledgeStage<'a> {
             self.db().execute_batch(CARRIER_NORMALIZED_COLUMNS_DDL)?;
             self.check(WritePhase::Schema)?;
             if layout.dictionary_bytes() {
-                self.charge_public_work(crate::knowledge_byte_dictionary::DDL.len() as u64)?;
+                self.charge_public_work(crate::knowledge_byte_dictionary::ddl(layout).len() as u64)?;
                 self.db()
-                    .execute_batch(crate::knowledge_byte_dictionary::DDL)?;
+                    .execute_batch(crate::knowledge_byte_dictionary::ddl(layout))?;
                 self.create_preparation_tables(
-                    crate::knowledge_byte_dictionary::PREPARATION_SCHEMA,
+                    crate::knowledge_byte_dictionary::preparation_schema(layout),
                 )?;
                 for (_, drop_sql, create_sql) in COMPACT_ORDER_INDEXES {
                     self.charge_public_work((drop_sql.len() + create_sql.len()) as u64)?;
@@ -1169,8 +1188,14 @@ impl<'a> KnowledgeStage<'a> {
         let state = self
             .owned_creation_state()
             .ok_or(Error::Invalid("dictionary producer owner absent"))?;
-        let (dictionary, rows, bytes) =
-            crate::knowledge_byte_dictionary::prepare(self.db(), state, kind, graph, raw)?;
+        let (dictionary, rows, bytes) = crate::knowledge_byte_dictionary::prepare_selected(
+            self.db(),
+            state,
+            kind,
+            graph,
+            raw,
+            self.payload_layout,
+        )?;
         self.charge_representation(rows, bytes)?;
         Ok(dictionary)
     }
@@ -2819,7 +2844,7 @@ impl<'a> KnowledgeStage<'a> {
         if self.payload_layout.dictionary_bytes() {
             (
                 crate::knowledge_byte_dictionary::MAX_WRITE_ROWS,
-                framing + crate::knowledge_byte_dictionary::MAX_WRITE_BYTES as u64,
+                framing + crate::knowledge_byte_dictionary::write_bytes(self.payload_layout) as u64,
             )
         } else {
             (0, framing)
@@ -3688,8 +3713,8 @@ impl<'a> KnowledgeStage<'a> {
                 let sql=match (self.payload_layout,relation) {
                     (KnowledgePayloadLayout::InlineV1,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
                     (KnowledgePayloadLayout::InlineV1,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND (?5 IS NULL OR payload_sha256=?5)",
-                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
-                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
+                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 | KnowledgePayloadLayout::CarrierOnceV4,false)=>"UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
+                    (KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 | KnowledgePayloadLayout::CarrierOnceV4,true)=>"UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_codec=0 AND source_packet_sha256 IS NULL AND (?5 IS NULL OR payload_sha256=?5)",
                 };
                 let family = value.get("source_graph").and_then(serde_json::Value::as_str).unwrap_or("updated");
                 let dictionary = self.prepare_byte_dictionary(if relation {"relation"} else {"node"}, family, logical)?;
@@ -4819,7 +4844,7 @@ impl<'a> KnowledgeStage<'a> {
                   WHERE from_id=?1 AND source_order>?2 AND length(payload)<=?3
                     AND payload_len=length(payload)
                   ORDER BY source_order,id LIMIT ?4",
-                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 | KnowledgePayloadLayout::CarrierOnceV4 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
                   WHERE from_id=?1 AND source_order>?2 AND payload_len<=?3 AND length(payload)<=?3+17
                   ORDER BY source_order,id LIMIT ?4",
             },
@@ -4843,7 +4868,7 @@ impl<'a> KnowledgeStage<'a> {
                   WHERE to_id=?1 AND source_order>?2 AND length(payload)<=?3
                     AND payload_len=length(payload)
                   ORDER BY source_order,id LIMIT ?4",
-                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
+                KnowledgePayloadLayout::CarrierOnceV1 | KnowledgePayloadLayout::CarrierOnceV2 | KnowledgePayloadLayout::CarrierOnceV3 | KnowledgePayloadLayout::CarrierOnceV4 => "SELECT id,source_graph,source_order,payload,payload_sha256,payload_len,payload_codec,source_packet_sha256 FROM knowledge_relations
                   WHERE to_id=?1 AND source_order>?2 AND payload_len<=?3 AND length(payload)<=?3+17
                   ORDER BY source_order,id LIMIT ?4",
             },
@@ -7240,6 +7265,7 @@ mod tests {
         for layout in [
             KnowledgePayloadLayout::CarrierOnceV2,
             KnowledgePayloadLayout::CarrierOnceV3,
+            KnowledgePayloadLayout::CarrierOnceV4,
         ] {
             let candidate = stage_path("dictionary-roundtrip");
             let mut receipt = exact_receipt(RAW_ROOT);
@@ -7514,7 +7540,11 @@ mod tests {
                         |row| row.get(0),
                     )
                     .unwrap();
-                assert_eq!(dictionaries, 2);
+                if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+                    assert!(dictionaries >= 1);
+                } else {
+                    assert_eq!(dictionaries, 2);
+                }
                 let pending: u64 = stage
                     .db()
                     .query_row(

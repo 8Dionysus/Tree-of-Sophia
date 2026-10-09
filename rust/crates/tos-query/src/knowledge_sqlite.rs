@@ -8,7 +8,8 @@ use std::sync::{
 
 use rusqlite::{ErrorCode, OptionalExtension, params};
 use tos_compiler::{
-    MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, VerifiedKnowledgeModel, decode_posting_block,
+    MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, VerifiedKnowledgeModel,
+    decode_posting_block_for_abi,
 };
 use tos_foundation::Digest256;
 
@@ -273,18 +274,23 @@ impl SearchPostingModel for VerifiedKnowledgeModel<'_> {
                                 "selected posting deltas unavailable",
                             )
                         })?;
-                    let block =
-                        decode_posting_block(first as u64, last as u64, postings as u16, &deltas)
-                            .map_err(|reason| match reason {
-                            tos_compiler::Error::Budget(_) => error(
-                                SearchV2ErrorCode::BudgetExceeded,
-                                "posting block decode budget exceeded",
-                            ),
-                            _ => error(
-                                SearchV2ErrorCode::CorruptSelectedCarrier,
-                                "selected posting block invalid",
-                            ),
-                        })?;
+                    let block = decode_posting_block_for_abi(
+                        &self.selection().model_abi,
+                        first as u64,
+                        last as u64,
+                        postings as u16,
+                        &deltas,
+                    )
+                    .map_err(|reason| match reason {
+                        tos_compiler::Error::Budget(_) => error(
+                            SearchV2ErrorCode::BudgetExceeded,
+                            "posting block decode budget exceeded",
+                        ),
+                        _ => error(
+                            SearchV2ErrorCode::CorruptSelectedCarrier,
+                            "selected posting block invalid",
+                        ),
+                    })?;
                     previous_block_last = Some(last);
                     for position in block {
                         if after.is_some_and(|prior| position <= prior) {
@@ -360,9 +366,17 @@ impl SearchCandidateModel for VerifiedKnowledgeModel<'_> {
                     "candidate field admission overflow",
                 )
             })?;
+        let packed_ranks = tos_compiler::search_rank_fields_packed(&self.selection().model_abi);
+        let rank_workspace = if packed_ranks {
+            tos_compiler::search_rank_decode_workspace(budget.max_field_bytes)
+                .map_err(|_| error(SearchV2ErrorCode::BudgetExceeded, "rank decode workspace"))?
+        } else {
+            0
+        };
         let worst_bytes = field_bytes
             .checked_add(budget.max_payload_bytes as u64)
-            .and_then(|value| value.checked_add(80))
+            .and_then(|value| value.checked_add(80 + if packed_ranks { 34 } else { 0 }))
+            .and_then(|value| value.checked_add(rank_workspace as u64))
             .ok_or_else(|| {
                 error(
                     SearchV2ErrorCode::BudgetExceeded,
@@ -402,8 +416,8 @@ impl SearchCandidateModel for VerifiedKnowledgeModel<'_> {
              CASE WHEN typeof(d.predicate_id)='text' AND length(CAST(d.predicate_id AS BLOB))<=?3 THEN d.predicate_id END,
              CASE WHEN typeof(d.id_lower)='text' AND length(CAST(d.id_lower AS BLOB))<=?3 THEN d.id_lower END,
              CASE WHEN typeof(d.native_id_lower)='text' AND length(CAST(d.native_id_lower AS BLOB))<=?3 THEN d.native_id_lower END,
-             CASE WHEN typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3 THEN d.identity_values END,
-             CASE WHEN typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3 THEN d.visible_values END,
+             CASE WHEN ((typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3) OR (typeof(d.identity_values)='blob' AND length(d.identity_values)<=?3+17)) THEN d.identity_values END,
+             CASE WHEN ((typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3) OR (typeof(d.visible_values)='blob' AND length(d.visible_values)<=?3+17)) THEN d.visible_values END,
              CASE WHEN typeof(d.document_chars)='integer' AND d.document_chars>=0 AND d.document_chars<=?5 THEN d.document_chars END,
              CASE WHEN typeof(d.document_digest)='blob' AND length(d.document_digest)=32 THEN d.document_digest END,
              CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,
@@ -439,8 +453,8 @@ impl SearchCandidateModel for VerifiedKnowledgeModel<'_> {
                             row.get::<_, Option<String>>(3)?,
                             row.get::<_, Option<String>>(4)?,
                             row.get::<_, Option<String>>(5)?,
-                            row.get::<_, Option<String>>(6)?,
-                            row.get::<_, Option<String>>(7)?,
+                            row.get::<_, Option<rusqlite::types::Value>>(6)?,
+                            row.get::<_, Option<rusqlite::types::Value>>(7)?,
                             row.get::<_, Option<i64>>(8)?,
                             row.get::<_, Option<Vec<u8>>>(9)?,
                             row.get::<_, Option<i64>>(10)?,
@@ -521,6 +535,42 @@ impl SearchCandidateModel for VerifiedKnowledgeModel<'_> {
                 SearchV2ErrorCode::BudgetExceeded,
                 "selected candidate exceeds SQL pretransfer cap",
             ));
+        };
+        let (identity_values, visible_values) = if packed_ranks {
+            let rank_cap = tos_compiler::search_rank_decode_work_limit(budget.max_field_bytes)
+                .ok()
+                .and_then(|n| n.checked_mul(2))
+                .ok_or_else(|| error(SearchV2ErrorCode::BudgetExceeded, "rank decode work"))?;
+            let mut rank_work = 0;
+            let mut decode_rank = |value: &rusqlite::types::Value| {
+                tos_compiler::decode_search_rank_field(
+                    &self.selection().model_abi,
+                    rusqlite::types::ValueRef::from(value),
+                    budget.max_field_bytes,
+                    rank_workspace,
+                    &mut rank_work,
+                    rank_cap,
+                )
+                .map_err(|_| {
+                    error(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected rank field decode",
+                    )
+                })
+            };
+            let identity_values = decode_rank(&identity_values)?;
+            let visible_values = decode_rank(&visible_values)?;
+            (identity_values, visible_values)
+        } else {
+            match (identity_values, visible_values) {
+                (rusqlite::types::Value::Text(a), rusqlite::types::Value::Text(b)) => (a, b),
+                _ => {
+                    return Err(error(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "legacy search rank field type",
+                    ));
+                }
+            }
         };
         if payload.len() as i64 != payload_len {
             return Err(error(

@@ -12,7 +12,8 @@ use crate::{
     Error, Result,
     d1_public_capture::{CreationState, CreationStateHold},
     knowledge_posting_codec::{
-        MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block, encode_posting_block,
+        MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block,
+        decode_posting_block_v2, encode_posting_block, encode_posting_block_v2,
     },
     knowledge_stage::{KnowledgeStage, WritePhase},
 };
@@ -171,6 +172,8 @@ fn build_inner(
     limits: SearchBuildLimits,
 ) -> Result<SearchIndexReceipt> {
     limits.validate()?;
+    let run_length =
+        stage.payload_layout() == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4;
     let creation = stage.owned_creation_state();
     stage.with_connection(WritePhase::Search, |db| initialize_search_storage(db))?;
     let mut receipt = SearchIndexReceipt {
@@ -207,7 +210,7 @@ fn build_inner(
         loop {
             if page.len() == limits.gram_batch_rows {
                 stage.with_connection_checks(WritePhase::Search, |db, check| {
-                    write_document_page(
+                    write_document_page_with_codec(
                         db,
                         check,
                         &page,
@@ -216,6 +219,7 @@ fn build_inner(
                         limits,
                         &mut receipt,
                         creation,
+                        run_length,
                     )
                 })?;
                 log_search_progress(kind, &receipt, &mut next_progress_documents);
@@ -306,7 +310,7 @@ fn build_inner(
                     > limits.max_document_bytes
             {
                 stage.with_connection_checks(WritePhase::Search, |db, check| {
-                    write_document_page(
+                    write_document_page_with_codec(
                         db,
                         check,
                         &page,
@@ -315,6 +319,7 @@ fn build_inner(
                         limits,
                         &mut receipt,
                         creation,
+                        run_length,
                     )
                 })?;
                 log_search_progress(kind, &receipt, &mut next_progress_documents);
@@ -341,7 +346,7 @@ fn build_inner(
         }
         if !page.is_empty() {
             stage.with_connection_checks(WritePhase::Search, |db, check| {
-                write_document_page(
+                write_document_page_with_codec(
                     db,
                     check,
                     &page,
@@ -350,6 +355,7 @@ fn build_inner(
                     limits,
                     &mut receipt,
                     creation,
+                    run_length,
                 )
             })?;
             log_search_progress(kind, &receipt, &mut next_progress_documents);
@@ -375,7 +381,7 @@ fn build_inner(
             return Err(Error::Invalid("search normalized document coverage"));
         }
         stage.with_connection_checks(WritePhase::Search, |db, check| {
-            merge_ordered_kind(
+            merge_ordered_kind_with_codec(
                 db,
                 check,
                 kind,
@@ -385,6 +391,7 @@ fn build_inner(
                 receipt.postings - before_kind_postings,
                 &mut receipt.work_bytes,
                 creation,
+                run_length,
             )
         })?;
         stage.with_connection(WritePhase::Search, |db| {
@@ -401,7 +408,7 @@ fn build_inner(
         Ok(())
     })?;
     let (postings, distinct, root) = stage.with_connection(WritePhase::Search, |db| {
-        verify_and_root(db, &mut receipt, limits, creation)
+        verify_and_root(db, &mut receipt, limits, creation, run_length)
     })?;
     if postings != receipt.postings {
         return Err(Error::Invalid("search posting coverage"));
@@ -1200,6 +1207,7 @@ fn prepare_gram_offsets<'state, 'budget>(
     Ok((offsets, hold))
 }
 
+#[cfg(test)]
 fn write_document_page(
     db: &mut Connection,
     check: &dyn Fn() -> Result<()>,
@@ -1209,6 +1217,27 @@ fn write_document_page(
     limits: SearchBuildLimits,
     receipt: &mut SearchIndexReceipt,
     creation: Option<&CreationState<'_>>,
+) -> Result<()> {
+    limits.validate()?;
+    check()?;
+    if page.is_empty() || page.len() > limits.gram_batch_rows {
+        return Err(Error::Budget("search document page rows"));
+    }
+    write_document_page_with_codec(
+        db, check, page, kind, run_id, limits, receipt, creation, false,
+    )
+}
+
+fn write_document_page_with_codec(
+    db: &mut Connection,
+    check: &dyn Fn() -> Result<()>,
+    page: &[PreparedDocument<'_, '_>],
+    kind: &str,
+    run_id: i64,
+    limits: SearchBuildLimits,
+    receipt: &mut SearchIndexReceipt,
+    creation: Option<&CreationState<'_>>,
+    packed_ranks: bool,
 ) -> Result<()> {
     limits.validate()?;
     check()?;
@@ -1255,13 +1284,23 @@ fn write_document_page(
                 .ok_or(Error::Budget("search document row work"))?;
             creation.charge_work(row_bytes)?;
         }
-        transaction.execute(
+        crate::knowledge_search_rank::with_encoded_pair(
+            packed_ranks,
+            creation,
+            &doc.identity_values,
+            &doc.visible_values,
+            limits.max_rank_field_bytes,
+            |identity, visible| {
+                transaction.execute(
             "INSERT INTO search_documents(kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
             params![kind,row.position,row.id,row.source_graph,
                 if kind == "nodes" { row.term_id.as_str() } else { "" },
                 if kind == "relations" { row.term_id.as_str() } else { "" },
-                doc.id_lower,doc.native_id_lower,doc.identity_values,doc.visible_values,
+                doc.id_lower,doc.native_id_lower,identity,visible,
                 doc.chars as i64,doc.digest.as_bytes().as_slice()],
+        )?;
+                Ok(())
+            },
         )?;
         page_chars = page_chars
             .checked_add(doc.chars as u64)
@@ -1595,7 +1634,11 @@ fn insert_run_block(
     let _encoded_hold = creation
         .map(|owner| owner.hold(encoded_bytes))
         .transpose()?;
-    let (first, last, count, deltas) = encode_posting_block(positions)?;
+    charge(work, positions.len() * 24, limits)?;
+    if let Some(creation) = creation {
+        creation.charge_work(positions.len() * 24)?;
+    }
+    let (first, last, count, deltas) = encode_posting_block_v2(positions)?;
     let changed = db.execute(
         "INSERT INTO search_run_chunks(run_id,chunk_no,gram,first_position,last_position,postings,deltas) VALUES (?1,?2,?3,?4,?5,?6,?7)",
         params![run_id, i64::try_from(chunk_no).map_err(|_| Error::Budget("search run chunk number"))?,
@@ -1737,7 +1780,11 @@ impl RunReader {
         let positions_hold = creation
             .map(|owner| owner.hold(positions_bytes))
             .transpose()?;
-        let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
+        charge(work, positions_bytes, limits)?;
+        if let Some(owner) = creation {
+            owner.charge_work(positions_bytes)?;
+        }
+        let positions = decode_posting_block_v2(first as u64, last as u64, count as u16, &deltas)?;
         let block = RunBlock {
             gram: shape.gram,
             len: shape.len,
@@ -1894,6 +1941,7 @@ struct FinalBlock {
     end: usize,
 }
 struct FinalWriter {
+    run_length: bool,
     gram: Option<RunPosting>,
     positions: Vec<u64>,
     complete_until: usize,
@@ -1902,7 +1950,7 @@ struct FinalWriter {
 }
 
 impl FinalWriter {
-    fn new() -> Result<Self> {
+    fn new(run_length: bool) -> Result<Self> {
         let mut positions = Vec::new();
         positions
             .try_reserve_exact(MAX_GRAM_BATCH_ROWS)
@@ -1912,6 +1960,7 @@ impl FinalWriter {
             .try_reserve_exact(MAX_GRAM_BATCH_ROWS)
             .map_err(|_| Error::Budget("search final block page"))?;
         Ok(Self {
+            run_length,
             gram: None,
             positions,
             complete_until: 0,
@@ -1991,6 +2040,7 @@ impl FinalWriter {
                     &self.positions[block.start..block.end],
                     check,
                     creation,
+                    self.run_length,
                 )?)
                 .ok_or(Error::Budget("search ordered postings"))?;
         }
@@ -2022,6 +2072,7 @@ impl FinalWriter {
     }
 }
 
+#[cfg(test)]
 fn merge_ordered_kind(
     db: &mut Connection,
     check: &dyn Fn() -> Result<()>,
@@ -2032,6 +2083,23 @@ fn merge_ordered_kind(
     expected: u64,
     work: &mut u64,
     creation: Option<&CreationState<'_>>,
+) -> Result<()> {
+    merge_ordered_kind_with_codec(
+        db, check, kind, limits, first_run, run_count, expected, work, creation, false,
+    )
+}
+
+fn merge_ordered_kind_with_codec(
+    db: &mut Connection,
+    check: &dyn Fn() -> Result<()>,
+    kind: &str,
+    limits: SearchBuildLimits,
+    first_run: i64,
+    run_count: i64,
+    expected: u64,
+    work: &mut u64,
+    creation: Option<&CreationState<'_>>,
+    run_length: bool,
 ) -> Result<()> {
     if first_run < 0 || run_count < 0 {
         return Err(Error::Invalid("search run generation"));
@@ -2101,7 +2169,7 @@ fn merge_ordered_kind(
     let _final_writer_hold = creation
         .map(|owner| owner.hold(final_writer_bytes))
         .transpose()?;
-    let mut writer = FinalWriter::new()?;
+    let mut writer = FinalWriter::new(run_length)?;
     let copied = merge_group(
         db,
         check,
@@ -2159,11 +2227,16 @@ fn write_posting_block(
     positions: &[u64],
     check: &dyn Fn() -> Result<()>,
     creation: Option<&CreationState<'_>>,
+    run_length: bool,
 ) -> Result<u64> {
     check()?;
     let scan_bytes = positions
         .len()
-        .checked_mul(std::mem::size_of::<u64>())
+        .checked_mul(if run_length {
+            32
+        } else {
+            std::mem::size_of::<u64>()
+        })
         .ok_or(Error::Budget("search posting block work"))?;
     if let Some(creation) = creation {
         creation.charge_work(scan_bytes)?;
@@ -2183,7 +2256,11 @@ fn write_posting_block(
     let _encoded_hold = creation
         .map(|owner| owner.hold(encoded_bytes))
         .transpose()?;
-    let (first, last, count, deltas) = encode_posting_block(positions)?;
+    let (first, last, count, deltas) = if run_length {
+        encode_posting_block_v2(positions)?
+    } else {
+        encode_posting_block(positions)?
+    };
     let inserted = transaction.execute(
         "INSERT INTO search_posting_blocks(kind,n,gram,last_position,first_position,postings,deltas) VALUES (?1,3,?2,?3,?4,?5,?6)",
         params![kind, gram, last as i64, first as i64, i64::from(count), deltas],
@@ -2205,6 +2282,7 @@ fn verify_and_root(
     expected: &mut SearchIndexReceipt,
     limits: SearchBuildLimits,
     creation: Option<&CreationState<'_>>,
+    run_length: bool,
 ) -> Result<(u64, u64, String)> {
     let mut hash = Digest256Hasher::new();
     hash_field(&mut hash, b"tos-knowledge-search-posting-blocks-v1");
@@ -2291,7 +2369,11 @@ fn verify_and_root(
                         creation.charge_work(deltas.len().checked_add(positions_bytes)
                             .ok_or(Error::Budget("search root postings work"))?)?;
                     }
-                    let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
+                    if run_length {
+                        charge(&mut expected.work_bytes, positions_bytes, limits)?;
+                        if let Some(owner) = creation { owner.charge_work(positions_bytes)?; }
+                    }
+                    let positions = if run_length { decode_posting_block_v2(first as u64, last as u64, count as u16, &deltas)? } else { decode_posting_block(first as u64, last as u64, count as u16, &deltas)? };
                     if positions.iter().any(|position| *position >= document_positions[kind_index]) {
                         return Err(Error::Invalid("search root orphan posting"));
                     }

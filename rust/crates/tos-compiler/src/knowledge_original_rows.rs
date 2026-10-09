@@ -92,13 +92,17 @@ pub(crate) fn decode_packet_from_connection(
         || layout.packed_bytes() && codec::frame_metadata(stored, Some(declared), max_row_bytes)?.1;
     // Admit the worst dictionary (borrowed SQL plus owned copy) before looking
     // it up. Returned rows retain at most this extra 4 KiB of vector capacity.
-    let dictionary_state = if dictionary_frame {
-        2 * codec::DICTIONARY_BYTES
+    let dictionary_state =
+        if dictionary_frame {
+            2 * layout.dictionary_capacity()
+            + if layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4 {
+                codec::HEADER + 1 + codec::decoder_workspace_upper()?
+            } else { 0 }
             + tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound(
             )
-    } else {
-        0
-    };
+        } else {
+            0
+        };
     let decoder = if compressed {
         codec::decoder_workspace_upper()?
     } else {
@@ -108,7 +112,7 @@ pub(crate) fn decode_packet_from_connection(
         .checked_add(usize::from(compressed))
         .and_then(|n| {
             n.checked_add(if dictionary_frame {
-                codec::DICTIONARY_BYTES
+                layout.dictionary_capacity()
             } else {
                 0
             })
@@ -124,7 +128,13 @@ pub(crate) fn decode_packet_from_connection(
     let dictionary = if dictionary_frame {
         let db = db.ok_or(Error::Invalid("original dictionary connection absent"))?;
         let (_, digest) = codec::dictionary_frame_metadata(stored, Some(declared), max_row_bytes)?;
-        let sql = "SELECT CASE WHEN typeof(dictionary)='blob' AND length(dictionary) BETWEEN 1 AND 4096 THEN dictionary END FROM knowledge_byte_dictionaries WHERE dictionary_sha256=?1";
+        let packed_dictionary =
+            layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4;
+        let sql = if packed_dictionary {
+            "SELECT CASE WHEN typeof(dictionary)='blob' AND length(dictionary) BETWEEN 18 AND 32785 THEN dictionary END FROM knowledge_byte_dictionaries WHERE dictionary_sha256=?1"
+        } else {
+            "SELECT CASE WHEN typeof(dictionary)='blob' AND length(dictionary) BETWEEN 1 AND 4096 THEN dictionary END FROM knowledge_byte_dictionaries WHERE dictionary_sha256=?1"
+        };
         charge_decode_work(work, work_cap, sql.len() + 32)?;
         let mut statement = db.prepare(sql)?;
         let mut rows = statement.query([digest.as_bytes().as_slice()])?;
@@ -136,14 +146,29 @@ pub(crate) fn decode_packet_from_connection(
             .as_blob()
             .map_err(|_| Error::Invalid("original dictionary type/length"))?;
         charge_decode_work(work, work_cap, raw.len())?;
-        let mut owned = Vec::new();
-        owned
-            .try_reserve_exact(raw.len())
-            .map_err(|_| Error::Budget("original dictionary allocation"))?;
-        if owned.capacity() != raw.len() {
-            return Err(Error::Budget("original dictionary capacity"));
-        }
-        owned.extend_from_slice(raw);
+        let owned = if packed_dictionary {
+            let (length, _) = codec::frame_metadata(raw, None, layout.dictionary_capacity())?;
+            let available = length + 1 + codec::decoder_workspace_upper()?;
+            decode_packet(
+                raw,
+                length,
+                layout.dictionary_capacity(),
+                available,
+                crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2,
+                work,
+                work_cap,
+            )?
+        } else {
+            let mut owned = Vec::new();
+            owned
+                .try_reserve_exact(raw.len())
+                .map_err(|_| Error::Budget("original dictionary allocation"))?;
+            if owned.capacity() != raw.len() {
+                return Err(Error::Budget("original dictionary capacity"));
+            }
+            owned.extend_from_slice(raw);
+            owned
+        };
         if rows.next()?.is_some() {
             return Err(Error::Invalid("original dictionary duplicate"));
         }
@@ -238,7 +263,10 @@ pub(crate) fn read(
                 n.checked_add(crate::knowledge_byte_codec::decoder_workspace_upper().ok()?)
             })
             .and_then(|n| n.checked_add(if layout.dictionary_bytes() {
-                3 * crate::knowledge_byte_codec::DICTIONARY_BYTES
+                3 * layout.dictionary_capacity()
+                    + if layout == crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4 {
+                        crate::knowledge_byte_codec::HEADER + 1 + crate::knowledge_byte_codec::decoder_workspace_upper().ok()?
+                    } else { 0 }
                     + tos_source_store::PinnedBoundedStatement::owned_connection_rust_workspace_upper_bound()
             } else {0}))
             .ok_or(Error::Budget("original projection page decode state"))?;

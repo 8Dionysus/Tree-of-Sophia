@@ -645,7 +645,7 @@ fn with_whole_selected(
         tos_compiler::native_snapshot_manifest::RUNTIME_DATA_DECLARATION,
         isolation, limits, request.admission.whole().map_err(tos_compiler::Error::Invalid)?,
         false, false, owner_deadline, cancelled.as_ref(), deadline, budget, &mut usage,
-        tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3,
+        tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4,
         consume,
     )
     };

@@ -991,7 +991,9 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         max_vm_steps: u64,
         max_decoded_bytes: u64,
     ) -> Result<ControlledPostingPage> {
-        use crate::{MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block};
+        use crate::{
+            MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block_for_abi,
+        };
         self.check_pin()?;
         if gram.chars().count() != 3
             || gram.len() > 12
@@ -1104,8 +1106,16 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     let deltas: Vec<u8> = row
                         .get::<_, Option<Vec<u8>>>(5)?
                         .ok_or(Error::Invalid("controlled posting deltas"))?;
-                    let block =
-                        decode_posting_block(first as u64, last as u64, postings as u16, &deltas)?;
+                    if crate::search_rank_fields_packed(&self.selection.model_abi) {
+                        self.context.charge_work(postings as usize * 8)?;
+                    }
+                    let block = decode_posting_block_for_abi(
+                        &self.selection.model_abi,
+                        first as u64,
+                        last as u64,
+                        postings as u16,
+                        &deltas,
+                    )?;
                     previous_block_last = Some(last);
                     for position in block {
                         if after.is_some_and(|prior| position <= prior) {
@@ -1192,8 +1202,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(d.predicate_id)='text' AND length(CAST(d.predicate_id AS BLOB))<=?3 THEN d.predicate_id END,\
                  CASE WHEN typeof(d.id_lower)='text' AND length(CAST(d.id_lower AS BLOB))<=?3 THEN d.id_lower END,\
                  CASE WHEN typeof(d.native_id_lower)='text' AND length(CAST(d.native_id_lower AS BLOB))<=?3 THEN d.native_id_lower END,\
-                 CASE WHEN typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3 THEN d.identity_values END,\
-                 CASE WHEN typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3 THEN d.visible_values END,\
+                 CASE WHEN ((typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3) OR (typeof(d.identity_values)='blob' AND length(d.identity_values)<=?3+17)) THEN d.identity_values END,\
+                 CASE WHEN ((typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3) OR (typeof(d.visible_values)='blob' AND length(d.visible_values)<=?3+17)) THEN d.visible_values END,\
                  CASE WHEN typeof(d.document_chars)='integer' AND d.document_chars>=0 AND d.document_chars<=?5 THEN d.document_chars END,\
                  CASE WHEN typeof(d.document_digest)='blob' AND length(d.document_digest)=32 THEN d.document_digest END,\
                  CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,\
@@ -1208,8 +1218,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(d.kind_id)='text' AND length(CAST(d.kind_id AS BLOB))<=?3 THEN d.kind_id END,CASE WHEN typeof(d.predicate_id)='text' AND length(CAST(d.predicate_id AS BLOB))<=?3 THEN d.predicate_id END,\
                  CASE WHEN typeof(d.id_lower)='text' AND length(CAST(d.id_lower AS BLOB))<=?3 THEN d.id_lower END,\
                  CASE WHEN typeof(d.native_id_lower)='text' AND length(CAST(d.native_id_lower AS BLOB))<=?3 THEN d.native_id_lower END,\
-                 CASE WHEN typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3 THEN d.identity_values END,\
-                 CASE WHEN typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3 THEN d.visible_values END,\
+                 CASE WHEN ((typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3) OR (typeof(d.identity_values)='blob' AND length(d.identity_values)<=?3+17)) THEN d.identity_values END,\
+                 CASE WHEN ((typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3) OR (typeof(d.visible_values)='blob' AND length(d.visible_values)<=?3+17)) THEN d.visible_values END,\
                  CASE WHEN typeof(d.document_chars)='integer' AND d.document_chars>=0 AND d.document_chars<=?5 THEN d.document_chars END,\
                  CASE WHEN typeof(d.document_digest)='blob' AND length(d.document_digest)=32 THEN d.document_digest END,\
                  CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,\
@@ -1227,8 +1237,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(d.predicate_id)='text' AND length(CAST(d.predicate_id AS BLOB))<=?3 THEN d.predicate_id END,\
                  CASE WHEN typeof(d.id_lower)='text' AND length(CAST(d.id_lower AS BLOB))<=?3 THEN d.id_lower END,\
                  CASE WHEN typeof(d.native_id_lower)='text' AND length(CAST(d.native_id_lower AS BLOB))<=?3 THEN d.native_id_lower END,\
-                 CASE WHEN typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3 THEN d.identity_values END,\
-                 CASE WHEN typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3 THEN d.visible_values END,\
+                 CASE WHEN ((typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3) OR (typeof(d.identity_values)='blob' AND length(d.identity_values)<=?3+17)) THEN d.identity_values END,\
+                 CASE WHEN ((typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3) OR (typeof(d.visible_values)='blob' AND length(d.visible_values)<=?3+17)) THEN d.visible_values END,\
                  CASE WHEN typeof(d.document_chars)='integer' AND d.document_chars>=0 AND d.document_chars<=?5 THEN d.document_chars END,\
                  CASE WHEN typeof(d.document_digest)='blob' AND length(d.document_digest)=32 THEN d.document_digest END,\
                  CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,\
@@ -1250,8 +1260,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                  CASE WHEN typeof(d.kind_id)='text' AND length(CAST(d.kind_id AS BLOB))<=?3 THEN d.kind_id END,CASE WHEN typeof(d.predicate_id)='text' AND length(CAST(d.predicate_id AS BLOB))<=?3 THEN d.predicate_id END,\
                  CASE WHEN typeof(d.id_lower)='text' AND length(CAST(d.id_lower AS BLOB))<=?3 THEN d.id_lower END,\
                  CASE WHEN typeof(d.native_id_lower)='text' AND length(CAST(d.native_id_lower AS BLOB))<=?3 THEN d.native_id_lower END,\
-                 CASE WHEN typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3 THEN d.identity_values END,\
-                 CASE WHEN typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3 THEN d.visible_values END,\
+                 CASE WHEN ((typeof(d.identity_values)='text' AND length(CAST(d.identity_values AS BLOB))<=?3) OR (typeof(d.identity_values)='blob' AND length(d.identity_values)<=?3+17)) THEN d.identity_values END,\
+                 CASE WHEN ((typeof(d.visible_values)='text' AND length(CAST(d.visible_values AS BLOB))<=?3) OR (typeof(d.visible_values)='blob' AND length(d.visible_values)<=?3+17)) THEN d.visible_values END,\
                  CASE WHEN typeof(d.document_chars)='integer' AND d.document_chars>=0 AND d.document_chars<=?5 THEN d.document_chars END,\
                  CASE WHEN typeof(d.document_digest)='blob' AND length(d.document_digest)=32 THEN d.document_digest END,\
                  CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,\
@@ -1272,9 +1282,14 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         } else {
             sql_inline
         };
+        let packed_rank_overhead = if crate::search_rank_fields_packed(&self.selection.model_abi) {
+            34
+        } else {
+            0
+        };
         let required_hold = usize::try_from(max_decoded_bytes)
             .map_err(|_| Error::Budget("controlled candidate workspace"))?
-            .checked_add(std::mem::size_of::<ControlledSearchCandidate>())
+            .checked_add(std::mem::size_of::<ControlledSearchCandidate>() + packed_rank_overhead)
             .and_then(|n| n.checked_add(field_floor as usize))
             .ok_or(Error::Budget("controlled candidate workspace"))?;
         let _hold = self.context.owned_state().hold(required_hold)?;
@@ -1301,8 +1316,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                                 row.get::<_, Option<String>>(3)?,
                                 row.get::<_, Option<String>>(4)?,
                                 row.get::<_, Option<String>>(5)?,
-                                row.get::<_, Option<String>>(6)?,
-                                row.get::<_, Option<String>>(7)?,
+                                row.get::<_, Option<rusqlite::types::Value>>(6)?,
+                                row.get::<_, Option<rusqlite::types::Value>>(7)?,
                                 row.get::<_, Option<i64>>(8)?,
                                 row.get::<_, Option<Vec<u8>>>(9)?,
                                 row.get::<_, Option<i64>>(10)?,
@@ -1347,6 +1362,21 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
         else {
             return Err(Error::Budget("controlled candidate SQL pretransfer cap"));
         };
+        let (identity_values, visible_values) =
+            if crate::search_rank_fields_packed(&self.selection.model_abi) {
+                crate::knowledge_search_rank::decode_pair_owned(
+                    &self.selection.model_abi,
+                    rusqlite::types::ValueRef::from(&identity_values),
+                    rusqlite::types::ValueRef::from(&visible_values),
+                    max_field_bytes,
+                    self.context.owned_state(),
+                )?
+            } else {
+                match (identity_values, visible_values) {
+                    (rusqlite::types::Value::Text(a), rusqlite::types::Value::Text(b)) => (a, b),
+                    _ => return Err(Error::Invalid("legacy search rank field type")),
+                }
+            };
         if logical_len < 0
             || document_chars < 0
             || physical.is_empty()

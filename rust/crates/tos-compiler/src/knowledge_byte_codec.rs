@@ -291,6 +291,7 @@ pub(crate) fn with_decoded<T>(
 // V3 adds an explicitly selected, content-addressed preset dictionary. V2
 // frames remain valid inside V3; a V2 consumer still rejects this new magic.
 pub(crate) const DICTIONARY_BYTES: usize = 4096;
+pub(crate) const DICTIONARY_WINDOW_BYTES: usize = 32768;
 const DICTIONARY_MAGIC: &[u8; 8] = b"TOSBYT3\0";
 const DICTIONARY_HEADER: usize = HEADER + 32;
 
@@ -342,12 +343,15 @@ pub(crate) fn with_dictionary_encoded<T>(
     if raw.is_empty()
         || raw.len() > max_bytes
         || dictionary.as_bytes().is_empty()
-        || dictionary.as_bytes().len() > DICTIONARY_BYTES
+        || dictionary.as_bytes().len() > DICTIONARY_WINDOW_BYTES
     {
         return Err(Error::Budget("dictionary encoder input"));
     }
     let cap = stored_bound(raw.len())?;
-    let workspace = add(encoder_workspace_upper()?, CHUNK + 2 * DICTIONARY_BYTES)?;
+    let workspace = add(
+        encoder_workspace_upper()?,
+        CHUNK + 2 * dictionary.as_bytes().len(),
+    )?;
     let _hold = state.hold(add(
         add(add(workspace, cap)?, std::mem::size_of_val(&dictionary))?,
         std::mem::size_of_val(&consume),
@@ -389,7 +393,7 @@ fn encode_verified_dictionary_into(
     checkpoint(0)?;
     if raw.is_empty()
         || dictionary.is_empty()
-        || dictionary.len() > DICTIONARY_BYTES
+        || dictionary.len() > DICTIONARY_WINDOW_BYTES
         || output.len() != stored_bound(raw.len())?
     {
         return Err(Error::Invalid("dictionary encoder admission"));

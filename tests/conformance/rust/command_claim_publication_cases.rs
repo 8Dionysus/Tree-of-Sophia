@@ -247,6 +247,8 @@ fn unpack_claim_fixture_capture(provenance: &Value, capture_name: &str, destinat
                 .components()
                 .all(|component| matches!(component, std::path::Component::Normal(_)))
         );
+        // tar preserves the directory marker; the manifest records path components.
+        let relative: PathBuf = relative.components().collect();
         let relative_text = relative.to_str().expect("captured UTF-8 member path");
         let expected_member = expected
             .get(relative_text)

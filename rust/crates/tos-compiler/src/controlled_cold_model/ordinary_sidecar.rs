@@ -613,6 +613,13 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     if actual < 0 || actual as u64 != position || chars < 0 || chars > 8_000_000 {
                         return Err(Error::Invalid("sidecar source document coverage/size"));
                     }
+                    let (identity, visible) = crate::knowledge_search_rank::decode_pair_owned(
+                        &self.selection.model_abi,
+                        row.get_ref(8)?,
+                        row.get_ref(9)?,
+                        8_000_000,
+                        state,
+                    )?;
                     let values = [
                         row.get_ref(0)?,
                         row.get_ref(1)?,
@@ -622,8 +629,8 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                         row.get_ref(5)?,
                         row.get_ref(6)?,
                         row.get_ref(7)?,
-                        row.get_ref(8)?,
-                        row.get_ref(9)?,
+                        rusqlite::types::ValueRef::Text(identity.as_bytes()),
+                        rusqlite::types::ValueRef::Text(visible.as_bytes()),
                         row.get_ref(10)?,
                         row.get_ref(11)?,
                     ];
@@ -679,7 +686,11 @@ impl ControlledKnowledgeModel<'_, '_, '_> {
                     return Err(Error::Budget("sidecar rebuild posting count"));
                 }
                 state.charge_work(kind.len() + gram.len() + deltas.len() + 24)?;
-                let positions = crate::decode_posting_block(
+                if crate::search_rank_fields_packed(&self.selection.model_abi) {
+                    state.charge_work(count as usize * 8)?;
+                }
+                let positions = crate::decode_posting_block_for_abi(
+                    &self.selection.model_abi,
                     first as u64,
                     last as u64,
                     postings as u16,

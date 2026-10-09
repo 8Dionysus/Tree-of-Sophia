@@ -35,25 +35,28 @@ particular selected dataset has passed construction, publication or restore.
 ## Native snapshot byte format
 
 New complete native snapshots select
-`tos_knowledge_read_model_v5_postings_v1_carrier_once_v3`. Exact source packets
+`tos_knowledge_read_model_v5_postings_v2_carrier_once_v4`. Exact source packets
 are retained once in `knowledge_source_carriers`; normalized rows reference
 those logical bytes where their codec permits exact reconstruction. Identity,
 ordering and current rights remain properties of each row and its source.
 Sharing byte storage does not share authority.
 
 Source packets and normalized payloads use bounded physical frames from
-`knowledge_byte_codec.rs`. V3 stores a SHA-256-addressed dictionary once in
-`knowledge_byte_dictionaries` and uses raw deflate for dictionary frames.
-A dictionary contains at most 4 KiB from the first 32 packets of one producer
-family. Its preparation state belongs to TEMP and ends with normalization.
-Stage owns the physical overhead for every insert and replacement: framing,
-pending dictionary selection and published dictionary bytes. Data-row/page
-allowances stay separate from this overhead, and their combined reservation
-must fit the unchanged physical page ceiling. Source-family producers use the
-same Stage pricing, including tiny packets collected over several pages.
-The sealed dictionary never changes. Short and early packets retain V2 raw or
-zlib frames; frame selection cannot exceed the original logical-length-plus-17
-storage bound. Dictionary bytes do not own source identity, rights or membership.
+`knowledge_byte_codec.rs`. V4 retains immutable SHA-256-addressed dictionaries
+in `knowledge_byte_dictionaries`. Each producer family gathers at most 32 KiB
+from its first 32 packets, seals that dictionary, and starts a new group after
+256 packets. Retained dictionaries use V2 frames; payload frames use raw deflate
+with the selected dictionary. Dictionary hashes describe decoded bytes.
+Preparation state belongs to TEMP and ends with normalization. Stage accounts
+for framing, pending selection and published dictionaries within the existing
+physical ceiling. Short and early packets retain V2 raw or zlib frames; every
+payload remains within its logical-length-plus-17 storage bound.
+
+V4 also stores rank JSON as bounded V2 frames and uses canonical posting runs
+when repeated deltas are strictly smaller than the previous delta encoding.
+Decoded rank strings, positions, ordering and exact source bytes are unchanged.
+Native readers choose these formats by authenticated ABI. D1 and ordinary SQL
+sidecars decode rank fields and postings into their existing public format.
 
 Logical lengths and SHA-256 values describe exact decoded bytes. Readers select
 the physical format from the authenticated model ABI, resolve dictionary hashes
@@ -84,10 +87,11 @@ codec work. A checked walk tightens the existing bound to the returned value;
 scoped and persistent decoding share this transfer, without a new allowance or
 resetting work, JSON visits, deadline or cancellation.
 
-The previous CarrierOnce V1 and V2 ABIs retain their raw and framed readers,
-original indexes and exact DDL checks. Explicit V2 construction remains available.
-Older inline ABIs retain their original readers. A V3 frame is accepted only under
-V3; byte patterns never upgrade an older selected ABI. The new ABI is shared through
+The previous CarrierOnce V1, V2 and V3 ABIs retain their raw, framed and
+4 KiB dictionary readers, original indexes and exact DDL checks. Explicit V2
+and V3 construction remains available. Older inline ABIs retain their readers.
+V4 dictionary storage, packed ranks and posting runs require the V4 ABI; byte
+patterns never upgrade an older selected ABI. The new ABI is shared through
 `tos-foundation` with native and WASM consumers; complete dataset construction,
 cold opening and restore require their own execution evidence.
 

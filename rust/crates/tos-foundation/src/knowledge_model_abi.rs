@@ -12,11 +12,13 @@ pub const KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2: &str =
     "tos_knowledge_read_model_v5_postings_v1_carrier_once_v2";
 pub const KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3: &str =
     "tos_knowledge_read_model_v5_postings_v1_carrier_once_v3";
+pub const KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4: &str =
+    "tos_knowledge_read_model_v5_postings_v2_carrier_once_v4";
 pub const KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1: &str = "tos_knowledge_read_model_v6_postings_v1";
 
 /// Only the current compressed-posting selected format. Distinct versions
 /// still require their own component/source-basis checks at cold admission.
-pub const KNOWLEDGE_POSTINGS_MODEL_ABIS: [&str; 8] = [
+pub const KNOWLEDGE_POSTINGS_MODEL_ABIS: [&str; 9] = [
     KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1,
     KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1,
     KNOWLEDGE_MODEL_ABI_V4_POSTINGS_V1,
@@ -25,4 +27,5 @@ pub const KNOWLEDGE_POSTINGS_MODEL_ABIS: [&str; 8] = [
     KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
     KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
     KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3,
+    KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4,
 ];

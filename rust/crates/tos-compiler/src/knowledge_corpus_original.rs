@@ -1383,6 +1383,7 @@ pub(crate) fn verify(
                 KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
                 tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
                 tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3,
             ]
             .contains(&e.model_abi.as_str()))
     {
@@ -1860,6 +1861,7 @@ pub(crate) fn verify_with_owned_state(
                 KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
                 tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
                 tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3,
             ]
             .contains(&e.model_abi.as_str()))
     {

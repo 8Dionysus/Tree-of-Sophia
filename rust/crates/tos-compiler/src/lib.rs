@@ -98,6 +98,7 @@ pub use knowledge_philosophy_original::{
 };
 pub use knowledge_posting_codec::{
     MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block,
+    decode_posting_block_for_abi,
 };
 mod knowledge_navigation_original;
 pub use knowledge_navigation_original::{
@@ -124,6 +125,11 @@ pub mod knowledge_repository_source;
 mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
+mod knowledge_search_rank;
+pub use knowledge_search_rank::{
+    decode_search_rank_field, search_rank_decode_work_limit, search_rank_decode_workspace,
+    search_rank_field_size, search_rank_fields_packed,
+};
 mod knowledge_selected;
 pub use controlled_cold_model::{
     ControlledCarrierSelection, ControlledGramStat, ControlledKnowledgeModel,

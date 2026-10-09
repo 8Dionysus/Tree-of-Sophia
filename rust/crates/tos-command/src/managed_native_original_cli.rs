@@ -4260,7 +4260,7 @@ fn execute(mut request: Request) -> Result<Value> {
     if source_bytes > manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES {
         return Err(Refusal("native source closure byte ceiling").into());
     }
-    let payload_layout = tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3;
+    let payload_layout = tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4;
     let model_abi = payload_layout
         .carrier_model_abi()
         .ok_or(Refusal("native producer model ABI absent"))?;
@@ -4725,7 +4725,7 @@ fn execute(mut request: Request) -> Result<Value> {
                     "writer_temp_max_file_bytes",
                     json!(limits.stage.max_temp_bytes),
                 ),
-                ("payload_layout", json!("CarrierOnceV3")),
+                ("payload_layout", json!("CarrierOnceV4")),
                 (
                     "persistent_write_cap_bytes",
                     json!(request.persistent_write_cap_bytes),

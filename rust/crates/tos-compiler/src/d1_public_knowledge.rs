@@ -9,7 +9,7 @@ use crate::{
     d1_public_lens::{LensCounts, emit_lens_auxiliary},
     d1_public_rows::{encoded, lower_search, portable, preflight_large_fields},
     d1_public_sql::{MAX_ROW_VALUE_BYTES, SqlSink, bounded_decimal, chunks, quote, quote_len},
-    knowledge_posting_codec::{MAX_POSTING_DELTA_BYTES, decode_posting_block},
+    knowledge_posting_codec::{MAX_POSTING_DELTA_BYTES, decode_posting_block_for_abi},
     knowledge_search::{SearchBuildLimits, SourceRow, document, document_with_state},
     knowledge_stage::{KnowledgeStage, WritePhase},
 };
@@ -915,6 +915,10 @@ fn emit_search(
     sink: &mut SqlSink,
     counts: &mut KnowledgeSqlCounts,
 ) -> Result<()> {
+    let abi = stage
+        .payload_layout()
+        .carrier_model_abi()
+        .unwrap_or(tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1);
     let creation = stage.owned_creation_state();
     stage.with_connection(WritePhase::Search, |db| {
         let mut documents = db.prepare("SELECT kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest FROM search_documents ORDER BY kind,position")?;
@@ -922,7 +926,12 @@ fn emit_search(
         while let Some(row) = rows.next()? {
             let _row_hold = sql_row_hold(creation, row, std::mem::size_of::<Vec<String>>() + 10 * std::mem::size_of::<String>())?;
             let kind:String=row.get(0)?; let position:i64=row.get(1)?;
-            let fields:Vec<String> = (2..10).map(|column|row.get(column)).collect::<std::result::Result<_,_>>()?;
+            let mut fields:Vec<String> = (2..8).map(|column|row.get(column)).collect::<std::result::Result<_,_>>()?;
+            let (identity, visible) = if crate::search_rank_fields_packed(abi) {
+                let state = creation.ok_or(Error::Budget("D1 packed rank decode requires owned creation"))?;
+                crate::knowledge_search_rank::decode_pair_owned(abi, row.get_ref(8)?, row.get_ref(9)?, 8_000_000, state)?
+            } else { (row.get::<_, String>(8)?, row.get::<_, String>(9)?) };
+            fields.push(identity); fields.push(visible);
             let chars:i64=row.get(10)?; let digest:Vec<u8>=row.get(11)?;
             if chars<0 || digest.len()!=32 {return Err(Error::Invalid("public D1 search document"));}
             capture.charge_work(fields.iter().map(String::len).sum::<usize>() as u64)?;
@@ -950,7 +959,8 @@ fn emit_search(
             if n!=3 || first<0 || last<0 || count<1 || count>256 {return Err(Error::Invalid("public D1 posting block"));}
             let deltas=deltas.ok_or(Error::Budget("public D1 posting block bytes"))?;
             capture.charge_work((gram.len()+deltas.len()) as u64)?;
-            let positions=decode_posting_block(first as u64,last as u64,count as u16,&deltas)?;
+            if crate::search_rank_fields_packed(abi) { capture.charge_work(count as u64 * 8)?; }
+            let positions=decode_posting_block_for_abi(abi,first as u64,last as u64,count as u16,&deltas)?;
             capture.charge_work((positions.len()*8) as u64)?;
             let gram_text=std::str::from_utf8(&gram).map_err(|_|Error::Invalid("public D1 gram UTF-8"))?;
             if gram_text.chars().count()!=3 {return Err(Error::Invalid("public D1 gram width"));}

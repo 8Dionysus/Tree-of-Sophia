@@ -1,7 +1,9 @@
 //! Physical byte dictionaries owned by the selected V3 model. They do not
 //! identify sources or share row authority. Readers resolve only a frame's
 //! exact digest from the same held SQLite connection and original budget.
-use crate::knowledge_byte_codec::DICTIONARY_BYTES;
+use crate::knowledge_byte_codec::{DICTIONARY_BYTES, DICTIONARY_WINDOW_BYTES};
+use crate::knowledge_stage::KnowledgePayloadLayout;
+mod v4;
 use crate::{
     Error, Result,
     d1_public_capture::{CreationState, CreationStateHold},
@@ -33,7 +35,7 @@ impl<'a> VerifiedDictionary<'a> {
         bytes: &'a [u8],
         mut checkpoint: impl FnMut(usize) -> Result<()>,
     ) -> Result<Self> {
-        if bytes.is_empty() || bytes.len() > DICTIONARY_BYTES {
+        if bytes.is_empty() || bytes.len() > DICTIONARY_WINDOW_BYTES {
             return Err(Error::Invalid("byte dictionary length"));
         }
         checkpoint(bytes.len())?;
@@ -75,12 +77,18 @@ fn sql_error(e: tos_source_store::StoreError) -> Error {
     }
 }
 fn allocate<'s, 'b>(state: &'s CreationState<'b>) -> Result<OwnedDictionary<'s, 'b>> {
-    let hold = state.hold(DICTIONARY_BYTES + std::mem::size_of::<OwnedDictionary<'s, 'b>>())?;
+    allocate_with_capacity(state, DICTIONARY_BYTES)
+}
+fn allocate_with_capacity<'s, 'b>(
+    state: &'s CreationState<'b>,
+    capacity: usize,
+) -> Result<OwnedDictionary<'s, 'b>> {
+    let hold = state.hold(capacity + std::mem::size_of::<OwnedDictionary<'s, 'b>>())?;
     let mut bytes = Vec::new();
     bytes
-        .try_reserve_exact(DICTIONARY_BYTES)
+        .try_reserve_exact(capacity)
         .map_err(|_| Error::Budget("byte dictionary allocation"))?;
-    if bytes.capacity() != DICTIONARY_BYTES {
+    if bytes.capacity() != capacity {
         return Err(Error::Budget("byte dictionary capacity"));
     }
     Ok(OwnedDictionary {
@@ -228,5 +236,56 @@ pub(crate) fn prepare<'s, 'b>(
             u64::from(samples == 0),
             (owned.bytes.len() + kind.len() + graph.len() + 128) as u64,
         ))
+    }
+}
+
+pub(crate) fn ddl(layout: KnowledgePayloadLayout) -> &'static str {
+    if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+        v4::DDL
+    } else {
+        DDL
+    }
+}
+pub(crate) fn preparation_schema(
+    layout: KnowledgePayloadLayout,
+) -> crate::knowledge_stage::PreparationSchema {
+    if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+        v4::PREPARATION_SCHEMA
+    } else {
+        PREPARATION_SCHEMA
+    }
+}
+pub(crate) fn write_bytes(layout: KnowledgePayloadLayout) -> usize {
+    if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+        v4::MAX_WRITE_BYTES
+    } else {
+        MAX_WRITE_BYTES
+    }
+}
+pub(crate) fn read_selected<'s, 'b>(
+    db: &Connection,
+    state: &'s CreationState<'b>,
+    stored: &[u8],
+    max_bytes: usize,
+    layout: KnowledgePayloadLayout,
+) -> Result<Option<OwnedDictionary<'s, 'b>>> {
+    if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+        v4::read(db, state, stored, max_bytes)
+    } else {
+        read(db, state, stored, max_bytes)
+    }
+}
+pub(crate) fn prepare_selected<'s, 'b>(
+    db: &Connection,
+    state: &'s CreationState<'b>,
+    kind: &str,
+    graph: &str,
+    raw: &[u8],
+    layout: KnowledgePayloadLayout,
+) -> Result<(Option<OwnedDictionary<'s, 'b>>, u64, u64)> {
+    if layout == KnowledgePayloadLayout::CarrierOnceV4 {
+        v4::prepare(db, state, kind, graph, raw)
+    } else {
+        prepare(db, state, kind, graph, raw)
     }
 }

@@ -3,7 +3,7 @@
 //! independent owner obligations. No model path is reopened after admission.
 
 use crate::{
-    Error, MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, Result, decode_posting_block,
+    Error, MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, Result, decode_posting_block_for_abi,
     knowledge_stage, safe_open, stream_digest,
 };
 use rusqlite::{Connection, OptionalExtension, params};
@@ -540,7 +540,8 @@ pub(crate) fn validate(
         (
             crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI
             | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1
-            | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2
+            | tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3,
             Some(nav),
             Some(phi),
             Some(corpus),
@@ -2811,7 +2812,7 @@ pub(crate) fn verify_schema_with_layout(
             db,
             "knowledge_byte_dictionaries",
             None,
-            Some(crate::knowledge_byte_dictionary::DDL.trim_end_matches(';')),
+            Some(crate::knowledge_byte_dictionary::ddl(layout).trim_end_matches(';')),
             state,
         )?;
         owned_schema_columns(
@@ -3095,8 +3096,8 @@ fn scan_core_with_owned_context(
     let sql=match (nodes,layout) {
         (true,knowledge_stage::KnowledgePayloadLayout::InlineV1)=>c"SELECT id,source_graph,source_order,payload_len,payload_sha256,payload,0,NULL,NULL,NULL FROM knowledge_nodes ORDER BY source_order",
         (false,knowledge_stage::KnowledgePayloadLayout::InlineV1)=>c"SELECT id,source_graph,source_order,payload_len,payload_sha256,payload,0,NULL,NULL,NULL FROM knowledge_relations ORDER BY source_order",
-        (true,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_nodes n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
-        (false,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_relations n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
+        (true,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_nodes n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
+        (false,knowledge_stage::KnowledgePayloadLayout::CarrierOnceV1 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV3 | knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4)=>c"SELECT n.id,n.source_graph,n.source_order,n.payload_len,n.payload_sha256,n.payload,n.payload_codec,n.source_packet_sha256,c.packet_len,c.packet FROM knowledge_relations n LEFT JOIN knowledge_source_carriers c ON c.packet_sha256=n.source_packet_sha256 ORDER BY n.source_order",
     };
     let mut count = 0u64;
     let mut source_index = 0usize;
@@ -3874,8 +3875,8 @@ fn verify_search_inner(
          CASE WHEN typeof(predicate_id)='text' AND length(CAST(predicate_id AS BLOB))<=?2 THEN predicate_id ELSE NULL END,
          CASE WHEN typeof(id_lower)='text' AND length(CAST(id_lower AS BLOB))<=?1 THEN id_lower ELSE NULL END,
          CASE WHEN typeof(native_id_lower)='text' AND length(CAST(native_id_lower AS BLOB))<=?1 THEN native_id_lower ELSE NULL END,
-         CASE WHEN typeof(identity_values)='text' AND length(CAST(identity_values AS BLOB))<=?1 THEN identity_values ELSE NULL END,
-         CASE WHEN typeof(visible_values)='text' AND length(CAST(visible_values AS BLOB))<=?1 THEN visible_values ELSE NULL END,
+         CASE WHEN ((typeof(identity_values)='text' AND length(CAST(identity_values AS BLOB))<=?1) OR (typeof(identity_values)='blob' AND length(identity_values)<=?1+17)) THEN identity_values ELSE NULL END,
+         CASE WHEN ((typeof(visible_values)='text' AND length(CAST(visible_values AS BLOB))<=?1) OR (typeof(visible_values)='blob' AND length(visible_values)<=?1+17)) THEN visible_values ELSE NULL END,
          document_chars,CASE WHEN typeof(document_digest)='blob' AND length(document_digest)=32 THEN document_digest ELSE NULL END FROM search_documents ORDER BY kind,position"
     )?;
     let mut doc_rows = doc_statement.query(params![
@@ -3924,8 +3925,55 @@ fn verify_search_inner(
             .ok_or(Error::Budget("knowledge search predicate ID bytes"))?;
         let id_lower: Option<String> = row.get(6)?;
         let native_lower: Option<String> = row.get(7)?;
-        let identity: Option<String> = row.get(8)?;
-        let visible: Option<String> = row.get(9)?;
+        let (identity, visible) = if crate::search_rank_fields_packed(&expected.model_abi) {
+            let identity_raw = row.get_ref(8)?;
+            let visible_raw = row.get_ref(9)?;
+            let rank_a = crate::search_rank_field_size(
+                &expected.model_abi,
+                identity_raw,
+                limits.max_row_bytes,
+            )?;
+            let rank_b = crate::search_rank_field_size(
+                &expected.model_abi,
+                visible_raw,
+                limits.max_row_bytes,
+            )?;
+            let workspace = crate::search_rank_decode_workspace(rank_a.max(rank_b))?;
+            let _rank_hold = context
+                .map(|context| context.owned_state().hold(workspace))
+                .transpose()?;
+            let rank_work = crate::search_rank_decode_work_limit(
+                rank_a
+                    .checked_add(rank_b)
+                    .ok_or(Error::Budget("cold rank work"))?,
+            )?;
+            owned_search_charge(
+                work,
+                usize::try_from(rank_work).map_err(|_| Error::Budget("cold rank work"))?,
+                limits.max_work_bytes,
+                context,
+            )?;
+            let mut decode_work = 0;
+            let identity = crate::decode_search_rank_field(
+                &expected.model_abi,
+                identity_raw,
+                limits.max_row_bytes,
+                workspace,
+                &mut decode_work,
+                rank_work,
+            )?;
+            let visible = crate::decode_search_rank_field(
+                &expected.model_abi,
+                visible_raw,
+                limits.max_row_bytes,
+                workspace,
+                &mut decode_work,
+                rank_work,
+            )?;
+            (identity, visible)
+        } else {
+            (row.get::<_, String>(8)?, row.get::<_, String>(9)?)
+        };
         let chars: i64 = row.get(10)?;
         let digest: Vec<u8> = row
             .get::<_, Option<Vec<u8>>>(11)?
@@ -3933,8 +3981,8 @@ fn verify_search_inner(
         let (id_lower, native_lower, identity, visible) = (
             id_lower.ok_or(Error::Budget("knowledge search lower ID bytes"))?,
             native_lower.ok_or(Error::Budget("knowledge search native lower bytes"))?,
-            identity.ok_or(Error::Budget("knowledge search identity bytes"))?,
-            visible.ok_or(Error::Budget("knowledge search visible bytes"))?,
+            identity,
+            visible,
         );
         if id.is_empty()
             || id.len() > limits.max_row_bytes
@@ -4059,7 +4107,16 @@ fn verify_search_inner(
         {
             return Err(Error::Invalid("knowledge gram block shape"));
         }
-        let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
+        if crate::search_rank_fields_packed(&expected.model_abi) {
+            owned_search_charge(work, count as usize * 8, limits.max_work_bytes, context)?;
+        }
+        let positions = decode_posting_block_for_abi(
+            &expected.model_abi,
+            first as u64,
+            last as u64,
+            count as u16,
+            &deltas,
+        )?;
         owned_search_charge(work, positions.len() * 8, limits.max_work_bytes, context)?;
         if positions.iter().any(|position| *position >= documents[k]) {
             return Err(Error::Invalid("knowledge gram block orphan"));
