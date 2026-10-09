@@ -414,7 +414,7 @@ fn page_owner_ocr_fixture(repository: &Path, root: &Path) -> OwnerOCRFixture {
         let mut record = serde_json::json!({
             "schema_version":"tos_corpus_record_v1",
             "record_type":kind,
-            "record_id":ids[kind.as_str()],
+            "record_id":ids[*kind],
             "preferred_label":PAGE_OCR_NOTICE,
             "identity_status":"provisional",
             "source_refs":[policy_ref],
