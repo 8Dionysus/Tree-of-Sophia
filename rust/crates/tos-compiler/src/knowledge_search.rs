@@ -29,6 +29,7 @@ use tos_foundation::{
 pub const SEARCH_PROFILE: &str = "tos-python-native-unicode-v1";
 const GRAM_N: i64 = 3;
 const MAX_GRAM_BATCH_ROWS: usize = 1024;
+const SEARCH_PROGRESS_DOCUMENTS: u64 = 4096;
 
 #[derive(Clone, Copy, Debug)]
 pub struct SearchBuildLimits {
@@ -187,6 +188,7 @@ fn build_inner(
         ("relations", "knowledge_relations"),
     ] {
         let mut after = -1i64;
+        let mut next_progress_documents = SEARCH_PROGRESS_DOCUMENTS;
         let before_kind_postings = receipt.postings;
         let _page_hold = if let Some(creation) = creation {
             let bytes = limits
@@ -216,6 +218,7 @@ fn build_inner(
                         creation,
                     )
                 })?;
+                log_search_progress(kind, &receipt, &mut next_progress_documents);
                 run_count = run_count
                     .checked_add(1)
                     .ok_or(Error::Budget("search run id"))?;
@@ -314,6 +317,7 @@ fn build_inner(
                         creation,
                     )
                 })?;
+                log_search_progress(kind, &receipt, &mut next_progress_documents);
                 run_count = run_count
                     .checked_add(1)
                     .ok_or(Error::Budget("search run id"))?;
@@ -348,6 +352,7 @@ fn build_inner(
                     creation,
                 )
             })?;
+            log_search_progress(kind, &receipt, &mut next_progress_documents);
             run_count = run_count
                 .checked_add(1)
                 .ok_or(Error::Budget("search run id"))?;
@@ -406,6 +411,30 @@ fn build_inner(
     Ok(receipt)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn log_search_progress(
+    kind: &str,
+    receipt: &SearchIndexReceipt,
+    next_progress_documents: &mut u64,
+) {
+    let documents = if kind == "nodes" {
+        receipt.node_documents
+    } else {
+        receipt.relation_documents
+    };
+    if documents >= *next_progress_documents {
+        eprintln!(
+            "Native search progress kind={kind} documents={documents} postings={} document_chars={} work_bytes={}",
+            receipt.postings, receipt.document_chars, receipt.work_bytes,
+        );
+        *next_progress_documents =
+            (*next_progress_documents).saturating_add(SEARCH_PROGRESS_DOCUMENTS);
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn log_search_progress(_: &str, _: &SearchIndexReceipt, _: &mut u64) {}
+
 fn retain_page_metadata<'state, 'budget>(
     row: &mut SourceRow,
     row_hold: Option<CreationStateHold<'state, 'budget>>,
@@ -417,7 +446,9 @@ fn retain_page_metadata<'state, 'budget>(
     // The normalized cursor envelope covers the transient payload and decoder.
     // Only metadata survives into the sorted page. Admit its actual capacity
     // before releasing the envelope, without any unaccounted live interval.
-    let metadata = creation.map(|owner| owner.hold(metadata_state_bytes(row)?)).transpose()?;
+    let metadata = creation
+        .map(|owner| owner.hold(metadata_state_bytes(row)?))
+        .transpose()?;
     drop(row_hold);
     Ok(metadata)
 }
@@ -426,11 +457,18 @@ fn metadata_state_bytes(row: &SourceRow) -> Result<usize> {
     if row.payload.is_some() {
         return Err(Error::Invalid("search metadata still owns payload"));
     }
-    [row.id.capacity(), row.source_graph.capacity(),
+    [
+        row.id.capacity(),
+        row.source_graph.capacity(),
         row.native_id.as_ref().map_or(0, String::capacity),
-        row.term_id.capacity(), row.payload_sha256.capacity()]
-        .into_iter().try_fold(std::mem::size_of::<SourceRow>(), |sum, n| sum.checked_add(n))
-        .ok_or(Error::Budget("search retained metadata state"))
+        row.term_id.capacity(),
+        row.payload_sha256.capacity(),
+    ]
+    .into_iter()
+    .try_fold(std::mem::size_of::<SourceRow>(), |sum, n| {
+        sum.checked_add(n)
+    })
+    .ok_or(Error::Budget("search retained metadata state"))
 }
 
 fn fetch_next<'state, 'budget>(
@@ -1046,7 +1084,7 @@ fn prepare_gram_offsets<'state, 'budget>(
             let mut slot = gram_bucket(key, table.len());
             let mut probes = 0usize;
             loop {
-                if probes % limits.gram_batch_rows == 0 {
+                if probes != 0 && probes % limits.gram_batch_rows == 0 {
                     check()?;
                 }
                 work(std::mem::size_of::<u64>())?;
@@ -1084,7 +1122,7 @@ fn prepare_gram_offsets<'state, 'budget>(
                         let mut target = gram_bucket(old_key, slots);
                         let mut probes = 0usize;
                         loop {
-                            if probes % limits.gram_batch_rows == 0 {
+                            if probes != 0 && probes % limits.gram_batch_rows == 0 {
                                 check()?;
                             }
                             work(std::mem::size_of::<u64>())?;
@@ -1104,7 +1142,7 @@ fn prepare_gram_offsets<'state, 'budget>(
                     slot = gram_bucket(key, table.len());
                     let mut probes = 0usize;
                     loop {
-                        if probes % limits.gram_batch_rows == 0 {
+                        if probes != 0 && probes % limits.gram_batch_rows == 0 {
                             check()?;
                         }
                         work(std::mem::size_of::<u64>())?;
@@ -2388,38 +2426,65 @@ mod tests {
     #[test]
     fn search_page_releases_dropped_normalized_payload_envelopes() {
         use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
-        use std::sync::{Arc, atomic::{AtomicBool, AtomicU64}};
+        use std::sync::{
+            Arc,
+            atomic::{AtomicBool, AtomicU64},
+        };
         use std::time::{Duration, Instant};
         const CHILD: &str = "TOS_SEARCH_PAGE_STATE_TEST_CHILD";
         if std::env::var_os(CHILD).is_none() {
             let out = std::process::Command::new(std::env::current_exe().unwrap())
                 .args(["--exact", "knowledge_search::tests::search_page_releases_dropped_normalized_payload_envelopes", "--nocapture"])
                 .env(CHILD, "1").output().unwrap();
-            assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+            assert!(
+                out.status.success(),
+                "{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
             return;
         }
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancel = Arc::new(AtomicBool::new(false));
-        let remaining = |n: usize| (24 * 1024 * 1024usize).checked_sub(n)
-            .ok_or(Error::Budget("search test state"));
+        let remaining = |n: usize| {
+            (24 * 1024 * 1024usize)
+                .checked_sub(n)
+                .ok_or(Error::Budget("search test state"))
+        };
         let heap = crate::sqlite_budget::DedicatedSessionSqliteHeap::establish(
-            1024 * 1024, &remaining, deadline, &cancel).unwrap();
+            1024 * 1024,
+            &remaining,
+            deadline,
+            &cancel,
+        )
+        .unwrap();
         let work = Arc::new(AtomicU64::new(0));
         let vm = Arc::new(AtomicU64::new(0));
         let budget = RuntimeKnowledgeOwnedBudget {
-            remaining_after_retained: &remaining, original_work: &work,
-            original_work_limit: 1_000_000, original_sql_vm: &vm,
-            original_sql_vm_limit: 1_000_000, original_sqlite_heap: &heap,
-            remaining_json_visits: 10_000, owner_deadline: deadline,
-            operation_deadline: deadline, cancelled: &cancel,
+            remaining_after_retained: &remaining,
+            original_work: &work,
+            original_work_limit: 1_000_000,
+            original_sql_vm: &vm,
+            original_sql_vm_limit: 1_000_000,
+            original_sqlite_heap: &heap,
+            remaining_json_visits: 10_000,
+            owner_deadline: deadline,
+            operation_deadline: deadline,
+            cancelled: &cancel,
         };
         let state = CreationState::from_runtime_owned_budget(&budget).unwrap();
         let mut rows = Vec::new();
         for position in 0..256 {
             let envelope = state.hold(16 * 1024 * 1024).unwrap();
-            let mut row = SourceRow { position, id: format!("row-{position}"),
-                source_graph: "graph".into(), native_id: None, term_id: "node".into(),
-                payload_len: 1024, payload_sha256: vec![0; 32], payload: Some(vec![0; 1024]) };
+            let mut row = SourceRow {
+                position,
+                id: format!("row-{position}"),
+                source_graph: "graph".into(),
+                native_id: None,
+                term_id: "node".into(),
+                payload_len: 1024,
+                payload_sha256: vec![0; 32],
+                payload: Some(vec![0; 1024]),
+            };
             assert!(metadata_state_bytes(&row).is_err());
             let hold = retain_page_metadata(&mut row, Some(envelope), None, Some(&state)).unwrap();
             assert!(row.payload.is_none());
@@ -2533,6 +2598,63 @@ mod tests {
             prepare_gram_offsets(&doc, wide, &mut 0, &cancel, None),
             Err(Error::Budget("test cancellation"))
         ));
+    }
+
+    #[test]
+    fn gram_scan_keeps_full_stage_checks_at_batch_cadence() {
+        let text = "abc".repeat(128);
+        let doc = Document {
+            chars: text.chars().count(),
+            digest: Digest256::of_bytes(text.as_bytes()),
+            serialization_bytes: text.len(),
+            text,
+            id_lower: String::new(),
+            native_id_lower: String::new(),
+            identity_values: String::new(),
+            visible_values: String::new(),
+            _holds: Vec::new(),
+        };
+        let mut bounded = limits();
+        bounded.gram_batch_rows = 16;
+        let checks = std::cell::Cell::new(0usize);
+        let (offsets, _) = prepare_gram_offsets(
+            &doc,
+            bounded,
+            &mut 0,
+            &|| {
+                checks.set(checks.get() + 1);
+                Ok(())
+            },
+            None,
+        )
+        .unwrap();
+        let gram_count = doc.chars.saturating_sub(2);
+        let expected_batches = (gram_count + bounded.gram_batch_rows - 1) / bounded.gram_batch_rows;
+        assert_eq!(offsets.len(), 3);
+        assert!(
+            checks.get() <= expected_batches + 8,
+            "stage checks should follow gram batches, got {} checks for {gram_count} grams",
+            checks.get(),
+        );
+        assert!(
+            checks.get() >= expected_batches,
+            "full stage checks must cover each bounded gram batch",
+        );
+        let refusals = std::cell::Cell::new(0usize);
+        let refuse_at_batch = || {
+            let observed = refusals.get() + 1;
+            refusals.set(observed);
+            if observed == 3 {
+                Err(Error::Invalid("test isolation refusal"))
+            } else {
+                Ok(())
+            }
+        };
+        assert!(matches!(
+            prepare_gram_offsets(&doc, bounded, &mut 0, &refuse_at_batch, None),
+            Err(Error::Invalid("test isolation refusal"))
+        ));
+        assert_eq!(refusals.get(), 3);
     }
 
     #[test]

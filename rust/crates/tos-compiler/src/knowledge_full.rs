@@ -155,13 +155,15 @@ fn compile_inner(
     // All native normalization, readable joins and original capture precede
     // this full-component transition. These components use final core rows.
     stage.close_inputs_for_full_components()?;
-    let source_scope = write_source_scope(stage, vocabulary, limits.scope)?;
+    let source_scope = full_component_stage("source-scope", || {
+        write_source_scope(stage, vocabulary, limits.scope)
+    })?;
     // This borrow points at the original invocation state, not a phase-local
     // copy. Capture it before taking the mutable SQLite connection.
     let creation = stage.owned_creation_state();
     let payload_layout = stage.payload_layout();
-    let packet: CatalogReceipt = match prepared {
-        Some(prepared) => prepared.into_packet(stage, graph_header, vocabulary, registry)?,
+    let packet: CatalogReceipt = full_component_stage("catalog", || match prepared {
+        Some(prepared) => prepared.into_packet(stage, graph_header, vocabulary, registry),
         None => stage.with_connection(WritePhase::Catalog, |db| {
             compile_catalog_with_state(
                 db,
@@ -175,20 +177,24 @@ fn compile_inner(
                 creation,
                 payload_layout,
             )
-        })?,
-    };
-    let catalog = materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)?;
-    let search = build_search_index(stage, limits.search)?;
-    let seal = seal_knowledge_model(
-        stage,
-        graph_header,
-        vocabulary,
-        registry,
-        &source_scope,
-        &catalog,
-        &search,
-        limits.seal,
-    )?;
+        }),
+    })?;
+    let catalog = full_component_stage("catalog-index", || {
+        materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)
+    })?;
+    let search = full_component_stage("search", || build_search_index(stage, limits.search))?;
+    let seal = full_component_stage("seal", || {
+        seal_knowledge_model(
+            stage,
+            graph_header,
+            vocabulary,
+            registry,
+            &source_scope,
+            &catalog,
+            &search,
+            limits.seal,
+        )
+    })?;
     Ok(FullKnowledgeReceipt {
         source_scope,
         catalog,
@@ -197,29 +203,71 @@ fn compile_inner(
     })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn full_component_stage<T>(name: &'static str, run: impl FnOnce() -> Result<T>) -> Result<T> {
+    eprintln!("Native full-components stage={name} status=start");
+    let started = std::time::Instant::now();
+    let result = run();
+    eprintln!(
+        "Native full-components stage={name} status={} elapsed_ms={}",
+        if result.is_ok() { "ok" } else { "refused" },
+        started.elapsed().as_millis(),
+    );
+    result
+}
+
+#[cfg(target_arch = "wasm32")]
+fn full_component_stage<T>(_: &'static str, run: impl FnOnce() -> Result<T>) -> Result<T> {
+    run()
+}
+
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use crate::knowledge_full_fixture::build_fixture;
 
     #[test]
     fn final_row_semantics_and_catalog_match_separate_scan_and_cold_read() {
-        let separate=crate::knowledge_full_fixture::build_fixture_with_final_semantics(false);
-        let fused=crate::knowledge_full_fixture::build_fixture_with_final_semantics(true);
-        assert_eq!(separate.expectation.graph_root_sha256,fused.expectation.graph_root_sha256);
-        assert_eq!(separate.expectation.catalog_packet_sha256,fused.expectation.catalog_packet_sha256);
-        assert_eq!(separate.expectation.catalog_index_root_sha256,fused.expectation.catalog_index_root_sha256);
-        assert_eq!(separate.expectation.search_index_root_sha256,fused.expectation.search_index_root_sha256);
+        let separate = crate::knowledge_full_fixture::build_fixture_with_final_semantics(false);
+        let fused = crate::knowledge_full_fixture::build_fixture_with_final_semantics(true);
+        assert_eq!(
+            separate.expectation.graph_root_sha256,
+            fused.expectation.graph_root_sha256
+        );
+        assert_eq!(
+            separate.expectation.catalog_packet_sha256,
+            fused.expectation.catalog_packet_sha256
+        );
+        assert_eq!(
+            separate.expectation.catalog_index_root_sha256,
+            fused.expectation.catalog_index_root_sha256
+        );
+        assert_eq!(
+            separate.expectation.search_index_root_sha256,
+            fused.expectation.search_index_root_sha256
+        );
         fused.open().unwrap();
     }
 
     #[test]
     fn prepared_catalog_keeps_full_seal_and_cold_packets_identical() {
-        let regular=crate::knowledge_full_fixture::build_fixture();
-        let reduced=crate::knowledge_full_fixture::build_fixture_with_prepared_catalog();
-        assert_eq!(regular.expectation.graph_root_sha256,reduced.expectation.graph_root_sha256);
-        assert_eq!(regular.expectation.catalog_packet_sha256,reduced.expectation.catalog_packet_sha256);
-        assert_eq!(regular.expectation.catalog_index_root_sha256,reduced.expectation.catalog_index_root_sha256);
-        assert_eq!(regular.expectation.search_index_root_sha256,reduced.expectation.search_index_root_sha256);
+        let regular = crate::knowledge_full_fixture::build_fixture();
+        let reduced = crate::knowledge_full_fixture::build_fixture_with_prepared_catalog();
+        assert_eq!(
+            regular.expectation.graph_root_sha256,
+            reduced.expectation.graph_root_sha256
+        );
+        assert_eq!(
+            regular.expectation.catalog_packet_sha256,
+            reduced.expectation.catalog_packet_sha256
+        );
+        assert_eq!(
+            regular.expectation.catalog_index_root_sha256,
+            reduced.expectation.catalog_index_root_sha256
+        );
+        assert_eq!(
+            regular.expectation.search_index_root_sha256,
+            reduced.expectation.search_index_root_sha256
+        );
         reduced.open().unwrap();
     }
 
