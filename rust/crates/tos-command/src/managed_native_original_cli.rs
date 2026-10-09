@@ -38,8 +38,11 @@ const MAX_SELECTION_BYTES: usize = 1024 * 1024;
 const MAX_EVIDENCE_REF_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_BUILD_SECONDS: u64 = 2 * 60 * 60;
 const MAX_COLD_VM_STEPS: u64 = 50_000_000_000;
-const MAX_PRODUCER_WORK_BYTES: u64 = 64 * 1024 * 1024 * 1024;
-const MAX_COLD_WORK_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+// Logical byte/visitor work across capture, normalization, indexing and seal.
+// A packed model can expand to many times its physical size during checked
+// reads. These ceilings do not increase memory, file, VM or deadline limits.
+const MAX_PRODUCER_WORK_BYTES: u64 = 256 * 1024 * 1024 * 1024;
+const MAX_COLD_WORK_BYTES: u64 = 32 * 1024 * 1024 * 1024;
 const MAX_COLD_ROWS: u64 = 10_000_000;
 const MAX_COLD_ROW_BYTES: usize = 8 * 1024 * 1024;
 const MAX_COLD_METADATA_BYTES: usize = 1024 * 1024;
@@ -918,6 +921,13 @@ fn execute(request: Request) -> Result<Value> {
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
     let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
     limits.capture.max_work_bytes = request.max_work_bytes;
+    // Search participates in the same original cumulative work counter. Its
+    // local ceiling must not silently retain a smaller generic default.
+    limits.full.search.max_work_bytes = request.max_work_bytes;
+    // Each stored posting consumes physical space in its bounded block/row.
+    // Keep a finite, conservative count envelope tied to the selected cold
+    // byte cap; actual MAIN, TEMP and final cold-size checks remain decisive.
+    limits.full.search.max_postings = request.cold_open.max_file_bytes;
     // The private stage's live main and TEMP databases use the maintained
     // compiler limits covered by the tmpfs/RAM hold. The caller's cold-file
     // ceiling applies to the finished selected model after compaction.
@@ -1518,7 +1528,10 @@ fn execute(request: Request) -> Result<Value> {
                         ("producer_max_state_bytes", json!(request.max_state_bytes)),
                         ("producer_max_json_visits", json!(request.max_json_visits)),
                         ("producer_max_work_bytes", json!(request.max_work_bytes)),
-                        ("capture_build_observed_work_bytes", json!(capture.work_bytes())),
+                        (
+                            "capture_build_observed_work_bytes",
+                            json!(capture.work_bytes()),
+                        ),
                         (
                             "writer_model_max_file_bytes",
                             json!(limits.stage.sqlite.max_output_bytes),
