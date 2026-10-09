@@ -253,7 +253,18 @@ finally:
         deadline,
     );
     assert_eq!(describe["result"]["status"], "ready");
-    assert_eq!(describe["result"]["configuration"], oracle["configuration"]);
+    // Relocation changes protected path bytes. Recompute the declared binding
+    // from those exact bytes and the three current source-owned contracts.
+    let contracts = [
+        "ToS/contracts/public-native-text-create-owner.schema.json",
+        "ToS/contracts/public-native-text-authority.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+    ].into_iter().map(|name| (name, Digest256::of_bytes(&fs::read(root.join(name)).unwrap()).to_prefixed())).collect::<BTreeMap<_, _>>();
+    let expected_configuration = serde_json::json!({
+        "protected_configuration_bytes": Digest256::of_bytes(&fs::read(&owner).unwrap()).to_prefixed(),
+        "contracts": contracts,
+    });
+    assert_eq!(describe["result"]["configuration"], Digest256::of_bytes(&canonical_json(&expected_configuration)).to_prefixed());
     let prepared = alignment_native_cli(
         &repository,
         &owner,

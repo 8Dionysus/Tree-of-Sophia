@@ -251,7 +251,7 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
         "rust/crates/tos-command/src/source_serialization.rs",
         "rust/crates/tos-command/src/source_sign.rs",
         "rust/crates/tos-command/src/source_sign_native.rs",
-    ] {
+    ].into_iter().chain(tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS.iter().copied()).chain(tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS.iter().copied()) {
         let raw = fs::read(repository.join(name)).unwrap();
         let target = isolated.path().join(name);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -899,7 +899,7 @@ pub(super) fn captured_components(
         ReadLimits {
             max_manifest_bytes: 1_048_576,
             max_manifest_entries: 512,
-            max_selected_object_bytes: 2_097_152,
+            max_selected_object_bytes: 33_554_432,
             json: JsonLimits::default(),
         },
         deadline,

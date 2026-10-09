@@ -1139,6 +1139,8 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
             .remove("quality_dependencies")
             .is_some()
     );
+    // V4 has no layer-quality selection; the captured V5 seed remains intact.
+    assert!(config.as_object_mut().unwrap().remove("native_text_layers").is_some());
     fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     assert_eq!(config["schema_version"], "tos_local_assessment_owner_v4");
@@ -2133,11 +2135,11 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
         "form_ref":form_ref,"subject_ref":fixture.source_ref,"source_path":source_path,"form_path":form_path
     })).collect::<Vec<_>>();
     let request = serde_json::json!({"schema_version":"tos_local_assessed_forms_materialization_request_v1","operation":"materialize_assessed_forms","selections":selections});
-    let actual = invoke(&invocation_path, &request);
-    assert_eq!(
-        actual["schema_version"],
-        "tos_local_assessed_forms_materialization_result_v1"
-    );
+    let outer = invoke(&invocation_path, &request);
+    assert_eq!(outer["schema_version"], "tos_local_native_source_result_v1");
+    assert_eq!(outer["grants_admission"], false);
+    let actual = &outer["result"];
+    assert_eq!(actual["schema_version"], "tos_local_assessed_forms_materialization_result_v1");
     let replies = actual["replies"].as_array().unwrap();
     assert_eq!(replies.len(), 7);
     for (index, reply) in replies.iter().enumerate() {

@@ -476,16 +476,17 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
     initialize_root(root)?;
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
-    // This retained source fixture contains a local-content representation in
-    // the ordinary public source tree. It is not an owner-local context, and
-    // the public v3 owner therefore uses its historical input-only snapshot.
+    // Use the complete original public binding from the retained Profile seed.
+    // The public Text construction seed replaces its Item manifest for a new
+    // Markdown payload, so its older TextUnit intentionally no longer matches.
+    // Only this seed's public subtree is selected by FrozenPublicRead below.
     let workspace = root.join("public-text-fixture");
     let _captured = super::native_python_fixture(
-        "public-text-base",
-        &[("workspace", &workspace)],
+        "private-profile-base",
+        &[("source-root", &workspace)],
         &["rust/crates/tos-command/src/source_sign_native.rs"],
     );
-    let public_root = workspace.join("source");
+    let public_root = workspace.join("public");
     copy_contracts(repository, &public_root)?;
     let base = "ToS/source-witnesses/works/synthetic-native-binding";
     let home = format!("{base}/technical-markup/synthetic-binding");

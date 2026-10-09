@@ -627,7 +627,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     let read_limits = ReadLimits {
         max_manifest_bytes: 1_048_576,
         max_manifest_entries: 512,
-        max_selected_object_bytes: 2_097_152,
+        max_selected_object_bytes: 33_554_432,
         json: JsonLimits::default(),
     };
     restore_capture(
@@ -651,7 +651,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         ReadLimits {
             max_manifest_bytes: 1_048_576,
             max_manifest_entries: 512,
-            max_selected_object_bytes: 2_097_152,
+            max_selected_object_bytes: 33_554_432,
             json: JsonLimits::default(),
         },
         deadline,
