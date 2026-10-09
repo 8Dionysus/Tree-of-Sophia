@@ -653,7 +653,7 @@ fn genuine_relation_origin_keeps_exact_endpoint_closure_and_refuses_stale_revisi
     ]);
     let mut checkpoints = Checkpoints::default();
     let mut authority = Authority::new(&bound, EXPLORATION_OPERATION, EXPLORATION_INTENDED_USE);
-    let response = execute_selected_exploration(
+    let mut response = execute_selected_exploration(
         &mut model,
         &bound,
         &mut authority,
@@ -780,7 +780,7 @@ fn genuine_catalogue_temporal_source_profile_bytes_and_line_are_exact() {
     );
     assert_eq!(
         get(&profile, "assertion_layers").as_array(),
-        Some(&vec![text("bibliographic_assertion")])
+        Some([text("bibliographic_assertion")].as_slice())
     );
     assert_eq!(
         get(
