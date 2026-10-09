@@ -2249,7 +2249,7 @@ const REQUIRED_REFERENCES: &[(&str, &[&str])] = &[
         "scripts/AGENTS.md",
         &[
             "docs/validation/validation_lanes.json",
-            "scripts/release_check.py",
+            "rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs",
         ],
     ),
     (

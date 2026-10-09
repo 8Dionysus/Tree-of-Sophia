@@ -298,7 +298,7 @@
       "target": ".agents/README.md",
       "owner_route": ".agents/AGENTS.md",
       "required_scopes": ["profile discovery", "triggered body", "owner-port route", "profile binding", "profile source"],
-      "required_markers": ["model-facing", "owning homes", "profile-owned discovery", "validate_nested_agents"],
+      "required_markers": ["model-facing", "owning homes", "profile-owned discovery", "native route-card validator"],
       "boundary_markers": ["proof authority", "runtime", "source surfaces"],
       "on_demand_surfaces": [".agents/README.md", ".agents/agent-surface.manifest.json", "docs/validation/agents_route_inventory.json"],
       "validation_lanes": ["agent_surface", "route_docs"],

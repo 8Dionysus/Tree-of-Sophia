@@ -71,7 +71,8 @@ in the owner-controlled storage route; tracked companions must state their
 fixity, provenance, rights posture, uncertainty, and semantic ceiling when
 those facts affect admission.
 
-Keep command order in the lane manifest. `tos-release-check` runs the
+Keep command order in the lane manifest. `tos-release-check`, implemented in
+`rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs`, runs the
 `release_check` sequence from `docs/validation/validation_lanes.json`.
 `docs/validation/script_inventory.json` describes owner routes and side effects.
 Under TOS-D-0062, software validation follows executable code and tests.
