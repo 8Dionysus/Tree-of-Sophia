@@ -1592,6 +1592,37 @@ pub fn prepare_managed_agent_creation(
     })
 }
 
+/// Read current Sign eligibility through the same protected source, content,
+/// schema and journal selection used by preparation and publication.
+pub fn describe_sign_promotion_from_captures(
+    configuration_path: &std::path::Path,
+    context: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    local_worker: &mut CutWorkerSchemaExecutor,
+    assessment_worker: &mut CutWorkerSchemaExecutor,
+    limits: tos_validation::assessment::AssessmentLimits,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    crate::source_sign::require_assessment_profile(assessment_worker)?;
+    context.check_from_selected_captures(cut, software, components, limits.deadline, cancelled)?;
+    let (family, config, _) = configuration(context)?;
+    if family != CreationFamily::Sign || !contains(&config, "allowed_operations", "sign.promote")? {
+        return Err(SourceCommandError::Denied(
+            "current Sign operation not delegated",
+        ));
+    }
+    let mut selected = crate::source_sign::SignPromotionRead::select(
+        configuration_path,
+        context,
+        cut,
+        limits.deadline,
+        cancelled,
+    )?;
+    selected.describe_promotion(context, local_worker, assessment_worker, limits, cancelled)
+}
+
 /// Sign has a distinct current owner read, using the actual protected journal
 /// and native content inputs rather than a caller-issued promotion verdict.
 pub fn prepare_sign_promotion_from_captures(

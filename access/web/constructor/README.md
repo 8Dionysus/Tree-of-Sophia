@@ -95,12 +95,12 @@ questions and comparisons, not admitted ToS nodes, quotations or canon. The
 fixture does not change the source corpus, accepted graph or review history.
 
 A bounded selection of existing source materials can come from the private
-`library.json` built by `build-library.py`. The exact DE/RU text, source addresses,
+`library.json` built by `tos-constructor-library`. The exact DE/RU text, source addresses,
 speaker context and three prepared English demo translations are retained.
 Other archival passages remain available to the library builder but are not
 used as the mockup's main reading surface. Source text is not committed here.
 
-For a demo intended to be recorded, `build-fragments.py` prepares a separate
+For a demo intended to be recorded, `tos-constructor-fragments` prepares a separate
 reading library from explicitly selected editions and reviewed text packets.
 It retains the navigation identities while excluding the older private text
 and archival records. [FRAGMENTS.md](FRAGMENTS.md) describes the complete-unit
@@ -240,7 +240,7 @@ service. With an existing private library at the admitted output directory:
 ```sh
 node node_modules/vite/bin/vite.js build --config vite.constructor.config.mjs \
   --outDir "$TOS_MOCKUP_DIR"
-python3 constructor/serve.py "$TOS_MOCKUP_DIR" --port 44338
+tos-constructor-desktop serve --release "$TOS_MOCKUP_DIR" --port 44338
 ```
 
 The server binds only loopback and serves `constructor.html`, `library.json`

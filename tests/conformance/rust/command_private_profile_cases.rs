@@ -274,6 +274,15 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),'owner':st
 
 #[test]
 fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
+    native_private_profile_lifecycle(false);
+}
+
+#[test]
+fn native_private_profile_http_preserves_lifecycle_replay_and_transport_fences() {
+    native_private_profile_lifecycle(true);
+}
+
+fn native_private_profile_lifecycle(use_http: bool) {
     use super::command_text_cases::{
         alignment_image_digest, alignment_native_cli, authored_text_files,
     };
@@ -342,16 +351,12 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
     let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
         .unwrap()
         .len();
-    let python_bytes = fs::metadata(crate::maintained_python().canonicalize().unwrap())
-        .unwrap()
-        .len();
-    assert!(python_bytes <= 536_870_912);
     assert!(
         native_bytes <= 536_870_912 && worker_bytes <= 536_870_912 && consumer_bytes <= 536_870_912
     );
     assert!(Instant::now() < deadline);
     eprintln!(
-        "private Profile F={fixture_bytes} E={native_bytes} C={consumer_bytes} W={worker_bytes} P={python_bytes} native_processes=10 launcher_processes=10 fixture_processes=0 explicit_oracle_calls=2 capture_direct_git=2 capture_python=0 capture_inner_git=4 workers<=10"
+        "private Profile F={fixture_bytes} E={native_bytes} C={consumer_bytes} W={worker_bytes} native_processes=10 launcher_processes=10 fixture_processes=0 explicit_oracle_calls=2 capture_direct_git=2 capture_python=0 capture_inner_git=4 workers<=10"
     );
     let (capture, components) = selected_capture(&repository, &names, deadline);
     let temporary = tempfile::Builder::new()
@@ -395,12 +400,36 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
     let invocation_path = temporary.path().join("profile-invocation.json");
     fs::write(&invocation_path, canonical(&invocation)).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let http = use_http.then(|| {
+        NativeProfileHttp::start(
+            &native,
+            &owner,
+            &invocation_path,
+            temporary.path(),
+            deadline,
+        )
+    });
+    if let Some(http) = &http {
+        let catalog = http.exchange("GET", "/commands/catalog", None, 200, None, false);
+        assert_eq!(catalog["grants_admission"], false);
+        assert_eq!(catalog["reads_owner_configuration"], false);
+        let expected: Value = serde_json::from_slice(
+            &fs::read(repository.join("rust/crates/tos-command/src/source_command_catalog.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(catalog, expected);
+    }
     let call = |request: &Value| {
         eprintln!(
             "Profile native operation={}",
             request["operation"].as_str().unwrap()
         );
-        let outer = alignment_native_cli(&repository, &owner, &invocation_path, request, deadline);
+        let outer = if let Some(http) = &http {
+            http.exchange("POST", "/commands", Some(request), 200, None, false)
+        } else {
+            alignment_native_cli(&repository, &owner, &invocation_path, request, deadline)
+        };
         assert_eq!(outer["schema_version"], "tos_local_native_source_result_v1");
         assert_eq!(outer["grants_admission"], false);
         outer["result"].clone()
@@ -484,4 +513,305 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
         fs::read(home.join("source-create-receipt.json")).unwrap(),
         frozen
     );
+    if let Some(http) = &http {
+        http.browser(
+            &repository,
+            temporary.path(),
+            &selected["config"]["allowed_form_ids"][1],
+        );
+        let describe = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"describe"});
+        let denied = http.exchange("POST", "/commands", Some(&describe), 401, None, true);
+        assert_eq!(denied["outcome"], "not-dispatched");
+        let repeated = "f".repeat(64);
+        http.exchange(
+            "GET",
+            "/commands/catalog",
+            None,
+            200,
+            Some(&repeated),
+            false,
+        );
+        let rejected = http.exchange(
+            "GET",
+            "/commands/catalog",
+            None,
+            409,
+            Some(&repeated),
+            false,
+        );
+        assert_eq!(rejected["code"], "transport-nonce-replayed");
+        assert_eq!(rejected["outcome"], "not-dispatched");
+        let mut config: Value = serde_json::from_slice(&fs::read(&owner).unwrap()).unwrap();
+        config["expires_at"] = serde_json::json!("2000-01-01T00:00:00Z");
+        fs::write(&owner, canonical(&config)).unwrap();
+        let revoked = http.exchange("POST", "/commands", Some(&describe), 403, None, false);
+        assert_eq!(revoked["code"], "owner-permission-denied");
+        assert_eq!(revoked["outcome"], "unconfirmed");
+        assert!(fs::metadata(&http.stdout).unwrap().len() <= 4096);
+        assert!(fs::metadata(&http.stderr).unwrap().len() <= 4096);
+    }
+}
+
+/// Real loopback transport around the selected native owner image. The source
+/// fixture and all command behavior are shared with the direct CLI scenario.
+struct NativeProfileHttp {
+    child: std::process::Child,
+    address: std::net::SocketAddr,
+    secret: Vec<u8>,
+    secret_hex: String,
+    origin: String,
+    nonce: std::cell::Cell<u64>,
+    deadline: Instant,
+    stdout: PathBuf,
+    stderr: PathBuf,
+}
+impl NativeProfileHttp {
+    fn start(
+        native: &Path,
+        owner: &Path,
+        invocation: &Path,
+        root: &Path,
+        deadline: Instant,
+    ) -> Self {
+        use std::net::TcpListener;
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        let mut secret = vec![0u8; 32];
+        fs::File::open("/dev/urandom")
+            .unwrap()
+            .read_exact(&mut secret)
+            .unwrap();
+        let secret_hex = secret
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        let credential = root.join("http-token");
+        fs::write(&credential, &secret_hex).unwrap();
+        fs::set_permissions(&credential, fs::Permissions::from_mode(0o600)).unwrap();
+        let stdout = root.join("http.stdout");
+        let stderr = root.join("http.stderr");
+        let origin = "http://127.0.0.1:44257".to_owned();
+        let child = Command::new(native)
+            .args(["http", "--owner-config"])
+            .arg(owner)
+            .arg("--native-invocation")
+            .arg(invocation)
+            .arg("--token-file")
+            .arg(&credential)
+            .args([
+                "--browser-origin",
+                &origin,
+                "--port",
+                &address.port().to_string(),
+            ])
+            .stdin(Stdio::null())
+            .stdout(fs::File::create(&stdout).unwrap())
+            .stderr(fs::File::create(&stderr).unwrap())
+            .spawn()
+            .unwrap();
+        let mut selected = Self {
+            child,
+            address,
+            secret,
+            secret_hex,
+            origin,
+            nonce: std::cell::Cell::new(0),
+            deadline,
+            stdout,
+            stderr,
+        };
+        let ready = (Instant::now() + Duration::from_secs(10)).min(deadline);
+        loop {
+            assert!(
+                selected.child.try_wait().unwrap().is_none(),
+                "native HTTP startup: {}",
+                fs::read_to_string(&selected.stderr).unwrap()
+            );
+            assert!(Instant::now() < ready, "native HTTP readiness deadline");
+            let raw = fs::read(&selected.stdout).unwrap();
+            assert!(raw.len() <= 4096 && fs::metadata(&selected.stderr).unwrap().len() <= 4096);
+            if raw.ends_with(b"\n") {
+                let packet: Value = serde_json::from_slice(&raw).unwrap();
+                assert_eq!(
+                    packet["schema_version"],
+                    "tos_native_source_command_http_ready_v1"
+                );
+                assert_eq!(packet["listen"], format!("http://{}", address));
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        selected
+    }
+    fn sign(&self, fields: &Value) -> String {
+        // Independent HMAC framing over the public ASCII signature fields.
+        // Source command bodies are hashed as exact UTF-8 bytes.
+        let input = serde_json::to_vec(fields).unwrap();
+        assert!(input.is_ascii());
+        let mut inner = [0x36u8; 64];
+        let mut outer = [0x5cu8; 64];
+        for (index, byte) in self.secret.iter().enumerate() {
+            inner[index] ^= *byte;
+            outer[index] ^= *byte;
+        }
+        let mut ih = tos_foundation::Digest256Hasher::new();
+        ih.update(&inner);
+        ih.update(&input);
+        let mut oh = tos_foundation::Digest256Hasher::new();
+        oh.update(&outer);
+        oh.update(ih.finalize().as_bytes());
+        oh.finalize().to_hex()
+    }
+    fn exchange(
+        &self,
+        method: &str,
+        path: &str,
+        request: Option<&Value>,
+        expected: u16,
+        nonce: Option<&str>,
+        bad_auth: bool,
+    ) -> Value {
+        use std::io::Write;
+        assert!(Instant::now() < self.deadline);
+        let raw = request.map(canonical).unwrap_or_default();
+        let sequence = self.nonce.get() + 1;
+        self.nonce.set(sequence);
+        let nonce = nonce
+            .map(str::to_owned)
+            .unwrap_or_else(|| format!("{sequence:064x}"));
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string();
+        let digest = tos_foundation::Digest256::of_bytes(&raw).to_hex();
+        let auth = if bad_auth {
+            "Bearer incorrect".to_owned()
+        } else {
+            format!(
+                "ToS-HMAC-SHA256 {timestamp}:{nonce}:{digest}:{}",
+                self.sign(&serde_json::json!([
+                    "tos-request-v1",
+                    method,
+                    path,
+                    timestamp,
+                    nonce,
+                    digest
+                ]))
+            )
+        };
+        let remaining = self
+            .deadline
+            .saturating_duration_since(Instant::now())
+            .min(Duration::from_secs(30));
+        assert!(!remaining.is_zero());
+        let mut socket = std::net::TcpStream::connect_timeout(&self.address, remaining).unwrap();
+        socket.set_read_timeout(Some(remaining)).unwrap();
+        socket.set_write_timeout(Some(remaining)).unwrap();
+        write!(socket,"{method} {path} HTTP/1.1\r\nHost: {}\r\nOrigin: {}\r\nAuthorization: {auth}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",self.address,self.origin,raw.len()).unwrap();
+        socket.write_all(&raw).unwrap();
+        let mut header = Vec::new();
+        while !header.ends_with(b"\r\n\r\n") {
+            assert!(header.len() < 16384);
+            let mut byte = [0];
+            socket.read_exact(&mut byte).unwrap();
+            header.push(byte[0]);
+        }
+        let text = std::str::from_utf8(&header).unwrap();
+        let status = text
+            .lines()
+            .next()
+            .unwrap()
+            .split_whitespace()
+            .nth(1)
+            .unwrap()
+            .parse::<u16>()
+            .unwrap();
+        let fields = text
+            .lines()
+            .skip(1)
+            .filter_map(|line| line.split_once(':'))
+            .map(|(k, v)| (k.to_ascii_lowercase(), v.trim().to_owned()))
+            .collect::<BTreeMap<_, _>>();
+        let length = fields["content-length"].parse::<usize>().unwrap();
+        assert!(length <= 4_194_304);
+        let mut body = vec![0; length];
+        socket.read_exact(&mut body).unwrap();
+        assert_eq!(
+            status,
+            expected,
+            "native HTTP status: {}",
+            String::from_utf8_lossy(&body[..body.len().min(256)])
+        );
+        assert_eq!(fields["cache-control"], "no-store");
+        if let Some(proof) = fields.get("x-tos-response-signature") {
+            assert_eq!(
+                proof,
+                &self.sign(&serde_json::json!([
+                    "tos-response-v1",
+                    nonce,
+                    status,
+                    tos_foundation::Digest256::of_bytes(&body).to_hex()
+                ]))
+            );
+        } else {
+            assert_ne!(status, 200, "successful owner response must be signed");
+        }
+        serde_json::from_slice(&body).unwrap()
+    }
+    fn browser(&self, repository: &Path, root: &Path, form: &Value) {
+        let Some(binding) = std::env::var_os("TOS_HTTP_FORM_RULES_BINDING") else {
+            eprintln!(
+                "HTTP transport passed without selected browser/WASM inputs; no browser acceptance claimed"
+            );
+            return;
+        };
+        let binding = PathBuf::from(binding);
+        let wasm = PathBuf::from(
+            std::env::var_os("TOS_HTTP_FORM_RULES_WASM").expect("selected browser wasm"),
+        );
+        let node =
+            PathBuf::from(std::env::var_os("TOS_HTTP_FORM_NODE").expect("selected Node host"));
+        for p in [&binding, &wasm, &node] {
+            assert!(p.is_absolute() && p.is_file());
+        }
+        let bh = super::command_text_cases::alignment_image_digest(&binding).to_hex();
+        let wh = super::command_text_cases::alignment_image_digest(&wasm).to_hex();
+        assert_eq!(bh, std::env::var("TOS_HTTP_FORM_BINDING_SHA256").unwrap());
+        assert_eq!(wh, std::env::var("TOS_HTTP_FORM_WASM_SHA256").unwrap());
+        let packet = root.join("browser-form-fixture.json");
+        fs::write(&packet,canonical(&serde_json::json!({"schema_version":"tos_native_http_form_host_fixture_v1",
+            "origin":format!("http://{}",self.address),"browser_origin":self.origin,"token":self.secret_hex,
+            "form_id":form,"binding":binding,"wasm":wasm,"binding_sha256":bh,"wasm_sha256":wh}))).unwrap();
+        fs::set_permissions(&packet, fs::Permissions::from_mode(0o600)).unwrap();
+        let mut command = Command::new(node);
+        command
+            .arg(repository.join("mechanics/growth-cycle/tests/native_source_form_http_host.mjs"))
+            .arg(packet);
+        let output =
+            super::native_child::bounded_output_before(&mut command, 1_048_576, self.deadline);
+        assert!(
+            output.status.success(),
+            "browser HTTP host: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        for key in [
+            "success",
+            "real_owner_http",
+            "exact_pending_replay",
+            "owner_dependencies_retained",
+        ] {
+            assert_eq!(report[key], true);
+        }
+    }
+}
+impl Drop for NativeProfileHttp {
+    fn drop(&mut self) {
+        if self.child.try_wait().ok().flatten().is_none() {
+            let _ = self.child.kill();
+        }
+        let _ = self.child.wait();
+    }
 }

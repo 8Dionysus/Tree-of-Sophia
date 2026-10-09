@@ -349,3 +349,108 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn fixture() -> V {
+        let ids = [
+            "work",
+            "chapter-p3.r2",
+            "moment",
+            "chapter-p3.r13",
+            "all-things",
+            "same-life",
+            "dossier",
+        ];
+        let bi = |text: &str| json!({"ru":text,"en":text});
+        let version = json!({"paragraphs":["Complete unit."],"textSha256":hash(b"Complete unit."),
+            "rights":{"uses":["local-reading","video-display"]},"sourceUrl":"https://example.org/new"});
+        let passage = json!({"id":"one","title":bi("New edition"),"status":"available","complete":true,
+            "versions":{"ru":version,"en":version}});
+        let mut nodes = ids.iter().map(|id| json!({"id":id,"kind":if *id=="work" {"work"} else {"fragment"},
+            "parentId":if *id=="work" {V::Null} else {json!("part-3")},"title":bi(id),
+            "body":bi("private old body"),"quote":bi("PRIVATE_QUOTE"),"exact":{"ru":"PRIVATE_EXACT"},
+            "sourceRefs":[{"ref":"/private/old/path","label":"old"}],"speaker":bi("old speaker")})).collect::<Vec<_>>();
+        nodes.push(json!({"id":"part-3","kind":"part","parentId":"work","title":bi("Part III"),"exact":{"ru":"PRIVATE_PARENT_TEXT"}}));
+        nodes.push(json!({"id":"unlisted-archival-text","exact":{"ru":"PRIVATE_UNLISTED_TEXT"}}));
+        json!({"source":{"rootId":"work","nodes":nodes},"passages":[passage],
+            "bindings":ids.iter().map(|id|json!({"nodeId":id,"passageIds":["one"],"context":bi("New selected section")})).collect::<Vec<_>>()})
+    }
+    #[test]
+    fn parent_closure_excludes_old_private_text_and_paths() {
+        let request = fixture();
+        let result = assemble(&request).unwrap();
+        let raw = serde_json::to_string(&result["library"]).unwrap();
+        for forbidden in [
+            "PRIVATE_",
+            "/private/",
+            "private old body",
+            "unlisted-archival-text",
+        ] {
+            assert!(!raw.contains(forbidden));
+        }
+        assert_eq!(result["library"]["nodes"].as_array().unwrap().len(), 8);
+        assert_eq!(
+            result["library"]["fragmentCatalog"]["sha256"],
+            hash(result["catalogText"].as_str().unwrap().as_bytes())
+        );
+        assert_eq!(
+            request["source"]["nodes"][0]["exact"]["ru"],
+            "PRIVATE_EXACT"
+        );
+    }
+    #[test]
+    fn incomplete_unit_and_missing_video_basis_refuse() {
+        let mut request = fixture();
+        request["passages"][0]["complete"] = json!(false);
+        assert!(assemble(&request).unwrap_err().contains("complete"));
+        request["passages"][0]["complete"] = json!(true);
+        request["passages"][0]["versions"]["en"]["rights"]["uses"] = json!(["local-reading"]);
+        assert!(assemble(&request).unwrap_err().contains("Video display"));
+    }
+    #[test]
+    fn original_is_explicit_exact_and_part_of_source_navigation() {
+        let mut request = fixture();
+        let before = request["passages"][0]["versions"].clone();
+        let mut original = before["en"].clone();
+        original["paragraphs"] = json!(["Original source unit."]);
+        original["textSha256"] = json!(hash(b"Original source unit."));
+        original["sourceUrl"] = json!("https://example.org/original");
+        request["passages"][0]["versions"]["la"] = original.clone();
+        assert!(
+            assemble(&request)
+                .unwrap_err()
+                .contains("declare its original")
+        );
+        request["passages"][0]["originalLanguage"] = json!("la");
+        let result = assemble(&request).unwrap();
+        assert_eq!(result["catalog"]["passages"][0]["versions"]["la"], original);
+        for language in ["ru", "en"] {
+            assert_eq!(
+                request["passages"][0]["versions"][language],
+                before[language]
+            );
+        }
+        assert!(
+            result["library"]["nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|node| node["sourceRefs"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|r| r["ref"] == "https://example.org/original"))
+        );
+        request["passages"][0]["versions"]["la"]["paragraphs"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("Unreviewed extra text."));
+        assert!(
+            assemble(&request)
+                .unwrap_err()
+                .contains("Text digest mismatch")
+        );
+    }
+}

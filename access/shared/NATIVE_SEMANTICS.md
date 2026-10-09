@@ -373,13 +373,16 @@ them `UnicodeData-16.0.0.txt`, `SpecialCasing-16.0.0.txt` and
 `DerivedCoreProperties-16.0.0.txt` and `CaseFolding-16.0.0.txt`. Then use:
 
 ```sh
-python3 -B access/shared/build_native_unicode.py --ucd-dir /absolute/ucd-directory
-python3 -B access/shared/build_native_unicode.py --ucd-dir /absolute/ucd-directory --check
+tos-unicode-tables --root "$PWD" --ucd-dir /absolute/ucd-directory
+tos-unicode-tables --root "$PWD" --ucd-dir /absolute/ucd-directory --check
 ```
 
 The generator rejects changed source digests/Unicode versions or a new unhandled
-context rule. It checks every code point's lower/printability/casefold/decimal against actual
-Python before emitting. It never downloads data, loads a graph, normalizes
+context rule. It reconstructs lowercase, printability, casefold and decimal mappings
+from the pinned UCD, then requires the complete historical table SHA-256 before
+emitting both TS and Rust carriers. Existing generated comments retain their
+historical producer names for byte compatibility. The active generator is Rust.
+It never downloads data, loads a graph, normalizes
 source records or publishes. No corpus-scale field index is generated.
 
 ## Focused verification

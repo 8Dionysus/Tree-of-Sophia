@@ -90,8 +90,6 @@ fn public_text_native_cli_preserves_whole_public_closure_and_cold_replay() {
         "rust/crates/tos-command/src/source_text_unit_proposal.rs",
         "rust/crates/tos-command/src/source_sign_native.rs",
         "rust/crates/tos-command/src/source_serialization.rs",
-        "mechanics/growth-cycle/tests/test_source_public_native_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_public_native_commands.py",
     ];
     let mut f = 0u64;
     for name in selected {

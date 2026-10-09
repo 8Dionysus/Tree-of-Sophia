@@ -16,7 +16,7 @@ use tos_validation::FormatProfile;
 use tos_validation::executor::ExecutorBudget;
 use tos_validation::item_rules::ItemLimits;
 
-const WORK_IMPLEMENTATIONS: [&str; 13] = [
+const WORK_IMPLEMENTATIONS: [&str; 12] = [
     "rust/crates/tos-command/src/source_assessment_journal.rs",
     "rust/crates/tos-command/src/source_command.rs",
     "rust/crates/tos-command/src/source_forms.rs",
@@ -26,10 +26,9 @@ const WORK_IMPLEMENTATIONS: [&str; 13] = [
     "rust/crates/tos-command/src/source_work_expression.rs",
     "rust/crates/tos-command/src/source_work_transaction.rs",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
-    "scripts/source_bibliographic_topology.py",
-    "scripts/source_metadata_snapshot.py",
-    "scripts/source_record_profiles.py",
-    "scripts/source_witness_human_forms.py",
+    "rust/crates/tos-validation/src/biblio_rules.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
+    "rust/crates/tos-command/src/source_private_profile.rs",
 ];
 
 fn seed_native_work_fixture(repository: &Path, root: &Path) -> (PathBuf, Vec<u8>, Value) {

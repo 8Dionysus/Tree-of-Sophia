@@ -44,13 +44,12 @@ const HISTORICAL_GROUND_IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-compiler/src/source_bibliographic.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
-    "scripts/source_record_profiles.py",
+    "rust/crates/tos-command/src/source_private_profile.rs",
     "rust/crates/tos-command/src/source_native_cli.rs",
 ];
 const REVISION_IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
     "rust/crates/tos-command/src/source_revisions.rs",
-    "scripts/source_witness_human_forms.py",
     "rust/crates/tos-command/src/source_forms.rs",
     "ToS/contracts/human-form.schema.json",
     "ToS/contracts/human-form-set.schema.json",
@@ -2800,8 +2799,8 @@ fn historical_grounding(
     if let Some(snapshot) = &inventory.native_text_snapshot {
         let mut native_implementation = Vec::new();
         for name in [
-            "scripts/native_text_binding.py",
-            "scripts/source_owner_context.py",
+            "rust/crates/tos-command/src/source_sign_native.rs",
+            "rust/crates/tos-command/src/source_text_owner.rs",
         ] {
             let raw = ctx
                 .file(&rel(name)?)?

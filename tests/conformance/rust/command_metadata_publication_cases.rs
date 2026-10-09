@@ -458,8 +458,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         .collect();
     // Fixed initial-creation rule inputs not carried by the catalog execution profile.
     names.extend([
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py"
-            .to_owned(),
+        "rust/crates/tos-command/src/source_legacy_historical_claim.rs".to_owned(),
         "rust/crates/tos-command/src/source_corpus_index_projection.rs".to_owned(),
         "rust/crates/tos-compiler/src/source_bibliographic.rs".to_owned(),
         "rust/crates/tos-compiler/src/source_bibliographic_render.rs".to_owned(),
@@ -470,7 +469,84 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         .keys()
     {
         if !reference.starts_with("ToS/") {
-            names.insert(reference.clone());
+            // The retained predecessor keeps its historical execution identity.
+            // Select current software explicitly; the reviewed bootstrap below
+            // must still authorize the actual before/after execution transition.
+            let current = match reference.as_str() {
+                "access/src/tos_access/projection_diff.py" => "rust/crates/tos-compiler/src/lib.rs",
+                "access/src/tos_access/projection_mutation.py" => {
+                    "rust/crates/tos-compiler/src/publication.rs"
+                }
+                "access/src/tos_access/projection_store.py" => {
+                    "rust/crates/tos-source-store/src/lib.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py" => {
+                    "rust/crates/tos-command/src/source_assessment_journal.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py" => {
+                    "rust/crates/tos-command/src/source_forms.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py" => {
+                    "rust/crates/tos-validation/src/assessment.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py" => {
+                    "rust/crates/tos-command/src/source_artifact_native.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py" => {
+                    "rust/crates/tos-command/src/source_command.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py" => {
+                    "rust/crates/tos-command/src/source_native_cli.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py" => {
+                    "rust/crates/tos-command/src/source_legacy_historical_claim.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py" => {
+                    "rust/crates/tos-command/src/source_work_transaction.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py" => {
+                    "rust/crates/tos-command/src/source_revisions.rs"
+                }
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py" => {
+                    "rust/crates/tos-command/src/source_revisions.rs"
+                }
+                "scripts/build_source_witness_catalog.py" => {
+                    "rust/crates/tos-compiler/src/source_witness_catalog.rs"
+                }
+                "scripts/native_text_binding.py" => {
+                    "rust/crates/tos-command/src/source_sign_native.rs"
+                }
+                "scripts/source_bibliographic_responsibility.py" => {
+                    "rust/crates/tos-validation/src/native_compound.rs"
+                }
+                "scripts/source_bibliographic_topology.py" => {
+                    "rust/crates/tos-validation/src/biblio_rules.rs"
+                }
+                "scripts/source_catalog_projection.py" => {
+                    "rust/crates/tos-compiler/src/source_bibliographic.rs"
+                }
+                "scripts/source_document_catalogue.py" => {
+                    "rust/crates/tos-validation/src/biblio_rules.rs"
+                }
+                "scripts/source_identity_proposals.py" => {
+                    "rust/crates/tos-command/src/source_claims.rs"
+                }
+                "scripts/source_metadata_snapshot.py" => {
+                    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs"
+                }
+                "scripts/source_owner_context.py" => {
+                    "rust/crates/tos-command/src/source_text_owner.rs"
+                }
+                "scripts/source_record_profiles.py" => {
+                    "rust/crates/tos-command/src/source_private_profile.rs"
+                }
+                "scripts/source_witness_human_forms.py" => {
+                    "rust/crates/tos-command/src/source_forms.rs"
+                }
+                path if !path.ends_with(".py") => path,
+                path => panic!("unmapped historical execution component: {path}"),
+            };
+            names.insert(current.to_owned());
         }
     }
     assert!(names.len() <= 64);

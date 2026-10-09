@@ -44,12 +44,11 @@ const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_read_owner.rs",
     "rust/crates/tos-command/src/source_claim_publication.rs",
     "rust/crates/tos-command/src/source_forms.rs",
-    "scripts/source_record_profiles.py",
-    "scripts/source_metadata_snapshot.py",
+    "rust/crates/tos-command/src/source_private_profile.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
     "rust/crates/tos-command/src/source_corpus_index_projection.rs",
     "rust/crates/tos-compiler/src/source_bibliographic.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
-    "scripts/source_witness_human_forms.py",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 fn error(reason: ItemRefusal) -> SourceCommandError {

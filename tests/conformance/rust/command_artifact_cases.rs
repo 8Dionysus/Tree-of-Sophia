@@ -144,15 +144,15 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         files.insert(path.into(), raw);
     }
     for path in [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "rust/crates/tos-command/src/source_artifact_native.rs",
+        "rust/crates/tos-command/src/source_command.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+        "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-validation/src/assessment.rs",
         "rust/crates/tos-compiler/src/source_witness_catalog.rs",
-        "scripts/source_record_profiles.py",
-        "scripts/source_witness_human_forms.py",
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
         "rust/crates/tos-command/src/source_corpus_index_projection.rs",
         "rust/crates/tos-compiler/src/source_bibliographic.rs",
         "rust/crates/tos-compiler/src/source_bibliographic_render.rs",

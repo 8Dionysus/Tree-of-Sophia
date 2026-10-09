@@ -1,0 +1,45 @@
+{
+  "preview_request": {
+    "forms": [
+      {
+        "field_id": "metadata.preferred-name",
+        "form_id": "tos.form.synthetic-sign.name"
+      },
+      {
+        "field_id": "metadata.source-note",
+        "form_id": "tos.form.synthetic-sign.note"
+      }
+    ],
+    "operation": "prepare-create",
+    "record": {
+      "external_identifiers": [],
+      "field_languages": {
+        "notes": {
+          "language": "en",
+          "script": "Latn"
+        },
+        "preferred_label": {
+          "language": "ru",
+          "script": "Cyrl"
+        }
+      },
+      "identity_status": "provisional",
+      "notes": "Synthetic Sign of the exact candidate, not historical or linguistic evidence.",
+      "preferred_label": "Условный знак",
+      "record_id": "tos.sign.synthetic-one",
+      "record_type": "sign",
+      "record_version": 1,
+      "same_as_posture": "no_equivalence_claim",
+      "schema_version": "tos_sign_description_record_v1",
+      "source_refs": [
+        "ToS/source-witnesses/relations/synthetic-claim/source-claims.jsonl"
+      ],
+      "visibility": "public_metadata_only"
+    },
+    "schema_version": "tos_local_source_command_v1"
+  },
+  "content": "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/public-synthetic-content.txt",
+  "scope_source": "ToS/source-witnesses/lexical-descriptions/synthetic/occurrence.json",
+  "original_payload": "ToS/source-witnesses/works/synthetic-native-binding/expressions/und-synthetic/editions/synthetic-edition/items/synthetic-item/payload/synthetic-original.xml",
+  "head": "assessment-journal/cdba51961279a859fa6806fae11abd1bcb3d436f9dcae00d3007be6dad1de7b7/head"
+}

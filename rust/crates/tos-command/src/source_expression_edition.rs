@@ -1113,10 +1113,9 @@ const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_work_expression.rs",
     "rust/crates/tos-command/src/source_expression_responsibility.rs",
     "rust/crates/tos-command/src/source_read_owner.rs",
-    "scripts/source_bibliographic_topology.py",
-    "scripts/source_metadata_snapshot.py",
-    "scripts/source_witness_human_forms.py",
-    "scripts/source_record_profiles.py",
+    "rust/crates/tos-validation/src/biblio_rules.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
+    "rust/crates/tos-command/src/source_private_profile.rs",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 

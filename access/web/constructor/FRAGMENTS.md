@@ -20,7 +20,7 @@ reviewed display basis opens publisher links and an explanation instead.
 ## Preparing a recording edition
 
 Keep text packets, acquired source evidence, rights/quality assessments, compiled
-releases and their receipts outside the repository. `build-fragments.py` takes
+releases and their receipts outside the repository. `tos-constructor-fragments` takes
 explicit passage packets and a binding packet; it neither acquires texts nor
 decides whether their use is lawful. The previous private `library.json` supplies
 only seven navigation identities and their parent closure. Exact passages,
@@ -29,7 +29,7 @@ quotes, body text, private paths and unlisted archive entries are not copied.
 From `access/web`, with storage already admitted by the host:
 
 ```sh
-python3 constructor/build-fragments.py \
+tos-constructor-fragments \
   --source-library /absolute/path/to/previous/library.json \
   --passages /absolute/path/to/reviewed-passages.json /absolute/path/to/link-only.json \
   --bindings /absolute/path/to/reviewed-bindings.json \

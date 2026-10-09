@@ -18,19 +18,6 @@ use tos_foundation::{
 };
 use tos_source_store::{CorpusReader, ReadLimits, Selector, StoreErrorCode};
 
-// Every maintained Python oracle/adapter uses the interpreter selected by
-// the native lane. A distro interpreter can have different installed packages.
-fn maintained_python() -> PathBuf {
-    let python = PathBuf::from(
-        std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter"),
-    );
-    assert!(
-        python.is_absolute(),
-        "maintained fixture interpreter is absolute"
-    );
-    python
-}
-
 // Frozen outputs from bounded, owner-run legacy Python conformance oracles.
 // The adjacent provenance records pin their exact source and selected-input
 // hashes; native tests never regenerate these expected values.

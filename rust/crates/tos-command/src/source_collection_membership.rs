@@ -1281,13 +1281,12 @@ const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_forms.rs",
     "rust/crates/tos-command/src/source_private_assessment_sources.rs",
     "rust/crates/tos-command/src/source_assessment_journal.rs",
-    "scripts/source_bibliographic_topology.py",
-    "scripts/source_metadata_snapshot.py",
+    "rust/crates/tos-validation/src/biblio_rules.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
     "rust/crates/tos-command/src/source_corpus_index_projection.rs",
     "rust/crates/tos-compiler/src/source_bibliographic.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
-    "scripts/source_witness_human_forms.py",
-    "scripts/source_record_profiles.py",
+    "rust/crates/tos-command/src/source_private_profile.rs",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 

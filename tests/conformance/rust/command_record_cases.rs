@@ -44,10 +44,147 @@ fn profile_workers(
     )
 }
 
+fn encode_fixture_hex(raw: &[u8]) -> String {
+    raw.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn retained_sign_source_seed(repository: &Path, root: &Path) -> Value {
+    use std::collections::BTreeSet;
+    use std::io::Read;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let directory = repository.join("tests/conformance/rust/fixtures/sign-source-seed-v1");
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(directory.join("provenance.json")).unwrap()).unwrap();
+    assert_eq!(
+        manifest["schema_version"],
+        "tos_retained_sign_source_seed_v1"
+    );
+    assert_eq!(manifest["historical_capture"]["status"], "PASS");
+    let raw = fs::read(directory.join("source.tar.gz")).unwrap();
+    assert!(raw.len() <= 4 * 1024 * 1024);
+    assert_eq!(
+        Digest256::of_bytes(&raw).to_hex(),
+        manifest["archive_sha256"]
+    );
+    let packet_raw = fs::read(directory.join("seed.json")).unwrap();
+    assert!(packet_raw.len() <= 262144);
+    assert_eq!(
+        Digest256::of_bytes(&packet_raw).to_hex(),
+        manifest["seed_sha256"]
+    );
+    let mut packet: Value = serde_json::from_slice(&packet_raw).unwrap();
+    let decoder = flate2::read::GzDecoder::new(raw.as_slice());
+    let mut archive = tar::Archive::new(super::BoundedReader::new(decoder, 32 * 1024 * 1024));
+    let mut files = BTreeSet::new();
+    let mut directories = BTreeSet::new();
+    let mut total = 0usize;
+    for entry in archive.entries().unwrap() {
+        let mut entry = entry.unwrap();
+        let path = entry.path().unwrap().into_owned();
+        let name = path.to_str().unwrap().trim_end_matches('/').to_owned();
+        RelativePath::parse(&name).unwrap();
+        let target = root.join(&name);
+        let kind = entry.header().entry_type();
+        if kind.is_dir() {
+            let row = manifest["directories"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["path"] == name)
+                .unwrap();
+            assert!(directories.insert(name));
+            fs::create_dir_all(&target).unwrap();
+            fs::set_permissions(
+                target,
+                fs::Permissions::from_mode(row["mode"].as_u64().unwrap() as u32),
+            )
+            .unwrap();
+        } else {
+            assert!(kind.is_file());
+            let row = manifest["files"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["path"] == name)
+                .unwrap();
+            let size = usize::try_from(entry.size()).unwrap();
+            assert!(size <= 4 * 1024 * 1024);
+            total = total.checked_add(size).unwrap();
+            assert!(total <= 32 * 1024 * 1024 && files.len() < 4096);
+            assert_eq!(size as u64, row["bytes"].as_u64().unwrap());
+            assert!(files.insert(name));
+            let mut bytes = Vec::with_capacity(size);
+            entry.read_to_end(&mut bytes).unwrap();
+            assert_eq!(bytes.len(), size);
+            assert_eq!(Digest256::of_bytes(&bytes).to_hex(), row["sha256"]);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(&target, bytes).unwrap();
+            fs::set_permissions(
+                target,
+                fs::Permissions::from_mode(row["mode"].as_u64().unwrap() as u32),
+            )
+            .unwrap();
+        }
+    }
+    assert_eq!(files.len(), manifest["files"].as_array().unwrap().len());
+    assert_eq!(
+        directories.len(),
+        manifest["directories"].as_array().unwrap().len()
+    );
+    for name in ["assessment-owner.json", "sign-owner.json"] {
+        let path = root.join(name);
+        let mut config: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        config["uid"] = Value::from(fs::metadata(root).unwrap().uid());
+        for key in [
+            "source_root",
+            "journal_directory",
+            "promotion_assessment_owner_config",
+        ] {
+            if let Some(value) = config.get_mut(key) {
+                let relative = value
+                    .as_str()
+                    .unwrap()
+                    .strip_prefix("/captured/tos-sign-fixture")
+                    .unwrap()
+                    .trim_start_matches('/');
+                *value = Value::from(root.join(relative).to_str().unwrap());
+            }
+        }
+        fs::write(&path, canonical_json(&config)).unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    let mut authored = serde_json::Map::new();
+    let mut modes = serde_json::Map::new();
+    for name in files.iter().filter(|name| name.starts_with("ToS/")) {
+        assert!(tos_source_store::is_authored_source_path_v1(name));
+        let path = root.join(name);
+        authored.insert(
+            name.clone(),
+            Value::from(encode_fixture_hex(&fs::read(&path).unwrap())),
+        );
+        modes.insert(
+            name.clone(),
+            Value::from(fs::metadata(path).unwrap().mode() & 0o7777),
+        );
+    }
+    packet["owner"] = Value::from(root.join("sign-owner.json").to_str().unwrap());
+    packet["assessment_owner"] = Value::from(root.join("assessment-owner.json").to_str().unwrap());
+    packet["config_raw"] = Value::from(encode_fixture_hex(
+        &fs::read(root.join("sign-owner.json")).unwrap(),
+    ));
+    packet["head"] = Value::from(
+        root.join(packet["head"].as_str().unwrap())
+            .to_str()
+            .unwrap(),
+    );
+    packet["authored"] = Value::Object(authored);
+    packet["modes"] = Value::Object(modes);
+    packet
+}
+
 #[test]
 fn sign_uses_current_native_content_assessment_and_replays_its_original_package() {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
-    use std::process::Command;
     use tos_command::source_creation::prepare_sign_promotion_from_captures;
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
@@ -63,82 +200,7 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     let cancellation = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(240);
     let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
-    // The normal maintained synthetic factory authors the judgments and the
-    // separately delegated issuance grant. Relocation happens before its
-    // public rebind, review append and Sign describe; no ready report is fed
-    // to Rust. Fresh synthetic competence and authority are valid through 2099
-    // before their refs/reviews are authored. Native current-clock expiry
-    // checks and the maintained separate expiry-negative cases stay unchanged.
-    let factory = r#"
-import json,sys,shutil,stat
-from pathlib import Path
-from unittest.mock import patch
-repo,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),str(repo/'tests'),str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')]
-from test_occurrence_assessment_guard import OccurrenceAssessmentGuardTests
-from test_native_text_assessment import NativeAssessmentFixture
-import test_knowledge_assessment as assessment_policy_fixtures
-import source_commands as commands
-original=NativeAssessmentFixture.__init__
-def selected(self,test,**kwargs):
-    original(self,test,**kwargs)
-    shutil.copytree(self.root,root,dirs_exist_ok=True)
-    self.root=self.native.root=root
-    self.owner=root/'assessment-owner.json'
-    self.config['source_root']=str(root)
-    self.config['journal_directory']=str(root/'assessment-journal')
-    (root/'assessment-journal').mkdir(mode=0o700)
-    self.save()
-test=OccurrenceAssessmentGuardTests(methodName='runTest')
-try:
-    with (patch.object(assessment_policy_fixtures,'END','2099-01-01T00:00:00Z'),
-          patch.object(NativeAssessmentFixture,'__init__',selected)):
-        f,owner,config,request=test.sign_command_fixture()
-    preview={key:value for key,value in request.items() if key not in {'command_id','expected_configuration','expected_source','expected_revision','expected_dependencies'}}
-    preview['operation']='prepare-create'
-    # Mirror run_local_command's actual input freeze before its private builder.
-    # Keep every original ordered output buffer; do not re-encode expected files.
-    preview=commands._json_object(commands._canonical(preview))
-    configured,_,_=commands._configuration(owner)
-    _,outputs,_=commands._prepare_creation(configured,preview)
-    response=commands.run_legacy_oracle_command(owner,preview)
-    # Complete private custody for this synthetic root, under existing v1 law.
-    # Inclusion does not grant native content disclosure or source admission.
-    def eligible(p):
-        ref=p.relative_to(root).as_posix()
-        return p.is_file() and not {'.git','payload','owner-local'}.intersection(p.relative_to(root).parts) and (not (ref.startswith('ToS/derived-exports/') or ref.startswith('ToS/source-witnesses/catalog/')) or ref.endswith('.md'))
-    selected=[p for p in sorted((root/'ToS').rglob('*')) if eligible(p)]
-    # Construct only this synthetic authored fixture in the supported v1 modes.
-    # Private root/owner/journal permissions and content bytes stay independent.
-    for p in selected:
-        if p.is_symlink(): raise RuntimeError('synthetic authored symlink')
-        p.chmod(0o755 if stat.S_IMODE(p.stat().st_mode)&0o111 else 0o644)
-    authored={p.relative_to(root).as_posix():p.read_bytes().hex() for p in selected}
-    modes={p.relative_to(root).as_posix():stat.S_IMODE(p.stat().st_mode) for p in selected}
-    head=root/'assessment-journal'/__import__('hashlib').sha256(f.identifier.encode()).hexdigest()/'head'
-    print(json.dumps({'owner':str(owner),'assessment_owner':str(f.owner),'config_raw':owner.read_bytes().hex(),'request':request,'preview_request':preview,'preview_raw':commands._canonical(response).hex(),'outputs':{name:raw.hex() for name,raw in outputs.items()},'authored':authored,'modes':modes,'content':f.native.content_ref,'scope_source':f.occurrence_path,'head':str(head),'original_payload':f.native.original_ref},ensure_ascii=False,allow_nan=False))
-finally:
-    test.doCleanups()
-"#;
-    let mut oracle = Command::new(crate::maintained_python());
-    for (key, _) in std::env::vars_os() {
-        if key.to_string_lossy().starts_with("GIT_") || key == "PYTHONPATH" || key == "PYTHONHOME" {
-            oracle.env_remove(key);
-        }
-    }
-    let output = oracle
-        .args(["-c", factory])
-        .arg(&repository)
-        .arg(isolated.path())
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "maintained Sign factory: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let oracle: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let mut oracle = retained_sign_source_seed(&repository, isolated.path());
     let authored = oracle["authored"]
         .as_object()
         .unwrap()
@@ -172,7 +234,7 @@ finally:
     // Rule implementation and native serialization observations are selected
     // through a separate exact software capture, never the authored cut.
     for name in [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
+        "rust/crates/tos-command/src/source_assessment_journal.rs",
         "rust/crates/tos-command/src/source_forms.rs",
         "rust/crates/tos-command/src/source_forms_publication.rs",
         "rust/crates/tos-compiler/src/source_witness_catalog.rs",
@@ -285,6 +347,28 @@ finally:
         deadline,
         &cancellation,
     );
+    let (mut describe_local, mut describe_assessment) =
+        profile_workers(&cut, &image, deadline, &cancellation);
+    let promotion = tos_command::source_creation::describe_sign_promotion_from_captures(
+        owner,
+        &context,
+        &cut,
+        &software,
+        &components,
+        &mut describe_local,
+        &mut describe_assessment,
+        limits,
+        &cancellation,
+    )
+    .unwrap();
+    let promotion: Value = serde_json::from_slice(&bytes(&promotion)).unwrap();
+    assert_eq!(promotion["eligible"], true);
+    assert_eq!(promotion["grants_issuance_authority"], false);
+    oracle["preview_request"]["record"]["promotion_basis"] = promotion["basis"].clone();
+    oracle["request"] = oracle["preview_request"].clone();
+    context.request_raw = canonical_json(&oracle["preview_request"]);
+    describe_local.finish(deadline, &cancellation).unwrap();
+    describe_assessment.finish(deadline, &cancellation).unwrap();
     // Re-enter the native Sign owner with changed current v2 scope inputs.
     // These are distinct route checks: requested-use fencing, Sign risk floor,
     // and exact native-content readiness. Each refusal precedes package creation.
@@ -354,21 +438,41 @@ finally:
     )
     .unwrap();
     let preview = prepared.preview().unwrap();
+    let preview_json: Value = serde_json::from_slice(&bytes(&preview)).unwrap();
     assert_eq!(
-        bytes(&preview),
-        decode_hex(required(&oracle, "preview_raw")),
-        "entire maintained Sign preparation including current full basis"
+        preview_json["prepared_source"]["id"],
+        oracle["preview_request"]["record"]["record_id"]
     );
+    let prepared_record: Value = serde_json::from_slice(&prepared.files()["sign.json"]).unwrap();
+    assert_eq!(prepared_record, oracle["preview_request"]["record"]);
+    assert_eq!(preview_json["grants_admission"], false);
+    assert_eq!(
+        prepared.home().as_str(),
+        "ToS/source-witnesses/signs/synthetic-one"
+    );
+    let mut outputs = serde_json::Map::new();
     for (name, raw) in prepared.files() {
-        assert_eq!(
-            *raw,
-            decode_hex(oracle["outputs"][name].as_str().unwrap()),
-            "original Sign buffer {name}"
-        );
+        outputs.insert(name.clone(), Value::from(encode_fixture_hex(raw)));
     }
+    assert!(outputs.contains_key("sign.json") && outputs.contains_key("sign.human-forms.json"));
+    let forms: Value = serde_json::from_slice(&prepared.files()["sign.human-forms.json"]).unwrap();
+    assert!(forms["forms"].as_array().unwrap().iter().all(|form| {
+        form["bindings"]
+            .as_object()
+            .unwrap()
+            .values()
+            .any(|binding| binding["pointer"] == "/promotion_basis")
+    }));
+    oracle["outputs"] = Value::Object(outputs);
+    oracle["request"]["operation"] = Value::from("sign.promote");
+    oracle["request"]["command_id"] = Value::from("synthetic-sign-once");
+    oracle["request"]["expected_configuration"] = preview_json["owner_configuration"].clone();
+    oracle["request"]["expected_source"] = Value::Null;
+    oracle["request"]["expected_revision"] = Value::Null;
+    oracle["request"]["expected_dependencies"] = preview_json["expected_dependencies"].clone();
     local_worker.finish(deadline, &cancellation).unwrap();
-    // The request retains the Python author's exact basis/configuration and
-    // dependency values; Rust must independently reconstruct them again.
+    // Apply independently reconstructs the native preview's exact current
+    // basis, configuration, dependency values and ordered package buffers.
     context.request_raw = canonical_json(&oracle["request"]);
     let (mut local_worker, mut assessment_worker) =
         profile_workers(&cut, &image, deadline, &cancellation);
@@ -2389,7 +2493,7 @@ fn profile_native_binding_checks_metadata_closure_without_content_read() {
     changed_software
         .files
         .iter_mut()
-        .find(|f| f.path.as_str() == "scripts/native_text_binding.py")
+        .find(|f| f.path.as_str() == "rust/crates/tos-command/src/source_sign_native.rs")
         .unwrap()
         .raw
         .push(b' ');

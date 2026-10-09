@@ -427,131 +427,153 @@ fn build_public_v2(
     })
 }
 
+/// Immutable test transport. Actual CLI calls independently reopen the same
+/// selected source root through the production protected source reader.
+struct FrozenPublicRead(std::collections::BTreeMap<String, Vec<u8>>);
+impl tos_command::source_sign_native::SignNativeRead for FrozenPublicRead {
+    fn read(
+        &mut self,
+        reference: &str,
+        _kind: tos_command::source_sign_native::NativeReadKind,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> tos_command::source_command::SourceCommandResult<Vec<u8>> {
+        use tos_command::source_command::SourceCommandError as E;
+        self.verify_current(deadline, cancelled)?;
+        tos_foundation::RelativePath::parse(reference)
+            .map_err(|_| E::Invalid("fixture relative source path"))?;
+        let bytes = self
+            .0
+            .get(reference)
+            .ok_or(E::Invalid("fixture source absent"))?;
+        if bytes.len() > max_bytes {
+            return Err(E::Invalid("fixture read byte cap"));
+        }
+        Ok(bytes.clone())
+    }
+    fn verify_current(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> tos_command::source_command::SourceCommandResult<()> {
+        if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(tos_command::source_command::SourceCommandError::Invalid(
+                "fixture execution ended",
+            ));
+        }
+        Ok(())
+    }
+    fn owner_local(
+        &self,
+        _reference: &str,
+    ) -> tos_command::source_command::SourceCommandResult<bool> {
+        Ok(false)
+    }
+}
+
 fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAssessmentFixture> {
     initialize_root(root)?;
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
-    let seed =
-        super::command_text_cases::native_text_unit_seed(repository, root, deadline, &cancelled);
-    copy_contracts(repository, &seed.public_root)?;
-
-    let packet_path = seed.private_root.join(&seed.unit_source_ref);
-    let packet_bytes = fs::read(&packet_path)?;
+    // This retained source fixture contains a local-content representation in
+    // the ordinary public source tree. It is not an owner-local context, and
+    // the public v3 owner therefore uses its historical input-only snapshot.
+    let workspace = root.join("public-text-fixture");
+    let _captured = super::native_python_fixture(
+        "public-text-base",
+        &[("workspace", &workspace)],
+        &["rust/crates/tos-command/src/source_sign_native.rs"],
+    );
+    let public_root = workspace.join("source");
+    copy_contracts(repository, &public_root)?;
+    let base = "ToS/source-witnesses/works/synthetic-native-binding";
+    let home = format!("{base}/technical-markup/synthetic-binding");
+    let packet_ref = format!("{home}/source-text-unit.synthetic.v1.json");
+    let layer_ref_path = format!("{home}/source-text-layer.synthetic.v1.json");
+    let packet_bytes = fs::read(public_root.join(&packet_ref))?;
     let packet: Value = serde_json::from_slice(&packet_bytes).map_err(invalid_data)?;
-    let unit = packet["units"]
-        .as_array()
-        .and_then(|rows| rows.first())
-        .ok_or_else(|| invalid_data("native TextUnit packet has no unit"))?;
-    let segmentation = packet["segmentations"]
-        .as_array()
-        .and_then(|rows| rows.first())
-        .ok_or_else(|| invalid_data("native TextUnit packet has no segmentation"))?;
-    let layer_binding = seed.unit_owner_config["source_binding"]["text_layer"].clone();
-    let source_record_refs = seed.unit_owner_config["source_binding"]["source_record_refs"].clone();
+    let layer_bytes = fs::read(public_root.join(&layer_ref_path))?;
+    let layer: Value = serde_json::from_slice(&layer_bytes).map_err(invalid_data)?;
+    let unit = &packet["units"][0];
+    let segmentation = &packet["segmentations"][0];
+    let expression = format!("{base}/expressions/und-synthetic");
+    let edition = format!("{expression}/editions/synthetic-edition");
     let binding = json!({
         "schema_version":"tos_native_text_unit_binding_v1",
-        "packet_ref":seed.unit_source_ref,
-        "packet_sha256":Digest256::of_bytes(&packet_bytes).to_hex(),
-        "packet_id":packet["packet_id"],
-        "packet_version":packet["packet_version"],
-        "unit_id":unit["unit_id"],
-        "unit_version":unit["unit_version"],
+        "packet_ref":packet_ref,"packet_sha256":Digest256::of_bytes(&packet_bytes).to_hex(),
+        "packet_id":packet["packet_id"],"packet_version":packet["packet_version"],
+        "unit_id":unit["unit_id"],"unit_version":unit["unit_version"],
         "ordered_anchor_refs":unit["ordered_anchor_refs"],
         "segmentation_id":segmentation["segmentation_id"],
         "segmentation_version":segmentation["segmentation_version"],
-        "text_layer":layer_binding,
-        "source_record_refs":source_record_refs
+        "text_layer":{"record_ref":layer_ref_path,
+            "record_sha256":Digest256::of_bytes(&layer_bytes).to_hex(),
+            "layer_id":layer["layer_id"],"layer_version":layer["layer_version"]},
+        "source_record_refs":{"work":format!("{base}/work.json"),
+            "expression":format!("{expression}/expression.json"),
+            "edition":format!("{edition}/edition.json"),
+            "item":format!("{edition}/items/synthetic-item/item.json")}
     });
     let subject_id = binding["unit_id"]
         .as_str()
-        .ok_or_else(|| invalid_data("native TextUnit binding has no identity"))?
+        .ok_or_else(|| invalid_data("native TextUnit identity absent"))?
         .to_owned();
-    let access = json!({
-        "read_scope":"exact_owner_local",
-        "access_allowed":true,
-        "authority_ref":"test:synthetic-native-text-source-access"
-    });
-    let native_selection_value = json!([{
-        "binding":binding.clone(),
-        "origin_id":"synthetic-native-text-assessment-origin",
-        "source_access":access.clone()
-    }]);
-    let native_selection = foundation_value(&native_selection_value)?;
-    let worker = seed.worker_image.identity();
-    let exact = tos_command::resolve_native_text_units_for_conformance(
-        &seed.owner_context,
-        &native_selection,
-        &seed.cut,
-        &worker.absolute_path,
-        worker.sha256,
+    let origin = "synthetic-native-text-assessment-origin";
+    let native_selection_value = json!([{"binding":binding,"origin_id":origin,
+        "read_scope":"exact_owner_local"}]);
+    let files = super::command_text_cases::authored_text_files(&public_root);
+    let store = root.join("public-fixture-cut");
+    let revision = super::validation_cut_cases::write_cut_store(&files, &store);
+    let cut = super::command_form_cases::open_cut(&store, revision, deadline, &cancelled);
+    let mut worker = super::command_form_cases::schemas(&cut, deadline, &cancelled);
+    let mut reader = FrozenPublicRead(files);
+    let binding_value = foundation_value(&binding)?;
+    let exact = tos_command::source_sign_native::resolve_assessment(
+        &mut reader,
+        &mut worker,
+        &binding_value,
+        origin,
+        tos_command::source_sign_native::NativeReadScope::ExactOwnerLocal,
         deadline,
         &cancelled,
     )
     .map_err(invalid_data)?;
-    let metadata_selection = json!([{
-        "binding":binding.clone(),
-        "origin_id":"synthetic-native-text-assessment-origin",
-        "source_access":{
-            "read_scope":"metadata_only",
-            "access_allowed":true,
-            "authority_ref":"test:synthetic-native-text-source-access"
-        }
-    }]);
-    let metadata_selection = foundation_value(&metadata_selection)?;
-    let metadata = tos_command::resolve_native_text_units_for_conformance(
-        &seed.owner_context,
-        &metadata_selection,
-        &seed.cut,
-        &worker.absolute_path,
-        worker.sha256,
+    let metadata = tos_command::source_sign_native::resolve_assessment(
+        &mut reader,
+        &mut worker,
+        &binding_value,
+        origin,
+        tos_command::source_sign_native::NativeReadScope::MetadataOnly,
         deadline,
         &cancelled,
     )
     .map_err(invalid_data)?;
+    use tos_validation::source_cut::CutSchemaExecutor;
+    worker.finish(deadline, &cancelled).map_err(invalid_data)?;
     let native_records = exact
-        .native_records
-        .iter()
-        .map(serde_value)
-        .collect::<io::Result<Vec<_>>>()?;
-    let native_summaries = exact
-        .native_summaries
+        .records
         .iter()
         .map(serde_value)
         .collect::<io::Result<Vec<_>>>()?;
     let metadata_records = metadata
-        .native_records
+        .records
         .iter()
         .map(serde_value)
         .collect::<io::Result<Vec<_>>>()?;
-    let metadata_summary = metadata
-        .native_summaries
-        .first()
-        .ok_or_else(|| invalid_data("metadata-only native summary is absent"))?;
     let subject_ref = native_record_ref(&native_records, &subject_id)?;
-    if summary_record_ref(&native_summaries, &subject_id)? != subject_ref {
-        return Err(invalid_data(
-            "exact TextUnit native record ref differs from resolver summary",
-        ));
-    }
     let metadata_subject = native_record_ref(&metadata_records, &subject_id)?;
-    if summary_record_ref(
-        &metadata
-            .native_summaries
-            .iter()
-            .map(serde_value)
-            .collect::<io::Result<Vec<_>>>()?,
-        &subject_id,
-    )? != metadata_subject
-    {
+    if subject_ref == metadata_subject {
         return Err(invalid_data(
-            "metadata-only TextUnit native record ref differs from resolver summary",
+            "content and metadata-only subjects must differ",
         ));
     }
     let layer_id = binding["text_layer"]["layer_id"]
         .as_str()
-        .ok_or_else(|| invalid_data("native TextUnit binding has no layer identity"))?;
-    let layer_ref = summary_record_ref(&native_summaries, layer_id)?;
-    let access_language = metadata_summary
+        .ok_or_else(|| invalid_data("native layer identity absent"))?;
+    let layer_ref = native_record_ref(&native_records, layer_id)?;
+    let access_language = metadata
+        .summary
         .object_get("language")
         .and_then(tos_foundation::JsonValue::as_str)
         .unwrap_or("und")
@@ -619,20 +641,20 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
         "schema_version":"tos_local_assessment_owner_v3","uid":fs::metadata(root)?.uid(),
         "principal_id":"assessor-a","execution_profile":executor_ref,"policy":policy,
         "authorities":[authority],"competencies":[competence],"records":[calibration,executor],
-        "journal_directory":root.join("assessment-journal"),"source_root":seed.public_root,
-        "source_records":[],"native_text_units":native_selection_value,
-        "owner_local_source_records":[],"subjects":subjects
+        "journal_directory":root.join("assessment-journal"),"source_root":public_root,
+        "source_records":[],"native_text_units":native_selection_value,"subjects":subjects
     });
     let journal_directory = root.join("assessment-journal");
     secure_dir(&journal_directory)?;
     let owner_config_path = root.join("owner-v3.json");
     write_private_json(&owner_config_path, &owner_config)?;
-    let owner_context: Value =
-        serde_json::from_slice(&fs::read(&seed.owner_context)?).map_err(invalid_data)?;
-    let public_root = seed.public_root.clone();
-    let owner_context_path = seed.owner_context.clone();
+    let private_root = root.join("unused-private-boundary");
+    secure_dir(&private_root)?;
+    let owner_context = owner_context(&public_root, &private_root);
+    let owner_context_path = root.join("native-context.json");
+    write_private_json(&owner_context_path, &owner_context)?;
     let preserved = inventory(&public_root)?;
-    let private_inventory = inventory(&seed.private_root)?;
+    let private_inventory = inventory(&private_root)?;
     Ok(NativePublicAssessmentFixture {
         version: 3,
         owner_config_path,

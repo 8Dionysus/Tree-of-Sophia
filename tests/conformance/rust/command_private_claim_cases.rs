@@ -591,10 +591,6 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
         .unwrap()
         .len();
-    let python_bytes = fs::metadata(crate::maintained_python().canonicalize().unwrap())
-        .unwrap()
-        .len();
-    assert!(python_bytes <= 536_870_912);
     assert!(native_bytes <= 536_870_912 && worker_bytes <= 536_870_912);
     assert!(consumer_bytes <= 536_870_912);
     assert!(Instant::now() < deadline);
@@ -1044,7 +1040,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let private_final = private_snapshot(&private, deadline);
 
     eprintln!(
-        "private Claim F={fixture_bytes} source_files={} public_files={authored_count} public_bytes={authored_bytes} private_seed_files={} private_seed_bytes={} private_final_files={} private_final_bytes={} E={native_bytes} C={consumer_bytes} W={worker_bytes} P={python_bytes} native_cli_calls={native_calls} native_children={native_calls} oracle_calls={} fixture_processes=1 capture_direct_git=2 capture_python=2 capture_inner_git=4 schema_workers<={} publication=false admission=false",
+        "private Claim F={fixture_bytes} source_files={} public_files={authored_count} public_bytes={authored_bytes} private_seed_files={} private_seed_bytes={} private_final_files={} private_final_bytes={} E={native_bytes} C={consumer_bytes} W={worker_bytes} native_cli_calls={native_calls} native_children={native_calls} oracle_calls={} fixture_processes=0 capture_direct_git=2 capture_python=0 capture_inner_git=4 schema_workers<={} publication=false admission=false",
         source_sizes.len(),
         private_seed.len(),
         private_seed

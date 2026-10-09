@@ -128,15 +128,12 @@ pub(super) fn run(
                 deadline,
                 cancelled,
             )?;
-            let mut selected = crate::source_sign::SignPromotionRead::select(
+            let promotion = owner::describe_sign_promotion_from_captures(
                 &configuration_path,
                 &context,
                 &original,
-                deadline,
-                cancelled,
-            )?;
-            let promotion = selected.describe_promotion(
-                &context,
+                software,
+                components,
                 &mut worker,
                 &mut assessment,
                 limits,

@@ -59,7 +59,7 @@ const DEPENDENCIES: &[&str] = &[
     "ToS/contracts/human-form-template.schema.json",
 ];
 const SELECTED_DEPENDENCIES: &[&str] = &[
-    "scripts/source_metadata_snapshot.py",
+    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
     "rust/crates/tos-command/src/source_work_transaction.rs",
     "rust/crates/tos-command/src/source_revisions.rs",
 ];
