@@ -539,9 +539,18 @@ pub fn python_float_text(value: f64) -> Result<String> {
             "nonfinite Python float",
         ));
     }
+    let mut buffer = ryu::Buffer::new();
+    let text = buffer.format_finite(value);
+    // An integral float still needs a floating-point JSON lexeme; otherwise
+    // the writer correctly rejects its declared kind as inconsistent.
+    let lexeme = if text.contains(['.', 'e', 'E']) {
+        text.to_owned()
+    } else {
+        format!("{text}.0")
+    };
     let number = JsonValue::Number(JsonNumber {
         kind: JsonNumberKind::Float,
-        lexeme: value.to_string(),
+        lexeme,
     });
     json_scalar(&number)
 }
@@ -637,7 +646,14 @@ mod tests {
             python_searchable_text(&value, 256).unwrap(),
             "{\"a\": [false, \"x\\n\"], \"z\": 1.0}"
         );
-        assert_eq!(python_float_text(-0.0).unwrap(), "-0.0");
+        for (number, text) in [
+            (-0.0, "-0.0"), (2.0, "2.0"),
+            (-189531334057995.12, "-189531334057995.12"),
+            (0.10000991821289062, "0.10000991821289062"),
+            (1e-5, "1e-05"), (1e16, "1e+16"),
+        ] {
+            assert_eq!(python_float_text(number).unwrap(), text);
+        }
     }
 
     #[test]

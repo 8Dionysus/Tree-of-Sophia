@@ -76,8 +76,9 @@ and the applicable text license when recording licensed material.
 ## Validation
 
 Run the existing constructor model, atlas, lens and journey tests alongside
-`fragment-catalog.test.mjs`, then Python `test_build_fragments.py` and the desktop
-boundary tests. Validate the actual assembled catalog against the complete
+`fragment-catalog.test.mjs`, then the native `tos-constructor-fragments` unit
+tests, `tos-constructor-desktop` unit tests and `constructor_desktop_native`
+lifecycle integration test. Validate the actual assembled catalog against the complete
 prepared material set. In the browser check each supplied language, the last
 paragraph, selectable parallel pairs, credits, unavailable works and return
 to the same graph step.

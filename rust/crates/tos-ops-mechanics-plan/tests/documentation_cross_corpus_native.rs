@@ -1297,17 +1297,17 @@ fn test_navigation_keeps_home_scopes_without_duplicating_command_authority() {
     }
     for (path, scope, home) in [
         (
-            "access/web/constructor/desktop/test_desktop.py",
+            "access/web/constructor/desktop/desktop.test.mjs",
             "product-local",
             "access",
         ),
         (
-            "access/web/constructor/test_build_fragments.py",
+            "access/web/constructor/fragment-catalog.test.mjs",
             "product-local",
             "access",
         ),
         (
-            "access/tests/test_http_security.py",
+            "access/tests/test_native_io.py",
             "product-local",
             "access",
         ),

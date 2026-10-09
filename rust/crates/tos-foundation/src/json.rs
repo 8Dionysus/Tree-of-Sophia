@@ -1805,7 +1805,7 @@ fn emit(output: &mut JsonOutput<'_, '_>, bytes: &[u8], limits: JsonLimits) -> Re
 }
 
 /// Render a finite IEEE-754 value with CPython's `repr(float)` layout used by
-/// `json.dumps`. Rust's shortest round-trip decimal supplies the significant
+/// `json.dumps`. Ryu's shortest, ties-to-even decimal supplies the significant
 /// digits; Python's fixed/scientific threshold and exponent spelling are
 /// applied without converting an integer through binary64.
 fn state_error() -> FoundationError {
@@ -1891,25 +1891,17 @@ fn python_float_into(
     Ok(())
 }
 fn python_float_text(value: f64) -> String {
-    let shortest = value.abs().to_string();
+    let mut buffer = ryu::Buffer::new();
+    let shortest = buffer.format_finite(value.abs());
     let mut result = String::new();
     python_float_into(value, &shortest, &mut result).expect("String formatting");
     result
 }
 fn emit_state_float(value: f64, output: &mut JsonOutput<'_, '_>, limits: JsonLimits) -> Result<()> {
-    use std::fmt::Write;
+    // Ryu uses a fixed stack buffer; no uncharged heap scratch is allocated.
+    let mut buffer = ryu::Buffer::new();
+    let shortest = buffer.format_finite(value.abs());
     let mut count = FormatCount(0);
-    write!(&mut count, "{}", value.abs()).map_err(|_| state_error())?;
-    if count.0 > output.state_remaining().ok_or_else(state_error)? {
-        return Err(state_error());
-    }
-    let mut shortest = String::new();
-    shortest
-        .try_reserve_exact(count.0)
-        .map_err(|_| state_error())?;
-    output.reserve_scratch(shortest.capacity())?;
-    write!(&mut shortest, "{}", value.abs()).map_err(|_| state_error())?;
-    count.0 = 0;
     python_float_into(value, &shortest, &mut count).map_err(|_| state_error())?;
     if count.0 > output.state_remaining().ok_or_else(state_error)? {
         return Err(state_error());
@@ -1922,11 +1914,8 @@ fn emit_state_float(value: f64, output: &mut JsonOutput<'_, '_>, limits: JsonLim
     python_float_into(value, &shortest, &mut result).map_err(|_| state_error())?;
     emit(output, result.as_bytes(), limits)?;
     let result_capacity = result.capacity();
-    let shortest_capacity = shortest.capacity();
     drop(result);
-    drop(shortest);
     output.release_scratch(result_capacity);
-    output.release_scratch(shortest_capacity);
     Ok(())
 }
 

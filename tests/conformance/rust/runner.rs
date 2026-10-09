@@ -215,7 +215,7 @@ impl<R: Read> Read for BoundedReader<R> {
 fn native_fixture_bundle_root() -> PathBuf {
     std::env::var_os("TOS_NATIVE_PYTHON_FIXTURE_CAPTURE_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|| fixtures().join("native-python-fixture-capture-v1"))
+        .unwrap_or_else(|| fixtures().join("fixtures/native-python-fixture-capture-v1"))
 }
 
 fn native_fixture_capture_root(id: &str) -> PathBuf {

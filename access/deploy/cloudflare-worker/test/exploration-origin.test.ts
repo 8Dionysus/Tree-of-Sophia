@@ -1,3 +1,4 @@
+import {validateNativePackets} from './native-schema-worker.mjs';
 import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -144,8 +145,8 @@ test(`D1 typed origins conserve Python pages and independent zero/one-distance r
         assert.deepEqual(semanticPages(pages), semanticPages(oracle.pages), JSON.stringify(request));
         if (request.max_depth !== 0) assert.ok(pages[0]!.page.primary_node_ids.length + pages[0]!.page.primary_relation_ids.length > 0);
       }
-      if(direction==='either')python("from test_exploration_origin import ExplorationOriginTests;ExplorationOriginTests.setUpClass();p=json.load(sys.stdin)\nfor packet in p: ExplorationOriginTests.validator.validate(packet)\nprint(json.dumps(True))",
-        await collect(db, query(g, 'relation', {page_nodes: 1, page_relations: 1})));
+      if(direction==='either')validateNativePackets(
+        await collect(db, query(g, 'relation', {page_nodes: 1, page_relations: 1})), 'exploration-result.v2.schema.json');
     }
   } finally {await mf.dispose();}
 });
