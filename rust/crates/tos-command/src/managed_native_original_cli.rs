@@ -775,6 +775,7 @@ fn validate_source_only_request(source: &NativeSourceOnlyRequest, request: &Requ
         || source.max_total_bytes == 0
         || source.max_total_bytes > manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES
         || source.max_member_bytes == 0
+        || source.max_member_bytes > source.max_total_bytes
         || source.max_member_bytes > MAX_COLD_ROW_BYTES as u64
         || source.software_components.is_empty()
         || source.software_components.len() > 128
@@ -1598,7 +1599,7 @@ fn prepare_source_only_runtime(
     )?;
     if Digest256::of_bytes(&worker_capture_bytes) != worker.sha256
         || Path::new(&source.schema_worker_absolute_path)
-            != Path::new(&source.software_restored_root).join(&worker_relative)
+            != Path::new(&source.software_restored_root).join(worker_relative.as_str())
     {
         return Err(Refusal("native schema worker path does not match selected capture").into());
     }
@@ -1735,7 +1736,8 @@ fn prepare_source_only_runtime(
             rustix::process::getuid().as_raw(),
         )?;
         let mut raw = Vec::new();
-        file.take(request.persistent_write_cap_bytes.saturating_add(1))
+        (&mut file)
+            .take(request.persistent_write_cap_bytes.saturating_add(1))
             .read_to_end(&mut raw)?;
         if raw.len() as u64 > request.persistent_write_cap_bytes
             || Stamp::from(&file.metadata()?) != stamp
@@ -1786,7 +1788,8 @@ fn check_source_products(
             rustix::process::getuid().as_raw(),
         )?;
         let mut raw = Vec::new();
-        file.take(expected.size_bytes.saturating_add(1))
+        (&mut file)
+            .take(expected.size_bytes.saturating_add(1))
             .read_to_end(&mut raw)?;
         if raw.len() as u64 != expected.size_bytes
             || Digest256::of_bytes(&raw).to_hex() != expected.sha256
@@ -1817,7 +1820,7 @@ fn check_source_products(
     ]))
 }
 
-fn execute(request: Request) -> Result<Value> {
+fn execute(mut request: Request) -> Result<Value> {
     validate_request(&request)?;
     let started = Instant::now();
     let deadline = started
@@ -1944,7 +1947,8 @@ fn execute(request: Request) -> Result<Value> {
             .ok_or(Refusal("native corpus check comparison root absent"))?;
         return check_source_products(runtime, Path::new(comparison_root), deadline);
     }
-    let mut evidence_refs = hold_evidence_refs(request.evidence_refs, deadline, uid)?;
+    let mut evidence_refs =
+        hold_evidence_refs(std::mem::take(&mut request.evidence_refs), deadline, uid)?;
     let selected_source_bytes = match (&historical, &source_runtime, &request.selected_snapshot) {
         (Some(census), _, Some(_)) => census.retained_state_upper_bound()?,
         (_, Some(runtime), None) => runtime.retained_state_upper_bound()?,
