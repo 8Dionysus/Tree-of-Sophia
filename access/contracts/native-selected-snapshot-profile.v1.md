@@ -42,7 +42,7 @@ implicit source selector or source/rights/publication admission.
 All existing manifest, path, member, source-byte, model, filesystem custody,
 fs-verity, original state/VM/deadline, tmpfs and persistent-write ceilings
 remain active. The optional request field `max_work_bytes` selects one finite
-cumulative capture/build work allowance from 1 byte through 256 GiB; omission
+cumulative capture/build work allowance from 1 byte through 512 GiB; omission
 retains the existing 16 GiB default. This is cumulative byte/visitor work,
 separate from RAM and physical file limits. The same work counter spans
 capture, normalization, packing and build reads; phases do not reset it.
@@ -56,8 +56,11 @@ as additional output catalog entries. MAIN, TEMP and final cold-file limits
 remain enforced independently. `cold_open.max_work_bytes` may
 select up to 32 GiB for complete verification of expanded packed rows. These
 are work allowances, not larger files or memory reservations. The producer
-still requires its explicit deadline of at most two hours and all declared
-state, process, VM, tmpfs, MAIN and cold-file caps.
+still requires its explicit deadline of at most three hours and all declared
+state, process, VM, tmpfs, MAIN and cold-file caps. The full selected projection
+can consume more than 256 GiB of checked work before search finishes; the
+larger selectable work envelope covers those repeated reads. The default work
+allowance and the 512 MiB build / 256 MiB cold-file limits are unchanged.
 
 The result reports `producer_max_work_bytes` and the counter observation
 `capture_build_observed_work_bytes`. A historical fixture may carry its frozen manifest and excluded

@@ -59,12 +59,12 @@ const MAX_REQUEST_BYTES: usize = 64 * 1024;
 const MAX_RESULT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_SELECTION_BYTES: usize = 1024 * 1024;
 const MAX_EVIDENCE_REF_BYTES: u64 = 4 * 1024 * 1024;
-const MAX_BUILD_SECONDS: u64 = 2 * 60 * 60;
+const MAX_BUILD_SECONDS: u64 = 3 * 60 * 60;
 const MAX_COLD_VM_STEPS: u64 = 50_000_000_000;
 // Logical byte/visitor work across capture, normalization, indexing and seal.
 // A packed model can expand to many times its physical size during checked
 // reads. These ceilings do not increase memory, file, VM or deadline limits.
-const MAX_PRODUCER_WORK_BYTES: u64 = 256 * 1024 * 1024 * 1024;
+const MAX_PRODUCER_WORK_BYTES: u64 = 512 * 1024 * 1024 * 1024;
 const MAX_COLD_WORK_BYTES: u64 = 32 * 1024 * 1024 * 1024;
 const MAX_COLD_ROWS: u64 = 10_000_000;
 const MAX_COLD_ROW_BYTES: usize = 8 * 1024 * 1024;

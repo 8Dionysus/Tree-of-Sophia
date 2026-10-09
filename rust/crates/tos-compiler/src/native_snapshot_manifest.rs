@@ -808,13 +808,6 @@ pub fn portable_native_snapshot_limits(
         .max_output_bytes
         .min(MAX_NATIVE_MODEL_BYTES);
     base.stage.max_temp_bytes = base.stage.max_temp_bytes.min(MAX_NATIVE_STAGE_TEMP_BYTES);
-    // A source row may contribute an intermediate route even when the final
-    // catalog contains only a few facet/overview values. Bound that SQL state
-    // separately; retain the published output entry and byte ceilings.
-    base.catalog.max_aggregate_entries = base.catalog.max_rows;
-    base.catalog.max_aggregate_bytes =
-        usize::try_from(base.stage.max_temp_bytes.min(256 * 1024 * 1024))
-            .map_err(|_| Error::Budget("native catalog aggregate bytes"))?;
     Ok(crate::native_snapshot::NativeSnapshotLimits {
         capture: base.capture,
         stage: base.stage,

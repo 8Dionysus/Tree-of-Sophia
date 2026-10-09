@@ -124,7 +124,7 @@ fn create_archive(path: &Path, marker: &str) -> String {
         },
         "native_commands":{
             "tos-native-owner-command":{
-                "schema_version":"tos_native_command_build_v1",
+                "schema_version":"tos_native_software_command_build_v1",
                 "target":"x86_64-unknown-linux-gnu",
                 "source_commit":source,
                 "source_tree":source,

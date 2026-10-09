@@ -301,7 +301,14 @@ pub fn public_d1_limits(
             max_rows: rows,
             max_index_work_bytes: work,
         },
-        catalog: CatalogLimits::default(),
+        // Intermediate route rows are bounded separately from the small
+        // rendered catalog, for both public D1 and managed native snapshots.
+        catalog: CatalogLimits {
+            max_aggregate_entries: rows,
+            max_aggregate_bytes: usize::try_from(base.max_output_bytes.min(256 * 1024 * 1024))
+                .map_err(|_| Error::Budget("public catalog aggregate bytes"))?,
+            ..CatalogLimits::default()
+        },
         search: SearchBuildLimits {
             max_payload_bytes: row,
             max_document_chars: row,
