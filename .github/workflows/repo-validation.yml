@@ -186,6 +186,34 @@ jobs:
             /pytest.ini
             /.github/workflows/repo-validation.yml
             /.github/workflows/cloudflare-edge.yml
+            # Literal Rust compile/test inputs; source bytes are not executed.
+            /.agents/agent-surface.manifest.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json
+            /ToS/doctrine/semantic-interchange/source-validation-profiles.v1.json
+            /ToS/philosophy/atlas/multilingual/content-labels.json
+            /ToS/public-compatibility/event_node.example.json
+            /ToS/public-compatibility/source_node.example.json
+            /ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md
+            /ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl
+            /ToS/source-witnesses/relations/object-link/object-link-claims.jsonl
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/witness-text-collation.antonovsky-2007-1911-opening-sentence.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/parallel-technical-readiness.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json
+            /ToS/source_home.manifest.json
+            /docs/decisions/indexes/index_contract.yaml
+            /docs/validation/agents_route_inventory.json
+            /docs/validation/documentation_family_map.json
+            /mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json
+            /tests/fixtures/agent_surface_budget/manifest.json
+            /tests/fixtures/agent_surface_budget/receipt.json
+            /tests/fixtures/decision_records_oracle/expected/README.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-date.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-guard.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-number.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-surface.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-tos-layer.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-tree-class.md.txt
 
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -313,7 +341,7 @@ jobs:
             test -x "$RUNNER_TEMP/tos-native-install/bin/$role"
           done
           printf 'TOS_E2E_FIXTURE_BIN=%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-e2e-fixture" >> "$GITHUB_ENV"
-          printf 'TOS_E2E_SITE_EXECUTABLE=%s\n' "$RUNNER_TEMP/tos-native-install/access/src/tos_access/tos-access" >> "$GITHUB_ENV"
+          printf 'TOS_E2E_SITE_EXECUTABLE=%s\n' "$RUNNER_TEMP/tos-native-install/software/access/src/tos_access/tos-access" >> "$GITHUB_ENV"
 
       - name: Test browser behavior with bounded native fixtures
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_browser'
@@ -360,6 +388,8 @@ jobs:
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
             /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
+            # Literal Rust compile/test inputs; source bytes are not executed.
+            /ToS/doctrine/semantic-interchange/source-validation-profiles.v1.json
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -376,6 +406,7 @@ jobs:
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
           cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
+          cargo +1.98.1 build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu
           cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/worker-wasm-bindgen.tar.gz"
           curl --fail --location --silent --show-error \
@@ -390,6 +421,7 @@ jobs:
       - name: Test Worker contracts without deployment or production data
         env:
           TOS_ACCESS_BIN: ${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-access
+          TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-schema-worker
         run: |
           test -x "$TOS_ACCESS_BIN"
           npm ci --prefer-offline --no-audit --no-fund --prefix access/deploy/cloudflare-worker
@@ -683,6 +715,33 @@ jobs:
             /ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/
             /ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/
             /docs/validation/validation_lanes.json
+            # Literal Rust compile/test inputs; source bytes are not executed.
+            /.agents/agent-surface.manifest.json
+            /ToS/philosophy/atlas/multilingual/content-labels.json
+            /ToS/public-compatibility/event_node.example.json
+            /ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md
+            /ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl
+            /ToS/source-witnesses/relations/object-link/object-link-claims.jsonl
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/witness-text-collation.antonovsky-2007-1911-opening-sentence.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/parallel-technical-readiness.v1.json
+            /access/web/constructor/desktop/icon.svg
+            /access/web/constructor/desktop/tos-sophia-demo.desktop.in
+            /access/web/constructor/desktop/tos-sophia-demo.service.in
+            /docs/decisions/indexes/index_contract.yaml
+            /docs/validation/agents_route_inventory.json
+            /docs/validation/documentation_family_map.json
+            /kag/provider-template.json
+            /mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json
+            /tests/fixtures/agent_surface_budget/manifest.json
+            /tests/fixtures/agent_surface_budget/receipt.json
+            /tests/fixtures/decision_records_oracle/expected/README.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-date.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-guard.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-number.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-surface.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-tos-layer.md.txt
+            /tests/fixtures/decision_records_oracle/expected/by-tree-class.md.txt
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
