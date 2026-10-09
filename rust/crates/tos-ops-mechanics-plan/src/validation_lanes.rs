@@ -353,14 +353,21 @@ pub fn command_sequence_with_budgets(
                 }
             }
         }
-        if parts[0] == "tos-ops-mechanics-plan"
-            && let Some(selected) = std::env::var_os("TOS_OPS_MECHANICS_EXECUTOR")
+        let executor_key = match parts[0].as_str() {
+            "tos-ops-mechanics-plan" => Some("TOS_OPS_MECHANICS_EXECUTOR"),
+            "tos-validation-lanes" => Some("TOS_VALIDATION_LANES_EXECUTOR"),
+            "tos-release-check" => Some("TOS_RELEASE_CHECK_EXECUTOR"),
+            "tos-software-ci" => Some("TOS_SOFTWARE_CI_EXECUTOR"),
+            _ => None,
+        };
+        if let Some(key) = executor_key
+            && let Some(selected) = std::env::var_os(key)
         {
             let selected = selected
                 .into_string()
-                .map_err(|_| invalid("non-UTF-8 selected native mechanics executor"))?;
+                .map_err(|_| invalid("non-UTF-8 selected native executor"))?;
             if selected.is_empty() {
-                return Err(invalid("empty selected native mechanics executor"));
+                return Err(invalid("empty selected native executor"));
             }
             parts[0] = selected;
         }

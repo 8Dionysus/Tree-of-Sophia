@@ -617,22 +617,28 @@
       {
         "label": "install native exact reader outside checkout",
         "command": [
-          "python",
-          "scripts/verify_rust_reader_install.py"
+          "tos-software-ci",
+          "verify-reader-install",
+          "--repo-root",
+          "{repo_root}"
         ]
       },
       {
         "label": "install native mechanics executor and verify process custody",
         "command": [
-          "python",
-          "scripts/verify_rust_mechanics_install.py"
+          "tos-software-ci",
+          "verify-mechanics-install",
+          "--repo-root",
+          "{repo_root}"
         ]
       },
       {
         "label": "verify generated WEB.1 binding in Node WebAssembly host",
         "command": [
-          "python",
-          "scripts/verify_rust_web_host.py"
+          "tos-software-ci",
+          "verify-web-host",
+          "--repo-root",
+          "{repo_root}"
         ]
       }
     ],

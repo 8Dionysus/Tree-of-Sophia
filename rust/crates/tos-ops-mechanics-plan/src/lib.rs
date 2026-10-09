@@ -7,6 +7,8 @@ pub mod agent_surface_budget;
 pub mod agent_surface_validation;
 pub mod ci_artifacts;
 #[cfg(target_os = "linux")]
+pub mod ci_verification;
+#[cfg(target_os = "linux")]
 mod conformance_products;
 pub mod decision_records;
 pub mod derived_kag;

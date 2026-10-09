@@ -13,7 +13,7 @@ extern "C" fn cancelled(signal: i32) {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths]"
+    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install|verify-web-host} --repo-root ABS [--installed-prefix ABS | --generated-assets ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
 }
 
 fn github_output(path: &Path, selection: &software_ci::Selection) -> io::Result<()> {
@@ -72,6 +72,35 @@ fn run() -> Result<(), String> {
             &CANCEL,
         )
         .map_err(|e| e.to_string());
+    }
+    if [
+        "verify-reader-install",
+        "verify-mechanics-install",
+        "verify-web-host",
+    ]
+    .contains(&mode.as_str())
+    {
+        #[cfg(target_os = "linux")]
+        {
+            unsafe {
+                let mut action: libc::sigaction = std::mem::zeroed();
+                action.sa_sigaction = cancelled as *const () as usize;
+                libc::sigemptyset(&mut action.sa_mask);
+                for signal in [libc::SIGINT, libc::SIGTERM] {
+                    if libc::sigaction(signal, &action, std::ptr::null_mut()) != 0 {
+                        return Err(io::Error::last_os_error().to_string());
+                    }
+                }
+            }
+            return tos_ops_mechanics_plan::ci_verification::run(
+                &mode,
+                &args.collect::<Vec<_>>(),
+                &CANCEL,
+            )
+            .map_err(|e| e.to_string());
+        }
+        #[cfg(not(target_os = "linux"))]
+        return Err("native verification requires Linux process custody".into());
     }
     if mode == "gate" {
         if args.next().is_some() {

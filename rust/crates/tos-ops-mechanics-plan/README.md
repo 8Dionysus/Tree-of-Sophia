@@ -463,3 +463,21 @@ route documents and Git private-path boundaries; authorship, consent, memory
 and meaning remain unvalidated. `--intake-pack-validate` checks the maintained
 nine-table intake pack, its anchors, promotion residue, gloss coverage and
 predicate/class registry counts against explicitly selected repository inputs.
+
+`tos-software-ci verify-reader-install`, `verify-mechanics-install`, and
+`verify-web-host` replace the former Python installation/host helpers. Each
+requires `--repo-root ABS`. Installation checks use a fresh prefix outside the
+checkout, or an explicit existing `--installed-prefix ABS`; reader verification
+checks retained old/current exact bytes and platform capabilities. Mechanics
+verification runs installed command phases and the native CI selector/gate;
+`--command-entries-only` omits Cargo installation of the full mechanics package
+and its separate lifecycle suite. Installed symlink entries must resolve inside
+the selected prefix. Verification does not modify an existing prefix.
+
+WEB verification generates the pinned wasm-bindgen 0.2.128 binding and consumes
+it in Node, with the existing optional float oracle and Worker environment
+selectors. `--generated-assets ABS` consumes already prepared bindings through
+the same real hosts; that mode verifies behavior and does not claim a new build.
+All three operations share native child-process custody, cancellation, a default
+900-second child limit, a 3600-second operation limit, and 16 MiB output per
+child. Caller-selected resource/storage admission remains external.

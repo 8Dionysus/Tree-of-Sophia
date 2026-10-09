@@ -5314,9 +5314,11 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                 left.min(Duration::from_secs(cap))
             };
             let commands = crate::native_child::bounded_output_until(
-                Command::new("/usr/bin/python3")
+                Command::new(prefix.join("bin/tos-software-ci"))
                     .current_dir(&outside)
-                    .arg(repository.join("scripts/verify_rust_mechanics_install.py"))
+                    .arg("verify-mechanics-install")
+                    .arg("--repo-root")
+                    .arg(&repository)
                     .arg("--command-entries-only")
                     .arg("--installed-prefix")
                     .arg(prefix),

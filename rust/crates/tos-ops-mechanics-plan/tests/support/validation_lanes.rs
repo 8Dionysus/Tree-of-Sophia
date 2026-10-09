@@ -578,3 +578,57 @@ fn actual_native_cargo_stream_binds_exact_products_and_rejects_escape_and_mutati
     assert!(!invoke(false).status.success());
     assert!(!root.0.join("received").exists());
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn native_verifier_consumes_installed_symlink_entries_and_preserves_command_behavior() {
+    use std::{os::unix::fs::symlink, process::Command};
+    let root = Fixture::new();
+    let prefix = root.0.join("install");
+    let bin = prefix.join("bin");
+    let payload = prefix.join("software/native/bin");
+    fs::create_dir_all(&bin).unwrap();
+    fs::create_dir_all(&payload).unwrap();
+    for (name, executable) in [
+        (
+            "tos-validation-lanes",
+            env!("CARGO_BIN_EXE_tos-validation-lanes"),
+        ),
+        ("tos-release-check", env!("CARGO_BIN_EXE_tos-release-check")),
+        ("tos-software-ci", env!("CARGO_BIN_EXE_tos-software-ci")),
+    ] {
+        fs::copy(executable, payload.join(name)).unwrap();
+        symlink(format!("../software/native/bin/{name}"), bin.join(name)).unwrap();
+    }
+    let out = Command::new(bin.join("tos-software-ci"))
+        .arg("verify-mechanics-install")
+        .arg("--repo-root")
+        .arg(repository())
+        .arg("--installed-prefix")
+        .arg(&prefix)
+        .arg("--command-entries-only")
+        .arg("--lane-timeout-ms")
+        .arg("30000")
+        .current_dir(&root.0)
+        .env("TMPDIR", &root.0)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let result: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(result["status"], "pass");
+    assert_eq!(result["native_phase_execution"], true);
+    assert_eq!(result["failed_preparation_rejected"], true);
+    assert_eq!(result["products"].as_object().unwrap().len(), 3);
+    let bad = Command::new(bin.join("tos-software-ci"))
+        .args(["verify-web-host", "--repo-root"])
+        .arg(repository())
+        .arg("--installed-prefix")
+        .arg(&prefix)
+        .output()
+        .unwrap();
+    assert!(!bad.status.success());
+}

@@ -27,7 +27,7 @@ itself fails after verification.
 
 Install with `cargo install --locked --path rust/crates/tos-reader --root
 INSTALL_ROOT` and run `INSTALL_ROOT/bin/tos-reader --help` for the required
-options. `scripts/verify_rust_reader_install.py` checks old and current
+options. `tos-software-ci verify-reader-install --repo-root ABS` checks old and current
 fixture revisions after an isolated install.
 
 The reader requires Linux 5.6 or newer with `openat2`. It anchors traversal to
