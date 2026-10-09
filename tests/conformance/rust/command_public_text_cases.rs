@@ -264,7 +264,7 @@ finally:
         "protected_configuration_bytes": Digest256::of_bytes(&fs::read(&owner).unwrap()).to_prefixed(),
         "contracts": contracts,
     });
-    assert_eq!(describe["result"]["configuration"], Digest256::of_bytes(&canonical_json(&expected_configuration)).to_prefixed());
+    assert_eq!(describe["result"]["configuration"], Digest256::of_bytes(&command_binding_bytes(&expected_configuration)).to_prefixed());
     let prepared = alignment_native_cli(
         &repository,
         &owner,

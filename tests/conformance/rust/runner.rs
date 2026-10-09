@@ -1687,6 +1687,16 @@ fn selected_object(root: &Path, sha256: &str) -> PathBuf {
     root.join("objects").join(sha256)
 }
 
+/// Canonical bytes for command binding digests; unlike fixture manifests,
+/// this declared profile excludes a terminating line feed.
+fn command_binding_bytes(value: &Value) -> Vec<u8> {
+    tos_foundation::canonical_raw_bytes_v1(
+        &serde_json::to_vec(value).unwrap(),
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits::default(),
+    ).unwrap()
+}
+
 fn canonical_json(value: &Value) -> Vec<u8> {
     // This setup encodes only the ASCII v1 manifest; its expected digest and
     // original bytes come from the checked-in independent fixture.

@@ -457,6 +457,8 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         .map(|s| (*s).to_owned())
         .collect();
     // Fixed initial-creation rule inputs not carried by the catalog execution profile.
+    names.insert("rust/crates/tos-command/src/source_private_claim.rs".to_owned());
+    names.insert("rust/crates/tos-command/src/source_private_owner_store.rs".to_owned());
     names.extend([
         "rust/crates/tos-command/src/source_legacy_historical_claim.rs".to_owned(),
         "rust/crates/tos-command/src/source_corpus_index_projection.rs".to_owned(),
@@ -1088,7 +1090,7 @@ fn load_readiness_tool_value(response: &Value) -> Value {
     let text = response["result"]["content"][0]["text"]
         .as_str()
         .expect("native MCP tool text result");
-    serde_json::from_str(text).expect("native MCP structured result text")
+    serde_json::from_str(text).unwrap_or_else(|error| panic!("native MCP structured result text: {error}; response={response}"))
 }
 
 fn fixture_path(path: &Path) -> String {

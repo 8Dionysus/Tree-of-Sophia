@@ -468,10 +468,10 @@ fn native_private_profile_lifecycle(use_http: bool) {
     let owner_raw = fs::read(&owner).unwrap();
     let configuration_binding = serde_json::json!({
         "configuration_bytes":Digest256::of_bytes(&owner_raw).to_prefixed(),
-        "context":Digest256::of_bytes(&canonical(&context_binding)).to_prefixed(),
+        "context":Digest256::of_bytes(&command_binding_bytes(&context_binding)).to_prefixed(),
         "profile_inputs":profile_inputs
     });
-    assert_eq!(preview["owner_configuration"], Digest256::of_bytes(&canonical(&configuration_binding)).to_prefixed());
+    assert_eq!(preview["owner_configuration"], Digest256::of_bytes(&command_binding_bytes(&configuration_binding)).to_prefixed());
     let owner_document = tos_foundation::parse_json(&owner_raw, tos_foundation::JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
     let published_owner = tos_foundation::emit_json_profile(owner_document.root(),
         tos_foundation::JsonEmissionProfile::SourceFormSetPublishedV1, JsonLimits::default()).unwrap().bytes;

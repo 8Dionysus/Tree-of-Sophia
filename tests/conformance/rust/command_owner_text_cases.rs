@@ -1121,7 +1121,7 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
     // This is a Rust-owned v4 setup derived from the captured native text-journal
     // fixture. The archive remains v5 evidence: only its in-memory owner config
     // is explicitly downgraded for the v4 compatibility route.
-    let fixture = native_layer_journal_fixture(temporary.path(), false);
+    let mut fixture = native_layer_journal_fixture(temporary.path(), false);
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -1173,6 +1173,53 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
         )
     };
     let before_images: Vec<_> = images.iter().map(|path| custody(path)).collect();
+    // The portable capture normalizes constructor paths. Build a new synthetic
+    // V4 input from that relocated configuration, rebinding its exact byte
+    // dependencies before the preservation baseline; the captured V5 archive
+    // and its historical references remain unchanged.
+    let context_value: Value = serde_json::from_slice(&fs::read(&context).unwrap()).unwrap();
+    let private_root = PathBuf::from(context_value["private_root"].as_str().unwrap());
+    let selection = &mut config["native_text_units"][0]["binding"];
+    let layer_path = private_root.join(selection["text_layer"]["record_ref"].as_str().unwrap());
+    let mut layer: Value = serde_json::from_slice(&fs::read(&layer_path).unwrap()).unwrap();
+    let configuration = private_root.join(layer["derivation"]["maker"]["configuration_ref"].as_str().unwrap());
+    let configuration_digest = Digest256::of_bytes(&fs::read(configuration).unwrap()).to_hex();
+    layer["derivation"]["maker"]["configuration_digest"] = Value::from(configuration_digest.clone());
+    for anchor_ref in layer["source_binding"]["anchors"].as_array_mut().unwrap() {
+        let anchor_path = private_root.join(anchor_ref["anchor_record_ref"].as_str().unwrap());
+        let mut anchor: Value = serde_json::from_slice(&fs::read(&anchor_path).unwrap()).unwrap();
+        anchor["selector_method"]["configuration_digest"] = Value::from(configuration_digest.clone());
+        let raw = canonical_json(&anchor);
+        fs::write(&anchor_path, &raw).unwrap();
+        anchor_ref["anchor_record_sha256"] = Value::from(Digest256::of_bytes(&raw).to_hex());
+    }
+    let layer_raw = canonical_json(&layer);
+    fs::write(&layer_path, &layer_raw).unwrap();
+    selection["text_layer"]["record_sha256"] = Value::from(Digest256::of_bytes(&layer_raw).to_hex());
+    let setup_authored = super::command_text_cases::authored_text_files(&public);
+    let setup_store = temporary.path().join("v4-setup-cut");
+    let setup_revision = super::validation_cut_cases::write_cut_store(&setup_authored, &setup_store);
+    let setup_cut = super::command_form_cases::open_cut(&setup_store, setup_revision, deadline, &cancelled);
+    let selected_units = tos_foundation::parse_json(&serde_json::to_vec(&config["native_text_units"]).unwrap(),
+        tos_foundation::JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let resolved = tos_command::resolve_native_text_units_for_conformance(
+        &context, selected_units.root(), &setup_cut, &images[2], before_images[2].4, deadline, &cancelled,
+    ).unwrap();
+    for record in resolved.native_records {
+        let record: Value = serde_json::from_slice(&tos_foundation::canonical_bytes_v1(
+            &record, CanonicalProfile::SourceCommandInputV1, JsonLimits::default()).unwrap()).unwrap();
+        let id = record["id"].as_str().unwrap();
+        let reference = serde_json::json!({"id":id,"version":record["version"],
+            "digest":Digest256::of_bytes(&command_binding_bytes(&record["payload"])).to_prefixed()});
+        if let Some(subject) = config["subjects"].get_mut(id) { subject["record"] = reference.clone(); }
+        if fixture["unit_subject"]["id"] == id {
+            fixture["unit_subject"] = reference.clone();
+            fixture["unit_template"]["expected_subject"] = reference.clone();
+            fixture["unit_template"]["assessments"][0]["subject"] = reference;
+        }
+    }
+    fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+
     let preserved: BTreeMap<PathBuf, Vec<u8>> = fixture["preserved"]
         .as_array()
         .unwrap()
@@ -2127,6 +2174,11 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
             }
         }
         result
+    }
+    // Establish each subject read lock before comparing journal bytes.
+    // Subsequent batch and single reads must preserve this complete baseline.
+    for index in 0..fixture.subject_ids.len() {
+        invoke(&command_path, &describe(index));
     }
     let journal_before = files(&fixture.journal_directory);
     let source_path = fixture.owner_config["source_records"][0]["path"].clone();

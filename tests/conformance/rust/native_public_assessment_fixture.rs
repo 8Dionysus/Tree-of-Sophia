@@ -605,7 +605,7 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
         "schema_version":"tos_knowledge_assessment_competence_v1",
         "competence_id":competence_id,"competence_version":1,"actor_id":"assessor-a",
         "assertion_layers":["textual_observation","linguistic_analysis"],
-        "languages":["ru","und"],"profile_ids":["source-observation","interpretation","identity","high-consequence"],
+        "languages":[access_language],"profile_ids":["source-observation","interpretation","identity","high-consequence"],
         "execution_profiles":[executor_ref],"state":"verified","valid_from":START,"valid_until":END,
         "evidence_refs":[calibration_ref],"issuer_ref":"fixture:trusted-issuer-not-a-real-competence-claim"
     });
@@ -616,7 +616,7 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
         "schema_version":"tos_knowledge_assessment_authority_v1",
         "authority_id":authority_id,"authority_version":1,"actor_id":"assessor-a","actor_kind":"agent",
         "policy":policy_ref,"profile_ids":["source-observation","interpretation","identity","high-consequence"],
-        "assertion_layers":["textual_observation","linguistic_analysis"],"languages":["ru","und"],
+        "assertion_layers":["textual_observation","linguistic_analysis"],"languages":[access_language],
         "uses":["research"],"subject_prefixes":["tos.text-unit."],
         "decisions":["admit","admit-with-limits","reject","dispute","defer","withdraw"],
         "competence_refs":[competence_ref],"independence_group":"assessor-a","can_supersede_others":false,
@@ -632,7 +632,7 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
         &competence_ref,
         &layer_ref,
         &executor_ref,
-        "interpretation",
+        "source-observation",
         &access_language,
     );
     let subject = json!({"record":subject_ref,"assertion_layer":"textual_observation",
