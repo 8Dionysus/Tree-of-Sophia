@@ -40,7 +40,7 @@ pub struct SearchBuildLimits {
     pub max_rank_field_bytes: usize,
     pub max_postings: u64,
     /// Counts payload reads, serialized/lowercased documents, rank fields and
-    /// every attempted gram write (including duplicates).
+    /// every attempted gram, table probe/copy, unique-gram sort and posting write.
     pub max_work_bytes: u64,
     /// Limits one prepared document page, cancellation cadence, and merge fan-in.
     /// Private run and selected posting blocks retain their existing 256 cap.
@@ -122,7 +122,11 @@ fn charge(work: &mut u64, amount: usize, limits: SearchBuildLimits) -> Result<()
         let site = std::panic::Location::caller();
         eprintln!(
             "Native search work refused at {}:{}: charged_bytes={} next_bytes={} work_limit={}",
-            site.file(), site.line(), *work - amount as u64, amount, limits.max_work_bytes,
+            site.file(),
+            site.line(),
+            *work - amount as u64,
+            amount,
+            limits.max_work_bytes,
         );
         return Err(Error::Budget("search work bytes"));
     }
@@ -946,6 +950,19 @@ fn default_spaced_json_len(compact: &[u8], cap: usize) -> Result<usize> {
     Ok(len)
 }
 
+// Three Unicode scalar values fit losslessly in 63 bits. Zero marks an empty
+// table slot; adding one also preserves the valid all-NUL gram.
+fn gram_key(a: char, b: char, c: char) -> u64 {
+    (((a as u64) << 42) | ((b as u64) << 21) | c as u64) + 1
+}
+
+fn gram_bucket(key: u64, slots: usize) -> usize {
+    let mut mixed = key;
+    mixed = (mixed ^ (mixed >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+    mixed = (mixed ^ (mixed >> 27)).wrapping_mul(0x94d049bb133111eb);
+    ((mixed ^ (mixed >> 31)) as usize) & (slots - 1)
+}
+
 fn prepare_gram_offsets<'state, 'budget>(
     doc: &Document<'_, '_>,
     limits: SearchBuildLimits,
@@ -953,57 +970,168 @@ fn prepare_gram_offsets<'state, 'budget>(
     check: &dyn Fn() -> Result<()>,
     creation: Option<&'state CreationState<'budget>>,
 ) -> Result<(Vec<usize>, Option<CreationStateHold<'state, 'budget>>)> {
+    limits.validate()?;
     check()?;
     if doc.chars > limits.max_document_chars || doc.text.len() > limits.max_document_bytes {
         return Err(Error::Budget("search document bytes/chars"));
     }
     let gram_count = doc.chars.saturating_sub(2);
-    let bytes = gram_count
-        .checked_mul(std::mem::size_of::<usize>())
-        .ok_or(Error::Budget("search gram offsets"))?;
-    let hold = creation.map(|creation| creation.hold(bytes)).transpose()?;
-    let mut offsets = Vec::new();
-    offsets
-        .try_reserve_exact(gram_count)
-        .map_err(|_| Error::Budget("search gram offsets"))?;
-    let mut starts = doc.text.char_indices().map(|(offset, _)| offset);
-    if let (Some(mut first), Some(mut second)) = (starts.next(), starts.next()) {
-        for (attempt, third) in starts.enumerate() {
-            if attempt % limits.gram_batch_rows == 0 {
+    // Charge each actual probe, allocation and copy. A hostile collision run
+    // remains cancellable and consumes the original cumulative work budget.
+    let mut work = |bytes| {
+        if let Some(owner) = creation {
+            owner.charge_work(bytes)?;
+        }
+        charge(work_bytes, bytes, limits)
+    };
+    let allocate = |slots: usize| {
+        let bytes = slots
+            .checked_mul(std::mem::size_of::<(u64, usize)>())
+            .ok_or(Error::Budget("search gram table"))?;
+        let hold = creation.map(|owner| owner.hold(bytes)).transpose()?;
+        let mut table = Vec::new();
+        table
+            .try_reserve_exact(slots)
+            .map_err(|_| Error::Budget("search gram table"))?;
+        if table.capacity() != slots {
+            return Err(Error::Budget("search gram table capacity"));
+        }
+        table.resize(slots, (0u64, 0usize));
+        Ok::<_, Error>((table, hold))
+    };
+    let initial = if gram_count == 0 { 0 } else { 16 };
+    work(initial * std::mem::size_of::<(u64, usize)>())?;
+    let mut table_hold;
+    let mut table;
+    (table, table_hold) = allocate(initial)?;
+    let mut unique = 0usize;
+    let mut observed = 0usize;
+    let mut chars = doc.text.char_indices();
+    if let (Some(mut first), Some(mut second)) = (chars.next(), chars.next()) {
+        for third in chars {
+            if observed >= gram_count {
+                return Err(Error::Invalid("search gram character count"));
+            }
+            if observed % limits.gram_batch_rows == 0 {
                 check()?;
             }
-            let end = third
-                + doc.text[third..]
-                    .chars()
-                    .next()
-                    .expect("gram third character")
-                    .len_utf8();
-            if let Some(creation) = creation {
-                creation.charge_work(end - first)?;
+            work(third.0 + third.1.len_utf8() - first.0)?;
+            let key = gram_key(first.1, second.1, third.1);
+            let mut slot = gram_bucket(key, table.len());
+            let mut probes = 0usize;
+            loop {
+                if probes % limits.gram_batch_rows == 0 {
+                    check()?;
+                }
+                work(std::mem::size_of::<u64>())?;
+                if table[slot].0 == 0 || table[slot].0 == key {
+                    break;
+                }
+                probes += 1;
+                slot = (slot + 1) & (table.len() - 1);
             }
-            charge(work_bytes, end - first, limits)?;
-            offsets.push(first);
+            if table[slot].0 == 0 {
+                if unique as u64 >= limits.max_postings {
+                    return Err(Error::Budget("search postings"));
+                }
+                if unique == table.len() / 2 {
+                    let slots = table
+                        .len()
+                        .checked_mul(2)
+                        .ok_or(Error::Budget("search gram table"))?;
+                    let bytes = slots
+                        .checked_mul(std::mem::size_of::<(u64, usize)>())
+                        .ok_or(Error::Budget("search gram table"))?;
+                    work(bytes)?;
+                    // Both tables are held until the old allocation is dropped.
+                    let grown_hold;
+                    let mut grown;
+                    (grown, grown_hold) = allocate(slots)?;
+                    for (i, &(old_key, offset)) in table.iter().enumerate() {
+                        if i % limits.gram_batch_rows == 0 {
+                            check()?;
+                        }
+                        work(std::mem::size_of::<(u64, usize)>())?;
+                        if old_key == 0 {
+                            continue;
+                        }
+                        let mut target = gram_bucket(old_key, slots);
+                        let mut probes = 0usize;
+                        loop {
+                            if probes % limits.gram_batch_rows == 0 {
+                                check()?;
+                            }
+                            work(std::mem::size_of::<u64>())?;
+                            if grown[target].0 == 0 {
+                                break;
+                            }
+                            probes += 1;
+                            target = (target + 1) & (slots - 1);
+                        }
+                        work(std::mem::size_of::<(u64, usize)>())?;
+                        grown[target] = (old_key, offset);
+                    }
+                    drop(table);
+                    drop(table_hold);
+                    table = grown;
+                    table_hold = grown_hold;
+                    slot = gram_bucket(key, table.len());
+                    let mut probes = 0usize;
+                    loop {
+                        if probes % limits.gram_batch_rows == 0 {
+                            check()?;
+                        }
+                        work(std::mem::size_of::<u64>())?;
+                        if table[slot].0 == 0 {
+                            break;
+                        }
+                        probes += 1;
+                        slot = (slot + 1) & (table.len() - 1);
+                    }
+                }
+                work(std::mem::size_of::<(u64, usize)>())?;
+                table[slot] = (key, first.0);
+                unique += 1;
+            }
+            observed += 1;
             first = second;
             second = third;
         }
     }
-    if offsets.len() != gram_count {
+    if observed != gram_count {
         return Err(Error::Invalid("search gram character count"));
     }
     check()?;
-    let sort_levels = usize::BITS as usize - gram_count.max(1).leading_zeros() as usize;
-    let sort_work = gram_count
+    let bytes = unique
+        .checked_mul(std::mem::size_of::<usize>())
+        .ok_or(Error::Budget("search gram offsets"))?;
+    let hold = creation.map(|owner| owner.hold(bytes)).transpose()?;
+    let mut offsets = Vec::new();
+    offsets
+        .try_reserve_exact(unique)
+        .map_err(|_| Error::Budget("search gram offsets"))?;
+    if offsets.capacity() != unique {
+        return Err(Error::Budget("search gram offset capacity"));
+    }
+    work(bytes)?;
+    for (i, &(key, offset)) in table.iter().enumerate() {
+        if i % limits.gram_batch_rows == 0 {
+            check()?;
+        }
+        work(std::mem::size_of::<(u64, usize)>())?;
+        if key != 0 {
+            offsets.push(offset);
+        }
+    }
+    drop(table);
+    drop(table_hold);
+    let sort_levels = usize::BITS as usize - unique.max(1).leading_zeros() as usize;
+    let sort_work = unique
         .checked_mul(sort_levels)
         .and_then(|comparisons| comparisons.checked_mul(12))
         .ok_or(Error::Budget("search gram sort work"))?;
-    if let Some(creation) = creation {
-        creation.charge_work(sort_work)?;
-    }
+    work(sort_work)?;
     offsets.sort_unstable_by(|a, b| gram_slice(&doc.text, *a).cmp(gram_slice(&doc.text, *b)));
-    if let Some(creation) = creation {
-        creation.charge_work(gram_count)?;
-    }
-    offsets.dedup_by(|a, b| gram_slice(&doc.text, *a) == gram_slice(&doc.text, *b));
     check()?;
     Ok((offsets, hold))
 }
@@ -2259,6 +2387,81 @@ mod tests {
         );
         assert_eq!(got.identity_values, "[\"árbol\",\"straße\"]");
         assert_eq!(got.visible_values, "[\"árbol\",\"straße\",\"ος\"]");
+    }
+
+    #[test]
+    fn repeated_grams_retain_only_unique_offsets_with_unicode_and_budgets() {
+        let build_doc = |text: String| Document {
+            chars: text.chars().count(),
+            digest: Digest256::of_bytes(text.as_bytes()),
+            serialization_bytes: text.len(),
+            text,
+            id_lower: String::new(),
+            native_id_lower: String::new(),
+            identity_values: String::new(),
+            visible_values: String::new(),
+            _holds: Vec::new(),
+        };
+        let mut wide = limits();
+        wide.max_document_bytes = 1_000_000;
+        wide.max_document_chars = 1_000_000;
+        wide.max_work_bytes = 16_000_000;
+        wide.gram_batch_rows = 128;
+        for text in [
+            "aaa".repeat(100_000),
+            "\0\0\0á🌳ß\u{10ffff}".repeat(1000),
+            (0..500).filter_map(char::from_u32).collect::<String>(),
+            "".into(),
+            "é🌳".into(),
+        ] {
+            let doc = build_doc(text);
+            let expected = doc
+                .text
+                .chars()
+                .collect::<Vec<_>>()
+                .windows(3)
+                .map(|g| g.iter().collect::<String>())
+                .collect::<std::collections::BTreeSet<_>>();
+            let mut work = 0;
+            let (offsets, _) =
+                prepare_gram_offsets(&doc, wide, &mut work, &|| Ok(()), None).unwrap();
+            assert_eq!(offsets.capacity(), expected.len());
+            let actual = offsets
+                .iter()
+                .map(|offset| gram_slice(&doc.text, *offset))
+                .collect::<Vec<_>>();
+            assert_eq!(
+                actual,
+                expected.iter().map(|g| g.as_bytes()).collect::<Vec<_>>()
+            );
+            assert!(work <= wide.max_work_bytes);
+        }
+        let doc = build_doc("aá🌳ßaá🌳ß".into());
+        let mut tight = wide;
+        tight.max_postings = 1;
+        assert!(matches!(
+            prepare_gram_offsets(&doc, tight, &mut 0, &|| Ok(()), None),
+            Err(Error::Budget("search postings"))
+        ));
+        tight = wide;
+        tight.max_work_bytes = 1;
+        assert!(matches!(
+            prepare_gram_offsets(&doc, tight, &mut 0, &|| Ok(()), None),
+            Err(Error::Budget("search work bytes"))
+        ));
+        let checks = std::cell::Cell::new(0usize);
+        let cancel = || {
+            checks.set(checks.get() + 1);
+            if checks.get() > 3 {
+                Err(Error::Budget("test cancellation"))
+            } else {
+                Ok(())
+            }
+        };
+        assert!(matches!(
+            prepare_gram_offsets(&doc, wide, &mut 0, &cancel, None),
+            Err(Error::Budget("test cancellation"))
+        ));
     }
 
     #[test]
