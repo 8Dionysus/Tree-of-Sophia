@@ -160,11 +160,13 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
     }
     write("ToS/branch/AGENTS.md", "# AGENTS.md\nThis card applies to branch metadata.\n## Validation\nRun:\n## Boundary\n- First:\n- Second:\n");
     fs::remove_file(root.join("VALIDATION.md")).unwrap();
+    write("AGENTS.md", &clean.replace("VALIDATION.md", "validation owner"));
     rebuild();
     let findings = compare(1);
     assert!(findings.contains("orphan extraction lead-in"), "{findings}");
     assert!(findings.contains("missing nearest validation route"), "{findings}");
     write("VALIDATION.md", "source\n");
+    write("AGENTS.md", clean);
     let bad = "# AGENTS.md\nThis card applies to branch.\n## Role\nRead README.md first.\nUse `git` and `python scripts/missing.py` for routing.\nFOO=bar python scripts/missing.py\n```bash\npython scripts/missing.py\n```\n## Verify\n## Boundary\n- First:\n- Second:\n## Role\n## Operating Card\n| input | source |\n## Heading\u{a0}inside\nBody.\n## Heading\u{a0}inside\nBody.\n## Heading\u{200d}inside\nBody.\n## Heading\u{200d}inside\nBody.\n## Heading\u{e000}inside\nBody.\n## Heading\u{e000}inside\nBody.\nread README\u{301}\nTail:\n";
     write("ToS/branch/AGENTS.md", bad);
     rebuild();

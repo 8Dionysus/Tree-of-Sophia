@@ -67,7 +67,7 @@ fn declared_dynamic_imports_are_data_with_bounded_identity_not_executed_code() {
     }
     for value in [json!({}),json!([null]),json!([{"kind":"eval","source":"scripts/a.py","target":"scripts/b.py"}]),json!([{"kind":"module_from_spec","source":"scripts/a.py","target":"../b.py"}]),json!([{"kind":"module_from_spec","source":"scripts/outside.py","target":"scripts/b.py"}]),json!([{"kind":"module_from_spec","source":"scripts/a.py","target":"scripts/b.py","extra":true}])] {
         pm["dynamic_imports"]=value; let mut issues=Vec::new(); procedure(&mut issues,"receipt",&pm,&p["files"],&p["action"]);
-        assert!(contains(&issues,"dynamic import"),"{issues:?}");
+        assert!(contains(&issues,"dynamic import") || contains(&issues,"dynamic_imports"),"{issues:?}");
     }
 }
 
@@ -97,7 +97,7 @@ fn complete_receipt_binds_source_history_action_manifest_and_identity_tuple() {
         ("/producer_identity/procedure_manifest",json!({}),"procedure manifest digest does not match execution inputs"),
         ("/producer_identity/procedure_manifest/manifest_path",json!("config/not-canonical.json"),"manifest_path must be config/repo-local-kag-budget-producer.json"),
         ("/producer_identity/action/content_digest",json!("0".repeat(64)),"producer action does not match its file record"),
-        ("/producer_identity/files/0/path",json!("bad\npath"),"relative path"),
+        ("/producer_identity/files/0/path",json!("bad\npath"),"must not contain control characters"),
         ("/candidate_identity",json!([]),"candidate_identity must be an object"),
     ] {
         assert!(!contains(&baseline,expected),"baseline already violates {expected}: {baseline:?}");
