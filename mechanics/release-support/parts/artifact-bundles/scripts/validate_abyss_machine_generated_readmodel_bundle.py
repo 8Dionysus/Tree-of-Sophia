@@ -16,7 +16,7 @@ from typing import Any
 
 def _find_repo_root() -> Path:
     for parent in Path(__file__).resolve().parents:
-        if (parent / "AGENTS.md").is_file() and (parent / "scripts" / "build_root_entry_map.py").is_file():
+        if (parent / "AGENTS.md").is_file() and (parent / "scripts" / "root_entry_map.source.json").is_file():
             return parent
     raise RuntimeError("could not find Tree-of-Sophia repository root")
 

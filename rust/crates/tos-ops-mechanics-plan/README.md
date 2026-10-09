@@ -452,13 +452,12 @@ Select `--agent-surface-build [--check]`, `--agent-surface-validate
 `--kag-export PATH`; selected exports require the genuine corpus admission and
 installed Ops `--kag-source-export-build` / `--kag-source-export-verify` route.
 
-The corresponding eight Python scripts are compatibility launchers. Their
-imported producer/validator helpers and `root_entry_map_common.py` are retained
-comparison APIs for regression oracles; maintained recipes do not import or
-execute those implementations, and native execution has no Python fallback.
-Their presence is an explicit reference-only fate, not deletion or acceptance
-of the selected KAG export. Compatible generated format markers can retain
-historical script names without requiring those launchers.
+Root-entry map has no Python builder, validator or imported comparison engine.
+Its route declaration remains `scripts/root_entry_map.source.json`; the native
+owner validates its schema and live references before building or checking the
+selected companion. The other route families retain their explicit comparison
+APIs until their own retirement. Compatible generated format markers may keep
+historical names without requiring those launchers.
 
 ## Native validation lanes
 

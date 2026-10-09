@@ -187,7 +187,7 @@ impl Fixture {
                 .any(|prefix| message.starts_with(prefix))
                     && !(location == "scripts/validate_agent_surface.py"
                         && message.starts_with("agent-surface validator: "))
-                    && !(location == "scripts/validate_root_entry_map.py"
+                    && !(location == "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs"
                         && message.starts_with("owner validator: "))
             })
             .collect()

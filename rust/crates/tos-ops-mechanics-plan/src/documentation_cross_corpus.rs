@@ -1806,7 +1806,7 @@ fn validate_existing_owner_contracts(
             .join(" ");
         issue(
             issues,
-            "scripts/validate_root_entry_map.py",
+            "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs",
             format!("owner validator: {detail}"),
         )?;
     }

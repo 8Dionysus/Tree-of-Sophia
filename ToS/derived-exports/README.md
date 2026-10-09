@@ -163,8 +163,8 @@ Use:
 - `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `../public-compatibility/source_node.example.json`
 - `tos-ops-mechanics-plan --kag-source-export-verify --kag-export EXPORT`
-- `python scripts/build_root_entry_map.py --check`
-- `python scripts/validate_root_entry_map.py`
+- `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-build --check --kag-export EXPORT`
+- `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-validate --kag-export EXPORT`
 - `python scripts/build_tos_corpus_index.py --check`
 - `python scripts/validate_tos_corpus_index.py`
 - `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`

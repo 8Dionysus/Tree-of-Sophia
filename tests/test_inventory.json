@@ -1353,21 +1353,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_root_entry_map.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "generated_parity",
-      "validation_lane": "generated_parity",
-      "owner_surface": "ToS/contracts/root-entry-map.schema.json",
-      "protects": "root entry map builder payload shape",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_root_entry_map.py",
-      "failure_route": "Fix the root-entry-map schema, source map, or builder before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "tests/test_script_topology.py",
       "home": "tests",
       "home_scope": "root",

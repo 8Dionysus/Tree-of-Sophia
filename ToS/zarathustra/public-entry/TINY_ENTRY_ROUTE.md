@@ -131,9 +131,13 @@ The additive machine-facing root capsule is `ToS/derived-exports/root_entry_map.
 
 See
 [ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md](../prologue-1/TRILINGUAL_ENTRY.md),
-`python scripts/build_root_entry_map.py --check`,
-`python scripts/validate_root_entry_map.py`,
+`tos-ops-mechanics-plan --repo-root ABS --root-entry-map-build --check --kag-export EXPORT`,
+`tos-ops-mechanics-plan --repo-root ABS --root-entry-map-validate --kag-export EXPORT`,
 `python scripts/validate_tiny_entry_route.py`,
 [the selected KAG export validation route](../../../kag/VALIDATION.md), and
 [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md](../../../mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
 for the current validator and manual-review route for this bounded seam.
+The RootMap implementation is
+`rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs`;
+`scripts/root_entry_map.source.json` owns the route declaration.
+Select the same verified, immutable KAG export for build and validation.
