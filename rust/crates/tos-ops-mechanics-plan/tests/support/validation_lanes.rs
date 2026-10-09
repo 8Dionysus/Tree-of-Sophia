@@ -1,7 +1,6 @@
 //! Native command-authority coverage retained from the retired Python loader.
 use serde_json::{Value, json};
 use std::{
-    collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
 };
@@ -362,7 +361,7 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
 }
 
 #[test]
-fn browser_behavior_groups_cover_all_declared_top_level_scenarios_once() {
+fn browser_behavior_runs_the_complete_native_node_playwright_suite() {
     let value = authored();
     let steps = value["command_sequences"]["software_browser"]
         .as_array()
@@ -376,35 +375,42 @@ fn browser_behavior_groups_cover_all_declared_top_level_scenarios_once() {
                 .starts_with("browser behavior: ")
         })
         .collect();
-    assert_eq!(groups.len(), 5);
-    let source = fs::read_to_string(repository().join("access/e2e/test_webmcp.py")).unwrap();
-    let expected: Vec<_> = source
-        .lines()
-        .filter_map(|line| {
-            line.strip_prefix("def test_")
-                .or_else(|| line.strip_prefix("async def test_"))
-        })
-        .map(|name| {
-            format!(
-                "access/e2e/test_webmcp.py::test_{}",
-                name.split('(').next().unwrap()
-            )
-        })
-        .collect();
-    assert!(!expected.is_empty());
-    let mut selected = Vec::new();
-    let mut labels = BTreeSet::new();
-    for group in groups {
-        assert!(labels.insert(group["label"].as_str().unwrap()));
-        let argv = group["command"].as_array().unwrap();
-        assert_eq!(argv[1..4], [json!("-m"), json!("pytest"), json!("-q")]);
-        selected.extend(argv[4..].iter().map(|v| v.as_str().unwrap().to_owned()));
-    }
-    assert_eq!(selected, expected);
+    assert_eq!(groups.len(), 1);
+    let argv = groups[0]["command"].as_array().unwrap();
     assert_eq!(
-        selected.len(),
-        selected.iter().collect::<BTreeSet<_>>().len()
+        argv.iter().map(|value| value.as_str().unwrap()).collect::<Vec<_>>(),
+        vec!["node", "--test", "access/e2e/test_webmcp.mjs"]
     );
+
+    let source = fs::read_to_string(repository().join("access/e2e/test_webmcp.mjs")).unwrap();
+    let expected = [
+        "test_real_browser_webmcp_loop_and_stale_deixis",
+        "test_real_browser_source_gap_research_stages_reviewable_route",
+        "test_real_browser_sources_panel_reads_frozen_metadata_record",
+        "test_research_seeded_locale_and_panel_sequence",
+        "test_real_browser_cancellation_reload_and_deep_link",
+        "test_real_browser_prepared_search_preserves_engine_and_selection",
+        "test_observatory_prepared_human_agent_search_and_continuation",
+        "test_research_visibility_refreshes_links_and_preserves_source_disclosure",
+        "test_built_research_entry_persists_exact_shelf_and_camera",
+        "test_research_catalog_limit_explains_failed_connection_and_can_retry",
+        "test_observatory_research_and_saved_route_links_use_packaged_entry",
+        "test_research_lens_preview_save_apply_and_return",
+        "test_real_browser_graceful_without_webmcp",
+        "test_corpus_note_exit_recovers_exact_draft",
+        "test_research_shelf_collection_delete_is_atomic",
+        "test_lens_large_relation_area_requires_scope_confirmation",
+        "test_native_delivery_export_preserves_identity_and_respects_expiry",
+        "test_reader_positions_survive_pagehide_before_debounce",
+    ];
+    for name in expected {
+        assert!(source.contains(&format!("test('{name}'")), "missing browser case: {name}");
+    }
+    assert!(source.contains("for(const failure of ['network','malformed'])"));
+    assert!(source.contains(
+        "test_source_metadata_remains_when_native_discovery_fails_${failure}"
+    ));
+    assert_eq!(expected.len() + 2, 20);
 }
 
 #[cfg(target_os = "linux")]

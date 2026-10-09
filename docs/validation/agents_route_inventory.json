@@ -232,8 +232,8 @@
       "boundary_markers": ["read-only delivery", "does not author philosophical meaning", "optional; its absence", "publication"],
       "on_demand_surfaces": ["access/contracts/README.md", "access/contracts/runtime-data.v1.json", "access/profiles/standalone.v1.json"],
       "validation_lanes": ["standalone_access", "route_docs"],
-      "validation_paths": ["access/packaging/validate_standalone.py", "access/tests/test_access_contract.py", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
-      "completion_evidence": ["access/AGENTS.md", "access/README.md", "access/packaging/validate_standalone.py"],
+      "validation_paths": ["rust/crates/tos-access/src/standalone_validation.rs", "rust/crates/tos-access/tests/selected_wires.rs", "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"],
+      "completion_evidence": ["access/AGENTS.md", "access/README.md", "rust/crates/tos-access/src/standalone_validation.rs"],
       "handoff_routes": ["ToS/derived-exports/AGENTS.md", "access/integrations/abyssos/README.md"]
     },
     {

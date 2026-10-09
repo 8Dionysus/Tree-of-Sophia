@@ -220,12 +220,6 @@ jobs:
             --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
           chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
 
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          # Native search/lens artifacts are bound to the Unicode 16 runtime.
-          python-version: "3.14"
-
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -235,7 +229,6 @@ jobs:
 
       - name: Install software test dependencies
         run: |
-          python -m pip install -r requirements-dev.txt 'mcp>=1.27,<2'
           npm ci --prefer-offline --no-audit --no-fund --prefix access/web
           npm install --prefix "$RUNNER_TEMP/tos-e2e-deps" --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0
           "$RUNNER_TEMP/tos-e2e-deps/node_modules/.bin/playwright" install --with-deps chromium
@@ -281,15 +274,15 @@ jobs:
             --rustc-version "$RUNNER_TEMP/software-rustc-version.txt" --github-env "$GITHUB_ENV"
 
       - name: Validate software contracts and build browser assets
-        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --phase checks'
+        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase checks'
 
       - name: Test shared software and data-operation code on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'full' }}
-        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --phase tests --command-timeout-ms 900000'
+        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase tests --command-timeout-ms 900000'
 
       - name: Test reader and API behavior on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
-        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --run software_reader'
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_reader'
 
       - name: Build and install the native software artifact without corpus data
         env:
