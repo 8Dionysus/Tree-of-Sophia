@@ -640,6 +640,7 @@ fn check_schema_keyword_node<'a>(
     mut child: impl FnMut(&'a Value) -> Result<(), SchemaProbeError>,
 ) -> Result<(), SchemaProbeError> {
     const KNOWN: &[&str] = &[
+        "$comment",
         "$defs",
         "$id",
         "$ref",
@@ -1156,6 +1157,13 @@ mod tests {
     fn resource_identity_unknown_keyword_and_absent_resource_fail_closed() {
         let root = "https://tree-of-sophia.local/probe";
         let simple = format!(r#"{{"$schema":"{DRAFT}","$id":"{root}","type":"string"}}"#);
+        let annotated = format!(
+            r#"{{"$schema":"{DRAFT}","$id":"{root}","$comment":"owner annotation","type":"string"}}"#
+        );
+        let annotation_probe = probe(&annotated);
+        assert_eq!(annotation_probe.compile_all(), Ok(1));
+        assert_eq!(annotation_probe.is_valid(root, &json!("text")), Ok(true));
+        assert_eq!(annotation_probe.is_valid(root, &json!(1)), Ok(false));
         assert_eq!(
             SchemaBackendProbe::new(
                 [resource(root, &simple), resource(root, &simple)],
