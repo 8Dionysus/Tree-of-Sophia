@@ -2402,7 +2402,7 @@ mod tests {
         let cancel = Arc::new(AtomicBool::new(false));
         let remaining = |n: usize| (24 * 1024 * 1024usize).checked_sub(n)
             .ok_or(Error::Budget("search test state"));
-        let heap = sqlite_budget::DedicatedSessionSqliteHeap::establish(
+        let heap = crate::sqlite_budget::DedicatedSessionSqliteHeap::establish(
             1024 * 1024, &remaining, deadline, &cancel).unwrap();
         let work = Arc::new(AtomicU64::new(0));
         let vm = Arc::new(AtomicU64::new(0));
