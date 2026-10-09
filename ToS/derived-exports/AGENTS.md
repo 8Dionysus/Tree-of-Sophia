@@ -15,9 +15,9 @@ ToS authority.
 | role | generated downstream-facing read model surface |
 | input | owned canon, compatibility examples, contracts, and generator logic |
 | output | generated export payloads and compact read models |
-| owner | `ToS/derived-exports/AGENTS.md` for route law; generator scripts for payload construction |
+| owner | `ToS/derived-exports/AGENTS.md` for route law; Rust compiler and native operation modules for philosophy payload construction |
 | next route | source-owned input or generator -> regenerate -> validate export |
-| tools | KAG export generator/validator, corpus-index builder/validator, lexical-index builder/validator, philosophy-atlas projection builder/validator, philosophy graph-view catalog builder/validator, philosophy graph-projection builder/validator, source-witness bibliographic graph builder/validator/query reader, source validators |
+| tools | KAG export generator/validator, corpus-index builder/validator, lexical-index builder/validator, native `tos-ops-mechanics-plan --philosophy-product atlas, views, graph, audit` route, source-witness bibliographic graph builder/validator/query reader, source validators |
 | check | generated parity and export validation |
 
 ## Boundary Routes
@@ -54,9 +54,9 @@ ToS authority.
 ## Validation
 
 Use the relevant builder `--check` and validator for the export touched:
-KAG export, root-entry map, corpus index, lexical index, philosophy atlas
-projection, philosophy graph-view catalog, philosophy graph projection, public
-mirror sync, source-witness bibliographic graph, or tiny-entry route.
+KAG export, root-entry map, corpus index, lexical index, native philosophy
+products (`tos-ops-mechanics-plan --philosophy-product <id> --mode check or validate`),
+public mirror sync, source-witness bibliographic graph, or tiny-entry route.
 For release-facing generated readmodels, also run the OS Abyss artifact bundle
 route `tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT`, owned by
 `mechanics/release-support/parts/artifact-bundles/`.

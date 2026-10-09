@@ -27,8 +27,8 @@ coordinates that projection with the existing link, mechanics, decision,
 AGENTS-route, agent-surface, KAG, and public-entry contracts. Philosophical meaning, runtime status and receipt acceptance retain their
 source and decision owners.
 
-Inventories describe script surfaces. They do not store release command order
-and do not promote advisory helpers into hard gates.
+Inventories describe selected script and native owner surfaces. They do not store
+release command order and do not promote advisory helpers into hard gates.
 
 ## AGENTS route-card topology
 

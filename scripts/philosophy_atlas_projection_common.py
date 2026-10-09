@@ -42,9 +42,10 @@ ENDPOINT_ALIASES_REF = (
     "ToS/philosophy/graph-workbench/proposed-relations/reviewed-endpoint-aliases.json"
 )
 VALIDATION_REFS = (
-    "scripts/build_philosophy_atlas_projection.py",
-    "scripts/validate_philosophy_atlas_projection.py",
-    "tests/test_philosophy_atlas_projection.py",
+    "rust/crates/tos-compiler/src/source_philosophy_atlas.rs",
+    "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+    "tests/conformance/rust/compiler_source_cases.rs",
+    "docs/validation/validation_lanes.json",
 )
 
 

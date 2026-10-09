@@ -21,9 +21,10 @@ ATLAS_PROJECTION_REF = "ToS/derived-exports/philosophy_atlas_projection.min.json
 GRAPH_VIEW_CATALOG_PATH = TOS_ROOT / "derived-exports" / "philosophy_graph_views.min.json"
 SCHEMA_REF = "ToS/contracts/philosophy-graph-views.schema.json"
 VALIDATION_REFS = (
-    "scripts/build_philosophy_graph_views.py",
-    "scripts/validate_philosophy_graph_views.py",
-    "tests/test_philosophy_graph_views.py",
+    "rust/crates/tos-compiler/src/source_philosophy_views.rs",
+    "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+    "tests/conformance/rust/compiler_source_cases.rs",
+    "docs/validation/validation_lanes.json",
 )
 
 

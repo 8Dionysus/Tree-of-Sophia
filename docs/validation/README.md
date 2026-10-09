@@ -16,7 +16,7 @@ own owner surfaces.
 | --- | --- |
 | `../../VALIDATION.md` | on-demand human selector for named internal lanes and district validation routes |
 | `validation_lanes.json` | executable command authority for named validation lanes |
-| `script_inventory.json` | descriptive map of active `*/scripts/*` surfaces to owners, lanes, and side effects |
+| `script_inventory.json` | descriptive map of selected script and native owner surfaces to owners, lanes, and side effects |
 | `SCRIPT_TOPOLOGY.md` | descriptive map of script homes, families, side effects, and lane posture |
 | `agents_route_inventory.json` | source map for tracked route cards, inheritance, task routes, context budgets, and influencing surfaces |
 | `../../.agents/agents-route.current.json` | generated route-card currentness read model; never stronger than the cards or owner docs |

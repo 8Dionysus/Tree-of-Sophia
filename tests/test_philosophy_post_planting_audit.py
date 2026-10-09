@@ -128,7 +128,7 @@ class PhilosophyPostPlantingAuditTest(unittest.TestCase):
         entry = next(
             row
             for row in inventory["script_surfaces"]
-            if row["path"] == "scripts/build_philosophy_post_planting_audit.py"
+            if row["path"] == "rust/crates/tos-compiler/src/source_philosophy_post_planting.rs"
         )
         self.assertTrue(
             {

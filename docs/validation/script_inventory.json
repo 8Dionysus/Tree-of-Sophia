@@ -18,7 +18,7 @@
     "disposition"
   ],
   "notes": [
-    "This inventory describes selected script surfaces for navigation; tracked executable files and their consumers establish program membership under TOS-D-0062.",
+    "This inventory describes selected script and native owner surfaces for navigation; tracked executable files and their consumers establish program membership under TOS-D-0062.",
     "It is not command authority.",
     "Command sequences live in docs/validation/validation_lanes.json."
   ],
@@ -2819,7 +2819,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_philosophy_atlas_projection.py",
+      "path": "rust/crates/tos-compiler/src/source_philosophy_atlas.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/derived-exports/AGENTS.md",
@@ -2827,7 +2827,7 @@
         "ToS/contracts/philosophy-atlas-projection.schema.json",
         "rust/crates/tos-compiler/src/source_philosophy_atlas.rs",
         "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
+        "rust/crates/tos-ops-mechanics-plan/src/main.rs"
       ],
       "reads": [
         "ToS/philosophy/atlas/**",
@@ -2840,42 +2840,14 @@
       "writes": [
         "ToS/derived-exports/philosophy_atlas_projection.min.json unless --check is used"
       ],
-      "side_effects": "tracked generated philosophy atlas projection for graph/read-model review",
+      "side_effects": "Native tos-ops-mechanics-plan --philosophy-product atlas implements build, check, and validate; writes its tracked generated philosophy product without a Python fallback.",
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_atlas_projection.py",
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_philosophy_graph_views.py",
-      "family": "projection_builder",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/derived-exports/AGENTS.md",
-      "source_truth": [
-        "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "ToS/contracts/philosophy-graph-views.schema.json",
-        "rust/crates/tos-compiler/src/source_philosophy_views.rs",
-        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
-      ],
-      "reads": [
-        "ToS/philosophy/graph-workbench/views/*.graph.md",
-        "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "ToS/philosophy/trunk/graph-layers/README.md",
-        "ToS/derived-exports/philosophy_atlas_projection.min.json",
-        "ToS/contracts/philosophy-graph-views.schema.json"
-      ],
-      "writes": [
-        "ToS/derived-exports/philosophy_graph_views.min.json unless --check is used"
-      ],
-      "side_effects": "tracked generated philosophy graph-view catalog for downstream lens switching",
-      "validation_lane": "graph_exports",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_philosophy_graph_views.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/build_philosophy_graph_projection.py",
+      "path": "rust/crates/tos-compiler/src/source_philosophy_graph.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/derived-exports/AGENTS.md",
@@ -2886,7 +2858,7 @@
         "ToS/contracts/philosophy-graph-projection.schema.json",
         "rust/crates/tos-compiler/src/source_philosophy_graph.rs",
         "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
+        "rust/crates/tos-ops-mechanics-plan/src/main.rs"
       ],
       "reads": [
         "ToS/derived-exports/philosophy_atlas_projection.min.json",
@@ -2897,14 +2869,14 @@
       "writes": [
         "ToS/derived-exports/philosophy_graph_projection.min.json unless --check is used"
       ],
-      "side_effects": "tracked generated philosophy graph projection for downstream UI, MCP, and Neo4j access planes",
+      "side_effects": "Native tos-ops-mechanics-plan --philosophy-product graph implements build, check, and validate; writes its tracked generated philosophy product without a Python fallback.",
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_graph_projection.py",
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_philosophy_post_planting_audit.py",
+      "path": "rust/crates/tos-compiler/src/source_philosophy_post_planting.rs",
       "family": "review_packet_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/philosophy/graph-workbench/review-packets/README.md",
@@ -2934,7 +2906,7 @@
         "ToS/derived-exports/philosophy_graph_projection.min.json",
         "rust/crates/tos-compiler/src/source_philosophy_post_planting.rs",
         "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
+        "rust/crates/tos-ops-mechanics-plan/src/main.rs"
       ],
       "reads": [
         "ToS/philosophy/atlas/**",
@@ -2947,10 +2919,38 @@
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json unless --check is used",
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md unless --check is used"
       ],
-      "side_effects": "tracked source-side review packet for aggregate supported prepared-dossier graph readiness",
+      "side_effects": "Native tos-ops-mechanics-plan --philosophy-product audit implements build, check, and validate of the aggregate supported prepared-dossier audit; writes its tracked generated review packet without a Python fallback.",
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_post_planting_audit.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "rust/crates/tos-compiler/src/source_philosophy_views.rs",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "source_truth": [
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "ToS/contracts/philosophy-graph-views.schema.json",
+        "rust/crates/tos-compiler/src/source_philosophy_views.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/main.rs"
+      ],
+      "reads": [
+        "ToS/philosophy/graph-workbench/views/*.graph.md",
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "ToS/philosophy/trunk/graph-layers/README.md",
+        "ToS/derived-exports/philosophy_atlas_projection.min.json",
+        "ToS/contracts/philosophy-graph-views.schema.json"
+      ],
+      "writes": [
+        "ToS/derived-exports/philosophy_graph_views.min.json unless --check is used"
+      ],
+      "side_effects": "Native tos-ops-mechanics-plan --philosophy-product views implements build, check, and validate; writes its tracked generated philosophy product without a Python fallback.",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_philosophy_graph_views.py",
       "disposition": "keep"
     },
     {
@@ -3246,99 +3246,6 @@
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_tos_corpus_index.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_philosophy_atlas_projection.py",
-      "family": "projection_validator",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/contracts/philosophy-atlas-projection.schema.json",
-      "source_truth": [
-        "ToS/derived-exports/philosophy_atlas_projection.min.json",
-        "ToS/contracts/philosophy-atlas-projection.schema.json",
-        "rust/crates/tos-compiler/src/source_philosophy_atlas.rs",
-        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
-      ],
-      "reads": [
-        "ToS/derived-exports/philosophy_atlas_projection.min.json"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "graph_exports",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_philosophy_atlas_projection.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_philosophy_graph_views.py",
-      "family": "projection_validator",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/contracts/philosophy-graph-views.schema.json",
-      "source_truth": [
-        "ToS/derived-exports/philosophy_graph_views.min.json",
-        "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "ToS/contracts/philosophy-graph-views.schema.json",
-        "rust/crates/tos-compiler/src/source_philosophy_views.rs",
-        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
-      ],
-      "reads": [
-        "ToS/derived-exports/philosophy_graph_views.min.json"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "graph_exports",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_philosophy_graph_views.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_philosophy_graph_projection.py",
-      "family": "projection_validator",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/contracts/philosophy-graph-projection.schema.json",
-      "source_truth": [
-        "ToS/derived-exports/philosophy_graph_projection.min.json",
-        "ToS/derived-exports/philosophy_atlas_projection.min.json",
-        "ToS/derived-exports/philosophy_graph_views.min.json",
-        "ToS/philosophy/graph-workbench/views/view-contracts.json",
-        "ToS/contracts/philosophy-graph-projection.schema.json",
-        "rust/crates/tos-compiler/src/source_philosophy_graph.rs",
-        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
-      ],
-      "reads": [
-        "ToS/derived-exports/philosophy_graph_projection.min.json"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "graph_exports",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_philosophy_graph_projection.py",
-      "disposition": "keep"
-    },
-    {
-      "path": "scripts/validate_philosophy_post_planting_audit.py",
-      "family": "review_packet_validator",
-      "organ_lane": "projection/generated",
-      "owner_surface": "ToS/philosophy/graph-workbench/review-packets/README.md",
-      "source_truth": [
-        "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-        "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md",
-        "rust/crates/tos-compiler/src/source_philosophy_post_planting.rs",
-        "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
-        "scripts/philosophy_native_command.py"
-      ],
-      "reads": [
-        "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-        "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.md"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "graph_exports",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_philosophy_post_planting_audit.py",
       "disposition": "keep"
     },
     {

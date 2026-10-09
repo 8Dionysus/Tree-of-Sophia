@@ -168,12 +168,14 @@ Use:
 - `python scripts/build_tos_corpus_index.py --check`
 - `python scripts/validate_tos_corpus_index.py`
 - `tos lexical-index validate-tracked --source-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`
-- `python scripts/build_philosophy_atlas_projection.py --check`
-- `python scripts/validate_philosophy_atlas_projection.py`
-- `python scripts/build_philosophy_graph_views.py --check`
-- `python scripts/validate_philosophy_graph_views.py`
-- `python scripts/build_philosophy_graph_projection.py --check`
-- `python scripts/validate_philosophy_graph_projection.py`
+- `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode check`
+- `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode validate`
+- `tos-ops-mechanics-plan --philosophy-product views --source-root "$PWD" --output-root "$PWD" --mode check`
+- `tos-ops-mechanics-plan --philosophy-product views --source-root "$PWD" --output-root "$PWD" --mode validate`
+- `tos-ops-mechanics-plan --philosophy-product graph --source-root "$PWD" --output-root "$PWD" --mode check`
+- `tos-ops-mechanics-plan --philosophy-product graph --source-root "$PWD" --output-root "$PWD" --mode validate`
+- `tos-ops-mechanics-plan --philosophy-product audit --source-root "$PWD" --output-root "$PWD" --mode check`
+- `tos-ops-mechanics-plan --philosophy-product audit --source-root "$PWD" --output-root "$PWD" --mode validate`
 - `tos evidence-projection check --source-root "$PWD"`
 - `tos evidence-projection validate --source-root "$PWD"`
 

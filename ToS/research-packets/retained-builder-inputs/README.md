@@ -83,3 +83,9 @@ after the active Python builder has been retired. It reads that archive as
 opaque bytes and never executes it. Current contract validation and the exact
 historical contract binding remain separate checks. Fresh execution belongs to
 `rust/crates/tos-compiler/src/provenance_event_lab.rs`.
+
+The eight former philosophy-product Python build/validate entrypoints are also
+retained under their original logical names with their exact pre-retirement
+bytes and SHA-256 paths. They remain nonexecuted historical recipes; the active
+atlas, graph-view, graph-projection and post-planting audit route is the native
+`tos-ops-mechanics-plan --philosophy-product` command.

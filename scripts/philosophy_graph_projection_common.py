@@ -26,9 +26,10 @@ REVIEW_PACKET_CONTRACT_REF = "ToS/philosophy/graph-workbench/review-packets/revi
 GRAPH_PROJECTION_PATH = TOS_ROOT / "derived-exports" / "philosophy_graph_projection.min.json"
 SCHEMA_REF = "ToS/contracts/philosophy-graph-projection.schema.json"
 VALIDATION_REFS = (
-    "scripts/build_philosophy_graph_projection.py",
-    "scripts/validate_philosophy_graph_projection.py",
-    "tests/test_philosophy_graph_projection.py",
+    "rust/crates/tos-compiler/src/source_philosophy_graph.rs",
+    "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
+    "tests/conformance/rust/compiler_source_cases.rs",
+    "docs/validation/validation_lanes.json",
 )
 PREDICATE_GRAPH_LAYERS = {
     "belongs_to_genre": {"conceptual-relation"},
