@@ -76,8 +76,15 @@ impl FormLock {
 }
 
 fn transaction_id(ctx: &CommandContext) -> SourceCommandResult<String> {
-    let config = cmd::parse(&ctx.configuration_raw)?;
-    let request = cmd::parse(&ctx.request_raw)?;
+    transaction_identity(&ctx.configuration_raw, &ctx.request_raw)
+}
+
+fn transaction_identity(
+    configuration_raw: &[u8],
+    request_raw: &[u8],
+) -> SourceCommandResult<String> {
+    let config = cmd::parse(configuration_raw)?;
+    let request = cmd::parse(request_raw)?;
     let identity = cmd::object(vec![
         ("domain", cmd::string("tos-isolated-forms-v1")),
         (
@@ -245,8 +252,28 @@ pub(crate) fn pending(
     Ok(tx::read_pending(fs, deadline, cancelled)?.is_some())
 }
 
+pub(crate) fn committed(
+    fs: &CreationFilesystem,
+    configuration_raw: &[u8],
+    request_raw: &[u8],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<bool> {
+    let request = cmd::parse(request_raw)?;
+    if cmd::text(&request, "operation")? != "apply" {
+        return Ok(false);
+    }
+    Ok(tx::inspect_committed_if_present(
+        fs,
+        &transaction_identity(configuration_raw, request_raw)?,
+        deadline,
+        cancelled,
+    )?
+    .is_some())
+}
+
 /// The selected cut is current for normal describe/prepare/apply and original
-/// only for an exact pending replay. Recovery never reparses caller output as
+/// for an exact pending or committed replay. Recovery never reparses caller output as
 /// authority: the maintained engine reconstructs and checks all proposed bytes.
 pub(crate) fn run(
     fs: &CreationFilesystem,
@@ -288,7 +315,20 @@ pub(crate) fn run(
             ));
         }
     }
-    let proposal = crate::source_forms::run_form_command_from_captures(
+    let committed = if pending.is_none() && operation == "apply" {
+        tx::inspect_committed_if_present(fs, &transaction_id(ctx)?, deadline, cancelled)?
+    } else {
+        None
+    };
+    if let Some(retained) = &committed {
+        context.recorded_at = cmd::text(&retained.authorization, "recorded_at")?.to_owned();
+        if !cmd::same(&authorization(&context)?, &retained.authorization)? {
+            return Err(SourceCommandError::Conflict(
+                "Forms committed owner or request changed",
+            ));
+        }
+    }
+    let mut proposal = crate::source_forms::run_form_command_from_captures(
         &context, selected, software, components, worker, deadline, cancelled,
     )?;
     worker
@@ -378,6 +418,37 @@ pub(crate) fn run(
         }
         target_lock.verify()
     };
+    if let Some(retained) = committed {
+        // Reconstruct from the original exact cut and the journal's original
+        // clock, then verify current authorization and all source dependencies.
+        // A lost response must never cause a second write or a fresh receipt.
+        if !super::work_expression::same_selected_plan(&expected, &retained)? {
+            return Err(SourceCommandError::Conflict(
+                "Forms reconstructed committed plan differs",
+            ));
+        }
+        let (_, current_retained, _, _) =
+            tx::inspect_committed(fs, &expected.transaction_id, deadline, cancelled)?;
+        if !super::work_expression::same_selected_plan(&retained, &current_retained)? {
+            return Err(SourceCommandError::Conflict(
+                "Forms committed journal changed",
+            ));
+        }
+        verify_locks()?;
+        check_guard(fs, &context, &proposal, &guard_plan, deadline, cancelled)?;
+        for file in &guard_plan.files {
+            if read(fs, file.path.as_str(), deadline, cancelled)? != file.after {
+                return Err(SourceCommandError::Conflict(
+                    "Forms committed replay target changed",
+                ));
+            }
+        }
+        fence.verify(deadline, cancelled)?;
+        proposal.replayed = true;
+        proposal.changes.clear();
+        cmd::set(&mut proposal.response, "replayed", JsonValue::Bool(true))?;
+        return Ok(proposal);
+    }
     let result = if let Some(retained) = pending {
         if !super::work_expression::same_selected_plan(&expected, &retained.plan)? {
             return Err(SourceCommandError::Conflict(

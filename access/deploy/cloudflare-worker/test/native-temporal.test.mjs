@@ -1,3 +1,4 @@
+import {compareLosslessJson} from './lossless-json-compare.mjs';
 import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -79,21 +80,10 @@ except Exception as e:
  print(json.dumps({'status':status,'error':str(e)}))
 `,{path:database.path,binding,request});
 }
-function assertPackets(actual,expected) {
-  const diff=python(String.raw`
-def diff(a,b,path='$'):
- if type(a)!=type(b):return [path+': kind '+type(a).__name__+' != '+type(b).__name__]
- if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': ordered keys differ']
-  return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': lengths differ']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
- return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);print(json.dumps(diff(json.loads(p['actual']),json.loads(p['expected']))))
-`,{actual,expected});assert.deepEqual(diff,[]);
+function assertPackets(actual, expected, indexed = false) {
+  assert.deepEqual(compareLosslessJson(actual, expected, {indexed}), []);
 }
+
 let workerPromise;
 async function worker() {
   workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',

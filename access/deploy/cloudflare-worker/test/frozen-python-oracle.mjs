@@ -1,3 +1,4 @@
+import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {existsSync, readFileSync, realpathSync} from 'node:fs';
 import {basename, dirname, relative, resolve, sep} from 'node:path';
@@ -23,6 +24,7 @@ if (outputBank.length !== metadata.output_blob.bytes || hash(outputBank) !== met
 }
 const normalizedPathSources = new Set([
   'access/deploy/cloudflare-worker/test/native-inspection.test.mjs',
+  'access/deploy/cloudflare-worker/test/native-temporal.test.mjs',
   'access/deploy/cloudflare-worker/test/native-exploration.test.mjs',
 ]);
 const sequenceCursors = new Map();
@@ -120,5 +122,37 @@ export function frozenPythonOracleExec(sourceUrl, args, options = {}) {
     selected = matching[0];
   }
   const output = resultBytes(selected);
+  if (selected.expected_error === true) throw new Error(output.toString('utf8'));
+  if (selected.sqlite_mutation) {
+    const mutation = selected.sqlite_mutation, payload = JSON.parse(rawInput.toString('utf8'));
+    if (sourcePath !== 'access/deploy/cloudflare-worker/test/native-temporal.test.mjs' ||
+        codeHash !== '6131a87f57f68e9cffa53aadfd4a9ccf8301832ef6256a3a27f0de1bfc98f03b' ||
+        mutation.before.length !== 2 || mutation.after.length !== 2) {
+      throw new Error('unexpected frozen SQLite mutation profile');
+    }
+    const db = new DatabaseSync(payload.path);
+    try {
+      db.exec('BEGIN IMMEDIATE');
+      for (let index = 0; index < mutation.before.length; index++) {
+        const before = mutation.before[index], after = mutation.after[index];
+        if (before.id !== after.id ||
+            db.prepare('SELECT json FROM knowledge_nodes WHERE id=?').get(before.id)?.json !== before.json ||
+            db.prepare('SELECT json_chunk FROM edge_meta WHERE key=? AND part=0').get('knowledge_node_digest:'+before.id)?.json_chunk !== before.metadata ||
+            hash(Buffer.from(after.json)) !== JSON.parse(after.metadata).sha256) {
+          throw new Error('frozen SQLite mutation predecessor or checksum differs');
+        }
+        const row = db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').run(after.json, after.id);
+        const meta = db.prepare('UPDATE edge_meta SET json_chunk=? WHERE key=? AND part=0').run(after.metadata, 'knowledge_node_digest:'+after.id);
+        if (row.changes !== 1 || meta.changes !== 1) throw new Error('frozen SQLite mutation row count');
+      }
+      db.exec('COMMIT');
+    } catch (error) {
+      try { db.exec('ROLLBACK'); } catch {}
+      throw error;
+    } finally { db.close(); }
+    if (!sameState(externalState(rawInput), mutation.external_after)) {
+      throw new Error('frozen SQLite mutation external result differs');
+    }
+  }
   return output.toString(options.encoding || 'utf8');
 }

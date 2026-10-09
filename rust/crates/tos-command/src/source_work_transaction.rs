@@ -2877,6 +2877,21 @@ pub(crate) fn committed_member_paths(plan: &WorkPlan) -> SourceCommandResult<BTr
     Ok(members)
 }
 
+/// Absence is distinct from damaged, pending, or non-committed custody.
+pub(crate) fn inspect_committed_if_present(
+    fs: &CreationFilesystem,
+    id: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<WorkPlan>> {
+    active(deadline, cancelled)?;
+    if journal_dir(fs, id, false)?.is_none() {
+        return Ok(None);
+    }
+    let (_, plan, _, _) = inspect_committed(fs, id, deadline, cancelled)?;
+    Ok(Some(plan))
+}
+
 pub(crate) fn inspect_committed(
     fs: &CreationFilesystem,
     id: &str,

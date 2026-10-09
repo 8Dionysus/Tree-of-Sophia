@@ -227,11 +227,14 @@ fn exact_keys(value: &JsonValue, expected: &[&str]) -> bool {
     actual == expected
 }
 fn safe_int(value: Option<&JsonValue>) -> Option<u64> {
-    let JsonValue::Number(number) = value? else {
-        return None;
-    };
-    // The previous Worker used Number.isSafeInteger after JSON.parse, so
-    // integer-valued decimal/exponent forms and negative zero remain valid.
+    let JsonValue::Number(number) = value? else { return None; };
+    if number.kind != JsonNumberKind::Int { return None; }
+    let value = number.lexeme.parse::<u64>().ok()?;
+    (value <= MAX_SAFE_INTEGER).then_some(value)
+}
+
+fn safe_count(value: Option<&JsonValue>) -> Option<u64> {
+    let JsonValue::Number(number) = value? else { return None; };
     let parsed = number.lexeme.parse::<f64>().ok()?;
     (parsed.is_finite()
         && parsed >= 0.0
@@ -240,9 +243,6 @@ fn safe_int(value: Option<&JsonValue>) -> Option<u64> {
         .then_some(parsed as u64)
 }
 
-fn safe_count(value: Option<&JsonValue>) -> Option<u64> {
-    safe_int(value)
-}
 
 fn unavailable(message: &'static str) -> WorkerSearchControlError {
     WorkerSearchControlError {
@@ -537,6 +537,8 @@ fn packet_metadata(
                     ),
                 ]),
             ),
+            ("nodes", JsonValue::Null),
+            ("relations", JsonValue::Null),
             ("authority_boundary", JsonValue::Null),
             (
                 "work",
@@ -573,6 +575,8 @@ fn packet_metadata(
             ],
         )?;
         fields.push(("counts", object(std::mem::take(&mut counts))));
+        fields.push(("nodes", JsonValue::Null));
+        fields.push(("relations", JsonValue::Null));
         fields.push(("authority_boundary", JsonValue::Null));
         Ok(object(fields))
     }

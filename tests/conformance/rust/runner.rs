@@ -535,6 +535,13 @@ fn unpack_native_fixture_archive(
             let relative = relative
                 .to_str()
                 .expect("captured archive member path is UTF-8");
+            // POSIX tar directory headers conventionally end in one slash.
+            // Their manifest identity is the same exact relative directory.
+            let relative = if member.header().entry_type().is_dir() {
+                relative.strip_suffix('/').unwrap_or(relative)
+            } else {
+                relative
+            };
             let relative = capture_archive_key(relative);
             let expected_member = expected
                 .get(&relative)

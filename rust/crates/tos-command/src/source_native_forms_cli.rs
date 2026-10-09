@@ -61,7 +61,19 @@ pub(super) fn run(
         return Err(SourceCommandError::Denied("Forms exact protected family"));
     }
     let pending = forms_publication::pending(&filesystem, deadline, cancelled)?;
-    let selected = if pending { &original } else { current };
+    let committed = !pending
+        && forms_publication::committed(
+            &filesystem,
+            &configuration_raw,
+            request_raw,
+            deadline,
+            cancelled,
+        )?;
+    let selected = if pending || committed {
+        &original
+    } else {
+        current
+    };
     let mut files = Vec::new();
     let mut paths = BTreeSet::new();
     let mut authored_total = 0u64;

@@ -369,7 +369,8 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     oracle["request"] = oracle["preview_request"].clone();
     context.request_raw = canonical_json(&oracle["preview_request"]);
     describe_local.finish(deadline, &cancellation).unwrap();
-    describe_assessment.finish(deadline, &cancellation).unwrap();
+    // Sign's assessment owner already finalized its exact worker operation.
+    // Finalizing a second time is correctly refused as a coverage mismatch.
     // Re-enter the native Sign owner with changed current v2 scope inputs.
     // These are distinct route checks: requested-use fencing, Sign risk floor,
     // and exact native-content readiness. Each refusal precedes package creation.
@@ -2551,8 +2552,13 @@ fn native_initial_creation_cli_preserves_native_contract_and_cold_retained_recei
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
     ];
 
+    let inputs: std::collections::BTreeSet<&str> = inputs.into_iter()
+        .chain(tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS.iter().copied())
+        .chain(tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS.iter().copied())
+        .collect();
+
     let mut fixture_bytes = 0u64;
-    for name in inputs {
+    for name in &inputs {
         let size = fs::metadata(repository.join(name)).unwrap().len();
         assert!(size <= 8_388_608);
         fixture_bytes = fixture_bytes.checked_add(size).unwrap();

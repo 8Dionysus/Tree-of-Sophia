@@ -1,3 +1,4 @@
+import {compareLosslessJson} from './lossless-json-compare.mjs';
 import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -110,22 +111,10 @@ else:
   finally:model.close()
 print(json.dumps([json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False) for packet in out]))
 `,{graph,mode,query,extra});}
-function assertPackets(actual,expected,indexed=false){const differences=python(String.raw`
-def diff(a,b,path='$'):
- if type(a)!=type(b):return [path+': type differs']
- if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': ordered keys differ']
-  return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': lengths differ']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
- return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);a=json.loads(p['actual']);b=json.loads(p['expected'])
-if p['indexed']:
- for packet in (a,b):
-  packet.pop('work');packet['page']['cursor']=packet['page']['cursor'] is not None;packet['page']['next_cursor']=packet['page']['next_cursor'] is not None
-print(json.dumps(diff(a,b)))`,{actual,expected,indexed});assert.deepEqual(differences,[]);}
+function assertPackets(actual, expected, indexed = false) {
+  assert.deepEqual(compareLosslessJson(actual, expected, {indexed}), []);
+}
+
 
 function intersectionGrams(query){
  const needle=query.toLowerCase(),grams=[];
