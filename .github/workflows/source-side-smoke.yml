@@ -25,14 +25,23 @@ jobs:
       - name: Install validator dependencies
         run: python -m pip install -r requirements-dev.txt
 
+      - name: Build native source validators
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/source-audit-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          cargo +1.98.1 build --locked -p tos-ops-mechanics-plan --bin tos-ops-mechanics-plan
+          echo "$CARGO_TARGET_DIR/debug" >> "$GITHUB_PATH"
+
       - name: Run tiny-entry validator
-        run: python scripts/validate_tiny_entry_route.py
+        run: tos-ops-mechanics-plan --repo-root "$GITHUB_WORKSPACE" --tiny-entry-validate
 
       - name: Check current ToS KAG provider
         run: python scripts/validate_local_kag_provider.py
 
       - name: Run tree-node contract validator
-        run: python scripts/validate_tree_node_contracts.py
+        run: tos-ops-mechanics-plan --repo-root "$GITHUB_WORKSPACE" --tree-node-validate
 
       - name: Run relation-pack validator
         run: python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py

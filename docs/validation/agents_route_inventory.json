@@ -218,8 +218,8 @@
       "boundary_markers": ["runtime", "Neo4j", "MCP", "canon"],
       "on_demand_surfaces": ["ToS/philosophy/README.md", "ToS/philosophy/philosophy.manifest.json", "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md"],
       "validation_lanes": ["philosophy_topology", "graph_exports", "route_docs"],
-      "validation_paths": ["scripts/build_philosophy_graph_views.py", "scripts/validate_philosophy_graph_views.py", "scripts/validate_philosophy_topology.py"],
-      "completion_evidence": ["ToS/philosophy/AGENTS.md", "ToS/philosophy/graph-workbench/AGENTS.md", "scripts/validate_philosophy_topology.py"],
+      "validation_paths": ["scripts/build_philosophy_graph_views.py", "scripts/validate_philosophy_graph_views.py", "rust/crates/tos-ops-mechanics-plan/src/philosophy_topology.rs"],
+      "completion_evidence": ["ToS/philosophy/AGENTS.md", "ToS/philosophy/graph-workbench/AGENTS.md", "rust/crates/tos-ops-mechanics-plan/src/philosophy_topology.rs"],
       "handoff_routes": ["ToS/derived-exports/AGENTS.md", "ToS/canon/AGENTS.md"]
     },
     {

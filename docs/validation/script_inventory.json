@@ -3382,25 +3382,6 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/validate_philosophy_topology.py",
-      "family": "source_validator",
-      "organ_lane": "source/topology",
-      "owner_surface": "ToS/philosophy/philosophy.manifest.json",
-      "source_truth": [
-        "ToS/philosophy/philosophy.manifest.json",
-        "ToS/philosophy/**/branch.manifest.json"
-      ],
-      "reads": [
-        "ToS/philosophy/**"
-      ],
-      "writes": [],
-      "side_effects": "validation output only",
-      "validation_lane": "philosophy_topology",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_validate_philosophy_topology.py",
-      "disposition": "keep"
-    },
-    {
       "path": "mechanics/questbook/scripts/validate_questbook_surface.py",
       "family": "source_validator",
       "organ_lane": "mechanics/package",

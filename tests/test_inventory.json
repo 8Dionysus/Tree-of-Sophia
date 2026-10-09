@@ -1428,21 +1428,6 @@
       "disposition": "keep"
     },
     {
-      "path": "tests/test_validate_philosophy_topology.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "validator_behavior",
-      "validation_lane": "philosophy_topology",
-      "owner_surface": "scripts/validate_philosophy_topology.py",
-      "protects": "philosophy topology validator behavior and research-packet boundary",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "medium",
-      "focused_target": "tests/test_validate_philosophy_topology.py",
-      "failure_route": "Fix ToS/philosophy topology or validator behavior before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "mechanics/growth-cycle/tests/test_occurrence_assessment_guard.py",
       "home": "mechanics/growth-cycle/tests",
       "home_scope": "mechanic-level",

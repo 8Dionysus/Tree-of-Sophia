@@ -12,7 +12,7 @@
 | owner | `mechanics/growth-cycle/` |
 | stronger route | `ToS/philosophy/` and `ToS/canon/` own content |
 | next route | [Branch Growth Cycle](parts/branch-growth-cycle/README.md) |
-| validation | `python scripts/validate_philosophy_topology.py` |
+| validation | `tos-ops-mechanics-plan --repo-root ROOT --philosophy-topology` |
 
 ## Active Route
 

@@ -37,8 +37,12 @@ Output roots for these views remain separate from the selected source root.
 Before acquisition, review exact versions, live access, intended-use rights,
 local presence and branch anchors independently. Use the existing discovery
 queue's readiness mode to freeze a source-bound plan, preserving chronological
-selection and historical receipts. `prepare_philosophy_source_planting.py`
-resolves actual branch/backlog anchors without creating planted records.
+selection and historical receipts. `tos-ops-mechanics-plan --repo-root ROOT --prepare-source-anchor`
+resolves actual branch/backlog anchors without creating planted records. Pass
+`--atlas-row`, `--source-table-index`, `--source-row-index` and the exact
+`--source-label`. The JSON plan retains the source row number, row digest,
+branch manifest digest and complete backlog digest. Duplicate, missing,
+escaping or mismatched selections fail before producing a plan.
 
 Actual acquisition retains upstream bytes, checks their pinned identity and
 content structure, records per-file fixity and rights, and links the exact

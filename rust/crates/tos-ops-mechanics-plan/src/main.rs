@@ -64,6 +64,7 @@ enum Action {
     SourceHome,
     WitnessStructureValidate,
     PhilosophyTopology,
+    SourceAnchorPrepare { atlas: String, table: u64, row: u64, label: String },
     SemanticRegistryTransition,
     #[cfg(feature = "compiler-backed-validators")]
     PhilosophyGraphViews,
@@ -113,6 +114,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut source_home = false;
     let mut witness_structure_validate = false;
     let mut philosophy_topology = false;
+    let mut source_anchor_prepare = false;
+    let (mut anchor_atlas, mut anchor_table, mut anchor_row, mut anchor_label) = (None, None, None, None);
     let mut semantic_registry_transition = false;
     let mut agent_surface_build = false;
     let mut agent_surface_validate = false;
@@ -169,6 +172,11 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--source-home" => source_home = true,
             "--witness-structure-validate" => witness_structure_validate = true,
             "--philosophy-topology" => philosophy_topology = true,
+            "--prepare-source-anchor" => source_anchor_prepare = true,
+            "--atlas-row" => anchor_atlas = Some(args.next().ok_or("missing atlas row")?),
+            "--source-label" => anchor_label = Some(args.next().ok_or("missing source label")?),
+            "--source-table-index" => anchor_table = Some(args.next().ok_or("missing source table index")?.parse::<u64>().map_err(|_|"invalid source table index")?),
+            "--source-row-index" => anchor_row = Some(args.next().ok_or("missing source row index")?.parse::<u64>().map_err(|_|"invalid source row index")?),
             "--semantic-registry-transition" => semantic_registry_transition = true,
             "--agent-surface-build" => agent_surface_build = true,
             "--agent-surface-validate" => agent_surface_validate = true,
@@ -257,6 +265,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(source_home)
         + usize::from(witness_structure_validate)
         + usize::from(philosophy_topology)
+        + usize::from(source_anchor_prepare)
         + usize::from(semantic_registry_transition)
         + usize::from(agent_surface_build)
         + usize::from(agent_surface_validate)
@@ -284,6 +293,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
                 || decision_index_build
                 || root_entry_map_build
                 || agents_route_currentness_build))
+        || (!source_anchor_prepare && (anchor_atlas.is_some() || anchor_table.is_some() || anchor_row.is_some() || anchor_label.is_some()))
         || (fetch_budget_bases && !agent_surface_validate)
         || (semantic.feedback_cache.is_some() && !active_naming_validate)
         || (semantic.output.is_some()
@@ -350,6 +360,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         {
             return Err("compiler-backed validators are unavailable in this build".into());
         }
+    } else if source_anchor_prepare {
+        Action::SourceAnchorPrepare { atlas: anchor_atlas.ok_or("--atlas-row is required")?, table: anchor_table.ok_or("--source-table-index is required")?, row: anchor_row.ok_or("--source-row-index is required")?, label: anchor_label.ok_or("--source-label is required")? }
     } else if philosophy_topology {
         Action::PhilosophyTopology
     } else if agent_surface_build {
@@ -551,7 +563,7 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --prepare-source-anchor --atlas-row ID --source-table-index N --source-row-index N --source-label LABEL | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
@@ -1030,6 +1042,11 @@ fn main() {
         Action::PhilosophyGraphViews => {
             tos_ops_mechanics_plan::philosophy_graph_views::run(&root, &CANCEL)
         }
+        Action::SourceAnchorPrepare { ref atlas, table, row, ref label } => {
+            tos_ops_mechanics_plan::philosophy_topology::prepare_source_anchor(&root, atlas, table, row, label, &CANCEL).and_then(|plan| {
+                println!("{}", serde_json::to_string_pretty(&plan).map_err(std::io::Error::other)?); Ok(0)
+            })
+        }
         Action::PhilosophyTopology => {
             tos_ops_mechanics_plan::philosophy_topology::run(&root, &CANCEL)
         }
@@ -1159,6 +1176,7 @@ fn main() {
                 Action::LivedWitnessValidate => "lived-witness route",
                 Action::IntakePackValidate => "intake pack",
                 Action::PhilosophyTopology => "philosophy topology",
+                Action::SourceAnchorPrepare { .. } => "source anchor preparation",
                 #[cfg(feature = "compiler-backed-validators")]
                 Action::PhilosophyGraphViews => "philosophy graph views",
                 Action::SemanticRegistryTransition => "semantic registry transition",

@@ -1026,3 +1026,93 @@ pub fn run(root: &Path, cancel: &AtomicI32) -> io::Result<i32> {
         Ok(1)
     }
 }
+
+/// Resolve one exact source-visible atlas/branch/backlog route. This read-only
+/// plan creates no planting, source witness, review or semantic admission.
+pub fn prepare_source_anchor(
+    root: &Path,
+    atlas_row_id: &str,
+    table_index: u64,
+    row_index: u64,
+    source_label: &str,
+    cancel: &AtomicI32,
+) -> io::Result<Value> {
+    use crate::route_cards::sha256_bytes;
+    use serde_json::json;
+    if table_index == 0 || row_index == 0 {
+        return Err(io::Error::other("source table and row indices must be positive"));
+    }
+    if atlas_row_id.is_empty() || atlas_row_id.len() > 256 || source_label.is_empty() || source_label.len() > 16_384 {
+        return Err(io::Error::other("source anchor selector is empty or exceeds its bound"));
+    }
+    let mut c = Context { source: RouteSources::new(root)?, cancel, issues: Vec::new(), issue_bytes: 0 };
+    let mut total_bytes=0;
+    let read = |c: &mut Context<'_>, path: &str, total: &mut usize| -> io::Result<Vec<u8>> {
+        c.check()?;
+        if normalized(path).as_deref()!=Some(path) {
+            return Err(io::Error::other(format!("unsafe owner path: {path}")));
+        }
+        c.source.bounded_bytes(path,16*1024*1024,total,64*1024*1024)
+    };
+    let decode = |bytes:&[u8]| -> io::Result<Value> {
+        parse_json(bytes,JsonMode::PublishedStrict,JsonLimits::new(16*1024*1024,64,1_000_000,4300).map_err(|e|io::Error::other(format!("source anchor limits: {e:?}")))?)
+            .map_err(|e|io::Error::other(format!("source anchor exact JSON: {e:?}")))?;
+        let v:Value=serde_json::from_slice(bytes).map_err(io::Error::other)?;
+        if !v.is_object(){return Err(io::Error::other("source anchor row must be an object"));} Ok(v)
+    };
+    let atlas_root="ToS/philosophy/atlas/master-tables";
+    let mut atlas_matches=Vec::new();
+    for path in c.source.selected_files_with_limits(atlas_root,&|p,d|d || p.ends_with("/rows.jsonl"),100_000,4096,16_384)? {
+        if Path::new(&path).parent().and_then(Path::parent)!=Some(Path::new(atlas_root)){continue;}
+        let bytes=read(&mut c,&path,&mut total_bytes)?;
+        let source=std::str::from_utf8(&bytes).map_err(io::Error::other)?;
+        for (number,line) in splitlines(source).into_iter().enumerate() {
+            c.check()?;if line.trim_matches(python_space).is_empty(){continue;}
+            let row=decode(line.as_bytes())?;
+            if row["row_id"].as_str()==Some(atlas_row_id) {
+                atlas_matches.push(json!({"path":path,"line":number+1,"row_sha256":sha256_bytes(line.as_bytes())}));
+                if atlas_matches.len()>1{return Err(io::Error::other("atlas row must resolve exactly once in current master tables"));}
+            }
+        }
+    }
+    if atlas_matches.len()!=1{return Err(io::Error::other("atlas row must resolve exactly once in current master tables"));}
+    let manifest=decode(&read(&mut c,MANIFEST,&mut total_bytes)?)?;
+    let mut branches=Vec::new();
+    for reference in manifest["branch_manifests"].as_array().ok_or_else(||io::Error::other("branch_manifests must be an array"))? {
+        let path=reference.as_str().ok_or_else(||io::Error::other("branch manifest path must be a string"))?;
+        let bytes=read(&mut c,path,&mut total_bytes)?;let branch=decode(&bytes)?;
+        if branch["atlas_rows"].as_array().is_some_and(|a|a.iter().any(|v|v.as_str()==Some(atlas_row_id))) && truth(branch.get("source_anchor_backlog")) {
+            if branch["path"].as_str()!=Some(parent(path).as_str()){return Err(io::Error::other("branch path differs from its canonical manifest"));}
+            branches.push((path.to_owned(),bytes,branch));
+            if branches.len()>1{return Err(io::Error::other("atlas row must have exactly one source-owning branch"));}
+        }
+    }
+    if branches.len()!=1{return Err(io::Error::other("atlas row must have exactly one source-owning branch"));}
+    let (branch_path,branch_bytes,branch)=branches.pop().unwrap();
+    let backlog=branch["source_anchor_backlog"].as_str().ok_or_else(||io::Error::other("source backlog path must be a string"))?;
+    if backlog!=format!("{}/sources/source-anchor-backlog.jsonl",parent(&branch_path)){return Err(io::Error::other("source backlog must belong to the exact branch"));}
+    let backlog_bytes=read(&mut c,backlog,&mut total_bytes)?;
+    let backlog_source=std::str::from_utf8(&backlog_bytes).map_err(io::Error::other)?;
+    let mut anchors=Vec::new();
+    for (number,line) in splitlines(backlog_source).into_iter().enumerate() {
+        c.check()?;if line.trim_matches(python_space).is_empty(){continue;}
+        let row=decode(line.as_bytes())?;
+        if row["source_table_index"].as_u64()==Some(table_index) && row["source_row_index"].as_u64()==Some(row_index) {
+            if row["atlas_row_id"].as_str()!=Some(atlas_row_id) || row["dossier_id"].as_str()!=Some(atlas_row_id) || row["branch_path"]!=branch["path"] || row["source_label"].as_str()!=Some(source_label) {
+                return Err(io::Error::other("selected backlog row differs from exact atlas, branch or source label"));
+            }
+            anchors.push((number+1,row,sha256_bytes(line.as_bytes())));
+            if anchors.len()>1{return Err(io::Error::other("source backlog selector must resolve exactly once"));}
+        }
+    }
+    if anchors.len()!=1{return Err(io::Error::other("source backlog selector must resolve exactly once"));}
+    let (line,row,row_digest)=anchors.pop().unwrap();
+    c.source.verify_root()?;c.check()?;
+    let plan=json!({"schema_version":"tos_philosophy_source_anchor_preparation_v1","status":"prepared-not-planted","atlas_row_id":atlas_row_id,"dossier_id":atlas_row_id,"atlas_source":atlas_matches.pop().unwrap(),"branch_path":branch["path"],"branch_manifest":{"path":branch_path,"sha256":sha256_bytes(&branch_bytes)},"source_backlog_anchor":{"path":backlog,"line":line,"source_table_index":table_index,"source_row_index":row_index,"source_label":source_label},"backlog_sha256":sha256_bytes(&backlog_bytes),"backlog_row_sha256":row_digest,"source_backlog_record":row,"authority_boundary":"This plan records the exact source-planting routes prepared from the supplied inputs."});
+    if serde_json::to_vec(&plan).map_err(io::Error::other)?.len()>1024*1024{return Err(io::Error::other("source anchor output exceeds its bound"));}
+    Ok(plan)
+}
+
+#[cfg(test)]
+#[path = "philosophy_topology_tests.rs"]
+mod tests;
