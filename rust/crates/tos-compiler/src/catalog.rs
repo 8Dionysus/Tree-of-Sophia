@@ -24,6 +24,9 @@ pub struct CatalogLimits {
     pub max_row_bytes: usize,
     pub max_catalog_bytes: usize,
     pub max_catalog_entries: u64,
+    /// Intermediate SQL reduction state is distinct from rendered catalog output.
+    pub max_aggregate_entries: u64,
+    pub max_aggregate_bytes: usize,
     pub max_staging_pages: u64,
 }
 
@@ -34,6 +37,8 @@ impl Default for CatalogLimits {
             max_row_bytes: 8 * 1024 * 1024,
             max_catalog_bytes: 16 * 1024 * 1024,
             max_catalog_entries: 100_000,
+            max_aggregate_entries: 100_000,
+            max_aggregate_bytes: 16 * 1024 * 1024,
             max_staging_pages: 1_000_000,
         }
     }
@@ -1136,6 +1141,8 @@ fn stage(db: &Connection, limits: CatalogLimits) -> Result<()> {
         || limits.max_row_bytes == 0
         || limits.max_catalog_bytes == 0
         || limits.max_catalog_entries == 0
+        || limits.max_aggregate_entries == 0
+        || limits.max_aggregate_bytes == 0
         || limits.max_staging_pages == 0
     {
         return Err(Error::Budget("catalog limits"));
@@ -3424,7 +3431,7 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
             [],
             |r| r.get(0),
         )?;
-        if entries > limits.max_catalog_entries {
+        if entries > limits.max_aggregate_entries {
             return Err(Error::Budget("catalog aggregate entries"));
         }
         let aggregate_bytes: i64 = db.query_row(
@@ -3447,7 +3454,7 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
             || (aggregate_bytes as u64)
                 .checked_add(reserved)
                 .ok_or(Error::Budget("catalog aggregate bytes"))?
-                > limits.max_catalog_bytes as u64
+                > limits.max_aggregate_bytes as u64
         {
             return Err(Error::Budget("catalog aggregate bytes"));
         }
@@ -3859,7 +3866,7 @@ mod tests {
     fn hostile_aggregate_count_refuses_before_render() {
         let (mut db, header, entity, relation, vocab) = fixture("concept");
         let limits = CatalogLimits {
-            max_catalog_entries: 1,
+            max_aggregate_entries: 1,
             ..CatalogLimits::default()
         };
         let error = compile_catalog(
@@ -3874,6 +3881,41 @@ mod tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("catalog aggregate entries"));
+    }
+
+    #[test]
+    fn intermediate_routes_do_not_consume_output_catalog_entries_or_bytes() {
+        let portable = crate::native_snapshot_manifest::portable_native_snapshot_limits(600).unwrap();
+        assert_eq!(portable.full.catalog.max_catalog_entries, 100_000);
+        assert_eq!(portable.full.catalog.max_catalog_bytes, 16 * 1024 * 1024);
+        assert_eq!(portable.full.catalog.max_aggregate_entries, portable.full.catalog.max_rows);
+        assert!(portable.full.catalog.max_aggregate_bytes as u64 <= portable.stage.max_temp_bytes);
+        let (db, header, entity, relation, vocab) = fixture("concept");
+        let descriptor: Value = serde_json::from_slice(VOCAB).unwrap();
+        let limits = CatalogLimits {
+            max_catalog_entries: 64,
+            max_aggregate_entries: 512,
+            max_aggregate_bytes: 64 * 1024,
+            ..CatalogLimits::default()
+        };
+        let mut reduction = CatalogReduction::new(
+            &entity, &relation, &descriptor, &vocab, limits, None,
+        ).unwrap();
+        let ceiling = reduction.begin(&db).unwrap();
+        let before = reduction.finish(&db, &header, &[]).unwrap();
+        db.execute_batch("WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<256)
+            INSERT INTO cmp_catalog_node_routes SELECT 'unused:'||x,'[]','[]' FROM n;").unwrap();
+        let after = reduction.finish(&db, &header, &[]).unwrap();
+        assert_eq!(before.sha256, after.sha256);
+        reduction.limits.max_aggregate_entries = 128;
+        assert!(reduction.finish(&db, &header, &[]).unwrap_err().to_string().contains("catalog aggregate entries"));
+        reduction.limits.max_aggregate_entries = 512;
+        reduction.limits.max_aggregate_bytes = 1024;
+        assert!(reduction.finish(&db, &header, &[]).unwrap_err().to_string().contains("catalog aggregate bytes"));
+        reduction.limits.max_aggregate_bytes = 64 * 1024;
+        reduction.limits.max_catalog_bytes = 128;
+        assert!(reduction.finish(&db, &header, &[]).is_err());
+        CatalogReduction::cleanup(&db, ceiling).unwrap();
     }
 
     #[test]
@@ -3933,7 +3975,7 @@ mod tests {
     fn large_facet_value_refuses_before_render() {
         let (mut db, header, entity, relation, vocab) = fixture(&"x".repeat(200_000));
         let limits = CatalogLimits {
-            max_catalog_bytes: 64 * 1024,
+            max_aggregate_bytes: 64 * 1024,
             ..CatalogLimits::default()
         };
         let error = compile_catalog(

@@ -1003,7 +1003,13 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
             }
         }
     }
-    for path in c.paths("ToS")? {
+    // This check inspects names throughout authored ToS, including witnesses;
+    // the small route-card discovery profile is not the whole-source profile.
+    // No file contents are opened by this traversal.
+    for path in c.source.selected_paths_with_limits(
+        "ToS", &|_, _| true,
+        crate::route_cards::MAX_SELECTED_PATH_DISCOVERY_ENTRIES, 4096,
+    )? {
         check_labels(&mut c, &path, &metadata_labels)?;
     }
     c.check()?;

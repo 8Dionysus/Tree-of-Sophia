@@ -123,6 +123,8 @@ impl PublicD1BuildLimits {
             || self.catalog.max_row_bytes == 0
             || self.catalog.max_catalog_bytes == 0
             || self.catalog.max_catalog_entries == 0
+            || self.catalog.max_aggregate_entries == 0
+            || self.catalog.max_aggregate_bytes == 0
             || self.catalog.max_staging_pages == 0
             || self.max_build_seconds == 0
             || self.max_sql_bytes == 0

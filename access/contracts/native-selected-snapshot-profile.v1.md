@@ -48,7 +48,12 @@ separate from RAM and physical file limits. The same work counter spans
 capture, normalization, packing and build reads; phases do not reset it.
 Search uses that same selected work allowance and a finite posting-count
 ceiling equal to the selected cold-file byte ceiling; the actual byte limits
-still decide whether the complete model fits. `cold_open.max_work_bytes` may
+still decide whether the complete model fits. Catalog reduction likewise separates
+intermediate SQL entries (at most the 10-million-row profile) and aggregate
+bytes (at most 256 MiB, also within the existing TEMP ceiling) from the final
+catalog (100,000 output entries and 16 MiB). Intermediate routes do not count
+as additional output catalog entries. MAIN, TEMP and final cold-file limits
+remain enforced independently. `cold_open.max_work_bytes` may
 select up to 32 GiB for complete verification of expanded packed rows. These
 are work allowances, not larger files or memory reservations. The producer
 still requires its explicit deadline of at most two hours and all declared
