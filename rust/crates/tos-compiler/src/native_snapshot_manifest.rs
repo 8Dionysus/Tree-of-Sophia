@@ -48,7 +48,7 @@ const EXECUTING_IMAGE_LOGICAL_PATH: &str = "tos-command/current-executable";
 // running image. The held executing ELF hash separately fingerprints the
 // complete built image; this selected set is intentionally incomplete and is
 // not a reproducible-source or full dependency-closure claim.
-const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 23] = [
+const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 22] = [
     (
         "rust/crates/tos-compiler/src/d1_public_capture.rs",
         include_bytes!("d1_public_capture.rs"),
@@ -3427,7 +3427,7 @@ mod selected_snapshot_tests {
         cache_root: &Path,
         capture: &crate::PublicCapture,
         members: &[NativeCapturedMember],
-        completed: &crate::CompletedNativeSnapshot,
+        completed: &crate::native_snapshot::CompletedNativeSnapshot,
         input: &NativeDataSnapshotManifestInput<'_>,
         limits: NativeDataManifestLimits,
         cold: crate::ColdOpenLimits,
@@ -3574,7 +3574,7 @@ mod selected_snapshot_tests {
         )
         .unwrap();
         let captured_members = census.validate_capture_closure(&capture, deadline).unwrap();
-        let completed = crate::build_native_snapshot_from_capture(
+        let completed = crate::native_snapshot::build_native_snapshot_from_capture(
             &capture,
             &temp.path().join("native-model.sqlite3"),
             RUNTIME_DATA_DECLARATION,
