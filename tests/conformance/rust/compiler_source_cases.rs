@@ -491,8 +491,150 @@ impl tos_compiler::source_bibliographic::BibliographicSink for BibliographicOutp
     }
 }
 
-#[test]
-fn actual_selected_catalog_and_native_forms_match_maintained_python() {
+fn fixture_catalog_inputs(root: &Path) -> BTreeMap<String, Vec<u8>> {
+    fn add_file(
+        root: &Path,
+        path: &Path,
+        files: &mut BTreeMap<String, Vec<u8>>,
+        total: &mut usize,
+    ) {
+        let metadata = fs::symlink_metadata(path).unwrap();
+        assert!(metadata.is_file() && !metadata.file_type().is_symlink());
+        assert!(
+            metadata.len() <= 2 * 1024 * 1024,
+            "catalog fixture member cap: {}",
+            path.display()
+        );
+        let relative = path
+            .strip_prefix(root)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .replace('\\', "/");
+        let raw = fs::read(path).unwrap();
+        *total = total.checked_add(raw.len()).unwrap();
+        assert!(files.len() < 512 && *total <= 16 * 1024 * 1024);
+        assert!(
+            files.insert(relative, raw).is_none(),
+            "duplicate catalog fixture path"
+        );
+    }
+
+    fn visit(
+        root: &Path,
+        directory: &Path,
+        schemas_only: bool,
+        files: &mut BTreeMap<String, Vec<u8>>,
+        total: &mut usize,
+    ) {
+        let mut entries = fs::read_dir(directory)
+            .unwrap()
+            .map(|entry| entry.unwrap())
+            .collect::<Vec<_>>();
+        entries.sort_by_key(|entry| entry.file_name());
+        for entry in entries {
+            let path = entry.path();
+            let relative = path.strip_prefix(root).unwrap();
+            if relative == Path::new("ToS/source-witnesses/catalog")
+                || relative == Path::new("ToS/source-witnesses/payload")
+                || relative.starts_with("ToS/source-witnesses/catalog")
+                || relative.starts_with("ToS/source-witnesses/payload")
+            {
+                continue;
+            }
+            let metadata = fs::symlink_metadata(&path).unwrap();
+            assert!(
+                !metadata.file_type().is_symlink(),
+                "catalog fixture symlink: {}",
+                path.display()
+            );
+            if metadata.is_dir() {
+                visit(root, &path, schemas_only, files, total);
+            } else if metadata.is_file() {
+                if !schemas_only
+                    || path
+                        .file_name()
+                        .is_some_and(|name| name.to_string_lossy().ends_with(".schema.json"))
+                {
+                    add_file(root, &path, files, total);
+                }
+            } else {
+                panic!("unsupported catalog fixture member: {}", path.display());
+            }
+        }
+    }
+
+    let owner_local = root.join("ToS/source-witnesses/owner-local");
+    assert!(matches!(
+        fs::symlink_metadata(&owner_local),
+        Err(ref error) if error.kind() == std::io::ErrorKind::NotFound
+    ), "public catalog fixture contains reserved owner-local data");
+    let mut files = BTreeMap::new();
+    let mut total = 0usize;
+    visit(root, &root.join("ToS/contracts"), true, &mut files, &mut total);
+    for path in [
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+    ] {
+        add_file(root, &root.join(path), &mut files, &mut total);
+    }
+    // The authored source tree is the compiler input. Generated catalog
+    // projections, reserved owner-local data and physical payload bytes are
+    // outside this producer's read contract.
+    visit(
+        root,
+        &root.join("ToS/source-witnesses"),
+        false,
+        &mut files,
+        &mut total,
+    );
+    assert!(files.contains_key("ToS/contracts/corpus-record.schema.json"));
+    assert!(files.contains_key("ToS/doctrine/semantic-interchange/entity-types.v1.json"));
+    files
+}
+
+fn catalog_manifest_bytes(manifest: &Value) -> Vec<u8> {
+    let mut ordered = serde_json::Map::new();
+    for key in [
+        "schema_version",
+        "owner_repo",
+        "source_root",
+        "generated_by",
+        "record_schema_ref",
+        "claim_schema_ref",
+        "extension_schema_refs",
+        "record_files",
+        "claim_file",
+        "counts",
+        "catalog_sha256",
+        "selected_metadata_publication",
+        "authority_boundary",
+    ] {
+        if let Some(value) = manifest.get(key) {
+            ordered.insert(key.to_owned(), value.clone());
+        }
+    }
+    assert_eq!(ordered.len(), manifest.as_object().unwrap().len());
+    let mut raw = serde_json::to_vec_pretty(&Value::Object(ordered)).unwrap();
+    raw.push(b'\n');
+    raw
+}
+
+pub(crate) struct NativeCatalogFixture {
+    pub(crate) files: BTreeMap<String, Vec<u8>>,
+    pub(crate) manifest: Value,
+    pub(crate) graph: BTreeMap<String, Vec<Value>>,
+    pub(crate) collection_count: usize,
+    pub(crate) record_count: u64,
+    pub(crate) node_count: u64,
+    pub(crate) edge_count: u64,
+}
+
+pub(crate) fn native_catalog_fixture(
+    repository: &Path,
+    files: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+) -> NativeCatalogFixture {
     use tos_compiler::source_bibliographic::{BibliographicLimits, render_bibliographic_graph};
     use tos_compiler::source_witness_catalog::{
         SourceCatalogLimits, SourceCatalogValidator, render_source_witness_catalog,
@@ -500,29 +642,19 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
     use tos_compiler::{
         SourceCatalogInputLimits, plan_source_catalog_inputs, render_source_bibliographic_plan,
     };
-    let repository = super::validation_cut_cases::repository()
-        .canonicalize()
-        .unwrap();
-    let mut files = schema_sources(&repository);
-    // The declared source carrier contains schemas and two genuine maintained
-    // fixture records; repository branch inputs are outside this family scope.
-    for name in ["entity-types.v1.json", "relation-types.v1.json"] {
-        let path = format!("ToS/doctrine/semantic-interchange/{name}");
-        files.insert(path.clone(), fs::read(repository.join(path)).unwrap());
-    }
-    let fixture_root = repository.join("access/tests/fixtures/knowledge-contract");
-    let record = "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json";
-    let forms = "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json";
-    for path in [record, forms] {
-        files.insert(path.into(), fs::read(fixture_root.join(path)).unwrap());
-    }
+
+    assert!(repository.is_absolute());
+    assert!(
+        repository
+            .join("rust/crates/tos-compiler/src/source_witness_catalog.rs")
+            .is_file()
+    );
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("source-store");
-    let revision = super::validation_cut_cases::write_cut_store(&files, &store);
+    let revision = super::validation_cut_cases::write_cut_store(files, &store);
     let cancelled = AtomicBool::new(false);
-    let deadline = Instant::now() + Duration::from_secs(60);
     let read_limits = ReadLimits {
         max_manifest_bytes: 2 * 1024 * 1024,
         max_manifest_entries: 512,
@@ -585,8 +717,8 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
         &cancelled,
     )
     .unwrap();
+    let collection_count = plan.input_receipt().collections.len();
     let mut receipt = plan.input_receipt();
-    assert_eq!(receipt.collections.len(), 5);
     receipt.binding.projection_root_sha256 =
         Digest256::of_bytes(b"independent-catalog-target").to_hex();
     let owner = FixtureOwner;
@@ -648,23 +780,72 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
     )
     .unwrap();
     validator.finish().unwrap();
-    let mut actual_catalog = CatalogOutput::default();
-    render_source_witness_catalog(
-        &mut stage,
-        &candidate.catalog,
-        limits.catalog,
-        &mut actual_catalog,
-    )
-    .unwrap();
-    let mut actual_graph = BibliographicOutput::default();
+    let mut catalog = CatalogOutput::default();
+    render_source_witness_catalog(&mut stage, &candidate.catalog, limits.catalog, &mut catalog)
+        .unwrap();
+    let mut graph = BibliographicOutput::default();
     render_bibliographic_graph(
         &mut stage,
         &candidate.catalog,
         &candidate.bibliographic,
         limits,
-        &mut actual_graph,
+        &mut graph,
     )
     .unwrap();
+    NativeCatalogFixture {
+        files: catalog.files,
+        manifest: catalog.manifest,
+        graph: graph.0,
+        collection_count,
+        record_count: candidate.catalog.record_count,
+        node_count: candidate.bibliographic.node_count,
+        edge_count: candidate.bibliographic.edge_count,
+    }
+}
+
+pub(crate) fn publish_native_catalog_fixture(
+    repository: &Path,
+    root: &Path,
+    deadline: Instant,
+) {
+    let inputs = fixture_catalog_inputs(root);
+    let catalog = native_catalog_fixture(repository, &inputs, deadline);
+    assert_eq!(catalog.manifest["schema_version"], "tos_source_witness_catalog_v3");
+    assert_eq!(catalog.manifest["generated_by"], "scripts/build_source_witness_catalog.py");
+    assert!(catalog.files.contains_key("ToS/source-witnesses/catalog/claims.jsonl"));
+    for (relative, raw) in catalog.files {
+        let target = root.join(&relative);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, raw).unwrap();
+    }
+    let target = root.join("ToS/source-witnesses/catalog/catalog.manifest.json");
+    fs::create_dir_all(target.parent().unwrap()).unwrap();
+    fs::write(target, catalog_manifest_bytes(&catalog.manifest)).unwrap();
+}
+
+#[test]
+fn actual_selected_catalog_and_native_forms_match_maintained_python() {
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let mut files = schema_sources(&repository);
+    // The declared source carrier contains schemas and two genuine maintained
+    // fixture records; repository branch inputs are outside this family scope.
+    for name in ["entity-types.v1.json", "relation-types.v1.json"] {
+        let path = format!("ToS/doctrine/semantic-interchange/{name}");
+        files.insert(path.clone(), fs::read(repository.join(path)).unwrap());
+    }
+    let fixture_root = repository.join("access/tests/fixtures/knowledge-contract");
+    let record = "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json";
+    let forms = "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json";
+    for path in [record, forms] {
+        files.insert(path.into(), fs::read(fixture_root.join(path)).unwrap());
+    }
+    assert!(files.len() <= 512);
+    assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let mut native = native_catalog_fixture(&repository, &files, deadline);
+    let fixture = tempfile::tempdir().unwrap();
     // Python may write only private generated companions for its full oracle.
     // The original cut and native stage already bind the independent source.
     let oracle_root = fixture.path().join("maintained-oracle");
@@ -701,7 +882,7 @@ print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] fo
         String::from_utf8_lossy(&output.stderr)
     );
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
-    let actual_files: BTreeMap<String, String> = actual_catalog
+    let actual_files: BTreeMap<String, String> = native
         .files
         .into_iter()
         .map(|(path, raw)| (path, String::from_utf8(raw).unwrap()))
@@ -710,17 +891,18 @@ print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] fo
         serde_json::to_value(actual_files).unwrap(),
         expected["files"]
     );
-    assert_eq!(actual_catalog.manifest, expected["manifest"]);
+    assert_eq!(native.manifest, expected["manifest"]);
     for collection in ["nodes", "edges", "claim_traces"] {
-        let rows = actual_graph.0.remove(collection).unwrap_or_default();
+        let rows = native.graph.remove(collection).unwrap_or_default();
         assert_eq!(
             serde_json::to_value(rows).unwrap(),
             expected["graph"][collection]
         );
     }
-    assert_eq!(candidate.catalog.record_count, 1);
-    assert_eq!(candidate.bibliographic.node_count, 1);
-    assert_eq!(candidate.bibliographic.edge_count, 0);
+    assert_eq!(native.collection_count, 5);
+    assert_eq!(native.record_count, 1);
+    assert_eq!(native.node_count, 1);
+    assert_eq!(native.edge_count, 0);
 }
 
 /// One finite maintained authored recipe exercises real canon/candidate rows

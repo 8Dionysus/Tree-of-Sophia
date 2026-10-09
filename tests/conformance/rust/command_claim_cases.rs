@@ -116,47 +116,12 @@ fn maintained_oracle(
     serde_json::from_slice(&fs::read(stdout_path).unwrap()).unwrap()
 }
 
-// The generated catalogue is selected from this protected synthetic owner
-// root, separately from its authored cut. Use the maintained producer, so a
-// derived row cannot attest to itself during an identity proposal.
+// Generate the synthetic root's catalog with the existing native compiler
+// producer. The separate catalog conformance test retains its existing
+// independent owner oracle for catalog content, manifest semantics and graph
+// rows.
 fn publish_fixture_catalog(repository: &Path, root: &Path, deadline: Instant) {
-    use std::process::{Command, Stdio};
-    let output = root.join("fixture-catalog.stdout");
-    let errors = root.join("fixture-catalog.stderr");
-    let script = "import pathlib,sys;sys.path.insert(0,str(pathlib.Path(sys.argv[1])/'scripts'));import build_source_witness_catalog as catalog;root=pathlib.Path(sys.argv[2]);catalog.write_outputs(root,catalog.render_outputs(root))";
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdout(Stdio::from(fs::File::create(&output).unwrap()))
-        .stderr(Stdio::from(fs::File::create(&errors).unwrap()))
-        .spawn()
-        .unwrap();
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(&output).unwrap().len() > 1_048_576
-            || fs::metadata(&errors).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained generated catalogue refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < deadline);
-    assert!(fs::metadata(&output).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(&errors).unwrap().len() <= 1_048_576);
-    assert!(
-        status.success(),
-        "{}",
-        String::from_utf8_lossy(&fs::read(errors).unwrap())
-    );
+    super::compiler_source_cases::publish_native_catalog_fixture(repository, root, deadline);
 }
 
 fn source_value(value: &Value) -> JsonValue {
