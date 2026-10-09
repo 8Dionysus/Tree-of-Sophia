@@ -85,14 +85,6 @@ VALIDATOR = _load_module(
     "tos_zarathustra_lexical_validator",
     "scripts/validate_zarathustra_lexical_index.py",
 )
-MORPHOLOGY_RESULT_RECORDER = _load_module(
-    "tos_zarathustra_morphology_result_recorder",
-    "scripts/record_zarathustra_morphology_census_result.py",
-)
-MORPHOLOGY_CONTEXT_RESULT_RECORDER = _load_module(
-    "tos_zarathustra_morphology_context_result_recorder",
-    "scripts/record_zarathustra_morphology_contextual_result.py",
-)
 
 
 class ZarathustraLexicalIndexTests(unittest.TestCase):
@@ -897,52 +889,6 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         errors = list(Draft202012Validator(schema).iter_errors(contaminated))
         self.assertTrue(errors)
 
-    def test_raw_result_inspector_recomputes_without_returning_source_strings(
-        self,
-    ) -> None:
-        rows = []
-        fixtures = [
-            ("bekannt", 4, [{"pos": "V", "category": None}], []),
-            ("unbekannt", 2, [], []),
-        ]
-        for surface, count, lemma, root in fixtures:
-            digest = hashlib.sha256(surface.encode("utf-8")).hexdigest()
-            rows.append(
-                {
-                    "schema_version": "tos_dwdsmor_analysis_row_v1",
-                    "form_key": f"lexical-form:sha256:{digest}",
-                    "exact_form": surface,
-                    "exact_form_sha256": digest,
-                    "normalized_form_sha256": "a" * 64,
-                    "occurrence_count": count,
-                    "input_preserved": True,
-                    "provider": MORPHOLOGY_RESULT_RECORDER.EXPECTED_PROVIDER,
-                    "lemma_analyses": lemma,
-                    "root_analyses": root,
-                    "lemma_analysis_count": len(lemma),
-                    "root_analysis_count": len(root),
-                    "unknown": not lemma,
-                    "authority": "unreviewed-provider-candidate",
-                }
-            )
-        rows.sort(key=lambda row: (row["exact_form_sha256"], row["exact_form"]))
-        with self.subTest("aggregate"):
-            with tempfile.TemporaryDirectory() as temporary:
-                raw_path = Path(temporary) / "raw.jsonl"
-                raw_path.write_bytes(
-                    b"".join(
-                        MORPHOLOGY_RESULT_RECORDER.canonical_line(row) for row in rows
-                    )
-                )
-                aggregate = MORPHOLOGY_RESULT_RECORDER.inspect_raw_output(raw_path)
-        self.assertEqual(2, aggregate["row_count"])
-        self.assertEqual(6, aggregate["token_occurrence_count"])
-        self.assertEqual(1, aggregate["covered_type_count"])
-        self.assertEqual(1, aggregate["unknown_type_count"])
-        self.assertEqual(2, aggregate["unknown_token_count"])
-        self.assertEqual(1, aggregate["lemma_analysis_total"])
-        self.assertNotIn("bekannt", json.dumps(aggregate, ensure_ascii=False))
-        self.assertNotIn("unbekannt", json.dumps(aggregate, ensure_ascii=False))
 
     def test_morphology_context_episode_is_output_blind_and_b_only(self) -> None:
         schemas = [
@@ -1117,102 +1063,6 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         ):
             self.assertNotIn(prohibited, tracked)
 
-    def test_contextual_result_aggregate_does_not_return_source_strings(self) -> None:
-        surface = "Testform"
-        context = "Alpha Testform omega"
-        start = context.index(surface)
-        end = start + len(surface)
-        form_digest = hashlib.sha256(surface.encode("utf-8")).hexdigest()
-        context_digest = hashlib.sha256(context.encode("utf-8")).hexdigest()
-        token_payloads = []
-        cursor = 0
-        for index, (text, whitespace, pos, tag) in enumerate(
-            (
-                ("Alpha", " ", "NOUN", "NN"),
-                ("Testform", " ", "ADV", "ADV"),
-                ("omega", "", "NOUN", "NN"),
-            )
-        ):
-            token_start = cursor
-            token_end = token_start + len(text)
-            token_payloads.append(
-                {
-                    "dep": "dep",
-                    "end_offset": token_end,
-                    "ent_type": "",
-                    "head_token_index": index,
-                    "is_sent_start": index == 0,
-                    "lemma": text.casefold(),
-                    "morph": {},
-                    "pos": pos,
-                    "start_offset": token_start,
-                    "tag": tag,
-                    "text": text,
-                    "token_index": index,
-                    "whitespace": whitespace,
-                }
-            )
-            cursor = token_end + len(whitespace)
-        rows = []
-        for rank, role, part in zip(
-            (1, 73, 145),
-            ("first", "inclusive-median", "last"),
-            (1, 3, 4),
-            strict=True,
-        ):
-            row = {
-                "authority": "unreviewed-contextual-provider-proposal",
-                "context_id": f"private-{rank}",
-                "context_sha256": context_digest,
-                "context_text": context,
-                "episode_id": "zarathustra-selected-form-context-b-v1",
-                "exact_form_sha256": form_digest,
-                "form_key": f"lexical-form:sha256:{form_digest}",
-                "input_preserved": True,
-                "item_ref": "tos.item.private",
-                "occurrence_id": f"tos.occurrence.private-{rank}",
-                "part_order": part,
-                "provider": {
-                    **MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_PROVIDER,
-                },
-                "schema_version": "tos_zdl_contextual_morphology_row_v1",
-                "selection_rank": rank,
-                "selection_role": role,
-                "target_end_offset": end,
-                "target_exact_form": surface,
-                "target_start_offset": start,
-                "target_tokens": [token_payloads[1]],
-                "tokenization": {
-                    "token_count": 3,
-                    "target_token_count": 1,
-                    "exact_single_token_alignment": True,
-                    "split_or_expanded_alignment": False,
-                    "target_covered": True,
-                },
-                "tokens": token_payloads,
-            }
-            rows.append(row)
-        with tempfile.TemporaryDirectory() as temporary:
-            raw_path = Path(temporary) / "raw.jsonl"
-            raw_path.write_bytes(
-                b"".join(
-                    MORPHOLOGY_CONTEXT_RESULT_RECORDER.canonical_line(row)
-                    for row in rows
-                )
-            )
-            original_form = MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_FORM_SHA256
-            MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_FORM_SHA256 = form_digest
-            try:
-                aggregate = MORPHOLOGY_CONTEXT_RESULT_RECORDER.inspect_raw_output(
-                    raw_path
-                )
-            finally:
-                MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_FORM_SHA256 = original_form
-        serialized = json.dumps(aggregate, ensure_ascii=False)
-        self.assertNotIn(surface, serialized)
-        self.assertNotIn(context, serialized)
-        self.assertEqual(3, aggregate["exact_single_token_alignment_count"])
-        self.assertEqual({"ADV": 3}, aggregate["target_pos"])
 
     def test_morphology_context_tracked_files_withhold_private_rows(self) -> None:
         plan = self.morphology_context_plan

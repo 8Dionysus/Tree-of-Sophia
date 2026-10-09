@@ -2202,7 +2202,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/record_zarathustra_morphology_census_result.py",
+      "path": "rust/crates/tos-compiler/src/lexical_derivatives/morphology_result.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
@@ -2216,12 +2216,12 @@
         "one exact owner-local morphology A run, its private raw rows and receipts, the frozen Tree plan, the private input packet, and the admitted runtime manifest"
       ],
       "writes": [
-        "one tracked text-free morphology census result receipt unless --check is used"
+        "Explicit separate native generation with a source-free result receipt. Read-only inspection and check do not create a result. Matching retries preserve completed bytes."
       ],
-      "side_effects": "recomputed aggregate provider coverage, ambiguity, unknown-residue shape, repeat determinism, performance, and artifact fixity only; no source strings, provider lemma strings, accepted morphology, lemma, lexeme, sign, semantics, rights clearance, publication, B/C materialization, or human backlog",
+      "side_effects": "Native tos zarathustra-morphology-census-result. recomputed aggregate provider coverage, ambiguity, unknown-residue shape, repeat determinism, performance, and artifact fixity only; no source strings, provider lemma strings, accepted morphology, lemma, lexeme, sign, semantics, rights clearance, publication, B/C materialization, or human backlog Explicit restored input paths retain their recorded fixity requirements; inspection alone does not register a full result.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "test_target": "rust/crates/tos-compiler/src/lexical_derivatives/morphology_result.rs",
       "disposition": "keep"
     },
     {
@@ -2252,7 +2252,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/record_zarathustra_morphology_contextual_result.py",
+      "path": "rust/crates/tos-compiler/src/lexical_derivatives/morphology_context_result.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
@@ -2268,16 +2268,16 @@
         "the exact private contextual B run, raw provider rows, frozen source plan and packet receipt, admitted runtime manifest and artifact registry record, plus the owner resource receipt"
       ],
       "writes": [
-        "one tracked text-free contextual result receipt and one provenance event unless --check is used"
+        "Explicit separate native generation with a source-free receipt; contextual B also records its provenance event. Read-only inspection and check do not create a result. Matching retries preserve completed bytes."
       ],
-      "side_effects": "recomputed token-stream return, target alignment, provider-label aggregates, repeat determinism, runtime and trust closure, resource cost, and local rights posture only; no source strings, provider lemma strings, accepted German, tokenization, morphology, lemma, lexeme, sign, semantics, graph, canon, publication, redistribution, or human backlog",
+      "side_effects": "Native tos zarathustra-morphology-context-result. recomputed token-stream return, target alignment, provider-label aggregates, repeat determinism, runtime and trust closure, resource cost, and local rights posture only; no source strings, provider lemma strings, accepted German, tokenization, morphology, lemma, lexeme, sign, semantics, graph, canon, publication, redistribution, or human backlog Explicit restored input paths retain their recorded fixity requirements; inspection alone does not register a full result.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "test_target": "rust/crates/tos-compiler/src/lexical_derivatives/morphology_context_result.rs",
       "disposition": "keep"
     },
     {
-      "path": "scripts/record_zarathustra_visual_retrieval_result.py",
+      "path": "rust/crates/tos-compiler/src/research_visual_result.rs",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
@@ -2290,12 +2290,12 @@
         "one exact owner-local direct-page-image retrieval C run, its prior audit-incomplete run, private fixed controls and query packet, frozen Tree plans, admitted runtime, model artifacts, and host resource receipt"
       ],
       "writes": [
-        "one tracked text-free direct-visual retrieval result receipt unless --check is used"
+        "Explicit separate native generation with a source-free result receipt. Read-only inspection and check do not create a result. Matching retries preserve completed bytes."
       ],
-      "side_effects": "independently recomputed fixity, normalization, ranking stability, source-anchor resolution, advisory aggregates, performance, resource cost, and rare review triggers only; no source or query strings, accepted relevance, transcription, translation, sign, semantics, winner, method adoption, promotion, publication, routine human backlog, or review interface",
+      "side_effects": "Native tos zarathustra-visual-retrieval-result. independently recomputed fixity, normalization, ranking stability, source-anchor resolution, advisory aggregates, performance, resource cost, and rare review triggers only; no source or query strings, accepted relevance, transcription, translation, sign, semantics, winner, method adoption, promotion, publication, routine human backlog, or review interface Explicit restored input paths retain their recorded fixity requirements; inspection alone does not register a full result.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_zarathustra_visual_retrieval_result.py",
+      "test_target": "rust/crates/tos-compiler/src/research_visual_result.rs",
       "disposition": "keep"
     },
     {

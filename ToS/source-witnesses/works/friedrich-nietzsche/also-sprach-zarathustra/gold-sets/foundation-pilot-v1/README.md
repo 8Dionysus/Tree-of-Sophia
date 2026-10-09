@@ -535,3 +535,32 @@ recurrence projection uses `bc587f71…`. These are distinct byte identities.
 Checking the frozen morphology plan requires its exact projection. A new plan
 may explicitly bind an available projection without changing the old plan or
 receipt. Generation and packet equality do not accept morphology or grant rights.
+
+
+### Native result recording
+
+The maintained recorders are `tos zarathustra-morphology-census-result`,
+`tos zarathustra-morphology-context-result`, and
+`tos zarathustra-visual-retrieval-result`. All require an explicit
+`--source-root`; their `--help` lists the exact artifact, runtime, source-packet,
+and admission inputs. The commands read retained provider evidence without
+executing a model or an external runtime.
+
+For morphology, `--inspect-raw ABS` reconstructs source-free aggregates.
+For visual retrieval, `--inspect-run` verifies the retained images, vectors,
+normalization audit, ranked source returns, controls and private-content
+withholding through explicit `--artifact-root`, `--run`, `--prior-run` and
+`--query-content`. Inspection identifies its incomplete runtime/model scope;
+it does not register a complete result.
+
+Full `--check` or `--build` verifies all recorded runtime and implementation
+hashes; the visual command also needs the exact model files through
+`--model-root` and runner/bridge files through `--implementation-root`.
+Restored files may be selected explicitly, but different bytes cannot stand in
+for missing historical inputs. A build requires a distinct `--generation`,
+separate `--local-output-root`, and `--scratch-bytes RESERVED_BYTES`; contextual
+B additionally requires `--event-at`. Matching retries preserve outputs and
+complete a missing contextual provenance event. Historical receipts retain
+their original generator and authority statements; fresh receipts identify
+Rust. Neither inspection nor recording accepts linguistic judgments, relevance,
+rights, canon or publication.
