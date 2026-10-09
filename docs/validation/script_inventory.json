@@ -3124,7 +3124,7 @@
       "disposition": "keep"
     },
     {
-      "path": "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+      "path": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
       "family": "release_validator",
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/release-support/parts/artifact-bundles/README.md",
@@ -3141,7 +3141,7 @@
       "side_effects": "ignored dist/ abyss-machine artifact bundle sidecars, durable registry read-model, and materialized subject-store evidence outside tracked source",
       "validation_lane": "artifact_bundles",
       "ci_inclusion": "release",
-      "test_target": "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+      "test_target": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
       "disposition": "keep"
     },
     {

@@ -189,4 +189,4 @@ explicit `--output ABSOLUTE_PATH` chooses another generated destination.
 The Rust compiler is the only implementation; native failure has no fallback.
 - `python scripts/build_source_witness_bibliographic_graph.py --check`
 - `python scripts/validate_source_witness_bibliographic_graph.py`
-- `python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py`
+- `tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT`
