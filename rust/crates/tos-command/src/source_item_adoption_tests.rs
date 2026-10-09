@@ -210,15 +210,23 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
                 "rolled-back"
             }
         );
-        assert!(
+        // Both decisions leave a durable terminal head and retained history.
+        // A selected transaction must refuse orphan recovery, not disappear.
+        assert!(matches!(
             work_transaction::retained_item_orphan(
                 &filesystem,
                 &transaction_id,
                 deadline,
                 &cancelled,
-            )
-            .unwrap()
-            .is_none()
+            ),
+            Err(SourceCommandError::Conflict(
+                "Item transaction is head selected; orphan recovery refused"
+            ))
+        ));
+        assert!(
+            work_transaction::read_pending(&filesystem, deadline, &cancelled)
+                .unwrap()
+                .is_none()
         );
     }
 }

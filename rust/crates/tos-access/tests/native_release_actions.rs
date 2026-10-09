@@ -282,9 +282,17 @@ fn write_snapshot(
         include_bytes!("../../../../rust/crates/tos-compiler/src/source_corpus.rs");
     let source_binding = Digest256::of_bytes(source_declaration).to_hex();
     let compiler_binding = Digest256::of_bytes(compiler_program).to_hex();
+    // This fixture selects philosophy Originals, without a corpus producer.
+    // Bind the same verified source revision carried by its complete model.
+    let corpus_revision = fixture
+        .open()
+        .unwrap()
+        .source_revision()
+        .unwrap()
+        .to_owned();
     let mut manifest = serde_json::json!({
         "schema_version":"tos_access_native_data_snapshot_v1",
-        "corpus_revision":fixture.corpus_original.as_ref().unwrap().origin.native_producer.as_ref().unwrap().source_revision,
+        "corpus_revision":corpus_revision,
         "input_bindings":{"access/contracts/runtime-data.v1.json":source_binding},
         "compiler":{
             "schema":query_schema,

@@ -305,7 +305,9 @@ fn object_link_pending_guard_refusal_resumes_or_rolls_back_natively() {
         let limits = ItemLimits {
             max_member_bytes: 2_097_152,
             max_total_bytes: 64_000_000,
-            max_state_bytes: 16_777_216,
+            // Complete current schemas and retained history exceed the former
+            // 16-MiB fixture allowance during live compound reconstruction.
+            max_state_bytes: 32 * 1024 * 1024,
             max_issues: 256,
             deadline,
         };
