@@ -30,7 +30,7 @@
       "aoa-tdd-slice"
     ]
   },
-  "manifest_sha256": "2674f3376b922bbdb469cc70444e1f0849d72070dfc651fe4ba5ee76c06cbcda",
+  "manifest_sha256": "38f0a2e0352d78dc8ff98d4f90345da216dc2a033629d08bcdc8067a3c9fc10c",
   "owner_ports": [
     {
       "id": "eval_port",
@@ -77,39 +77,39 @@
           "sha256": "7ef05e98e563c3d882dbaebed19b85372c157b955bf33b19ef7593ad02c4464c"
         },
         {
-          "bytes": 13441,
+          "bytes": 13576,
           "path": "kag/provider-template.json",
-          "sha256": "b845f822a0077b225a23e90d439f285a7b0b79df508bc05bd55d8f3b3b979267"
+          "sha256": "e32247e0bd17193ffe18e0a07eda43e9f217f9e1b2300451884954a0544d3d52"
         },
         {
-          "bytes": 3152,
+          "bytes": 2921,
           "path": "kag/README.md",
-          "sha256": "3ee8844ef8a81db8454a1bc308e79dc1d86b8b60ba5467eb90432702e9a5793e"
+          "sha256": "26ac58519c0d01898bfb64049a63e8c94b2d86e34443e120ef24ea576d230dd9"
         },
         {
-          "bytes": 3980,
+          "bytes": 3802,
           "path": "kag/VALIDATION.md",
-          "sha256": "0f075bbab322843510f4e699061690ac4eb7f77cfcf2abf271a44072ea00f369"
+          "sha256": "81b6b18668468814210841868aaf6faa2279e1f3b5f9ef2393c675c01bd950b3"
         },
         {
-          "bytes": 1098,
-          "path": "scripts/validate_local_kag_provider.py",
-          "sha256": "456cc189ffc47ee58463d59a67e741a9197975102038fb6e0ba68a30b8c69325"
+          "bytes": 8251,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/provider_controls.rs",
+          "sha256": "3b60b60588b3ba02ec992e3b6f08b2125efa108d519fdfffb5f6f3347103477f"
         },
         {
-          "bytes": 1966,
-          "path": "scripts/build_kag_export.py",
-          "sha256": "2545e5739f670375e3086eab17e8d1a58335b91f62ea02d7e0c2840f9c08cb9f"
+          "bytes": 30623,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
+          "sha256": "4b7c127061dcb4e786d5255a504ae6b43a52b94610f461270bb4acc373bcf086"
         },
         {
-          "bytes": 4949,
-          "path": "scripts/publish_kag_release.py",
-          "sha256": "442fea086393eb80b0091ab7ffcbb447104d81655b5d9be10579e18cc3f5ea0b"
+          "bytes": 31146,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
+          "sha256": "51a85073a3a5dac7286de0bbffa34ad01125ead0f54fa9081dada40c055b75d2"
         },
         {
-          "bytes": 4225,
+          "bytes": 4136,
           "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-          "sha256": "51adb24565567945cf6f2d21ffb082c2e2050f817ee201238f01a428c2f35b24"
+          "sha256": "5af42633167049ceebc9a3b0b70a9c29ecff42fbf7ad58b735d91685bf7ebfba"
         },
         {
           "bytes": 6384,
@@ -159,9 +159,9 @@
           "sha256": "2dc41fe34854f4e80323be557c9188be5cb0ff35f83a422fbb2ee51060d4332b"
         },
         {
-          "bytes": 4084,
+          "bytes": 4095,
           "path": "stats/port.manifest.json",
-          "sha256": "1f843bc09524dbe02cbf61227bffd7f03f301c081775a30edd3960b1c108133c"
+          "sha256": "67a1209a96acff52abe78fa80a58c0813b56cd667916c30d9e8505c65f6a854f"
         },
         {
           "bytes": 2435,
