@@ -30,6 +30,17 @@ callsite, program/input/output hashes, and capture-overlay provenance. The
 bundle preserves differential assertions while leaving current source meaning
 and acceptance with their owners.
 
+Large selected inputs can use the same installed `tos build-data` entry with
+explicit positive `--max-work-bytes`, `--max-model-bytes` and `--max-postings`.
+The package adapter forwards options from `npm run build:data -- ...` to Rust.
+The defaults remain 16 GiB of cumulative work, 8 GiB per capture/stage database
+and 10 million search postings. The model byte allowance also bounds each
+input file and temporary database; it is not a bound on their combined storage.
+Work and posting ceilings do not grant storage or process resources. Reserve
+the selected output, baseline, temporary and static carriers separately through
+the host owner before starting a full build. State, JSON and whole-operation
+deadlines remain independently required.
+
 `npm run build:ci` installs the web dependencies and builds the site plus the
 native D1 read model. `npm run check` builds, generates Worker types, typechecks,
 and runs the Node/TypeScript tests. `npm run load:local` applies the generated

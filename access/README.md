@@ -1496,8 +1496,10 @@ that directory is not a completed restore and remains caller-owned cleanup.
 
 This restores selected bytes. It neither admits those sources nor selects them
 for readers, reconstructs a PostgreSQL journal, changes rights, or activates a
-publication. Those operations retain their existing owner routes. The Python
-capture producer remains available until its native replacement is validated.
+publication. Those operations retain their existing owner routes. The installed
+`tos-native-owner-command source-capture capture-git|verify|restore` entry owns
+capture production and the matching explicit verification/restore route; its
+`--help` lists the required source selection and finite budgets.
 
 ### Native fresh-prefix installation
 

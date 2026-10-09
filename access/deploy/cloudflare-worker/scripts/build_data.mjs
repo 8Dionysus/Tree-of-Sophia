@@ -8,6 +8,7 @@ const result = spawnSync(process.env.TOS_ACCESS_BIN || 'tos', [
   'build-data',
   '--source-root', fileURLToPath(new URL('../../../../', import.meta.url)),
   '--output', 'dist', '--runtime', 'runtime',
+  ...process.argv.slice(2),
 ], { cwd: worker, stdio: 'inherit' });
 if (result.error) console.error(`native public D1 build failed: ${result.error.message}`);
 process.exitCode = result.status ?? 1;

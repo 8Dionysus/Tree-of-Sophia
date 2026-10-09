@@ -6,7 +6,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
-use tos_compiler::{PublicD1Build, build_public_d1, portable_public_d1_limits};
+use tos_compiler::{Limits, PublicD1Build, build_public_d1, public_d1_limits};
 
 fn path(value: &str) -> Result<PathBuf, String> {
     let supplied = Path::new(value);
@@ -35,6 +35,9 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
     let mut seconds = None;
     let mut state_bytes = None;
     let mut json_visits = None;
+    let mut work_bytes = None;
+    let mut model_bytes = None;
+    let mut postings = None;
     let mut options = args.iter().skip(1);
     while let Some(option) = options.next() {
         let value = options
@@ -47,6 +50,9 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
             "--max-build-seconds" => &mut seconds,
             "--max-state-bytes" => &mut state_bytes,
             "--max-json-visits" => &mut json_visits,
+            "--max-work-bytes" => &mut work_bytes,
+            "--max-model-bytes" => &mut model_bytes,
+            "--max-postings" => &mut postings,
             _ => return Err(format!("unknown public D1 option: {option}")),
         };
         if slot.replace(value.as_str()).is_some() {
@@ -62,7 +68,21 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
     let seconds = seconds
         .parse::<u64>()
         .map_err(|_| "invalid public D1 build seconds")?;
-    let mut limits = portable_public_d1_limits(seconds).map_err(|e| e.to_string())?;
+    let positive = |value: Option<&str>, fallback: u64, name: &str| -> Result<u64, String> {
+        match value {
+            Some(raw) => raw
+                .parse::<u64>()
+                .ok()
+                .filter(|value| *value > 0)
+                .ok_or_else(|| format!("invalid positive public D1 {name}")),
+            None => Ok(fallback),
+        }
+    };
+    let mut base = Limits::default();
+    base.max_work_bytes = positive(work_bytes, base.max_work_bytes, "work bytes")?;
+    base.max_output_bytes = positive(model_bytes, base.max_output_bytes, "model bytes")?;
+    let postings = positive(postings, 10_000_000, "postings")?;
+    let mut limits = public_d1_limits(seconds, base, postings).map_err(|e| e.to_string())?;
     limits.max_state_bytes = state_bytes
         .map(str::to_owned)
         .or_else(|| env::var("TOS_BUILD_MAX_STATE_BYTES").ok())

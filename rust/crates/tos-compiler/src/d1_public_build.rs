@@ -141,12 +141,23 @@ impl PublicD1BuildLimits {
 }
 
 /// One local caller profile derived from existing compiler defaults and the
-/// maintained Python full-producer caps. Its SQLite page limits are per DB;
+/// historical full-producer caps. Its SQLite page limits are per DB;
 /// no aggregate host disk or sorter-spill quota is inferred from them.
 /// State/JSON ceilings remain unset: the standalone caller supplies these
 /// original process limits explicitly before `build_public_d1` may run.
 pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1BuildLimits> {
-    let base = Limits::default();
+    public_d1_limits(max_build_seconds, Limits::default(), 10_000_000)
+}
+
+/// Construct one finite public build profile from the caller's explicit
+/// per-database byte, cumulative work and posting-count allowances.
+/// Filesystem capacity and process admission remain the caller's responsibility.
+pub fn public_d1_limits(
+    max_build_seconds: u64,
+    base: Limits,
+    max_search_postings: u64,
+) -> Result<PublicD1BuildLimits> {
+    base.validate()?;
     // SearchBuildLimits::validate admits at most 8,000,000 source/rank bytes
     // and Unicode scalars; use that same ceiling for every normalized family.
     let row = base.max_row_bytes.min(8_000_000);
@@ -296,7 +307,7 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
             max_document_chars: row,
             max_document_bytes: 64_000_000,
             max_rank_field_bytes: row,
-            max_postings: 10_000_000,
+            max_postings: max_search_postings,
             max_work_bytes: work,
             gram_batch_rows: 64,
         },
