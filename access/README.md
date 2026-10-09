@@ -1600,28 +1600,14 @@ software installation independently of that data:
 /absolute/installed-prefix/bin/tos --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
 ```
 
-The maintained script entrypoints require the same installation as their first
-option and forward to that Rust image before importing the Python query,
-schema, or database implementation:
-
-```sh
-/absolute/installed-prefix/bin/tos --root /absolute/source-root concept-search --query 'судьбы' --language ru
-/absolute/installed-prefix/bin/tos --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
-```
-
-The installed native `bin/tos` command provides these operations; data
-roots do not select software. Without `--data-root`, the compatibility
-scripts keep their repository source root. Concept `--limit 0` returns coverage
-without cards. Word `--validate-candidate FILE` validates against the prepared
-source task without modifying either source or candidate. The native MCP tool
+These commands use the explicitly installed Rust image and an explicitly selected
+source root. Concept `--limit 0` returns coverage without cards. Word
+`--validate-candidate FILE` validates against the prepared source task without
+modifying either source or candidate. The native MCP tool
 `tos_zarathustra_prepare_word_analysis` returns the full task inside its existing
 capability envelope and retains candidate-only authority. Its API rank clamps
-to 1–100; the standalone script/CLI uses a positive rank.
-
-The script CLI has no automatic Python fallback: omitting the explicit
-installation selector fails before loading the query implementation. This is
-a deliberate CLI migration; add the selector to earlier script invocations.
-A matching native installation is required; an older image is not implied to provide these operations.
+to 1–100; the CLI uses a positive rank. The former script entrypoints are retired;
+use the installed commands above. A matching native installation is required.
 
 Imported callers can select the same installation explicitly for the four
 source-read methods:

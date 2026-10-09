@@ -118,26 +118,26 @@ their owner route.
 | output | growth route or return-to-review |
 | owner | `mechanics/growth-cycle/parts/branch-growth-cycle/` |
 | next route | `ToS/philosophy/` or `ToS/canon/` after review |
-| tools | `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`, `ToS/philosophy/philosophy.manifest.json`, `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py` |
+| tools | `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`, `ToS/philosophy/philosophy.manifest.json`, `rust/crates/tos-command/src/source_assessment_journal.rs` |
 | check | `tos-ops-mechanics-plan --repo-root ROOT --philosophy-topology` |
 
 ## Assessment policy application
 
-`scripts/knowledge_assessment.py` applies the source-owned
+`rust/crates/tos-validation/src/assessment.rs` applies the source-owned
 `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md` law to authenticated owner inputs without
 network, model calls or source writes. It distinguishes substantive assessment
 from current admission. The caller supplies trusted policy, grants, competence,
 current exact records and complete bounded subject history; submitted prose
 cannot provide its own authority. The pure engine evaluates the supplied authenticated inputs; command adapters
 bind them to actual source and authority records. Local invariant checks belong to
-`mechanics/growth-cycle/tests/test_knowledge_assessment.py` and the existing
+`tests/conformance/rust/command_owner_text_cases.rs` and the existing
 `mechanics_local` discovery lane.
 
 ## Source-owner journal
 
 ### Sign issuance through the shared source command
 
-The existing `source_commands.py --owner-config /absolute/owner.json` entry
+The existing `tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` entry
 accepts the separately delegated `tos_local_sign_promote_owner_v1` configuration.
 It has the public profile-creation fields (`uid`, `principal_id`, `source_root`,
 `source_path`, `authority_ref`, `allowed_form_ids`, `allowed_operations`,
@@ -338,14 +338,14 @@ Missing language is null, never inferred from prose. Compact metadata versions
 retain the entire exact record context with the quotation. Historical freeform HumanForms, current assessments, grants and publication
 decisions retain their own source records and readers.
 
-`scripts/assessment_journal.py` implements immutable source-owned assessment
+`rust/crates/tos-command/src/source_assessment_journal.rs` implements immutable source-owned assessment
 batches and an atomic per-subject head pointer under an explicitly configured
 owner directory. `ToS/contracts/knowledge-assessment-batch.schema.json` owns
 their shape. The parent directory must already exist. A hash partitions assessment storage while the subject retains its ToS ID.
 Corpus assertions remain in their source-owned records. Original assessment rationale and refs remain in the owned
 batches; derived current admission can be rebuilt.
 
-`append(engine, context, reviews, command_id=..., expected_revision=..., now=...)`
+The native journal append operation
 requires authenticated bindings and an agreed source snapshot from the command
 owner. It records a valid assessment even when the judgment rejects, disputes
 or defers use. It rejects the entire new batch on qualification failure or a
@@ -377,18 +377,13 @@ separate owner-local selection. Installing a product does not select or
 authorize this invocation. See the [local invocation release route](../../../../docs/RELEASING.md).
 
 ```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
-  --owner-config /absolute/operator-selected/owner.json \
-  --native-invocation /absolute/operator-selected/native-invocation.json < request.json
+/absolute/installed-prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/operator-selected/native-invocation.json < request.json
 ```
 
-The retained Python `run_local_command(owner_config, request)` reference and
-CLI remain available through the explicit oracle route:
-
-```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py \
-  --legacy-oracle --owner-config /absolute/operator-selected/owner.json < request.json
-```
+The installed command uses the protected invocation to bind the selected owner
+configuration, native image, source and worker. The former Python journal
+entrypoint is retired. Historical comparison outputs remain test data.
 
 This is an explicit local owner operation, never part of read-only `access`.
 The operator/command issuer selects the configuration independently of incoming
@@ -924,9 +919,9 @@ separate downstream source creation. Private originals remain private.
 
 ### Confidential native TextUnit creation
 
-`source_commands.py` dispatches the separately selected
+`tos-native-owner-command source-commands` dispatches the separately selected
 `tos_local_text_unit_create_owner_v1` configuration to
-`source_text_unit_commands.py`. Its operation is `text-unit.create`, producing one native proposed TextUnit
+`rust/crates/tos-command/src/source_text_unit_entry.rs`. Its operation is `text-unit.create`, producing one native proposed TextUnit
 packet. Semantic descriptions, Occurrences, Lexemes, forms and segmentation
 assessment use their own source routes. The output uses the existing
 [`source-text-unit-packet-v1` schema](../../../../ToS/contracts/source-text-unit-packet-v1.schema.json).
@@ -956,26 +951,15 @@ The protected mode-0600 owner configuration contains:
   a real `source_bound` method. The writer is a software executor; it does not
   impersonate the declared author of the segmentation method.
 
-Use the existing source command envelope and CLI, or `run_local_command`:
-
-```python
-description = run_local_command(owner_config, {
-    "schema_version": "tos_local_source_command_v1", "operation": "describe"})
-# description exposes the delegated unit slots, scope, gap IDs and request fields.
-proposal = {
-    "schema_version": "tos_local_source_command_v1",
-    "operation": "prepare-create",
-    "spans": spans,  # each: unit_id, start, end, certainty, status_reason
-    "excluded_gaps": gaps,  # each: anchor_ref, start, end
-}
-prepared = run_local_command(owner_config, proposal)
-created = run_local_command(owner_config, {
-    **proposal, "operation": "text-unit.create", "command_id": command_id,
-    "expected_configuration": prepared["owner_configuration"],
-    "expected_dependencies": prepared["expected_dependencies"],
-    "expected_source": None, "expected_revision": None,
-})
-```
+Use the same installed source-command entrypoint with the protected native
+invocation. First submit `describe` in the `tos_local_source_command_v1`
+envelope to discover delegated slots, scopes and request fields. Submit
+`prepare-create` with the selected `spans` and `excluded_gaps`, then submit
+`text-unit.create` with those same inputs, a command ID and the returned
+`owner_configuration` and `expected_dependencies`. The initial
+`expected_source` and `expected_revision` are null. Each span names its
+`unit_id`, `start`, `end`, `certainty` and `status_reason`; each excluded gap
+names its `anchor_ref`, `start` and `end`.
 
 `describe` reads no source text. Preparation and application resolve the exact
 metadata closure, check the recorded local-derivation rights gate **before**
@@ -1050,7 +1034,7 @@ exposes confidential bytes through HTTP.
 
 ### Confidential owner-local source profiles
 
-`source_commands.py` selects `source_owner_profile_commands.py` only for the
+`tos-native-owner-command source-commands` selects `rust/crates/tos-command/src/source_private_profile.rs` only for the
 independently protected `tos_local_owner_profile_command_v1` configuration.
 It does not relax the public source writer or catalog. The selected record is
 `local_only`, uses its existing `semantic-metadata-v1` profile/schema, and lives
@@ -1083,8 +1067,8 @@ Identity transitions and publication need their actual owner routes.
 Use the same `tos_local_source_command_v1` envelope on stdin:
 
 ```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
-  --owner-config /absolute/private/source-owner.json < /absolute/private/request.json
+/absolute/installed-prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/private/native-invocation.json < /absolute/private/request.json
 ```
 
 The discoverable operations are:
@@ -1139,8 +1123,8 @@ below and v4 assessment keep their own delegation. No public projection is creat
 
 ### Confidential source Claim growth
 
-`tos_local_owner_claim_command_v1` selects `source_owner_claim_commands.py`
-through the same `source_commands.py` CLI and `tos_local_source_command_v1`
+`tos_local_owner_claim_command_v1` selects `rust/crates/tos-command/src/source_private_claim.rs`
+through the same `tos-native-owner-command source-commands` CLI and `tos_local_source_command_v1`
 request envelope. It creates or corrects the explicitly selected private Claim package. The source context must independently
 select the existing mode-0700 parent
 `<private_prefix>/claims/`; the target is one new named child ending with
@@ -1430,10 +1414,9 @@ source context, private records, native content or journal. The ordinary
 before file reading. Public reading and publication retain their separate adapters and grants.
 
 Reproduce with the synthetic checks in
-`mechanics/growth-cycle/tests/test_owner_local_assessment.py`, plus the existing
+`tests/conformance/rust/command_owner_text_cases.rs`, plus the existing
 native and common assessment tests. Private Claim reader and journal integration
-checks live in `tests/test_source_owner_claim_profiles.py` and
-`mechanics/growth-cycle/tests/test_owner_local_claim_assessment.py`.
+checks live in `tests/conformance/rust/command_private_claim_cases.rs`.
 Successful synthetic qualification verifies the mechanics. Real-language
 competence, source quality and rights depend on their actual owner evidence.
 
@@ -1485,10 +1468,11 @@ operation.
 
 ## Human-form materialization
 
-`scripts/human_forms.py` renders the source-owned
-`ToS/doctrine/HUMAN_FORMS.md` contract. `materialize_form` takes an immutable
-form record, trusted `FormScope`, exact access-filtered source records and an
-owner-admitted template set. `SourceBinding` identifies a whole JSON field. The source owner declares its
+`rust/crates/tos-web-rules/src/human_forms.rs` provides the shared native/WASM
+materialization rules for the source-owned `ToS/doctrine/HUMAN_FORMS.md` contract.
+The native source owner binds each immutable form to its trusted scope, exact
+access-filtered source records and owner-admitted template set. A source binding
+identifies a whole JSON field. The source owner declares its
 required context. Freeform rendering requires the existing assessment
 engine and authenticated reviews/history against the current form and source
 snapshot; it cannot use a submitted positive status as permission.
@@ -1500,7 +1484,7 @@ budget is 64 KiB with explicit refusal, not semantic truncation. Missing,
 restricted, stale and assessment-required states have no emitted wording.
 Adapter authentication, template quality, reviewer language competence and
 consumer behavior each require their corresponding validation or review.
-`mechanics/growth-cycle/tests/test_human_forms.py` protects these boundaries.
+`tests/conformance/rust/command_form_cases.rs` protects these boundaries.
 
 Optional `FormScope.language_context` names exact source-owned language and
 linguistic-derivation metadata. The form must bind the same object and any
@@ -1510,7 +1494,7 @@ performing linguistic assessment or granting a submission its own scope.
 
 ## Local source growth commands
 
-`scripts/source_commands.py` is the explicit source-write entrypoint. Its first
+`tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` is the explicit source-write entrypoint. Its first
 adapter creates and revises forms adjacent to one bibliographic or historical source record;
 that adapter does not mutate the subject. The separately delegated historical
 creation adapter below publishes a new subject with its initial claims and
@@ -1527,8 +1511,8 @@ The normative identity/admission boundary remains in
 `ToS/doctrine/HUMAN_FORMS.md`. The same CLI serves a human or an agent:
 
 ```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
-  --owner-config /absolute/operator-selected/source-owner.json < request.json
+/absolute/installed-prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/operator-selected/native-invocation.json < request.json
 ```
 
 The independently selected protected configuration has exactly these fields:
@@ -1611,7 +1595,7 @@ semantic rollback; reverting a derived reader does not erase these sources.
 Do not remove committed receipts to reuse a command ID. Graph/catalog rebuild,
 publication, model execution and assessment are separate owner operations.
 
-`mechanics/growth-cycle/tests/test_source_commands.py` tests the actual CLI,
+`tests/conformance/rust/command_form_cases.rs` tests the actual CLI,
 creation/revision batches, restart/replay, concurrent writers, loss before/after
 publication, revocation, protected paths, inert input, preparation and partial
 source rebinding. Its catalog-wide test prepares existing public bibliographic
@@ -1871,7 +1855,7 @@ assessment; subject revisions use the separate route below.
 ### Versioned source correction
 
 `tos_local_source_revision_owner_v1` independently delegates `record.revise`
-through the same `source_commands.py` CLI. Its fields match the form-owner
+through the same `tos-native-owner-command source-commands` CLI. Its fields match the form-owner
 configuration, plus exact `record_id` and `allowed_fields`. This historical
 configuration keeps its existing schema and ID scope. A separate
 `tos_local_profile_revision_owner_v1` adds `profile_type_id` and selects the
@@ -2083,7 +2067,7 @@ pending evidence intact. Rollback restores exact selected bytes but advances the
 publication token, so a reader spanning the interrupted interval must restart.
 
 The focused command checks live in
-`mechanics/growth-cycle/tests/test_source_selected_revisions.py`; transport and
+`tests/conformance/rust/command_metadata_publication_cases.rs`; transport and
 reader-boundary checks are separate. Existing 8 MiB selected-package, 128-history
 and source/form byte limits refuse rather than truncate. Semantic assessment, current use, rights, canon, release and deployment retain
 their owner decisions.
@@ -2092,7 +2076,7 @@ their owner decisions.
 
 The separate `tos_local_work_expression_owner_v1` delegates one exact existing
 Work, one new Expression and one distinct `has_expression` Claim, together with
-their selected form identities. `source_commands.py` dispatches
+their selected form identities. `tos-native-owner-command source-commands` dispatches
 `work.expression.create` and explicit pending recovery through the
 [native compound owner contract](docs/NATIVE_WORK_EXPRESSION_GROWTH.md).
 The parent gains only a version increment and the appended Claim reference;
@@ -2123,8 +2107,8 @@ edits the Agent or the Expression's earlier immutable topology Claim stream.
 
 ### Declared source Claim creation
 
-The same `source_commands.py --owner-config /absolute/owner.json` entrypoint
-dispatches separately delegated `claims.create` to `scripts/source_claim_commands.py`.
+The same `tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` entrypoint
+dispatches separately delegated `claims.create` to `rust/crates/tos-command/src/source_claims.rs`.
 It creates one atomic package of up to 32 declared source Claims
 over existing subjects and identity or explicitly delegated typed values,
 including different subjects and profiles in the same batch.
@@ -2258,7 +2242,7 @@ quality. Declared Claim corrections use the separate operation below.
 
 ### Correction of a declared source Claim
 
-`scripts/claim_revisions.py` implements `claim.revise` through the same explicit
+`rust/crates/tos-command/src/source_claims.rs` implements `claim.revise` through the same explicit
 source command entrypoint. The selected Claim keeps its ID, predicate,
 identity endpoints, original maker/provenance and initial review flag. Ordinary
 v1/v2/v3/v4 corrections also preserve its assertion layer; only the separate exact

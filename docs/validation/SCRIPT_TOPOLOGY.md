@@ -94,10 +94,12 @@ boundaries. It does not require every executable to acquire an inventory row.
 
 ## Root Scripts
 
-Root `scripts/*.py` currently own repo-wide builders, validators, release
-execution, lane loading, mechanics-local discovery, and shared helpers. Root scripts
-may be mechanics-owned by `owner_surface`, but a root location does not make the
-script repository-wide truth.
+The maintained executable owners are the Rust crates under `rust/crates/`.
+`tos-ops-mechanics-plan`, `tos-validation-lanes` and `tos-release-check`
+provide repository validation and release entrypoints; `tos-native-owner-command`
+provides explicitly authorized source operations. `scripts/AGENTS.md` retains
+the source route after retirement of the root Python helpers. Ownership follows
+the named source contract rather than the former script location.
 
 The source-witness foundation audit and generated catalog parity run through the
 native `source_witness_foundation` lane. Corpus-index and bibliographic-graph
