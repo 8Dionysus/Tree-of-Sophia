@@ -1,5 +1,5 @@
-//! The maintained fixture supplies a synthetic owner, rights, source records
-//! and an acquired EPUB. Rust performs the private publication and replay.
+//! The frozen source snapshot supplies a synthetic owner, rights, source
+//! records and an acquired EPUB. Rust performs private publication and replay.
 use super::*;
 use std::collections::BTreeMap;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -21,13 +21,41 @@ use tos_command::source_text_unit_entry::{
 use tos_validation::FormatProfile;
 use tos_validation::executor::ExecutorBudget;
 
-fn text_fixture(
-    repository: &Path,
-    root: &Path,
-    output: &Path,
-    errors: &Path,
-    deadline: Instant,
-) -> Value {
+const INITIAL_TEXT_NATIVE_OWNER_PATHS: &[&str] = &[
+    "rust/crates/tos-command/src/source_text_layer_native.rs",
+    "rust/crates/tos-command/src/source_text_owner.rs",
+    "rust/crates/tos-command/src/source_text_unit_native.rs",
+    "rust/crates/tos-command/src/source_text_layer_entry.rs",
+    "rust/crates/tos-command/src/source_text_unit_entry.rs",
+];
+
+const ALIGNMENT_NATIVE_OWNER_PATHS: &[&str] = &[
+    "rust/crates/tos-command/src/source_text_alignment_entry.rs",
+    "rust/crates/tos-command/src/source_text_identity.rs",
+    "rust/crates/tos-command/src/source_text_owner.rs",
+    "rust/crates/tos-command/src/source_text_private_store.rs",
+    "rust/crates/tos-command/src/source_sign_native.rs",
+];
+
+const DERIVED_TEXT_NATIVE_OWNER_PATHS: &[&str] = &[
+    "rust/crates/tos-command/src/source_text_layer_derived_entry.rs",
+    "rust/crates/tos-command/src/source_text_layer_derived_proposal.rs",
+    "rust/crates/tos-command/src/source_text_layer_native.rs",
+    "rust/crates/tos-command/src/source_text_owner.rs",
+    "rust/crates/tos-command/src/source_text_private_store.rs",
+];
+
+const DERIVED_OCR_NATIVE_OWNER_PATHS: &[&str] = &[
+    "rust/crates/tos-command/src/source_text_layer_derived_entry.rs",
+    "rust/crates/tos-command/src/source_text_layer_derived_proposal.rs",
+    "rust/crates/tos-command/src/source_text_layer_native.rs",
+    "rust/crates/tos-command/src/source_text_owner.rs",
+    "rust/crates/tos-command/src/source_text_owner_ocr.rs",
+    "rust/crates/tos-command/src/source_text_layer_payload.rs",
+    "rust/crates/tos-command/src/source_text_private_store.rs",
+];
+
+fn text_fixture(root: &Path) -> NativePythonFixture {
     let script = r#"
 import json,sys
 from pathlib import Path
@@ -53,49 +81,16 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),
     'unit_layer_schema':unit.native.LAYER_CONFIG,
     'implementations':sorted(set(layer.layers.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
 "#;
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdout(Stdio::from(fs::File::create(output).unwrap()))
-        .stderr(Stdio::from(fs::File::create(errors).unwrap()))
-        .spawn()
-        .unwrap();
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(output).unwrap().len() > 1_048_576
-            || fs::metadata(errors).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Text fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < deadline);
-    assert!(fs::metadata(output).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(errors).unwrap().len() <= 1_048_576);
-    assert!(
-        status.success(),
-        "{}",
-        String::from_utf8_lossy(&fs::read(errors).unwrap())
+    let fixture = super::native_python_fixture(
+        "text-initial-layer",
+        &[("source-root", root)],
+        INITIAL_TEXT_NATIVE_OWNER_PATHS,
     );
-    serde_json::from_slice(&fs::read(output).unwrap()).unwrap()
+    super::assert_native_python_fixture(&fixture, script, INITIAL_TEXT_NATIVE_OWNER_PATHS);
+    fixture
 }
 
-fn alignment_fixture(
-    repository: &Path,
-    root: &Path,
-    output: &Path,
-    errors: &Path,
-    deadline: Instant,
-) -> Value {
+fn alignment_fixture(root: &Path) -> NativePythonFixture {
     let script = r#"
 import json,sys
 from pathlib import Path
@@ -118,50 +113,16 @@ print(json.dumps({'public':str(case.public),'private':str(case.private),
     'source_ref':case.source_ref,'config':case.config,'proposal':case.proposal,
     'implementations':sorted(set(alignment.align.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
 "#;
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdout(Stdio::from(fs::File::create(output).unwrap()))
-        .stderr(Stdio::from(fs::File::create(errors).unwrap()))
-        .spawn()
-        .unwrap();
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(output).unwrap().len() > 1_048_576
-            || fs::metadata(errors).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained Alignment fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < deadline);
-    assert!(fs::metadata(output).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(errors).unwrap().len() <= 1_048_576);
-    assert!(
-        status.success(),
-        "{}",
-        String::from_utf8_lossy(&fs::read(errors).unwrap())
+    let fixture = super::native_python_fixture(
+        "text-alignment",
+        &[("source-root", root)],
+        ALIGNMENT_NATIVE_OWNER_PATHS,
     );
-    serde_json::from_slice(&fs::read(output).unwrap()).unwrap()
+    super::assert_native_python_fixture(&fixture, script, ALIGNMENT_NATIVE_OWNER_PATHS);
+    fixture
 }
 
-fn derived_fixture(
-    repository: &Path,
-    root: &Path,
-    output: &Path,
-    errors: &Path,
-    kind: &str,
-    deadline: Instant,
-) -> Value {
+fn derived_fixture(root: &Path, kind: &str) -> NativePythonFixture {
     let script = r#"
 import copy,json,os,sys,unicodedata
 from pathlib import Path
@@ -245,41 +206,21 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
     'expected_sha256':source._digest(expected)[7:],'expected_bytes':len(expected)},
     ensure_ascii=False,separators=(',',':')))
 "#;
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .arg(kind)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdout(Stdio::from(fs::File::create(output).unwrap()))
-        .stderr(Stdio::from(fs::File::create(errors).unwrap()))
-        .spawn()
-        .unwrap();
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= deadline
-            || fs::metadata(output).unwrap().len() > 1_048_576
-            || fs::metadata(errors).unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained derived Text fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
+    let id = match kind {
+        "normalize" => "text-derived-normalize",
+        "correct" => "text-derived-correct",
+        "record-ocr" => "text-derived-record-ocr",
+        _ => panic!("unknown captured derived Text fixture kind {kind}"),
     };
-    assert!(Instant::now() < deadline);
-    assert!(fs::metadata(output).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(errors).unwrap().len() <= 1_048_576);
-    assert!(
-        status.success(),
-        "{}",
-        String::from_utf8_lossy(&fs::read(errors).unwrap())
-    );
-    serde_json::from_slice(&fs::read(output).unwrap()).unwrap()
+    let destination = root.join(format!("derived-{kind}"));
+    let owner_paths = if kind == "record-ocr" {
+        DERIVED_OCR_NATIVE_OWNER_PATHS
+    } else {
+        DERIVED_TEXT_NATIVE_OWNER_PATHS
+    };
+    let fixture = super::native_python_fixture(id, &[("private-root", &destination)], owner_paths);
+    super::assert_native_python_fixture(&fixture, script, owner_paths);
+    fixture
 }
 
 pub(super) fn authored_text_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
@@ -530,13 +471,8 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
-    let fixture = alignment_fixture(
-        &repository,
-        temporary.path(),
-        &temporary.path().join("alignment-fixture.stdout"),
-        &temporary.path().join("alignment-fixture.stderr"),
-        deadline,
-    );
+    let fixture_capture = alignment_fixture(temporary.path());
+    let fixture = fixture_capture.packets.get("factory").unwrap();
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let private = PathBuf::from(fixture["private"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -558,13 +494,15 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         fs::metadata(&owner).unwrap().len()
     );
     let mut captured = authored.clone();
-    for reference in fixture["implementations"].as_array().unwrap() {
-        let reference = reference.as_str().unwrap();
+    for reference in &fixture_capture
+        .software_identity_migration
+        .native_owner_paths
+    {
         assert!(
             captured
                 .insert(
-                    reference.to_owned(),
-                    fs::read(repository.join(reference)).unwrap()
+                    reference.clone(),
+                    fs::read(repository.join(reference.as_str())).unwrap()
                 )
                 .is_none()
         );
@@ -987,13 +925,8 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
-    let fixture = text_fixture(
-        &repository,
-        temporary.path(),
-        &temporary.path().join("text-fixture.stdout"),
-        &temporary.path().join("text-fixture.stderr"),
-        deadline,
-    );
+    let fixture_capture = text_fixture(temporary.path());
+    let fixture = fixture_capture.packets.get("factory").unwrap();
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let private = PathBuf::from(fixture["private"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -1001,10 +934,12 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     let source_ref = fixture["source_ref"].as_str().unwrap();
     let authored = authored_text_files(&public);
     let mut captured = authored.clone();
-    for reference in fixture["implementations"].as_array().unwrap() {
-        let reference = reference.as_str().unwrap();
-        let raw = fs::read(repository.join(reference)).unwrap();
-        assert!(captured.insert(reference.to_owned(), raw).is_none());
+    for reference in &fixture_capture
+        .software_identity_migration
+        .native_owner_paths
+    {
+        let raw = fs::read(repository.join(reference.as_str())).unwrap();
+        assert!(captured.insert(reference.clone(), raw).is_none());
     }
     let (_capture, software, components) =
         super::command_record_cases::captured_components(&captured, deadline, &cancelled);
@@ -1179,14 +1114,8 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     drop(unit_replay_worker);
     assert!(unit_replay.replayed);
     assert_eq!(unit_created.receipt, unit_replay.receipt);
-    let derived = derived_fixture(
-        &repository,
-        temporary.path(),
-        &temporary.path().join("derived-fixture.stdout"),
-        &temporary.path().join("derived-fixture.stderr"),
-        "normalize",
-        deadline,
-    );
+    let derived_capture = derived_fixture(temporary.path(), "normalize");
+    let derived = derived_capture.packets.get("factory").unwrap();
     let derived_owner = PathBuf::from(derived["owner"].as_str().unwrap());
     let derived_ref = derived["source_ref"].as_str().unwrap();
     let mut derived_preview_worker =
@@ -1266,14 +1195,8 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         ("correct", "diplomatic_transcription"),
         ("record-ocr", "raw_ocr"),
     ] {
-        let details = derived_fixture(
-            &repository,
-            temporary.path(),
-            &temporary.path().join(format!("{kind}-fixture.stdout")),
-            &temporary.path().join(format!("{kind}-fixture.stderr")),
-            kind,
-            deadline,
-        );
+        let details_capture = derived_fixture(temporary.path(), kind);
+        let details = details_capture.packets.get("factory").unwrap();
         let owner_path = PathBuf::from(details["owner"].as_str().unwrap());
         let source_ref = details["source_ref"].as_str().unwrap();
         let mut preview_worker = text_worker_with_image(&cut, &worker_image, deadline, &cancelled);

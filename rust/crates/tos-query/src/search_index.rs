@@ -81,6 +81,20 @@ pub trait SearchPostingModel {
 
 pub const INDEXED_SEARCH_GRAM_CODEPOINTS_V1: u8 = 3;
 
+/// Distinct three-code-point grams in first-query-occurrence order. Worker
+/// SQL uses this exact owner rule for bounded D1 candidate admission.
+pub fn unique_search_grams(query: &str) -> Vec<String> {
+    let code_points: Vec<char> = query.chars().collect();
+    let mut grams = Vec::new();
+    for window in code_points.windows(INDEXED_SEARCH_GRAM_CODEPOINTS_V1 as usize) {
+        let gram: String = window.iter().collect();
+        if !grams.contains(&gram) {
+            grams.push(gram);
+        }
+    }
+    grams
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GramSeed {
     pub gram: Option<String>,
@@ -97,20 +111,13 @@ pub fn choose_rarest_gram<M: SearchGramModel>(
     request: &NormalizedIndexedSearchV2Request,
     budget: GramSeekBudget,
 ) -> Result<GramSeed, SearchV2Error> {
-    let code_points: Vec<char> = request.query().chars().collect();
-    if code_points.len() < INDEXED_SEARCH_GRAM_CODEPOINTS_V1 as usize {
+    if request.query().chars().count() < INDEXED_SEARCH_GRAM_CODEPOINTS_V1 as usize {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::InvalidRequest,
             "indexed search query has no three-code-point gram",
         ));
     }
-    let mut grams = Vec::new();
-    for window in code_points.windows(INDEXED_SEARCH_GRAM_CODEPOINTS_V1 as usize) {
-        let gram: String = window.iter().collect();
-        if !grams.contains(&gram) {
-            grams.push(gram);
-        }
-    }
+    let grams = unique_search_grams(request.query());
     let lookup_count = grams.len() as u64;
     let worst_decoded = lookup_count.checked_mul(8).ok_or_else(|| {
         SearchV2Error::new(

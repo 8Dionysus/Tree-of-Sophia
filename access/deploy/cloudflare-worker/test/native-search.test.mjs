@@ -10,7 +10,7 @@ import {createHash} from 'node:crypto';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {knowledgeSearchD1,knowledgeSearchD1Indexed} from '../src/knowledge-store.ts';
 import {nativePacketJson} from '../src/native-lens.ts';
-import {publishedNodeFixtureWorker,publishedWorkerFixtureModules} from './native-lens-fixture.ts';
+import {publishedNodeFixtureWorker,publishedWorkerFixtureModules,publishedFixtureSearchControlsRuntime} from './native-lens-fixture.ts';
 
 const repo=fileURLToPath(new URL('../../../../',import.meta.url));
 const python=(code,input)=>JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',
@@ -88,7 +88,7 @@ async function response(database,mode='legacy',query='',extra={},method='GET'){
  return (await worker()).fetch(new Request('https://tos.test/api/knowledge/search?'+params,{method}),{DB:database.db,ASSETS:{fetch(){throw new Error('search must not fetch static or full-graph fallback');}}},{});
 }
 const options=(query='',extra={})=>({query,sources:null,kindIds:[],predicateIds:[],offset:0,limit:100,...extra});
-async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra)));}
+async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra),publishedFixtureSearchControlsRuntime));}
 function oracle(mode,query,extra={},graph=fixture.graph){return python(String.raw`
 import tempfile
 from pathlib import Path
@@ -418,7 +418,7 @@ test('search HTTP blank/repeated parameters follow Python parse_qs before first-
 test('private native cursor migration, integer kinds, filters and epochs never silently coerce or restart',async()=>{
  const d=database();try{
   const first=JSON.parse(await direct(d,'indexed','alpha',{limit:1})),cursor=first.page.next_cursor;
-  await assert.rejects(()=>knowledgeSearchD1Indexed(d.db,options('alpha',{cursor:''})),error=>error.status===400);
+  await assert.rejects(()=>knowledgeSearchD1Indexed(d.db,options('alpha',{cursor:''}),publishedFixtureSearchControlsRuntime),error=>error.status===400);
   const decode=value=>JSON.parse(Buffer.from(value,'base64url').toString('utf8')),encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
   const outer=decode(cursor);
   const reordered={...outer,filters:{predicate_ids:outer.filters.predicate_ids,kind_ids:outer.filters.kind_ids,sources:outer.filters.sources}};

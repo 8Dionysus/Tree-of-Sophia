@@ -4,8 +4,8 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {parseNativeJson, nativeScalar, nativeField, nativeChild, nativeNumberInfo,
   pythonTruthy, pythonEquals, pythonMember, pythonStr, pythonRepr, nativeSortKey,
-  nativeJson, NativeContextLost, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
-import {nativeLower, nativeIsPrintable, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-unicode.ts';
+  nativeJson, NativeContextLost, NativeBudgetExceeded, nativeLower} from '../../../shared/native-semantics.ts';
+import {nativeIsPrintable, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-unicode.ts';
 
 function python(code, input) {
   return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B', '-c', code], {input: input === undefined ? undefined : JSON.stringify(input),
@@ -50,6 +50,7 @@ print(json.dumps({'pairs':pairs,'members':members}))
   for (const {a,b,member} of fixture.members) assert.equal(pythonMember(parseNativeJson(a),parseNativeJson(b)),member,a+' in '+b);
   assert.equal(pythonMember(nativeScalar('a'),parseNativeJson('{"a":1}')),true);
   assert.equal(pythonMember(nativeScalar('😀'),nativeScalar('x😀y')),true);
+  assert.equal(pythonMember(nativeScalar('\ud83d'),nativeScalar('😀')),false);
   assert.throws(()=>pythonMember(parseNativeJson('[]'),parseNativeJson('{}')),/unhashable/);
 });
 
@@ -101,6 +102,7 @@ test('Unicode contextual final sigma and code-point ordering match Python', () =
     'İSTANBUL','СОФИЯ','\u{10400}\u{10428}','AΣ'+"'".repeat(10000),'AΣ'+"'".repeat(10000)+'B'];
   const expected=python('import json,sys; print(json.dumps([s.lower() for s in json.load(sys.stdin)]))',inputs);
   assert.deepEqual(inputs.map(s=>nativeLower(s)),expected);
+  assert.equal(nativeLower('\ud800A'), '\ud800a');
   assert.equal(codePointCompare('\ue000','\u{10000}'),-1);
   assert.equal(codePointCompare('a','A'),1);
   assert.equal(codePointCompare('a','aa'),-1);

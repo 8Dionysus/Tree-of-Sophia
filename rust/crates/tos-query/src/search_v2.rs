@@ -240,6 +240,59 @@ fn normalize_query(raw: &str) -> Result<String, SearchV2Error> {
     Ok(normalized)
 }
 
+/// Shared query-normalization rule used by the native indexed executor and
+/// bounded Worker/D1 access adapter. Legacy mode deliberately keeps its
+/// historical empty/short-query behavior while using the same Unicode-16
+/// strip/lower primitives and 256-code-point post-strip ceiling.
+pub fn normalize_worker_search_query(
+    raw: &str,
+    indexed: bool,
+) -> Result<(String, String), SearchV2Error> {
+    let query = if indexed {
+        normalize_query(raw)?
+    } else {
+        // The legacy adapter historically allowed surrounding whitespace to
+        // exceed the retained query ceiling; only the stripped value is
+        // bounded. The incoming HTTP envelope itself is bounded by the owner.
+        let stripped = python_strip_unicode16_v1(raw, raw.chars().count()).map_err(|_| {
+            SearchV2Error::new(
+                SearchV2ErrorCode::QueryTooLong,
+                "knowledge search query exceeds 256 characters",
+            )
+        })?;
+        if stripped.chars().count() > SEARCH_QUERY_MAX_CODE_POINTS {
+            return Err(SearchV2Error::new(
+                SearchV2ErrorCode::QueryTooLong,
+                "knowledge search query exceeds 256 characters",
+            ));
+        }
+        stripped.to_owned()
+    };
+    let needle = python_lower_unicode16_v1(
+        &query,
+        SEARCH_QUERY_MAX_CODE_POINTS,
+        SEARCH_QUERY_MAX_CODE_POINTS,
+        SEARCH_QUERY_MAX_UTF8_BYTES,
+    )
+    .map_err(|_| {
+        SearchV2Error::new(
+            SearchV2ErrorCode::QueryTooLong,
+            if indexed {
+                "indexed search v2 normalized query exceeds 256 code points"
+            } else {
+                "knowledge search query exceeds 256 characters"
+            },
+        )
+    })?;
+    if indexed && needle.chars().count() < SEARCH_QUERY_MIN_CODE_POINTS {
+        return Err(SearchV2Error::new(
+            SearchV2ErrorCode::QueryTooShort,
+            "indexed search v2 requires at least 3 normalized code points",
+        ));
+    }
+    Ok((query, needle))
+}
+
 fn canonical_filter(
     values: Vec<String>,
     contains: impl Fn(&str) -> bool,
@@ -389,6 +442,21 @@ pub enum SearchRank {
     IdentityPrefix,
     VisibleDisplaySubstring,
     OtherSerializedCarrierSubstring,
+}
+
+impl SearchRank {
+    /// Stable numeric rank classes shared by native search, D1 ordering, and
+    /// continuation validation.
+    pub const CLASS_COUNT: u8 = 4;
+
+    pub const fn class(self) -> u8 {
+        match self {
+            Self::ExactIdentity => 0,
+            Self::IdentityPrefix => 1,
+            Self::VisibleDisplaySubstring => 2,
+            Self::OtherSerializedCarrierSubstring => 3,
+        }
+    }
 }
 
 /// The stable per-kind index order key. The executor must build `lower_id`

@@ -461,6 +461,43 @@ fn clean_prefix(text: &str) -> (String, bool, Option<&'static str>) {
 mod tests {
     use super::*;
     #[test]
+    fn reviewed_dossier_title_is_scoped_to_prepared_dossier_context() {
+        let ledger: Value = serde_json::from_str(include_str!(
+            "../../../../ToS/philosophy/atlas/multilingual/content-labels.json"
+        ))
+        .unwrap();
+        let multi = Multilingual::from_ledger(&ledger).unwrap();
+        let label = "ToS Deep Research: ранний и классический kalām";
+        let dossier = multi
+            .label(
+                label,
+                "ToS/philosophy/atlas/dossiers/index.jsonl",
+                &json!({"node_type":"prepared-dossier","dossier_id":"T2-09"}),
+            )
+            .unwrap();
+        assert_eq!(
+            dossier["label"]["ru"],
+            "ToS Deep Research: T2-09 — Калām ранний и классический"
+        );
+        assert_eq!(
+            dossier["label"]["en"],
+            "ToS Deep Research: T2-09 — Early and Classical Kalam"
+        );
+        assert_eq!(dossier["translation_status"]["ru"], "reviewed");
+        assert_eq!(dossier["translation_status"]["en"], "reviewed");
+
+        let candidate = multi
+            .label(
+                label,
+                "ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl",
+                &json!({"node_type":"candidate-node","dossier_id":"T2-09"}),
+            )
+            .unwrap();
+        assert_ne!(candidate["label"]["en"], dossier["label"]["en"]);
+        assert_eq!(candidate["translation_status"]["en"], "draft");
+    }
+
+    #[test]
     fn draft_retains_word_boundaries_and_long_alternation() {
         let multi = Multilingual::from_ledger(
             &json!({"schema_version":"tos_philosophy_multilingual_labels_v1","label_sets":{}}),

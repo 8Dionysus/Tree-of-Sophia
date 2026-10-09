@@ -9,7 +9,7 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {build} from 'esbuild';
 import {lensSnapshotResponseD1} from '../src/knowledge-store.ts';
-import {initSync,LensSession,validate_lens_request_wasm_v1} from '../generated/tos_web_rules.js';
+import {initSync,LensSession,validate_lens_request_wasm_v1,worker_knowledge_search_controls_wasm_v1} from '../generated/tos_web_rules.js';
 import type {NativeD1Limits} from '../src/native-d1-read.ts';
 import {parseNativeJson, type NativeRef} from '../src/native-lens.ts';
 import {HttpError} from '../src/common.ts';
@@ -24,6 +24,7 @@ const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');
 // there is no fetched product, alternate executor, or runtime availability cache.
 initSync({module:new WebAssembly.Module(Uint8Array.from(readFileSync(new URL('../generated/tos_web_rules_bg.wasm',import.meta.url))))});
 export const publishedFixtureLensRuntime={LensSession,validate_lens_request_wasm_v1};
+export const publishedFixtureSearchControlsRuntime={worker_knowledge_search_controls_wasm_v1};
 export function executePublishedLensResponse(db:D1Database,raw:string,operation:'compile'|'focus'|'stored'='compile',
   limits:Partial<NativeD1Limits>={},method='GET'):Promise<Response> {
   return lensSnapshotResponseD1(db,publishedFixtureLensRuntime,new TextEncoder().encode(raw),operation,undefined,method,limits);

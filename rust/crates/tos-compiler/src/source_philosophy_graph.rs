@@ -530,6 +530,52 @@ fn fingerprint_checked(
     check()?;
     Ok(result)
 }
+
+fn projection_fingerprint_checked(
+    nodes: &[Value],
+    edges: &[Value],
+    clusters: &[Value],
+    fingerprints: &[Value],
+    max: usize,
+    check: &mut impl FnMut() -> Result<()>,
+) -> Result<String> {
+    let mut node_ids = BTreeSet::new();
+    for node in nodes {
+        check()?;
+        node_ids.insert(required(node, "node_id")?.to_owned());
+    }
+    let mut edge_ids = BTreeSet::new();
+    for edge in edges {
+        check()?;
+        edge_ids.insert(required(edge, "edge_id")?.to_owned());
+    }
+    let mut cluster_ids = BTreeSet::new();
+    for cluster in clusters {
+        check()?;
+        cluster_ids.insert(required(cluster, "cluster_id")?.to_owned());
+    }
+    let unlensed_nodes = nodes
+        .iter()
+        .filter(|node| string_set(&node["view_ids"]).is_empty())
+        .collect::<Vec<_>>();
+    let unlensed_edges = edges
+        .iter()
+        .filter(|edge| string_set(&edge["view_ids"]).is_empty())
+        .collect::<Vec<_>>();
+    let material = json!({
+        "node_ids":node_ids,
+        "edge_ids":edge_ids,
+        "cluster_ids":cluster_ids,
+        "view_fingerprints":fingerprints,
+        "unlensed_records":{
+            "nodes":stable_items_checked(&unlensed_nodes,"node_id",check)?,
+            "edges":stable_items_checked(&unlensed_edges,"edge_id",check)?
+        }
+    });
+    check()?;
+    digest_with_check(&material, max, check)
+}
+
 fn integer_limit(v: &Value, default: usize, max: usize) -> Result<usize> {
     let value = if truth(v) {
         v.as_u64()
@@ -719,17 +765,15 @@ fn review_material(
         packets.push(packet);
         fingerprints.push(json!({"view_id":id,"fingerprint":fingerprint,"node_count":vn.len(),"edge_count":ve.len(),"cluster_count":vc.len(),"source_ref_count":view.header["source_refs"].as_array().map_or(0,Vec::len)}));
     }
-    let nl = nodes
-        .iter()
-        .filter(|n| string_set(&n["view_ids"]).is_empty())
-        .collect::<Vec<_>>();
-    let el = edges
-        .iter()
-        .filter(|e| string_set(&e["view_ids"]).is_empty())
-        .collect::<Vec<_>>();
-    let material = json!({"node_ids":nodes.iter().map(|n|required(n,"node_id").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"edge_ids":edges.iter().map(|e|required(e,"edge_id").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"cluster_ids":clusters.iter().map(|c|required(c,"cluster_id").map(str::to_owned)).collect::<Result<BTreeSet<_>>>()?,"view_fingerprints":fingerprints,"unlensed_records":{"nodes":stable_items(&nl,"node_id")?,"edges":stable_items(&el,"edge_id")?}});
     let mut check = || check_run(w.deadline, w.cancelled);
-    let projection_fingerprint = digest_with_check(&material, l.max_material_bytes, &mut check)?;
+    let projection_fingerprint = projection_fingerprint_checked(
+        nodes,
+        edges,
+        clusters,
+        &fingerprints,
+        l.max_material_bytes,
+        &mut check,
+    )?;
     let count_fingerprint = digest_with_check(
         &json!({"views":views.len(),"nodes":nodes.len(),"edges":edges.len(),"clusters":clusters.len()}),
         l.max_material_bytes,
@@ -738,6 +782,34 @@ fn review_material(
     let snapshot = json!({"snapshot_schema_version":"tos_philosophy_graph_projection_snapshot_v1","current_snapshot":{"projection_fingerprint":projection_fingerprint,"count_fingerprint":count_fingerprint,"view_fingerprints":fingerprints},"diff_route":{"mode":"fingerprint-ready","changed_subgraph_available":false,"previous_snapshot_ref":null,"next_route":"compare current_snapshot against a previous reviewed philosophy graph projection snapshot"}});
     Ok((packets, snapshot))
 }
+
+#[cfg(test)]
+mod snapshot_fingerprint_tests {
+    use super::*;
+
+    #[test]
+    fn global_fingerprint_binds_unlensed_record_content_not_only_ids() {
+        let original = vec![json!({
+            "node_id":"candidate-node:unlensed",
+            "view_ids":[],
+            "properties":{"unknown":null}
+        })];
+        let changed = vec![json!({
+            "node_id":"candidate-node:unlensed",
+            "view_ids":[],
+            "properties":{"unknown":"retained content changed"}
+        })];
+        assert_eq!(original[0]["node_id"], changed[0]["node_id"]);
+        assert_eq!(original.len(), changed.len());
+        let mut check = || Ok(());
+        let before =
+            projection_fingerprint_checked(&original, &[], &[], &[], 8192, &mut check).unwrap();
+        let after =
+            projection_fingerprint_checked(&changed, &[], &[], &[], 8192, &mut check).unwrap();
+        assert_ne!(before, after);
+    }
+}
+
 pub fn build_graph(
     atlas: &Value,
     catalog: &Value,

@@ -1228,6 +1228,32 @@ pub(crate) fn validate_authored_context(
 #[cfg(test)]
 mod context_tests {
     use super::*;
+
+    fn snapshot<'a, F>(read: &'a mut F, cancelled: &'a AtomicBool) -> Snapshot<'a, F>
+    where
+        F: FnMut(&str) -> Result<Vec<u8>>,
+    {
+        Snapshot {
+            read,
+            limits: AtlasLimits::default(),
+            work: 0,
+            digests: BTreeMap::new(),
+            records: 0,
+            deadline: Instant::now() + std::time::Duration::from_secs(5),
+            cancelled,
+            input_profile: PhilosophySourceReadProfile::LegacyPythonJsonLoads,
+        }
+    }
+
+    fn validate_context(item: &Value) -> Result<()> {
+        validate_authored_context(
+            item,
+            16 * 1024,
+            Instant::now() + std::time::Duration::from_secs(5),
+            &AtomicBool::new(false),
+        )
+    }
+
     #[test]
     fn legacy_decoding_keeps_the_original_file_witness() {
         let raw = b" {\"value\": 1, \"value\": 2}\n".to_vec();
@@ -1270,5 +1296,256 @@ mod context_tests {
         item["properties"]["source_row"] = json!(1);
         item["properties"]["source_record"]["unknown"]["meaning"] = json!("changed");
         assert!(validate_authored_context(&item, 8192, deadline, &cancelled).is_err());
+    }
+
+    #[test]
+    fn jsonl_context_preserves_unknown_values_exact_lines_and_rejects_unbound_identity() {
+        let path = "ToS/philosophy/atlas/fixture.jsonl";
+        let raw = b"\n{\"row_id\":\"first\",\"unknown\":{\"null\":null,\"false\":false,\"empty\":[]}}\n\n{\"row_id\":\"second\",\"source_ref\":\"ToS/philosophy/atlas/fixture.jsonl\"}\n".to_vec();
+        let mut read = |_path: &str| Ok(raw.clone());
+        let cancelled = AtomicBool::new(false);
+        let rows = snapshot(&mut read, &cancelled)
+            .rows(path, Some("row_id"))
+            .unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].1["source_row"], 1);
+        assert_eq!(rows[0].1["source_line"], 2);
+        assert_eq!(rows[1].1["source_row"], 2);
+        assert_eq!(rows[1].1["source_line"], 4);
+        assert_eq!(rows[0].0["unknown"]["null"], Value::Null);
+        assert_eq!(rows[0].0["unknown"]["false"], false);
+        assert_eq!(rows[0].0["unknown"]["empty"], json!([]));
+        assert_eq!(
+            rows[0].1["source_file_sha256"],
+            Digest256::of_bytes(&raw).to_hex()
+        );
+        for (record, context) in &rows {
+            assert_eq!(context["source_record"], *record);
+            assert!(context.get("source_pointer").is_none());
+        }
+
+        for rejected in [
+            b"{\"row_id\":\"same\"}\n{\"row_id\":\"same\"}\n".as_slice(),
+            b"{\"row_id\":\"one\",\"source_ref\":\"ToS/private.jsonl\"}\n".as_slice(),
+        ] {
+            let rejected = rejected.to_vec();
+            let mut read = |_path: &str| Ok(rejected.clone());
+            let cancelled = AtomicBool::new(false);
+            assert!(
+                snapshot(&mut read, &cancelled)
+                    .rows(path, Some("row_id"))
+                    .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn whole_json_context_keeps_source_body_without_inventing_line_or_row() {
+        let path = "ToS/philosophy/atlas/fixture.json";
+        let raw =
+            br#"{"atlas_id":"prepared","constraints":{"unresolved":true,"value":null}}"#.to_vec();
+        let mut read = |_path: &str| Ok(raw.clone());
+        let cancelled = AtomicBool::new(false);
+        let (record, context) = snapshot(&mut read, &cancelled).object(path).unwrap();
+        assert_eq!(context["source_record"], record);
+        assert_eq!(context["source_pointer"], "");
+        assert_eq!(context["source_format"], "json");
+        assert!(context.get("source_row").is_none());
+        assert!(context.get("source_line").is_none());
+        assert_eq!(record["constraints"]["unresolved"], true);
+        assert_eq!(record["constraints"]["value"], Value::Null);
+        let item = json!({"source_ref":path,"properties":context});
+        validate_context(&item).unwrap();
+        let mut changed = item.clone();
+        changed["properties"]["source_record"]["invented"] = json!(true);
+        assert!(validate_context(&changed).is_err());
+        changed = item;
+        changed["properties"]["source_row"] = json!(true);
+        assert!(validate_context(&changed).is_err());
+    }
+
+    fn backlog_item() -> Value {
+        let parent_ref = "ToS/philosophy/atlas/dossiers/index.jsonl";
+        let parent_record = json!({
+            "dossier_id":"prepared",
+            "branch_path":"ToS/philosophy/eras/example",
+            "source_document":"prepared.docx",
+            "table_id":"table-i",
+            "source_anchor_count":2,
+            "term_count":2,
+            "transmission_count":2
+        });
+        let mut families = serde_json::Map::new();
+        for (family, _) in BACKLOGS {
+            let source_ref = format!("ToS/philosophy/atlas/dossiers/{family}.jsonl");
+            let file_sha = "a".repeat(64);
+            let records = (1..=2)
+                .map(|ordinal| {
+                    let record = json!({
+                        "dossier_id":"prepared",
+                        "atlas_row_id":"prepared",
+                        "branch_path":"ToS/philosophy/eras/example",
+                        "source_document":"prepared.docx",
+                        "table_id":"table-i",
+                        "source_ref":source_ref,
+                        "unknown":{"null":null,"false":false,"empty":[]}
+                    });
+                    json!({
+                        "source_record":record,
+                        "source_record_ref":source_ref,
+                        "source_file_sha256":file_sha,
+                        "source_record_sha256":digest(&record,8192).unwrap(),
+                        "source_format":"jsonl",
+                        "source_row":ordinal,
+                        "source_line":ordinal * 2
+                    })
+                })
+                .collect::<Vec<_>>();
+            families.insert(
+                family.into(),
+                json!({
+                    "source_ref":source_ref,
+                    "source_file_sha256":file_sha,
+                    "record_count":2,
+                    "records":records
+                }),
+            );
+        }
+        json!({
+            "node_id":"atlas-dossier:prepared",
+            "source_ref":parent_ref,
+            "properties":{
+                "source_record":parent_record,
+                "source_record_ref":parent_ref,
+                "source_file_sha256":"b".repeat(64),
+                "source_record_sha256":digest(&parent_record,8192).unwrap(),
+                "source_format":"jsonl",
+                "source_row":1,
+                "source_line":2,
+                "source_backlogs":families
+            }
+        })
+    }
+
+    #[test]
+    fn backlog_context_rejects_rebound_parent_repeated_locator_and_shared_family_ref() {
+        let valid = backlog_item();
+        validate_context(&valid).unwrap();
+
+        let mut rebound = valid.clone();
+        let entry =
+            &mut rebound["properties"]["source_backlogs"]["source_anchor_backlog"]["records"][1];
+        entry["source_record"]["dossier_id"] = json!("other");
+        let rebound_digest = digest(&entry["source_record"], 8192).unwrap();
+        entry["source_record_sha256"] = json!(rebound_digest);
+        assert!(validate_context(&rebound).is_err());
+
+        let mut repeated = valid.clone();
+        repeated["properties"]["source_backlogs"]["source_anchor_backlog"]["records"][1]["source_row"] =
+            json!(1);
+        assert!(validate_context(&repeated).is_err());
+
+        let mut shared_ref = valid.clone();
+        let source_anchor_ref =
+            shared_ref["properties"]["source_backlogs"]["source_anchor_backlog"]["source_ref"]
+                .clone();
+        shared_ref["properties"]["source_backlogs"]["term_index"]["source_ref"] = source_anchor_ref;
+        assert!(validate_context(&shared_ref).is_err());
+
+        let mut wrong_count = valid;
+        wrong_count["properties"]["source_backlogs"]["transmission_backlog"]["record_count"] =
+            json!(1);
+        assert!(validate_context(&wrong_count).is_err());
+    }
+
+    fn valid_alias() -> Value {
+        json!({
+            "endpoint_label":"Historical target",
+            "origin_dossier_id":"origin",
+            "endpoint_role":"target",
+            "target_dossier_id":"target",
+            "target_candidate_id":"candidate-target",
+            "target_label":"Target title",
+            "projection_review_status":"reviewed_for_pre_canon_routing"
+        })
+    }
+
+    #[test]
+    fn reviewed_aliases_require_exact_observed_owner_role_and_candidate() {
+        let dossiers = BTreeSet::from(["origin".to_owned(), "target".to_owned()]);
+        let nodes = vec![(
+            json!({"candidate_id":"candidate-target","dossier_id":"target","label":"Target title"}),
+            json!({}),
+        )];
+        let relations = vec![(
+            json!({
+                "dossier_id":"origin",
+                "source_endpoint_label":"Observed source",
+                "target_endpoint_label":"Historical target"
+            }),
+            json!({}),
+        )];
+        let base =
+            json!({"schema_version":"tos_reviewed_endpoint_aliases_v2","aliases":[valid_alias()]});
+        let (resolved, pointers) =
+            aliases(&base, &nodes, &relations, &dossiers, AtlasLimits::default()).unwrap();
+        let key = (
+            "origin".to_owned(),
+            "target".to_owned(),
+            "Historical target".to_owned(),
+        );
+        assert_eq!(
+            resolved.get(&key).map(String::as_str),
+            Some("candidate-target")
+        );
+        assert_eq!(pointers.get(&key).map(String::as_str), Some("/aliases/0"));
+
+        for (field, value) in [
+            ("projection_review_status", json!("proposed")),
+            ("endpoint_label", json!("Unobserved target")),
+            ("endpoint_role", json!("reviewer")),
+            ("origin_dossier_id", json!("missing-origin")),
+            ("target_candidate_id", json!("missing-candidate")),
+            ("target_label", json!("Different target title")),
+        ] {
+            let mut changed = base.clone();
+            changed["aliases"][0][field] = value;
+            assert!(
+                aliases(
+                    &changed,
+                    &nodes,
+                    &relations,
+                    &dossiers,
+                    AtlasLimits::default()
+                )
+                .is_err(),
+                "{field}"
+            );
+        }
+
+        let alias_context_record = base;
+        let alias_source_context = json!({
+            "source_record":alias_context_record,
+            "source_record_ref":ALIASES_SOURCE,
+            "source_record_sha256":digest(&alias_context_record,8192).unwrap(),
+            "source_file_sha256":"c".repeat(64),
+            "source_format":"json",
+            "source_pointer":""
+        });
+        let owner_record = json!({"dossier_id":"origin"});
+        let mut edge = json!({
+            "source_ref":"ToS/philosophy/atlas/edges.jsonl",
+            "properties":{
+                "source_record":owner_record,
+                "source_record_ref":"ToS/philosophy/atlas/edges.jsonl",
+                "source_record_sha256":digest(&owner_record,8192).unwrap(),
+                "endpoint_alias_source":alias_source_context,
+                "endpoint_alias_ref":ALIASES_SOURCE,
+                "endpoint_alias_pointers":["/aliases/0"]
+            }
+        });
+        validate_context(&edge).unwrap();
+        edge["properties"]["endpoint_alias_pointers"] = json!(["/aliases/1"]);
+        assert!(validate_context(&edge).is_err());
     }
 }

@@ -49,6 +49,10 @@ mod temporal_session;
 mod webmcp;
 #[cfg(feature = "wasm")]
 mod worker_classic;
+#[cfg(feature = "wasm")]
+mod worker_search_controls;
+#[cfg(feature = "wasm")]
+mod worker_search_primitives;
 mod workspace_copy;
 mod workspace_machine;
 mod workspace_proposal;
@@ -962,6 +966,25 @@ mod wasm {
     #[wasm_bindgen]
     pub fn normalize_observatory_draft_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
         normalize_observatory_draft_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn worker_python_value_wasm_v1(raw_request: &[u8]) -> Vec<u8> {
+        super::worker_search_primitives::worker_python_value_v1(raw_request)
+    }
+
+    #[wasm_bindgen]
+    pub fn worker_python_lower_utf16_wasm_v1(
+        units: &[u16],
+        max_utf16_units: usize,
+    ) -> Result<Vec<u16>, JsValue> {
+        super::worker_search_primitives::worker_python_lower_utf16_v1(units, max_utf16_units)
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
+
+    #[wasm_bindgen]
+    pub fn worker_knowledge_search_controls_wasm_v1(raw_request: &[u8]) -> Vec<u8> {
+        super::worker_search_controls::worker_knowledge_search_controls_wasm_v1(raw_request)
     }
 }
 

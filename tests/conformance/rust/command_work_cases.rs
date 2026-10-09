@@ -1,10 +1,10 @@
-//! One isolated Work→Expression owner path. The maintained Python fixture
-//! authors only the original Work, Claim proposal and catalog; Rust performs
-//! the selected native mutation and later observes its retained transaction.
+//! One isolated Work→Expression owner path. A checked-in source fixture seeds
+//! the exact Work and Claim proposal; Rust owns fixture preparation, mutation,
+//! catalog projection and retained-transaction observation.
 use super::*;
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
-use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_command::SourceCommandError;
@@ -15,6 +15,135 @@ use tos_command::source_creation_store::{
 use tos_validation::FormatProfile;
 use tos_validation::executor::ExecutorBudget;
 use tos_validation::item_rules::ItemLimits;
+
+const WORK_IMPLEMENTATIONS: [&str; 13] = [
+    "rust/crates/tos-command/src/source_assessment_journal.rs",
+    "rust/crates/tos-command/src/source_command.rs",
+    "rust/crates/tos-command/src/source_forms.rs",
+    "rust/crates/tos-command/src/source_native_cli.rs",
+    "rust/crates/tos-command/src/source_private_assessment_sources.rs",
+    "rust/crates/tos-command/src/source_revisions.rs",
+    "rust/crates/tos-command/src/source_work_expression.rs",
+    "rust/crates/tos-command/src/source_work_transaction.rs",
+    "rust/crates/tos-compiler/src/source_witness_catalog.rs",
+    "scripts/source_bibliographic_topology.py",
+    "scripts/source_metadata_snapshot.py",
+    "scripts/source_record_profiles.py",
+    "scripts/source_witness_human_forms.py",
+];
+
+fn seed_native_work_fixture(repository: &Path, root: &Path) -> (PathBuf, Vec<u8>, Value) {
+    let seed = repository.join(
+        "rust/crates/tos-command/tests/fixtures/source-native-python-v1/fixtures/work-expression",
+    );
+    let files = authored_work_files(&seed);
+    assert!(!files.is_empty(), "checked-in Work fixture source is empty");
+    for (reference, raw) in files {
+        let target = root.join(reference);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, raw).unwrap();
+    }
+
+    let mut configuration: Value =
+        serde_json::from_slice(&fs::read(seed.join("compound-owner.json")).unwrap()).unwrap();
+    configuration["uid"] = json!(fs::metadata(root).unwrap().uid());
+    configuration["source_root"] = json!(root.canonicalize().unwrap().to_string_lossy());
+    let owner = root.join("compound-owner.json");
+    fs::write(&owner, serde_json::to_vec(&configuration).unwrap()).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let owner_raw = fs::read(&owner).unwrap();
+    (owner, owner_raw, configuration)
+}
+
+fn sibling_work_configuration(configuration: &Value, suffix: &str) -> Value {
+    let mut sibling = configuration.clone();
+    let work_home = Path::new(configuration["work_source_path"].as_str().unwrap())
+        .parent()
+        .unwrap();
+    let expression_path = work_home
+        .join("expressions")
+        .join(suffix)
+        .join("expression.json");
+    sibling["expression_id"] = json!(format!("tos.expression.synthetic.{suffix}"));
+    sibling["expression_source_path"] = json!(expression_path.to_str().unwrap());
+    sibling["claim_id"] = json!(format!("tos.claim.synthetic.{suffix}"));
+    sibling["provenance_event_id"] = json!(format!("tos.event.synthetic.{suffix}"));
+    sibling["allowed_expression_form_ids"] = json!([format!("tos.form.synthetic.{suffix}.name")]);
+    sibling["allowed_claim_form_ids"] = json!([format!("tos.form.synthetic.{suffix}.statement")]);
+    sibling
+}
+
+fn work_expression_proposal(work: &Value, configuration: &Value) -> Value {
+    let work_ref = configuration["work_source_path"].as_str().unwrap();
+    let expression_ref = configuration["expression_source_path"].as_str().unwrap();
+    let mut expression = work.clone();
+    expression["record_id"] = configuration["expression_id"].clone();
+    expression["record_type"] = json!("expression");
+    expression["record_version"] = json!(1);
+    expression["identity_status"] = json!("provisional");
+    expression["preferred_label"] = json!("Синтетическое английское выражение");
+    expression["work_ref"] = work["record_id"].clone();
+    expression["language"] = json!("en");
+    expression["expression_role"] = json!("translation");
+    expression["responsibility_claim_refs"] = json!([]);
+    expression["embodiment_claim_refs"] = json!([]);
+    expression["derivation_claim_refs"] = json!([]);
+    expression
+        .as_object_mut()
+        .unwrap()
+        .remove("expression_claim_refs");
+    expression
+        .as_object_mut()
+        .unwrap()
+        .remove("chronology_claim_refs");
+
+    json!({
+        "schema_version": "tos_local_work_expression_command_v1",
+        "operation": "prepare-create",
+        "record": expression,
+        "claim": {
+            "schema_version": "tos_source_relation_claim_v1",
+            "claim_id": configuration["claim_id"],
+            "claim_type": "relation",
+            "claim_version": 1,
+            "assertion_layer": "bibliographic_assertion",
+            "predicate": "has_expression",
+            "subject_ref": work["record_id"],
+            "object": configuration["expression_id"],
+            "epistemic_status": "observed",
+            "polarity": "positive",
+            "review_status": "unreviewed",
+            "visibility": "public_metadata_only",
+            "maker": {"maker_type": "model", "agent_ref": "model:synthetic"},
+            "provenance_event_ref": configuration["provenance_event_id"],
+            "evidence_refs": [work_ref, expression_ref],
+            "assessment_refs": [],
+            "qualifiers": {
+                "statement": "The synthetic records declare this link, without textual equivalence.",
+                "statement_language": "en",
+                "statement_script": "Latn",
+                "unknown_qualification": {
+                    "flag": false,
+                    "missing": null,
+                    "text": "Keep this context."
+                }
+            }
+        },
+        "forms": [
+            {"form_id": configuration["allowed_work_form_ids"][0], "field_id": "metadata.preferred-name"},
+            {"form_id": configuration["allowed_work_form_ids"][1], "field_id": "metadata.source-note"}
+        ],
+        "expression_forms": [{
+            "form_id": configuration["allowed_expression_form_ids"][0],
+            "field_id": "metadata.preferred-name"
+        }],
+        "claim_forms": [{
+            "form_id": configuration["allowed_claim_form_ids"][0],
+            "field_id": "claim.statement"
+        }],
+        "reason": "Synthetic exact typed child addition; no admission."
+    })
+}
 
 pub(super) fn authored_work_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut directories = vec![root.join("ToS")];
@@ -84,79 +213,25 @@ fn native_work_expression_publishes_replays_and_prepares_next_sibling() {
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
-        let factory = r#"
-import json,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_expression_commands as fixture
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=fixture.tempfile.TemporaryDirectory
-fixture.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=fixture.NativeExpressionTests(methodName='runTest')
-    case.setUp()
-finally:
-    fixture.tempfile.TemporaryDirectory=original
-request=case.request()
-first_config=case.config.copy()
-case.select_child('second')
-second_proposal=case.proposal()
-second_config=case.config.copy()
-case.config=first_config
-case.owner.write_text(json.dumps(first_config))
-print(json.dumps({'request':request,'second_proposal':second_proposal,'second_config':second_config,
-    'implementations':sorted(fixture.compound.IMPLEMENTATIONS),
-    'work_ref':case.work_ref,'expression_ref':case.config['expression_source_path']},
-    ensure_ascii=False,separators=(',',':')))
-"#;
-        let stdout = temporary.path().join("work-fixture.stdout");
-        let stderr = temporary.path().join("work-fixture.stderr");
-        let mut producer = Command::new(crate::maintained_python())
-            .args(["-c", factory])
-            .arg(&repository)
-            .arg(isolated.path())
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdout(Stdio::from(fs::File::create(&stdout).unwrap()))
-            .stderr(Stdio::from(fs::File::create(&stderr).unwrap()))
-            .spawn()
-            .unwrap();
-        let status = loop {
-            if let Some(status) = producer.try_wait().unwrap() {
-                break status;
-            }
-            if Instant::now() >= deadline
-                || fs::metadata(&stdout).unwrap().len() > 1_048_576
-                || fs::metadata(&stderr).unwrap().len() > 1_048_576
-            {
-                producer.kill().unwrap();
-                producer.wait().unwrap();
-                panic!("bounded maintained Work fixture refused");
-            }
-            std::thread::sleep(Duration::from_millis(10));
-        };
-        assert!(Instant::now() < deadline);
-        assert!(fs::metadata(&stdout).unwrap().len() <= 1_048_576);
-        assert!(fs::metadata(&stderr).unwrap().len() <= 1_048_576);
-        assert!(
-            status.success(),
-            "maintained Work fixture: {}",
-            String::from_utf8_lossy(&fs::read(&stderr).unwrap())
+        let (owner, owner_raw, configuration) =
+            seed_native_work_fixture(&repository, isolated.path());
+        super::compiler_source_cases::publish_native_catalog_fixture(
+            &repository,
+            isolated.path(),
+            deadline,
         );
-        let fixture: Value = serde_json::from_slice(&fs::read(&stdout).unwrap()).unwrap();
-        let owner = isolated.path().join("compound-owner.json");
-        let owner_raw = fs::read(&owner).unwrap();
-        fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
-        let configuration: Value = serde_json::from_slice(&owner_raw).unwrap();
+        let work_ref = configuration["work_source_path"].as_str().unwrap();
+        let expression_ref = configuration["expression_source_path"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let base_work: Value =
+            serde_json::from_slice(&fs::read(isolated.path().join(work_ref)).unwrap()).unwrap();
+        let first_proposal = work_expression_proposal(&base_work, &configuration);
         let mut files = authored_work_files(isolated.path());
         let authored = files.clone();
-        assert!(authored.contains_key(fixture["work_ref"].as_str().unwrap()));
-        for reference in fixture["implementations"].as_array().unwrap() {
-            let reference = reference.as_str().unwrap();
+        assert!(authored.contains_key(work_ref));
+        for reference in WORK_IMPLEMENTATIONS {
             let raw = fs::read(repository.join(reference)).unwrap();
             let target = isolated.path().join(reference);
             fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -169,13 +244,6 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
         let original = super::validation_cut_cases::write_cut_store(&authored, &store);
         let original_cut =
             super::command_form_cases::open_cut(&store, original, deadline, &cancelled);
-        let mut context = super::command_form_cases::context(
-            &files,
-            owner_raw,
-            serde_json::to_vec(&fixture["request"]).unwrap(),
-            original,
-        );
-        context.effective_uid = fs::metadata(isolated.path()).unwrap().uid().into();
         let filesystem =
             CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancelled).unwrap();
         let limits = ItemLimits {
@@ -185,6 +253,37 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
             max_issues: 256,
             deadline,
         };
+        let proposal_raw = serde_json::to_vec(&first_proposal).unwrap();
+        let mut proposal_context =
+            super::command_form_cases::context(&files, owner_raw.clone(), proposal_raw, original);
+        proposal_context.effective_uid = fs::metadata(isolated.path()).unwrap().uid().into();
+        let mut proposal_worker = work_worker(&original_cut, deadline, &cancelled);
+        let first_prepared = prepare_isolated_work_expression_from_proposal(
+            &filesystem,
+            &proposal_context,
+            &original_cut,
+            &software,
+            &components,
+            &mut proposal_worker,
+            limits,
+            &cancelled,
+        )
+        .unwrap();
+        drop(proposal_worker);
+        let mut first_request: Value = serde_json::from_slice(
+            &tos_foundation::canonical_bytes_v1(
+                first_prepared.request(),
+                tos_foundation::CanonicalProfile::SourceCommandInputV1,
+                tos_foundation::JsonLimits::default(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        first_request["command_id"] = configuration["expression_id"].clone();
+        let first_request_raw = serde_json::to_vec(&first_request).unwrap();
+        let mut context =
+            super::command_form_cases::context(&files, owner_raw, first_request_raw, original);
+        context.effective_uid = fs::metadata(isolated.path()).unwrap().uid().into();
         let control = isolated
             .path()
             .join("ToS/source-witnesses/.metadata-publication.json");
@@ -203,15 +302,10 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
         drop(worker);
         assert!(!created_first.replayed());
         assert_ne!(
-            fs::read(isolated.path().join(fixture["work_ref"].as_str().unwrap())).unwrap(),
-            authored[fixture["work_ref"].as_str().unwrap()]
+            fs::read(isolated.path().join(work_ref)).unwrap(),
+            authored[work_ref]
         );
-        assert!(
-            isolated
-                .path()
-                .join(fixture["expression_ref"].as_str().unwrap())
-                .exists()
-        );
+        assert!(isolated.path().join(&expression_ref).exists());
         assert_eq!(
             created_first.receipt().object_get("grants_admission"),
             Some(&JsonValue::Bool(false))
@@ -242,7 +336,7 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
         let committed_control = fs::read(&control).unwrap();
         // Changed required implementation bytes cannot pass a retained
         // current-source/software fence, even when the original cut survives.
-        let implementation = fixture["implementations"][0].as_str().unwrap();
+        let implementation = WORK_IMPLEMENTATIONS[0];
         let implementation_path = isolated.path().join(implementation);
         let original_implementation = fs::read(&implementation_path).unwrap();
         fs::write(
@@ -270,9 +364,7 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
         // A mixed native environment in a newly selected complete cut is
         // still refused; decoded JSON equivalence or a reused receipt cannot
         // authorize a different retained byte stream.
-        let expression_home = Path::new(fixture["expression_ref"].as_str().unwrap())
-            .parent()
-            .unwrap();
+        let expression_home = Path::new(&expression_ref).parent().unwrap();
         let environment_ref = expression_home.join("source-create-environment.json");
         let environment_path = isolated.path().join(&environment_ref);
         let environment_original = fs::read(&environment_path).unwrap();
@@ -305,71 +397,20 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
         drop(mixed_worker);
         fs::write(&environment_path, environment_original).unwrap();
         assert_eq!(
-            fs::read(
-                isolated
-                    .path()
-                    .join(fixture["expression_ref"].as_str().unwrap())
-            )
-            .unwrap(),
-            current_files[fixture["expression_ref"].as_str().unwrap()]
+            fs::read(isolated.path().join(&expression_ref)).unwrap(),
+            current_files[&expression_ref]
         );
         assert_eq!(fs::read(&control).unwrap(), committed_control);
 
-        // The maintained fixture builder refreshes the derived catalogue
-        // after the Rust-native first publication. Rust, not Python prepare,
-        // now reads that catalogue and the committed native predecessor to
-        // prepare and publish the next sibling.
-        let refresh = r#"
-import sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:3])
-work_ref=sys.argv[3]
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_expression_commands as fixture
-case=fixture.NativeExpressionTests(methodName='runTest')
-case.root=root
-case.work_path=root/work_ref
-case.rebuild()
-"#;
-        let refresh_out = temporary.path().join("work-refresh.stdout");
-        let refresh_err = temporary.path().join("work-refresh.stderr");
-        let mut builder = Command::new(crate::maintained_python())
-            .args(["-c", refresh])
-            .arg(&repository)
-            .arg(isolated.path())
-            .arg(fixture["work_ref"].as_str().unwrap())
-            .env_remove("PYTHONPATH")
-            .env_remove("PYTHONHOME")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdout(Stdio::from(fs::File::create(&refresh_out).unwrap()))
-            .stderr(Stdio::from(fs::File::create(&refresh_err).unwrap()))
-            .spawn()
-            .unwrap();
-        let status = loop {
-            if let Some(status) = builder.try_wait().unwrap() {
-                break status;
-            }
-            if Instant::now() >= deadline
-                || fs::metadata(&refresh_out).unwrap().len() > 1_048_576
-                || fs::metadata(&refresh_err).unwrap().len() > 1_048_576
-            {
-                builder.kill().unwrap();
-                builder.wait().unwrap();
-                panic!("bounded maintained Work catalogue refresh refused");
-            }
-            std::thread::sleep(Duration::from_millis(10));
-        };
-        assert!(Instant::now() < deadline);
-        assert!(fs::metadata(&refresh_out).unwrap().len() <= 1_048_576);
-        assert!(fs::metadata(&refresh_err).unwrap().len() <= 1_048_576);
-        assert!(
-            status.success(),
-            "maintained Work catalogue refresh: {}",
-            String::from_utf8_lossy(&fs::read(&refresh_err).unwrap())
+        // Refresh only this fixture's derived catalogue with the existing native
+        // compiler projector after the first Rust publication.
+        super::compiler_source_cases::publish_native_catalog_fixture(
+            &repository,
+            isolated.path(),
+            deadline,
         );
-
-        let second_config = serde_json::to_vec(&fixture["second_config"]).unwrap();
-        fs::write(&owner, &second_config).unwrap();
+        let second_config = sibling_work_configuration(&configuration, "second");
+        fs::write(&owner, serde_json::to_vec(&second_config).unwrap()).unwrap();
         let second_files = authored_work_files(isolated.path());
         let second_store = temporary.path().join("second-cut");
         let second_revision =
@@ -381,8 +422,7 @@ case.rebuild()
             &cancelled,
         );
         let mut second_inputs = second_files.clone();
-        for reference in fixture["implementations"].as_array().unwrap() {
-            let reference = reference.as_str().unwrap();
+        for reference in WORK_IMPLEMENTATIONS {
             assert!(
                 second_inputs
                     .insert(
@@ -397,7 +437,7 @@ case.rebuild()
         let mut proposal_ctx = super::command_form_cases::context(
             &second_inputs,
             second_config.clone(),
-            serde_json::to_vec(&fixture["second_proposal"]).unwrap(),
+            serde_json::to_vec(&work_expression_proposal(&base_work, &second_config)).unwrap(),
             second_revision,
         );
         proposal_ctx.effective_uid = fs::metadata(isolated.path()).unwrap().uid().into();
@@ -437,7 +477,7 @@ case.rebuild()
         assert_eq!(second_request["command_id"], "preview:uncommitted");
         // The preview identifier is not a durable command identity. The
         // maintained caller supplies its delegated child ID for publication.
-        second_request["command_id"] = fixture["second_config"]["expression_id"].clone();
+        second_request["command_id"] = second_config["expression_id"].clone();
         let request_raw = serde_json::to_vec(&second_request).unwrap();
         let mut create_ctx = super::command_form_cases::context(
             &second_inputs,
@@ -483,10 +523,8 @@ case.rebuild()
         assert!(second_replay.replayed());
         assert_eq!(second_replay.transaction_id(), created.transaction_id());
         assert_eq!(second_replay.receipt(), created.receipt());
-        let final_work: Value = serde_json::from_slice(
-            &fs::read(isolated.path().join(fixture["work_ref"].as_str().unwrap())).unwrap(),
-        )
-        .unwrap();
+        let final_work: Value =
+            serde_json::from_slice(&fs::read(isolated.path().join(work_ref)).unwrap()).unwrap();
         assert_eq!(final_work["record_version"], 6);
     }
 }

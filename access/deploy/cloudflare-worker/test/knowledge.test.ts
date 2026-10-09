@@ -12,7 +12,7 @@ import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
 import {executePublishedFixtureLens, executePublishedFixtureReferenceLens as frozenExecutePublishedFixtureReferenceLens, publishNativeLensFixture, publishNativeSearchFixture as frozenPublishNativeSearchFixture,
   inspectPublishedFixtureNode as knowledgeNodeD1, inspectPublishedFixtureRelation as knowledgeRelationD1,
-  publishedWorkerFixtureModules} from './native-lens-fixture.ts';
+  publishedWorkerFixtureModules,publishedFixtureSearchControlsRuntime} from './native-lens-fixture.ts';
 import type {KnowledgeGraph} from "../src/knowledge.ts";
 import {knowledgeScene} from "../../../shared/knowledge-scene.ts";
 import {executeFixtureReferenceLens as frozenExecuteFixtureReferenceLens} from "./native-lens-fixture.ts";
@@ -26,8 +26,10 @@ const knowledgeExplorationMigration = readFileSync(
 
 // These retained ordinary-number fixtures inspect the public packet shape;
 // native-search.test.mjs compares raw numeric kinds and ordered source keys.
-const knowledgeSearchD1=async(...args:Parameters<typeof nativeSearchD1>)=>JSON.parse(nativePacketJson(await nativeSearchD1(...args)));
-const knowledgeSearchD1Indexed=async(...args:Parameters<typeof nativeSearchD1Indexed>)=>JSON.parse(nativePacketJson(await nativeSearchD1Indexed(...args)));
+const knowledgeSearchD1=async(db:Parameters<typeof nativeSearchD1>[0],request:Parameters<typeof nativeSearchD1>[1])=>
+  JSON.parse(nativePacketJson(await nativeSearchD1(db,request,publishedFixtureSearchControlsRuntime)));
+const knowledgeSearchD1Indexed=async(db:Parameters<typeof nativeSearchD1Indexed>[0],request:Parameters<typeof nativeSearchD1Indexed>[1])=>
+  JSON.parse(nativePacketJson(await nativeSearchD1Indexed(db,request,publishedFixtureSearchControlsRuntime)));
 const executeFixtureReferenceLens=(graph:unknown,spec:unknown)=>frozenExecuteFixtureReferenceLens(graph,spec,import.meta.url);
 const executePublishedFixtureReferenceLens=(db:D1Database,graph:unknown,spec:unknown)=>frozenExecutePublishedFixtureReferenceLens(db,graph,spec,import.meta.url);
 const publishNativeSearchFixture=(db:D1Database)=>frozenPublishNativeSearchFixture(db,import.meta.url);
@@ -1819,8 +1821,8 @@ print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_
 
     const request = {query: boundaryNeedle, sources: ["source-claims"], kindIds: [], predicateIds: [], offset: 0, limit: 10};
     const indexedRequest = {...request, limit: 10, cursor: null};
-    assert.ok(nativePacketJson(await nativeSearchD1(db, request)).includes(raw));
-    assert.ok(nativePacketJson(await nativeSearchD1Indexed(db, indexedRequest)).includes(raw));
+    assert.ok(nativePacketJson(await nativeSearchD1(db, request,publishedFixtureSearchControlsRuntime)).includes(raw));
+    assert.ok(nativePacketJson(await nativeSearchD1Indexed(db, indexedRequest,publishedFixtureSearchControlsRuntime)).includes(raw));
 
     const firstPayload = payloadChunks[0]!;
     await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();

@@ -12,6 +12,7 @@ mod knowledge_model_abi;
 mod logical_ref;
 pub mod native_software_roles;
 mod path;
+mod python_value;
 mod unicode;
 pub use unicode::predicates16 as unicode_predicates16;
 
@@ -46,6 +47,10 @@ pub use knowledge_model_abi::{
 };
 pub use logical_ref::LogicalRecordRefV1;
 pub use path::RelativePath;
+pub use python_value::{
+    python_equals, python_float_text, python_lower, python_lower_json_string, python_member,
+    python_repr, python_search_rank_values, python_searchable_text, python_string, python_truthy,
+};
 pub use unicode::{
     UnicodeProfile, python_casefold_unicode16_v1,
     python_casefold_unicode16_v1_error_state_upper_bound,

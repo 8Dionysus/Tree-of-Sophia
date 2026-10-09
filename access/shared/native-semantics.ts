@@ -2,8 +2,8 @@
  * Ordinary JS values remain unchanged. Opaque per-document sidecars preserve
  * number lexemes/kinds and source object order, which JSON.parse alone loses.
  */
-import {nativeIsPrintable, nativeLower} from './native-unicode.ts';
-export {codePointCompare, nativeLower, nativeUnicodeVersion, nativeUnicodeAlgorithm} from './native-unicode.ts';
+import {codePointCompare, nativeUnicodeVersion} from './native-unicode.ts';
+export {codePointCompare, nativeUnicodeVersion, nativeUnicodeAlgorithm} from './native-unicode.ts';
 
 export const nativeSemanticVersion = 'tos-python-native-semantics-v1';
 export class NativeContextLost extends Error {}
@@ -14,8 +14,94 @@ type ContainerInfo = Readonly<{keys: readonly string[]; keySet: Readonly<{has: (
 type Context = Readonly<{lookup: (value: object) => ContainerInfo | undefined}>;
 export type NativeRef = Readonly<{value: unknown; context: Context | null; number?: NumberInfo}>;
 export type NativeJsonLimits = Readonly<{maxBytes: number; maxDepth: number; maxMembers: number; maxIntegerDigits: number}>;
+export type NativePythonRuntime = Readonly<{
+  worker_python_value_wasm_v1: (request: Uint8Array) => Uint8Array;
+  worker_python_lower_utf16_wasm_v1: (units: Uint16Array, maxUtf16Units: number) => Uint16Array;
+}>;
 const defaultLimits: NativeJsonLimits = {maxBytes: 1_048_576, maxDepth: 64, maxMembers: 300_000, maxIntegerDigits: 4300};
 const referenceBrand = Symbol('native reference');
+const semanticsEncoder = new TextEncoder();
+const semanticsDecoder = new TextDecoder();
+let semanticsRuntime: NativePythonRuntime | null = null;
+
+export function installNativePythonRuntime(runtime: NativePythonRuntime): void {
+  if (typeof runtime.worker_python_value_wasm_v1 !== 'function'
+    || typeof runtime.worker_python_lower_utf16_wasm_v1 !== 'function') {
+    throw new TypeError('native Python WASM runtime is incomplete');
+  }
+  semanticsRuntime = runtime;
+}
+
+type NativePythonResponse = Readonly<{schema_version: string; ok: boolean; value?: unknown; error?: string; message?: string}>;
+function runPythonValue(operation: string, leftJson: string, options: Readonly<{
+  rightJson?: string; maxUtf16Units?: number; maxVisits?: number; maxValues?: number;
+}> = {}): unknown {
+  const runtime = semanticsRuntime;
+  if (!runtime) throw new NativeContextLost('native Python WASM runtime is unavailable');
+  const request = {
+    schema_version: 'tos_worker_python_value_request_v1', operation, left_json: leftJson,
+    ...(options.rightJson === undefined ? {} : {right_json: options.rightJson}),
+    ...(options.maxUtf16Units === undefined ? {} : {max_utf16_units: options.maxUtf16Units}),
+    ...(options.maxVisits === undefined ? {} : {max_visits: options.maxVisits}),
+    ...(options.maxValues === undefined ? {} : {max_values: options.maxValues}),
+  };
+  let response: NativePythonResponse;
+  try {
+    const raw = runtime.worker_python_value_wasm_v1(semanticsEncoder.encode(JSON.stringify(request)));
+    response = JSON.parse(semanticsDecoder.decode(raw)) as NativePythonResponse;
+  } catch (error) {
+    if (error instanceof NativeBudgetExceeded || error instanceof NativeContextLost || error instanceof TypeError) throw error;
+    throw new NativeContextLost('native Python WASM response is invalid');
+  }
+  if (response.schema_version !== 'tos_worker_python_value_response_v1' || typeof response.ok !== 'boolean') {
+    throw new NativeContextLost('native Python WASM response schema is invalid');
+  }
+  if (!response.ok) {
+    if (response.error === 'budget_exceeded') throw new NativeBudgetExceeded('native Python value budget');
+    if (response.error === 'invalid_unicode_scalar' && operation === 'searchable') throw new TypeError('search source contains an invalid Unicode string');
+    if (operation === 'member' && response.message) throw new TypeError(response.message);
+    throw new TypeError(`native Python value operation failed: ${response.error ?? 'unknown error'}`);
+  }
+  return response.value;
+}
+
+function rawJson(ref: NativeRef, maxChars = 1_048_576): string {
+  requireReference(ref);
+  return nativeJson(ref, maxChars);
+}
+
+function semanticString(operation: 'str' | 'repr' | 'sort_key', ref: NativeRef, maxChars: number): string {
+  requireReference(ref);
+  const result = runPythonValue(operation, rawJson(ref, maxChars), {maxUtf16Units: positive(maxChars)});
+  if (typeof result !== 'string') throw new NativeContextLost('native Python string result is not text');
+  return result;
+}
+
+/** Pinned Unicode lowercase delegated to the shared foundation implementation. */
+export function nativeLower(value: string, expectedVersion: string = nativeUnicodeVersion): string {
+  if (expectedVersion !== nativeUnicodeVersion) throw new Error('native Unicode version is incompatible');
+  const runtime = semanticsRuntime;
+  if (!runtime) throw new NativeContextLost('native Python WASM runtime is unavailable');
+  const units = new Uint16Array(value.length);
+  for (let index = 0; index < value.length; index++) units[index] = value.charCodeAt(index);
+  let lowered: Uint16Array;
+  try {
+    lowered = runtime.worker_python_lower_utf16_wasm_v1(units, Math.max(1, value.length));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/budget|work limit/i.test(message)) throw new NativeBudgetExceeded('native lowercase budget');
+    throw new NativeContextLost('native lowercase WASM operation failed');
+  }
+  if (!(lowered instanceof Uint16Array) || lowered.length > Math.max(1, value.length) * 2) {
+    throw new NativeContextLost('native lowercase WASM result is invalid');
+  }
+  let result = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < lowered.length; index += chunkSize) {
+    result += String.fromCharCode(...lowered.subarray(index, index + chunkSize));
+  }
+  return result;
+}
 
 function reference(value: unknown, context: Context | null, number?: NumberInfo): NativeRef {
   // Metadata is neither written into source values nor included in spreads /
@@ -184,132 +270,78 @@ export function nativeNumberInfo(ref: NativeRef): Readonly<{kind: 'int' | 'float
   return ref.number;
 }
 
-function numberValue(ref: NativeRef): number | bigint {
-  if (typeof ref.value === 'boolean') return ref.value ? 1n : 0n;
-  const info = nativeNumberInfo(ref);
-  return info.kind === 'int' ? BigInt(info.lexeme) : ref.value as number;
-}
-
 export function pythonTruthy(ref: NativeRef): boolean {
   requireReference(ref);
-  const value = ref.value;
-  if (value === null || value === false || value === '') return false;
-  if (typeof value === 'number') return numberValue(ref) != 0;
-  if (typeof value === 'object') return container(ref).keys.length > 0;
-  if (typeof value === 'string' || typeof value === 'boolean') return true;
-  throw new NativeContextLost('value is outside native JSON');
-}
-
-function equalNumbers(left: NativeRef, right: NativeRef): boolean {
-  const a = numberValue(left), b = numberValue(right);
-  if (typeof a === typeof b) return a === b;
-  const integer = typeof a === 'bigint' ? a : b as bigint;
-  const float = typeof a === 'number' ? a : b as number;
-  return Number.isInteger(float) && BigInt(float) === integer;
-}
-
-function equal(left: NativeRef, right: NativeRef, budget: {remaining: number}): boolean {
-  requireReference(left); requireReference(right);
-  if (--budget.remaining < 0) throw new NativeBudgetExceeded('native equality visit budget');
-  const first = left.value, second = right.value;
-  const numeric = (v: unknown) => typeof v === 'number' || typeof v === 'boolean';
-  if (numeric(first) && numeric(second)) return equalNumbers(left, right);
-  if (typeof first !== typeof second || (first === null) !== (second === null)) return false;
-  if (first === null || typeof first !== 'object') return first === second;
-  if (Array.isArray(first) !== Array.isArray(second)) return false;
-  const keys = container(left).keys, other = container(right);
-  if (keys.length !== other.keys.length) return false;
-  return keys.every(key => other.keySet.has(key) && equal(nativeChild(left, key), nativeChild(right, key), budget));
+  const value = runPythonValue('truthy', rawJson(ref));
+  if (typeof value !== 'boolean') throw new NativeContextLost('native truthiness result is not boolean');
+  return value;
 }
 
 export function pythonEquals(left: NativeRef, right: NativeRef, maxVisits = 300_000): boolean {
-  return equal(left, right, {remaining: positive(maxVisits)});
+  const value = runPythonValue('equals', rawJson(left), {rightJson: rawJson(right), maxVisits: positive(maxVisits)});
+  if (typeof value !== 'boolean') throw new NativeContextLost('native equality result is not boolean');
+  return value;
 }
 
 /** Python membership (not the lens operator 'in', which uses set intersection
  * for actual lists and must separately reject unhashable nested values). */
 export function pythonMember(needle: NativeRef, haystack: NativeRef, maxVisits = 300_000): boolean {
-  requireReference(needle); requireReference(haystack);
-  if (typeof haystack.value === 'string') {
-    if (typeof needle.value !== 'string') throw new TypeError('native string membership requires a string');
-    return haystack.value.includes(needle.value);
-  }
-  if (Array.isArray(haystack.value)) {
-    const budget = {remaining: positive(maxVisits)};
-    return container(haystack).keys.some(key => equal(needle, nativeChild(haystack, key), budget));
-  }
-  if (haystack.value && typeof haystack.value === 'object') {
-    if (needle.value && typeof needle.value === 'object') throw new TypeError('unhashable native dictionary membership');
-    return typeof needle.value === 'string' && container(haystack).keySet.has(needle.value);
-  }
-  throw new TypeError('native membership requires a container');
+  const value = runPythonValue('member', rawJson(needle), {rightJson: rawJson(haystack), maxVisits: positive(maxVisits)});
+  if (typeof value !== 'boolean') throw new NativeContextLost('native membership result is not boolean');
+  return value;
 }
 
-function floatText(value: number): string {
-  if (Object.is(value, -0)) return '-0.0';
-  const sign = value < 0 ? '-' : '';
-  const [mantissa, power] = Math.abs(value).toExponential().split('e');
-  const exponent = Number(power), digits = mantissa!.replace('.', '');
-  if (exponent < -4 || exponent >= 16) return sign + digits[0] + (digits.length > 1 ? '.' + digits.slice(1) : '')
-    + 'e' + (exponent < 0 ? '-' : '+') + String(Math.abs(exponent)).padStart(2, '0');
-  const position = exponent + 1;
-  if (position <= 0) return sign + '0.' + '0'.repeat(-position) + digits;
-  if (position >= digits.length) return sign + digits + '0'.repeat(position - digits.length) + '.0';
-  return sign + digits.slice(0, position) + '.' + digits.slice(position);
-}
-
-function quoted(value: string): string {
-  const quote = value.includes("'") && !value.includes('"') ? '"' : "'";
-  let result = quote;
-  for (const char of value) {
-    const point = char.codePointAt(0)!;
-    if (char === quote || char === '\\') result += '\\' + char;
-    else if (char === '\n') result += '\\n';
-    else if (char === '\r') result += '\\r';
-    else if (char === '\t') result += '\\t';
-    else if (nativeIsPrintable(point)) result += char;
-    else result += point <= 0xff ? '\\x' + point.toString(16).padStart(2, '0')
-      : point <= 0xffff ? '\\u' + point.toString(16).padStart(4, '0') : '\\U' + point.toString(16).padStart(8, '0');
-  }
-  return result + quote;
-}
-
-function render(ref: NativeRef, mode: 'str' | 'repr' | 'json', maxChars: number): string {
+function renderJson(ref: NativeRef, maxChars: number): string {
   let remaining = positive(maxChars);
-  const emit = (value: string) => {
-    remaining -= value.length;
+  const emit = (text: string) => {
+    remaining -= text.length;
     if (remaining < 0) throw new NativeBudgetExceeded('native string output budget');
-    return value;
+    return text;
   };
-  function walk(current: NativeRef, nested: boolean): string {
+  function walk(current: NativeRef): string {
     requireReference(current);
     const value = current.value;
-    if (value === null) return emit(mode === 'json' ? 'null' : 'None');
-    if (typeof value === 'boolean') return emit(mode === 'json' ? String(value) : value ? 'True' : 'False');
-    if (typeof value === 'string') return emit(mode === 'json' ? JSON.stringify(value) : !nested && mode === 'str' ? value : quoted(value));
-    if (typeof value === 'number') {
-      const info = nativeNumberInfo(current);
-      return emit(mode === 'json' ? info.lexeme : info.kind === 'int' ? BigInt(info.lexeme).toString() : floatText(value));
-    }
+    if (value === null) return emit('null');
+    if (typeof value === 'boolean') return emit(String(value));
+    if (typeof value === 'string') return emit(JSON.stringify(value));
+    if (typeof value === 'number') return emit(nativeNumberInfo(current).lexeme);
     const keys = container(current).keys;
     const array = Array.isArray(value);
     const chunks = [emit(array ? '[' : '{')];
     for (const [index, key] of keys.entries()) {
-      if (index) chunks.push(emit(mode === 'json' ? ',' : ', '));
-      if (!array) chunks.push(emit(mode === 'json' ? JSON.stringify(key) + ':' : quoted(key) + ': '));
-      chunks.push(walk(nativeChild(current, key), true));
+      if (index) chunks.push(emit(','));
+      if (!array) chunks.push(emit(JSON.stringify(key) + ':'));
+      chunks.push(walk(nativeChild(current, key)));
     }
     chunks.push(emit(array ? ']' : '}'));
     return chunks.join('');
   }
-  return walk(ref, false);
+  return walk(ref);
 }
 
-export function pythonStr(ref: NativeRef, maxChars = 1_048_576): string {return render(ref, 'str', maxChars);}
-export function pythonRepr(ref: NativeRef, maxChars = 1_048_576): string {return render(ref, 'repr', maxChars);}
-export function nativeJson(ref: NativeRef, maxChars = 1_048_576): string {return render(ref, 'json', maxChars);}
-export function nativeSortKey(ref: NativeRef, maxChars = 1_048_576): string {
-  return nativeLower(pythonTruthy(ref) ? pythonStr(ref, maxChars) : '');
+/** Source-valued raw JSON keeps exact number lexemes and insertion order. */
+export function nativeJson(ref: NativeRef, maxChars = 1_048_576): string {return renderJson(ref, maxChars);}
+export function pythonStr(ref: NativeRef, maxChars = 1_048_576): string {return semanticString('str', ref, maxChars);}
+export function pythonRepr(ref: NativeRef, maxChars = 1_048_576): string {return semanticString('repr', ref, maxChars);}
+export function nativeSortKey(ref: NativeRef, maxChars = 1_048_576): string {return semanticString('sort_key', ref, maxChars);}
+
+export function nativeSearchableText(ref: NativeRef, maxChars = 4 * 1024 * 1024): string {
+  requireReference(ref);
+  const value = runPythonValue('searchable', rawJson(ref, maxChars), {maxUtf16Units: positive(maxChars)});
+  if (typeof value !== 'string') throw new NativeContextLost('native searchable text result is not text');
+  return value;
+}
+
+export function nativeSearchRankValues(ref: NativeRef, fields: readonly string[], maxValues = 300_000,
+  maxUtf16Units = 1_048_576): string[] {
+  requireReference(ref);
+  if (fields.some(field => typeof field !== 'string')) throw new TypeError('rank fields must be strings');
+  const value = runPythonValue('rank_values', rawJson(ref), {rightJson: JSON.stringify(fields),
+    maxValues: positive(maxValues), maxUtf16Units: positive(maxUtf16Units)});
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string')) {
+    throw new NativeContextLost('native rank values result is invalid');
+  }
+  return value;
 }
 
 const packetBrand = Symbol('native packet');
@@ -371,7 +403,10 @@ export function nativeInteger(value: number | bigint): NativeRef {
 
 export function nativeFloat(value: number): NativeRef {
   if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError('derived float requires a finite number');
-  return parseNativeJson(floatText(value));
+  const raw = Object.is(value, -0) ? '-0.0' : String(value);
+  const result = runPythonValue('float', raw, {maxUtf16Units: 64});
+  if (typeof result !== 'string') throw new NativeContextLost('native float spelling is not text');
+  return parseNativeJson(result);
 }
 
 /** Serialize a complete newly assembled packet without materializing a lossy

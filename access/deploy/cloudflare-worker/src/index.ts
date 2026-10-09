@@ -31,7 +31,7 @@ import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./exploration";
 import {nativePacketResponse} from './native-lens-response.ts';
-import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
+import {installNativePythonRuntime, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 import { withWebAnalytics } from "./web-analytics";
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
@@ -39,7 +39,7 @@ import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
 import {initSync, KnowledgeSceneSession, TemporalReplaySession, validate_temporal_request_wasm_v1,
   InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1,
   ExplorationSession,validate_exploration_request_wasm_v1,validate_exploration_replay_wasm_v1,
-  exploration_cache_version_wasm_v1} from '../generated/tos_web_rules.js';
+  exploration_cache_version_wasm_v1,worker_knowledge_search_controls_wasm_v1} from '../generated/tos_web_rules.js';
 import * as classicRuntime from "../generated/tos_web_rules.js";
 import {installWorkerClassicRules} from "./worker-classic.ts";
 import temporalWasm from '../generated/tos_web_rules_bg.wasm';
@@ -47,6 +47,7 @@ import temporalWasm from '../generated/tos_web_rules_bg.wasm';
 // wasm-bindgen owns module initialization; no second host cache or fetch.
 initSync({module: temporalWasm});
 installWorkerClassicRules(classicRuntime);
+installNativePythonRuntime(classicRuntime);
 installSourceNavigationRules(classicRuntime);
 installKnowledgeSceneRules({KnowledgeSceneSession});
 const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
@@ -54,6 +55,7 @@ const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};
 const lensRuntime={LensSession,validate_lens_request_wasm_v1};
 const explorationRuntime={ExplorationSession,validate_exploration_request_wasm_v1,
   validate_exploration_replay_wasm_v1,exploration_cache_version_wasm_v1};
+const workerSearchControlsRuntime={worker_knowledge_search_controls_wasm_v1};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -168,7 +170,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const search = url.searchParams;
   const method = request.method;
 
-  if (path === "/api/knowledge/search/capabilities") return jsonResponse(await knowledgeSearchCapabilitiesD1(env.DB), 200, method);
+  if (path === "/api/knowledge/search/capabilities") return jsonResponse(await knowledgeSearchCapabilitiesD1(env.DB,workerSearchControlsRuntime), 200, method);
   if (path === "/api/source/capabilities") return jsonResponse({
     schema_version: 'tos_source_read_capabilities_v1', available: false,
     issuer: 'Tree-of-Sophia/source-witnesses',
@@ -280,7 +282,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
         predicateIds: searchList('predicate_ids'),
         cursor: searchValue("cursor"),
         limit: searchInteger('limit',40,1,100),
-      }), 200, method);
+      },workerSearchControlsRuntime), 200, method);
     }
     if (mode !== "legacy") throw new HttpError(400, "knowledge search mode must be legacy or indexed");
     return nativePacketResponse(await knowledgeSearchD1(env.DB, {
@@ -290,7 +292,7 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
       predicateIds: searchList('predicate_ids'),
       offset: searchInteger('offset',0,0,100_000),
       limit: searchInteger('limit',40,1,100),
-    }), 200, method);
+    },workerSearchControlsRuntime), 200, method);
   }
   const knowledgeNodePrefix = "/api/knowledge/nodes/";
   if (path.startsWith(knowledgeNodePrefix)) {

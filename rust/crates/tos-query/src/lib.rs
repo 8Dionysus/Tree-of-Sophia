@@ -86,6 +86,7 @@ mod source_read_projection;
 #[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
 mod temporal_comparison;
+pub mod worker_search_controls;
 pub use inspect_plan::{
     AbortProbe, AbortReason, InspectBudget, InspectNeed, InspectPlan, InspectRequest,
     validate_inspect_request,

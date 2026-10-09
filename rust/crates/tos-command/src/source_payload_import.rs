@@ -1620,7 +1620,8 @@ fn batch_digest(value: &str) -> Result<()> {
 fn append_journal(file: &mut File, value: &Value) -> Result<()> {
     serde_json::to_writer(&mut *file, value).map_err(|e| e.to_string())?;
     file.write_all(b"\n").map_err(|e| e.to_string())?;
-    file.sync_all().map_err(|_| "cannot sync batch journal")
+    file.sync_all().map_err(|_| "cannot sync batch journal")?;
+    Ok(())
 }
 
 fn operation_batch(request: &Value) -> Result<Value> {
@@ -2136,7 +2137,7 @@ fn create_snapshot(
     let mut hasher = Digest256Hasher::new();
     let mut buffer = [0u8; 1024 * 1024];
     let mut total = 0u64;
-    let result = (|| {
+    let result: Result<()> = (|| {
         loop {
             let n = input
                 .read(&mut buffer)
@@ -2186,6 +2187,15 @@ fn create_snapshot(
     }
     result?;
     Ok(path)
+}
+
+/// Removes the unique payload snapshot on every exit from one file's import.
+struct RemoveOnDrop(PathBuf);
+
+impl Drop for RemoveOnDrop {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
 }
 
 fn digest_hex_from_hasher(hasher: Digest256Hasher) -> String {

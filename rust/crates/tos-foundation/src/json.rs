@@ -112,6 +112,11 @@ impl JsonString {
         }
     }
 
+    /// Retain an exact UTF-16 string, including legacy lone surrogates.
+    pub fn from_utf16(units: &[u16]) -> Self {
+        Self::from_units(units.to_vec())
+    }
+
     fn from_units(units: Vec<u16>) -> Self {
         let utf8 = String::from_utf16(&units).ok();
         Self { units, utf8 }
