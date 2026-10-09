@@ -1,6 +1,8 @@
 //! One real private Profile lifecycle from the maintained synthetic fixture.
 //! Synthetic assertions grant neither source admission nor publication.
 use super::*;
+#[path = "../../../rust/crates/tos-access/tests/support/native_child.rs"]
+mod native_child;
 use std::collections::BTreeMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::os::unix::fs::PermissionsExt;
@@ -790,7 +792,7 @@ impl NativeProfileHttp {
             .arg(repository.join("mechanics/growth-cycle/tests/native_source_form_http_host.mjs"))
             .arg(packet);
         let output =
-            super::native_child::bounded_output_before(&mut command, 1_048_576, self.deadline);
+            native_child::bounded_output_before(&mut command, 1_048_576, self.deadline);
         assert!(
             output.status.success(),
             "browser HTTP host: {}",

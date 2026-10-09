@@ -79,6 +79,13 @@ pub mod source_revisions;
 mod source_serialization;
 mod source_sign;
 mod source_sign_native;
+#[cfg(feature = "conformance-owner-local-source-resolver")]
+pub use source_sign_native::{
+    SignNativeRead as PublicNativeReadForConformance,
+    NativeReadKind as PublicNativeReadKindForConformance,
+    NativeReadScope as PublicNativeReadScopeForConformance,
+    resolve_assessment as resolve_public_native_assessment_for_conformance,
+};
 pub mod source_text_alignment_entry;
 mod source_text_identity;
 pub mod source_text_layer_derived_entry;

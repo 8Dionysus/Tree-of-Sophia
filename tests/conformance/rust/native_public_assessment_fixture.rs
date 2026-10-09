@@ -430,11 +430,11 @@ fn build_public_v2(
 /// Immutable test transport. Actual CLI calls independently reopen the same
 /// selected source root through the production protected source reader.
 struct FrozenPublicRead(std::collections::BTreeMap<String, Vec<u8>>);
-impl tos_command::source_sign_native::SignNativeRead for FrozenPublicRead {
+impl tos_command::PublicNativeReadForConformance for FrozenPublicRead {
     fn read(
         &mut self,
         reference: &str,
-        _kind: tos_command::source_sign_native::NativeReadKind,
+        _kind: tos_command::PublicNativeReadKindForConformance,
         max_bytes: usize,
         deadline: Instant,
         cancelled: &AtomicBool,
@@ -529,28 +529,28 @@ fn build_public_v3(repository: &Path, root: &Path) -> io::Result<NativePublicAss
     let mut worker = super::command_form_cases::schemas(&cut, deadline, &cancelled);
     let mut reader = FrozenPublicRead(files);
     let binding_value = foundation_value(&binding)?;
-    let exact = tos_command::source_sign_native::resolve_assessment(
+    let exact = tos_command::resolve_public_native_assessment_for_conformance(
         &mut reader,
         &mut worker,
         &binding_value,
         origin,
-        tos_command::source_sign_native::NativeReadScope::ExactOwnerLocal,
+        tos_command::PublicNativeReadScopeForConformance::ExactOwnerLocal,
         deadline,
         &cancelled,
     )
     .map_err(invalid_data)?;
-    let metadata = tos_command::source_sign_native::resolve_assessment(
+    let metadata = tos_command::resolve_public_native_assessment_for_conformance(
         &mut reader,
         &mut worker,
         &binding_value,
         origin,
-        tos_command::source_sign_native::NativeReadScope::MetadataOnly,
+        tos_command::PublicNativeReadScopeForConformance::MetadataOnly,
         deadline,
         &cancelled,
     )
     .map_err(invalid_data)?;
     use tos_validation::source_cut::CutSchemaExecutor;
-    worker.finish(deadline, &cancelled).map_err(invalid_data)?;
+    worker.finish(deadline, &cancelled).map_err(|e| invalid_data(format!("{e:?}")))?;
     let native_records = exact
         .records
         .iter()

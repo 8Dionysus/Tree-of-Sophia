@@ -326,7 +326,8 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
         .map(|(name, raw)| (name.clone(), raw.clone()))
         .collect::<BTreeMap<_, _>>();
     let (_capture, software, components) = captured_components(&files, deadline, &cancellation);
-    let owner = Path::new(required(&oracle, "owner"));
+    let owner_path = PathBuf::from(required(&oracle, "owner"));
+    let owner = owner_path.as_path();
     let config_raw = decode_hex(required(&oracle, "config_raw"));
     let mut context = cut_context(
         &files,
@@ -372,7 +373,8 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     // Re-enter the native Sign owner with changed current v2 scope inputs.
     // These are distinct route checks: requested-use fencing, Sign risk floor,
     // and exact native-content readiness. Each refusal precedes package creation.
-    let assessment_owner = Path::new(required(&oracle, "assessment_owner"));
+    let assessment_owner_path = PathBuf::from(required(&oracle, "assessment_owner"));
+    let assessment_owner = assessment_owner_path.as_path();
     let assessment_owner_raw = fs::read(assessment_owner).unwrap();
     let candidate_id = oracle["request"]["record"]["promotion_basis"]["candidate"]["id"]
         .as_str()
