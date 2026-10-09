@@ -13,11 +13,11 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 const RULE_INPUTS: &[&str] = &[
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+    "rust/crates/tos-command/src/source_native_cli.rs",
+    "rust/crates/tos-command/src/source_command.rs",
+    "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
+    "rust/crates/tos-command/src/source_forms.rs",
+    "rust/crates/tos-command/src/source_private_assessment_sources.rs",
     "scripts/source_witness_human_forms.py",
     "scripts/build_source_witness_catalog.py",
     "scripts/source_record_profiles.py",
@@ -2064,12 +2064,12 @@ fn creation_dependency_snapshot(
     if family == CreationFamily::Artifact {
         let config = cmd::parse(&ctx.configuration_raw)?;
         let implementation = [
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+            "rust/crates/tos-command/src/source_creation.rs",
+            "rust/crates/tos-command/src/source_command.rs",
+            "rust/crates/tos-command/src/source_native_cli.rs",
+            "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
+            "rust/crates/tos-command/src/source_forms.rs",
+            "rust/crates/tos-command/src/source_private_assessment_sources.rs",
             "scripts/build_source_witness_catalog.py",
             "scripts/source_record_profiles.py",
             "scripts/source_witness_human_forms.py",
@@ -2170,7 +2170,7 @@ fn creation_dependency_snapshot(
     ]);
     if family == CreationFamily::Sign {
         let promotion_implementation =
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py";
+            "rust/crates/tos-command/src/source_assessment_journal.rs";
         cmd::set(
             &mut snapshot,
             "promotion_implementation",

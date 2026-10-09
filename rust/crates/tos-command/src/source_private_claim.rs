@@ -3787,13 +3787,13 @@ fn implementation_digests(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
     const IMPLEMENTATIONS: &[&str] = &[
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_profile_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+        "rust/crates/tos-command/src/source_command.rs",
+        "rust/crates/tos-command/src/source_revisions.rs",
+        "rust/crates/tos-command/src/source_text_owner.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_private_assessment_sources.rs",
         "scripts/source_owner_record_profiles.py",
         "scripts/source_record_profiles.py",
         "scripts/source_owner_context.py",
@@ -3803,9 +3803,9 @@ fn implementation_digests(
         "ToS/contracts/human-form-set.schema.json",
         "ToS/contracts/human-form-template.schema.json",
         "ToS/contracts/provenance-event-v2.schema.json",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_claim_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
+        "rust/crates/tos-command/src/source_private_claim.rs",
+        "rust/crates/tos-command/src/source_claims.rs",
+        "rust/crates/tos-command/src/source_claim_publication.rs",
         "scripts/source_owner_claim_profiles.py",
     ];
     if components.capture() != software.selection() {

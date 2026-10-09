@@ -908,11 +908,11 @@ fn maintained_agent_creation_operation<
     // The same actual maintained resources as the existing native creation
     // scenario. No philosophical corpus or payload discovery is performed.
     let inputs = [
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+        "rust/crates/tos-command/src/source_command.rs",
+        "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_private_assessment_sources.rs",
         "scripts/source_witness_human_forms.py",
         "scripts/build_source_witness_catalog.py",
         "scripts/source_record_profiles.py",

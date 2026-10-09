@@ -39,18 +39,18 @@ const CLAIM_REGISTRY_REFS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
 ];
 const HISTORICAL_GROUND_IMPLEMENTATIONS: &[&str] = &[
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+    "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
     "scripts/source_witness_bibliographic_graph_common.py",
     "scripts/build_source_witness_catalog.py",
     "scripts/source_record_profiles.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+    "rust/crates/tos-command/src/source_native_cli.rs",
 ];
 const REVISION_IMPLEMENTATIONS: &[&str] = &[
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+    "rust/crates/tos-command/src/source_claim_publication.rs",
+    "rust/crates/tos-command/src/source_revisions.rs",
+    "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
     "scripts/source_witness_human_forms.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+    "rust/crates/tos-command/src/source_forms.rs",
     "ToS/contracts/human-form.schema.json",
     "ToS/contracts/human-form-set.schema.json",
     "ToS/contracts/human-form-template.schema.json",

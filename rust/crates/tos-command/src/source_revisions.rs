@@ -43,11 +43,11 @@ const BASE_FIELDS: &[&str] = &[
 ];
 const CORPUS_FIELDS: &[&str] = &["preferred_label", "notes", "field_languages", "source_refs"];
 const DEPENDENCIES: &[&str] = &[
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+    "rust/crates/tos-command/src/source_native_cli.rs",
+    "rust/crates/tos-command/src/source_command.rs",
+    "rust/crates/tos-command/src/source_revisions.rs",
+    "rust/crates/tos-command/src/source_forms.rs",
+    "rust/crates/tos-command/src/source_private_assessment_sources.rs",
     "scripts/source_record_profiles.py",
     "scripts/native_text_binding.py",
     "scripts/source_owner_context.py",
@@ -58,8 +58,8 @@ const DEPENDENCIES: &[&str] = &[
 ];
 const SELECTED_DEPENDENCIES: &[&str] = &[
     "scripts/source_metadata_snapshot.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py",
-    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
+    "rust/crates/tos-command/src/source_work_transaction.rs",
+    "rust/crates/tos-command/src/source_revisions.rs",
 ];
 
 /// Native v1/v2 grants stay separate; v3 alone admits descriptive Edition,
@@ -1827,7 +1827,7 @@ fn dependencies(
         names.extend(SELECTED_DEPENDENCIES.iter().map(|s| s.to_string()));
     }
     if family == RevisionFamily::NativeSelected {
-        names.extend(["mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_native_metadata_commands.py".into(),"scripts/build_source_witness_catalog.py".into()]);
+        names.extend(["rust/crates/tos-command/src/source_revisions.rs".into(),"scripts/build_source_witness_catalog.py".into()]);
     }
     let mut entries = names
         .iter()
