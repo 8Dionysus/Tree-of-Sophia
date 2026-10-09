@@ -2677,17 +2677,14 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/plant_prepared_dossiers.py",
+      "path": "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_entry.rs",
       "family": "source_topology_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/philosophy/atlas/README.md",
       "source_truth": [
-        "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
-        "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
-        "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
         "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-        "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_native.rs",
-        "rust/crates/tos-ops-mechanics-plan/PLANTING_INTERFACE.md"
+        "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_readiness.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_native.rs"
       ],
       "reads": [
         "operator-local DOCX sections declared by prepared-dossier-routes.json when present",
@@ -2695,16 +2692,16 @@
         "ToS/philosophy/atlas/master-tables/*/rows.jsonl"
       ],
       "writes": [
-        "delegates the aggregate write of all supported prepared-dossier packages to scripts/plant_table_i_prepared_dossiers.py only when --plant is used without --table"
+        "readiness JSON by default; aggregate prepared-dossier surfaces only for explicit --plant after full readiness passes"
       ],
-      "side_effects": "readiness output by default, optionally limited by --table; --plant is explicitly aggregate-only and writes the complete Table I, Table II, and Table III package surfaces through the package implementation; executable default forwards to installed native prepared-dossier owner; retained Python body is explicit reference-only, with no runtime fallback",
+      "side_effects": "installed native --prepared-dossier entry; --table scopes readiness only, planting is aggregate-only and has no Python fallback",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_prepared_dossier_pipeline.py",
+      "test_target": "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_readiness.rs",
       "disposition": "keep"
     },
     {
-      "path": "scripts/plant_table_i_prepared_dossiers.py",
+      "path": "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_native.rs",
       "family": "source_topology_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/philosophy/AGENTS.md",
@@ -2755,10 +2752,10 @@
         "ToS/philosophy/graph-workbench/language-packets/*.jsonl",
         "ToS/philosophy/philosophy.manifest.json"
       ],
-      "side_effects": "tracked complete Table I, Table II, and Table III intake/coverage, atlas, branch, source-anchor, language-packet, and pre-canon graph source surfaces; aggregate package implementation for scripts/plant_prepared_dossiers.py; executable default forwards to installed native prepared-dossier owner; retained Python body is explicit reference-only, with no runtime fallback",
+      "side_effects": "native aggregate prepared-dossier package producer; writes complete supported Table I, II and III surfaces only after aggregate readiness; no Python fallback",
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_philosophy_atlas_projection.py",
+      "test_target": "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_native.rs",
       "disposition": "keep"
     },
     {
@@ -3041,7 +3038,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "path": "rust/crates/tos-compiler/src/research_paragraph_alignment.rs",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
       "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/README.md",
@@ -3059,10 +3056,10 @@
       "writes": [
         "four tracked text-free translation-alignment packets plus coverage, diagnostics, conflict, scope-exclusion, independent-audit, provenance, verification, summary and manifest receipts, and four ignored mode-0600 Russian paragraph layers unless --check or --validate-tracked is used"
       ],
-      "side_effects": "native-only installed tos compatibility entry; explicit admitted scratch quota required for writes; historical recipe retained as nonexecuted source; complete paragraph-level machine proposal coverage only; all independent disagreements and primary-only risks remain ambiguous or deferred, reviews and projections stay empty, and no translation acceptance, lexical or semantic equivalence, graph/canon effect, publication, or runtime authority is created",
+      "side_effects": "installed native tos zarathustra-de-ru-paragraph-alignment-v1 owner; bounded proposal generation only; all disagreement remains ambiguous/deferred, no human acceptance or semantic/canon admission; historical recipe bytes retained separately",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
-      "test_target": "tests/test_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "test_target": "rust/crates/tos-compiler/src/research_paragraph_alignment.rs",
       "disposition": "keep"
     },
     {
@@ -3153,7 +3150,7 @@
       "disposition": "keep"
     },
     {
-      "path": "scripts/philosophy_native_command.py",
+      "path": "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
       "family": "native_command_adapter",
       "organ_lane": "shared-library",
       "owner_surface": "ToS/philosophy/AGENTS.md",
@@ -3167,10 +3164,10 @@
       "writes": [
         "fixed generated philosophy products through selected native output root only for build"
       ],
-      "side_effects": "executes installed native product command; corpus batch waits for checked native completion; no Python fallback; prepared-dossier compatibility calls exec the same native owner with selected source root",
+      "side_effects": "installed native philosophy product owner dispatches bounded build, check and validate operations; no maintained Python adapter or fallback",
       "validation_lane": "graph_exports",
-      "ci_inclusion": "release",
-      "test_target": "tests/test_philosophy_atlas_projection.py",
+      "ci_inclusion": "focused-tests",
+      "test_target": "rust/crates/tos-ops-mechanics-plan/src/philosophy_products.rs",
       "disposition": "keep"
     },
     {

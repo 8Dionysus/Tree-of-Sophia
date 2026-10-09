@@ -152,9 +152,9 @@ class PhilosophyPostPlantingAuditTest(unittest.TestCase):
     def test_planting_interface_routes_to_executable_owners(self) -> None:
         text = (REPO_ROOT / "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md").read_text(encoding="utf-8")
 
+        self.assertIn("tos-ops-mechanics-plan --prepared-dossier", text)
         for route in (
-            "scripts/plant_prepared_dossiers.py",
-            "scripts/AGENTS.md",
+            "rust/crates/tos-ops-mechanics-plan/PLANTING_INTERFACE.md",
             "docs/validation/validation_lanes.json",
         ):
             with self.subTest(route=route):

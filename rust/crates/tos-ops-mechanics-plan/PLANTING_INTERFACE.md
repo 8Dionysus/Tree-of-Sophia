@@ -1,6 +1,6 @@
 # Prepared philosophy dossiers
 
-The supported Linux native owner is `tos-ops-mechanics-plan --prepared-dossier`. The maintained scripts `plant_prepared_dossiers.py` and `plant_table_i_prepared_dossiers.py` forward to that installed binary before loading their explicit reference implementations. There is no automatic Python fallback. The second historical command selects aggregate `--plant`; the first defaults to read-only readiness.
+The supported Linux native owner is `tos-ops-mechanics-plan --prepared-dossier`. The maintained interface is the installed native binary itself; the retired Python wrappers and reference implementation are not part of the command path. Invoke `--prepared-dossier --source-root ABS --readiness` for read-only readiness, or `--prepared-dossier --source-root ABS --plant` for aggregate planting. The native command has no automatic Python fallback.
 
 `--source-root` selects the repository; `--doc-root` defaults to the existing operator DOCX root. Readiness `--table table-i|table-ii|table-iii` filters display only. `--plant --table` is refused. The route map owns supported package membership; every supported package must pass readiness before planting writes. Planting requires output root equal source root.
 

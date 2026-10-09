@@ -860,9 +860,9 @@ fn table_readiness(
             "table_id": table_id,
             "row_count": rows.len(),
             "supported": true,
-            "planting_entrypoint": "scripts/plant_prepared_dossiers.py --plant",
+            "planting_entrypoint": "tos-ops-mechanics-plan --prepared-dossier --source-root ABS --plant",
             "planting_scope": "all_supported_packages",
-            "package_implementation": "scripts/plant_table_i_prepared_dossiers.py",
+            "package_implementation": "rust/crates/tos-ops-mechanics-plan/src/prepared_dossier_native.rs",
             "route_map_ref": ROUTE_MAP_REF,
             "docx_sections": sections,
             "expected_dossier_ids": expected.iter().cloned().collect::<Vec<_>>(),
@@ -1253,4 +1253,36 @@ fn input_pin(
         sha256: Digest256::of_bytes(raw).to_hex(),
         size_bytes: raw.len() as u64,
     })
+}
+
+
+#[cfg(test)]
+mod native_action_contract_tests {
+    use super::*;
+
+    #[test]
+    fn selective_readiness_is_allowed_but_planting_is_aggregate_only() {
+        assert_eq!(
+            select_action(false, false, Some("table-i".into())).unwrap(),
+            PreparedDossierAction::Readiness { table_id: Some("table-i".into()) }
+        );
+        assert!(select_action(false, true, Some("table-i".into())).is_err());
+        assert_eq!(
+            select_action(false, true, None).unwrap(),
+            PreparedDossierAction::PlantAggregate
+        );
+    }
+
+    #[test]
+    fn aggregate_planting_gate_fails_closed_for_any_unready_package() {
+        assert!(require_aggregate_readiness(&json!({
+            "ready_to_plant": false,
+            "required_supported_package_readiness": {
+                "table-i": true,
+                "table-ii": false,
+                "table-iii": true
+            }
+        })).unwrap_err().contains("table-ii"));
+        assert!(require_aggregate_readiness(&json!({"ready_to_plant": true})).is_ok());
+    }
 }

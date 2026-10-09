@@ -20,7 +20,7 @@ Prepared planting starts from source-owned atlas material:
 | --- | --- |
 | `ToS/philosophy/atlas/master-tables/*/rows.jsonl` | master row spine for planned philosophy growth |
 | `ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json` | dossier-to-branch route map |
-| operator-local prepared DOCX corpus | temporary extraction input for supported planting scripts |
+| operator-local prepared DOCX corpus | temporary extraction input for the supported native planting owner |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-intake.manifest.json` | tracked fixity and capture-posture record for the untracked DOCX bytes |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-i-docx-extraction-coverage.json` | explicit extracted/metadata/deferred row accounting and prose-only diagnostics |
 | `ToS/research-packets/deep-research/philosophy/dossiers/table-ii-docx-intake.manifest.json` | tracked Table II fixity plus admitted/quarantined artifact posture |
@@ -100,22 +100,23 @@ master table row
 
 Current supported entrypoint:
 
-`scripts/plant_prepared_dossiers.py` owns readiness and planting orchestration.
-Readiness may be limited with `--table`; planting is explicitly aggregate-only
-and runs as `python scripts/plant_prepared_dossiers.py --plant` because the
-atlas indexes, graph workbench, language packets, and branch manifests combine
-all supported packages. The compatibility implementation entrypoint invokes
-the same aggregate gate and cannot bypass it. Readiness requires an exact
-unique master-row spine whose `row_id`, `table_id`, and normalized row identity
-agree, an exact unique filename inventory, and a read-only parse of every
-supplied DOCX through the same content and identity checks used by planting.
-It also checks a Table I title id when row metadata is absent and reads package
-provenance metadata, including optional custom-property XML, before any write.
-Missing, duplicate, unexpected, corrupt, or identity-drifted inputs fail
-closed before planting changes a companion.
-The projection, corpus-index, and post-planting builders own their generated
-outputs; `docs/validation/validation_lanes.json` owns checked verification
-order. Use `scripts/AGENTS.md` for the operator route.
+`tos-ops-mechanics-plan --prepared-dossier --source-root ABS --readiness`
+owns readiness, and the same native command with `--plant` owns aggregate
+planting. Readiness may be limited with `--table`; planting is explicitly
+aggregate-only because the atlas indexes, graph workbench, language packets,
+and branch manifests combine all supported packages. There is no Python
+fallback. Readiness requires an exact unique master-row spine whose `row_id`,
+`table_id`, and normalized row identity agree, an exact unique filename
+inventory, and a read-only parse of every supplied DOCX through the same
+content and identity checks used by planting. It also checks a Table I title id
+when row metadata is absent and reads package provenance metadata, including
+optional custom-property XML, before any write. Missing, duplicate, unexpected,
+corrupt, or identity-drifted inputs fail closed before planting changes a
+companion. See
+[`rust/crates/tos-ops-mechanics-plan/PLANTING_INTERFACE.md`](../../../rust/crates/tos-ops-mechanics-plan/PLANTING_INTERFACE.md)
+for the native CLI contract. The projection, corpus-index, and post-planting
+builders own their generated outputs; `docs/validation/validation_lanes.json`
+owns checked verification order.
 
 The complete Table I, Table II, and Table III packages use this route now.
 Table III admits all 84 master-aligned artifacts; `T3-57` produces no

@@ -38,18 +38,17 @@ paragraph layers used by exact text-position selectors.
 
 ## Rebuild and verify
 
-- rebuild: `python scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py --scratch-bytes ADMITTED_REMAINING_BYTES --build`
-- full local parity: `python scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py --check`
-- tracked-only validation: `python scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py --validate-tracked`
-- focused tests: `python -m unittest tests.test_zarathustra_de_ru_paragraph_alignment_v1`
+- rebuild: `tos zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --scratch-bytes ADMITTED_REMAINING_BYTES --build`
+- full local parity: `tos zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --check`
+- tracked-only validation: `tos zarathustra-de-ru-paragraph-alignment-v1 --source-root ABSOLUTE_ROOT --validate-tracked`
+- focused validation: `cargo test -p tos-compiler tracked_current_route_preserves_census_and_authority_ceiling`
 
-The compatibility entry executes installed native `tos` selected by
-`TOS_NATIVE_PREPARED_CONSUMER_BIN` or `PATH`; it has no Python producer fallback.
-Its default source root is the entry's repository; `--source-root ABSOLUTE_ROOT`
-overrides that root. Native parsing owns the six family operations and common
-`--max-seconds`/`--scratch-bytes` options. Writes require explicit admitted
-remaining scratch bytes; the entry grants no quota. Tracked-only validation
-reads metadata without private payloads or producer writes.
+The supported command is the installed native `tos` owner. Native parsing owns
+the six family operations and common `--max-seconds`/`--scratch-bytes` options.
+Writes require explicit admitted remaining scratch bytes; the native command
+grants no quota. Tracked-only validation reads metadata without private
+payloads or producer writes. Historical `software_ref` values remain frozen v1
+provenance; recipe bytes are retained separately and are not executable.
 
 Exact historical rendering source is retained under
 `ToS/research-packets/retained-builder-inputs/build_zarathustra_de_ru_paragraph_alignment_v1/`.

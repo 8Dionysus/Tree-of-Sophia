@@ -20,8 +20,8 @@
 //! Historical v1 maker references and timestamps remain unchanged for byte parity;
 //! this implementation does not claim a new source-visible assessment.
 //!
-//! `build_zarathustra_de_ru_paragraph_alignment_v1.py` remains a migration oracle
-//! until the release owner records native acceptance. The public metadata and
+//! The frozen v1 maker reference remains provenance only; exact recipe bytes are
+//! preserved under `ToS/research-packets/retained-builder-inputs/`. The public metadata and
 //! private text maps returned by `build` stay distinct through write/check.
 //! Rust unit tests cover null-side and outside-scope uncertainty, nested private
 //! text rejection, serialization, and Unicode offsets. Production census/parity
@@ -1776,6 +1776,43 @@ mod tests {
             b"first"
         );
     }
+    #[test]
+    fn tracked_current_route_preserves_census_and_authority_ceiling() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap();
+        let summary = validate_tracked(&root).expect("tracked alignment route validates");
+        assert_eq!(summary["status"], "pass");
+        assert_eq!(summary["packets"], 4);
+        assert_eq!(summary["reading_pairs"], 81);
+        assert_eq!(summary["alignments"], 3423);
+        assert_eq!(summary["source_paragraphs"], 3447);
+        assert_eq!(summary["target_paragraphs"], 3569);
+        assert_eq!(summary["proposed"], 3303);
+        assert_eq!(summary["ambiguous"], 111);
+        assert_eq!(summary["deferred"], 9);
+        assert_eq!(summary["accepted"], 0);
+        assert_eq!(summary["machine_risk_union"], 120);
+        assert_eq!(summary["independent_agree"], 3311);
+        assert_eq!(summary["independent_disagree"], 112);
+    }
+
+    #[test]
+    fn present_private_layers_rebuild_exactly() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap();
+        let repo = ResearchExecution::new(&root, 180).unwrap();
+        let private_refs = (1..=4).flat_map(|part| {
+            let packet = load(&repo, &packet_ref(part)).unwrap();
+            ["source_side", "target_side"].into_iter().map(move |side| {
+                s(&packet[side]["text_layer_ref"]).unwrap().to_owned()
+            })
+        }).collect::<Vec<_>>();
+        if !private_refs.iter().all(|reference| root.join(reference).is_file()) {
+            eprintln!("skip: exact local German and Russian private layers are not present");
+            return;
+        }
+        let result = run(&root, &["--check".to_owned()]).expect("native exact private rebuild parity");
+        assert_eq!(result["status"], "pass");
+    }
+
     #[test]
     fn scoped_work_exhaustion_stops_before_reading_source() {
         let root = tempfile::tempdir().unwrap();
