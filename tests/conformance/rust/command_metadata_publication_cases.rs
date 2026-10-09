@@ -1312,7 +1312,7 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     mcp.input.flush().unwrap();
     let search_request = json!({
         "jsonrpc":"2.0","id":101,"method":"tools/call",
-        "params":{"name":"tos_knowledge_search","arguments":{"mode":"indexed","query":"untouched","limit":3}}
+        "params":{"name":"tos_knowledge_search","arguments":{"mode":"compressed","query":"untouched","limit":3}}
     });
     let discover_request = json!({
         "jsonrpc":"2.0","id":102,"method":"tools/call",
@@ -1327,7 +1327,7 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
         search_result["nodes"]
             .as_array()
             .is_some_and(|nodes| !nodes.is_empty()),
-        "selected indexed search returns a real synthetic metadata result"
+        "selected prepared compressed search returns a real synthetic metadata result"
     );
     let (discover_response, discover_bytes) = mcp.call(&discover_request);
     assert!(discover_response.get("result").is_some());

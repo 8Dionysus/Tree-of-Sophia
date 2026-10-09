@@ -33,8 +33,18 @@ use tos_source_store::{
 };
 use tos_validation::source_cut::CutSchemaExecutor;
 const META: usize = 1_048_576;
-fn failure(e: impl std::fmt::Debug) -> SourceCommandError {
-    let _ = e;
+fn failure(e: impl std::fmt::Debug + 'static) -> SourceCommandError {
+    // Preserve bounded, source-authored diagnostics. Dynamic errors can carry
+    // protected paths and remain behind the transport's generic boundary.
+    if let Some(error) = (&e as &dyn std::any::Any).downcast_ref::<tos_compiler::Error>() {
+        match error {
+            tos_compiler::Error::Invalid(reason)
+            | tos_compiler::Error::PreparedUnsupported(reason)
+            | tos_compiler::Error::ManagedSourceUnsupported(reason)
+            | tos_compiler::Error::Budget(reason) => return SourceCommandError::Conflict(reason),
+            _ => (),
+        }
+    }
     SourceCommandError::Conflict("Metadata prepared publication transport")
 }
 pub(super) fn run(

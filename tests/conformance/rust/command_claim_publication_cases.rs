@@ -1195,8 +1195,8 @@ pub(super) fn agent_native_call(
     );
     assert!(
         output.status.success(),
-        "actual Agent Record caller: {}",
-        String::from_utf8_lossy(&output.stderr)
+        "actual Agent Record caller action={} operation={}: {}",
+        request["action"], request["operation"], String::from_utf8_lossy(&output.stderr)
     );
     serde_json::from_slice(&output.stdout).unwrap()
 }

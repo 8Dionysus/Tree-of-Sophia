@@ -298,11 +298,30 @@ finally:
         serde_json::from_slice::<Value>(&package["source-text-unit.v1.json"]).unwrap(),
         oracle["packet"]
     );
-    assert_eq!(
-        serde_json::from_slice::<Value>(&package["source-text-layer.v1.json"]).unwrap(),
-        oracle["layer"]
-    );
-    assert_eq!(created["result"]["native_bindings"], oracle["bindings"]);
+    // The public plan binds the current relocated protected grant. Preserve
+    // the frozen content/identity comparison and independently check this
+    // relocation-dependent plan and the complete emitted binding chain.
+    let mut plan_selection: Value = serde_json::from_slice(&fs::read(&owner).unwrap()).unwrap();
+    for key in ["source_root", "recovery_root", "uid"] { plan_selection.as_object_mut().unwrap().remove(key); }
+    let plan = serde_json::json!({"schema_version":"tos_public_native_construction_plan_v1",
+        "selection":plan_selection,"protected_grant_digest":describe["result"]["configuration"],
+        "authority_boundary":"construction-plan-not-a-grant-license-or-assessment"});
+    let mut plan_bytes = command_binding_bytes(&plan); plan_bytes.push(b'\n');
+    assert_eq!(package["construction-plan.json"], plan_bytes);
+    let plan_sha = Digest256::of_bytes(&plan_bytes).to_hex();
+    let anchor: Value = serde_json::from_slice(&package["source-anchor.v2.json"]).unwrap();
+    assert_eq!(anchor["selector_method"]["configuration_digest"], plan_sha);
+    let mut layer = oracle["layer"].clone();
+    layer["derivation"]["maker"]["configuration_digest"] = Value::from(plan_sha);
+    layer["source_binding"]["anchors"][0]["anchor_record_sha256"] =
+        Value::from(Digest256::of_bytes(&package["source-anchor.v2.json"]).to_hex());
+    let mut layer_bytes = command_binding_bytes(&layer); layer_bytes.push(b'\n');
+    assert_eq!(package["source-text-layer.v1.json"], layer_bytes);
+    let mut bindings = oracle["bindings"].clone();
+    for binding in bindings["bindings"].as_array_mut().unwrap() {
+        binding["text_layer"]["record_sha256"] = Value::from(Digest256::of_bytes(&layer_bytes).to_hex());
+    }
+    assert_eq!(created["result"]["native_bindings"], bindings);
     let cold = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
     assert_eq!(cold["result"]["status"], "replayed");
     assert_eq!(

@@ -1212,6 +1212,11 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
         let reference = serde_json::json!({"id":id,"version":record["version"],
             "digest":Digest256::of_bytes(&command_binding_bytes(&record["payload"])).to_prefixed()});
         if let Some(subject) = config["subjects"].get_mut(id) { subject["record"] = reference.clone(); }
+        if fixture["layer_subject"]["id"] == id {
+            fixture["unit_template"]["assessments"][0]["evidence"] = serde_json::json!([
+                {"record":reference,"stance":"supports","locator":"Exact synthetic source layer; no substantive assessment."}
+            ]);
+        }
         if fixture["unit_subject"]["id"] == id {
             fixture["unit_subject"] = reference.clone();
             fixture["unit_template"]["expected_subject"] = reference.clone();
@@ -2604,10 +2609,12 @@ fn native_public_assessment_versions(versions: &[u8]) {
         unknown["subject_id"] = Value::from("tos.subject.outside-public-selection");
         assert!(!observe(&unknown).0.success());
         for preserved in fixture["preserved"].as_array().unwrap() {
-            let digest = super::command_text_cases::alignment_image_digest(Path::new(
-                preserved["path"].as_str().unwrap(),
-            ));
-            assert_eq!(digest.to_hex(), preserved["sha256"].as_str().unwrap());
+            let path = Path::new(preserved["path"].as_str().unwrap());
+            let metadata = path.symlink_metadata().unwrap();
+            assert!(metadata.is_file() && metadata.len() <= 8_388_608);
+            let raw = fs::read(path).unwrap();
+            assert_eq!(raw.len() as u64, preserved["bytes"].as_u64().unwrap());
+            assert_eq!(Digest256::of_bytes(&raw).to_hex(), preserved["sha256"].as_str().unwrap());
         }
         for (index, path) in images.iter().enumerate() {
             assert_eq!(custody(path), before[index]);
