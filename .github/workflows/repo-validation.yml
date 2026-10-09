@@ -272,6 +272,9 @@ jobs:
             --repo-root "$GITHUB_WORKSPACE" --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" \
             --receipt-root "$RUNNER_TEMP" --cargo-messages "$RUNNER_TEMP/software-cargo-messages.jsonl" \
             --rustc-version "$RUNNER_TEMP/software-rustc-version.txt" --github-env "$GITHUB_ENV"
+          printf '%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" >> "$GITHUB_PATH"
+          printf 'TOS_SCHEMA_WORKER_PATH=%s\n' \
+            "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-schema-worker" >> "$GITHUB_ENV"
 
       - name: Validate software contracts and build browser assets
         run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase checks'
