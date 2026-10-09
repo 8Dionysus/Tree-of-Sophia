@@ -595,8 +595,13 @@ fn fixture_catalog_inputs(root: &Path) -> BTreeMap<String, Vec<u8>> {
     for path in [
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        // Synthetic identity endpoints cite this exact isolated evidence file.
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
     ] {
-        add_file(root, &root.join(path), &mut files, &mut total);
+        let selected = root.join(path);
+        if selected.is_file() {
+            add_file(root, &selected, &mut files, &mut total);
+        }
     }
     // The authored source tree is the compiler input. Generated catalog
     // projections, reserved owner-local data and physical payload bytes are
@@ -655,12 +660,22 @@ pub(crate) fn native_catalog_fixture(
     files: &BTreeMap<String, Vec<u8>>,
     deadline: Instant,
 ) -> NativeCatalogFixture {
+    native_catalog_fixture_with_graph(repository, files, deadline, true)
+}
+
+fn native_catalog_fixture_with_graph(
+    repository: &Path,
+    files: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+    include_bibliographic_graph: bool,
+) -> NativeCatalogFixture {
     use tos_compiler::source_bibliographic::{BibliographicLimits, render_bibliographic_graph};
     use tos_compiler::source_witness_catalog::{
         SourceCatalogLimits, SourceCatalogValidator, render_source_witness_catalog,
     };
     use tos_compiler::{
-        SourceCatalogInputLimits, plan_source_catalog_inputs, render_source_bibliographic_plan,
+        SourceCatalogInputLimits, plan_source_catalog_inputs, prepare_source_catalog_plan,
+        render_source_bibliographic_plan,
     };
 
     assert!(repository.is_absolute());
@@ -786,46 +801,63 @@ pub(crate) fn native_catalog_fixture(
         &cancelled,
     )
     .unwrap();
-    let candidate = render_source_bibliographic_plan(
-        &plan,
-        &cut,
-        revision,
-        membership,
-        &mut stage,
-        &validator,
-        &mut tos_command::source_forms_compiler::NativeBibliographicForms,
-        limits,
-        512,
-        16 * 1024 * 1024,
-    )
-    .unwrap();
-    validator.finish().unwrap();
-    let mut catalog = CatalogOutput::default();
-    render_source_witness_catalog(&mut stage, &candidate.catalog, limits.catalog, &mut catalog)
+    let (catalog_receipt, graph, node_count, edge_count) = if include_bibliographic_graph {
+        let candidate = render_source_bibliographic_plan(
+            &plan,
+            &cut,
+            revision,
+            membership,
+            &mut stage,
+            &validator,
+            &mut tos_command::source_forms_compiler::NativeBibliographicForms,
+            limits,
+            512,
+            16 * 1024 * 1024,
+        )
         .unwrap();
-    let mut graph = BibliographicOutput::default();
-    render_bibliographic_graph(
-        &mut stage,
-        &candidate.catalog,
-        &candidate.bibliographic,
-        limits,
-        &mut graph,
-    )
-    .unwrap();
+        validator.finish().unwrap();
+        let mut graph = BibliographicOutput::default();
+        render_bibliographic_graph(
+            &mut stage,
+            &candidate.catalog,
+            &candidate.bibliographic,
+            limits,
+            &mut graph,
+        )
+        .unwrap();
+        (
+            candidate.catalog,
+            graph.0,
+            candidate.bibliographic.node_count,
+            candidate.bibliographic.edge_count,
+        )
+    } else {
+        // Claim-command fixtures need the native catalog writer. Bibliographic
+        // graph closure is independently exercised by the dedicated case.
+        let receipt = prepare_source_catalog_plan(
+            &plan, &cut, revision, membership, &mut stage, &validator, limits,
+        )
+        .unwrap();
+        validator.finish().unwrap();
+        (receipt, BTreeMap::new(), 0, 0)
+    };
+    let mut catalog = CatalogOutput::default();
+    render_source_witness_catalog(&mut stage, &catalog_receipt, limits.catalog, &mut catalog)
+        .unwrap();
     NativeCatalogFixture {
         files: catalog.files,
         manifest: catalog.manifest,
-        graph: graph.0,
+        graph,
         collection_count,
-        record_count: candidate.catalog.record_count,
-        node_count: candidate.bibliographic.node_count,
-        edge_count: candidate.bibliographic.edge_count,
+        record_count: catalog_receipt.record_count,
+        node_count,
+        edge_count,
     }
 }
 
 pub(crate) fn publish_native_catalog_fixture(repository: &Path, root: &Path, deadline: Instant) {
     let inputs = fixture_catalog_inputs(root);
-    let catalog = native_catalog_fixture(repository, &inputs, deadline);
+    let catalog = native_catalog_fixture_with_graph(repository, &inputs, deadline, false);
     assert_eq!(
         catalog.manifest["schema_version"],
         "tos_source_witness_catalog_v3"
@@ -1680,6 +1712,9 @@ sys.stdout.write(owner.render_payload(payload))
     // Keep the actual SQLite allocation compatible with the existing final
     // VACUUM's two-database temp reserve. This narrows output, not host quota.
     let mut selected_stage_limits = stage_limits;
+    // The selected fixture is bounded independently from the source producer:
+    // permit the complete 320 MiB selected-model/search work ceiling.
+    selected_stage_limits.sqlite.max_work_bytes = 320 * 1024 * 1024;
     selected_stage_limits.sqlite.max_output_bytes = stage_limits
         .sqlite
         .max_output_bytes
@@ -1687,7 +1722,7 @@ sys.stdout.write(owner.render_payload(payload))
     // Search now charges block decoding again during final root verification.
     // Use the caller's existing phase work envelope for that complete operation,
     // while retaining the former independently bounded posting population.
-    let search_work_bytes = stage_limits.sqlite.max_work_bytes;
+    let search_work_bytes = selected_stage_limits.sqlite.max_work_bytes;
     let search_postings = (100 * 1024 * 1024u64).min(search_work_bytes) / 3;
     let selected_isolation = NativeSelectedIsolation {
         started,
