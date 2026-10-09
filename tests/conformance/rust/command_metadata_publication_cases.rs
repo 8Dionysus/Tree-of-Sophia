@@ -333,6 +333,43 @@ fn materialize_metadata_predecessor(
     assert!(source_inputs_raw.len() <= 1_048_576);
     let source_inputs_sha = Digest256::of_bytes(&source_inputs_raw).to_hex();
     let connection = rusqlite::Connection::open(&db_path).unwrap();
+    // The frozen fixture is relocated before its preservation baseline. Its
+    // two physical source-state rows must bind the same relocated input bytes.
+    let old_source_sha: String = connection
+        .query_row(
+            "SELECT sha256 FROM prepared_source_state WHERE singleton=1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let (dependency_raw, dependency_sha): (String, String) = connection
+        .query_row(
+            "SELECT json,sha256 FROM source_dependency_state WHERE singleton=1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert!(dependency_raw.len() <= 1_048_576);
+    assert_eq!(
+        Digest256::of_bytes(dependency_raw.as_bytes()).to_hex(),
+        dependency_sha
+    );
+    let mut dependencies: Value = serde_json::from_str(&dependency_raw).unwrap();
+    assert_eq!(canonical_lf(&dependencies), dependency_raw.as_bytes());
+    assert_eq!(dependencies["source_inputs_sha256"], old_source_sha);
+    dependencies["source_inputs_sha256"] = json!(source_inputs_sha);
+    let dependency_bytes = canonical_lf(&dependencies);
+    connection.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let dependency_changed = connection
+        .execute(
+            "UPDATE source_dependency_state SET json=?1,sha256=?2 WHERE singleton=1",
+            rusqlite::params![
+                std::str::from_utf8(&dependency_bytes).unwrap(),
+                Digest256::of_bytes(&dependency_bytes).to_hex()
+            ],
+        )
+        .unwrap();
+    assert_eq!(dependency_changed, 1);
     let changed = connection
         .execute(
             "UPDATE prepared_source_state SET inputs=?1,sha256=?2 WHERE singleton=1",
@@ -343,11 +380,23 @@ fn materialize_metadata_predecessor(
         )
         .unwrap();
     assert_eq!(changed, 1, "one frozen prepared-source row is rebased");
+    connection
+        .execute_batch("COMMIT; PRAGMA wal_checkpoint(TRUNCATE)")
+        .unwrap();
     drop(connection);
     materialize_metadata_parts(fixture_dir, packet, &source_root, deadline);
     let mut owner_document = packet["owner_config_document"].clone();
     owner_document["uid"] = json!(fs::metadata(&source_root).unwrap().uid());
     private_json(&owner_path, &owner_document);
+    // A historical Python fixture has no native cooperating source mutex.
+    // Establish it as part of this fresh synthetic owner, before any reader.
+    let lock = source_root.join("ToS/source-witnesses/.historical-create.writer.lock");
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&lock)
+        .unwrap();
+    fs::set_permissions(&lock, fs::Permissions::from_mode(0o600)).unwrap();
     (source_root, db_path, owner_path)
 }
 
@@ -1090,7 +1139,9 @@ fn load_readiness_tool_value(response: &Value) -> Value {
     let text = response["result"]["content"][0]["text"]
         .as_str()
         .expect("native MCP tool text result");
-    serde_json::from_str(text).unwrap_or_else(|error| panic!("native MCP structured result text: {error}; response={response}"))
+    serde_json::from_str(text).unwrap_or_else(|error| {
+        panic!("native MCP structured result text: {error}; response={response}")
+    })
 }
 
 fn fixture_path(path: &Path) -> String {

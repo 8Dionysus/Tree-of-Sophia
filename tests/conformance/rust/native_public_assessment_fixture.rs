@@ -774,11 +774,18 @@ fn record_ref(id: &str, version: u64, payload: &Value) -> io::Result<Value> {
     // Cargo feature unification may enable serde_json's insertion-order map.
     // Record references always use the declared source-command canonical profile.
     let raw = serde_json::to_vec(payload).map_err(invalid_data)?;
-    let parsed = tos_foundation::parse_json(&raw, tos_foundation::JsonMode::PublishedStrict,
-        tos_foundation::JsonLimits::default()).map_err(invalid_data)?;
-    let canonical = tos_foundation::canonical_bytes_v1(parsed.root(),
+    let parsed = tos_foundation::parse_json(
+        &raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::default(),
+    )
+    .map_err(invalid_data)?;
+    let canonical = tos_foundation::canonical_bytes_v1(
+        parsed.root(),
         tos_foundation::CanonicalProfile::SourceCommandInputV1,
-        tos_foundation::JsonLimits::default()).map_err(invalid_data)?;
+        tos_foundation::JsonLimits::default(),
+    )
+    .map_err(invalid_data)?;
     Ok(json!({"id":id,"version":version,"digest":Digest256::of_bytes(&canonical).to_prefixed()}))
 }
 
@@ -868,7 +875,7 @@ fn inventory(root: &Path) -> io::Result<Vec<Value>> {
                     ));
                 }
                 let raw = fs::read(&path)?;
-                rows.push(json!({"path":path,"sha256":Digest256::of_bytes(&raw).to_hex()}));
+                rows.push(json!({"path":path,"bytes":raw.len(),"sha256":Digest256::of_bytes(&raw).to_hex()}));
             } else {
                 return Err(invalid_input(
                     "fixture source tree contains a non-file entry",
