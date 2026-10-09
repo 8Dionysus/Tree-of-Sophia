@@ -802,80 +802,29 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     let opening_capture = tempfile::tempdir().unwrap();
     let captured = opening_capture.path().join("captured");
     let restored = opening_capture.path().join("restored");
-    let archive_tool = owner.join("scripts/corpus_archive.py");
     let archive_deadline = Instant::now() + Duration::from_secs(120);
-    let run_archive = |command: &mut std::process::Command, label: &str| {
-        for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().starts_with("GIT_")
-                || key == "PYTHONPATH"
-                || key == "PYTHONHOME"
-            {
-                command.env_remove(key);
-            }
-        }
-        let stdout = opening_capture.path().join(format!("{label}.stdout"));
-        let stderr = opening_capture.path().join(format!("{label}.stderr"));
-        let mut child = command
-            .env("GIT_NO_REPLACE_OBJECTS", "1")
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .stdout(std::process::Stdio::from(
-                fs::File::create(&stdout).unwrap(),
-            ))
-            .stderr(std::process::Stdio::from(
-                fs::File::create(&stderr).unwrap(),
-            ))
-            .spawn()
-            .unwrap();
-        let status = loop {
-            if let Some(status) = child.try_wait().unwrap() {
-                break status;
-            }
-            if Instant::now() >= archive_deadline
-                || fs::metadata(&stdout).unwrap().len() > 1_048_576
-                || fs::metadata(&stderr).unwrap().len() > 1_048_576
-            {
-                let _ = child.kill();
-                child.wait().unwrap();
-                panic!("bounded {label} refused");
-            }
-            std::thread::sleep(Duration::from_millis(10));
-        };
-        assert!(fs::metadata(&stdout).unwrap().len() <= 1_048_576);
-        assert!(fs::metadata(&stderr).unwrap().len() <= 1_048_576);
-        assert!(Instant::now() < archive_deadline, "{label} deadline");
-        assert!(
-            status.success(),
-            "{label}: {}",
-            String::from_utf8_lossy(&fs::read(&stderr).unwrap())
-        );
-    };
-    let mut capture = std::process::Command::new(crate::maintained_python());
-    capture
-        .arg(&archive_tool)
-        .args(["capture", "--repo-root"])
-        .arg(owner.canonicalize().unwrap())
-        .args(["--commit", opening_source, "--output"])
-        .arg(&captured);
-    for prefix in &prefixes {
-        capture.arg("--include-prefix").arg(prefix);
-    }
+    let archive_cancelled = AtomicBool::new(false);
     stage("archive-capture-start");
-    run_archive(&mut capture, "exact opening source capture");
+    let opening_selection = super::source_cut_cases::capture_software_archive(
+        &owner.canonicalize().unwrap(),
+        opening_source,
+        &prefixes,
+        &captured,
+        archive_deadline,
+        &archive_cancelled,
+    );
     stage("archive-capture-ready");
     let captured_manifest: Value =
         serde_json::from_slice(&fs::read(captured.join("capture.json")).unwrap()).unwrap();
     assert_eq!(captured_manifest["source_git_commit"], opening_source);
-    let mut restore = std::process::Command::new(crate::maintained_python());
-    restore
-        .arg(&archive_tool)
-        .args(["restore", "--capture"])
-        .arg(&captured)
-        .arg("--output")
-        .arg(&restored);
     stage("archive-restore-start");
-    run_archive(&mut restore, "exact opening source restore");
+    super::source_cut_cases::restore_software_archive(
+        &captured,
+        &restored,
+        &opening_selection,
+        archive_deadline,
+        &archive_cancelled,
+    );
     stage("archive-restore-ready");
     assert_eq!(fs::read(restored.join(opening_plan)).unwrap(), plan_raw);
     for (path, expected_sha) in opening_paths {

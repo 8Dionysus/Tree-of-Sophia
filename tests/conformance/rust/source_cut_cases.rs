@@ -232,6 +232,110 @@ impl From<&tos_source_store::Snapshot> for SnapshotRevision {
     }
 }
 
+/// Explicit finite profile for exact Git capture/restore fixtures.
+fn software_capture_restore_limits() -> tos_source_store::CaptureRestoreLimits {
+    tos_source_store::CaptureRestoreLimits {
+        metadata: ReadLimits {
+            max_manifest_bytes: 67_108_864,
+            max_manifest_entries: 16_384,
+            max_selected_object_bytes: 33_554_432,
+            json: JsonLimits {
+                max_bytes: 67_108_864,
+                ..JsonLimits::default()
+            },
+        },
+        max_archive_bytes: 536_870_912,
+        max_decoded_bytes: 536_870_912,
+        max_source_bytes: 536_870_912,
+    }
+}
+
+/// Capture from an exact caller-named Git commit through the existing native
+/// source-store owner. Worktree files never enter this fixture.
+fn software_capture_limits() -> tos_source_store::GitCaptureLimits {
+    tos_source_store::GitCaptureLimits {
+        max_members: 16_384,
+        max_member_bytes: 33_554_432,
+        max_source_bytes: 536_870_912,
+        max_metadata_bytes: 67_108_864,
+        max_tree_bytes: 67_108_864,
+        max_archive_bytes: 536_870_912,
+    }
+}
+
+pub(crate) fn capture_software_archive(
+    source_repo: &Path,
+    source_commit: &str,
+    prefixes: &[&str],
+    capture: &Path,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> tos_source_store::SoftwareCaptureSelectionV1 {
+    use tos_source_store::CaptureGitRequest;
+    assert!(source_repo.is_absolute());
+    assert_eq!(source_commit.len(), 40);
+    assert!(
+        source_commit
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    );
+    assert!(!prefixes.is_empty());
+    let include_prefixes = prefixes
+        .iter()
+        .map(|prefix| (*prefix).to_owned())
+        .collect::<Vec<_>>();
+    let exclude_prefixes = Vec::new();
+    let exclude_path_parts = Vec::new();
+    let result = tos_source_store::capture_git(
+        CaptureGitRequest {
+            repository: source_repo,
+            commit: source_commit,
+            include_prefixes: &include_prefixes,
+            exclude_prefixes: &exclude_prefixes,
+            exclude_path_parts: &exclude_path_parts,
+            output: capture,
+        },
+        software_capture_limits(),
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let manifest_raw = fs::read(capture.join("capture.json")).unwrap();
+    let manifest: Value = serde_json::from_slice(&manifest_raw).unwrap();
+    assert_eq!(
+        manifest["source_git_commit"].as_str().unwrap(),
+        source_commit
+    );
+    assert_eq!(
+        Digest256::of_bytes(&manifest_raw),
+        result.manifest_sha256,
+        "native capture result binds the exact persisted manifest"
+    );
+    tos_source_store::SoftwareCaptureSelectionV1 {
+        source_git_commit: source_commit.to_owned(),
+        source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
+        capture_manifest_sha256: result.manifest_sha256,
+    }
+}
+
+pub(crate) fn restore_software_archive(
+    capture: &Path,
+    restored: &Path,
+    selection: &tos_source_store::SoftwareCaptureSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) {
+    tos_source_store::restore_capture(
+        capture,
+        restored,
+        selection,
+        software_capture_restore_limits(),
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+}
+
 /// Existing owner capture/restore used by the provenance consumer fixture.
 /// All program and selected builder bytes come from an exact caller-named Git
 /// commit, never a worktree file. The fixture owns its unpublished tiny output.
@@ -247,86 +351,20 @@ pub(crate) fn captured_software_fixture(
     source_commit: &str,
     prefixes: &[&str],
 ) -> SoftwareCaptureFixture {
-    use std::process::{Command, Output};
-    assert!(source_repo.is_absolute());
-    assert_eq!(source_commit.len(), 40);
-    assert!(
-        source_commit
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-    );
-    assert!(!prefixes.is_empty());
-    fn clean(command: &mut Command) -> &mut Command {
-        for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().starts_with("GIT_")
-                || key == "PYTHONPATH"
-                || key == "PYTHONHOME"
-            {
-                command.env_remove(key);
-            }
-        }
-        command
-            .env("GIT_NO_REPLACE_OBJECTS", "1")
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-    }
-    fn run(command: &mut Command) -> Output {
-        let output = clean(command).output().unwrap();
-        assert!(
-            output.status.success(),
-            "owner fixture capture failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        output
-    }
     let temporary = tempfile::tempdir().unwrap();
     let capture = temporary.path().join("software-capture");
     let restored = temporary.path().join("software-restored");
-    let tool = temporary.path().join("corpus_archive.py");
-    let capture_program = run(Command::new("git")
-        .arg("-C")
-        .arg(source_repo)
-        .arg("show")
-        .arg(format!("{source_commit}:scripts/corpus_archive.py")))
-    .stdout;
-    assert!(
-        capture_program.len() <= 1_048_576,
-        "fixture owner program exceeds its frozen cap"
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let cancelled = AtomicBool::new(false);
+    let selection = capture_software_archive(
+        source_repo,
+        source_commit,
+        prefixes,
+        &capture,
+        deadline,
+        &cancelled,
     );
-    fs::write(&tool, capture_program).unwrap();
-    let mut capture_command = Command::new(crate::maintained_python());
-    capture_command
-        .arg(&tool)
-        .arg("capture")
-        .arg("--repo-root")
-        .arg(source_repo)
-        .arg("--commit")
-        .arg(source_commit)
-        .arg("--output")
-        .arg(&capture);
-    for prefix in prefixes {
-        capture_command.arg("--include-prefix").arg(prefix);
-    }
-    run(&mut capture_command);
-    run(Command::new(crate::maintained_python())
-        .arg(&tool)
-        .arg("restore")
-        .arg("--capture")
-        .arg(&capture)
-        .arg("--output")
-        .arg(&restored));
-    let manifest_raw = fs::read(capture.join("capture.json")).unwrap();
-    let manifest: Value = serde_json::from_slice(&manifest_raw).unwrap();
-    assert_eq!(
-        manifest["source_git_commit"].as_str().unwrap(),
-        source_commit
-    );
-    let selection = tos_source_store::SoftwareCaptureSelectionV1 {
-        source_git_commit: source_commit.to_owned(),
-        source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
-        capture_manifest_sha256: Digest256::of_bytes(&manifest_raw),
-    };
+    restore_software_archive(&capture, &restored, &selection, deadline, &cancelled);
     SoftwareCaptureFixture {
         temporary,
         capture,
