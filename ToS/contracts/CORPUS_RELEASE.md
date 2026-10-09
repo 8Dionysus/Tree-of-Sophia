@@ -6,11 +6,22 @@ invalidate accepted source bytes or require their recompilation.
 
 ## Source transaction
 
-`scripts/corpus_store.py` stores exact SHA-256 objects, immutable revision
-manifests and an atomically replaced local current/previous pointer outside the
-software checkout. The caller supplies an exact base revision and one complete
-batch of byte-bound updates and explicit retirement events. A failed batch may
-leave unreferenced immutable objects; it cannot advance the accepted pointer.
+Native `tos-native-owner-command corpus-admit` installs exact SHA-256 objects,
+immutable revision manifests and a protected current selection outside the
+software checkout. The command is implemented by
+`rust/crates/tos-command/src/source_admission_cli.rs` and its admission/store
+owners; read-only revision selection and byte verification use
+`tos-source-store::CorpusReader`. The caller supplies an exact base revision
+and one complete batch of byte-bound updates and explicit retirement events. A
+refusal before publication may leave unreferenced immutable objects; it cannot
+advance the accepted selection. A later refusal reported as committed follows
+the native owner's exact committed-revision recovery route and must not be read
+as rollback.
+
+Exact revision selection and member reads use `CorpusReader::resolve` and
+`CorpusReader::read_selected`. Historical Git member descriptors use
+`tos-source-store::{resolve_git_member, read_git_member}`; neither route
+substitutes a mutable `latest` path for a recorded revision or commit.
 
 Each revision binds its exact file membership, byte sizes, modes, validator and
 schema identity, stable identity index, incoming dependency index, base revision
@@ -43,8 +54,9 @@ the full view until its owner checks acquire their own scoped implementation.
 
 ### Source retirement event
 
-The source adapter applies the existing `provenance-event.schema.json` contract
-through `scripts/corpus_source_retirement.py`. An event is a JSON record under
+The native source-admission owner applies the existing
+`provenance-event.schema.json` contract through its exact source-transition
+route. An event is a JSON record under
 `ToS/source-witnesses/retirements/`, has a `tos.event.*` ID, `event_type: migration`,
 and a completed status. Its method is `corpus-source-retirement`, version `1`.
 The method configuration contains exactly:
@@ -67,14 +79,17 @@ history. The source owner reviews the proposed membership change and its actual
 authority; the validator checks those bindings and operation shape, never
 interprets an arbitrary review string as approval or grants rights or canon status.
 
-The command is `scripts/corpus_admit.py`: it requires an exact canonical batch, input root, grammar root and store root. The batch binds every update digest, size and mode; source files cannot select validation code.
+The command is `tos-native-owner-command corpus-admit`: it requires an exact
+canonical batch, input root, grammar root, store root and protected invocation.
+The batch binds every update digest, size and mode; source files cannot select
+validation code.
 
-The program-owned adapter is `scripts/corpus_source_validation.py`. It uses the
-existing source foundation, source profile and catalog validators on an isolated
-view; it does not import code from the selected corpus. The first implementation
-retains a conservative full source audit within this data operation. Dependency
-indexes support affected-source diagnosis and future narrowing; they do not
-justify skipping an existing invariant. This audit is absent from software CI.
+The native program-owned adapter uses the existing source-foundation and source
+catalog owners on an isolated view; it does not import code from the selected
+corpus. The current implementation retains a conservative full source audit
+within this data operation. Dependency indexes support affected-source
+diagnosis and future narrowing; they do not justify skipping an existing
+invariant. This audit is absent from software CI.
 Catalogs produced for validation remain disposable data, outside authored source
 membership. Authored Markdown route cards inside generated directories remain
 source. Existing exact provenance may refer to earlier derived bytes: an explicit
@@ -93,12 +108,20 @@ status. The relevant owner judgment remains explicit in the unchanged sources.
 
 ## Compiled data
 
-`scripts/corpus_build_worker.py` compiles an accepted revision in a dedicated
-process and disposable view. Catalogs, philosophy projections, bibliographic
-graph, corpus projection and Evidence Lens are produced by their existing owner
-builders. Source discovery uses the admitted manifest rather than Git population.
-The data packager at `access/packaging/build_data_snapshot.py` binds only the
-exact runtime allowlist and its verified partitioned closures.
+The native `tos-native-owner-command corpus-build < REQUEST_JSON` route accepts
+`tos_native_corpus_build_request_v1`. It binds an immutable source revision to
+a separately selected, digest-bound software capture and restored root, the
+capture's Git commit/tree and component selection, and the exact schema-worker
+path and digest. Its `mode: build` composes the six fixed source runtime
+products and invokes the native data writer, producing fresh data and private
+release-candidate directories under the selected persistent store without
+moving a release pointer. Source discovery uses the admitted manifest rather
+than Git population.
+
+Direct CI parity uses the separate native `corpus-projection-check` request.
+It reuses the held authored capture and exact Rust composer, then performs
+read-only exact-byte comparison for the current corpus index and bibliographic
+claim graph only. It does not admit source changes or produce a data release.
 
 A data snapshot contains no executable program or browser build. Its manifest
 binds the corpus revision, projection inputs, actual query compiler identity,
@@ -107,11 +130,11 @@ identity excludes unrelated software Git commits and wall-clock timestamps.
 The reader must verify compatibility before selecting the data. Incomplete or
 corrupted outputs cannot replace a previously verified release.
 
-`build_data_snapshot.py build --reuse-snapshot PATH` verifies a previous snapshot
-completely before considering its compiled query store. Reuse requires identical
-compiler bytes, ABI and exact compiler input bindings. Different valid inputs
-are compiled normally; a corrupt cache is rejected. Cache location, Git HEAD and
-wall-clock time never participate in the data identity.
+The native build route verifies an explicitly selected prior snapshot before
+considering its compiled query store. Reuse requires identical compiler bytes,
+ABI and exact compiler input bindings. Different valid inputs are compiled
+normally; a corrupt cache is rejected. Cache location, Git HEAD and wall-clock
+time never participate in the data identity.
 
 ## Custody and historical preservation
 
@@ -134,13 +157,16 @@ operational credentials/receipts outside Git are outside this transfer. Local
 excluded bytes remain preserved and appear in the exact disposition manifest;
 exclusion from a remote copy is never reported as complete remote preservation.
 
-`scripts/corpus_archive.py` records exact Git commit/tree, member Git blob IDs,
-SHA-256, sizes and modes. Restore verifies the archive and complete manifest
-before and during extraction. `scripts/corpus_r2.py` transports bounded chunks
-using existing private R2 custody infrastructure. Existing objects and every new
-upload are freshly read back; the complete manifest is published last. A failed
-or unavailable remote copy remains incomplete. It does not block software work
-or authorize deletion of the local source.
+`tos-source-store::{capture_git, verify_capture, restore_capture}` records exact
+Git commit/tree, member Git blob IDs, SHA-256, sizes and modes. Restore verifies
+the archive and complete manifest before and during extraction. The bounded
+`tos-source-store::ChunkedFileTransportV1` protocol owns content-addressed chunk
+and manifest fixity. The separate private R2 byte transport remains in
+`scripts/source_payload_r2.py`; it moves bytes without owning the chunk
+integrity contract. Existing objects and every new upload are freshly read
+back; the complete manifest is published last. A failed or unavailable remote
+copy remains incomplete. It does not block software work or authorize deletion
+of the local source.
 
 Historical Git refs and corpus object locators retain their exact byte identity.
 A source-return locator never substitutes a mutable `latest` path for a recorded

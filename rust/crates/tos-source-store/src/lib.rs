@@ -4,6 +4,7 @@
 //! publication and current-use authority remain with their owners.
 
 mod archive;
+mod chunked_file;
 mod cut;
 mod error;
 mod git_capture;
@@ -42,6 +43,11 @@ pub use streamed_cut::{
 pub use archive::{
     CaptureReadUsage, CaptureRestoreLimits, CaptureVerification, restore_capture, verify_capture,
     verify_capture_with_usage,
+};
+
+pub use chunked_file::{
+    CHUNKED_FILE_MAX_CHUNK_BYTES_V1, CHUNKED_FILE_SCHEMA_V1, ChunkedFileLimitsV1,
+    ChunkedFileReceiptV1, ChunkedFileTransportV1, restore_chunked_file_v1, upload_chunked_file_v1,
 };
 
 pub use git_capture::{CaptureGitRequest, CaptureGitResult, GitCaptureLimits, capture_git};

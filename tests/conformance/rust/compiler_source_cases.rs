@@ -134,8 +134,8 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
         );
     }
     captured.insert(
-        "scripts/corpus_archive.py".into(),
-        fs::read(repository.join("scripts/corpus_archive.py")).unwrap(),
+        "rust/crates/tos-compiler/src/lib.rs".into(),
+        fs::read(repository.join("rust/crates/tos-compiler/src/lib.rs")).unwrap(),
     );
     assert!(captured.len() <= 512);
     assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
@@ -155,7 +155,12 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     }
     git(
         &git_root,
-        &["add", "--", "ToS", "scripts/corpus_archive.py"],
+        &[
+            "add",
+            "--",
+            "ToS",
+            "rust/crates/tos-compiler/src/lib.rs",
+        ],
     );
     git(
         &git_root,
@@ -1020,14 +1025,10 @@ fn native_corpus_composition_case(installed: bool) {
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);
     let mut captured = files.clone();
-    // The existing capture helper executes this exact commit's archive program;
-    // both actual software owners remain outside the authored source cut.
-    for path in [
-        "scripts/corpus_archive.py",
-        "scripts/tos_corpus_index_common.py",
-    ] {
-        captured.insert(path.into(), fs::read(repository.join(path)).unwrap());
-    }
+    // The native capture binds one exact maintained compiler implementation
+    // beside the authored ToS cut; neither one becomes the other's authority.
+    let compiler = "rust/crates/tos-compiler/src/lib.rs";
+    captured.insert(compiler.into(), fs::read(repository.join(compiler)).unwrap());
     let declaration_raw =
         fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
     let declaration: Value = serde_json::from_slice(&declaration_raw).unwrap();
@@ -1057,7 +1058,7 @@ fn native_corpus_composition_case(installed: bool) {
             "add",
             "--",
             "ToS",
-            "scripts",
+            "rust/crates/tos-compiler/src/lib.rs",
             "access/contracts/runtime-data.v1.json",
         ],
     );
@@ -1083,7 +1084,11 @@ fn native_corpus_composition_case(installed: bool) {
     let capture = super::source_cut_cases::captured_software_fixture(
         &git_root,
         &commit,
-        &["ToS", "scripts", "access/contracts"],
+        &[
+            "ToS",
+            "rust/crates/tos-compiler/src/lib.rs",
+            "access/contracts",
+        ],
     );
     phase(started, deadline, "software-capture-ready");
     let read_limits = ReadLimits {

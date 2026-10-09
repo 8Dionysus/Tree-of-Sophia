@@ -76,7 +76,7 @@ fn authored_preflight(root: &Path, deadline: Instant) -> (usize, u64) {
 fn capture_process(command: &mut Command, deadline: Instant) -> Vec<u8> {
     assert!(Instant::now() < deadline);
     for (key, _) in std::env::vars_os() {
-        if key.to_string_lossy().starts_with("GIT_") || key == "PYTHONPATH" || key == "PYTHONHOME" {
+        if key.to_string_lossy().starts_with("GIT_") {
             command.env_remove(key);
         }
     }
@@ -88,12 +88,11 @@ fn capture_process(command: &mut Command, deadline: Instant) -> Vec<u8> {
         .env("GIT_CONFIG_KEY_0", "core.packedGitWindowSize")
         .env("GIT_CONFIG_VALUE_0", "16m")
         .env("GIT_CONFIG_KEY_1", "core.packedGitLimit")
-        .env("GIT_CONFIG_VALUE_1", "64m")
-        .env("PYTHONDONTWRITEBYTECODE", "1");
+        .env("GIT_CONFIG_VALUE_1", "64m");
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
-    // The two Python owner tools may spawn Git. Their selected child process
-    // group is the only termination target if this bounded call fails.
+    // Only the caller-selected Git lookup is supervised here; its child
+    // process group is the termination target if the bounded call fails.
     let mut child = command
         .process_group(0)
         .stdin(Stdio::null())
@@ -168,52 +167,23 @@ fn selected_capture(
         .unwrap();
     let capture = temporary.path().join("software-capture");
     let restored = temporary.path().join("software-restored");
-    let tool = temporary.path().join("corpus_archive.py");
-    let program = capture_process(
-        Command::new("git")
-            .arg("-C")
-            .arg(repository)
-            .arg("show")
-            .arg(format!("{commit}:scripts/corpus_archive.py")),
-        deadline,
+    let prefixes = names
+        .iter()
+        .filter(|name| rule_software_component(name))
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let cancelled = AtomicBool::new(false);
+    let selection = super::source_cut_cases::capture_software_archive(
+        repository, &commit, &prefixes, &capture, deadline, &cancelled,
     );
-    fs::write(&tool, program).unwrap();
-    let wrapper = "import resource,runpy,sys;resource.setrlimit(resource.RLIMIT_CPU,(20,20));resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name='__main__')";
-    let mut command = Command::new(crate::maintained_python());
-    command
-        .args(["-c", wrapper])
-        .arg(&tool)
-        .arg("capture")
-        .arg("--repo-root")
-        .arg(repository)
-        .arg("--commit")
-        .arg(&commit)
-        .arg("--output")
-        .arg(&capture);
-    for name in names.iter().filter(|name| rule_software_component(name)) {
-        command.arg("--include-prefix").arg(name);
-    }
-    capture_process(&mut command, deadline);
-    capture_process(
-        Command::new(crate::maintained_python())
-            .args(["-c", wrapper])
-            .arg(&tool)
-            .arg("restore")
-            .arg("--capture")
-            .arg(&capture)
-            .arg("--output")
-            .arg(&restored),
-        deadline,
+    super::source_cut_cases::restore_software_archive(
+        &capture, &restored, &selection, deadline, &cancelled,
     );
     assert!(fs::metadata(capture.join("capture.json")).unwrap().len() <= 1_048_576);
     let raw = fs::read(capture.join("capture.json")).unwrap();
     let manifest: Value = serde_json::from_slice(&raw).unwrap();
     assert_eq!(manifest["source_git_commit"], commit);
-    let selection = tos_source_store::SoftwareCaptureSelectionV1 {
-        source_git_commit: commit,
-        source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
-        capture_manifest_sha256: Digest256::of_bytes(&raw),
-    };
+    assert_eq!(selection.capture_manifest_sha256, Digest256::of_bytes(&raw));
     let fixture = super::source_cut_cases::SoftwareCaptureFixture {
         temporary,
         capture,
@@ -244,7 +214,7 @@ fn selected_capture(
     (fixture, components)
 }
 
-fn fixture(repository: &Path, root: &Path, deadline: Instant) -> Value {
+fn fixture(root: &Path) -> Value {
     let script = r#"
 import json,sys,stat,resource
 resource.setrlimit(resource.RLIMIT_CPU,(20,20))
@@ -287,49 +257,19 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),'owner':st
     'config':case.config,'preview':prepared,'created_source':created['source'],
     'oracle_files':{name:raw.hex() for name,raw in saved.items()}},ensure_ascii=False,allow_nan=False))
 "#;
-    let mut output = tempfile::tempfile().unwrap();
-    let mut errors = tempfile::tempfile().unwrap();
-    let mut child = Command::new(crate::maintained_python())
-        .args(["-c", script])
-        .arg(repository)
-        .arg(root)
-        .env_remove("PYTHONPATH")
-        .env_remove("PYTHONHOME")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .stdout(Stdio::from(output.try_clone().unwrap()))
-        .stderr(Stdio::from(errors.try_clone().unwrap()))
-        .spawn()
-        .unwrap();
-    let step = deadline.min(Instant::now() + Duration::from_secs(60));
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if Instant::now() >= step
-            || output.metadata().unwrap().len() > 8_388_608
-            || errors.metadata().unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded maintained private Profile fixture refused");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    assert!(Instant::now() < step);
-    assert!(output.metadata().unwrap().len() <= 8_388_608);
-    assert!(errors.metadata().unwrap().len() <= 1_048_576);
-    output.seek(SeekFrom::Start(0)).unwrap();
-    errors.seek(SeekFrom::Start(0)).unwrap();
-    let mut raw = Vec::new();
-    let mut error = Vec::new();
-    output.read_to_end(&mut raw).unwrap();
-    errors.read_to_end(&mut error).unwrap();
-    assert!(
-        status.success(),
-        "private Profile fixture: {}",
-        String::from_utf8_lossy(&error)
+    let native_owner_paths = [
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
+        "rust/crates/tos-command/src/source_native_private_cli.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+    ];
+    let captured = super::native_python_fixture(
+        "private-profile-base",
+        &[("source-root", root)],
+        &native_owner_paths,
     );
-    serde_json::from_slice(&raw).unwrap()
+    super::assert_native_python_fixture(&captured, script, &native_owner_paths);
+    captured.packets.get("factory").unwrap().clone()
 }
 
 #[test]
@@ -358,7 +298,10 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
         "scripts/source_owner_context.py".to_owned(),
         "scripts/native_text_binding.py".to_owned(),
         "scripts/source_witness_human_forms.py".to_owned(),
-        "scripts/corpus_archive.py".to_owned(),
+        "rust/crates/tos-source-store/src/archive.rs".to_owned(),
+        "rust/crates/tos-source-store/src/chunked_file.rs".to_owned(),
+        "rust/crates/tos-source-store/src/git_capture.rs".to_owned(),
+        "rust/crates/tos-source-store/src/lib.rs".to_owned(),
         "mechanics/growth-cycle/tests/test_source_owner_profile_commands.py".to_owned(),
         "mechanics/growth-cycle/tests/test_occurrence_growth.py".to_owned(),
         "tests/test_native_text_binding.py".to_owned(),
@@ -423,14 +366,14 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
     );
     assert!(Instant::now() < deadline);
     eprintln!(
-        "private Profile F={fixture_bytes} E={native_bytes} C={consumer_bytes} W={worker_bytes} P={python_bytes} native_processes=10 launcher_processes=10 fixture_processes=1 explicit_oracle_calls=2 capture_direct_git=2 capture_python=2 capture_inner_git=4 workers<=10"
+        "private Profile F={fixture_bytes} E={native_bytes} C={consumer_bytes} W={worker_bytes} P={python_bytes} native_processes=10 launcher_processes=10 fixture_processes=0 explicit_oracle_calls=2 capture_direct_git=2 capture_python=0 capture_inner_git=4 workers<=10"
     );
     let (capture, components) = selected_capture(&repository, &names, deadline);
     let temporary = tempfile::Builder::new()
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
-    let selected = fixture(&repository, temporary.path(), deadline);
+    let selected = fixture(temporary.path());
     let public = PathBuf::from(selected["public"].as_str().unwrap());
     let private = PathBuf::from(selected["private"].as_str().unwrap());
     let owner = PathBuf::from(selected["owner"].as_str().unwrap());

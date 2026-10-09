@@ -18,7 +18,7 @@ boundaries, negative zero, subnormal and maximum finite values, integers above
 CPython's default 4,300-digit limit. A companion source-parse vector checks
 4,301 digits fail with the declared budget code. Each oracle row records
 exact bytes and SHA-256 for two distinct existing owner algorithms:
-`scripts/corpus_store.py::canonical` appends one LF, while
+the former Python corpus-store canonical serializer appended one LF, while
 `scripts/source_record_profiles.py::catalog_entry` hashes the compact sorted
 UTF-8 JSON body without that LF. The expected values came from Python
 `json.loads`/`json.dumps`, not Rust. The runner compares both snapshot and
