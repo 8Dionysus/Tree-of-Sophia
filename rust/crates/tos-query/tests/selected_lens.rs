@@ -1676,7 +1676,7 @@ fn selected_philosophy_variant_parity(
         JsonValue::Array(edges),
     ));
     let projection = JsonValue::Object(projection);
-    let oracle = historical_oracle(match variant {
+    let mut oracle = historical_oracle(match variant {
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::ReferencesV2 => "philosophy-01",
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1 => "philosophy-02",
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineNodesV1 => "philosophy-03",
@@ -2126,7 +2126,7 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
         for collection in std::iter::once(tos_compiler::CorpusOriginalCollection::Header)
             .chain(tos_compiler::CorpusOriginalCollection::ROWS)
         {
-            let expected = field(field(oracle, "originals"), collection.as_str())
+            let expected = field(field(&oracle, "originals"), collection.as_str())
                 .as_array()
                 .unwrap();
             let mut after = None;
@@ -2216,13 +2216,13 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
                 CorpusReadRequest::Search {
                     query: String::new(),
                     limit: 2,
-                    resource_kind: field(oracle, "kind").as_str().map(str::to_owned),
+                    resource_kind: field(&oracle, "kind").as_str().map(str::to_owned),
                 },
             ),
             (
                 "resources",
                 CorpusReadRequest::Resources {
-                    resource_kind: field(oracle, "kind").as_str().map(str::to_owned),
+                    resource_kind: field(&oracle, "kind").as_str().map(str::to_owned),
                     owner_branch: Some(s("branch")),
                     limit: 1,
                 },
@@ -2266,7 +2266,7 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
                     .unwrap();
             assert_eq!(
                 &*packet,
-                canonical(field(field(oracle, "cases"), name)),
+                canonical(field(field(&oracle, "cases"), name)),
                 "{name}"
             );
             packet.recheck().unwrap();

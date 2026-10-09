@@ -14,7 +14,7 @@ use tos_query::{
         WORKER_SEARCH_CURSOR_TOKEN_MAX_CHARS, WORKER_SEARCH_ID_MAX_BYTES,
         WORKER_SEARCH_INDEXED_SCHEMA_V2, WORKER_SEARCH_LEGACY_SCHEMA_V1,
         WORKER_SEARCH_MAX_CANDIDATES, WORKER_SEARCH_MAX_INTERSECTION_GRAMS,
-        WORKER_SEARCH_MAX_OFFSET, WORKER_SEARCH_MAX_VERIFY_CHARS, WORKER_SEARCH_RANK_CLASSES,
+        WORKER_SEARCH_MAX_OFFSET, WORKER_SEARCH_MAX_PAGE_SIZE, WORKER_SEARCH_MAX_VERIFY_CHARS, WORKER_SEARCH_RANK_CLASSES,
         WorkerGramSelection, WorkerPreflightOutcome, WorkerSearchControlError, WorkerSearchInput,
         WorkerSearchKind, WorkerWindowOutcome, normalize_worker_search, select_worker_search_grams,
         worker_rank_sql, worker_search_identity_matches_lower, worker_search_preflight,
@@ -25,6 +25,10 @@ use tos_query::{
 const ENVELOPE_VERSION: usize = 1;
 const MAX_CURSOR_BYTES: usize = WORKER_SEARCH_CURSOR_TOKEN_MAX_CHARS;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+
+fn invalid(message: &str) -> WorkerSearchControlError {
+    WorkerSearchControlError { code: "invalid_request", message: message.to_owned() }
+}
 
 fn text(value: &str) -> JsonValue {
     JsonValue::String(JsonString::from_utf8(value))

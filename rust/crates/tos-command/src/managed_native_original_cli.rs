@@ -7,7 +7,7 @@ use crate::source_current_cut::foundation_capture::{
     AuthoredDiagnosticCapture, AuthoredDiagnosticCaptureLimits,
 };
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::{
     cell::Cell,
     collections::{BTreeMap, BTreeSet},
@@ -1192,7 +1192,7 @@ fn selections_from_nodes(
         let Some(forms) = properties.get("human_forms").and_then(Value::as_array) else {
             continue;
         };
-        for packet in forms {
+        for packet in forms.iter_mut() {
             let Some(identity) = packet
                 .get("form")
                 .and_then(|form| form.get("id"))
@@ -1383,7 +1383,7 @@ fn apply_assessed_packets(
         else {
             continue;
         };
-        for packet in forms {
+        for packet in forms.iter_mut() {
             let Some(identity) = packet
                 .get("form")
                 .and_then(|form| form.get("id"))
@@ -3464,7 +3464,7 @@ pub(crate) fn with_direct_repository_projection<T>(
                             components: &components,
                             recheck: &recheck,
                             deadline,
-                            cancelled,
+                            cancelled: &cancelled,
                         },
                     )?;
                     Ok((products, consumed))
@@ -3939,11 +3939,12 @@ pub fn run_corpus_assessed_candidate_args(
             .ok_or(Refusal(
                 "assessed candidate request path must be absolute UTF-8",
             ));
-        path.and_then(read_assessed_candidate_request_file)
+        path.map_err(|error| -> Box<dyn StdError> { Box::new(error) })
+            .and_then(read_assessed_candidate_request_file)
     } else {
         Err(Refusal(
             "assessed candidate CLI requires --request ABS_JSON or stdin",
-        ))
+        ).into())
     }
     .and_then(execute_assessed_candidate);
     report_assessed_candidate(result, output, diagnostics)
