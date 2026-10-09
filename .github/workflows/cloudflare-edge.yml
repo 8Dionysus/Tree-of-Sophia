@@ -46,15 +46,22 @@ jobs:
           CARGO_BUILD_JOBS: "2"
           TOS_BUILD_MAX_SECONDS: ${{ inputs.build_seconds }}
         run: |
-          python - <<'PY'
-          import os
-          try:
-              seconds = int(os.environ['TOS_BUILD_MAX_SECONDS'])
-          except ValueError as error:
-              raise SystemExit('build_seconds must be an integer') from error
-          if not 1 <= seconds <= 7200:
-              raise SystemExit('build_seconds must be between 1 and 7200')
-          PY
+          value="$TOS_BUILD_MAX_SECONDS"
+          if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+            echo "build_seconds must be an integer" >&2
+            exit 1
+          fi
+          normalized="${value#"${value%%[!0]*}"}"
+          normalized="${normalized:-0}"
+          if (( ${#normalized} > 4 )); then
+            echo "build_seconds must be between 1 and 7200" >&2
+            exit 1
+          fi
+          seconds=$((10#$normalized))
+          if (( seconds < 1 || seconds > 7200 )); then
+            echo "build_seconds must be between 1 and 7200" >&2
+            exit 1
+          fi
           rustup toolchain install 1.98.1 --profile minimal
           cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
           binary="$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-access"

@@ -47,10 +47,10 @@ jobs:
         run: tos-ops-mechanics-plan --repo-root "$GITHUB_WORKSPACE" --tree-node-validate
 
       - name: Run relation-pack validator
-        run: python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
+        run: tos-ops-mechanics-plan --repo-root "$GITHUB_WORKSPACE" --relation-pack-validate
 
       - name: Run public example sync validator
-        run: python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
+        run: tos-ops-mechanics-plan --repo-root "$GITHUB_WORKSPACE" --public-mirror-validate
 
       - name: Run tests
         run: python -m pytest -q -p no:cacheprovider --durations=20 tests
