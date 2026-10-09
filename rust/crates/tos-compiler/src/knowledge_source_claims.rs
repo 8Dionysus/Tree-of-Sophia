@@ -195,8 +195,8 @@ pub(crate) fn claim_relation_material_witness(
     let (native,raw_sha,material,material_sha):(String,Vec<u8>,Vec<u8>,Vec<u8>)=stage.with_connection(WritePhase::Finalize,|db| {
         db.query_row("SELECT native_id,raw_sha256,CASE WHEN material_len=length(material) AND length(material)<=?3 THEN material ELSE NULL END,material_sha256 FROM knowledge_claim_relation_material WHERE source_graph=?1 AND id=?2",params![graph,id,max_bytes as i64],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(Error::from)
     })?;
-    let raw = stage
-        .raw_by_id(graph, "edges", &native)?
+    let raw_owner = stage.scoped_raw_by_id(graph, "edges", &native)?;
+    let raw = raw_owner.as_ref()
         .ok_or(Error::Invalid("Claim material original absent"))?;
     if raw_sha != Digest256::of_bytes(&raw.payload).as_bytes()
         || material_sha != Digest256::of_bytes(&material).as_bytes()
@@ -1362,8 +1362,8 @@ pub fn prepare_claim_context_groups(
                     limits.max_output_bytes,
                     stage.owned_creation_state(),
                 )?;
-                let owner = stage
-                    .raw_by_id(&graph, "nodes", &native)?
+                let owner_row = stage.scoped_raw_by_id(&graph, "nodes", &native)?;
+                let owner = owner_row.as_ref()
                     .ok_or(Error::Invalid("Claim group ordered source absent"))?;
                 charge(&mut work, owner.payload.len(), limits.max_work_bytes)?;
                 let owner_sha = Digest256::of_bytes(&owner.payload);
@@ -1481,8 +1481,8 @@ pub fn claim_context_sources(
     let mut work = 0;
     let mut result = Vec::new();
     for (native, sha) in owners {
-        let raw = stage
-            .raw_by_id(graph, "nodes", &native)?
+        let raw_owner = stage.scoped_raw_by_id(graph, "nodes", &native)?;
+        let raw = raw_owner.as_ref()
             .ok_or(Error::Invalid("Claim context witness absent"))?;
         if Digest256::of_bytes(&raw.payload).as_bytes().as_slice() != sha {
             return Err(Error::Invalid("Claim context witness digest"));
@@ -1498,7 +1498,8 @@ pub fn claim_context_sources(
         }) {
             ordered_claim_node_material(&raw.payload, limits.max_raw_bytes)?
         } else {
-            raw.payload
+            if let Some(state) = stage.owned_creation_state() { state.charge_work(raw.payload.len())?; }
+            raw.payload.clone()
         };
         charge(&mut work, material.len(), limits.max_work_bytes)?;
         result.push(material);
@@ -1560,11 +1561,11 @@ pub fn materialize_source_claim_relations(
                 if Digest256::of_bytes(&raw.payload).as_bytes().as_slice() != sha {
                     return Err(Error::Invalid("Claim prepared edge digest"));
                 }
-                let object = stage
-                    .raw_by_id(&prepared.source_graph, "nodes", &object_id)?
+                let object_row = stage.scoped_raw_by_id(&prepared.source_graph, "nodes", &object_id)?;
+                let object = object_row.as_ref()
                     .ok_or(Error::Invalid("Claim edge object absent"))?;
-                let target = stage
-                    .raw_by_id(&prepared.source_graph, "nodes", required(item, "to_id")?)?
+                let target_row = stage.scoped_raw_by_id(&prepared.source_graph, "nodes", required(item, "to_id")?)?;
+                let target = target_row.as_ref()
                     .ok_or(Error::Invalid("Claim edge target absent"))?;
                 let object = SourceRow::parse(&object.payload, normalizer.limits.max_raw_bytes)?;
                 let target = SourceRow::parse(&target.payload, normalizer.limits.max_raw_bytes)?;

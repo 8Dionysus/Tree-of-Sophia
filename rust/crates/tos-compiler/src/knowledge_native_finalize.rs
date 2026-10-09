@@ -329,7 +329,7 @@ where
                         } else {
                             &["edges", "relations"]
                         };
-                        let mut owner = source_material(
+                        let owner = source_material(
                             stage,
                             table == "knowledge_relations",
                             row.source,
@@ -337,24 +337,31 @@ where
                             native,
                         )?;
                         let needs_raw = owner.is_none();
+                        // Keep the exact input and its scoped admission until
+                        // readable-context compilation finishes for this row.
+                        let mut raw_owner = None;
                         for collection in collections.iter().filter(|_| needs_raw) {
                             if !stage.exact_receipt()?.collections.iter().any(|entry| {
                                 entry.source_graph == row.source && entry.collection == *collection
                             }) {
                                 continue;
                             }
-                            if let Some(raw) = stage.raw_by_id(row.source, collection, native)? {
-                                if owner.is_some() {
+                            let raw = stage.scoped_raw_by_id(row.source, collection, native)?;
+                            if raw.as_ref().is_some() {
+                                if raw_owner.is_some() {
                                     return Err(Error::Invalid("ambiguous native context source"));
                                 }
-                                owner = Some(raw.payload);
+                                raw_owner = Some(raw);
                             }
                         }
-                        let mut owner = owner.ok_or_else(|| {
+                        let original_owner = owner.as_deref().or_else(|| {
+                            raw_owner.as_ref().and_then(|raw| raw.as_ref()).map(|raw| raw.payload.as_slice())
+                        }).ok_or_else(|| {
                             // Identities only; never print private source payloads.
                             eprintln!("Native final source witness absent: table={table} source={:?} id={:?} native={:?}", row.source, row.id, native);
                             Error::Invalid("native ordered source witness absent")
                         })?;
+                        let mut material = None;
                         if table == "knowledge_nodes"
                             && stage.exact_receipt()?.collections.iter().any(|entry| {
                                 entry.source_graph == row.source
@@ -362,10 +369,10 @@ where
                                     && entry.adapter_profile == "reified-bibliographic-claims-v1"
                             })
                         {
-                            owner = crate::knowledge_source_claims::ordered_claim_node_material(
-                                &owner,
+                            material = Some(crate::knowledge_source_claims::ordered_claim_node_material(
+                                original_owner,
                                 limits.max_row_bytes,
-                            )?;
+                            )?);
                         }
                         if table == "knowledge_relations"
                             && stage.exact_receipt()?.collections.iter().any(|entry| {
@@ -374,14 +381,15 @@ where
                                     && entry.adapter_profile == "reified-bibliographic-claims-v1"
                             })
                         {
-                            owner =
+                            material = Some(
                                 crate::knowledge_source_claims::claim_relation_material_witness(
                                     stage,
                                     row.source,
                                     row.id,
                                     limits.max_row_bytes,
-                                )?;
+                                )?);
                         }
+                        let owner = material.as_deref().unwrap_or(original_owner);
                         let mut keys = BTreeSet::new();
                         if let Some(contexts) = value
                             .pointer("/semantics/assertion_contexts")

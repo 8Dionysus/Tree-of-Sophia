@@ -382,9 +382,8 @@ pub fn source_material(
         let (material,sha,collection,origin,origin_sha):(Vec<u8>,Vec<u8>,String,String,Vec<u8>)=stage.with_connection(WritePhase::Sort,|db|{
             db.query_row("SELECT CASE WHEN length(material)<=?3 THEN material ELSE NULL END,material_sha256,origin_collection,origin_id,origin_sha256 FROM knowledge_canon_proposals WHERE source_graph=?1 AND identity_id=?2",params![prepared.source_graph,identity,max_bytes as i64],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).optional()?.ok_or(Error::Invalid("canon source-material relation absent"))
         })?;
-        let raw = stage
-            .raw_by_id(&prepared.source_graph, &collection, &origin)?
-            .ok_or(Error::Invalid("canon proposal origin absent"))?;
+        let raw_origin = stage.scoped_raw_by_id(&prepared.source_graph, &collection, &origin)?;
+        let raw = raw_origin.as_ref().ok_or(Error::Invalid("canon proposal origin absent"))?;
         if material.len() > max_bytes
             || raw.payload.len() > max_bytes
             || sha.as_slice() != Digest256::of_bytes(&material).as_bytes()
@@ -403,15 +402,15 @@ pub fn source_material(
             .optional()?
             .ok_or(Error::Invalid("canon source-material node absent"))
         })?;
-        let raw = stage
-            .raw_by_id(&prepared.source_graph, "nodes", identity)?
-            .ok_or(Error::Invalid("canon source-material raw node absent"))?;
+        let raw_node = stage.scoped_raw_by_id(&prepared.source_graph, "nodes", identity)?;
+        let raw = raw_node.as_ref().ok_or(Error::Invalid("canon source-material raw node absent"))?;
         if raw.payload.len() > max_bytes
             || sha.as_slice() != Digest256::of_bytes(&raw.payload).as_bytes()
         {
             return Err(Error::Invalid("canon node source-material digest"));
         }
-        Ok(raw.payload)
+        if let Some(state) = stage.owned_creation_state() { state.charge_work(raw.payload.len())?; }
+        Ok(raw.payload.clone())
     }
 }
 #[derive(Clone, Debug)]

@@ -223,8 +223,9 @@ is invoked directly as `tos-ops-mechanics-plan --repo-root PATH --active-naming-
 `TOS_OPS_MECHANICS_EXECUTOR` selects topology mode. Each retained entry uses
 its exact override or the corresponding PATH binary, without compile-on-call
 or fallback. Existing argparse spelling, interpreter adapter, environment and
-exit status are preserved. Imported Python APIs and the optional naming cache
-remain available. OPS owns installation and packaging availability independently
+exit status are preserved for those remaining adapters. Active naming and its
+optional feedback cache are native; other imported Python APIs remain pending
+their corresponding retirement. OPS owns installation and packaging availability independently
 from the prepared read-model fs-verity route; source wiring alone proves neither
 installed availability nor an actual release/CI execution.
 

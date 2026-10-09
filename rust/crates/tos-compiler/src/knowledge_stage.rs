@@ -505,6 +505,22 @@ struct OwnedInputPage<'a> {
     container_hold: crate::d1_public_capture::CreationStateHold<'a, 'a>,
 }
 
+/// An exact source row whose input admission follows the borrowed row's actual
+/// lifetime. Dropping this reader releases only its own input, never output
+/// retained independently by the consumer.
+pub(crate) struct ScopedRawRow<'a> {
+    owned: Option<OwnedInputPage<'a>>,
+    legacy: Option<SeekRow>,
+}
+impl ScopedRawRow<'_> {
+    pub(crate) fn as_ref(&self) -> Option<&SeekRow> {
+        match &self.owned {
+            Some(page) => page.page.rows.first(),
+            None => self.legacy.as_ref(),
+        }
+    }
+}
+
 /// Budget ledger used by public operations. Native capture and its borrowed
 /// query callback share an atomic ledger so the same held capture can be lent
 /// across a Send disclosure lease and by disposable public D1 staging.
@@ -4207,30 +4223,37 @@ impl<'a> KnowledgeStage<'a> {
         id: &str,
         consume: impl FnOnce(&mut Self, Option<&SeekRow>) -> Result<T>,
     ) -> Result<T> {
-        let Some(state) = self.owned_creation_state() else {
-            let row = self.raw_by_id(source_graph, collection, id)?;
-            return consume(self, row.as_ref());
-        };
         let result = (|| {
-            state.charge_work(id.len())?;
-            valid_id(id)?;
-            let page = self.scoped_input_page_selected(
-                source_graph,
-                collection,
-                None,
-                1,
-                Some(id),
-                state,
-            )?;
-            let result = consume(self, page.page.rows.first());
-            drop(page);
+            let row = self.scoped_raw_by_id(source_graph, collection, id)?;
+            let result = consume(self, row.as_ref());
+            drop(row);
             result.and_then(|value| {
-                state.active()?;
+                if let Some(state) = self.owned_creation_state() { state.active()?; }
                 Ok(value)
             })
         })();
         self.poisoned |= result.is_err();
         result
+    }
+
+    pub(crate) fn scoped_raw_by_id(
+        &self,
+        source_graph: &str,
+        collection: &str,
+        id: &str,
+    ) -> Result<ScopedRawRow<'a>> {
+        if let Some(state) = self.owned_creation_state() {
+            state.charge_work(id.len())?;
+            valid_id(id)?;
+            Ok(ScopedRawRow {
+                owned: Some(self.scoped_input_page_selected(
+                    source_graph, collection, None, 1, Some(id), state,
+                )?),
+                legacy: None,
+            })
+        } else {
+            Ok(ScopedRawRow { owned: None, legacy: self.raw_by_id(source_graph, collection, id)? })
+        }
     }
 
     fn scoped_input_page(
@@ -6925,6 +6948,30 @@ mod tests {
                 budget.original_sql_vm_limit, &state,
             ).unwrap();
             stage.enable_carrier_once_layout(layout).unwrap();
+            stage.ingest_input(InputRow {
+                source_graph: "fixture.graph", collection: "fixture/raw", id: "raw.1", payload: b"raw",
+            }).unwrap();
+            // The finalizer's exact raw witness is temporary. Repeated reads
+            // must not reserve every previously dropped source row forever.
+            let baseline = state.remaining(0).unwrap();
+            for _ in 0..32 {
+                let raw = stage.scoped_raw_by_id("fixture.graph", "fixture/raw", "raw.1").unwrap();
+                assert_eq!(raw.as_ref().unwrap().payload, b"raw");
+                assert!(state.remaining(0).unwrap() < baseline);
+                drop(raw);
+                assert_eq!(state.remaining(0).unwrap(), baseline);
+            }
+            assert!(stage.scoped_raw_by_id("fixture.graph", "fixture/raw", "absent").unwrap().as_ref().is_none());
+            assert_eq!(state.remaining(0).unwrap(), baseline);
+            stage.with_raw_by_id_owned("fixture.graph", "fixture/raw", "raw.1", |_, raw| {
+                assert_eq!(raw.unwrap().payload, b"raw");
+                Ok(())
+            }).unwrap();
+            assert_eq!(state.remaining(0).unwrap(), baseline);
+            stage.db().execute("UPDATE raw_records SET payload_sha256=zeroblob(32) WHERE id='raw.1'", []).unwrap();
+            assert!(stage.scoped_raw_by_id("fixture.graph", "fixture/raw", "raw.1").is_err());
+            assert_eq!(state.remaining(0).unwrap(), baseline);
+            stage.db().execute("UPDATE raw_records SET payload_sha256=?1 WHERE id='raw.1'", [Digest256::of_bytes(b"raw").as_bytes().as_slice()]).unwrap();
             for order in 0..2 {
                 let id = format!("node.{order}");
                 let logical = serde_json::to_vec(&serde_json::json!({

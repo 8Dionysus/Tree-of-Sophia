@@ -827,7 +827,7 @@ fn prepare_inner(
                 .find(|e| e.collection == collection && COLLECTIONS.contains(&collection))
                 .ok_or(Error::Invalid("repository order collection"))?;
             if ordinal >= target.expected_count
-                || stage.raw_by_id(&source, collection, id)?.is_none()
+                || stage.scoped_raw_by_id(&source, collection, id)?.as_ref().is_none()
             {
                 return Err(Error::Invalid("repository order membership"));
             }
