@@ -17,14 +17,6 @@ jobs:
           # Keep that owner evidence locally verifiable for the smoke lane.
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: "3.12"
-
-      - name: Install validator dependencies
-        run: python -m pip install -r requirements-dev.txt
-
       - name: Build native source validators
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/source-audit-target
@@ -52,5 +44,8 @@ jobs:
       - name: Run public example sync validator
         run: tos-ops-mechanics-plan --repo-root "$GITHUB_WORKSPACE" --public-mirror-validate
 
-      - name: Run tests
-        run: python -m pytest -q -p no:cacheprovider --durations=20 tests
+      - name: Run native Rust workspace tests
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/source-audit-target
+          CARGO_BUILD_JOBS: "2"
+        run: cargo +1.98.1 test --locked --workspace -- --test-threads=1

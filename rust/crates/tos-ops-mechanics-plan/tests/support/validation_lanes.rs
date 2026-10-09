@@ -102,95 +102,63 @@ fn sequence_preserves_order_and_arguments_and_refuses_invalid_phase_boundaries()
     }
 }
 
-fn test_files(root: &Path, directory: &Path, output: &mut Vec<String>) {
-    for entry in fs::read_dir(directory).unwrap() {
-        let entry = entry.unwrap();
-        let kind = entry.file_type().unwrap();
-        assert!(!kind.is_symlink());
-        if kind.is_dir() {
-            test_files(root, &entry.path(), output);
-        } else if kind.is_file() {
-            let name = entry.file_name();
-            let name = name.to_str().unwrap();
-            if (name.starts_with("test_") && name.ends_with(".py")) || name.ends_with("_test.py") {
-                output.push(
-                    entry
-                        .path()
-                        .strip_prefix(root)
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_owned(),
-                );
-            }
-        }
-    }
-}
 #[test]
-fn release_software_inventory_is_complete_and_selected_once() {
+fn release_software_native_test_packages_are_selected_once() {
     let root = repository();
     let sequence = lanes::command_sequence(&root, "release_check", "selected-interpreter").unwrap();
     let tests = lanes::release_steps(&root, "selected-interpreter", ReleasePhase::Tests).unwrap();
-    assert_eq!(tests.len(), 4);
-    let prefix = [
-        "selected-interpreter",
-        "-m",
-        "pytest",
-        "-q",
-        "-p",
-        "no:cacheprovider",
-        "--strict-markers",
-        "-m",
-        "not data_release",
+    let expected = [
+        (
+            "run tests: native access package".to_owned(),
+            vec!["cargo", "test", "--locked", "-p", "tos-access"],
+        ),
+        (
+            "run tests: native query package".to_owned(),
+            vec!["cargo", "test", "--locked", "-p", "tos-query"],
+        ),
+        (
+            "run tests: native source and command packages".to_owned(),
+            vec![
+                "cargo",
+                "test",
+                "--locked",
+                "-p",
+                "tos-command",
+                "-p",
+                "tos-source-store",
+            ],
+        ),
     ];
-    let mut selected = Vec::new();
-    for (label, argv) in &tests {
-        assert!(label.starts_with("run tests: "));
-        assert_eq!(argv[..prefix.len()], prefix);
-        assert!(argv.len() > prefix.len());
-        selected.extend_from_slice(&argv[prefix.len()..]);
+    assert_eq!(tests.len(), expected.len());
+    for ((label, argv), (expected_label, expected_argv)) in tests.iter().zip(expected) {
+        assert_eq!(label, &expected_label);
+        assert_eq!(
+            argv,
+            &expected_argv
+                .iter()
+                .map(|arg| (*arg).to_owned())
+                .collect::<Vec<_>>()
+        );
     }
-    let mut access = Vec::new();
-    test_files(&root, &root.join("access/tests"), &mut access);
-    access.sort();
-    let support = [
-        "tests/test_acquisition_batch.py",
-        "tests/test_acquisition_handoff_adapter.py",
-        "tests/test_file_membership.py",
-        "tests/test_corpus_archive.py",
-        "tests/test_corpus_store.py",
-        "tests/test_corpus_r2.py",
-        "tests/test_corpus_locator.py",
-        "tests/test_corpus_admit.py",
-        "tests/test_corpus_source_validation.py",
-        "tests/test_corpus_source_retirement.py",
-        "tests/test_corpus_build_worker.py",
-        "tests/test_downstream_status.py",
-    ];
-    assert_eq!(
-        selected.len(),
-        selected.iter().collect::<BTreeSet<_>>().len()
-    );
-    assert_eq!(
-        selected
-            .iter()
-            .filter(|p| p.starts_with("access/tests/"))
-            .cloned()
-            .collect::<Vec<_>>(),
-        access
-    );
-    assert_eq!(
-        selected
-            .iter()
-            .filter(|p| p.starts_with("tests/"))
-            .map(String::as_str)
-            .collect::<Vec<_>>(),
-        support
-    );
     let mut combined =
         lanes::release_steps(&root, "selected-interpreter", ReleasePhase::Checks).unwrap();
     combined.extend(tests);
     assert_eq!(combined, sequence);
+    assert_eq!(
+        lanes::command_sequence(&root, "software_reader", "selected-interpreter").unwrap(),
+        vec![(
+            "native selected access wires".into(),
+            vec![
+                "cargo".into(),
+                "test".into(),
+                "--locked".into(),
+                "-p".into(),
+                "tos-access".into(),
+                "--test".into(),
+                "selected_wires".into(),
+            ],
+        )]
+    );
 }
 
 #[test]

@@ -1309,43 +1309,34 @@
     ],
     "standalone_access": [
       {
-        "label": "compile standalone query snapshot",
+        "label": "run native access package tests",
         "command": [
-          "python",
-          "access/src/tos_access/knowledge_compile.py",
-          "--root",
-          "."
-        ]
-      },
-      {
-        "label": "run standalone access contract tests",
-        "command": [
-          "python",
-          "-m",
-          "unittest",
-          "discover",
-          "-s",
-          "access/tests"
-        ]
-      },
-      {
-        "label": "run exact source-read pytest contracts",
-        "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "access/tests/test_source_read.py",
-          "access/tests/test_source_read_owner.py"
+          "tos-access"
         ]
       },
       {
-        "label": "validate standalone access source profile",
+        "label": "run native query package tests",
         "command": [
-          "python",
-          "access/packaging/validate_standalone.py"
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-query"
+        ]
+      },
+      {
+        "label": "validate standalone software profile through installed native CLI",
+        "command": [
+          "tos",
+          "validate-standalone",
+          "--root",
+          ".",
+          "--software",
+          "--json"
         ]
       }
     ],
@@ -1383,144 +1374,35 @@
         ]
       },
       {
-        "label": "run tests: access and source contracts",
+        "label": "run tests: native access package",
         "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "--strict-markers",
-          "-m",
-          "not data_release",
-          "access/tests/test_access_contract.py",
-          "access/tests/test_addressed_replacement.py",
-          "access/tests/test_builder_ownership.py",
-          "access/tests/test_catalog_index.py",
-          "access/tests/test_cloudflare_tunnel_deploy.py",
-          "access/tests/test_compact_lens_carrier.py",
-          "access/tests/test_compact_lens_store.py",
-          "access/tests/test_compressed_search_bootstrap.py",
-          "access/tests/test_compressed_search_bulk.py",
-          "access/tests/test_compressed_search_store.py",
-          "access/tests/test_core_partitioned_philosophy.py",
-          "access/tests/test_coverage_forwarding.py",
-          "access/tests/test_data_access.py",
-          "access/tests/test_data_snapshot.py",
-          "access/tests/test_exploration.py",
-          "access/tests/test_exploration_origin.py",
-          "access/tests/test_human_form_codec.py",
-          "access/tests/test_incremental_runtime.py",
-          "access/tests/test_indexed_lens.py",
-          "access/tests/test_indexed_search_contract.py",
-          "access/tests/test_knowledge_compile.py"
+          "tos-access"
         ]
       },
       {
-        "label": "run tests: knowledge, maintenance, and projection",
+        "label": "run tests: native query package",
         "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "--strict-markers",
-          "-m",
-          "not data_release",
-          "access/tests/test_knowledge_contract.py",
-          "access/tests/test_knowledge_scene_focus.py",
-          "access/tests/test_lens_membership_index.py",
-          "access/tests/test_native_io.py",
-          "access/tests/test_offline_maintenance.py",
-          "access/tests/test_offline_prepare.py",
-          "access/tests/test_prepared_catalog.py",
-          "access/tests/test_prepared_catchup_runtime.py",
-          "access/tests/test_prepared_cli.py",
-          "access/tests/test_prepared_delta_runtime.py",
-          "access/tests/test_prepared_delta_wal.py",
-          "access/tests/test_prepared_neighborhood.py",
-          "access/tests/test_prepared_publication.py",
-          "access/tests/test_prepared_semantics.py",
-          "access/tests/test_prepared_source_binding.py",
-          "access/tests/test_prepared_source_dependencies.py",
-          "access/tests/test_processing.py",
-          "access/tests/test_processing_closure.py",
-          "access/tests/test_projection_diff.py",
-          "access/tests/test_projection_mutation.py"
+          "tos-query"
         ]
       },
       {
-        "label": "run tests: published reads and source navigation",
+        "label": "run tests: native source and command packages",
         "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "--strict-markers",
-          "-m",
-          "not data_release",
-          "access/tests/test_projection_snapshot_diff.py",
-          "access/tests/test_projection_store.py",
-          "access/tests/test_published_exploration.py",
-          "access/tests/test_published_lens.py",
-          "access/tests/test_published_read_model.py",
-          "access/tests/test_published_search.py",
-          "access/tests/test_published_search_adapters.py",
-          "access/tests/test_published_temporal.py",
-          "access/tests/test_query_store.py",
-          "access/tests/test_readable_context.py",
-          "access/tests/test_reading_access.py",
-          "access/tests/test_release_pair.py",
-          "access/tests/test_release_state.py",
-          "access/tests/test_search_read_model.py",
-          "access/tests/test_search_reverse_codec.py",
-          "access/tests/test_semantic_index.py",
-          "access/tests/test_separate_query_compiler_roots.py",
-          "access/tests/test_software_boundary.py",
-          "access/tests/test_software_bundle.py",
-          "access/tests/test_source_assembly_normalization.py",
-          "access/tests/test_source_claim_catalog.py",
-          "access/tests/test_source_metadata_catalog.py",
-          "access/tests/test_source_metadata_publication.py",
-          "access/tests/test_source_metadata_publication_profiles.py",
-          "access/tests/test_source_navigation_bootstrap_runtime.py",
-          "access/tests/test_source_navigation_delta_runtime.py",
-          "access/tests/test_source_navigation_file_rights.py"
-        ]
-      },
-      {
-        "label": "run tests: remaining access and software support",
-        "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "tos-command",
           "-p",
-          "no:cacheprovider",
-          "--strict-markers",
-          "-m",
-          "not data_release",
-          "access/tests/test_source_navigation_rows.py",
-          "access/tests/test_source_read.py",
-          "access/tests/test_source_read_owner.py",
-          "access/tests/test_streaming_wheel.py",
-          "access/tests/test_temporal_comparison.py",
-          "tests/test_acquisition_batch.py",
-          "tests/test_acquisition_handoff_adapter.py",
-          "tests/test_file_membership.py",
-          "tests/test_corpus_archive.py",
-          "tests/test_corpus_store.py",
-          "tests/test_corpus_r2.py",
-          "tests/test_corpus_locator.py",
-          "tests/test_corpus_admit.py",
-          "tests/test_corpus_source_validation.py",
-          "tests/test_corpus_source_retirement.py",
-          "tests/test_corpus_build_worker.py",
-          "tests/test_downstream_status.py"
+          "tos-source-store"
         ]
       }
     ],
@@ -1567,18 +1449,15 @@
     ],
     "software_reader": [
       {
-        "label": "reader and API fixture tests",
+        "label": "native selected access wires",
         "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "--strict-markers",
-          "-m",
-          "not data_release",
-          "access/tests"
+          "tos-access",
+          "--test",
+          "selected_wires"
         ]
       }
     ],

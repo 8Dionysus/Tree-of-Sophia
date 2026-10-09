@@ -499,7 +499,6 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         "access/tests/fixtures/source-assembly/ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
         "access/tests/source_agent_publication_fixture.py",
         "access/tests/source_assembly_fixture.py",
-        "access/tests/test_indexed_lens.py",
         "access/tests/test_source_metadata_publication.py",
         "mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json",
         "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",
@@ -546,10 +545,6 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         "tests/test_source_owner_record_profiles.py",
         "tests/test_source_witness_bibliographic_graph.py",
     ]);
-    let required_tests: BTreeSet<&str> = BTreeSet::from([
-        "tests/test_acquisition_batch.py",
-        "tests/test_acquisition_handoff_adapter.py",
-    ]);
     let required_fixtures: BTreeSet<&str> = BTreeSet::from([
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
@@ -575,23 +570,37 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         &std::fs::read(root.join("docs/validation/validation_lanes.json")).unwrap(),
     )
     .unwrap();
-    let selected: BTreeSet<_> = lanes["command_sequences"]["release_check"]
+    let release_tests: Vec<_> = lanes["command_sequences"]["release_check"]
         .as_array()
         .unwrap()
         .iter()
-        .filter(|s| s["label"].as_str().unwrap().starts_with("run tests"))
-        .flat_map(|s| {
+        .filter(|s| s["label"].as_str().unwrap().starts_with("run tests:"))
+        .map(|s| {
             s["command"]
                 .as_array()
                 .unwrap()
                 .iter()
-                .filter_map(|v| v.as_str())
+                .map(|v| v.as_str().unwrap())
+                .collect::<Vec<_>>()
         })
         .collect();
-    for path in &required_tests {
-        assert!(selected.contains(path));
-    }
-    for path in required_tests.union(&required_fixtures) {
+    assert_eq!(
+        release_tests,
+        vec![
+            vec!["cargo", "test", "--locked", "-p", "tos-access"],
+            vec!["cargo", "test", "--locked", "-p", "tos-query"],
+            vec![
+                "cargo",
+                "test",
+                "--locked",
+                "-p",
+                "tos-command",
+                "-p",
+                "tos-source-store"
+            ],
+        ]
+    );
+    for path in &required_fixtures {
         assert!(
             software.contains(&format!("/{path}")),
             "software sparse input missing: {path}"
