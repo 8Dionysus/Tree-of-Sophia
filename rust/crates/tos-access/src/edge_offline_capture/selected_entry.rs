@@ -627,7 +627,7 @@ pub(super) fn run(path: &str, stdout: &mut dyn Write, stderr: &mut dyn Write) ->
                         row.get::<_, i64>(0)
                     })
                     .map_err(|e| e.to_string())?;
-                db.identity.verify_selected_file_identity()?;
+                db.identity.verify_selected_file_identity(&db.connection)?;
                 active(work)?;
                 connections.push((name.to_owned(), db));
             }
@@ -666,7 +666,9 @@ pub(super) fn run(path: &str, stdout: &mut dyn Write, stderr: &mut dyn Write) ->
                     return Err("selected entry supervisor association changed".into());
                 }
                 for (_, selected) in &connections {
-                    selected.identity.verify_selected_file_identity()?;
+                    selected
+                        .identity
+                        .verify_selected_file_identity(&selected.connection)?;
                 }
                 let raw = emit_value_preserved_json(&result, limits(output_cap))
                     .map_err(|_| "selected entry result encoding")?;

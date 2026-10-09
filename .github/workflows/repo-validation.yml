@@ -397,7 +397,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: "24"
+          # Frozen SQLite fixture files were captured with SQLite 3.51.2.
+          node-version: "24.14.0"
           cache: npm
           cache-dependency-path: access/deploy/cloudflare-worker/package-lock.json
 
@@ -427,6 +428,7 @@ jobs:
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-schema-worker
         run: |
           test -x "$TOS_ACCESS_BIN"
+          node --input-type=module -e 'import { strict as assert } from "node:assert"; assert.equal(process.versions.sqlite, "3.51.2", "frozen SQLite fixture engine");'
           npm ci --prefer-offline --no-audit --no-fund --prefix access/deploy/cloudflare-worker
           npm run typecheck --prefix access/deploy/cloudflare-worker
           npm test --prefix access/deploy/cloudflare-worker

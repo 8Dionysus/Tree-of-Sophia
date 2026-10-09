@@ -1821,3 +1821,78 @@ fn wal_two_held_transactions_same_file_feed_distinct_typed_frames() {
     before.rollback().unwrap();
     after.rollback().unwrap();
 }
+
+#[test]
+fn selected_sqlite_connections_keep_identity_during_parallel_fd_reuse() {
+    let directory = Directory::new();
+    let paths: Vec<_> = (0..8)
+        .map(|n| {
+            let path = directory.0.join(format!("identity-{n}.sqlite"));
+            Connection::open(&path)
+                .unwrap()
+                .execute_batch("CREATE TABLE owned(value INTEGER); INSERT INTO owned VALUES(7);")
+                .unwrap();
+            path
+        })
+        .collect();
+    let barrier = std::sync::Barrier::new(paths.len());
+    std::thread::scope(|scope| {
+        for path in &paths {
+            let barrier = &barrier;
+            scope.spawn(move || {
+                barrier.wait();
+                for _ in 0..16 {
+                    let selected = open_read_only(path, 100_000, 1_048_576).unwrap();
+                    assert_eq!(
+                        selected
+                            .connection
+                            .query_row("SELECT value FROM owned", [], |row| row.get::<_, i64>(0))
+                            .unwrap(),
+                        7
+                    );
+                    selected
+                        .identity
+                        .verify_selected_file_identity(&selected.connection)
+                        .unwrap();
+                }
+            });
+        }
+    });
+}
+
+#[test]
+fn selected_sqlite_identity_rejects_renamed_connection_and_replacement_path() {
+    let directory = Directory::new();
+    let path = directory.0.join("selected.sqlite");
+    let renamed = directory.0.join("retained.sqlite");
+    let original = Connection::open(&path).unwrap();
+    original
+        .execute_batch("CREATE TABLE owned(value INTEGER); INSERT INTO owned VALUES(7);")
+        .unwrap();
+    drop(original);
+    let selected = open_read_only(&path, 100_000, 1_048_576).unwrap();
+    fs::rename(&path, &renamed).unwrap();
+    let replacement = Connection::open(&path).unwrap();
+    replacement
+        .execute_batch("CREATE TABLE owned(value INTEGER); INSERT INTO owned VALUES(9);")
+        .unwrap();
+    assert!(verify_sqlite_connection_identity(&selected.connection, &path).is_err());
+    assert!(
+        selected
+            .identity
+            .verify_selected_file_identity(&selected.connection)
+            .is_err()
+    );
+    let admitted_replacement = open_read_only(&path, 100_000, 1_048_576).unwrap();
+    admitted_replacement
+        .identity
+        .verify_selected_file_identity(&admitted_replacement.connection)
+        .unwrap();
+    assert_eq!(
+        admitted_replacement
+            .connection
+            .query_row("SELECT value FROM owned", [], |row| row.get::<_, i64>(0))
+            .unwrap(),
+        9
+    );
+}

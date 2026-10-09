@@ -16,7 +16,6 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs::{self, File},
     io::{Read, Write},
-    os::fd::AsRawFd,
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
 };
@@ -523,13 +522,12 @@ struct HeldSqliteIdentity {
     guard: File,
     selected_path: PathBuf,
     selected_identity: (u64, u64),
-    sqlite_fd: Option<i32>,
     frame_identity: Option<(u64, String)>,
     snapshot_inventory: Option<Value>,
 }
 
 impl HeldSqliteIdentity {
-    fn verify_selected_file_identity(&self) -> Result<(), String> {
+    fn verify_selected_file_identity(&self, connection: &Connection) -> Result<(), String> {
         let guard = self.guard.metadata().map_err(|error| error.to_string())?;
         let current =
             fs::symlink_metadata(&self.selected_path).map_err(|error| error.to_string())?;
@@ -543,12 +541,8 @@ impl HeldSqliteIdentity {
                 "selected SQLite path differs from its held snapshot identity",
             ));
         }
-        if let Some(sqlite_fd) = self.sqlite_fd {
-            let held = fs::metadata(format!("/proc/self/fd/{sqlite_fd}"))
-                .map_err(|error| error.to_string())?;
-            if (held.dev(), held.ino()) != identity {
-                return Err(invalid("selected SQLite descriptor identity changed"));
-            }
+        if self.frame_identity.is_none() {
+            verify_sqlite_connection_identity(connection, &self.selected_path)?;
         }
         if let Some((frame_bytes, expected_sha256)) = &self.frame_identity {
             if guard.len() != *frame_bytes {
@@ -585,19 +579,31 @@ impl HeldSqliteIdentity {
     }
 }
 
-fn process_fds() -> Result<BTreeSet<i32>, String> {
-    fs::read_dir("/proc/self/fd")
-        .map_err(|error| format!("process descriptor inventory: {error}"))?
-        .map(|entry| {
-            let name = entry
-                .map_err(|error| error.to_string())?
-                .file_name()
-                .into_string()
-                .map_err(|_| invalid("process descriptor name"))?;
-            name.parse::<i32>()
-                .map_err(|_| invalid("process descriptor number"))
-        })
-        .collect()
+fn verify_sqlite_connection_identity(connection: &Connection, path: &Path) -> Result<(), String> {
+    if connection.path().map(Path::new) != Some(path) {
+        return Err(invalid("SQLite connection opened another input path"));
+    }
+    // Ask this connection's VFS about its actual opened file. A process-wide
+    // fd census cannot bind a connection: unrelated threads close and reuse fd
+    // numbers between the before/after scans, even for independent databases.
+    let mut moved: std::ffi::c_int = -1;
+    // SAFETY: the borrowed connection remains live and exclusively owned by
+    // this caller; main is a static NUL-terminated name and HAS_MOVED writes one
+    // c_int synchronously without retaining the supplied pointer.
+    let result = unsafe {
+        rusqlite::ffi::sqlite3_file_control(
+            connection.handle(),
+            c"main".as_ptr(),
+            rusqlite::ffi::SQLITE_FCNTL_HAS_MOVED,
+            (&mut moved as *mut std::ffi::c_int).cast(),
+        )
+    };
+    if result != rusqlite::ffi::SQLITE_OK || moved != 0 {
+        return Err(invalid(
+            "SQLite connection does not hold the selected input",
+        ));
+    }
+    Ok(())
 }
 
 fn open_read_only(
@@ -617,14 +623,12 @@ fn open_read_only_with_deadline(
     if original_deadline.is_some_and(|deadline| std::time::Instant::now() >= deadline) {
         return Err(invalid("selected SQLite original deadline elapsed"));
     }
-    let descriptors_before = process_fds()?;
     let identity_guard = tos_fd_open::open_absolute_regular(path, u64::MAX)
         .map_err(|error| format!("pin selected SQLite input: {error}"))?;
     let selected_metadata = identity_guard
         .metadata()
         .map_err(|error| error.to_string())?;
     let selected_identity = (selected_metadata.dev(), selected_metadata.ino());
-    let identity_fd = identity_guard.as_raw_fd();
     let mut db = Connection::open_with_flags(
         path,
         OpenFlags::SQLITE_OPEN_READ_ONLY
@@ -666,15 +670,7 @@ fn open_read_only_with_deadline(
     if Path::new(&main_path) != path {
         return Err(invalid("SQLite connection opened another input path"));
     }
-    let sqlite_fd = process_fds()?
-        .into_iter()
-        .filter(|fd| *fd != identity_fd && !descriptors_before.contains(fd))
-        .find(|fd| {
-            fs::metadata(format!("/proc/self/fd/{fd}"))
-                .ok()
-                .is_some_and(|metadata| (metadata.dev(), metadata.ino()) == selected_identity)
-        })
-        .ok_or_else(|| invalid("SQLite connection does not hold the selected input"))?;
+    verify_sqlite_connection_identity(&db, path)?;
     let path_metadata = fs::symlink_metadata(path).map_err(|error| error.to_string())?;
     if path.is_symlink()
         || !path_metadata.is_file()
@@ -690,7 +686,6 @@ fn open_read_only_with_deadline(
             guard: identity_guard,
             selected_path: path.to_owned(),
             selected_identity,
-            sqlite_fd: Some(sqlite_fd),
             frame_identity: None,
             snapshot_inventory: None,
         },
@@ -744,7 +739,6 @@ fn open_typed_snapshot(
             guard: imported.guard,
             selected_path: imported.selected_path,
             selected_identity: imported.selected_identity,
-            sqlite_fd: None,
             frame_identity: Some((imported.frame_bytes, imported.frame_sha256)),
             snapshot_inventory: Some(imported.inventory),
         },
@@ -4917,10 +4911,10 @@ fn run_prepared_transition(
         &mut retained,
     )?;
     let transitions = row_transitions(before_capture, after_capture, limits, &mut retained)?;
-    d1.identity.verify_selected_file_identity()?;
-    after_db.identity.verify_selected_file_identity()?;
-    if let Some(identity) = before_identity {
-        identity.verify_selected_file_identity()?;
+    d1.identity.verify_selected_file_identity(&d1_tx)?;
+    after_db.identity.verify_selected_file_identity(&after_tx)?;
+    if let (Some(identity), Some(connection)) = (before_identity, before_tx.as_ref()) {
+        identity.verify_selected_file_identity(connection)?;
     }
     let mut selected_snapshots = vec![("d1_database", &d1.identity)];
     if let Some(identity) = before_identity {
@@ -5300,7 +5294,7 @@ fn run_source_navigation_integrity(
     // spec. They are reserved publication rows, not caller transitions.
 
     let transitions = row_transitions(before_rows, after_rows, limits, &mut retained)?;
-    d1.identity.verify_selected_file_identity()?;
+    d1.identity.verify_selected_file_identity(&d1_tx)?;
     let snapshot_transport =
         snapshot_transport_value(request_schema, &[("d1_database", &d1.identity)])?;
     let receipt =
@@ -5775,8 +5769,8 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
     )?;
     inspect_private_prepared_source_inputs(&spec, None, Some(after_source.raw()))
         .map_err(|error| format!("offline bootstrap source pair: {error:?}"))?;
-    d1.identity.verify_selected_file_identity()?;
-    after_db.identity.verify_selected_file_identity()?;
+    d1.identity.verify_selected_file_identity(&d1_tx)?;
+    after_db.identity.verify_selected_file_identity(&after_tx)?;
     let snapshot_transport = snapshot_transport_value(
         request_schema,
         &[

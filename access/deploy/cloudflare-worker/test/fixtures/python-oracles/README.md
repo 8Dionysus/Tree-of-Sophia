@@ -32,3 +32,13 @@ Changing these fixtures requires a newly reviewed capture against the exact
 Worker test revision. A green fixture comparison proves only that the current
 Worker test result matches the recorded output; it does not revalidate current
 source semantics or establish production acceptance.
+
+
+The database-backed frozen cases bind the complete SQLite file bytes in addition
+to the exact former program, request and result. Their fixture writer uses
+SQLite **3.51.2**. Worker CI pins Node **24.14.0**, whose bundled SQLite has that
+version, and checks it before running the suite. A newer SQLite writer can change
+the physical file header/layout even for the same SQL rows; that does not match
+these frozen inputs. This pin belongs to the historical fixture writer, not the
+Worker's deployed engine or the native software package. Fixture state and result
+hash checks remain mandatory; an unknown database never borrows another outcome.
