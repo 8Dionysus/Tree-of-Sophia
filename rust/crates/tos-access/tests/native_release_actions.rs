@@ -179,6 +179,9 @@ fn create_archive(path: &Path, marker: &str) -> String {
         .write_all(&serde_json::to_vec(&embedded).unwrap())
         .unwrap();
     let mut archive = writer.finish().unwrap();
+    archive
+        .set_permissions(fs::Permissions::from_mode(0o600))
+        .unwrap();
     archive.sync_all().unwrap();
     let size = archive.metadata().unwrap().len();
     archive.rewind().unwrap();
@@ -203,11 +206,10 @@ fn create_archive(path: &Path, marker: &str) -> String {
         .insert("archive_sha256".into(), serde_json::json!(digest));
     let mut sidecar_path = path.as_os_str().to_os_string();
     sidecar_path.push(".manifest.json");
-    fs::write(
-        PathBuf::from(sidecar_path),
-        serde_json::to_vec(&sidecar).unwrap(),
-    )
-    .unwrap();
+    write_private(
+        &PathBuf::from(sidecar_path),
+        &serde_json::to_vec(&sidecar).unwrap(),
+    );
     digest
 }
 
@@ -226,6 +228,8 @@ fn write_snapshot(
     fs::set_permissions(&data, fs::Permissions::from_mode(0o700)).unwrap();
     let model_path = data.join("model.sqlite");
     fs::copy(&fixture.path, &model_path).unwrap();
+    // Candidate custody is explicit and cannot depend on the CI runner umask.
+    fs::set_permissions(&model_path, fs::Permissions::from_mode(0o600)).unwrap();
     let measurement = if fs_verity {
         tos_compiler::prepare_native_knowledge_artifact(&model_path, &fixture.stage_receipt)
             .unwrap()
@@ -238,9 +242,9 @@ fn write_snapshot(
     let descriptor = fixture.descriptor_bytes.clone();
     let entity = fixture.entity_registry_bytes().to_vec();
     let relation = fixture.relation_registry_bytes().to_vec();
-    fs::write(data.join("descriptor.json"), &descriptor).unwrap();
-    fs::write(data.join("entity.json"), &entity).unwrap();
-    fs::write(data.join("relation.json"), &relation).unwrap();
+    write_private(&data.join("descriptor.json"), &descriptor);
+    write_private(&data.join("entity.json"), &entity);
+    write_private(&data.join("relation.json"), &relation);
     let selection = tos_compiler::NativeKnowledgeSelection::from_producer(
         tos_compiler::NativeSelectionPaths {
             model: "data/model.sqlite".into(),
@@ -269,7 +273,7 @@ fn write_snapshot(
     )
     .unwrap();
     let selection = selection.encode(MAX_METADATA).unwrap();
-    fs::write(data.join("native-selection.json"), &selection).unwrap();
+    write_private(&data.join("native-selection.json"), &selection);
     let members = BTreeMap::from([
         ("data/descriptor.json", descriptor),
         ("data/entity.json", entity),
@@ -314,7 +318,7 @@ fn write_snapshot(
         .unwrap()
         .insert("data_revision".into(), serde_json::json!(revision));
     let manifest_raw = canonical(&manifest);
-    fs::write(data.join("manifest.json"), &manifest_raw).unwrap();
+    write_private(&data.join("manifest.json"), &manifest_raw);
     if corrupt_model {
         fs::write(&model_path, b"corrupt after authenticated member census").unwrap();
     }
