@@ -257,7 +257,10 @@ jobs:
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
           rustup default 1.98.1
-          cargo build --locked -p tos-access --bin tos-access --bin tos-e2e-fixture --features e2e-fixture --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          # Keep test-only features outside the production receipt stream.
+          cargo build --locked -p tos-access --bin tos-e2e-fixture --features e2e-fixture --target x86_64-unknown-linux-gnu
+          trap 'cargo_status=$?; if [ "$cargo_status" -ne 0 ]; then tail -c 33554432 "$RUNNER_TEMP/software-cargo-messages.jsonl" >&2 || true; fi; exit "$cargo_status"' EXIT
+          cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
