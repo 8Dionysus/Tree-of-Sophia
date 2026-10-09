@@ -2,6 +2,8 @@
 //! Lane selection and the planned tools retain their own authority.
 
 pub mod active_naming;
+#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+pub mod artifact_bundle;
 pub mod agent_surface;
 pub mod agent_surface_budget;
 pub mod agent_surface_validation;

@@ -419,6 +419,30 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
 fn main() {
     let product_started = std::time::Instant::now();
     let product_entry = env::args().nth(1);
+    if product_entry.as_deref() == Some("--artifact-bundle") {
+        #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
+        {
+            unsafe {
+                let mut handler: libc::sigaction = std::mem::zeroed();
+                handler.sa_sigaction = cancelled as *const () as usize;
+                libc::sigemptyset(&mut handler.sa_mask);
+                for signal in [libc::SIGINT, libc::SIGTERM] {
+                    if libc::sigaction(signal, &handler, std::ptr::null_mut()) != 0 {
+                        eprintln!("[error] {}", std::io::Error::last_os_error());
+                        std::process::exit(1);
+                    }
+                }
+            }
+            let args = env::args().skip(2).collect::<Vec<_>>();
+            std::process::exit(tos_ops_mechanics_plan::artifact_bundle::cli(&args, product_started, &CANCEL));
+        }
+        #[cfg(not(all(feature = "compiler-backed-validators", target_os = "linux")))]
+        {
+            eprintln!("artifact bundle requires compiler-backed Linux process custody");
+            std::process::exit(1);
+        }
+    }
+
     if matches!(
         product_entry.as_deref(),
         Some(

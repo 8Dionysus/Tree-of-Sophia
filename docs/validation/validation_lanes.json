@@ -1357,8 +1357,10 @@
       {
         "label": "validate OS Abyss generated readmodel artifact bundle",
         "command": [
-          "python",
-          "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py"
+          "tos-ops-mechanics-plan",
+          "--artifact-bundle",
+          "--repo-root",
+          "{repo_root}"
         ]
       }
     ],

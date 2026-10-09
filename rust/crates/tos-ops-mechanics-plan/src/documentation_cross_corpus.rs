@@ -670,7 +670,7 @@ fn read_json(s: &mut RouteSources, path: &str) -> io::Result<Value> {
     .map_err(io::Error::other)?;
     serde_json::from_slice(&raw).map_err(io::Error::other)
 }
-fn glob_match(pattern: &str, path: &str) -> bool {
+pub(crate) fn glob_match(pattern: &str, path: &str) -> bool {
     let mut re = String::from("^");
     let chars: Vec<char> = pattern.chars().collect();
     let mut i = 0;
@@ -690,6 +690,25 @@ fn glob_match(pattern: &str, path: &str) -> bool {
                 }
             }
             '?' => re.push_str("[^/]"),
+            '[' => {
+                let start = i + 1;
+                let mut end = start;
+                if chars.get(end) == Some(&'!') { end += 1; }
+                if chars.get(end) == Some(&']') { end += 1; }
+                while end < chars.len() && chars[end] != ']' { end += 1; }
+                if end == chars.len() {
+                    re.push_str("\\[");
+                } else {
+                    re.push('[');
+                    let mut at = start;
+                    if chars.get(at) == Some(&'!') { re.push('^'); at += 1; }
+                    for c in &chars[at..end] {
+                        if *c == '-' { re.push('-'); } else { re.push_str(&regex::escape(&c.to_string())); }
+                    }
+                    re.push(']'); i = end;
+                }
+            }
+
             c => re.push_str(&regex::escape(&c.to_string())),
         }
         i += 1;
