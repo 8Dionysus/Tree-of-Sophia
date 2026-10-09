@@ -1188,10 +1188,11 @@ verdict. They preserve the stored catalog and ordered rows without rebuilding
 sources. Other selected-store generic tools and addressed updates still refuse
 that selection explicitly.
 
-Whole constructor/discovery and default compatibility, prepared/release and
-independent search-reader behavior, persistent exploration checkpoints across
-Root calls, and installed CLI/HTTP/MCP consumer parity remain open. A source
-checkpoint or protocol check does not close those boundaries.
+The public `ToSAccessCore` constructor delegates to the installed native Core.
+Explicit prepared/release selections, independent search readers and exploration
+checkpoint paths keep their own selection and currentness checks. Compatibility
+and consumer verification use the native conformance and installed-product
+routes; selecting a backend does not establish acceptance for a different pair.
 
 
 ## Native software and managed releases
@@ -1640,8 +1641,8 @@ source mapping controls do not establish positive provider parity or default ret
 exploration schema bundle without arguments, using the same authenticated child
 and 50-second deadline. Its `capabilities.available` reflects the selected
 exploration backend; software schemas remain readable when that backend is absent.
-Native refusals remain `ToolError`. This method does not select another data
-root, synthesize an Original catalog, or replace the remaining default Core API.
+Native refusals remain `ToolError`. This method uses the selected backend and
+leaves its data root and catalog identity unchanged.
 
 `NativeCore.knowledge_exploration_capabilities()` returns the `capabilities`
 object from that same contracts call. It preserves selected availability,
@@ -1813,8 +1814,9 @@ preserve the selected-service contract. Each request keeps one original 50-secon
 clock through retention, native admission, worker verification and final cleanup.
 Pass this provider to `NativeAccessCore.discover(..., source_provider=provider)`;
 the Core borrows it, and the caller closes it after use. Selecting this owner
-requires no Knowledge publication pair. Existing reference constructors and the
-public Core default remain pending actual comparison and explicit cutover.
+requires no Knowledge publication pair. The public Core default is the native
+SDK facade; historical reference implementations are retained under the test
+oracle owner and are not selected by this constructor.
 
 The maintained borrowed Edge APIs (`NativeCaptureContext.run`, prepared
 delta/catchup and navigation bootstrap/integrity) use the installed Access
