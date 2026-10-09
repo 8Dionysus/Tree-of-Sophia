@@ -1,7 +1,6 @@
 //! Owner-local semantic source-profile command semantics.
 //!
-//! This is a native computational adapter for the existing Python profile
-//! command family.  It consumes one protected owner context and exact selected
+//! This owns the native profile command family. It consumes one protected owner context and exact selected
 //! source/software inputs; it never treats the private configuration or public
 //! profile registry as a source-read grant.  Transport and publication remain
 //! with `PrivateOwnerStore` and the native entry.

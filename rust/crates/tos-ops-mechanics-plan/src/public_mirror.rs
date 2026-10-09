@@ -187,7 +187,7 @@ pub fn validate(root: &Path) -> io::Result<Vec<Issue>> {
         let actual = actual.replace("\r\n", "\n").replace('\r', "\n");
         let expected = encode_json(value)?;
         if actual.as_bytes() != expected.as_slice() {
-            issues.push((*public, "out of sync with canonical tree; run python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/sync_tree_examples.py"));
+            issues.push((*public, "out of sync with canonical tree; run tos-ops-mechanics-plan --repo-root PATH --public-mirror-sync"));
         }
     }
     Ok(issues)

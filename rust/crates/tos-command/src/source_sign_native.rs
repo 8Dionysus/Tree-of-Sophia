@@ -1044,6 +1044,15 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         }
         Ok(())
     }
+    fn owner_local_transport(&self, representation: &JsonValue) -> SourceCommandResult<bool> {
+        let mut selected = self
+            .reader
+            .owner_local(cmd::text(representation, "content_ref")?)?;
+        for (reference, _) in self.cache.keys() {
+            selected |= self.reader.owner_local(reference)?;
+        }
+        Ok(selected)
+    }
     fn local_research_rights(
         &self,
         layer: &JsonValue,
@@ -1486,7 +1495,11 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "native unit membership version or ordered anchors differs",
             ));
         }
-        let public = cmd::text(rep, "content_visibility")? == "public"
+        // Private custody of any selected dependency keeps the whole view
+        // owner-local even when its authored source declarations are public.
+        let private_transport = self.owner_local_transport(rep)?;
+        let public = !private_transport
+            && cmd::text(rep, "content_visibility")? == "public"
             && cmd::field(rep, "publication_authorized")? == &JsonValue::Bool(true)
             && cmd::text(rights, "packet_visibility")? == "public"
             && cmd::text(rights, "effective_visibility")? == "public"
@@ -1596,7 +1609,16 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             ("language", cmd::field(rep, "language")?.clone()),
             (
                 "effective_visibility",
-                cmd::field(rights, "effective_visibility")?.clone(),
+                if private_transport
+                    && matches!(
+                        cmd::text(rights, "effective_visibility")?,
+                        "public" | "public_metadata_only" | "controlled"
+                    )
+                {
+                    cmd::string("local_only")
+                } else {
+                    cmd::field(rights, "effective_visibility")?.clone()
+                },
             ),
             ("public_content_declared", JsonValue::Bool(public)),
             (
@@ -3046,14 +3068,7 @@ pub(crate) fn read_private_disclosed_unit(
         route_profile: NativeRoute::OwnerText,
     };
     let (_, layer, _) = native.resolve_member(&binding, NativeReadScope::MetadataOnly, false)?;
-    let mut private_transport = false;
-    for (reference, _) in native.cache.keys() {
-        private_transport |= native.reader.owner_local(reference)?;
-    }
-    private_transport |= native.reader.owner_local(cmd::text(
-        cmd::field(&layer, "representation")?,
-        "content_ref",
-    )?)?;
+    let private_transport = native.owner_local_transport(cmd::field(&layer, "representation")?)?;
     if !private_transport {
         return Err(SourceCommandError::Denied(
             "private text requires owner-local transport",

@@ -10,13 +10,12 @@ KAG indexes, stats projections or documentation currentness carriers.
 
 1. Use a clean branch/worktree from the current remote `main`. Preserve other sessions' dirty work and coordinate through the exact changed
 owner surfaces.
-2. Install Python test dependencies from `requirements-dev.txt`, the MCP extra,
-   and locked browser dependencies with `npm ci --prefix access/web`. Review the
-   changed behavior and source contracts. Before calling the command wrappers,
-   build their native executors from this exact checkout and bind absolute paths:
+2. Install locked browser dependencies with `npm ci --prefix access/web` and
+   review the changed behavior and source contracts. Build the native release
+   executors from this exact checkout and bind absolute paths:
 
    ```sh
-   cargo +1.98.1 build --locked -p tos-ops-mechanics-plan \
+   cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
      --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci
    executor_dir="$(pwd)/target/debug"
    export TOS_RELEASE_CHECK_EXECUTOR="$executor_dir/tos-release-check"
@@ -31,7 +30,7 @@ owner surfaces.
    same-run native executor directly. Native source-history tests cover
    selection, Unicode links, failure propagation and required-job outcomes.
    Workflow topology assertions remain separate checks.
-   Run `tos-release-check --repo-root "$PWD" --python "$(command -v python)"`
+   Run `tos-release-check --repo-root "$PWD"`
    to check contracts, build browser assets and run program fixture tests.
    This command uses program fixtures and repository-owned dependencies.
    The wrapper forwards explicit `--command-timeout-ms`, `--lane-timeout-ms`,
@@ -46,7 +45,7 @@ owner surfaces.
    flags do not change host resource admission or skip checks in that phase.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
-   `tos-validation-lanes --repo-root "$PWD" --python "$(command -v python)" --run software_browser`.
+   `tos-validation-lanes --repo-root "$PWD" --run software_browser`.
    Browser tests require Playwright and Chromium. They create their own small
    dataset. `access/web/dist` remains an ignored build output.
 4. For Worker code, first prepare the matching rules from this exact checkout:
@@ -98,15 +97,15 @@ owner surfaces.
    JSON and web closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.
-   CI uses this native route with the five native command roles for its software
-   candidate. It builds matching empty-feature receipts, selects the complete
-   command descriptor, and derives package byte limits from the actual six
+   CI uses this native route with the eighteen native command roles for its software
+   candidate. It builds receipts for the exact feature sets in the shared native command
+   descriptor, and derives package byte limits from the actual nineteen
    executables, web assets and bounded software inputs; it does not reuse an
    access-only byte cap. The job builds the same native archive and sidecar
    twice and compares their bytes before verify/install, retaining the legacy
    builder's determinism assertion on the maintained artifact. There is no
-   Python wheel reference package in the release candidate path. Python test
-   tools do not become runtime dependencies of the native prefix.
+   Python wheel reference package in the release candidate path. Historical
+   Python oracle tools remain optional comparison tools outside the native prefix.
    Native prepare fixture calls in CI use a 45-second allowance and a 55-second
    child wait, matching the measured joined maintenance fixture; the native
    product default remains 20 seconds. This allowance is not a production SLO.
@@ -156,7 +155,7 @@ Browser/Worker bundle installation, public access and larger runtime profiles
 remain subject to later gates.
 
 PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
-full release suite, as does the local `tos-release-check --repo-root "$PWD" --python "$(command -v python)"` command
+full release suite, as does the local `tos-release-check --repo-root "$PWD"` command
 plus the browser and Worker routes above. A documentation-only green check is
 not an installable release artifact: run the full release route when publishing
 software, even when the last change was documentation.

@@ -31,7 +31,10 @@ const ITEM: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-z
 const INVENTORY_SCHEMA: &str = "ToS/contracts/source-resource-inventory.schema.json";
 
 pub(super) fn repository() -> PathBuf {
-    fixtures().join("../../..").canonicalize().expect("selected source repository")
+    fixtures()
+        .join("../../..")
+        .canonicalize()
+        .expect("selected source repository")
 }
 
 fn selected_item_sources() -> BTreeMap<String, Vec<u8>> {

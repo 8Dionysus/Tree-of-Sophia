@@ -412,9 +412,12 @@ The panel never reconstructs a source path or substitutes another revision.
 
 Private source-owner reading is a separate lower-level contract:
 `ToS/contracts/native-private-text-read.schema.json` and
-`scripts/native_text_return.py` expose `PrivateTextReadSelection` plus
-`read_private_unit(selection, binding)`. The protected selection pins a distinct
-`OwnerLocalSourceContext`, the current account and mandate, a maximum one-day
+`rust/crates/tos-command/src/source_native_text_read.rs` expose
+`PrivateTextReadSelection` and `read_private_native_unit`. The native owner
+command accepts `private-text-read --invocation /absolute/invocation.json`
+with a `tos_local_native_private_text_read_request_v1` request on standard
+input. The protected selection pins a distinct owner-local context, the current
+account and mandate, a maximum one-day
 validity, and each exact binding and rights-record digest. It permits only the
 already recorded unconditional local-research route, returns unchanged selected
 spans with complete rights records, and rechecks revocation and dependency

@@ -475,11 +475,19 @@ fn load_frozen_agent_fixture(workspace: &Path) -> PathBuf {
     let db_path = destination.join(capture_path(capture, "db_path"));
     let catalog_namespace_path = destination.join(capture_path(capture, "catalog_namespace_path"));
     assert!(source_root.is_dir() && owner_path.is_file() && db_path.is_file());
-    assert!(catalog_namespace_path.is_file());
+    // The frozen prepared input carries the root JSON inline. Its namespace
+    // locates the authenticated partition files; no root file was archived.
+    assert!(!catalog_namespace_path.exists());
+    assert!(catalog_namespace_path.parent().unwrap().is_dir());
     let old_configuration: Value = serde_json::from_slice(&fs::read(&owner_path).unwrap()).unwrap();
     let old_source_root = required(&old_configuration, "source_root").to_owned();
     let owner_digest = relocate_frozen_owner_configuration(&owner_path, &source_root);
     let mut packet: Value = serde_json::from_slice(&fs::read(&packet_path).unwrap()).unwrap();
+    let catalog_root = &packet["source_inputs"]["roots"]["source-catalog"];
+    assert_eq!(
+        Digest256::of_bytes(required(catalog_root, "root_json").as_bytes()).to_hex(),
+        required(catalog_root, "snapshot_sha256")
+    );
     packet["source_root"] = json!(source_root.to_string_lossy());
     packet["owner_config"] = json!(owner_path.to_string_lossy());
     packet["db_path"] = json!(db_path.to_string_lossy());

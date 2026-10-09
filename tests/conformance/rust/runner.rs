@@ -1694,7 +1694,8 @@ fn command_binding_bytes(value: &Value) -> Vec<u8> {
         &serde_json::to_vec(value).unwrap(),
         CanonicalProfile::SourceCommandInputV1,
         JsonLimits::default(),
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 fn canonical_json(value: &Value) -> Vec<u8> {

@@ -1140,7 +1140,13 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
             .is_some()
     );
     // V4 has no layer-quality selection; the captured V5 seed remains intact.
-    assert!(config.as_object_mut().unwrap().remove("native_text_layers").is_some());
+    assert!(
+        config
+            .as_object_mut()
+            .unwrap()
+            .remove("native_text_layers")
+            .is_some()
+    );
     fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     assert_eq!(config["schema_version"], "tos_local_assessment_owner_v4");
@@ -1182,36 +1188,65 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
     let selection = &mut config["native_text_units"][0]["binding"];
     let layer_path = private_root.join(selection["text_layer"]["record_ref"].as_str().unwrap());
     let mut layer: Value = serde_json::from_slice(&fs::read(&layer_path).unwrap()).unwrap();
-    let configuration = private_root.join(layer["derivation"]["maker"]["configuration_ref"].as_str().unwrap());
+    let configuration = private_root.join(
+        layer["derivation"]["maker"]["configuration_ref"]
+            .as_str()
+            .unwrap(),
+    );
     let configuration_digest = Digest256::of_bytes(&fs::read(configuration).unwrap()).to_hex();
-    layer["derivation"]["maker"]["configuration_digest"] = Value::from(configuration_digest.clone());
+    layer["derivation"]["maker"]["configuration_digest"] =
+        Value::from(configuration_digest.clone());
     for anchor_ref in layer["source_binding"]["anchors"].as_array_mut().unwrap() {
         let anchor_path = private_root.join(anchor_ref["anchor_record_ref"].as_str().unwrap());
         let mut anchor: Value = serde_json::from_slice(&fs::read(&anchor_path).unwrap()).unwrap();
-        anchor["selector_method"]["configuration_digest"] = Value::from(configuration_digest.clone());
+        anchor["selector_method"]["configuration_digest"] =
+            Value::from(configuration_digest.clone());
         let raw = canonical_json(&anchor);
         fs::write(&anchor_path, &raw).unwrap();
         anchor_ref["anchor_record_sha256"] = Value::from(Digest256::of_bytes(&raw).to_hex());
     }
     let layer_raw = canonical_json(&layer);
     fs::write(&layer_path, &layer_raw).unwrap();
-    selection["text_layer"]["record_sha256"] = Value::from(Digest256::of_bytes(&layer_raw).to_hex());
+    selection["text_layer"]["record_sha256"] =
+        Value::from(Digest256::of_bytes(&layer_raw).to_hex());
     let setup_authored = super::command_text_cases::authored_text_files(&public);
     let setup_store = temporary.path().join("v4-setup-cut");
-    let setup_revision = super::validation_cut_cases::write_cut_store(&setup_authored, &setup_store);
-    let setup_cut = super::command_form_cases::open_cut(&setup_store, setup_revision, deadline, &cancelled);
-    let selected_units = tos_foundation::parse_json(&serde_json::to_vec(&config["native_text_units"]).unwrap(),
-        tos_foundation::JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let setup_revision =
+        super::validation_cut_cases::write_cut_store(&setup_authored, &setup_store);
+    let setup_cut =
+        super::command_form_cases::open_cut(&setup_store, setup_revision, deadline, &cancelled);
+    let selected_units = tos_foundation::parse_json(
+        &serde_json::to_vec(&config["native_text_units"]).unwrap(),
+        tos_foundation::JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
     let resolved = tos_command::resolve_native_text_units_for_conformance(
-        &context, selected_units.root(), &setup_cut, &images[2], before_images[2].4, deadline, &cancelled,
-    ).unwrap();
+        &context,
+        selected_units.root(),
+        &setup_cut,
+        &images[2],
+        before_images[2].4,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     for record in resolved.native_records {
-        let record: Value = serde_json::from_slice(&tos_foundation::canonical_bytes_v1(
-            &record, CanonicalProfile::SourceCommandInputV1, JsonLimits::default()).unwrap()).unwrap();
+        let record: Value = serde_json::from_slice(
+            &tos_foundation::canonical_bytes_v1(
+                &record,
+                CanonicalProfile::SourceCommandInputV1,
+                JsonLimits::default(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
         let id = record["id"].as_str().unwrap();
         let reference = serde_json::json!({"id":id,"version":record["version"],
             "digest":Digest256::of_bytes(&command_binding_bytes(&record["payload"])).to_prefixed()});
-        if let Some(subject) = config["subjects"].get_mut(id) { subject["record"] = reference.clone(); }
+        if let Some(subject) = config["subjects"].get_mut(id) {
+            subject["record"] = reference.clone();
+        }
         if fixture["layer_subject"]["id"] == id {
             fixture["unit_template"]["assessments"][0]["evidence"] = serde_json::json!([
                 {"record":reference,"stance":"supports","locator":"Exact synthetic source layer; no substantive assessment."}
@@ -2200,7 +2235,10 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
     })).collect::<Vec<_>>();
     let request = serde_json::json!({"schema_version":"tos_local_assessed_forms_materialization_request_v1","operation":"materialize_assessed_forms","selections":selections});
     let actual = invoke(&invocation_path, &request);
-    assert_eq!(actual["schema_version"], "tos_local_assessed_forms_materialization_result_v1");
+    assert_eq!(
+        actual["schema_version"],
+        "tos_local_assessed_forms_materialization_result_v1"
+    );
     let replies = actual["replies"].as_array().unwrap();
     assert_eq!(replies.len(), 7);
     for (index, reply) in replies.iter().enumerate() {
@@ -2299,7 +2337,9 @@ fn native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift() {
                     fs::write(&control, serde_json::to_vec(&state).unwrap()).unwrap();
                 }
                 let (status, raw, _) = observe(&invocation_path, &request);
-                if !status.success() || serde_json::from_slice::<Value>(&raw).unwrap()["result"] != actual {
+                if !status.success()
+                    || serde_json::from_slice::<Value>(&raw).unwrap()["result"] != actual
+                {
                     Err(std::io::Error::other(
                         "selected assessment or publication changed after fsync",
                     )
@@ -2614,7 +2654,10 @@ fn native_public_assessment_versions(versions: &[u8]) {
             assert!(metadata.is_file() && metadata.len() <= 8_388_608);
             let raw = fs::read(path).unwrap();
             assert_eq!(raw.len() as u64, preserved["bytes"].as_u64().unwrap());
-            assert_eq!(Digest256::of_bytes(&raw).to_hex(), preserved["sha256"].as_str().unwrap());
+            assert_eq!(
+                Digest256::of_bytes(&raw).to_hex(),
+                preserved["sha256"].as_str().unwrap()
+            );
         }
         for (index, path) in images.iter().enumerate() {
             assert_eq!(custody(path), before[index]);

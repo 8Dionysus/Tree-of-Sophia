@@ -431,3 +431,7 @@ pub(crate) fn build_derived_layer(
         files,
     })
 }
+
+#[cfg(test)]
+#[path = "source_text_layer_derived_proposal_tests.rs"]
+mod tests;

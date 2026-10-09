@@ -14,11 +14,11 @@ use tos_query::{
         WORKER_SEARCH_CURSOR_TOKEN_MAX_CHARS, WORKER_SEARCH_ID_MAX_BYTES,
         WORKER_SEARCH_INDEXED_SCHEMA_V2, WORKER_SEARCH_LEGACY_SCHEMA_V1,
         WORKER_SEARCH_MAX_CANDIDATES, WORKER_SEARCH_MAX_INTERSECTION_GRAMS,
-        WORKER_SEARCH_MAX_OFFSET, WORKER_SEARCH_MAX_PAGE_SIZE, WORKER_SEARCH_MAX_VERIFY_CHARS, WORKER_SEARCH_RANK_CLASSES,
-        WorkerGramSelection, WorkerPreflightOutcome, WorkerSearchControlError, WorkerSearchInput,
-        WorkerSearchKind, WorkerWindowOutcome, normalize_worker_search, select_worker_search_grams,
-        worker_rank_sql, worker_search_identity_matches_lower, worker_search_preflight,
-        worker_search_window,
+        WORKER_SEARCH_MAX_OFFSET, WORKER_SEARCH_MAX_PAGE_SIZE, WORKER_SEARCH_MAX_VERIFY_CHARS,
+        WORKER_SEARCH_RANK_CLASSES, WorkerGramSelection, WorkerPreflightOutcome,
+        WorkerSearchControlError, WorkerSearchInput, WorkerSearchKind, WorkerWindowOutcome,
+        normalize_worker_search, select_worker_search_grams, worker_rank_sql,
+        worker_search_identity_matches_lower, worker_search_preflight, worker_search_window,
     },
 };
 
@@ -27,7 +27,10 @@ const MAX_CURSOR_BYTES: usize = WORKER_SEARCH_CURSOR_TOKEN_MAX_CHARS;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 fn invalid(message: &str) -> WorkerSearchControlError {
-    WorkerSearchControlError { code: "invalid_request", message: message.to_owned() }
+    WorkerSearchControlError {
+        code: "invalid_request",
+        message: message.to_owned(),
+    }
 }
 
 fn text(value: &str) -> JsonValue {
@@ -227,14 +230,20 @@ fn exact_keys(value: &JsonValue, expected: &[&str]) -> bool {
     actual == expected
 }
 fn safe_int(value: Option<&JsonValue>) -> Option<u64> {
-    let JsonValue::Number(number) = value? else { return None; };
-    if number.kind != JsonNumberKind::Int { return None; }
+    let JsonValue::Number(number) = value? else {
+        return None;
+    };
+    if number.kind != JsonNumberKind::Int {
+        return None;
+    }
     let value = number.lexeme.parse::<u64>().ok()?;
     (value <= MAX_SAFE_INTEGER).then_some(value)
 }
 
 fn safe_count(value: Option<&JsonValue>) -> Option<u64> {
-    let JsonValue::Number(number) = value? else { return None; };
+    let JsonValue::Number(number) = value? else {
+        return None;
+    };
     let parsed = number.lexeme.parse::<f64>().ok()?;
     (parsed.is_finite()
         && parsed >= 0.0
@@ -242,7 +251,6 @@ fn safe_count(value: Option<&JsonValue>) -> Option<u64> {
         && parsed <= MAX_SAFE_INTEGER as f64)
         .then_some(parsed as u64)
 }
-
 
 fn unavailable(message: &'static str) -> WorkerSearchControlError {
     WorkerSearchControlError {

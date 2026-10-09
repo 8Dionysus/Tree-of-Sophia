@@ -271,8 +271,16 @@ pub fn normalize_worker_search_query(
     let needle = python_lower_unicode16_v1(
         &query,
         SEARCH_QUERY_MAX_CODE_POINTS,
-        if indexed { SEARCH_QUERY_MAX_CODE_POINTS } else { 2 * SEARCH_QUERY_MAX_CODE_POINTS },
-        if indexed { SEARCH_QUERY_MAX_UTF8_BYTES } else { 2 * SEARCH_QUERY_MAX_UTF8_BYTES },
+        if indexed {
+            SEARCH_QUERY_MAX_CODE_POINTS
+        } else {
+            2 * SEARCH_QUERY_MAX_CODE_POINTS
+        },
+        if indexed {
+            SEARCH_QUERY_MAX_UTF8_BYTES
+        } else {
+            2 * SEARCH_QUERY_MAX_UTF8_BYTES
+        },
     )
     .map_err(|_| {
         SearchV2Error::new(

@@ -2451,7 +2451,12 @@ pub fn resolve_native_text_units_for_conformance(
         },
         deadline,
         cancelled,
-    ).map_err(|error| SourceCommandError::DeniedWithReason(format!("conformance schema worker selection failed: {error:?}")))?;
+    )
+    .map_err(|error| {
+        SourceCommandError::DeniedWithReason(format!(
+            "conformance schema worker selection failed: {error:?}"
+        ))
+    })?;
 
     let contract_paths = std::iter::once(OWNER_CONTEXT_SCHEMA_FOR_CONFORMANCE)
         .chain(OWNER_ASSESSMENT_FORM_CONTRACTS.iter().copied());

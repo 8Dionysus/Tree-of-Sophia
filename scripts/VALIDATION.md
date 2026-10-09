@@ -6,10 +6,10 @@ operation.
 
 ## Software
 
-After installing Python and browser dependencies, run:
+After building the native commands and installing browser dependencies, run:
 
 ```sh
-tos-release-check --repo-root "$PWD" --python "$(command -v python)"
+tos-release-check --repo-root "$PWD"
 ```
 
 This checks software contracts, builds browser assets, and runs program tests

@@ -1527,10 +1527,54 @@ fn private_read_lifecycle(
         )
         .is_err()
     );
+    // A selected owner context is pinned to both physical roots. A public
+    // alias or same-path replacement cannot acquire private custody.
+    let collision = seed.public_root.join("ToS/source-witnesses/owner-local");
+    assert!(!collision.exists());
+    fs::create_dir(&collision).unwrap();
+    assert!(selected.verify(deadline, cancelled).is_err());
+    fs::remove_dir(&collision).unwrap();
+    let moved = root.join("private-root-held-for-identity-check");
+    fs::rename(&seed.private_root, &moved).unwrap();
+    fs::create_dir(&seed.private_root).unwrap();
+    fs::set_permissions(&seed.private_root, fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(selected.verify(deadline, cancelled).is_err());
+    fs::remove_dir(&seed.private_root).unwrap();
+    fs::rename(&moved, &seed.private_root).unwrap();
+    selected.verify(deadline, cancelled).unwrap();
     fs::write(&grant_path, b"{}").unwrap();
     assert!(selected.verify(deadline, cancelled).is_err());
     fs::write(&grant_path, &grant_raw).unwrap();
     drop(selected);
+    // Reopening a new selection still refuses an exposed grant or a symlinked
+    // context even when the target has the exact expected bytes.
+    fs::set_permissions(&grant_path, fs::Permissions::from_mode(0o640)).unwrap();
+    assert!(
+        PrivateTextReadSelection::load(
+            &grant_path,
+            &seed.public_root,
+            &mut worker,
+            deadline,
+            cancelled
+        )
+        .is_err()
+    );
+    fs::set_permissions(&grant_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let original_context = root.join("private-context-held-for-alias-check.json");
+    fs::rename(&seed.owner_context, &original_context).unwrap();
+    std::os::unix::fs::symlink(&original_context, &seed.owner_context).unwrap();
+    assert!(
+        PrivateTextReadSelection::load(
+            &grant_path,
+            &seed.public_root,
+            &mut worker,
+            deadline,
+            cancelled
+        )
+        .is_err()
+    );
+    fs::remove_file(&seed.owner_context).unwrap();
+    fs::rename(&original_context, &seed.owner_context).unwrap();
     drop(worker);
 
     let binary = PathBuf::from(std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").unwrap());
@@ -1573,9 +1617,10 @@ fn private_read_lifecycle(
         deadline,
     );
     assert!(!status.success());
-    assert!(
-        raw.is_empty(),
-        "ordinary command/HTTP route cannot disclose private text"
+    assert_eq!(
+        serde_json::from_slice::<Value>(&raw).unwrap(),
+        serde_json::json!({"schema_version":"tos_local_source_command_error_v1","error":"PermissionError"}),
+        "ordinary command/HTTP route returns only its public refusal envelope"
     );
     let rights_ref = seed.layer_record["representation"]["rights_record_refs"][0]["ref"]
         .as_str()

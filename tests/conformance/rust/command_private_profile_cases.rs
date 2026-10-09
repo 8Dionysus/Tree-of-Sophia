@@ -463,28 +463,57 @@ fn native_private_profile_lifecycle(use_http: bool) {
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/contracts/semantic-entity-type-registry.schema.json",
         context_contract,
-    ].into_iter().map(|name| (name, Digest256::of_bytes(&fs::read(public.join(name)).unwrap()).to_hex()))
-        .collect::<BTreeMap<_, _>>();
+    ]
+    .into_iter()
+    .map(|name| {
+        (
+            name,
+            Digest256::of_bytes(&fs::read(public.join(name)).unwrap()).to_hex(),
+        )
+    })
+    .collect::<BTreeMap<_, _>>();
     let owner_raw = fs::read(&owner).unwrap();
     let configuration_binding = serde_json::json!({
         "configuration_bytes":Digest256::of_bytes(&owner_raw).to_prefixed(),
         "context":Digest256::of_bytes(&command_binding_bytes(&context_binding)).to_prefixed(),
         "profile_inputs":profile_inputs
     });
-    assert_eq!(preview["owner_configuration"], Digest256::of_bytes(&command_binding_bytes(&configuration_binding)).to_prefixed());
-    let owner_document = tos_foundation::parse_json(&owner_raw, tos_foundation::JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-    let published_owner = tos_foundation::emit_json_profile(owner_document.root(),
-        tos_foundation::JsonEmissionProfile::SourceFormSetPublishedV1, JsonLimits::default()).unwrap().bytes;
+    assert_eq!(
+        preview["owner_configuration"],
+        Digest256::of_bytes(&command_binding_bytes(&configuration_binding)).to_prefixed()
+    );
+    let owner_document = tos_foundation::parse_json(
+        &owner_raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let published_owner = tos_foundation::emit_json_profile(
+        owner_document.root(),
+        tos_foundation::JsonEmissionProfile::SourceFormSetPublishedV1,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .bytes;
     let configuration_file = serde_json::json!({"bytes":published_owner.len(),
         "sha256":Digest256::of_bytes(&published_owner).to_prefixed()});
-    assert_eq!(preview["prepared_files"]["source-create-owner-configuration.json"], configuration_file);
+    assert_eq!(
+        preview["prepared_files"]["source-create-owner-configuration.json"],
+        configuration_file
+    );
     assert!(Digest256::from_prefixed(preview["expected_dependencies"].as_str().unwrap()).is_ok());
     let mut stable_preview = preview.clone();
     let mut stable_oracle = selected["preview"].clone();
     for value in [&mut stable_preview, &mut stable_oracle] {
         value.as_object_mut().unwrap().remove("owner_configuration");
-        value.as_object_mut().unwrap().remove("expected_dependencies");
-        value["prepared_files"].as_object_mut().unwrap().remove("source-create-owner-configuration.json");
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("expected_dependencies");
+        value["prepared_files"]
+            .as_object_mut()
+            .unwrap()
+            .remove("source-create-owner-configuration.json");
     }
     assert_eq!(stable_preview, stable_oracle);
     let creation = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"source.create",
@@ -516,7 +545,10 @@ fn native_private_profile_lifecycle(use_http: bool) {
     let frozen = fs::read(home.join("source-create-receipt.json")).unwrap();
     let receipt: Value = serde_json::from_slice(&frozen).unwrap();
     assert_eq!(receipt["dependencies"], preview["expected_dependencies"]);
-    assert_eq!(fs::read(home.join("source-create-owner-configuration.json")).unwrap(), published_owner);
+    assert_eq!(
+        fs::read(home.join("source-create-owner-configuration.json")).unwrap(),
+        published_owner
+    );
     let replay = call(&creation);
     assert_eq!(replay["replayed"], true);
     assert_eq!(

@@ -1306,11 +1306,7 @@ fn test_navigation_keeps_home_scopes_without_duplicating_command_authority() {
             "product-local",
             "access",
         ),
-        (
-            "access/tests/test_native_io.py",
-            "product-local",
-            "access",
-        ),
+        ("access/tests/test_native_io.py", "product-local", "access"),
         ("tests/example.rs", "root", "tests"),
         (
             "access/web/constructor-tools/test_other.py",

@@ -7356,7 +7356,7 @@ mod tests {
             for order in 0..2 {
                 let id = format!("node.{order}");
                 let logical = serde_json::to_vec(&serde_json::json!({
-                    "id": id, "source_graph": "fixture.graph", "attributes": {}, "view_ids": [],
+                    "id": id, "source_graph": "fixture.graph", "kind_id": "kind.fixture", "attributes": {}, "view_ids": [],
                     "display": {"title": {"text": id, "language": "und"}},
                     "metadata": "normalized words ".repeat(400),
                     "source_record": {"payload": source_value, "field_map": {}}
@@ -7688,7 +7688,7 @@ mod tests {
             // relation, including source-derived attributes and both endpoints.
             crate::knowledge_inherited_views::clear_inherited_views(&mut stage).unwrap();
             let relation = serde_json::to_vec(&serde_json::json!({
-                "id": "edge.0", "source_graph": "fixture.graph", "from_id": "node.0", "to_id": "node.1",
+                "id": "edge.0", "source_graph": "fixture.graph", "predicate_id": "related_to", "from_id": "node.0", "to_id": "node.1",
                 "view_ids": ["view.inherited"], "attributes": {"text": source_value["text"]},
                 "source_record": {"payload": source_value, "field_map": {"attributes.text": "/text"}}
             })).unwrap();
@@ -7871,7 +7871,7 @@ mod tests {
             for order in 0..32 {
                 let id = format!("tiny.{order}");
                 let logical = serde_json::to_vec(
-                    &serde_json::json!({"id": id, "source_graph": "tiny", "value": order}),
+                    &serde_json::json!({"id": id, "source_graph": "tiny", "kind_id": "kind.fixture", "value": order}),
                 )
                 .unwrap();
                 stage
@@ -7947,7 +7947,7 @@ mod tests {
                 let mut rows=statement.query([])?;let row=rows.next()?.unwrap();
                 let abi=layout.carrier_model_abi().unwrap();
                 let (a,b)=crate::knowledge_search_rank::decode_pair_owned(abi,row.get_ref(0)?,row.get_ref(1)?,32768,&state)?;
-                assert_eq!(a, r#"["node.0"]"#); assert_eq!(b,a);
+                assert_eq!(a, r#"["node.0","und"]"#); assert_eq!(b,a);
                 assert_eq!(matches!(row.get_ref(0)?,rusqlite::types::ValueRef::Blob(_)),layout==KnowledgePayloadLayout::CarrierOnceV4);
                 Ok(())
             }).unwrap();

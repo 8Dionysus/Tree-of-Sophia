@@ -744,9 +744,10 @@ being used for another subject. Supporting layers supply evidence; selecting a l
 requires its own subject scope. Existing ordinary source-form materialization
 remains separate; a native unit requires its own explicit form adapter.
 
-The read-only `scripts/native_text_binding.py` library provides
-`NativeTextBindingResolver(root).resolve(binding, verify_content=False,
-allow_private_content=False)` and `snapshot()`. It checks exact native schemas,
+The read-only native resolver in
+`rust/crates/tos-command/src/source_sign_native.rs` supplies separate metadata
+and explicitly scoped exact-content reads to the native owner commands. Its
+retained input snapshot binds the exact observed dependencies. It checks exact native schemas,
 selected unit/segmentation membership and anchor order, text-layer ancestry,
 editorial policy and declared maker configuration bytes, source-anchor/file
 identity, Item manifest topology and recorded rights/publication dependencies.
@@ -758,9 +759,10 @@ span hashes, declared scope, coverage and gaps. Successful return verifies the s
 bytes. Original-payload fidelity, OCR/transcription quality and linguistic
 correctness require their corresponding source-visible assessment.
 
-The separate `scripts/native_text_return.py` delivery helper exposes
-`read_public_unit(resolver, binding, max_return_bytes=65536)` as a
-read-only public-text route; `resolve()` remains text-free. It first verifies
+The delivery owner in
+`rust/crates/tos-command/src/source_native_text_read.rs` exposes
+`read_native_unit` to the native access source reader; metadata resolution
+remains text-free. It first verifies
 metadata and public packet/layer/transport gates, then requires applicable
 recorded redistribution `authorized` and derivative `allowed` postures before
 opening content. Conditional rights are refused on this public route.
@@ -778,11 +780,10 @@ The complete compact UTF-8 JSON result must fit the requested limit (at most
 with their respective owner records. The optional access owner adapter consumes it
 through an exact metadata handle and a separate `native_public_unit`
 representation; generic metadata access cannot grant text permission.
-Keeping delivery outside `native_text_binding.py` leaves the catalog's
+Keeping delivery separate from the native binding resolver leaves the catalog's
 verification processor unchanged when only the transport is extended.
 
-The same delivery helper's `read_local_unit(resolver, binding, selection)`
-consumes a separately selected `LocalTextReadSelection`, whose protected-file
+The same native reader accepts a separately selected `LocalTextReadSelection`, whose protected-file
 contract is `ToS/contracts/native-local-text-read.schema.json`. It is a current
 owner configuration of existing local reading conditions, never a permission
 inferred from a source text, expired construction delegation, or assessment.
@@ -791,13 +792,12 @@ reviewed conditions, license and attribution notices; issuer, account, source
 root, mandate and at-most-one-day validity remain separately auditable.
 No private representation is allowed. The local result retains all notices
 within its bounded output; config/mandate/notice changes and expiry refuse the
-read before return. This explicit route neither widens `read_public_unit` nor
+read before return. This explicit route neither widens unconditional public reading nor
 changes source rights, normalization, linguistic admission or publication.
 
-For protected configuration preparation, the same resolver's
-`assessment_records(binding, origin_id=..., verify_content=...,
-allow_private_content=...)` returns `records` and a text-free `summary`.
-Construct `Record.from_payload(**records[0]).ref` for the pinned unit scope;
+For protected configuration preparation, the native `resolve_assessment`
+and separately scoped owner-local route return two `records` and a text-free
+`summary`. The canonical reference of `records[0]` pins the unit scope;
 `records[1]` is its distinct native layer evidence. Do not inline either into
 the v3 configuration: `native_text_units` selects them freshly on every call.
 Both carry the issuer's same `origin_id`, not two independent sources.
@@ -838,15 +838,16 @@ head. The issuer must still keep the selected files stable: these checks do
 not create a filesystem transaction or isolate hostile same-UID writers.
 V1/v2 commands preserve their existing snapshot and replay contracts.
 
-Tests in `tests/test_native_text_binding.py` and
-`mechanics/growth-cycle/tests/test_native_text_assessment.py` separate synthetic
+Native conformance cases in `tests/conformance/rust/command_text_cases.rs`,
+`command_owner_text_cases.rs` and the access `source_read_native` integration
+test separate synthetic
 closure/admission checks from real source-visible review. No private native
 packet is made public by this adapter, and no human-only historical record is
 relabeled as an agent act.
 
 ### Explicit owner-local source transport
 
-`OwnerLocalSourceContext.load(context_path)` reads the protected
+The native `source_text_owner::OwnerTextContext` reads the protected
 `tos_owner_local_source_context_v1` configuration from an independently chosen
 mode-0600 file. Its fields are `store_id` (`sid-` plus 32 lowercase hex digits),
 `public_root`, `private_root` and `private_prefix`, in addition to
@@ -856,25 +857,14 @@ disjoint; the prefix is exactly
 exist with mode 0700. The resolver does not create directories or select a
 store on behalf of the caller.
 
-Use the existing native binding without changing its source IDs or schema:
+The native owner commands select this context through the explicit invocation
+and an independently protected owner configuration. The same native binding
+keeps its source IDs and schemas. Metadata selection confers no exact-content
+permission; the private reader requires a separately selected current grant.
 
-```python
-from pathlib import Path
-from source_owner_context import OwnerLocalSourceContext
-from native_text_binding import NativeTextBindingResolver
-
-context = OwnerLocalSourceContext.load(Path(context_path))
-resolver = NativeTextBindingResolver(context.public_root, owner_context=context)
-metadata = resolver.resolve(binding)
-# Only after independently confirming the caller's exact owner-local read scope:
-exact = resolver.resolve(binding, verify_content=True, allow_private_content=True)
-fixed_inputs = resolver.snapshot()
-```
-
-`context.path(ref)` selects exactly one physical root, preserving the complete
-logical path. `context.read_bytes(path, limit, read_bytes=protected_reader)`
-can retain caller byte-budget accounting while checking confidentiality before
-and after the read. Private files require 0600 and private directories 0700;
+The native transport selects exactly one physical root for each complete logical
+reference. It retains file and directory identities and checks confidentiality
+before and after each bounded read. Private files require 0600 and private directories 0700;
 the root's ancestors also retain no-follow/account/write protections. A private
 schema copy is never selected instead of its source-owned public contract.
 There is no fallback, other-store discovery or permitted alias in the checkout.

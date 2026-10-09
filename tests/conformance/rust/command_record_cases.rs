@@ -252,7 +252,18 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
         "rust/crates/tos-command/src/source_serialization.rs",
         "rust/crates/tos-command/src/source_sign.rs",
         "rust/crates/tos-command/src/source_sign_native.rs",
-    ].into_iter().chain(tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS.iter().copied()).chain(tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS.iter().copied()) {
+    ]
+    .into_iter()
+    .chain(
+        tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS
+            .iter()
+            .copied(),
+    )
+    .chain(
+        tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS
+            .iter()
+            .copied(),
+    ) {
         let raw = fs::read(repository.join(name)).unwrap();
         let target = isolated.path().join(name);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -2555,9 +2566,18 @@ fn native_initial_creation_cli_preserves_native_contract_and_cold_retained_recei
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
     ];
 
-    let inputs: std::collections::BTreeSet<&str> = inputs.into_iter()
-        .chain(tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS.iter().copied())
-        .chain(tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS.iter().copied())
+    let inputs: std::collections::BTreeSet<&str> = inputs
+        .into_iter()
+        .chain(
+            tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS
+                .iter()
+                .copied(),
+        )
+        .chain(
+            tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS
+                .iter()
+                .copied(),
+        )
         .collect();
 
     let mut fixture_bytes = 0u64;

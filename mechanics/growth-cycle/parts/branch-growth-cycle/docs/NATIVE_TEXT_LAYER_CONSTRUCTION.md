@@ -68,8 +68,8 @@ selected owner rights, not a legal assessment or a way to create those rights.
 
 ## Narrow, versioned extraction profile
 
-`scripts/source_text_layer_proposal.py` owns the pure implementation and exact
-`DEFAULT_POLICY` object, tagged `tos_xhtml_text_extraction_policy_v1`. Passing
+`rust/crates/tos-command/src/source_text_layer_xml.rs` owns the pure extractor;
+`source_text_layer_proposal.rs` owns its versioned policy and layer constructor, tagged `tos_xhtml_text_extraction_policy_v1`. Passing
 a different policy object is unsupported; the retained policy's raw bytes and
 digest are bound by the layer. The command selects no caller-supplied code.
 
@@ -95,7 +95,7 @@ use their dedicated routes.
 Resource ceilings are explicit: original File 512 MiB; ordinary non-ZIP64,
 single-disk ZIP with at most 2,048 members, 1 MiB central directory, 1,024-byte
 names, 16 MiB per expanded ZIP member and 64 MiB declared aggregate expansion.
-Actual directory counts are checked before `ZipInfo` allocation. Selected
+Actual directory counts are checked before native ZIP entry allocation. Selected
 stored/deflated member data is streamed with bounded expansion, local/central
 name checks, exact size, CRC and raw SHA-256; encrypted, duplicate, escaping or
 symlink members fail. The stricter XHTML profile accepts at most 8 MiB, 65,536
