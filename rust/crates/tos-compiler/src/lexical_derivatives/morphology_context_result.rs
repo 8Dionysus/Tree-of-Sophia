@@ -104,6 +104,9 @@ struct Contexts {
 }
 impl Contexts {
     fn row(&mut self, encoded: &[u8]) -> Result<()> {
+        self.row_with_form(encoded, FORM_SHA)
+    }
+    fn row_with_form(&mut self, encoded: &[u8], form_sha: &str) -> Result<()> {
         ensure(self.rows < 3, "context row count bound")?;
         let r = crate::zarathustra_lexical::parse(encoded, META_CAP as usize)?;
         exact_keys(
@@ -146,8 +149,8 @@ impl Contexts {
                 "episode_id",
                 json!("zarathustra-selected-form-context-b-v1"),
             ),
-            ("exact_form_sha256", json!(FORM_SHA)),
-            ("form_key", json!(format!("lexical-form:sha256:{FORM_SHA}"))),
+            ("exact_form_sha256", json!(form_sha)),
+            ("form_key", json!(format!("lexical-form:sha256:{form_sha}"))),
             ("input_preserved", json!(true)),
             (
                 "authority",
@@ -176,7 +179,7 @@ impl Contexts {
         ensure(
             start < end
                 && sha(context.as_bytes()) == s(&r["context_sha256"])?
-                && sha(target.as_bytes()) == FORM_SHA
+                && sha(target.as_bytes()) == form_sha
                 && unicode_slice(context, start, end)? == target,
             "provider context source return drift",
         )?;
@@ -252,7 +255,14 @@ pub fn inspect(ctx: &ResearchExecution, path: &Path) -> Result<Value> {
     let mut rows = Contexts::default();
     lines(&selected, &mut h, |r| rows.row(r))?;
     h.verify(&selected)?;
-    rows.finish(&h.digest)
+    let raw = rows.finish(&h.digest)?;
+    super::morphology_result::label_contract(
+        ctx,
+        "morphology-contextual-result-receipt",
+        &raw,
+        &[("target_pos", "countMap"), ("target_tag", "countMap")],
+    )?;
+    Ok(raw)
 }
 pub struct Options<'a> {
     pub build: bool,
@@ -699,5 +709,45 @@ mod tests {
         v["end_offset"] = json!(2);
         v["head_token_index"] = json!(true);
         assert!(token(&v, "α🙂x", 1).is_err());
+    }
+}
+#[cfg(test)]
+mod retained_inspector_tests {
+    use super::*;
+    #[test]
+    fn contextual_aggregate_preserves_offsets_without_returning_source() {
+        let surface = "Testform";
+        let context = "Alpha Testform omega";
+        let form_sha = sha(surface.as_bytes());
+        let provider = json!({"artifact":"ZDL de_zdl_lg","version":"4.0.0","source_commit":PROVIDER_COMMIT,"wheel_sha256":WHEEL,"spacy_version":"3.8.11","pipeline":PIPELINE,"surface_normalized_before_analysis":false,"confidence_scores_exposed":false});
+        let mut tokens = Vec::new();
+        let mut cursor = 0;
+        for (i, (text, ws, pos, tag)) in [
+            ("Alpha", " ", "NOUN", "NN"),
+            (surface, " ", "ADV", "ADV"),
+            ("omega", "", "NOUN", "NN"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            tokens.push(json!({"dep":"dep","end_offset":cursor+text.len(),"ent_type":"","head_token_index":i,"is_sent_start":i==0,"lemma":text.to_lowercase(),"morph":{},"pos":pos,"start_offset":cursor,"tag":tag,"text":text,"token_index":i,"whitespace":ws}));
+            cursor += text.len() + ws.len();
+        }
+        let mut contexts = Contexts::default();
+        for (rank, role, part) in [
+            (1, "first", 1),
+            (73, "inclusive-median", 3),
+            (145, "last", 4),
+        ] {
+            let row = json!({"authority":"unreviewed-contextual-provider-proposal","context_id":format!("private-{rank}"),"context_sha256":sha(context.as_bytes()),"context_text":context,"episode_id":"zarathustra-selected-form-context-b-v1","exact_form_sha256":form_sha,"form_key":format!("lexical-form:sha256:{form_sha}"),"input_preserved":true,"item_ref":"tos.item.private","occurrence_id":format!("tos.occurrence.private-{rank}"),"part_order":part,"provider":provider,"schema_version":"tos_zdl_contextual_morphology_row_v1","selection_rank":rank,"selection_role":role,"target_end_offset":14,"target_exact_form":surface,"target_start_offset":6,"target_tokens":[tokens[1]],"tokenization":{"token_count":3,"target_token_count":1,"exact_single_token_alignment":true,"split_or_expanded_alignment":false,"target_covered":true},"tokens":tokens});
+            contexts
+                .row_with_form(&canonical(row).unwrap(), &form_sha)
+                .unwrap();
+        }
+        let output = contexts.finish("test-stream").unwrap();
+        assert_eq!(output["exact_single_token_alignment_count"], 3);
+        assert_eq!(output["target_pos"], json!({"ADV":3}));
+        let text = String::from_utf8(canonical(output).unwrap()).unwrap();
+        assert!(!text.contains(surface) && !text.contains(context));
     }
 }

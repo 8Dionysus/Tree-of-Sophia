@@ -121,7 +121,7 @@
       "required": ["ref", "sha256"],
       "properties": {
         "ref": {
-          "const": "scripts/record_zarathustra_visual_retrieval_result.py"
+          "enum": ["scripts/record_zarathustra_visual_retrieval_result.py", "rust/crates/tos-compiler/src/research_visual_result.rs"]
         },
         "sha256": {"$ref": "#/$defs/digest"}
       }

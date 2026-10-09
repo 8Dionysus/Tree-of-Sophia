@@ -13,7 +13,7 @@ use std::{
         fd::AsRawFd,
         unix::fs::{MetadataExt, PermissionsExt},
     },
-    path::{Path, PathBuf},
+    path::Path,
 };
 type Result<T> = std::result::Result<T, String>;
 const META: u64 = 8 * 1024 * 1024;
@@ -1004,6 +1004,30 @@ fn withholding(
     walk(files, dir, run, 0, &mut 0, &mut held, patterns)?;
     Ok(held)
 }
+fn file_set_record(files: &mut Files<'_>, root: &str, paths: &[String]) -> Result<Value> {
+    ensure(
+        !paths.is_empty() && paths.len() <= 256,
+        "visual file set count bound",
+    )?;
+    let mut ordered = paths.to_vec();
+    ordered.sort();
+    ensure(
+        !ordered.windows(2).any(|v| v[0] == v[1]),
+        "visual duplicate file set entry",
+    )?;
+    let mut records = Vec::new();
+    let mut bytes = 0u64;
+    for r in ordered {
+        let h = files.bind(&r, META)?;
+        bytes = bytes
+            .checked_add(h.metadata.len())
+            .ok_or("visual file set byte overflow")?;
+        records.push(json!({"ref":r.strip_prefix(&format!("{root}/")).ok_or("query run prefix")?,"sha256":h.digest,"bytes":h.metadata.len()}));
+    }
+    Ok(
+        json!({"file_count":records.len(),"total_bytes":bytes,"set_sha256":sha(&canonical(json!(records))?),"source_bearing":false}),
+    )
+}
 pub struct Options<'a> {
     pub inspect: bool,
     pub build: bool,
@@ -1080,14 +1104,14 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
     }
     private.fix(query_name, digest("query_content"), META)?;
     let query_content = private.json(query_name)?;
+    let input_mode = private
+        .bind(query_name, META)?
+        .metadata
+        .permissions()
+        .mode()
+        & 0o777;
     ensure(
-        private
-            .bind(query_name, META)?
-            .metadata
-            .permissions()
-            .mode()
-            & 0o777
-            == 0o600,
+        [0o600, 0o644].contains(&input_mode),
         "private query content mode",
     )?;
     let mut values = BTreeMap::new();
@@ -1238,34 +1262,7 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
     )?;
     let peaks = &resource_launch["startup_admission"]["demand_observation"]["peaks"];
     eq(&peaks["ok"], json!(true), "host peaks")?;
-    let mut query_records = Vec::new();
-    let mut query_bytes = 0u64;
-    let mut ordered = query.paths;
-    ordered.sort();
-    for r in ordered {
-        let h = files.bind(&r, META)?;
-        query_bytes += h.metadata.len();
-        query_records.push(json!({"ref":r.strip_prefix(&format!("{}/",opt.run)).ok_or("query run prefix")?,"sha256":h.digest,"bytes":h.metadata.len()}));
-    }
-    private_artifacts["query_results"] = json!({"file_count":query_records.len(),"total_bytes":query_bytes,"set_sha256":sha(&canonical(json!(query_records))?),"source_bearing":false});
-    if opt.inspect {
-        files.verify()?;
-        sources.verify()?;
-        private.verify()?;
-        directories.verify()?;
-        ctx.check()?;
-        return Ok(
-            json!({"status":"retained-run-evidence-verified-model-files-unverified","full_result_registration":false,"model_and_implementation_fixity":"not-performed","run":opt.run,"png_fixity_checks":36,"page_vector_count":36,"normalization_record_count":76,"query_count":20,"resolved_ranked_result_count":200,"private_text_leak_count":0,"copied_source_or_image_file_count":0,"advisory_results":query.summary,"normalization":normalization,"budgets":ctx.budget_report()}),
-        );
-    }
-    let model_ctx = ctx.select_directory(opt.model_root.ok_or("explicit model root required")?)?;
-    let impl_ctx = ctx.select_directory(
-        opt.implementation_root
-            .ok_or("explicit implementation root required")?,
-    )?;
-    let mut model_files = Files::new(&model_ctx);
-    let mut implementation = Files::new(&impl_ctx);
-    verify_model(&mut model_files, &mut implementation, runtime, invocation)?;
+    private_artifacts["query_results"] = file_set_record(&mut files, opt.run, &query.paths)?;
     sources.fix(
         BUILDER,
         &sha(include_bytes!("research_visual_result.rs")),
@@ -1315,6 +1312,24 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
         "visual result schema refused",
     )?;
     ensure(!patterns.is_match(&encoded), "private query text in result")?;
+    if opt.inspect {
+        files.verify()?;
+        sources.verify()?;
+        private.verify()?;
+        directories.verify()?;
+        ctx.check()?;
+        return Ok(
+            json!({"status":"retained-run-evidence-verified-model-files-unverified","receipt_projection_matches_retained":true,"full_result_registration":false,"model_and_implementation_fixity":"not-performed","run":opt.run,"png_fixity_checks":36,"page_vector_count":36,"normalization_record_count":76,"query_count":20,"resolved_ranked_result_count":200,"private_text_leak_count":0,"copied_source_or_image_file_count":0,"advisory_results":query.summary,"normalization":normalization,"budgets":ctx.budget_report()}),
+        );
+    }
+    let model_ctx = ctx.select_directory(opt.model_root.ok_or("explicit model root required")?)?;
+    let impl_ctx = ctx.select_directory(
+        opt.implementation_root
+            .ok_or("explicit implementation root required")?,
+    )?;
+    let mut model_files = Files::new(&model_ctx);
+    let mut implementation = Files::new(&impl_ctx);
+    verify_model(&mut model_files, &mut implementation, runtime, invocation)?;
     files.verify()?;
     sources.verify()?;
     private.verify()?;
@@ -1422,5 +1437,108 @@ mod tests {
             )
             .is_err()
         );
+    }
+}
+#[cfg(test)]
+mod retained_contract_tests {
+    use super::*;
+    #[test]
+    fn retained_and_native_receipts_preserve_review_and_private_boundaries() {
+        let raw = include_bytes!(
+            "../../../../ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json"
+        );
+        assert_eq!(sha(raw), OLD_RECEIPT_SHA);
+        let mut receipt: Value = serde_json::from_slice(raw).unwrap();
+        let uri = "https://tree-of-sophia.local/ToS/contracts/visual-retrieval-result-receipt.schema.json";
+        let validator = tos_validation::SchemaBackendProbe::new(
+            vec![tos_validation::SchemaResource {
+                uri: uri.into(),
+                raw: include_bytes!(
+                    "../../../../ToS/contracts/visual-retrieval-result-receipt.schema.json"
+                )
+                .to_vec(),
+            }],
+            tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        let valid = |v: &Value| {
+            validator
+                .is_valid_raw(uri, &canonical(v.clone()).unwrap())
+                .unwrap()
+        };
+        assert!(valid(&receipt));
+        assert_eq!(
+            receipt["triggered_review"]["query_ids"],
+            json!([
+                "tos-query-003",
+                "tos-query-009",
+                "tos-query-010",
+                "tos-query-011",
+                "tos-query-020"
+            ])
+        );
+        for (k, n) in [
+            ("model_proposed_target_at_10", 19),
+            ("evaluable_query_count", 19),
+            ("coverage_recovery", 1),
+            ("hard_negative_presence", 9),
+            ("hard_negative_slots", 10),
+            ("hard_negative_outranks_expected", 4),
+        ] {
+            assert_eq!(receipt["advisory_results"][k], json!(n));
+        }
+        for k in [
+            "human_ndcg_at_10",
+            "human_hard_negative_error_rate",
+            "human_review_minutes",
+            "winner",
+        ] {
+            assert!(receipt["quality_and_promotion"][k].is_null());
+        }
+        assert_eq!(
+            receipt["quality_and_promotion"]["promotion_authorized"],
+            false
+        );
+        assert_eq!(receipt["triggered_review"]["human_debt_count"], 0);
+        assert_eq!(
+            receipt["triggered_review"]["routine_review_scheduled"],
+            false
+        );
+        assert_eq!(
+            receipt["triggered_review"]["review_interface_materialized"],
+            false
+        );
+        let encoded = std::str::from_utf8(raw).unwrap();
+        assert!(!encoded.contains("/srv/") && !encoded.contains("/home/"));
+        receipt["receipt_id"] = json!(format!(
+            "{}.native-test-1",
+            s(&receipt["receipt_id"]).unwrap()
+        ));
+        receipt["generator"] =
+            json!({"ref":BUILDER,"sha256":sha(include_bytes!("research_visual_result.rs"))});
+        receipt["mechanical_reconstruction"]["performed_by"] = json!("software:tos-native-rust");
+        assert!(valid(&receipt));
+        receipt["triggered_review"]["human_judgment_status"] = json!("completed");
+        assert!(!valid(&receipt));
+    }
+    #[test]
+    fn file_set_output_withholds_paths_and_source_strings() {
+        let t = tempfile::tempdir().unwrap();
+        std::fs::create_dir(t.path().join("run")).unwrap();
+        std::fs::write(t.path().join("run/a.json"), b"{\"query_id\":\"q1\"}\n").unwrap();
+        std::fs::write(t.path().join("run/b.json"), b"{\"query_id\":\"q2\"}\n").unwrap();
+        let ctx = ResearchExecution::new(t.path(), 30).unwrap();
+        let mut files = Files::new(&ctx);
+        let set = file_set_record(
+            &mut files,
+            "run",
+            &["run/b.json".into(), "run/a.json".into()],
+        )
+        .unwrap();
+        assert_eq!(set["file_count"], 2);
+        let raw = canonical(set).unwrap();
+        let text = std::str::from_utf8(&raw).unwrap();
+        assert!(!text.contains("q1") && !text.contains("a.json"));
+        files.verify().unwrap();
     }
 }

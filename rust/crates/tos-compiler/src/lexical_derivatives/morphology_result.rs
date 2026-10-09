@@ -314,7 +314,56 @@ pub fn inspect(ctx: &ResearchExecution, path: &Path) -> Result<Value> {
     let mut census = Census::default();
     lines(&selected, &mut h, |raw| census.row(raw))?;
     h.verify(&selected)?;
-    census.finish(&h.digest)
+    let raw = census.finish(&h.digest)?;
+    label_contract(
+        ctx,
+        "morphology-census-result-receipt",
+        &raw,
+        &[
+            ("provider_pos", "providerPosCountMap"),
+            ("provider_category", "providerCategoryCountMap"),
+        ],
+    )?;
+    Ok(raw)
+}
+pub(super) fn label_contract(
+    ctx: &ResearchExecution,
+    name: &str,
+    raw: &Value,
+    maps: &[(&str, &str)],
+) -> Result<()> {
+    let mut held = Vec::new();
+    let schema = read_json(ctx, &format!("ToS/contracts/{name}.schema.json"), &mut held)?;
+    for (key, definition) in maps {
+        let rule = &schema["$defs"][*definition]["propertyNames"];
+        let keys = raw[*key].as_object().ok_or("provider count map required")?;
+        if let Some(allowed) = rule["enum"].as_array() {
+            for key in keys.keys() {
+                ensure(
+                    allowed.iter().any(|v| v.as_str() == Some(key)),
+                    "provider label outside text-free contract",
+                )?;
+            }
+        } else if let Some(pattern) = rule["pattern"].as_str() {
+            ensure(pattern.len() <= 1024, "provider label pattern bound")?;
+            let regex = regex::RegexBuilder::new(pattern)
+                .size_limit(65536)
+                .build()
+                .map_err(|e| e.to_string())?;
+            for key in keys.keys() {
+                ensure(
+                    regex.is_match(key),
+                    "provider label outside text-free contract",
+                )?;
+            }
+        } else {
+            return Err("provider label contract required".into());
+        }
+    }
+    for h in &mut held {
+        h.verify(ctx)?;
+    }
+    Ok(())
 }
 pub(super) fn external(
     ctx: &ResearchExecution,
@@ -751,5 +800,43 @@ mod tests {
         assert_eq!(character_bucket("alpha-beta"), "contains-joiner");
         assert_eq!(character_bucket("ß"), "alphabetic-only");
         assert_eq!(character_bucket("x\u{0301}"), "contains-other");
+    }
+}
+#[cfg(test)]
+mod retained_inspector_tests {
+    use super::*;
+    #[test]
+    fn provider_census_recomputes_without_returning_source_strings() {
+        let provider = json!({"artifact":"DWDSmor Open","version":"0.18.0","source_commit":"f97b92ce2a5d6db8750afbdb222eb39470e57cf6","wheel_sha256":"395a15e15286b0c191b42355b6e3c2a43c8959621ccf3563336c2e30399a2973","surface_normalized_before_analysis":false});
+        let mut rows = Vec::new();
+        for (text, count, analyses) in [
+            ("bekannt", 4, json!([{"pos":"V","category":null}])),
+            ("unbekannt", 2, json!([])),
+        ] {
+            let digest = sha(text.as_bytes());
+            rows.push(json!({"schema_version":"tos_dwdsmor_analysis_row_v1","form_key":format!("lexical-form:sha256:{digest}"),"exact_form":text,"exact_form_sha256":digest,"normalized_form_sha256":"a".repeat(64),"occurrence_count":count,"input_preserved":true,"provider":provider,"lemma_analyses":analyses,"root_analyses":[],"lemma_analysis_count":analyses.as_array().unwrap().len(),"root_analysis_count":0,"unknown":analyses.as_array().unwrap().is_empty(),"authority":"unreviewed-provider-candidate"}));
+        }
+        rows.sort_by(|a, b| {
+            a["exact_form_sha256"]
+                .as_str()
+                .cmp(&b["exact_form_sha256"].as_str())
+        });
+        let mut census = Census::default();
+        for row in rows {
+            census.row(&canonical(row).unwrap()).unwrap();
+        }
+        let raw = census.finish("test-stream").unwrap();
+        for (k, n) in [
+            ("row_count", 2),
+            ("token_occurrence_count", 6),
+            ("covered_type_count", 1),
+            ("unknown_type_count", 1),
+            ("unknown_token_count", 2),
+            ("lemma_analysis_total", 1),
+        ] {
+            assert_eq!(raw[k], n);
+        }
+        let output = String::from_utf8(canonical(raw).unwrap()).unwrap();
+        assert!(!output.contains("bekannt"));
     }
 }
