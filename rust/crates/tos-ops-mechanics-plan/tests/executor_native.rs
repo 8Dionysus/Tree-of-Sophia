@@ -240,14 +240,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     fs::create_dir_all(root.join("scripts")).unwrap();
     for (name, source) in [
         (
-            "validation_lanes.py",
-            include_str!("../../../../scripts/validation_lanes.py"),
-        ),
-        (
-            "release_check.py",
-            include_str!("../../../../scripts/release_check.py"),
-        ),
-        (
             "validate_mechanics_topology.py",
             include_str!("../../../../scripts/validate_mechanics_topology.py"),
         ),
@@ -319,28 +311,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
         argv
     };
     inspect(
-        "validation_lanes.py",
-        "TOS_VALIDATION_LANES_EXECUTOR",
-        &["--che", "--sequence=quoted sequence", "--ru", "sample"],
-        base(&[
-            "--python",
-            "/usr/bin/python3",
-            "--check",
-            "--sequence",
-            "quoted sequence",
-            "--run",
-            "sample",
-        ]),
-        false,
-    );
-    inspect(
-        "release_check.py",
-        "TOS_RELEASE_CHECK_EXECUTOR",
-        &["--ph=checks"],
-        base(&["--python", "/usr/bin/python3", "--phase", "checks"]),
-        false,
-    );
-    inspect(
         "validate_mechanics_topology.py",
         "TOS_OPS_MECHANICS_EXECUTOR",
         &["legacy ignored argument"],
@@ -354,15 +324,6 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
         base(&["--active-naming-validate"]),
         false,
     );
-    let invalid = Command::new("/usr/bin/python3")
-        .arg("-B")
-        .arg(root.join("scripts/validation_lanes.py"))
-        .arg("--unknown")
-        .env("TOS_VALIDATION_LANES_EXECUTOR", &selected)
-        .output()
-        .unwrap();
-    assert_eq!(invalid.status.code(), Some(2));
-    assert!(invalid.stdout.is_empty());
     let help = Command::new("/usr/bin/python3")
         .arg("-B")
         .arg(root.join("scripts/validate_active_naming.py"))
@@ -375,7 +336,7 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     // Explicit cache branch remains Python-owned, independently of whether
     // native is installed. No real cache is written in this routing fixture.
     let compatibility = Command::new("/usr/bin/python3").arg("-B").arg("-c")
-        .arg("import pathlib,runpy,sys; root=pathlib.Path(sys.argv[1]); sys.path.insert(0,str(root/'scripts')); modules={n:runpy.run_path(str(root/'scripts'/n),run_name='tos_import_api') for n in ['validation_lanes.py','release_check.py','validate_mechanics_topology.py','validate_active_naming.py']}; assert callable(modules['validation_lanes.py']['command_sequence']); assert callable(modules['release_check.py']['select_steps']); assert callable(modules['validate_mechanics_topology.py']['run_validation']); naming=modules['validate_active_naming.py']; seen=[]; naming['native_main'].__globals__['main']=lambda args:seen.append(args) or 23; assert naming['native_main'](['--feedback-cache=external.sqlite'])==23; assert seen==[['--feedback-cache=external.sqlite']]")
+        .arg("import pathlib,runpy,sys; root=pathlib.Path(sys.argv[1]); sys.path.insert(0,str(root/'scripts')); modules={n:runpy.run_path(str(root/'scripts'/n),run_name='tos_import_api') for n in ['validate_mechanics_topology.py','validate_active_naming.py']}; assert callable(modules['validate_mechanics_topology.py']['run_validation']); naming=modules['validate_active_naming.py']; seen=[]; naming['native_main'].__globals__['main']=lambda args:seen.append(args) or 23; assert naming['native_main'](['--feedback-cache=external.sqlite'])==23; assert seen==[['--feedback-cache=external.sqlite']]")
         .arg(&root).env("TOS_OPS_MECHANICS_EXECUTOR",root.join("missing-native")).output().unwrap();
     assert!(
         compatibility.status.success(),
@@ -396,10 +357,10 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     .unwrap();
     let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-validation-lanes").into());
-    let output = Command::new("/usr/bin/python3")
-        .arg("-B")
-        .arg(root.join("scripts/validation_lanes.py"))
-        .env("TOS_VALIDATION_LANES_EXECUTOR", &executable)
+    let output = Command::new(&executable)
+        .arg("--repo-root")
+        .arg(&root)
+        .args(["--python", "/usr/bin/python3"])
         .args(["--sequence", "sample", "--run", "sample"])
         .output()
         .unwrap();
@@ -420,10 +381,10 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     );
 
     fs::remove_file(root.join("trace")).unwrap();
-    let output = Command::new("/usr/bin/python3")
-        .arg("-B")
-        .arg(root.join("scripts/validation_lanes.py"))
-        .env("TOS_VALIDATION_LANES_EXECUTOR", &executable)
+    let output = Command::new(&executable)
+        .arg("--repo-root")
+        .arg(&root)
+        .args(["--python", "/usr/bin/python3"])
         .args(["--run", "rust_workspace"])
         .output()
         .unwrap();

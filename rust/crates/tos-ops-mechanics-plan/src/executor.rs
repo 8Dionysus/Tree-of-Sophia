@@ -910,10 +910,12 @@ mod native {
                 let mut overrides = overrides;
                 if let Style::Validation(python, _) = style {
                     if crate::conformance_products::execution(&command.argv) || growth_class {
-                        if python.is_empty() || python.contains('\0') {
-                            return Err(error("explicit maintained Python interpreter required"));
+                        if python.contains('\0') {
+                            return Err(error("invalid explicit maintained Python interpreter"));
                         }
-                        overrides.push(("TOS_MAINTAINED_PYTHON".into(), python.into()));
+                        if !python.is_empty() {
+                            overrides.push(("TOS_MAINTAINED_PYTHON".into(), python.into()));
+                        }
                     }
                 }
                 let mut cargo_stdout = Vec::new();

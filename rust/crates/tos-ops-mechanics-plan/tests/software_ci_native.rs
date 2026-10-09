@@ -253,8 +253,8 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         let first_call = st
             .iter()
             .position(|s| {
-                run(s).contains("scripts/release_check.py")
-                    || run(s).contains("scripts/validation_lanes.py")
+                run(s).contains("\"$TOS_RELEASE_CHECK_EXECUTOR\"")
+                    || run(s).contains("\"$TOS_VALIDATION_LANES_EXECUTOR\"")
                     || run(s).contains("\"$TOS_SOFTWARE_CI_EXECUTOR\" gate")
             })
             .unwrap();
@@ -660,3 +660,6 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         assert!(!checkout.contains(&format!("/{fixture_root}")));
     }
 }
+
+#[path = "support/validation_lanes.rs"]
+mod validation_lanes_cases;

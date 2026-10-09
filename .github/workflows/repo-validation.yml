@@ -101,7 +101,6 @@ jobs:
             /rust-toolchain.toml
             /rust/
             /tests/conformance/rust/
-            /tests/test_validation_lanes.py
             /tests/test_acquisition_batch.py
             /tests/test_acquisition_handoff_adapter.py
             /tests/oracles/acquisition/acquisition_batch.py
@@ -283,18 +282,18 @@ jobs:
             --rustc-version "$RUNNER_TEMP/software-rustc-version.txt" --github-env "$GITHUB_ENV"
 
       - name: Validate software contracts and build browser assets
-        run: python scripts/release_check.py --phase checks
+        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --phase checks'
 
       - name: Test shared software and data-operation code on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'full' }}
-        run: python scripts/release_check.py --phase tests --command-timeout-ms 900000
+        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --phase tests --command-timeout-ms 900000'
 
       - name: Test reader and API behavior on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
-        run: python scripts/validation_lanes.py --run software_reader
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --run software_reader'
 
       - name: Test browser behavior with bounded fixtures
-        run: python scripts/validation_lanes.py --run software_browser
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --run software_browser'
 
       - name: Build and install the native software artifact without corpus data
         env:
@@ -784,7 +783,7 @@ jobs:
           TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
-        run: python scripts/validation_lanes.py --run rust_workspace --lane-timeout-ms 5400000
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --python "$(command -v python)" --run rust_workspace --lane-timeout-ms 5400000'
       - name: Verify durable command transactions against PostgreSQL
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home

@@ -6,8 +6,6 @@ import sys
 from pathlib import Path
 from typing import TypeAlias
 
-from validation_lanes import load_manifest as load_validation_lanes
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = Path("ToS/source_home.manifest.json")
@@ -95,7 +93,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         return issues
 
     try:
-        lane_manifest = load_validation_lanes(root)
+        lane_manifest = json.loads((root / LANES_PATH).read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError) as exc:
         issues.append((LANES_PATH.as_posix(), f"unable to load validation lanes: {exc}"))
         lane_ids: set[str] = set()

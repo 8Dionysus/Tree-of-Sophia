@@ -81,11 +81,6 @@ def main() -> None:
         # Cargo's maintained package install supplies these separate command
         # products too. Consume their real compatibility entries from the same
         # fresh prefix, rather than assuming availability from a build receipt.
-        for name in ("validation_lanes", "release_check"):
-            shutil.copyfile(ROOT / f"scripts/{name}.py", fixture / f"scripts/{name}.py")
-            environment[f"TOS_{name.upper()}_EXECUTOR"] = str(
-                install / "bin" / ("tos-" + name.replace("_", "-"))
-            )
         manifest = fixture / "docs/validation/validation_lanes.json"
         manifest.parent.mkdir(parents=True)
         steps = [
@@ -98,7 +93,7 @@ def main() -> None:
             "Path(sys.argv[1] + '-executed').write_text(sys.executable)\n", encoding="utf-8"
         )
         selected = subprocess.run(
-            [sys.executable, str(fixture / "scripts/validation_lanes.py"), "--sequence", "release_check"],
+            [str(install / "bin/tos-validation-lanes"), "--repo-root", str(fixture), "--python", sys.executable, "--sequence", "release_check"],
             cwd=fixture, env=environment, check=True, capture_output=True, text=True,
         )
         expected = [step["label"] + ": " + " ".join([sys.executable, *step["command"][1:]]) for step in steps]
@@ -106,7 +101,7 @@ def main() -> None:
             raise ValueError("installed validation entry did not select exact authored commands")
         for phase in ("checks", "tests"):
             subprocess.run(
-                [sys.executable, str(fixture / "scripts/release_check.py"), "--phase", phase],
+                [str(install / "bin/tos-release-check"), "--repo-root", str(fixture), "--python", sys.executable, "--phase", phase],
                 cwd=fixture, env=environment, check=True,
             )
             if (fixture / f"{phase}-executed").read_text(encoding="utf-8") != sys.executable:

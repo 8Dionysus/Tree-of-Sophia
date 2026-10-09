@@ -5,7 +5,7 @@
   "command_authority": "docs/validation/validation_lanes.json",
   "notes": [
     "This manifest is the executable command-authority surface for ToS validation lanes.",
-    "scripts/validation_lanes.py is a loader and checker only.",
+    "tos-validation-lanes loads, checks and executes this manifest.",
     "Inventories describe coverage and do not own command execution.",
     "TOS-D-0062: release_check validates software only. The former full repository aggregate is retired. Blocking mode applies only inside the selected source, data or integration operation."
   ],
@@ -358,7 +358,7 @@
       "owner_surface": "docs/RELEASING.md",
       "purpose": "Validate standalone software contracts and fixture-based program behavior. Full corpus and integration audits are separate explicit operations.",
       "command_sequence": "release_check",
-      "entrypoint": "scripts/release_check.py",
+      "entrypoint": "tos-release-check",
       "covers_lanes": [
         "validation_authority",
         "standalone_access"
@@ -640,8 +640,9 @@
       {
         "label": "validate validation lane manifest",
         "command": [
-          "python",
-          "scripts/validation_lanes.py",
+          "tos-validation-lanes",
+          "--repo-root",
+          "{repo_root}",
           "--check"
         ]
       }
@@ -1483,7 +1484,6 @@
           "access/tests/test_source_read_owner.py",
           "access/tests/test_streaming_wheel.py",
           "access/tests/test_temporal_comparison.py",
-          "tests/test_validation_lanes.py",
           "tests/test_acquisition_batch.py",
           "tests/test_acquisition_handoff_adapter.py",
           "tests/test_file_membership.py",

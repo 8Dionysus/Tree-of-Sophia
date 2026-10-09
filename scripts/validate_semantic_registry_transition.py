@@ -44,7 +44,7 @@ BASELINE_HELP = (
     "choose the exact pre-change commit, ensure its object is available locally, "
     "then pass --baseline-commit FULL_COMMIT_OID or set "
     f"{BASELINE_ENV}=FULL_COMMIT_OID before "
-    "python scripts/validation_lanes.py --run semantic_registry_transition"
+    "tos-validation-lanes --repo-root ABSOLUTE_REPO --run semantic_registry_transition"
 )
 
 

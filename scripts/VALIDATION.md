@@ -9,7 +9,7 @@ operation.
 After installing Python and browser dependencies, run:
 
 ```sh
-python scripts/release_check.py
+tos-release-check --repo-root "$PWD" --python "$(command -v python)"
 ```
 
 This checks software contracts, builds browser assets, and runs program tests

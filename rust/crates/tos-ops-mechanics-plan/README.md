@@ -89,22 +89,19 @@ The existing Python command entry now selects this native mode; the retained
 Python API remains an independent oracle. This validates mechanics topology
 and does not accept authored ToS meaning.
 
-`tos-validation-lanes` is a separate candidate for the current
-`scripts/validation_lanes.py` command plane. Its `--check`, `--sequence ID`,
-and `--run ID` modes read the existing
+`tos-validation-lanes` owns the validation command plane. Its `--check`,
+`--sequence ID`, and `--run ID` modes read the existing
 `docs/validation/validation_lanes.json` in authored order. Native sequences
-require no interpreter. A selected retained Python step requires the explicit
-`--python PATH` adapter, which the compatibility entry passes as its exact
-`sys.executable`; the native binary does not discover or install an interpreter. The read is bounded to 1 MiB. Run uses the existing dedicated
-Linux pidfd/subreaper executor with its default 300-second command wall,
+require no interpreter. A selected retained Python step requires an explicit
+`--python PATH`; the native binary does not discover or install an interpreter.
+The read is bounded to 1 MiB. Run uses the existing dedicated Linux
+pidfd/subreaper executor with its default 300-second command wall,
 3600-second sequence wall, one-second cleanup grace, and 16 MiB combined
-output per child. These finite execution limits are stricter than the Python
-runner's prior unbounded subprocess call. A child exit code is returned
-unchanged; a signalled child is printed with Python's negative signal status
-and returned as the corresponding Unix shell status. The imported Python loader and
-`release_check` API remain available; command execution selects the native consumer.
-As in the existing executor, an `execvp` refusal becomes child status 127;
-the Python runner previously raised an unhandled spawn exception instead.
+output per child. The first child failure stops the sequence and preserves its
+exit status. A signalled child is reported by its negative signal status and
+returned as the corresponding Unix shell status; executable lookup failure
+returns status 127. The former Python loader, runner and compatibility entries
+have been retired.
 
 `tos-release-check` is a distinct explicit consumer of the same manifest's
 `release_check` sequence. `--phase all` keeps authored order; `checks` and

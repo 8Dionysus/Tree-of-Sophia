@@ -85,8 +85,8 @@ coverage, authority, public-safety, and context probes.
 
 Use root `VALIDATION.md` to inspect or run a named lane. The
 `validation_authority` sequence owns manifest self-check; the `release_check`
-sequence owns standalone software checks and `scripts/release_check.py` remains
-its entrypoint. `software_browser` checks browser behavior on fixtures after `release_check.py` builds the assets.
+sequence owns standalone software checks and `tos-release-check` remains
+its entrypoint. `software_browser` checks browser behavior on fixtures after `tos-release-check` builds the assets.
 The former full aggregate is available through an explicit
 `integration_snapshot_audit` selection, independently of software merge. Blocking lane posture applies inside
 the selected owner operation, under TOS-D-0062.

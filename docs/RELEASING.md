@@ -31,7 +31,7 @@ owner surfaces.
    same-run native executor directly. Native source-history tests cover
    selection, Unicode links, failure propagation and required-job outcomes.
    Workflow topology assertions remain separate checks.
-   Run `python scripts/release_check.py`
+   Run `tos-release-check --repo-root "$PWD" --python "$(command -v python)"`
    to check contracts, build browser assets and run program fixture tests.
    This command uses program fixtures and repository-owned dependencies.
    The wrapper forwards explicit `--command-timeout-ms`, `--lane-timeout-ms`,
@@ -46,7 +46,7 @@ owner surfaces.
    flags do not change host resource admission or skip checks in that phase.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
-   `python scripts/validation_lanes.py --run software_browser`.
+   `tos-validation-lanes --repo-root "$PWD" --python "$(command -v python)" --run software_browser`.
    Browser tests require Playwright and Chromium. They create their own small
    dataset. `access/web/dist` remains an ignored build output.
 4. For Worker code, first prepare the matching rules from this exact checkout:
@@ -155,7 +155,7 @@ Browser/Worker bundle installation, public access and larger runtime profiles
 remain subject to later gates.
 
 PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
-full release suite, as does the local `python scripts/release_check.py` command
+full release suite, as does the local `tos-release-check --repo-root "$PWD" --python "$(command -v python)"` command
 plus the browser and Worker routes above. A documentation-only green check is
 not an installable release artifact: run the full release route when publishing
 software, even when the last change was documentation.
@@ -317,7 +317,7 @@ integration follows the latest source. See `kag/VALIDATION.md` for KAG checks.
 
 The former full repository aggregate is retired. Select the affected source,
 data or external integration operation directly; individual owner procedures
-remain available through `scripts/validation_lanes.py`. No combined audit of
+remain available through `tos-validation-lanes`. No combined audit of
 corpus, KAG, statistics and documentation currentness owns release permission.
 
 Historical v0.5.0 provider release identities remain in `CHANGELOG.md`:
