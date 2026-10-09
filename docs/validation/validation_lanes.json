@@ -964,18 +964,25 @@
       {
         "label": "check epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/build_epistemic_evidence_projection.py",
-          "--native",
-          "--check"
+          "tos",
+          "evidence-projection",
+          "check",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {
         "label": "validate epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/validate_epistemic_evidence_projection.py",
-          "--native"
+          "tos",
+          "evidence-projection",
+          "validate",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {
@@ -1257,18 +1264,25 @@
       {
         "label": "check epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/build_epistemic_evidence_projection.py",
-          "--native",
-          "--check"
+          "tos",
+          "evidence-projection",
+          "check",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {
         "label": "validate epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/validate_epistemic_evidence_projection.py",
-          "--native"
+          "tos",
+          "evidence-projection",
+          "validate",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {

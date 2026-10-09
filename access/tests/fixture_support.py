@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -79,10 +80,10 @@ def write_corpus_topology_fixture(root: Path) -> None:
 
 
 def write_evidence_fixture(root: Path) -> None:
-    """Write bounded authored inputs and derive Evidence via the explicit oracle.
+    """Write bounded authored inputs and derive Evidence through the installed native compiler.
 
     The shared fixture has no canonical anchors or evidence closure. Both the
-    Python adapter and native compiler can inspect the same complete source
+    SDK adapter and native compiler can inspect the same complete source
     definition, schema and route bytes without a production corpus.
     """
     source_ref = "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json"
@@ -128,13 +129,13 @@ def write_evidence_fixture(root: Path) -> None:
     schema_target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(REPO_ROOT / schema_ref, schema_target)
     (root / "ToS/derived-exports").mkdir(parents=True, exist_ok=True)
-    # The maintained builder exposes an explicit reference mode. A subprocess
-    # isolates its source-root binding from other fixture callers and imports.
-    subprocess.run(
-        [sys.executable, str(REPO_ROOT / "scripts/build_epistemic_evidence_projection.py"),
-         "--legacy-oracle", "--source-root", str(root.resolve())],
-        check=True, stdout=subprocess.DEVNULL,
-    )
+    selected = os.environ.get('TOS_NATIVE_PREPARED_CONSUMER_BIN') or shutil.which('tos')
+    if not selected or not Path(selected).is_absolute():
+        raise RuntimeError('Evidence fixture requires installed tos or TOS_NATIVE_PREPARED_CONSUMER_BIN')
+    with tempfile.TemporaryDirectory(prefix='tos-evidence-fixture-') as staging:
+        subprocess.run([selected, 'evidence-projection', 'build', '--source-root', str(root.resolve()),
+                        '--staging', str(Path(staging) / 'capture.sqlite'), '--max-seconds', '180', '--replace'],
+                       check=True, timeout=180, stdout=subprocess.DEVNULL)
 
 
 def write_fixture(root: Path) -> None:

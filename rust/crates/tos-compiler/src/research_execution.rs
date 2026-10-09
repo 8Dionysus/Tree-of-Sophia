@@ -156,6 +156,23 @@ impl ResearchExecution {
             serial: Rc::new(Cell::new(0)),
         })
     }
+    /// The Evidence CLI retains its declared 1..86400 second window. This
+    /// custody covers its small atomic output; the compiler independently owns
+    /// the caller-selected SQLite capture limits under this same deadline.
+    pub fn new_evidence_output(
+        root: &Path,
+        max_seconds: u64,
+        available_bytes: u64,
+    ) -> Result<Self, String> {
+        Self::selected_profile(
+            root,
+            max_seconds,
+            Some(available_bytes),
+            86400,
+            WORK_CAP,
+            Arc::new(AtomicBool::new(false)),
+        )
+    }
     /// The maintained Reading v1 input includes a 379,699,200-byte analysis
     /// database. Its original/final hashes, quick checks and selected table
     /// walks exceed the generic 256 MiB/2 GiB envelope. This fixed domain

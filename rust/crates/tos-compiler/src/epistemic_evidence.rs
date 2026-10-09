@@ -1832,8 +1832,8 @@ mod tests {
             "ToS/derived-exports/tos_corpus_index.min.json",
             &serde_json::to_vec(&corpus).unwrap(),
         );
-        put(root,"ToS/derived-exports/philosophy_graph_projection.min.json",br#"{"schema_version":"tos_philosophy_graph_projection_v2","views":[{"view_id":"v","node_ids":["p"]}]}"#);
-        value!({"scenes":[{"scene_id":"one","selections":[{"mode":"corpus","view_id":"route-graph","item_ids":["n","e"]},{"mode":"philosophy","view_id":"v","item_ids":["p"]}],"posture":"contested-pre-canon","finding":"open","finding_ru":"Открыто Ω","conclusion":{"can_conclude":false,"canon_membership":false,"claim_evidence_closed":false,"allowed":["inspect"],"not_allowed":["closure"]},"anchor_edge_ids":["e"],"routes":[{"route_kind":"witness","ref":"docs/witness.md","status":"open"}],"gaps":[],"gaps_ru":[]}]})
+        put(root,"ToS/derived-exports/philosophy_graph_projection.min.json",br#"{"schema_version":"tos_philosophy_graph_projection_v2","views":[{"view_id":"10","node_ids":["other"]},{"view_id":"20","node_ids":["other"]},{"view_id":"100","node_ids":["p"]}]}"#);
+        value!({"scenes":[{"scene_id":"one","selections":[{"mode":"corpus","view_id":"route-graph","item_ids":["n","e"]},{"mode":"philosophy","view_id":"100","item_ids":["p"]}],"posture":"contested-pre-canon","finding":"open","finding_ru":"Открыто Ω","conclusion":{"can_conclude":false,"canon_membership":false,"claim_evidence_closed":false,"allowed":["inspect"],"not_allowed":["closure"]},"anchor_edge_ids":["e"],"routes":[{"route_kind":"witness","ref":"docs/witness.md","status":"open"}],"gaps":[],"gaps_ru":[]}]})
     }
     fn write_source(root: &Path, source: &Value) {
         put(root, SOURCE_REF, &serde_json::to_vec(source).unwrap());
@@ -1851,6 +1851,12 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path();
         let mut source = fixture(root);
+        // The retired oracle's contrasting canon/open scenes remain distinct.
+        let mut canon = source["scenes"][0].clone();
+        canon["scene_id"] = value!("canon-route");
+        canon["posture"] = value!("canon-retained-evidence-open");
+        canon["conclusion"]["canon_membership"] = value!(true);
+        source["scenes"].as_array_mut().unwrap().push(canon);
         write_source(root, &source);
         let raw = candidate(root, "positive.sqlite").unwrap();
         let payload: Value = serde_json::from_slice(&raw).unwrap();
@@ -1868,6 +1874,25 @@ mod tests {
         );
         assert_eq!(payload["scenes"][0]["finding_ru"], "Открыто Ω");
         assert_eq!(payload["authority_boundary"]["is_source"], false);
+        assert_eq!(payload["scenes"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            payload["scenes"][0]["conclusion"]["canon_membership"],
+            false
+        );
+        assert_eq!(payload["scenes"][1]["conclusion"]["canon_membership"], true);
+        for scene in payload["scenes"].as_array().unwrap() {
+            assert_eq!(scene["conclusion"]["claim_evidence_closed"], false);
+            assert!(
+                scene["routes"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|route| route["exists"] == true)
+            );
+        }
+        assert!(!String::from_utf8_lossy(&raw).contains("/payload/"));
+        assert!(!String::from_utf8_lossy(&raw).contains("file://"));
+        assert!(!String::from_utf8_lossy(&raw).contains("/srv/"));
         put(root, PROJECTION_REF, &raw);
         check(
             root,

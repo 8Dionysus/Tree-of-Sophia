@@ -175,8 +175,18 @@ Use:
 - `python scripts/validate_philosophy_graph_views.py`
 - `python scripts/build_philosophy_graph_projection.py --check`
 - `python scripts/validate_philosophy_graph_projection.py`
-- `python scripts/build_epistemic_evidence_projection.py --check`
-- `python scripts/validate_epistemic_evidence_projection.py`
+- `tos evidence-projection check --source-root "$PWD"`
+- `tos evidence-projection validate --source-root "$PWD"`
+
+Select a private, already reserved scratch directory through
+`TOS_EVIDENCE_STAGING_PARENT` and its remaining byte quota through
+`TOS_EVIDENCE_SCRATCH_BYTES` (or `--staging-parent` / `--scratch-bytes`). Each
+command owns and removes one fresh SQLite directory. The explicit
+`--staging FRESH_ABSOLUTE_PATH` form retains the selected capture for its caller.
+`tos evidence-projection build --source-root "$PWD" --replace` updates the
+companion atomically only while its captured prior bytes remain current. An
+explicit `--output ABSOLUTE_PATH` chooses another generated destination.
+The Rust compiler is the only implementation; native failure has no fallback.
 - `python scripts/build_source_witness_bibliographic_graph.py --check`
 - `python scripts/validate_source_witness_bibliographic_graph.py`
 - `python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py`

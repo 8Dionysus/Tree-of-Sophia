@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import os
+import subprocess
 from pathlib import Path
 import shutil
 import sys
@@ -51,8 +53,13 @@ def _write_projection(root: Path, relative: str, payload):
 
 def _build_evidence_projection(view: Path) -> None:
     """Run the installed producer on this worker's fresh owned source view."""
-    from build_epistemic_evidence_projection import run_native_evidence
-    run_native_evidence(view, 'build')
+    selected = os.environ.get('TOS_NATIVE_PREPARED_CONSUMER_BIN') or shutil.which('tos')
+    if not selected or not Path(selected).is_absolute():
+        raise CorpusStoreError('select installed tos through TOS_NATIVE_PREPARED_CONSUMER_BIN or PATH')
+    with tempfile.TemporaryDirectory(prefix='tos-evidence-worker-') as staging:
+        subprocess.run([selected, 'evidence-projection', 'build', '--source-root', str(view.absolute()),
+                        '--staging', str(Path(staging) / 'capture.sqlite'), '--max-seconds', '180'],
+                       check=True, timeout=180, stdout=subprocess.DEVNULL)
 
 
 def _copy_source_view(store: CorpusStore, manifest: dict, view: Path) -> None:

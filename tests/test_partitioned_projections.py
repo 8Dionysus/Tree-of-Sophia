@@ -54,10 +54,8 @@ class PartitionedSourceProjectionTests(unittest.TestCase):
             self.assertEqual(reader.materialize(), payload)
             loaded, _ = _load(path, storage, allow_legacy=False)
             self.assertEqual(json.loads(''.join(json_chunks(loaded))), payload)
-            import epistemic_evidence_projection_common as evidence
-            (path.parent / "tos_corpus_index.min.json").write_text('{"nodes": [], "relation_edges": []}')
-            with patch.object(evidence, "REPO_ROOT", Path(directory)):
-                self.assertEqual(evidence.projection_ids()[("philosophy", "100")], {"a"})
+            # Evidence view membership and numeric view selection are covered
+            # by the native compiler's scene_authority_identity_anchor_and_route_fences.
 
     def fixture(self):
         return graph_tests.SourceWitnessBibliographicGraphTest().historical_fixture()
