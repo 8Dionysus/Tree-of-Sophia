@@ -61,6 +61,39 @@ fn digest(key: &str) -> &'static str {
 fn eq(v: &Value, want: Value, label: &str) -> Result<()> {
     ensure(v == &want, &format!("visual {label} drift"))
 }
+// Only paths from the reconstructed, source-free receipt enter diagnostics.
+// Values and unrecognized keys from an input never enter the error text.
+fn receipt_differences(observed: &Value, retained: &Value, path: &str, out: &mut Vec<String>) {
+    if observed == retained || out.len() >= 20 {
+        return;
+    }
+    match (observed, retained) {
+        // The retained recorder read floating observations as IEEE doubles.
+        // arbitrary_precision preserves exponent spelling (e-07 vs e-7),
+        // which is not a change in that observation. No tolerance is applied.
+        (Value::Number(a), Value::Number(b))
+            if a.is_f64() && b.is_f64() && a.as_f64() == b.as_f64() => {}
+        (Value::Object(a), Value::Object(b)) => {
+            if a.len() != b.len() || a.keys().any(|key| !b.contains_key(key)) {
+                out.push(format!("{path}/<fields>"));
+            }
+            for (key, value) in a {
+                receipt_differences(
+                    value,
+                    b.get(key).unwrap_or(&Value::Null),
+                    &format!("{path}/{key}"),
+                    out,
+                );
+            }
+        }
+        (Value::Array(a), Value::Array(b)) if a.len() == b.len() => {
+            for (i, (a, b)) in a.iter().zip(b).enumerate() {
+                receipt_differences(a, b, &format!("{path}/{i}"), out);
+            }
+        }
+        _ => out.push(path.into()),
+    }
+}
 fn arr(v: &Value) -> Result<&Vec<Value>> {
     v.as_array().ok_or("visual array required".into())
 }
@@ -1292,7 +1325,16 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
         receipt["generator"] = old["generator"].clone();
         receipt["mechanical_reconstruction"]["performed_by"] =
             old["mechanical_reconstruction"]["performed_by"].clone();
-        eq(&receipt, old, "historical visual result")?;
+        if receipt != old {
+            let mut paths = Vec::new();
+            receipt_differences(&receipt, &old, "", &mut paths);
+            if !paths.is_empty() {
+                return Err(format!(
+                    "visual historical result drift at {}",
+                    paths.join(", ")
+                ));
+            }
+        }
     }
     let schema_ref = "ToS/contracts/visual-retrieval-result-receipt.schema.json";
     let uri = format!("https://tree-of-sophia.local/{schema_ref}");
@@ -1373,6 +1415,29 @@ pub fn run(ctx: &ResearchExecution, opt: Options<'_>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn retained_floating_observation_preserves_value_not_exponent_spelling() {
+        let old: Value = serde_json::from_str("{\"error\":3.5762786865234375e-07}").unwrap();
+        let current = json!({"error":3.5762786865234375e-7});
+        let mut differences = Vec::new();
+        receipt_differences(&current, &old, "", &mut differences);
+        assert!(differences.is_empty());
+        receipt_differences(
+            &json!({"error":3.576278686523438e-7}),
+            &old,
+            "",
+            &mut differences,
+        );
+        assert_eq!(differences, ["/error"]);
+        differences.clear();
+        receipt_differences(
+            &json!({"count":9_007_199_254_740_993u64}),
+            &json!({"count":9_007_199_254_740_992u64}),
+            "",
+            &mut differences,
+        );
+        assert_eq!(differences, ["/count"]);
+    }
     #[test]
     fn fixed_vector_and_private_withholding_controls() {
         let mut vector = vec![json!(0.0); 2048];
