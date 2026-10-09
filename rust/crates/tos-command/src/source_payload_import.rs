@@ -2677,13 +2677,16 @@ mod transfer_tests {
                 json!({"source_condition":source_condition,"how_satisfied":how_satisfied})
             })
             .collect::<Vec<_>>();
-        json!({
+        let mut resolution = json!({
             "basis":"primary-license-private-retention",
             "server_processing_postures":server,
             "redistribution_postures":redistribution,
             "rationale":"Primary license evidence supports exact-byte retention under these prior admission defaults.",
-            "retained_conditions":retained_conditions,
-        })
+        });
+        if !retained_conditions.is_empty() {
+            resolution["retained_conditions"] = json!(retained_conditions);
+        }
+        resolution
     }
 
     #[test]

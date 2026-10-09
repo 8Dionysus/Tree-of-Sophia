@@ -54,7 +54,7 @@ function rowBindings(kind,raw) {
 }
 function database(fixture) {
   const directory=mkdtempSync(join(tmpdir(),'tos-native-temporal-')), path=join(directory,'published.sqlite');
-  const sqlite=new DatabaseSync(path);sqlite.exec(schema);sqlite.exec(migration);
+  const sqlite=new DatabaseSync(path);sqlite.exec('PRAGMA secure_delete=ON');sqlite.exec(schema);sqlite.exec(migration);
   for(const [key,raw] of Object.entries(fixture.metadata))sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(key,raw);
   for(const kind of ['node','relation'])for(const raw of fixture[kind+'s'])sqlite.prepare(`INSERT INTO knowledge_${kind}s VALUES (${rowBindings(kind,raw).map(()=>'?').join(',')})`).run(...rowBindings(kind,raw));
   const statements=[], hook={after:null};

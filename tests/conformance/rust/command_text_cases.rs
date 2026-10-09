@@ -122,7 +122,7 @@ print(json.dumps({'public':str(case.public),'private':str(case.private),
     fixture
 }
 
-fn derived_fixture(root: &Path, kind: &str) -> NativePythonFixture {
+fn derived_fixture(root: &Path, kind: &str, seed: &NativeTextUnitSeed) -> NativePythonFixture {
     let script = r#"
 import copy,json,os,sys,unicodedata
 from pathlib import Path
@@ -220,6 +220,54 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
     };
     let fixture = super::native_python_fixture(id, &[("private-root", &destination)], owner_paths);
     super::assert_native_python_fixture(&fixture, script, owner_paths);
+    // The frozen proposal was captured beside a different private store. Build
+    // a new synthetic request against the actual native predecessor, retaining
+    // the captured edit/OCR material and its independently checked output hash.
+    let mut config: Value = serde_json::from_slice(&fs::read(&fixture.owner).unwrap()).unwrap();
+    let initial: Value =
+        serde_json::from_slice(&fs::read(&seed.initial_layer_owner).unwrap()).unwrap();
+    for key in [
+        "source_context_ref",
+        "uid",
+        "source_scope",
+        "source_record_refs",
+        "source_record_sha256",
+        "manifest_sha256",
+    ] {
+        config[key] = initial[key].clone();
+    }
+    config["derivation_access"]["rights_record_refs"][0] =
+        initial["derivation_access"]["rights_record_refs"][0].clone();
+    let mut material_refs = vec![
+        config["derivation_access"]["rights_record_refs"][1]["ref"]
+            .as_str()
+            .unwrap()
+            .to_owned(),
+    ];
+    if kind == "record-ocr" {
+        let anchor = &seed.layer_record["source_binding"]["anchors"][0];
+        config["input"]["anchor"] = serde_json::json!({
+            "anchor_id":anchor["anchor_id"], "record_ref":anchor["anchor_record_ref"],
+            "record_sha256":anchor["anchor_record_sha256"]});
+        config["source_access"] = initial["source_access"].clone();
+        material_refs.push(
+            config["material"]["content_ref"]
+                .as_str()
+                .unwrap()
+                .to_owned(),
+        );
+    } else {
+        config["input"]["binding"] = seed.source_binding.clone();
+    }
+    for reference in material_refs {
+        let target = seed.private_root.join(&reference);
+        assert!(!target.exists(), "derived synthetic input must be new");
+        let raw = fs::read(destination.join("private").join(&reference)).unwrap();
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(target, fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    fs::write(&fixture.owner, serde_json::to_vec(&config).unwrap()).unwrap();
     fixture
 }
 
@@ -1223,7 +1271,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     let worker_image = &seed.worker_image;
     let package = &seed.initial_layer_package;
     let retained = seed.initial_layer_content.as_slice();
-    let derived_capture = derived_fixture(temporary.path(), "normalize");
+    let derived_capture = derived_fixture(temporary.path(), "normalize", &seed);
     let derived = derived_capture.packets.get("factory").unwrap();
     let derived_owner = PathBuf::from(derived["owner"].as_str().unwrap());
     let derived_ref = derived["source_ref"].as_str().unwrap();
@@ -1307,7 +1355,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         ("correct", "diplomatic_transcription"),
         ("record-ocr", "raw_ocr"),
     ] {
-        let details_capture = derived_fixture(temporary.path(), kind);
+        let details_capture = derived_fixture(temporary.path(), kind, &seed);
         let details = details_capture.packets.get("factory").unwrap();
         let owner_path = PathBuf::from(details["owner"].as_str().unwrap());
         let source_ref = details["source_ref"].as_str().unwrap();

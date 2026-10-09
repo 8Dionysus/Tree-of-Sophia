@@ -88,8 +88,17 @@ pub(super) fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8
         let expected: BTreeMap<String, String> =
             serde_json::from_slice(&fs::read(packet.join("source_contracts.json")).unwrap())
                 .unwrap();
+        let historical = crate::frozen_legacy_python_oracle("compound-source-family");
         for (path, digest) in expected {
-            let raw = fs::read(repository.join(&path)).unwrap();
+            let raw = if let Some(hex) = historical.get(&path).and_then(Value::as_str) {
+                assert_eq!(hex.len() % 2, 0);
+                (0..hex.len())
+                    .step_by(2)
+                    .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+                    .collect()
+            } else {
+                fs::read(repository.join(&path)).unwrap()
+            };
             assert_eq!(
                 Digest256::of_bytes(&raw).to_prefixed(),
                 digest,

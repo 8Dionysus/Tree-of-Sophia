@@ -509,8 +509,10 @@ fn unpack_native_fixture_archive(
     let expected_file_bytes = packet_bytes
         .checked_add(tree_bytes)
         .expect("fixture archive byte count overflow");
+    // Captured tar members may each carry a PAX header and padded payload.
+    // Payload hashes/membership remain exact; account for bounded tar framing.
     let archive_expanded_cap = expected_file_bytes
-        .checked_add((expected.len() as u64).checked_mul(1024).unwrap())
+        .checked_add((expected.len() as u64).checked_mul(4096).unwrap())
         .and_then(|bytes| bytes.checked_add(10_240))
         .expect("fixture archive expanded cap overflow");
 
@@ -1162,7 +1164,12 @@ pub(crate) fn native_python_fixture(
         fs::set_permissions(&target, fs::Permissions::from_mode(mode)).unwrap();
     }
 
-    let owner = PathBuf::from(required(&packet, "owner"));
+    let owner_field = if id == "legacy-claim" {
+        "revision_owner"
+    } else {
+        "owner"
+    };
+    let owner = PathBuf::from(required(&packet, owner_field));
     assert!(owner.is_absolute(), "captured owner path is absolute");
     assert!(owner.is_file(), "relocated owner file exists");
     assert!(

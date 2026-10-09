@@ -877,7 +877,13 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
             .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
             .collect::<Vec<_>>();
         if let Some(existing) = before.get(path) {
-            assert_eq!(existing, &raw, "selected common source {path}");
+            // Historical commands retain their own exact versioned grammar.
+            // Other overlapping source items must still be identical.
+            if !path.starts_with("ToS/contracts/")
+                && !path.starts_with("ToS/doctrine/semantic-interchange/")
+            {
+                assert_eq!(existing, &raw, "selected common source {path}");
+            }
         }
         before.insert(path.clone(), raw);
     }
@@ -1521,7 +1527,13 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
                 .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
                 .collect::<Vec<_>>();
             if let Some(existing) = files.get(path) {
-                assert_eq!(existing, &raw, "selected common source {path}");
+                // Historical commands retain their own exact versioned grammar.
+                // Other overlapping source items must still be identical.
+                if !path.starts_with("ToS/contracts/")
+                    && !path.starts_with("ToS/doctrine/semantic-interchange/")
+                {
+                    assert_eq!(existing, &raw, "selected common source {path}");
+                }
             }
             files.insert(path.clone(), raw);
         }

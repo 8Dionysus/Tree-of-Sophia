@@ -150,17 +150,11 @@ fn native_responsibility_cli_preserves_qualified_union_cold_replay_and_retained_
                 && authored.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024
         );
         let mut capture_files = authored.clone();
-        for reference in fixture["implementations"].as_array().unwrap() {
-            let reference = reference.as_str().unwrap();
-            assert!(
-                capture_files
-                    .insert(
-                        reference.into(),
-                        fs::read(isolated.path().join(reference)).unwrap()
-                    )
-                    .is_none()
-            );
-        }
+        super::command_record_cases::native_metadata_rule_files(
+            &repository,
+            &mut capture_files,
+            &native_owner_paths,
+        );
         assert!(capture_files.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024);
         eprintln!(
             "responsibility preflight: authored_members={} authored_bytes={} authored_max={} capture_bytes={}",

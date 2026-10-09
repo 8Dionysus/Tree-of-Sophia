@@ -286,10 +286,11 @@ fn native_object_link_cli_creates_and_cold_replays_original_package() {
     let sentinel = subject.parent().unwrap().join("payload/opaque.bin");
     let private_before = fs::read(&sentinel).unwrap();
     let mut files = authored_text_files(isolated.path());
-    for name in fixture["implementations"].as_array().unwrap() {
-        let name = name.as_str().unwrap();
-        files.insert(name.into(), fs::read(repository.join(name)).unwrap());
-    }
+    super::command_record_cases::native_metadata_rule_files(
+        &repository,
+        &mut files,
+        &native_owner_paths,
+    );
     files.insert(
         "rust/crates/tos-command/src/source_serialization.rs".into(),
         fs::read(repository.join("rust/crates/tos-command/src/source_serialization.rs")).unwrap(),

@@ -138,7 +138,14 @@ fn create_archive(path: &Path, marker: &str) -> String {
         },
         "members":member_rows,
     });
-    let mut writer = ZipWriter::new(fs::File::create(path).unwrap());
+    let mut writer = ZipWriter::new(
+        fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .unwrap(),
+    );
     for (name, bytes) in &files {
         writer
             .start_file(

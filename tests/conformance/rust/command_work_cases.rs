@@ -43,6 +43,21 @@ fn seed_native_work_fixture(repository: &Path, root: &Path) -> (PathBuf, Vec<u8>
         fs::write(target, raw).unwrap();
     }
 
+    // Catalog planning resolves every profile declared by the selected registry.
+    // Keep captured grammar bytes and add only previously absent resources.
+    for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
+        let entry = entry.unwrap();
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .ends_with(".schema.json")
+        {
+            let target = root.join("ToS/contracts").join(entry.file_name());
+            if !target.exists() {
+                fs::write(target, fs::read(entry.path()).unwrap()).unwrap();
+            }
+        }
+    }
     let mut configuration: Value =
         serde_json::from_slice(&fs::read(seed.join("compound-owner.json")).unwrap()).unwrap();
     configuration["uid"] = json!(fs::metadata(root).unwrap().uid());
@@ -236,6 +251,18 @@ fn native_work_expression_publishes_replays_and_prepares_next_sibling() {
             fs::create_dir_all(target.parent().unwrap()).unwrap();
             fs::write(target, &raw).unwrap();
             assert!(files.insert(reference.to_owned(), raw).is_none());
+        }
+        super::command_record_cases::native_metadata_rule_files(
+            &repository,
+            &mut files,
+            &WORK_IMPLEMENTATIONS,
+        );
+        for (reference, raw) in &files {
+            if !reference.starts_with("ToS/") {
+                let target = isolated.path().join(reference);
+                fs::create_dir_all(target.parent().unwrap()).unwrap();
+                fs::write(target, raw).unwrap();
+            }
         }
         let (_capture, software, components) =
             super::command_record_cases::captured_components(&files, deadline, &cancelled);

@@ -475,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn query_refuses_a_result_larger_than_its_declared_output_budget() {
+    fn query_refuses_source_larger_than_its_declared_byte_budget() {
         let graph = graph_bytes();
         assert!(
             query_verified_projection(
@@ -485,7 +485,7 @@ mod tests {
                 1,
             )
             .unwrap_err()
-            .contains("exceeds output byte budget")
+            .contains("source graph exceeds query byte budget")
         );
     }
 

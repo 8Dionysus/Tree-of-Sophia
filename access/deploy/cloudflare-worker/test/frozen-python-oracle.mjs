@@ -131,6 +131,8 @@ export function frozenPythonOracleExec(sourceUrl, args, options = {}) {
       throw new Error('unexpected frozen SQLite mutation profile');
     }
     const db = new DatabaseSync(payload.path);
+    // Match the exact physical writer mode of the captured Fedora SQLite bank.
+    db.exec('PRAGMA secure_delete=ON');
     try {
       db.exec('BEGIN IMMEDIATE');
       for (let index = 0; index < mutation.before.length; index++) {

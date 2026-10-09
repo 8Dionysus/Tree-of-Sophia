@@ -4,7 +4,7 @@ use flate2::read::GzDecoder;
 use serde_json::Value;
 use std::fs;
 use std::io::Read;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Component, Path};
 use tos_foundation::Digest256;
 
@@ -90,11 +90,17 @@ fn packet(repository: &Path, root: &Path, id: &str) -> Value {
                     .to_string_lossy()
                     .into_owned(),
             );
+            config["uid"] = Value::from(fs::metadata(root).unwrap().uid());
             runtime_raw = serde_json::to_vec_pretty(&config).expect("rebased owner config");
             runtime_raw.push(b'\n');
         }
         let target = root.join(relative);
         fs::create_dir_all(target.parent().unwrap()).expect("create captured fixture parent");
+        let mut directory = target.parent().unwrap();
+        while directory != root {
+            fs::set_permissions(directory, fs::Permissions::from_mode(0o755)).unwrap();
+            directory = directory.parent().unwrap();
+        }
         fs::write(&target, runtime_raw).expect("write captured fixture file");
         fs::set_permissions(&target, fs::Permissions::from_mode(mode))
             .expect("restore captured fixture mode");
@@ -222,6 +228,7 @@ pub(crate) fn item_orphan_recovery(_repository: &Path, root: &Path) -> Value {
     let input_path = root.join("already-acquired.epub");
     let config = &mut packet["config"];
     config["source_root"] = Value::String(root.to_string_lossy().into_owned());
+    config["uid"] = Value::from(fs::metadata(root).unwrap().uid());
     config["payload_root"] = Value::String(payload_root.to_string_lossy().into_owned());
     config["input_path"] = Value::String(input_path.to_string_lossy().into_owned());
     config["recovery_root"] = Value::String(recovery_root.to_string_lossy().into_owned());

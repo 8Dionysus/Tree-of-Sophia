@@ -3362,7 +3362,10 @@ mod selected_snapshot_tests {
                 "compiler_version": "fixture",
                 "compiler_sha256": Digest256::of_bytes(b"old producer").to_hex(),
                 "compiler_paths": ["software/producer.rs"],
-                "input_bindings": {},
+                "input_bindings": {
+                    "ToS/doctrine/semantic-interchange/entity-types.v1.json": bindings["ToS/doctrine/semantic-interchange/entity-types.v1.json"],
+                    "ToS/doctrine/semantic-interchange/relation-types.v1.json": bindings["ToS/doctrine/semantic-interchange/relation-types.v1.json"],
+                },
             },
             "members": rows,
         }))

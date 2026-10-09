@@ -1507,6 +1507,138 @@ print(json.dumps(result,ensure_ascii=False,separators=(',',':')))
     captured.packets.get("factory").unwrap().clone()
 }
 
+// Make a new portable synthetic journal input after archive authentication.
+// Relocating a retained constructor changes its bytes, so rebuild the explicit
+// configuration -> anchor -> layer -> assessment-reference dependency chain.
+// The frozen archive, content representations and historical receipts stay intact.
+fn rebind_journal_fixture(
+    fixture: &mut Value,
+    worker: &Path,
+    worker_digest: Digest256,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) {
+    fn replace_digest(value: &mut Value, old: &str, new: &str) {
+        match value {
+            Value::String(s) if s == old => *s = new.to_owned(),
+            Value::Array(rows) => rows.iter_mut().for_each(|v| replace_digest(v, old, new)),
+            Value::Object(rows) => rows.values_mut().for_each(|v| replace_digest(v, old, new)),
+            _ => {}
+        }
+    }
+    fn rebind_layer(root: &Path, reference: &str, depth: usize) -> String {
+        assert!(depth < 4, "bounded synthetic lineage");
+        let path = root.join(reference);
+        let mut layer: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        let configuration_path = root.join(
+            layer["derivation"]["maker"]["configuration_ref"]
+                .as_str()
+                .unwrap(),
+        );
+        let mut configuration: Value =
+            serde_json::from_slice(&fs::read(&configuration_path).unwrap()).unwrap();
+        let predecessors = layer["derivation"]["input_layers"]
+            .as_array()
+            .unwrap()
+            .clone();
+        for predecessor in predecessors {
+            let new = rebind_layer(root, predecessor["record_ref"].as_str().unwrap(), depth + 1);
+            let old = predecessor["record_sha256"].as_str().unwrap();
+            replace_digest(&mut configuration, old, &new);
+            replace_digest(&mut layer, old, &new);
+        }
+        fs::write(&configuration_path, canonical_json(&configuration)).unwrap();
+        let configuration_digest =
+            Digest256::of_bytes(&fs::read(&configuration_path).unwrap()).to_hex();
+        let old_configuration_digest = layer["derivation"]["maker"]["configuration_digest"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        replace_digest(&mut layer, &old_configuration_digest, &configuration_digest);
+        for binding in layer["source_binding"]["anchors"].as_array_mut().unwrap() {
+            let anchor_path = root.join(binding["anchor_record_ref"].as_str().unwrap());
+            let mut anchor: Value =
+                serde_json::from_slice(&fs::read(&anchor_path).unwrap()).unwrap();
+            let config_ref = anchor["selector_method"]["configuration_ref"]
+                .as_str()
+                .unwrap();
+            anchor["selector_method"]["configuration_digest"] = Value::from(
+                Digest256::of_bytes(&fs::read(root.join(config_ref)).unwrap()).to_hex(),
+            );
+            let raw = canonical_json(&anchor);
+            fs::write(&anchor_path, &raw).unwrap();
+            binding["anchor_record_sha256"] = Value::from(Digest256::of_bytes(&raw).to_hex());
+        }
+        let raw = canonical_json(&layer);
+        fs::write(path, &raw).unwrap();
+        Digest256::of_bytes(&raw).to_hex()
+    }
+    let context = PathBuf::from(fixture["context"].as_str().unwrap());
+    let context_value: Value = serde_json::from_slice(&fs::read(&context).unwrap()).unwrap();
+    let private = PathBuf::from(context_value["private_root"].as_str().unwrap());
+    let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
+    let mut config: Value = serde_json::from_slice(&fs::read(&owner).unwrap()).unwrap();
+    for key in ["native_text_layers", "native_text_units"] {
+        for selected in config[key].as_array_mut().unwrap() {
+            let binding = &mut selected["binding"]["text_layer"];
+            let digest = rebind_layer(&private, binding["record_ref"].as_str().unwrap(), 0);
+            binding["record_sha256"] = Value::from(digest);
+        }
+    }
+    // This grant belongs to the newly constructed synthetic run, not to the
+    // expired comparison grant recorded in the immutable historical fixture.
+    config["native_text_layers"][0]["payload_access"]["expires_at"] =
+        Value::from("2099-01-01T00:00:00Z");
+    let public = PathBuf::from(fixture["public"].as_str().unwrap());
+    let authored = super::command_text_cases::authored_text_files(&public);
+    let store = owner.parent().unwrap().join("relocated-journal-setup-cut");
+    let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let cut = super::command_form_cases::open_cut(&store, revision, deadline, cancelled);
+    let units = tos_foundation::parse_json(
+        &serde_json::to_vec(&config["native_text_units"]).unwrap(),
+        tos_foundation::JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let resolved = tos_command::resolve_native_text_units_for_conformance(
+        &context,
+        units.root(),
+        &cut,
+        worker,
+        worker_digest,
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    for record in resolved.native_records {
+        let record: Value = serde_json::from_slice(
+            &tos_foundation::canonical_bytes_v1(
+                &record,
+                CanonicalProfile::SourceCommandInputV1,
+                JsonLimits::default(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let id = record["id"].as_str().unwrap();
+        let reference = serde_json::json!({"id":id,"version":record["version"],
+            "digest":Digest256::of_bytes(&command_binding_bytes(&record["payload"])).to_prefixed()});
+        if let Some(subject) = config["subjects"].get_mut(id) {
+            subject["record"] = reference.clone();
+        }
+        for kind in ["layer", "unit"] {
+            let subject = format!("{kind}_subject");
+            let template = format!("{kind}_template");
+            if fixture[&subject]["id"] == id {
+                fixture[&subject] = reference.clone();
+                fixture[&template]["expected_subject"] = reference.clone();
+                fixture[&template]["assessments"][0]["subject"] = reference.clone();
+            }
+        }
+    }
+    fs::write(owner, serde_json::to_vec(&config).unwrap()).unwrap();
+}
+
 fn native_layer_journal_case(derived: bool) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
@@ -1518,7 +1650,7 @@ fn native_layer_journal_case(derived: bool) {
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
-    let fixture = native_layer_journal_fixture(temporary.path(), derived);
+    let mut fixture = native_layer_journal_fixture(temporary.path(), derived);
     eprintln!(
         "native layer journal cost: phase=fixture elapsed_ms={}",
         started.elapsed().as_millis()
@@ -1546,6 +1678,13 @@ fn native_layer_journal_case(derived: bool) {
         )
     };
     let image_before: Vec<_> = images.iter().map(|path| custody(path)).collect();
+    rebind_journal_fixture(
+        &mut fixture,
+        images[2].as_path(),
+        image_before[2].4,
+        deadline,
+        &cancelled,
+    );
     eprintln!(
         "native layer journal cost: phase=image-custody elapsed_ms={}",
         started.elapsed().as_millis()

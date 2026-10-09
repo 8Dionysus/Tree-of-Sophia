@@ -162,6 +162,7 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
     ] {
         files.insert(path.into(), fs::read(repository.join(path)).unwrap());
     }
+    super::command_record_cases::native_metadata_rule_files(&repository, &mut files, &[]);
     let fixture_bytes = files
         .values()
         .try_fold(0u64, |n, raw| n.checked_add(raw.len() as u64))

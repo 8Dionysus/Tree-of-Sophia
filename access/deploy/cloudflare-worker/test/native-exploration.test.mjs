@@ -49,7 +49,7 @@ const fields={node:['id','entity_id','native_id','source_graph','kind_id','type_
 const bindings=(kind,raw)=>{const value=JSON.parse(raw);return [...fields[kind].map(k=>value[k]),raw];};
 function database() {
  const directory=mkdtempSync(join(tmpdir(),'tos-native-exploration-')),path=join(directory,'published.sqlite'),sqlite=new DatabaseSync(path);
- sqlite.exec(schema);sqlite.exec(migration);
+ sqlite.exec('PRAGMA secure_delete=ON');sqlite.exec(schema);sqlite.exec(migration);
  for(const [key,raw]of Object.entries(fixture.metadata))sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(key,raw);
  for(const kind of ['node','relation'])for(const raw of fixture[kind+'s'])sqlite.prepare(`INSERT INTO knowledge_${kind}s VALUES (${bindings(kind,raw).map(()=>'?').join(',')})`).run(...bindings(kind,raw));
  const statements=[],hook={after:null,beforeBatch:null};

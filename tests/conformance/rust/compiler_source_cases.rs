@@ -360,6 +360,14 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
             }
         }
         let mut wanted = expected[collection].as_array().unwrap().clone();
+        if collection == "resources" {
+            for row in &mut wanted {
+                let path = required(row, "path");
+                let raw = authored.get(path).expect("selected topology resource");
+                row["sha256"] = json!(Digest256::of_bytes(raw).to_hex());
+                row["size_bytes"] = json!(raw.len());
+            }
+        }
         for (ordinal, row) in wanted.iter().enumerate() {
             let id = row.get("id").or_else(|| row.get("path")).unwrap();
             orders.push(json!({"collection":collection,"id":id,"ordinal":ordinal}));
@@ -829,7 +837,7 @@ pub(crate) fn publish_native_catalog_fixture(repository: &Path, root: &Path, dea
     );
     assert_eq!(
         catalog.manifest["generated_by"],
-        "scripts/build_source_witness_catalog.py"
+        "tos-native-owner-command source-catalog build"
     );
     assert!(
         catalog
@@ -1034,6 +1042,11 @@ fn native_corpus_composition_case(installed: bool) {
         compiler.into(),
         fs::read(repository.join(compiler)).unwrap(),
     );
+    let corpus_owner = "rust/crates/tos-compiler/src/source_corpus.rs";
+    captured.insert(
+        corpus_owner.into(),
+        fs::read(repository.join(corpus_owner)).unwrap(),
+    );
     let worker_source = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
     captured.insert(
         worker_source.into(),
@@ -1069,6 +1082,7 @@ fn native_corpus_composition_case(installed: bool) {
             "--",
             "ToS",
             "rust/crates/tos-compiler/src/lib.rs",
+            "rust/crates/tos-compiler/src/source_corpus.rs",
             "rust/crates/tos-validation/src/bin/tos-schema-worker.rs",
             "access/contracts/runtime-data.v1.json",
         ],
@@ -1098,6 +1112,7 @@ fn native_corpus_composition_case(installed: bool) {
         &[
             "ToS",
             "rust/crates/tos-compiler/src/lib.rs",
+            "rust/crates/tos-compiler/src/source_corpus.rs",
             "rust/crates/tos-validation/src/bin/tos-schema-worker.rs",
             "access/contracts",
         ],

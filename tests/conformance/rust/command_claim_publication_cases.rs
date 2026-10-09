@@ -505,6 +505,131 @@ fn load_frozen_agent_fixture(workspace: &Path) -> PathBuf {
     packet_path
 }
 
+// Independent implementation of the retained oracle's typed digest wire.
+// The unchanged frozen records below verify this codec before live provenance
+// is bound; the compiler normalizer is deliberately not used here.
+fn oracle_typed_digest(value: &Value) -> String {
+    fn wire(v: &Value, out: &mut Vec<u8>) {
+        match v {
+            Value::Null => out.extend_from_slice(b"n;"),
+            Value::Bool(b) => out.extend_from_slice(if *b { b"b1;" } else { b"b0;" }),
+            Value::Number(n) => {
+                let n = n.as_f64().filter(|n| n.is_finite()).unwrap();
+                let n = if n == 0.0 { 0.0 } else { n };
+                out.extend_from_slice(format!("d{:016x};", n.to_bits()).as_bytes());
+            }
+            Value::String(v) => {
+                out.extend_from_slice(format!("s{}:", v.len()).as_bytes());
+                out.extend_from_slice(v.as_bytes());
+            }
+            Value::Array(v) => {
+                out.extend_from_slice(format!("a{}[", v.len()).as_bytes());
+                for v in v {
+                    wire(v, out);
+                }
+                out.push(b']');
+            }
+            Value::Object(v) => {
+                out.extend_from_slice(format!("o{}{{", v.len()).as_bytes());
+                let sorted = v.iter().collect::<BTreeMap<_, _>>();
+                for (k, v) in sorted {
+                    wire(&Value::String(k.clone()), out);
+                    wire(v, out);
+                }
+                out.push(b'}');
+            }
+        }
+    }
+    let mut raw = Vec::new();
+    wire(value, &mut raw);
+    assert!(raw.len() <= 16_777_216);
+    Digest256::of_bytes(&raw).to_hex()
+}
+
+fn bind_agent_oracle_provenance(
+    expected: &mut Value,
+    source: &BTreeMap<String, Vec<u8>>,
+    receipt: &Value,
+) {
+    let history_path =
+        "ToS/source-witnesses/history/synthetic/episode/source-revision-history.json";
+    let raw = source
+        .get(history_path)
+        .expect("actual retained Agent history");
+    let history: Value = serde_json::from_slice(raw).unwrap();
+    assert_eq!(
+        history["receipts"].as_array().unwrap().last().unwrap(),
+        receipt
+    );
+    let current_history = Value::String(Digest256::of_bytes(raw).to_prefixed());
+    let old_history = Value::String(
+        "sha256:96f9a11c496c2a79d998bcfaab91620b2e971e21b0084ebcf03905a5a5e46f98".into(),
+    );
+    let old_time = Value::String("2026-10-09T10:59:58.889690580Z".into());
+    let old_request = Value::String(
+        "sha256:f8931b2e9ddfde413051d81432a8a31a2e2e4048a31b6b68d4a6afdc728aea22".into(),
+    );
+    let replacements = [
+        (&old_history, &current_history),
+        (&old_time, &receipt["recorded_at"]),
+        (&old_request, &receipt["request_digest"]),
+    ];
+    fn bind(v: &mut Value, replacements: &[(&Value, &Value)], counts: &mut [usize; 3]) {
+        for (index, (old, new)) in replacements.iter().enumerate() {
+            if v == *old {
+                *v = (*new).clone();
+                counts[index] += 1;
+                return;
+            }
+        }
+        match v {
+            Value::Object(o) => {
+                for v in o.values_mut() {
+                    bind(v, replacements, counts);
+                }
+            }
+            Value::Array(a) => {
+                for v in a {
+                    bind(v, replacements, counts);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut counts = [0; 3];
+    let mut changed = 0;
+    for node in expected["nodes"].as_array_mut().unwrap() {
+        let mut bound = node.clone();
+        bind(&mut bound, &replacements, &mut counts);
+        if bound == *node {
+            continue;
+        }
+        assert_eq!(
+            node["source_record"]["digest"],
+            oracle_typed_digest(&node["source_record"]["payload"])
+        );
+        let mut unstamped = node.clone();
+        let revision = unstamped
+            .as_object_mut()
+            .unwrap()
+            .remove("content_revision")
+            .unwrap();
+        assert_eq!(revision, oracle_typed_digest(&unstamped));
+        bound["source_record"]["digest"] =
+            json!(oracle_typed_digest(&bound["source_record"]["payload"]));
+        bound
+            .as_object_mut()
+            .unwrap()
+            .remove("content_revision")
+            .unwrap();
+        bound["content_revision"] = json!(oracle_typed_digest(&bound));
+        *node = bound;
+        changed += 1;
+    }
+    assert_eq!(counts, [6, 2, 2]);
+    assert_eq!(changed, 3);
+}
+
 fn frozen_agent_full_graph() -> Value {
     let provenance = claim_fixture_provenance();
     let capture = &provenance["captures"]["agent_post_oracle"];
@@ -1798,7 +1923,8 @@ pub(super) fn publish_agent_load_fixture(
     );
     assert_eq!(prepared_before, agent_sql_snapshot(&connection, deadline));
     assert_eq!(agent_authored(&root, deadline), current_files);
-    let expected = frozen_agent_full_graph();
+    let mut expected = frozen_agent_full_graph();
+    bind_agent_oracle_provenance(&mut expected, &current_files, &source_result["receipt"]);
     assert_eq!(agent_authored(&root, deadline), current_files);
     for kind in ["node", "relation"] {
         let actual: BTreeMap<String, Value> = connection

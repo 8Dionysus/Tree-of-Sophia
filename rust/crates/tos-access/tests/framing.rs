@@ -1645,6 +1645,7 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
     fs::create_dir(&directory).unwrap();
     // Native source-shaped inputs keep diagnostics independent of the retired Python fixture writer.
     write_native_doctor_fixture(&directory);
+    let select_store = std::cell::Cell::new(false);
     let run = |args: &[&str]| {
         let mut command = Command::new(env!("CARGO_BIN_EXE_tos-access"));
         command.arg("--root").arg(&directory).args(args);
@@ -1661,6 +1662,12 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             "TOS_ABYSSOS_ROOT",
         ] {
             command.env_remove(name);
+        }
+        if select_store.get() {
+            command.env(
+                "TOS_QUERY_STORE_PATH",
+                directory.join("ToS/derived-exports/runtime/knowledge.sqlite3"),
+            );
         }
         command.output().unwrap()
     };
@@ -1892,6 +1899,9 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             row
         );
     }
+    // The following refusals concern an explicitly selected store, including
+    // its disappearance; an absent optional store is a different diagnosis.
+    select_store.set(true);
     let rejected_store = |output: std::process::Output| {
         assert_eq!(output.status.code(), Some(1));
         let report = parse_json(

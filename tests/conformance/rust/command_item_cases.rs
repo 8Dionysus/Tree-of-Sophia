@@ -195,17 +195,11 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
     .unwrap();
     let authored = super::command_work_cases::authored_work_files(isolated.path());
     let mut capture_files = authored.clone();
-    for reference in fixture["implementations"].as_array().unwrap() {
-        let reference = reference.as_str().unwrap();
-        assert!(
-            capture_files
-                .insert(
-                    reference.to_owned(),
-                    fs::read(isolated.path().join(reference)).unwrap()
-                )
-                .is_none()
-        );
-    }
+    super::command_record_cases::native_metadata_rule_files(
+        &repository,
+        &mut capture_files,
+        NATIVE_OWNER_PATHS,
+    );
     let (capture, _software, components) =
         super::command_record_cases::captured_components(&capture_files, deadline, &cancelled);
     let store = temporary.path().join("item-cut");

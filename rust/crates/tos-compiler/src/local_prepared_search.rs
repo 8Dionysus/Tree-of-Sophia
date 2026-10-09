@@ -1273,13 +1273,15 @@ mod reverse_frame_tests {
 
     #[test]
     fn reverse_frames_refuse_noncanonical_addresses_and_overflow() {
-        for addresses in [
-            &[][..],
-            &[0][..],
-            &[1, 1][..],
-            &[2, 1][..],
-            &[MAX_ADDRESS + 1][..],
-        ] {
+        // Posting frames preserve ranked order and also represent empty sets.
+        // Reverse-index addresses retain their separate ascending-order rule.
+        for addresses in [&[][..], &[2, 1][..]] {
+            assert_eq!(
+                decode_search_postings(&encode_search_postings(addresses).unwrap()).unwrap(),
+                addresses
+            );
+        }
+        for addresses in [&[0][..], &[1, 1][..], &[MAX_ADDRESS + 1][..]] {
             assert!(encode_search_postings(addresses).is_err());
         }
         assert!(decode_search_postings(&[0x80]).is_err());

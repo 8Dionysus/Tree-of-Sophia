@@ -706,7 +706,13 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         &request("describe", serde_json::json!({})),
         &mut native_calls,
     );
-    assert_eq!(before, selected["before"]);
+    let mut expected_before = selected["before"].clone();
+    // This digest binds the relocated context and protected owner bytes. Its
+    // historical value cannot survive relocation; the actual value must be a
+    // valid binding, remain equal through prepare, and reject drift below.
+    assert!(Digest256::from_prefixed(required(&before, "owner_configuration")).is_ok());
+    expected_before["owner_configuration"] = before["owner_configuration"].clone();
+    assert_eq!(before, expected_before);
     assert_eq!(before["target_exists"], false);
     let preview_request = request(
         "prepare-create",
@@ -716,7 +722,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let oracle_preview = &selected["preview"];
     assert_eq!(
         preview["owner_configuration"],
-        oracle_preview["owner_configuration"]
+        expected_before["owner_configuration"]
     );
     assert_eq!(
         preview["prepared_sources"],

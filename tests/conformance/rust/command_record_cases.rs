@@ -777,6 +777,9 @@ fn context(selected: bool) -> CommandContext {
     owner!("rust/crates/tos-command/src/source_text_owner.rs");
     owner!("rust/crates/tos-command/src/source_private_owner_store.rs");
     owner!("rust/crates/tos-command/src/source_forms_publication.rs");
+    owner!("rust/crates/tos-command/src/source_private_claim.rs");
+    owner!("rust/crates/tos-command/src/source_creation_store.rs");
+    owner!("rust/crates/tos-command/src/source_work_transaction.rs");
     if selected {
         owner!("rust/crates/tos-command/src/source_work_transaction.rs");
     }
@@ -873,6 +876,55 @@ fn run_with_cut(
         &cancel,
     )
 }
+/// Exact current native metadata rule inputs; historical fixture implementation
+/// names describe the capture and are never selected as executable software.
+pub(super) fn native_metadata_rule_files(
+    repository: &Path,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    owners: &[&str],
+) {
+    for path in [
+        "rust/crates/tos-command/src/source_assessment_journal.rs",
+        "rust/crates/tos-command/src/source_claim_publication.rs",
+        "rust/crates/tos-command/src/source_command.rs",
+        "rust/crates/tos-command/src/source_corpus_index_projection.rs",
+        "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_item_deposit.rs",
+        "rust/crates/tos-command/src/source_item_inventory.rs",
+        "rust/crates/tos-command/src/source_item_inventory_extended.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+        "rust/crates/tos-command/src/source_private_assessment_sources.rs",
+        "rust/crates/tos-command/src/source_private_profile.rs",
+        "rust/crates/tos-command/src/source_read_owner.rs",
+        "rust/crates/tos-command/src/source_revisions.rs",
+        "rust/crates/tos-command/src/source_work_expression.rs",
+        "rust/crates/tos-command/src/source_work_transaction.rs",
+        "rust/crates/tos-compiler/src/source_bibliographic.rs",
+        "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
+        "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
+        "rust/crates/tos-compiler/src/source_witness_catalog.rs",
+        "rust/crates/tos-validation/src/biblio_rules.rs",
+        "rust/crates/tos-validation/src/native_compound.rs",
+    ]
+    .iter()
+    .copied()
+    .chain(owners.iter().copied())
+    .chain(
+        tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS
+            .iter()
+            .copied(),
+    )
+    .chain(
+        tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS
+            .iter()
+            .copied(),
+    ) {
+        files
+            .entry(path.into())
+            .or_insert_with(|| fs::read(repository.join(path)).unwrap());
+    }
+}
+
 pub(super) fn captured_components(
     files: &BTreeMap<String, Vec<u8>>,
     deadline: Instant,
@@ -974,10 +1026,11 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
     ];
-    let files: BTreeMap<String, Vec<u8>> = inputs
+    let mut files: BTreeMap<String, Vec<u8>> = inputs
         .iter()
         .map(|name| (name.to_string(), fs::read(repository.join(name)).unwrap()))
         .collect();
+    native_metadata_rule_files(&repository, &mut files, &[]);
     let (_captured, software, components) = captured_components(&files, deadline, &cancellation);
     let temporary = tempfile::tempdir().unwrap();
     let authored: BTreeMap<_, _> = files

@@ -166,7 +166,7 @@ fn digest_regular_file(path: &Path, expected_size: u64, expected_digest: Digest2
     let mut file = open_regular(path, before, "cannot open transport read-back")?;
     let mut digest = Digest256Hasher::new();
     let mut total = 0u64;
-    let mut buffer = [0u8; READ_BLOCK_BYTES];
+    let mut buffer = vec![0u8; READ_BLOCK_BYTES];
     loop {
         let count = file
             .read(&mut buffer)
@@ -475,7 +475,7 @@ pub fn upload_chunked_file_v1<T: ChunkedFileTransportV1>(
     let mut first = open_regular(source, baseline, "cannot open selected source")?;
     let mut first_digest = Digest256Hasher::new();
     let mut first_total = 0u64;
-    let mut buffer = [0u8; READ_BLOCK_BYTES];
+    let mut buffer = vec![0u8; READ_BLOCK_BYTES];
     loop {
         let read = first
             .read(&mut buffer)
@@ -901,7 +901,7 @@ pub fn restore_chunked_file_v1<T: ChunkedFileTransportV1>(
     let mut assembled = create_new(&assembled_path)?;
     let mut total = 0u64;
     let mut full_digest = Digest256Hasher::new();
-    let mut buffer = [0u8; READ_BLOCK_BYTES];
+    let mut buffer = vec![0u8; READ_BLOCK_BYTES];
     for (index, (size, digest, key)) in chunks.iter().enumerate() {
         let part_path = scratch.0.join(format!(
             "part-{:0width$}.remote",

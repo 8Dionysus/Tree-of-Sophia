@@ -128,6 +128,11 @@ fn object_link_fixture(repository: &Path, root: &Path) -> (PathBuf, Vec<u8>) {
         assert_eq!(digest(&raw), row["sha256"].as_str().unwrap());
         let target = root.join(relative);
         fs::create_dir_all(target.parent().unwrap()).expect("create ObjectLink fixture parent");
+        let mut directory = target.parent().unwrap();
+        while directory != root {
+            fs::set_permissions(directory, fs::Permissions::from_mode(0o755)).unwrap();
+            directory = directory.parent().unwrap();
+        }
         fs::write(&target, raw).expect("materialize ObjectLink extension");
         let mode = u32::from_str_radix(row["mode"].as_str().unwrap(), 8).unwrap();
         assert_eq!(mode, 0o600);
