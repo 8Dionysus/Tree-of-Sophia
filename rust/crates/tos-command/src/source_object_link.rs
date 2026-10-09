@@ -37,14 +37,12 @@ const SCOPE: &[&str] = &[
 ];
 const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_object_link.rs",
-    "rust/crates/tos-command/src/source_object_link.rs",
     "rust/crates/tos-command/src/source_command.rs",
     "rust/crates/tos-command/src/source_native_cli.rs",
     "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_work_transaction.rs",
     "rust/crates/tos-command/src/source_read_owner.rs",
     "rust/crates/tos-command/src/source_claim_publication.rs",
-    "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_forms.rs",
     "scripts/source_record_profiles.py",
     "scripts/source_metadata_snapshot.py",

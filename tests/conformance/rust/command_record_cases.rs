@@ -628,23 +628,18 @@ fn context(selected: bool) -> CommandContext {
     owner!("ToS/contracts/human-form.schema.json");
     owner!("ToS/contracts/human-form-set.schema.json");
     owner!("ToS/contracts/human-form-template.schema.json");
-    owner!("mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py");
-    owner!("mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py");
-    owner!("mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py");
-    owner!("mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py");
-    owner!("mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py");
+    owner!("rust/crates/tos-command/src/source_native_cli.rs");
+    owner!("rust/crates/tos-command/src/source_command.rs");
+    owner!("rust/crates/tos-command/src/source_revisions.rs");
+    owner!("rust/crates/tos-command/src/source_forms.rs");
+    owner!("rust/crates/tos-validation/src/assessment.rs");
     owner!("scripts/source_record_profiles.py");
     owner!("scripts/native_text_binding.py");
     owner!("scripts/source_owner_context.py");
     owner!("scripts/source_witness_human_forms.py");
     if selected {
         owner!("scripts/source_metadata_snapshot.py");
-        owner!(
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py"
-        );
-        owner!(
-            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py"
-        );
+        owner!("rust/crates/tos-command/src/source_work_transaction.rs");
     }
     CommandContext {
         base_revision: SourceRevision(Digest256::of_bytes(b"bounded-fixture-cut")),

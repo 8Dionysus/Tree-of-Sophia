@@ -46,9 +46,8 @@ const HISTORICAL_GROUND_IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_native_cli.rs",
 ];
 const REVISION_IMPLEMENTATIONS: &[&str] = &[
-    "rust/crates/tos-command/src/source_claim_publication.rs",
-    "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
+    "rust/crates/tos-command/src/source_revisions.rs",
     "scripts/source_witness_human_forms.py",
     "rust/crates/tos-command/src/source_forms.rs",
     "ToS/contracts/human-form.schema.json",

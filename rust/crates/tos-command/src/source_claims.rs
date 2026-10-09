@@ -3320,11 +3320,10 @@ pub const CLAIM_GROUNDING_RULE_INPUTS: &[&str] = &[
     "rust/crates/tos-command/src/source_native_cli.rs",
     "rust/crates/tos-command/src/source_command.rs",
     "rust/crates/tos-command/src/source_assessment_journal.rs",
-    "rust/crates/tos-command/src/source_private_assessment_sources.rs",
+    "rust/crates/tos-validation/src/assessment.rs",
     "scripts/source_record_profiles.py",
     "scripts/source_identity_proposals.py",
     "scripts/source_document_catalogue.py",
-    "rust/crates/tos-command/src/source_read_owner.rs",
     "rust/crates/tos-command/src/source_read_owner.rs",
     "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
     "scripts/native_text_binding.py",
@@ -3333,7 +3332,7 @@ pub const CLAIM_GROUNDING_RULE_INPUTS: &[&str] = &[
     "scripts/source_witness_bibliographic_graph_common.py",
 ];
 pub const CLAIM_REVISION_RULE_INPUTS: &[&str] = &[
-    "rust/crates/tos-command/src/source_claim_publication.rs",
+    "rust/crates/tos-command/src/source_claims.rs",
     "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
     "scripts/source_witness_human_forms.py",

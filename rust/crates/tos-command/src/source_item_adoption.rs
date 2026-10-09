@@ -1532,7 +1532,6 @@ fn retain_native_topology(
 
 const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_item_adoption.rs",
-    "rust/crates/tos-command/src/source_item_adoption.rs",
     "rust/crates/tos-command/src/source_native_cli.rs",
     "rust/crates/tos-command/src/source_command.rs",
     "rust/crates/tos-command/src/source_revisions.rs",

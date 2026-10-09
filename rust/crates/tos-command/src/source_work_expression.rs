@@ -33,7 +33,6 @@ const SCOPE_KEYS: &[&str] = &[
 ];
 const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_work_expression.rs",
-    "rust/crates/tos-command/src/source_work_expression.rs",
     "rust/crates/tos-command/src/source_native_cli.rs",
     "rust/crates/tos-command/src/source_command.rs",
     "rust/crates/tos-command/src/source_revisions.rs",

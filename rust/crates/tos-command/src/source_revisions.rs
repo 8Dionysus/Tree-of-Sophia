@@ -47,7 +47,7 @@ const DEPENDENCIES: &[&str] = &[
     "rust/crates/tos-command/src/source_command.rs",
     "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_forms.rs",
-    "rust/crates/tos-command/src/source_private_assessment_sources.rs",
+    "rust/crates/tos-validation/src/assessment.rs",
     "scripts/source_record_profiles.py",
     "scripts/native_text_binding.py",
     "scripts/source_owner_context.py",

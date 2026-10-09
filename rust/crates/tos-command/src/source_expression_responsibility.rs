@@ -1356,7 +1356,6 @@ fn original_before_from_cut(
 
 const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_expression_responsibility.rs",
-    "rust/crates/tos-command/src/source_expression_responsibility.rs",
     "rust/crates/tos-command/src/source_native_cli.rs",
     "rust/crates/tos-command/src/source_command.rs",
     "rust/crates/tos-command/src/source_revisions.rs",
