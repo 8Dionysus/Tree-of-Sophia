@@ -274,7 +274,7 @@ pub use knowledge_source_navigation_relation::{
     NavigationRelationLimits, NavigationRelationNormalizeLimits, NavigationRelationNormalizer,
     direct_assertion_context, prepare_navigation_relation_dependencies,
 };
-pub use legacy::LegacyPartitionedNavigation;
+pub use legacy::{LegacyPartitionedNavigation, partitioned_projection_closure};
 pub use native_knowledge_selection::{
     LinuxFsVerityCustody, NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits,
     NativeSelectionPaths, NativeSelectionProducer, prepare_native_knowledge_artifact,

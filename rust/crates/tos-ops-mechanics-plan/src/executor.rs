@@ -163,6 +163,34 @@ pub(crate) fn capture_kag_owner(
     capture_ci_git(root, argv, limits, cancel)
 }
 
+/// The external artifact owner's declared CLI, with one explicit store scope.
+/// The environment belongs only to the child; nested rehearsals cannot alter
+/// this process or acquire ambient host stores.
+pub(crate) fn capture_artifact_owner(
+    root: &Path,
+    argv: Vec<String>,
+    store: &Path,
+    limits: Limits,
+    cancel: &AtomicI32,
+) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
+    #[cfg(target_os = "linux")]
+    {
+        let store = store.to_str().filter(|s| !s.is_empty())
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "artifact store path"))?;
+        let plan = selected_plan(&[(String::new(), argv)], "tos_artifact_owner_capture_v1", "artifact_owner");
+        let mut streams = [Vec::new(), Vec::new()];
+        let overrides = [("ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ISOLATED_ROOT".into(), store.into())];
+        let code = native::run_captured_with_env(root, &plan, limits, cancel, &mut streams, &overrides)?;
+        let [stdout, stderr] = streams;
+        Ok((code, stdout, stderr))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, argv, store, limits, cancel);
+        Err(io::Error::new(io::ErrorKind::Unsupported, "artifact owner requires Linux process custody"))
+    }
+}
+
 /// The philosophy CLI's existing Linux custody, with its original deadline
 /// captured before option/worker setup. Other executor clients keep their law.
 pub(crate) fn run_philosophy_product(
@@ -732,7 +760,7 @@ mod native {
         cancel: &AtomicI32,
         style: Style<'_>,
     ) -> io::Result<i32> {
-        run_inner(root, plan, limits, cancel, style, None, None)
+        run_inner(root, plan, limits, cancel, style, None, None, &[])
     }
 
     pub(super) fn run_captured(
@@ -750,7 +778,19 @@ mod native {
             Style::Capture,
             Some(streams),
             None,
+            &[],
         )
+    }
+
+    pub(super) fn run_captured_with_env(
+        root: &Path,
+        plan: &Plan,
+        limits: Limits,
+        cancel: &AtomicI32,
+        streams: &mut [Vec<u8>; 2],
+        overrides: &[(String, String)],
+    ) -> io::Result<i32> {
+        run_inner(root, plan, limits, cancel, Style::Capture, Some(streams), None, overrides)
     }
 
     pub(super) fn run_product_until(
@@ -768,6 +808,7 @@ mod native {
             Style::Capture,
             None,
             Some(deadline),
+            &[],
         )
     }
 
@@ -779,6 +820,7 @@ mod native {
         style: Style<'_>,
         mut streams: Option<&mut [Vec<u8>; 2]>,
         original_deadline: Option<Instant>,
+        child_overrides: &[(String, String)],
     ) -> io::Result<i32> {
         cancelled(cancel)?;
         if original_deadline.is_some_and(|deadline| Instant::now() >= deadline) {
@@ -908,6 +950,7 @@ mod native {
                     Vec::new()
                 };
                 let mut overrides = overrides;
+                overrides.extend_from_slice(child_overrides);
                 if let Style::Validation(python, _) = style {
                     if crate::conformance_products::execution(&command.argv) || growth_class {
                         if python.contains('\0') {

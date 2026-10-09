@@ -90,7 +90,7 @@ fn collection_slot(header: &mut Value, parts: &[&str]) -> Result<()> {
     }
     Ok(())
 }
-fn root_profile(raw: &str, path: &str) -> Result<Value> {
+pub(crate) fn root_profile(raw: &str, path: &str) -> Result<Value> {
     let (_, root) = strict(raw.as_bytes(), ROOT_BYTES)?;
     exact(
         &root,
