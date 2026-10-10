@@ -79,12 +79,7 @@ fn canonical(value: &serde_json::Value) -> Vec<u8> {
         ..JsonLimits::default()
     };
     let doc = parse_json(&raw, JsonMode::PublishedStrict, limits).unwrap();
-    canonical_bytes_v1(
-        doc.root(),
-        CanonicalProfile::CorpusSnapshotV1,
-        limits,
-    )
-    .unwrap()
+    canonical_bytes_v1(doc.root(), CanonicalProfile::CorpusSnapshotV1, limits).unwrap()
 }
 fn hash_file(path: &Path) -> Digest256 {
     let mut file = File::open(path).unwrap();
@@ -1026,6 +1021,21 @@ pub(super) fn prepare_producer_source(
             captured.insert(member.path.as_str().to_owned(), raw);
         }
     }
+    // The producer's compiled owner is a software input, not authored corpus
+    // data. Select its current exact bytes while retaining the consumer's old
+    // capture and every other companion unchanged. Its normal runtime reader
+    // compares this member with the compiled OWNER_PROGRAM before projection.
+    let owner_program = "rust/crates/tos-compiler/src/source_corpus.rs";
+    let prior_owner_program = captured.get(owner_program).unwrap();
+    let prior_owner_sha = Digest256::of_bytes(prior_owner_program).to_hex();
+    let owner_path = repository.join(owner_program);
+    let metadata = fs::symlink_metadata(&owner_path).unwrap();
+    assert!(metadata.is_file() && !metadata.file_type().is_symlink());
+    assert!(metadata.len() <= 2 * 1024 * 1024);
+    let owner_bytes = fs::read(owner_path).unwrap();
+    assert_eq!(owner_bytes.len() as u64, metadata.len());
+    let selected_owner_sha = Digest256::of_bytes(&owner_bytes).to_hex();
+    captured.insert(owner_program.into(), owner_bytes);
     assert!(captured.len() <= PRODUCER_SOURCE_MEMBERS as usize);
     assert!(captured.values().map(|raw| raw.len() as u64).sum::<u64>() <= PRODUCER_SOURCE_BYTES);
     let git_root = target.with_file_name("producer-git");
@@ -1040,16 +1050,28 @@ pub(super) fn prepare_producer_source(
     super::git(
         &git_root,
         &[
-            "-c", "user.name=Fixture", "-c", "user.email=fixture@invalid",
-            "-c", "commit.gpgsign=false", "commit", "-qm",
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-qm",
             "Retained source cut with complete philosophy inputs",
         ],
     );
     let commit = String::from_utf8(super::git(&git_root, &["rev-parse", "HEAD^{commit}"]))
-        .unwrap().trim().to_owned();
+        .unwrap()
+        .trim()
+        .to_owned();
     let capture = target.with_file_name("producer-software-capture");
     let restored = target.with_file_name("producer-software-restored");
-    let prefixes = inventory.include_prefixes().iter().map(String::as_str).collect::<Vec<_>>();
+    let prefixes = inventory
+        .include_prefixes()
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
     let selection = super::super::source_cut_cases::capture_software_archive(
         &git_root, &commit, &prefixes, &capture, deadline, &cancelled,
     );
@@ -1064,7 +1086,8 @@ pub(super) fn prepare_producer_source(
     source["software_restored_root"] = serde_json::json!(restored);
     source["source_git_commit"] = serde_json::json!(selection.source_git_commit);
     source["source_git_tree"] = serde_json::json!(selection.source_git_tree);
-    source["capture_manifest_sha256"] = serde_json::json!(selection.capture_manifest_sha256.to_hex());
+    source["capture_manifest_sha256"] =
+        serde_json::json!(selection.capture_manifest_sha256.to_hex());
     let mut cold: tos_compiler::ColdOpenLimits =
         serde_json::from_value(base["request"]["cold_open"].clone()).unwrap();
     cold.max_file_bytes = 512 * 1024 * 1024;
@@ -1089,7 +1112,11 @@ pub(super) fn prepare_producer_source(
         "selection":"retained consumer sources plus complete authored ToS/philosophy branch",
         "original_members":original.len(),"producer_members":files.len(),"producer_bytes":bytes,
         "original_members_unchanged":true,
-        "capture_members":captured.len(),"original_companions_unchanged":true,
+        "capture_members":captured.len(),
+        "original_companions_unchanged":prior_owner_sha == selected_owner_sha,
+        "original_companions_unchanged_except_selected_owner_program":true,
+        "selected_owner_program":{"path":owner_program,
+            "previous_sha256":prior_owner_sha,"selected_sha256":selected_owner_sha},
     });
     prepared
 }

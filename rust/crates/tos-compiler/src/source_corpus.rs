@@ -275,7 +275,10 @@ fn text<'a>(v: &'a Value, key: &str) -> Result<&'a str> {
 // all other fields and the complete root/object closure stay in the header.
 fn visit_instances(
     value: &Value,
-    mut visit: impl FnMut(&Value, String, String) -> Result<()>,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut visit: impl FnMut(Vec<u8>, String, String) -> Result<()>,
 ) -> Result<()> {
     const CONTRACT: &str = "ToS/contracts/tos-corpus-index.schema.json";
     let growing = [
@@ -318,7 +321,7 @@ fn visit_instances(
         );
     }
     visit(
-        &Value::Object(header),
+        crate::knowledge_corpus_source::encode(&Value::Object(header), cap)?,
         "corpus:header".into(),
         CONTRACT.into(),
     )?;
@@ -326,25 +329,88 @@ fn visit_instances(
         let rows = value[field]
             .as_array()
             .ok_or(Error::Invalid("native corpus growing array"))?;
-        for (ordinal, row) in rows.iter().enumerate() {
-            visit(
-                row,
-                format!("corpus:{field}/{ordinal}"),
-                format!("{CONTRACT}#/properties/{field}/items"),
-            )?;
-        }
+        visit_array_instances(
+            rows,
+            &format!("corpus:{field}"),
+            &format!("{CONTRACT}#/properties/{field}"),
+            cap,
+            deadline,
+            cancelled,
+            &mut visit,
+        )?;
     }
     for field in ["nodes", "edges", "rights"] {
         let rows = value["source_navigation"][field]
             .as_array()
             .ok_or(Error::Invalid("native corpus navigation array"))?;
-        for (ordinal, row) in rows.iter().enumerate() {
+        visit_array_instances(
+            rows,
+            &format!("corpus:source_navigation/{field}"),
+            &format!("{CONTRACT}#/$defs/sourceNavigation/properties/{field}"),
+            cap,
+            deadline,
+            cancelled,
+            &mut visit,
+        )?;
+    }
+    Ok(())
+}
+// These exact schema arrays contain only type/items. Check bounded portions
+// through their array selector, keeping every row and its original ordering.
+// A row already at the scalar ceiling keeps its item selector: array framing
+// must not make a previously admissible maximum-width row two bytes too wide.
+fn visit_array_instances(
+    rows: &[Value],
+    path: &str,
+    contract: &str,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    visit: &mut impl FnMut(Vec<u8>, String, String) -> Result<()>,
+) -> Result<()> {
+    let mut portion = vec![b'['];
+    let mut first = 0usize;
+    let mut count = 0usize;
+    for (ordinal, row) in rows.iter().enumerate() {
+        check(deadline, cancelled)?;
+        let raw = crate::knowledge_corpus_source::encode(row, cap)?;
+        let required = portion
+            .len()
+            .checked_add(raw.len())
+            .and_then(|n| n.checked_add(usize::from(count > 0) + 1))
+            .ok_or(Error::Budget("native corpus schema array bytes"))?;
+        if count > 0 && (count == 128 || required > cap) {
+            portion.push(b']');
             visit(
-                row,
-                format!("corpus:source_navigation/{field}/{ordinal}"),
-                format!("{CONTRACT}#/$defs/sourceNavigation/properties/{field}/items"),
+                std::mem::replace(&mut portion, vec![b'[']),
+                format!("{path}/{first}-{ordinal}"),
+                contract.into(),
             )?;
+            count = 0;
         }
+        if raw.len().checked_add(2).is_none_or(|n| n > cap) {
+            visit(
+                raw,
+                format!("{path}/{ordinal}"),
+                format!("{contract}/items"),
+            )?;
+            continue;
+        }
+        if count == 0 {
+            first = ordinal;
+        } else {
+            portion.push(b',');
+        }
+        portion.extend_from_slice(&raw);
+        count += 1;
+    }
+    if count > 0 {
+        portion.push(b']');
+        visit(
+            portion,
+            format!("{path}/{first}-{}", rows.len()),
+            contract.into(),
+        )?;
     }
     Ok(())
 }
@@ -398,9 +464,8 @@ fn validate_projection(
     let mut selectors = BTreeSet::new();
     let mut count = 0usize;
     let mut pending = 0u64;
-    visit_instances(value, |instance, path, contract| {
+    visit_instances(value, cap, deadline, cancelled, |raw, path, contract| {
         check(deadline, cancelled)?;
-        let raw = crate::knowledge_corpus_source::encode(instance, cap)?;
         charge(work, raw.len(), l)?;
         let mut cost = schemas
             .schema_input_cost(&path, &raw, &contract, count as u64)
@@ -467,9 +532,8 @@ fn validate_projection(
     let mut checks = Vec::with_capacity(batch.max_units);
     let mut pending = 0u64;
     let mut executed = 0u64;
-    visit_instances(value, |instance, path, contract| {
+    visit_instances(value, cap, deadline, cancelled, |raw, path, contract| {
         check(deadline, cancelled)?;
-        let raw = crate::knowledge_corpus_source::encode(instance, cap)?;
         charge(work, raw.len(), l)?;
         let cost = schemas
             .schema_input_cost(&path, &raw, &contract, checks.len() as u64)
@@ -807,5 +871,154 @@ pub fn project_native_corpus_from_sources(
 
 const OWNER_PROGRAM_PATH: &str = "rust/crates/tos-compiler/src/source_corpus.rs";
 const OWNER_PROGRAM: &[u8] = include_bytes!("source_corpus.rs");
+
+#[cfg(test)]
+mod schema_portion_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn bounded_arrays_preserve_all_rows_schema_and_scalar_ceiling() {
+        let raw = include_bytes!("../../../../ToS/contracts/tos-corpus-index.schema.json");
+        let schema: Value = serde_json::from_slice(raw).unwrap();
+        // Portioning is equivalent only for these type/items-only arrays.
+        // An owner schema change must revisit this decomposition explicitly.
+        for definitions in [
+            vec![
+                "branches",
+                "manifests",
+                "nodes",
+                "relation_packs",
+                "relation_edges",
+                "resources",
+                "diagnostics",
+            ]
+            .into_iter()
+            .map(|name| &schema["properties"][name])
+            .collect::<Vec<_>>(),
+            vec!["nodes", "edges", "rights"]
+                .into_iter()
+                .map(|name| &schema["$defs"]["sourceNavigation"]["properties"][name])
+                .collect(),
+        ] {
+            for definition in definitions {
+                assert_eq!(definition["type"], "array");
+                let keys = definition
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .map(String::as_str)
+                    .collect::<BTreeSet<_>>();
+                assert_eq!(keys, BTreeSet::from(["items", "type"]));
+            }
+        }
+        let uri = "https://tree-of-sophia.local/ToS/contracts/tos-corpus-index.schema.json";
+        let probe = tos_validation::SchemaBackendProbe::new(
+            [tos_validation::SchemaResource {
+                uri: uri.into(),
+                raw: raw.to_vec(),
+            }],
+            tos_validation::FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        let resource = json!({"path":"resource", "resource_kind":"json",
+            "owner_branch":"ToS", "authority_layer":"repository",
+            "sha256":"0".repeat(64), "size_bytes":1});
+        let mut rows = (0..5000)
+            .map(|n| {
+                let mut row = resource.clone();
+                row["path"] = json!(format!("resource-{n}"));
+                row
+            })
+            .collect::<Vec<_>>();
+        let mut value: Value = serde_json::from_str(OWNER_HEADER).unwrap();
+        for name in [
+            "branches",
+            "manifests",
+            "nodes",
+            "relation_packs",
+            "relation_edges",
+            "resources",
+            "diagnostics",
+        ] {
+            value[name] = json!([]);
+        }
+        value["source_navigation"] = json!({"nodes":[],"edges":[],"rights":[]});
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        for valid in [true, false] {
+            if !valid {
+                rows.last_mut().unwrap()["size_bytes"] = json!(-1);
+            }
+            value["resources"] = json!(rows);
+            let mut recovered = Vec::new();
+            let mut units = 0;
+            let mut refused = 0;
+            visit_instances(
+                &value,
+                65_536,
+                deadline,
+                &cancelled,
+                |raw, path, contract| {
+                    assert!(raw.len() <= 65_536);
+                    if path == "corpus:header" {
+                        return Ok(());
+                    }
+                    assert_eq!(
+                        contract,
+                        "ToS/contracts/tos-corpus-index.schema.json#/properties/resources"
+                    );
+                    units += 1;
+                    let selected = format!("https://tree-of-sophia.local/{contract}");
+                    if !probe.is_valid_raw(&selected, &raw).unwrap() {
+                        refused += 1;
+                    }
+                    let portion: Vec<Value> = serde_json::from_slice(&raw).unwrap();
+                    assert!(!portion.is_empty() && portion.len() <= 128);
+                    recovered.extend(portion);
+                    Ok(())
+                },
+            )
+            .unwrap();
+            assert_eq!(recovered, rows);
+            assert_eq!(units, 40);
+            assert_eq!(refused, usize::from(!valid));
+        }
+        let scalar_cap = crate::knowledge_corpus_source::encode(&resource, 4096)
+            .unwrap()
+            .len();
+        let mut count = 0;
+        visit_array_instances(
+            &[resource.clone()],
+            "corpus:resources",
+            &format!("{uri}#/properties/resources"),
+            scalar_cap,
+            deadline,
+            &cancelled,
+            &mut |raw, path, contract| {
+                assert_eq!(raw.len(), scalar_cap);
+                assert_eq!(path, "corpus:resources/0");
+                assert!(contract.ends_with("/items"));
+                assert!(probe.is_valid_raw(&contract, &raw).unwrap());
+                count += 1;
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(count, 1);
+        assert!(
+            visit_array_instances(
+                &[resource],
+                "corpus:resources",
+                &format!("{uri}#/properties/resources"),
+                scalar_cap - 1,
+                deadline,
+                &cancelled,
+                &mut |_, _, _| Ok(())
+            )
+            .is_err()
+        );
+    }
+}
 // Maintained _build_payload owner constants, bound to OWNER_PROGRAM bytes below.
 const OWNER_HEADER: &str = r#"{"authority_order":[{"layer":"source_home","meaning":"Tree of Sophia home surface, source-home manifest, and top-level home route cards","owner_branch":"ToS"},{"layer":"source_witness","meaning":"source-facing witness and provenance surfaces","owner_branch":"ToS/source-witnesses"},{"layer":"golden_route_orientation","meaning":"golden Zarathustra orientation route for the project's current living entry","owner_branch":"ToS/zarathustra"},{"layer":"canon","meaning":"reviewed authored nodes, relation packs, and registries","owner_branch":"ToS/canon"},{"layer":"doctrine","meaning":"current ToS knowledge law, node contracts, templates, and interpretation discipline","owner_branch":"ToS/doctrine"},{"layer":"contract","meaning":"public structural contracts for ToS-owned surfaces","owner_branch":"ToS/contracts"},{"layer":"domain_topology","meaning":"branch-shaped philosophy topology and local graph workbench routes","owner_branch":"ToS/philosophy"},{"layer":"candidate_intake","meaning":"provisional extraction and promotion residue","owner_branch":"ToS/candidate-intake"},{"layer":"research_packet","meaning":"non-authoritative research scaffolds for later review","owner_branch":"ToS/research-packets"},{"layer":"review_evidence","meaning":"dated inspection notes and review evidence for corpus growth","owner_branch":"ToS/review-ledger"},{"layer":"public_compatibility","meaning":"public-safe mirrors and compatibility examples","owner_branch":"ToS/public-compatibility"},{"layer":"derived_export","meaning":"generated downstream read models subordinate to ToS authority","owner_branch":"ToS/derived-exports"},{"layer":"runtime_projection","meaning":"runtime access, visualization, MCP, UI, and projection stores only","owner_branch":"abyss-stack"}],"graph_views":[{"entry_surface":"ToS/source_home.manifest.json","layout_hint":"elk-layered-or-graphviz-dot","purpose":"show the whole ToS home as a branch-shaped tree","view_id":"corpus-topology"},{"entry_surface":"ToS/source_home.manifest.json","layout_hint":"layered-filter","purpose":"switch corpus visibility by witness, research, candidate, canon, compatibility, and export layers","view_id":"authority-layers"},{"entry_surface":"ToS/canon/relations","layout_hint":"directed-route-graph","purpose":"inspect a concrete relation pack without losing its owner branch and provenance","view_id":"route-graph"},{"entry_surface":"ToS/canon","layout_hint":"sigma-graphology-webgl","purpose":"expand around one node by bounded hops over the full corpus substrate","view_id":"node-neighborhood"},{"entry_surface":"ToS/source-witnesses","layout_hint":"dag","purpose":"trace source witness or research packet pressure into candidate, canon, and export surfaces","view_id":"provenance-dag"},{"entry_surface":"ToS/candidate-intake","layout_hint":"elk-layered-flow","purpose":"review candidate-intake material against canon promotion status","view_id":"promotion-flow"},{"entry_surface":"ToS/derived-exports/tos_corpus_index.min.json","layout_hint":"changed-subgraph","purpose":"compare two corpus index snapshots for review","view_id":"diff-snapshot"}],"owner_repo":"Tree-of-Sophia","runtime_projection_boundary":{"allowed":["read ToS-owned corpus surfaces","serve MCP resources and tools that point back to ToS","build runtime graph projections, UI views, and Neo4j caches","emit review diagnostics without changing ToS authority"],"not_allowed":["move canonical ToS meaning into abyss-stack","treat Neo4j, MCP, UI, or runtime cache as source truth","write ToS canon without ToS validators and explicit operator route"],"runtime_owner":"abyss-stack"},"schema_ref":"ToS/contracts/tos-corpus-index.schema.json","schema_version":"tos_corpus_index_v1","surface_kind":"derived_corpus_index","validation_refs":["rust/crates/tos-compiler/src/source_corpus.rs","tests/conformance/rust/compiler_source_cases.rs"]}"#;

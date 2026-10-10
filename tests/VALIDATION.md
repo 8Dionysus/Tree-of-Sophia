@@ -80,6 +80,15 @@ producer invocation still needs a current private-stage ticket. These focused
 passes are evidence for their named phase; final acceptance also runs `all`
 from fresh inputs.
 
+Producer preparation selects the current compiled corpus-owner source in its
+new software capture and records both its old and new hashes. Authored members,
+the retained consumer pair and all other software companions remain unchanged.
+Corpus schema checks retain the complete header and validate every growing
+array in bounded portions through its exact array selector. The schema's
+type/items-only decomposition, ordered coverage, invalid-tail refusal and
+maximum-width scalar case have a focused Rust regression; receipt, byte and
+worker limits remain unchanged.
+
 Before corpus preparation, the case checks the supplied executables and uses
 the existing small fixture to test fs-verity custody on the selected filesystem.
 It then calls `tos-native-owner-command corpus-build --preflight` with the
