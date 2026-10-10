@@ -651,6 +651,12 @@ impl<'budget> CreationState<'budget> {
     pub(crate) fn json_visits(&self) -> usize {
         self.json_visits.get()
     }
+    pub(crate) fn observed_retained_state_bytes(&self) -> usize {
+        self.retained.get()
+    }
+    pub(crate) fn observed_persistent_state_bytes(&self) -> usize {
+        self.persistent.get()
+    }
     pub(crate) fn active(&self) -> Result<()> {
         self.remaining(0).map(|_| ())
     }

@@ -149,11 +149,23 @@ fn build_inner(
             .as_bytes(),
     );
     loop {
-        let _page_hold = stage.hold_normalized_page(
-            limits.max_page_rows,
-            limits.max_node_bytes,
-            limits.max_title_bytes,
-        )?;
+        // The owned page selects NULL for node payloads. It retains IDs,
+        // metadata and title bytes only; each hydrated node is independently
+        // admitted inside the reader callback below and dies before the next.
+        let _page_hold = stage
+            .owned_creation_state()
+            .map(|state| {
+                let per_row = std::mem::size_of::<BaseRow>()
+                    .checked_add(std::mem::size_of::<(String, Vec<u8>, [u8; 32])>())
+                    .and_then(|n| n.checked_add(4096 + limits.max_title_bytes))
+                    .ok_or(Error::Budget("global title page row state"))?;
+                let bytes = per_row
+                    .checked_mul(limits.max_page_rows)
+                    .and_then(|n| n.checked_add(2 * std::mem::size_of::<Vec<BaseRow>>() + 32))
+                    .ok_or(Error::Budget("global title page state"))?;
+                state.hold(bytes)
+            })
+            .transpose()?;
         let batch = page(stage, after, limits)?;
         if batch.is_empty() {
             break;

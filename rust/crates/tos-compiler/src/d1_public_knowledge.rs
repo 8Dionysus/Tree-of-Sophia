@@ -847,7 +847,7 @@ pub(crate) fn emit_knowledge(
                     kind == "relation", after, 1, limits.max_payload_bytes,
                     |stage, metadata, raw, _| {
                         if metadata.source_order != expected { return Err(Error::Invalid("public D1 knowledge order")); }
-                        let _row_hold = stage.hold_normalized_page(1, limits.max_payload_bytes, 0)?;
+                        let _row_hold = stage.hold_normalized_page(1, raw.len(), 0)?;
                         owner.charge_work(raw.len())?;
                         let carrier = SourceRow {
                             position: metadata.source_order, id: metadata.id.to_owned(),

@@ -656,12 +656,15 @@ impl<'a> MaterializePhases<'a> {
         if let (Some(state), Some(name)) = (self.state, self.name.take()) {
             let work = state.observed_work_bytes();
             eprintln!(
-                "Native materialize phase={} status={} elapsed_ms={} work_bytes={} total_work_bytes={}",
+                "Native materialize phase={} status={} elapsed_ms={} work_bytes={} total_work_bytes={} retained_state_bytes={} persistent_state_bytes={} remaining_state_bytes={}",
                 name,
                 if success { "passed" } else { "refused" },
                 self.started.elapsed().as_millis(),
                 work.saturating_sub(self.work),
-                work
+                work,
+                state.observed_retained_state_bytes(),
+                state.observed_persistent_state_bytes(),
+                state.remaining(0).unwrap_or(0)
             );
         }
     }

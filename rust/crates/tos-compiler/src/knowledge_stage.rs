@@ -7690,9 +7690,11 @@ mod tests {
                 &seal,
                 crate::knowledge_global_titles::GlobalTitleLimits {
                     max_nodes: 2,
-                    max_page_rows: 1,
-                    max_page_bytes: 32768,
-                    max_node_bytes: 32768,
+                    // A permissive row ceiling does not reserve four full
+                    // payload copies in this metadata/title-only page.
+                    max_page_rows: 4,
+                    max_page_bytes: 32 * 1024 * 1024,
+                    max_node_bytes: 8 * 1024 * 1024,
                     max_title_bytes: 1024,
                     max_work_bytes: 1024 * 1024,
                 },

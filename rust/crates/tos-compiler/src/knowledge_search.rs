@@ -230,29 +230,35 @@ fn build_inner(
                 page_text_bytes = 0;
             }
             let row = if let Some(owner) = creation {
-                let row_hold = stage.hold_normalized_page(1, limits.max_payload_bytes, 0)?;
                 let mut received = None;
                 stage.with_normalized_rows_owned(
                     table == "knowledge_relations",
                     after,
                     1,
                     limits.max_payload_bytes,
-                    |_, metadata, raw, _| {
+                    |stage, metadata, raw, _| {
+                        // Only this actual logical byte copy escapes the
+                        // reader callback; its limit is checked by the reader.
+                        let row_hold = stage.hold_normalized_page(1, raw.len(), 0)?;
                         owner.charge_work(raw.len())?;
-                        received = Some(SourceRow {
-                            position: metadata.source_order,
-                            id: metadata.id.to_owned(),
-                            source_graph: metadata.source_graph.to_owned(),
-                            native_id: metadata.native_id.map(str::to_owned),
-                            term_id: metadata.semantic_key.to_owned(),
-                            payload_len: raw.len() as i64,
-                            payload_sha256: metadata.logical_digest.as_bytes().to_vec(),
-                            payload: Some(raw.to_vec()),
-                        });
+                        received = Some((
+                            SourceRow {
+                                position: metadata.source_order,
+                                id: metadata.id.to_owned(),
+                                source_graph: metadata.source_graph.to_owned(),
+                                native_id: metadata.native_id.map(str::to_owned),
+                                term_id: metadata.semantic_key.to_owned(),
+                                payload_len: raw.len() as i64,
+                                payload_sha256: metadata.logical_digest.as_bytes().to_vec(),
+                                payload: Some(raw.to_vec()),
+                            },
+                            row_hold,
+                            None,
+                        ));
                         Ok(())
                     },
                 )?;
-                received.map(|row| (row, row_hold, None))
+                received
             } else {
                 stage.with_connection(WritePhase::Search, |db| {
                     fetch_next(db, table, after, limits.max_payload_bytes, None)
