@@ -7,8 +7,11 @@ use tos_access::{
     PreparedPacket,
 };
 use tos_query::{
-    AbortProbe, AbortReason, compressed_search::CompressedSearchRequest,
-    source_gap::SourceGapRequest,
+    AbortProbe, AbortReason,
+    compressed_search::CompressedSearchRequest,
+    source_gap::{
+        PublicSourceGapRecord, SourceGapBudget, SourceGapRequest, compute_source_gap_packet,
+    },
 };
 
 const REV: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -230,11 +233,12 @@ impl BrowserFixtureExecutor {
         let focus_id = focus
             .filter(|id| nodes.iter().any(|n| n["id"] == *id))
             .unwrap_or("philosophy:a");
+        let scene = fixture_scene(&nodes, &relations, Some(focus_id), None);
         json!({"schema":"tos_lens_result_v1","source_revision":REV,"fingerprint":CONTENT,
             "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false},
             "nodes":nodes.clone(),"relations":relations.clone(),"focus":{"node_id":focus_id},
             "counts":{"nodes":node_count,"relations":relation_count,"matched_nodes":node_count,"eligible_relations":relation_count,"truncated_nodes":0,"truncated_relations":0},
-            "inclusion":{"authority":"query-execution-not-semantic-proof","nodes":{},"relations":{}}})
+            "inclusion":{"authority":"query-execution-not-semantic-proof","nodes":{},"relations":{}},"scene":scene})
     }
     fn exploration(&self, request: &Value) -> Value {
         let graph = self.graph();
@@ -450,15 +454,40 @@ impl AccessExecutor for BrowserFixtureExecutor {
     }
     fn source_gap(
         &self,
-        _: SourceGapRequest,
-        _: Arc<dyn AbortProbe>,
+        request: SourceGapRequest,
+        probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
-        packet(
-            json!({"schema":"tos_source_gaps_v1","source_revision":REV,"result_count":2,
-            "authority_note":"corpus-completeness only; this route is not source access or rights clearance",
-            "gaps":[{"id":"source-gap:fixture-lexicon","label":"Nietzsche-Wörterbuch (synthetic test fixture)","gap_kind":"corpus-completeness","status":"open"},
-                {"id":"source-gap:fixture-edition","label":"Nietzsche edition (synthetic test fixture)","gap_kind":"corpus-completeness","status":"open"}] }),
+        check_probe(&probe)?;
+        let records = [
+            PublicSourceGapRecord {
+                source_ref: "ToS/source-witnesses/access-requests/public-ledger/fixture-edition.access-request.json",
+                raw: br#"{"schema_version":"tos_access_request_v1","request_id":"fixture-edition","material":{"title":"Nietzsche edition (synthetic test fixture)","tos_refs":["a"]}}"#,
+            },
+            PublicSourceGapRecord {
+                source_ref: "ToS/source-witnesses/access-requests/public-ledger/fixture-lexicon.access-request.json",
+                raw: r#"{"schema_version":"tos_access_request_v1","request_id":"fixture-lexicon","material":{"title":"Nietzsche-Wörterbuch (synthetic test fixture)","tos_refs":["a"]}}"#.as_bytes(),
+            },
+        ];
+        let body = compute_source_gap_packet(
+            &records,
+            &request,
+            SourceGapBudget {
+                json: tos_foundation::JsonLimits::default(),
+                max_work_steps: 100_000,
+                max_response_bytes: 64 * 1024,
+            },
+            probe.as_ref(),
         )
+        .map_err(|_| {
+            AccessError::new(
+                AccessErrorCode::CorruptSelectedCarrier,
+                "synthetic source-gap packet failed",
+            )
+        })?;
+        Ok(PreparedPacket {
+            body,
+            fence: Box::new(FixtureFence),
+        })
     }
     fn knowledge_search_compressed_available(&self) -> bool {
         true
@@ -599,6 +628,13 @@ impl AccessExecutor for BrowserFixtureExecutor {
             }
             K::Philosophy(P::Status) => {
                 json!({"schema":"tos_philosophy_graph_status_v1","source_revision":REV,"available":true,"nodes":3,"edges":3})
+            }
+            K::Philosophy(P::Snapshot) => {
+                json!({"schema":"tos_philosophy_mcp_snapshot_v1","snapshot_review":{
+                    "snapshot_schema_version":"tos_philosophy_graph_projection_snapshot_v1",
+                    "current_snapshot":{"projection_fingerprint":CONTENT}},
+                    "runtime_projection_boundary":self.graph()["runtime_projection_boundary"],
+                    "authority_note":"Synthetic fingerprint for browser review routing."})
             }
             K::Philosophy(P::Node { node_id }) => self.node_inspect(&node_id),
             K::Lens(spec) => self.lens(

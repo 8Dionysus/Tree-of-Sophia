@@ -622,13 +622,23 @@ mod tests {
 
     #[test]
     fn manifest_version_preserves_absence_and_declared_metadata() {
-        assert_eq!(manifest_schema_version(&json!({"branch_id":"philosophy.atlas"})).unwrap(), "");
+        assert_eq!(
+            manifest_schema_version(&json!({"branch_id":"philosophy.atlas"})).unwrap(),
+            ""
+        );
         for (value, expected) in [
-            (Value::Null, ""), (json!(""), ""), (json!(false), ""),
-            (json!(0), ""), (json!("tos_source_home_v1"), "tos_source_home_v1"),
-            (json!(2), "2"), (json!(true), "True"),
+            (Value::Null, ""),
+            (json!(""), ""),
+            (json!(false), ""),
+            (json!(0), ""),
+            (json!("tos_source_home_v1"), "tos_source_home_v1"),
+            (json!(2), "2"),
+            (json!(true), "True"),
         ] {
-            assert_eq!(manifest_schema_version(&json!({"schema_version":value})).unwrap(), expected);
+            assert_eq!(
+                manifest_schema_version(&json!({"schema_version":value})).unwrap(),
+                expected
+            );
         }
         for value in [json!("a".repeat(4097)), json!("v1\0")] {
             assert!(manifest_schema_version(&json!({"schema_version":value})).is_err());

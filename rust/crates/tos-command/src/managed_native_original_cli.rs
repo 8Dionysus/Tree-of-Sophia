@@ -2598,6 +2598,23 @@ fn materialize_source_cut(
     Ok((count, total_bytes))
 }
 
+fn source_runtime_evidence_limits(request: &Request) -> Result<tos_compiler::PublicCaptureLimits> {
+    let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?.capture;
+    // This stage reads the generated corpus and philosophy carriers. Their
+    // declared output envelope is independent of the authored source-cut
+    // allowance (the full philosophy graph already exceeds that allowance).
+    limits.max_input_bytes = limits
+        .max_input_bytes
+        .min(request.persistent_write_cap_bytes);
+    limits.max_rows = request.cold_open.max_rows;
+    limits.max_staging_bytes = request.tmpfs_quota_bytes;
+    limits.max_work_bytes = request.max_work_bytes;
+    limits.max_sql_vm_steps = request.cold_open.max_vm_steps;
+    limits.sqlite_cache_kib = u32::try_from(request.cold_open.sqlite_cache_kib)
+        .map_err(|_| Refusal("native SQLite cache cap conversion"))?;
+    Ok(limits)
+}
+
 fn prepare_source_only_runtime(
     source: &NativeSourceOnlyRequest,
     request: &Request,
@@ -2775,16 +2792,7 @@ fn prepare_source_only_runtime(
             reason_sha256: Digest256::of_bytes(reason.as_bytes()),
         })?;
     let evidence_stage = isolation.root().join("tos-native-evidence-stage.sqlite3");
-    let mut evidence_limits =
-        manifest::portable_native_snapshot_limits(request.max_build_seconds)?.capture;
-    let sqlite_cache_kib = u32::try_from(request.cold_open.sqlite_cache_kib)
-        .map_err(|_| Refusal("native SQLite cache cap conversion"))?;
-    evidence_limits.max_input_bytes = source.max_total_bytes;
-    evidence_limits.max_rows = request.cold_open.max_rows;
-    evidence_limits.max_staging_bytes = request.tmpfs_quota_bytes;
-    evidence_limits.max_work_bytes = request.max_work_bytes;
-    evidence_limits.max_sql_vm_steps = request.cold_open.max_vm_steps;
-    evidence_limits.sqlite_cache_kib = sqlite_cache_kib;
+    let evidence_limits = source_runtime_evidence_limits(request)?;
     let evidence = tos_compiler::epistemic_evidence::build(
         &source_root,
         &evidence_stage,
@@ -5344,6 +5352,11 @@ mod projection_limit_tests {
                 limits.bibliographic.catalog.validate().unwrap();
                 limits.bibliographic.validate().unwrap();
                 limits.schema_work.validate().unwrap();
+                let evidence = source_runtime_evidence_limits(&request).unwrap();
+                assert_eq!(evidence.max_rows, rows);
+                assert_eq!(evidence.max_work_bytes, request.max_work_bytes);
+                assert_eq!(evidence.max_sql_vm_steps, request.cold_open.max_vm_steps);
+                assert_eq!(evidence.max_staging_bytes, request.tmpfs_quota_bytes);
                 assert_eq!(request.cold_open.max_row_bytes, MAX_COLD_ROW_BYTES);
                 assert!(limits.repository.max_source_bytes <= MAX_COLD_ROW_BYTES);
                 assert_eq!(
@@ -5384,6 +5397,24 @@ mod projection_limit_tests {
                 assert!(limits.originals.max_total_bytes <= original_ceiling.max_total_bytes);
             }
         }
+        // The measured full philosophy carrier is larger than the authored
+        // 64 MiB cut. Exercise the real anchored opener at that boundary,
+        // without writing or parsing a second full corpus in this regression.
+        let carrier = tempfile::NamedTempFile::new().unwrap();
+        carrier.as_file().set_len(73_584_723).unwrap();
+        let uid = rustix::process::getuid().as_raw();
+        assert!(open_regular(carrier.path(), source.max_total_bytes, uid).is_err());
+        let evidence = source_runtime_evidence_limits(&request).unwrap();
+        open_regular(carrier.path(), evidence.max_input_bytes, uid).unwrap();
+        carrier
+            .as_file()
+            .set_len(request.persistent_write_cap_bytes + 1)
+            .unwrap();
+        assert!(open_regular(carrier.path(), evidence.max_input_bytes, uid).is_err());
+        request.persistent_write_cap_bytes = 1024 * 1024;
+        let smaller = source_runtime_evidence_limits(&request).unwrap();
+        assert!(open_regular(carrier.path(), smaller.max_input_bytes, uid).is_err());
+        assert_eq!(smaller.max_input_bytes, request.persistent_write_cap_bytes);
         source.max_member_bytes = source.max_total_bytes + 1;
         assert!(validate_source_only_request(&source, &request).is_err());
         let mut incompatible = profile;
