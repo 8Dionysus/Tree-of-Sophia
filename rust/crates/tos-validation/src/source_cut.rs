@@ -3402,10 +3402,14 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 reason: ExecutorFailure::Cancelled,
                 ..
             } => return Err(ItemRefusal::Source("schema execution cancelled".into())),
-            other => {
-                return Err(ItemRefusal::Unsupported(format!(
-                    "schema batch execution incomplete: {other:?}"
-                )));
+            BatchOutcome::Incomplete {
+                reason, exchange, ..
+            } => {
+                return Err(operation_failure_with_context(
+                    reason,
+                    exchange,
+                    concat!(module_path!(), ":", line!()),
+                ));
             }
         };
         if checkpoint.worker_sha256 != self.worker.sha256
@@ -3592,6 +3596,15 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 reason: ExecutorFailure::Cancelled,
                 ..
             } => return Err(ItemRefusal::Source("schema execution cancelled".into())),
+            ExecutorOutcome::Indeterminate {
+                reason, exchange, ..
+            } => {
+                return Err(operation_failure_with_context(
+                    reason,
+                    exchange,
+                    concat!(module_path!(), ":", line!()),
+                ));
+            }
             other => {
                 return Err(ItemRefusal::Unsupported(format!(
                     "schema execution incomplete: {other:?}"
