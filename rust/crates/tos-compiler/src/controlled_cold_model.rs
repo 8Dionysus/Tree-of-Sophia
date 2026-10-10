@@ -1996,6 +1996,93 @@ impl<'model, 'state, 'budget> ControlledKnowledgeModel<'model, 'state, 'budget> 
     }
 }
 
+// The caller reserves escaping typed values. Drop the graph parser, canonical
+// buffer and SQL row before opening any other component's parser. All phases
+// continue to use the same owned counters and operation limits.
+fn verify_owned_components(
+    db: &rusqlite::Connection,
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+    node_root: Digest256,
+    relation_root: Digest256,
+    context: &RuntimeKnowledgeReadContext<'_, '_>,
+    escaping_basis: usize,
+) -> Result<(
+    KnowledgeSourceBasis,
+    crate::NavigationOriginalReceipt,
+    crate::PhilosophyOriginalReceipt,
+    crate::CorpusOriginalReceipt,
+)> {
+    let state = context.owned_state();
+    let _frame = state.hold(std::mem::size_of::<(
+        &rusqlite::Connection,
+        &KnowledgeSelectedExpectation,
+        ColdOpenLimits,
+        Digest256,
+        Digest256,
+        &RuntimeKnowledgeReadContext<'_, '_>,
+        usize,
+        KnowledgeSourceBasis,
+        Option<crate::NavigationOriginalReceipt>,
+        Option<crate::PhilosophyOriginalReceipt>,
+        Option<crate::CorpusOriginalReceipt>,
+        u64,
+    )>())?;
+    let source_basis = crate::knowledge_selected::verify_native_graph_root_with_owned_context(
+        db,
+        expected,
+        limits,
+        node_root,
+        relation_root,
+        context,
+        |source_basis| {
+            let bytes = source_basis
+                .owned_heap_bytes()
+                .map_err(|_| Error::Budget("controlled source-basis retained state"))?;
+            if bytes > escaping_basis {
+                return Err(Error::Budget("controlled source-basis retained bytes"));
+            }
+            state.charge_work(bytes)?;
+            Ok(source_basis.clone())
+        },
+    )?;
+    crate::knowledge_selected::verify_catalog_with_owned_context(db, expected, limits, context)?;
+    let mut work = 0u64;
+    let philosophy_original = crate::knowledge_philosophy_original::verify_with_owned_state(
+        db,
+        expected,
+        limits,
+        &mut work,
+        Some(state),
+    )?;
+    let corpus_original = crate::knowledge_corpus_original::verify_with_owned_state(
+        db,
+        expected,
+        limits,
+        &mut work,
+        Some(state),
+    )?;
+    let navigation_original = crate::knowledge_navigation_original::verify_with_owned_state(
+        db, expected, limits, context,
+    )?;
+    let (Some(navigation_original), Some(philosophy_original), Some(corpus_original)) =
+        (navigation_original, philosophy_original, corpus_original)
+    else {
+        return Err(Error::Invalid(
+            "controlled model requires all three Original receipts",
+        ));
+    };
+    Ok((
+        source_basis,
+        navigation_original,
+        philosophy_original,
+        corpus_original,
+    ))
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod component_budget_tests;
+
 /// Incoming file/expectation/custody owners and once-process VFS state are
 /// already admitted by the authentic Completed/Driver owner. Source/currentness
 /// custody operations retain their separate original owner charging law.
@@ -2176,51 +2263,14 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
         crate::knowledge_selected::verify_search_with_owned_context(
             &db, expected, limits, context,
         )?;
-        let verified = crate::knowledge_selected::verify_native_graph_root_with_owned_context(
+        let verified = verify_owned_components(
             &db,
             expected,
             limits,
             node_root,
             relation_root,
             context,
-            |source_basis| {
-                crate::knowledge_selected::verify_catalog_with_owned_context(
-                    &db, expected, limits, context,
-                )?;
-                let mut work = 0u64;
-                let philosophy_original =
-                    crate::knowledge_philosophy_original::verify_with_owned_state(
-                        &db,
-                        expected,
-                        limits,
-                        &mut work,
-                        Some(state),
-                    )?;
-                let corpus_original = crate::knowledge_corpus_original::verify_with_owned_state(
-                    &db,
-                    expected,
-                    limits,
-                    &mut work,
-                    Some(state),
-                )?;
-                let navigation_original =
-                    crate::knowledge_navigation_original::verify_with_owned_state(
-                        &db, expected, limits, context,
-                    )?;
-                let (Some(navigation_original), Some(philosophy_original), Some(corpus_original)) =
-                    (navigation_original, philosophy_original, corpus_original)
-                else {
-                    return Err(Error::Invalid(
-                        "controlled model requires all three Original receipts",
-                    ));
-                };
-                Ok((
-                    source_basis.clone(),
-                    navigation_original,
-                    philosophy_original,
-                    corpus_original,
-                ))
-            },
+            escaping_basis,
         )?;
         // Return from the verifier only after its statement/parser owners have
         // dropped; the transition then ends the ColdOpenLimits delta without
