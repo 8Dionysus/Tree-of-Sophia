@@ -1024,7 +1024,11 @@ fn native_corpus_composition_case(installed: bool) {
         }
     }
     let started = Instant::now();
-    let deadline = started + Duration::from_secs(240);
+    // The installed case also materializes and seals the selected model,
+    // then exercises cold native transports and revocation. Capture through
+    // materialization alone takes about three minutes under the admitted
+    // four-GiB host profile; leave a finite budget for indexing and readers.
+    let deadline = started + Duration::from_secs(if installed { 600 } else { 240 });
     let cancelled = AtomicBool::new(false);
     phase(started, deadline, "source-preparation");
     let repository = super::validation_cut_cases::repository()
