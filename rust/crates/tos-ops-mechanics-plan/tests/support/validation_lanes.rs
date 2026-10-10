@@ -219,7 +219,26 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
             "tos-conformance",
             "--",
             "--nocapture",
-            "@tos-native-growth-exclusions"
+            "@tos-native-growth-exclusions",
+            "--skip",
+            "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
+        ])
+    );
+    let release = "test native software/data release actions fixture";
+    assert_eq!(
+        command(release),
+        json!([
+            "cargo",
+            "test",
+            "--locked",
+            "-p",
+            "tos-access",
+            "--test",
+            "native_release_actions",
+            "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+            "--",
+            "--exact",
+            "--nocapture"
         ])
     );
     assert_eq!(
@@ -353,6 +372,7 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
             .collect::<Vec<_>>(),
         [
             (workspace, 900000),
+            (release, 900000),
             (source, 900000),
             (classes, 900000),
             (cases[0].0, 1020000)

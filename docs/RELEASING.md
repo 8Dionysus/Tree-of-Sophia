@@ -47,6 +47,10 @@ owner surfaces.
    longer command deadline only from the selected workload
    cost; a timeout is incomplete validation, not a passing test result. These
    flags do not change host resource admission or skip checks in that phase.
+   The Rust workspace lane runs the native software/data release actions
+   fixture separately from the workspace remainder. Its real captured corpus,
+   pair switching and revocation checks take about ten minutes in CI; each
+   command retains its own fifteen-minute bound within the same lane deadline.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
    `tos-validation-lanes --repo-root "$PWD" --run software_browser`.

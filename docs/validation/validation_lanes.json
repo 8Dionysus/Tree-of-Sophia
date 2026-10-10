@@ -444,7 +444,26 @@
           "tos-conformance",
           "--",
           "--nocapture",
-          "@tos-native-growth-exclusions"
+          "@tos-native-growth-exclusions",
+          "--skip",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
+        ]
+      },
+      {
+        "label": "test native software/data release actions fixture",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-access",
+          "--test",
+          "native_release_actions",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+          "--",
+          "--exact",
+          "--nocapture"
         ]
       },
       {
