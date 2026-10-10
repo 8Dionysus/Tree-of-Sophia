@@ -674,3 +674,198 @@ fn claim_and_discovery_identity_conflicts_refuse_before_item_reuse_or_writes() {
         }
     }
 }
+
+#[test]
+fn existing_work_extension_preserves_identity_assertions_and_exact_preimage() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let work_ref = "ToS/source-witnesses/works/author/work/work.json";
+    let before_ref = "ToS/source-witnesses/discovery/batch/work-before.json";
+    let old = json!({"record_type":"work","record_id":"tos.work.author.work","preferred_label":"Original label","source_refs":["old-evidence"],"expression_claim_refs":["tos.claim.old"],"record_version":2});
+    let before = json_bytes(&old).unwrap();
+    let before_path = root.join(before_ref);
+    fs::create_dir_all(before_path.parent().unwrap()).unwrap();
+    fs::write(&before_path, &before).unwrap();
+    let mut expected = old;
+    expected["expression_claim_refs"] = json!(["tos.claim.old", "tos.claim.new"]);
+    expected["record_version"] = json!(3);
+    let target = json!({"ids":{"work":"tos.work.author.work"},"paths":{"work":work_ref}});
+    let package = json!({"existing_work":{"record_ref":work_ref,"preimage_ref":before_ref,"sha256":sha256(&before)},"records":{(work_ref):expected,"new-expression":{"record_type":"expression","record_id":"tos.expression.new","work_ref":"tos.work.author.work"}},"claims":[{"record":{"subject_ref":"tos.work.author.work","predicate":"has_expression","object":"tos.expression.new","claim_id":"tos.claim.new"}}]});
+    assert_eq!(
+        validate_work_extension(root, &target, &package).unwrap(),
+        Some((work_ref.into(), before.clone()))
+    );
+    for (field, value) in [
+        ("preferred_label", json!("Silently renamed")),
+        ("source_refs", json!([])),
+        ("expression_claim_refs", json!(["tos.claim.new"])),
+        ("record_version", json!(4)),
+    ] {
+        let mut changed = package.clone();
+        changed["records"][work_ref][field] = value;
+        assert!(
+            validate_work_extension(root, &target, &changed).is_err(),
+            "{field}"
+        );
+    }
+    let mut changed = package.clone();
+    changed["claims"][0]["record"]["object"] = json!("tos.expression.other");
+    assert!(validate_work_extension(root, &target, &changed).is_err());
+    fs::write(&before_path, [before.as_slice(), b" "].concat()).unwrap();
+    assert!(validate_work_extension(root, &target, &package).is_err());
+}
+
+#[test]
+fn acquired_file_scopes_and_selected_evidence_preserve_prepared_rights() {
+    let prepared = json!({"scope_refs":["tos.item.example"],"license_uri":"https://creativecommons.org/licenses/by/4.0/","layer_assessments":[{"assessment_status":"public_domain_reviewed","rights_statement_uri":"https://creativecommons.org/licenses/by/4.0/"},{"assessment_status":"licensed","rights_statement_uri":"https://creativecommons.org/licenses/by/4.0/"}]});
+    let before = prepared.clone();
+    let a = "a".repeat(64);
+    let b = "b".repeat(64);
+    let manifest = json!({"payload_files":[{"file_id":format!("tos.file.sha256.{a}"),"sha256":a,"relative_path":"payload/source-a.json"},{"file_id":format!("tos.file.sha256.{b}"),"sha256":b,"relative_path":"payload/source-b.json"}]});
+    let acquired = rights_with_file_scopes(&prepared, &manifest).unwrap();
+    assert_eq!(prepared, before);
+    assert_eq!(
+        acquired["scope_refs"],
+        json!([
+            "tos.item.example",
+            format!("tos.file.sha256.{a}"),
+            format!("tos.file.sha256.{b}")
+        ])
+    );
+    assert_eq!(
+        acquired["layer_assessments"][0]["rights_statement_uri"],
+        "https://creativecommons.org/publicdomain/mark/1.0/"
+    );
+    assert_eq!(
+        acquired["layer_assessments"][1],
+        prepared["layer_assessments"][1]
+    );
+    assert_eq!(acquired["license_uri"], prepared["license_uri"]);
+    assert_eq!(
+        rights_with_file_scopes(&acquired, &manifest).unwrap(),
+        acquired
+    );
+    assert_eq!(
+        manifest_fixity(&manifest).unwrap(),
+        format!("{a}  payload/source-a.json\n{b}  payload/source-b.json\n")
+    );
+    let preparation = json!({"metadata_observations":[{"retained_ref":"perseus/license"},{"retained_ref":"perseus/one"},{"retained_ref":"perseus/other"}]});
+    let target =
+        json!({"provider":"perseus","metadata_evidence_refs":["perseus/license","perseus/one"]});
+    assert_eq!(
+        selected_metadata_observations(&preparation, &target).unwrap(),
+        preparation["metadata_observations"].as_array().unwrap()[..2]
+    );
+    for references in [
+        json!([]),
+        json!(["missing"]),
+        json!(["perseus/one", "perseus/one"]),
+    ] {
+        let mut altered = target.clone();
+        altered["metadata_evidence_refs"] = references;
+        assert!(selected_metadata_observations(&preparation, &altered).is_err());
+    }
+    assert_eq!(
+        selected_metadata_observations(&preparation, &json!({"provider":"perseus"})).unwrap(),
+        *preparation["metadata_observations"].as_array().unwrap()
+    );
+}
+
+#[test]
+fn topology_refresh_keeps_one_record_and_exact_prior_bytes() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let topology = root.join(TOPOLOGY);
+    fs::create_dir_all(topology.parent().unwrap()).unwrap();
+    let original = json!({"event_id":TOPOLOGY_EVENT,"event_version":1,"method":{"configuration":{}},"inputs":[],"outputs":[]});
+    let before = [serde_json::to_vec(&original).unwrap(), b"\n".to_vec()].concat();
+    fs::write(&topology, &before).unwrap();
+    let evidence_ref = "ToS/source-witnesses/fixture/record.json";
+    let evidence = b"{\"label\":\"source evidence\"}\n";
+    fs::create_dir_all(root.join(evidence_ref).parent().unwrap()).unwrap();
+    fs::write(root.join(evidence_ref), evidence).unwrap();
+    for route in ["work-expression", "expression-edition", "edition-item"] {
+        let path = root.join(format!("{SOURCE}/relations/{route}/{route}-claims.jsonl"));
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(
+            path,
+            format!("{}\n", json!({"evidence_refs":[evidence_ref]})),
+        )
+        .unwrap();
+    }
+    let retained = root.join("prepared-evidence");
+    fs::create_dir(&retained).unwrap();
+    refresh_topology(root, &retained, "2026-09-08T00:00:00+00:00").unwrap();
+    let raw = fs::read_to_string(&topology).unwrap();
+    assert_eq!(raw.lines().count(), 1);
+    let refreshed = strict_json(raw.as_bytes()).unwrap();
+    assert_eq!(refreshed["event_id"], original["event_id"]);
+    assert_eq!(refreshed["event_version"], 2);
+    assert_eq!(refreshed["outputs"].as_array().unwrap().len(), 3);
+    assert_eq!(refreshed["inputs"][0]["sha256"], sha256(evidence));
+    assert_eq!(
+        fs::read(retained.join(format!("topology-before/{}.json", sha256(&before)))).unwrap(),
+        before
+    );
+}
+
+#[test]
+fn preparation_receipt_binds_real_git_commit_manifest_and_named_checks() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    for args in [
+        vec!["init", "-q"],
+        vec![
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--allow-empty",
+            "-qm",
+            "Fixture",
+        ],
+    ] {
+        assert!(
+            Command::new("git")
+                .args(args)
+                .current_dir(root)
+                .status()
+                .unwrap()
+                .success()
+        );
+    }
+    let output = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(root)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let commit = String::from_utf8(output.stdout).unwrap();
+    let manifest = root.join("manifest.json");
+    let manifest_bytes = b"{\"version\":1}\n";
+    fs::write(&manifest, manifest_bytes).unwrap();
+    let receipt_path = root.join("checkpoint.json");
+    let receipt = json!({"manifest_sha256":sha256(manifest_bytes),"commit":commit.trim(),"runtime_session_id":"test-session","checkpoint_review_ref":"review:test","passed_checks":["prepared source closure"],"status":"passed"});
+    fs::write(&receipt_path, json_bytes(&receipt).unwrap()).unwrap();
+    check_preparation_receipt(root, &manifest, &receipt_path).unwrap();
+    for (field, value) in [
+        ("manifest_sha256", json!("b".repeat(64))),
+        ("commit", json!("b".repeat(40))),
+        ("runtime_session_id", json!("")),
+        ("checkpoint_review_ref", json!("")),
+        ("passed_checks", json!([])),
+        ("passed_checks", json!([true])),
+        ("status", json!("pending")),
+    ] {
+        let mut changed = receipt.clone();
+        changed[field] = value;
+        fs::write(&receipt_path, json_bytes(&changed).unwrap()).unwrap();
+        assert!(
+            check_preparation_receipt(root, &manifest, &receipt_path).is_err(),
+            "{field}"
+        );
+    }
+}

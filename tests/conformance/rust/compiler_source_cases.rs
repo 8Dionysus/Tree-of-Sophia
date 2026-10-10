@@ -1612,7 +1612,25 @@ fn native_corpus_composition_case(installed: bool) {
     )
     .unwrap();
     expected_raw.push(b'\n');
-    let query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
+    let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
+    // The selected native cut explicitly adds the vocabulary resource above.
+    // Preserve every historical query field except its nine resource counts.
+    assert_eq!(expected["counts"]["resources"], serde_json::json!(338));
+    for pointer in [
+        "/cases/status/counts/resources",
+        "/cases/summary/counts/resources",
+        "/cases/summary/status/counts/resources",
+        "/cases/topology/counts/resources",
+        "/cases/route/counts/resources",
+        "/cases/promotion/counts/resources",
+        "/cases/packet/counts/resources",
+        "/cases/packet/view/counts/resources",
+        "/cases/packet-empty/counts/resources",
+    ] {
+        let count = query_oracle.pointer_mut(pointer).unwrap();
+        assert_eq!(*count, serde_json::json!(337));
+        *count = serde_json::json!(338);
+    }
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), expected_raw.as_slice());
     phase(started, deadline, "maintained-oracle-matched");

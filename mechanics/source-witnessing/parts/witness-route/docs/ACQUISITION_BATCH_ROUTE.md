@@ -140,19 +140,16 @@ digest is independently retained.
 
 The registry and handoff families share the native owner-command entrypoint;
 no Python command or import facade is maintained for these routes.
-Historical Python behavior remains under `tests/oracles/acquisition/` solely as
-a frozen reference; tests that patch its Python internals establish oracle
-behavior. Native fixture acceptance uses real filesystem descriptors and an
+Historical Python implementations and assertions remain as nonexecutable
+`.py.txt` files under `tests/historical/`. Native fixture acceptance uses real filesystem descriptors and an
 isolated local HTTP provider. Product build, installed consumer verification
 and source/CI landing are separate evidence stages; neither local fixture
 acquisition nor transport establishes corpus admission or publication.
 
 ## Standalone retained-payload custody
 
-The separate `scripts/source_payload_custody.py` CLI and imported API preserve
-their call shapes through a thin wire facade to the native `tos-command`
-custody owner. They require the selected `tos-native-owner-command` product
-and have no Python runtime fallback. Callers select Item manifests, frozen
+The native custody entry is `tos-native-owner-command acquisition` with the
+`custody` family, `cli` operation and `verify` or `copy` command. Callers select Item manifests, frozen
 inventories or registry manifests and provide explicit metadata, source and
 destination roots. The owner checks source size and available SHA-256/Git blob
 identity, plans one destination per Item/File, and publishes copies with
@@ -162,15 +159,13 @@ files and different bytes are conflicts. New receipts are immutable mode
 bytes or absolute host paths. The operation does not alter metadata, rights,
 Item admission, semantic review or publication state. The prior Python
 implementation is retained only as
-`tests/oracles/acquisition/source_payload_custody.py`; tests against that
-module establish historical reference behavior, not native product
-acceptance.
+`tests/historical/oracles/acquisition/source_payload_custody.py.txt`.
+Maintained custody regressions live with the native owner.
 
 The historical September 8 registry-preparation producer is
 retired from the runtime scripts surface in this source cutover. Its complete
 implementation and repository-relative historical inputs remain in
-`tests/oracles/acquisition/prepare_registry_sources.py`; the registry fixture
-uses only its explicit package-building reference. This disposition preserves
+`tests/historical/oracles/acquisition/prepare_registry_sources.py.txt`. This preserves
 the one-off producer for retrospective comparison and does not establish
 parity with its historical metadata capture. Maintained preparation uses the
 versioned selection-driven native batch route described above; fixture and

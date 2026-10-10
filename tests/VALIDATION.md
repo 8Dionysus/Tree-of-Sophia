@@ -25,13 +25,9 @@ cargo test --locked -p tos-ops-mechanics-plan table_one_and_two_language_packets
 cargo test --locked -p tos-ops-mechanics-plan --test source_routes_native current_source_routes_run_natively_and_preserve_authority_bounds -- --ignored
 ```
 
-The historical root `tests/` suite mixes source-snapshot acceptance and code
-regressions. It is not the ordinary software test route; run it only for an
-intentionally materialized source snapshot:
-
-```sh
-python -m pytest -q -p no:cacheprovider --durations=20 tests
-```
+Prior Python assertions and acquisition references are retained as nonexecutable
+`.py.txt` files under `tests/historical/`. Their maintained behavior runs through
+the native owner tests above. They are not a second validation route.
 
 Select browser behavior through `software_browser` in root `VALIDATION.md`.
 Test success establishes its declared mechanics, not source meaning, rights,

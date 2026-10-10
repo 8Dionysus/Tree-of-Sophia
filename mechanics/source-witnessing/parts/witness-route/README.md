@@ -67,15 +67,13 @@ paths contain `payload/`. Metadata and review records stay in the source
 checkout; payload custody must survive its worktree. Pass that same root to
 `registry.verify_local` and to the foundation validator with
 `--require-local-payloads`. Existing retained files can be copied and
-independently verified with the native custody owner behind the thin
-`scripts/source_payload_custody.py` compatibility facade. The `verify` and
-`copy` commands and imported API require the selected
-`tos-native-owner-command`; there is no maintained Python fallback. Copying
+independently verified through `tos-native-owner-command acquisition`, selecting
+the `custody` family, `cli` operation and `verify` or `copy` command. Copying
 uses explicit manifest or inventory selection, verifies source fixity, and
 publishes read-only payloads without replacing conflicting destination bytes.
 Its immutable `0600` receipts contain custody metadata only, not payload bytes.
-The frozen Python reference is test-only at
-`tests/oracles/acquisition/source_payload_custody.py`. Custody and fixity do
+The frozen Python reference is nonexecutable history at
+`tests/historical/oracles/acquisition/source_payload_custody.py.txt`. Custody and fixity do
 not admit an Item, assess rights, or authorize publication.
 
 For a growing provider queue, invoke the native batch route through

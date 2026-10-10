@@ -1210,7 +1210,7 @@
       "side_effects": "text-free layout/candidate projections and separately protected private source layers only; all candidate, semantic, translation, rights, publication and canon limits remain unchanged",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
-      "test_target": "tests/test_antonovsky_1911_technical_markup.py",
+      "test_target": "rust/crates/tos-compiler/src/antonovsky_structural/technical_markup.rs",
       "disposition": "keep"
     },
     {
@@ -1234,7 +1234,7 @@
       "side_effects": "complete witness-local technical projection only; no accepted Russian text, editorial or linguistic truth, German/Russian alignment, semantics, graph/canon effect, rights clearance, publication or runtime authority",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
-      "test_target": "tests/test_antonovsky_1911_structural_paragraph_v2.py",
+      "test_target": "rust/crates/tos-compiler/src/antonovsky_structural.rs",
       "disposition": "keep"
     },
     {

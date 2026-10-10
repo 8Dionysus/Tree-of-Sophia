@@ -549,7 +549,7 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/provenance.jsonl",
         "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json",
-        "tests/oracles/acquisition/source_payload_custody.py",
+        "rust/crates/tos-command/src/source_payload_custody.rs",
     ]);
     let software_schemas: BTreeSet<&str> = BTreeSet::from([
         "ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json",

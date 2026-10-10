@@ -53,6 +53,25 @@ Python-only discovery/import helpers are retired. Cargo discovers Rust
 library and integration tests in their crate homes; navigation coverage is
 optional under TOS-D-0062.
 
+The remaining root Python assertions, acquisition references and HTTP bootstrap
+are retained byte-for-byte as `.py.txt` history under `tests/historical/`.
+Their maintained successors are the existing native owners:
+
+- Root entry and release routes: `tos-ops-mechanics-plan` documentation checks.
+- Node contracts: `tree_nodes` and `source_routes_native`.
+- Antonovsky v1/v2: `tos-compiler::antonovsky_structural`, including its
+  `technical_markup` module, tracked validators and explicit data rebuild tests.
+- Acquisition: `tos-command` registry, batch, handoff and custody tests. These
+  check exact payloads, source profiles, identity conflicts, Work extension,
+  topology history, preparation receipts and candidate-only handoff adaptation.
+- Mutable HTTP and browser forms: the native private-profile conformance case
+  and `native_source_form_http_host.mjs`; the installed load harness covers
+  independent sessions, conflicts, lost replies, retry and reconnect.
+
+The historical files are not executable test entrypoints or runtime fallbacks.
+The optional Python SDK remains an external consumer of the native product;
+its adapter tests stay under `access/tests/`.
+
 ## Home Scopes
 
 | Home Scope | Current Homes | Protects | Coverage Authority | Failure Route |
