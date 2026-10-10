@@ -7,7 +7,8 @@ use std::{
     os::unix::{fs::PermissionsExt, process::CommandExt},
     path::{Path, PathBuf},
     process::{Command, Output},
-    time::{SystemTime, UNIX_EPOCH},
+    sync::atomic::AtomicBool,
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use tos_foundation::{
@@ -232,6 +233,7 @@ fn create_archive(path: &Path, marker: &str) -> String {
 fn write_snapshot(
     root: &Path,
     fixture: &tos_compiler::knowledge_full_fixture::FullKnowledgeFixture,
+    corpus_root: &Path,
     query_schema: &str,
     corrupt_model: bool,
     fs_verity: bool,
@@ -290,20 +292,50 @@ fn write_snapshot(
     .unwrap();
     let selection = selection.encode(MAX_METADATA).unwrap();
     write_private(&data.join("native-selection.json"), &selection);
-    let members = BTreeMap::from([
+    let mut members: BTreeMap<String, Vec<u8>> = [
         ("data/descriptor.json", descriptor),
         ("data/entity.json", entity),
         ("data/model.sqlite", fs::read(&model_path).unwrap()),
         ("data/native-selection.json", selection.clone()),
         ("data/relation.json", relation),
-    ]);
+    ]
+    .into_iter()
+    .map(|(name, bytes)| (name.to_owned(), bytes))
+    .collect();
     let source_declaration = include_bytes!("../../../../access/contracts/runtime-data.v1.json");
     let compiler_program =
         include_bytes!("../../../../rust/crates/tos-compiler/src/source_corpus.rs");
     let source_binding = Digest256::of_bytes(source_declaration).to_hex();
     let compiler_binding = Digest256::of_bytes(compiler_program).to_hex();
-    // This fixture selects philosophy Originals, without a corpus producer.
-    // Bind the same verified source revision carried by its complete model.
+    let mut input_bindings = BTreeMap::from([(
+        "access/contracts/runtime-data.v1.json".to_owned(),
+        source_binding,
+    )]);
+    // Carry the complete captured corpus closure and its exact source bindings
+    // alongside the model. Promotion must verify the same real origin receipt.
+    for member in &fixture.corpus_original.as_ref().unwrap().origin.members {
+        let raw = fs::read(corpus_root.join(&member.path)).unwrap();
+        assert_eq!(raw.len() as u64, member.size_bytes);
+        assert_eq!(Digest256::of_bytes(&raw).to_hex(), member.sha256);
+        let selected = format!("data/{}", member.path);
+        let selected_path = root.join(&selected);
+        let parent = selected_path.parent().unwrap();
+        fs::create_dir_all(parent).unwrap();
+        for directory in parent
+            .ancestors()
+            .take_while(|path| path.starts_with(&data))
+        {
+            fs::set_permissions(directory, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        write_private(&root.join(&selected), &raw);
+        assert!(members.insert(selected, raw).is_none());
+        assert!(
+            input_bindings
+                .insert(member.path.clone(), member.sha256.clone())
+                .is_none()
+        );
+    }
+    // Bind the same verified source revision carried by the complete model.
     let corpus_revision = fixture
         .open()
         .unwrap()
@@ -313,7 +345,7 @@ fn write_snapshot(
     let mut manifest = serde_json::json!({
         "schema_version":"tos_access_native_data_snapshot_v1",
         "corpus_revision":corpus_revision,
-        "input_bindings":{"access/contracts/runtime-data.v1.json":source_binding},
+        "input_bindings":input_bindings,
         "compiler":{
             "schema":query_schema,
             "compiler_version":tos_compiler::COMPILER_VERSION,
@@ -500,17 +532,130 @@ fn native_action_process_limits() -> tos_compiler::NativeProcessLimits {
     }
 }
 
+fn capture_release_corpus(root: &Path) -> (tos_source_store::SoftwareCaptureReader, PathBuf) {
+    use tos_source_store::{
+        CaptureGitRequest, CaptureRestoreLimits, GitCaptureLimits, ReadLimits,
+        SoftwareCaptureSelectionV1, capture_git, restore_capture,
+    };
+    const SOURCE: &str = "ToS/derived-exports/tos_corpus_index.min.json";
+    let source = root.join("corpus-source");
+    fs::create_dir_all(source.join("ToS/derived-exports")).unwrap();
+    let index = serde_json::json!({
+        "schema_version":"tos_corpus_index_v1","owner_repo":"Tree-of-Sophia","surface_kind":"derived",
+        "counts":{"nodes":2,"relation_edges":1,"relation_packs":1},
+        "nodes":[{"node_id":"a","label":"Alpha","source_ref":"ToS/canon/a.json"},{"node_id":"b","label":"Beta","source_ref":"ToS/canon/b.json"}],
+        "resources":[],"manifests":[],"branches":[],
+        "relation_packs":[{"pack_id":"canon/fixture","owner_branch":"ToS/canon","path":"ToS/canon/fixture/edges.csv"}],
+        "relation_edges":[{"edge_id":"canon-edge","owner_branch":"ToS/canon","pack_id":"canon/fixture","from_id":"a","to_id":"b"}],
+        "graph_views":[{"view_id":"corpus-topology","title":"Corpus"},{"view_id":"route-graph","title":"Routes"},{"view_id":"promotion-flow","title":"Promotion"}],
+        "authority_order":["ToS/canon"],"runtime_projection_boundary":{"runtime_owner":"abyss-stack"}
+    });
+    write_private(&source.join(SOURCE), &canonical(&index));
+    let git = |args: &[&str]| {
+        let output = Command::new("git")
+            .current_dir(&source)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    };
+    git(&["init", "-q"]);
+    git(&["add", "--", SOURCE]);
+    git(&[
+        "-c",
+        "user.name=ToS Native Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "captured release corpus fixture",
+    ]);
+    let commit = git(&["rev-parse", "HEAD^{commit}"]);
+    let tree = git(&["rev-parse", "HEAD^{tree}"]);
+    let capture = root.join("corpus-capture");
+    let restored = root.join("corpus-restored");
+    let includes = vec![SOURCE.to_owned()];
+    let excludes = Vec::new();
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let captured = capture_git(
+        CaptureGitRequest {
+            repository: &source,
+            commit: &commit,
+            include_prefixes: &includes,
+            exclude_prefixes: &excludes,
+            exclude_path_parts: &excludes,
+            output: &capture,
+        },
+        GitCaptureLimits::default(),
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let selection = SoftwareCaptureSelectionV1 {
+        source_git_commit: commit,
+        source_git_tree: tree,
+        capture_manifest_sha256: captured.manifest_sha256,
+    };
+    let limits = || ReadLimits {
+        max_manifest_bytes: 1_048_576,
+        max_manifest_entries: 128,
+        max_selected_object_bytes: 8_388_608,
+        json: JsonLimits::default(),
+    };
+    restore_capture(
+        &capture,
+        &restored,
+        &selection,
+        CaptureRestoreLimits {
+            metadata: limits(),
+            max_archive_bytes: 8_388_608,
+            max_decoded_bytes: 8_388_608,
+            max_source_bytes: 8_388_608,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let reader = tos_source_store::SoftwareCaptureReader::open(
+        &capture,
+        &restored,
+        selection,
+        limits(),
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    (reader, restored)
+}
+
 #[test]
 fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates() {
     let scratch = Scratch::new("actions");
+    let (corpus_capture, corpus_root) = capture_release_corpus(scratch.path());
+    let corpus_path =
+        tos_foundation::RelativePath::parse("ToS/derived-exports/tos_corpus_index.min.json")
+            .unwrap();
+    let cancelled = AtomicBool::new(false);
+    let fixture_for = |variant| {
+        tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_and_captured_corpus(
+        variant, &corpus_capture, &corpus_path, Instant::now() + Duration::from_secs(120), &cancelled)
+    };
     let archive = scratch.path().join("software.zip");
     let archive_sha = create_archive(&archive, "first");
-    let fixture =
-        tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_original();
+    let fixture = fixture_for(
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::ReferencesV2,
+    );
     let candidate = scratch.path().join("candidate");
     let (manifest_sha, selection_sha) = write_snapshot(
         &candidate,
         &fixture,
+        &corpus_root,
         &fixture.expectation.model_abi,
         false,
         true,
@@ -547,6 +692,7 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
     let (bad_manifest_sha, _) = write_snapshot(
         &bad_abi,
         &fixture,
+        &corpus_root,
         "unsupported-fixture-abi",
         false,
         false,
@@ -568,6 +714,7 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
     write_snapshot(
         &corrupt,
         &fixture,
+        &corpus_root,
         &fixture.expectation.model_abi,
         true,
         false,
@@ -638,14 +785,14 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
     // is shared, while the view variant changes the selected data identity.
     let second_archive = scratch.path().join("software-second.zip");
     let second_archive_sha = create_archive(&second_archive, "second");
-    let second_fixture =
-        tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_view_variant(
-            tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1,
-        );
+    let second_fixture = fixture_for(
+        tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineBothV1,
+    );
     let second_candidate = scratch.path().join("candidate-second");
     let (second_manifest_sha, second_selection_sha) = write_snapshot(
         &second_candidate,
         &second_fixture,
+        &corpus_root,
         &second_fixture.expectation.model_abi,
         false,
         true,

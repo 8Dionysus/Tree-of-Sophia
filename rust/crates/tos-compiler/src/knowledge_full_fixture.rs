@@ -973,6 +973,32 @@ pub fn build_native_fixture_with_philosophy_original() -> FullKnowledgeFixture {
 pub fn build_native_fixture_with_philosophy_view_variant(
     variant: PhilosophyFixtureViewVariant,
 ) -> FullKnowledgeFixture {
+    build_native_philosophy_fixture(variant, None)
+}
+
+/// Complete private-release fixture: both Originals are produced from their
+/// real inputs, including the held software capture for the corpus carrier.
+pub fn build_native_fixture_with_philosophy_and_captured_corpus(
+    variant: PhilosophyFixtureViewVariant,
+    capture: &tos_source_store::SoftwareCaptureReader,
+    source_path: &tos_foundation::RelativePath,
+    deadline: std::time::Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> FullKnowledgeFixture {
+    build_native_philosophy_fixture(variant, Some((capture, source_path, deadline, cancelled)))
+}
+
+type CapturedCorpusFixtureInput<'a> = (
+    &'a tos_source_store::SoftwareCaptureReader,
+    &'a tos_foundation::RelativePath,
+    std::time::Instant,
+    &'a std::sync::atomic::AtomicBool,
+);
+
+fn build_native_philosophy_fixture(
+    variant: PhilosophyFixtureViewVariant,
+    captured_corpus: Option<CapturedCorpusFixtureInput<'_>>,
+) -> FullKnowledgeFixture {
     let nodes = [
         PHILOSOPHY_FIXTURE_0.as_bytes(),
         PHILOSOPHY_FIXTURE_1.as_bytes(),
@@ -1051,7 +1077,14 @@ pub fn build_native_fixture_with_philosophy_view_variant(
         }
     }
     let raw = serde_json::to_vec(&header).unwrap();
-    build_native_fixture_with_philosophy_inputs(&raw, &nodes, &edges)
+    build_native_fixture_inner(
+        false,
+        false,
+        None,
+        Some((&raw, &nodes, &edges)),
+        captured_corpus,
+        None,
+    )
 }
 /// Exact ordered phi owner input through the existing native assembler and cold opener.
 pub fn build_native_fixture_with_philosophy_inputs(
