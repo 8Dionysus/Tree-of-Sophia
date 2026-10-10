@@ -419,7 +419,10 @@ impl CutSchemaExecutor for CatalogSchemas<'_> {
     ) -> std::result::Result<bool, tos_validation::item_rules::ItemRefusal> {
         match self {
             Self::Candidate(s) => s.check(path, raw, contract, deadline, cancelled),
-            Self::Resident(s) => s.check(path, raw, contract, deadline, cancelled),
+            // Catalog phases revisit the same immutable registries and rows.
+            // Reuse only an actual matching scalar receipt; the executor still
+            // checks current deadlines, raw/decoded bytes, contract and worker.
+            Self::Resident(s) => s.check_reusing_scalar(path, raw, contract, deadline, cancelled),
             Self::Spooling(s) => s.check(path, raw, contract, deadline, cancelled),
         }
     }

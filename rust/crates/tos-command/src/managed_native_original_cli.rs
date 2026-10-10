@@ -127,7 +127,7 @@ impl DirectRepositoryProjectionLimits {
             max_output_bytes: manifest::NATIVE_PRODUCER_MAX_DATA_BYTES,
             max_schema_receipts: 4096,
             max_schema_receipt_bytes: 4 * 1024 * 1024,
-            worker_cpu_seconds: 1800,
+            worker_cpu_seconds: ExecutorBudget::MAX_SCALAR_CPU_SECONDS,
             worker_address_space_bytes: 1024 * 1024 * 1024,
             max_worker_image_bytes: 512 * 1024 * 1024,
             cold_open: ColdOpenLimits {
@@ -2410,8 +2410,11 @@ fn source_projection_limits(
     let schema_work = BatchStreamBudget {
         batch,
         max_chunks: source.max_schema_receipts as u64,
-        max_total_units: source.max_members.max(1),
-        max_total_raw_bytes: source.max_total_bytes.max(1),
+        // A member may be checked against several selected contracts. Price
+        // execution work from its own receipt/work envelope, not unique source
+        // membership or stored bytes. Per-frame and source caps stay separate.
+        max_total_units: source.max_schema_receipts as u64,
+        max_total_raw_bytes: work_cap,
         total_execution_wall: batch_wall,
         operation_cpu_seconds: source
             .worker_cpu_seconds
@@ -5226,6 +5229,15 @@ mod projection_limit_tests {
     #[test]
     fn source_projection_budgets_fit_family_rows_and_original_format() {
         let profile = DirectRepositoryProjectionLimits::repo_validation_v1();
+        validate_direct_projection_request(&DirectRepositoryProjectionRequest {
+            repository_root: "/selected/repository".into(),
+            software_git_commit: "0".repeat(40),
+            software_git_tree: "0".repeat(40),
+            schema_worker_absolute_path: "/selected/worker".into(),
+            schema_worker_sha256: "0".repeat(64),
+            limits: profile,
+        })
+        .unwrap();
         let mut source = NativeSourceOnlyRequest {
             corpus_store: "/selected/source".into(),
             source_revision: "0".repeat(64),
@@ -5277,6 +5289,7 @@ mod projection_limit_tests {
             source.max_total_bytes = 4 * member_bytes;
             for rows in [1, 128, 16_384, MAX_COLD_ROWS] {
                 request.cold_open.max_rows = rows;
+                validate_source_only_request(&source, &request).unwrap();
                 let limits = source_projection_limits(
                     &source,
                     &request,
@@ -5287,6 +5300,14 @@ mod projection_limit_tests {
                 limits.bibliographic.catalog.validate().unwrap();
                 limits.bibliographic.validate().unwrap();
                 limits.schema_work.validate().unwrap();
+                assert_eq!(
+                    limits.schema_work.max_total_units,
+                    source.max_schema_receipts as u64
+                );
+                assert_eq!(
+                    limits.schema_work.max_total_raw_bytes,
+                    request.max_work_bytes.min(320 * 1024 * 1024)
+                );
                 assert_eq!(
                     limits.bibliographic.catalog.max_contract_bytes,
                     (source.max_total_bytes as usize)

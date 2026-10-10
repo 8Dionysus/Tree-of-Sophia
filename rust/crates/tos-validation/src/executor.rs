@@ -3712,9 +3712,13 @@ mod native {
                     return empty_batch_outcome(self.identity.sha256, profile, schema_set, reason);
                 }
             };
-            self.exchange_prepared(
+            let mut outcome = self.exchange_prepared(
                 prepared, units, expected, budget, deadline, cancelled, start,
-            )
+            );
+            if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome {
+                *exchange = exchange.or(self.poison_exchange);
+            }
+            outcome
         }
 
         fn exchange_prepared(
@@ -3780,26 +3784,45 @@ mod native {
                 .checked_add(1)
                 .filter(|n| *n <= self.operation_budget.max_chunks)
             else {
-                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+                return refusal(
+                    prepared,
+                    results,
+                    self.poison_at(ExecutorFailure::InputBudget, "schema operation frame count"),
+                );
             };
             let Some(next_units) = self
                 .used_units
                 .checked_add(units.len() as u64)
                 .filter(|n| *n <= self.operation_budget.max_total_units)
             else {
-                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+                return refusal(
+                    prepared,
+                    results,
+                    self.poison_at(ExecutorFailure::InputBudget, "schema operation unit count"),
+                );
             };
             let Some(next_raw) = raw
                 .and_then(|n| self.used_raw.checked_add(n))
                 .filter(|n| *n <= self.operation_budget.max_total_raw_bytes)
             else {
-                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+                return refusal(
+                    prepared,
+                    results,
+                    self.poison_at(ExecutorFailure::InputBudget, "schema operation raw bytes"),
+                );
             };
             for unit in units {
                 self.selectors
                     .insert((schema_set.to_hex(), unit.root_uri.clone()));
                 if self.selectors.len() > self.operation_budget.max_distinct_selectors {
-                    return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+                    return refusal(
+                        prepared,
+                        results,
+                        self.poison_at(
+                            ExecutorFailure::InputBudget,
+                            "schema operation selector count",
+                        ),
+                    );
                 }
             }
             if self
@@ -3826,7 +3849,11 @@ mod native {
                 n.checked_add((4 + 48 + OPERATION_FINAL_BYTES) as u64)
                     .is_some_and(|reserved| reserved <= self.operation_budget.max_total_wire_bytes)
             }) else {
-                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+                return refusal(
+                    prepared,
+                    results,
+                    self.poison_at(ExecutorFailure::InputBudget, "schema operation wire bytes"),
+                );
             };
             if first {
                 let mut nonce = [0u8; 16];
