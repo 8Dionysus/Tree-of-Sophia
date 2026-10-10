@@ -1161,15 +1161,27 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
     let owner = PathBuf::from(std::env::var_os("TOS_NATIVE_OWNER_COMMAND_BIN").unwrap());
     let consumer = PathBuf::from(std::env::var_os("TOS_NATIVE_MANAGED_CONSUMER_BIN").unwrap());
     let producer_sha256 = hash_file(&owner).to_hex();
+    // Check mode may rederive a completed successor's products with an older
+    // executable. The selected receipt still pins its actual producer, request
+    // and every completed output; the executing image keeps its own identity.
+    let reference_sha256 = match std::env::var("TOS_NATIVE_CORPUS_REFERENCE_PRODUCER_SHA256") {
+        Ok(reference) => {
+            assert_eq!(phase, "check", "cross-version comparison is read-only");
+            Digest256::from_hex(&reference).unwrap();
+            reference
+        }
+        Err(std::env::VarError::NotPresent) => producer_sha256.clone(),
+        Err(error) => panic!("invalid comparison producer selector: {error}"),
+    };
     // One immutable prepared source cut may be exercised by two exact software
     // images. Give each image its own output and result instead of replacing a
     // prior completed result or rebuilding the source preparation.
     let mut build_request = case["request"].clone();
-    build_request["data_directory"] = json!(format!("native-corpus-build-{producer_sha256}"));
+    build_request["data_directory"] = json!(format!("native-corpus-build-{reference_sha256}"));
     build_request["private_release_directory"] =
-        json!(format!("native-corpus-unused-{producer_sha256}"));
+        json!(format!("native-corpus-unused-{reference_sha256}"));
     let (_, _, _, persistent_store) = stage_resources();
-    let result_path = case_root.join(format!("producer-result-{producer_sha256}.json"));
+    let result_path = case_root.join(format!("producer-result-{reference_sha256}.json"));
     let built = if phase == "producer" {
         assert!(
             !result_path.exists(),
@@ -1194,9 +1206,8 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
         let result = read_record(&result_path);
         verify_pins(&result["inputs"]);
         assert_eq!(
-            result["producer_sha256"],
-            hash_file(&owner).to_hex(),
-            "changed producer requires a fresh producer result"
+            result["producer_sha256"], reference_sha256,
+            "completed receipt must name the explicitly selected producer"
         );
         assert_eq!(
             result["request_sha256"],
@@ -1297,6 +1308,10 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
         }
         assert!(!persistent_store.join(check_data_name).exists());
         assert!(!persistent_store.join(check_release_name).exists());
+        eprintln!(
+            "native corpus product parity: executing={producer_sha256} reference={reference_sha256} products={}",
+            products.len()
+        );
 
         let compare = tempfile::tempdir().unwrap();
         for row in products {

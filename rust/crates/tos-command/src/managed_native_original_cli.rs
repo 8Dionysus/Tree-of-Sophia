@@ -3113,9 +3113,11 @@ fn prepare_source_only_runtime(
     source: &NativeSourceOnlyRequest,
     plan: &SourceRuntimePlan,
     isolation: &PrivateTmpfsStageIsolation,
+    heap: &Arc<DedicatedSessionSqliteHeap>,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
 ) -> Result<SourceOnlyRuntime> {
+    heap.verify_current()?;
     let mut stage_elapsed_ns = [0; 5];
     let started = Instant::now();
     let inputs = open_source_runtime_inputs(source, plan, isolation, deadline, cancelled)?;
@@ -3148,6 +3150,7 @@ fn prepare_source_only_runtime(
         stage_elapsed_ns,
     };
     runtime.recheck(source, deadline, cancelled)?;
+    heap.verify_current()?;
     runtime.stage_elapsed_ns[4] = elapsed_ns(started);
     Ok(runtime)
 }
@@ -4464,56 +4467,10 @@ fn execute(mut request: Request) -> Result<Value> {
         deadline,
         Arc::clone(&cancelled),
     )?;
-    let historical = request
-        .selected_snapshot
-        .as_ref()
-        .map(|profile| manifest::census_selected_runtime_closure(profile, deadline))
-        .transpose()?;
-    let source_runtime = request
-        .source_only
-        .as_ref()
-        .map(|source| {
-            prepare_source_only_runtime(
-                source,
-                plan.source
-                    .as_ref()
-                    .ok_or(Refusal("native source build plan absent"))?,
-                &isolation,
-                deadline,
-                &cancelled,
-            )
-        })
-        .transpose()?;
-    if request.mode.as_deref() == Some("check") {
-        let runtime = source_runtime
-            .as_ref()
-            .ok_or(Refusal("native corpus check has no source-only runtime"))?;
-        runtime.recheck(
-            request
-                .source_only
-                .as_ref()
-                .ok_or(Refusal("native corpus check source selection absent"))?,
-            deadline,
-            cancelled.as_ref(),
-        )?;
-        let fingerprint_after = manifest::fingerprint_native_compiler_source(deadline)?;
-        manifest::require_stable_native_compiler_source(&fingerprint_before, &fingerprint_after)?;
-        let comparison_root = request
-            .comparison_root
-            .as_deref()
-            .ok_or(Refusal("native corpus check comparison root absent"))?;
-        return check_source_products(runtime, Path::new(comparison_root), deadline);
-    }
     let mut evidence_refs = hold_request_evidence(&mut request, deadline, uid)?;
-    let selected_source_bytes = match (&historical, &source_runtime, &request.selected_snapshot) {
-        (Some(census), _, Some(_)) => census.retained_state_upper_bound()?,
-        (_, Some(runtime), None) => runtime.retained_state_upper_bound()?,
-        _ => return Err(Refusal("native producer selected source mode differs").into()),
-    };
     let mut caller_bytes = isolation
         .retained_state_upper_bound()?
         .checked_add(resources.retained_state_upper_bound()?)
-        .and_then(|n| n.checked_add(selected_source_bytes))
         .and_then(|n| n.checked_add(fingerprint_before.retained_state_upper_bound().ok()?))
         .ok_or(Refusal("native Original retained owner census overflow"))?;
     caller_bytes = caller_bytes
@@ -4576,6 +4533,62 @@ fn execute(mut request: Request) -> Result<Value> {
             .checked_add(heap.reserved_state_bytes())
             .ok_or(Refusal("native Original SQLite owner census overflow"))?,
     );
+    // The source projection stages open SQLite too. Establish the single
+    // process heap before any of them can initialize SQLite, then add their
+    // retained results to the same state ledger before final capture.
+    let historical = request
+        .selected_snapshot
+        .as_ref()
+        .map(|profile| manifest::census_selected_runtime_closure(profile, deadline))
+        .transpose()?;
+    let source_runtime = request
+        .source_only
+        .as_ref()
+        .map(|source| {
+            prepare_source_only_runtime(
+                source,
+                plan.source
+                    .as_ref()
+                    .ok_or(Refusal("native source build plan absent"))?,
+                &isolation,
+                &heap,
+                deadline,
+                &cancelled,
+            )
+        })
+        .transpose()?;
+    let selected_source_bytes = match (&historical, &source_runtime, &request.selected_snapshot) {
+        (Some(census), _, Some(_)) => census.retained_state_upper_bound()?,
+        (_, Some(runtime), None) => runtime.retained_state_upper_bound()?,
+        _ => return Err(Refusal("native producer selected source mode differs").into()),
+    };
+    retained.set(
+        retained
+            .get()
+            .checked_add(selected_source_bytes)
+            .ok_or(Refusal("native Original selected source state overflow"))?,
+    );
+    remaining(0)?;
+    if request.mode.as_deref() == Some("check") {
+        let runtime = source_runtime
+            .as_ref()
+            .ok_or(Refusal("native corpus check has no source-only runtime"))?;
+        runtime.recheck(
+            request
+                .source_only
+                .as_ref()
+                .ok_or(Refusal("native corpus check source selection absent"))?,
+            deadline,
+            cancelled.as_ref(),
+        )?;
+        let fingerprint_after = manifest::fingerprint_native_compiler_source(deadline)?;
+        manifest::require_stable_native_compiler_source(&fingerprint_before, &fingerprint_after)?;
+        let comparison_root = request
+            .comparison_root
+            .as_deref()
+            .ok_or(Refusal("native corpus check comparison root absent"))?;
+        return check_source_products(runtime, Path::new(comparison_root), deadline);
+    }
     let work = Arc::new(AtomicU64::new(0));
     let vm = Arc::new(AtomicU64::new(0));
     let mut capture_usage = RuntimeCaptureCreationUsage::default();

@@ -65,6 +65,12 @@ inputs; it does not admit an incomplete candidate or synthesize graph rows.
 Producer outputs and completed result records are keyed by the exact executable
 digest, so two software versions can exercise the same immutable preparation
 without replacing each other. Parity still compares all six exact products.
+For `check`, `TOS_NATIVE_CORPUS_REFERENCE_PRODUCER_SHA256` may select the
+completed result of another exact producer. The running executable rederives
+all six products from the same prepared inputs, compares their exact bytes,
+and exercises the damaged-product refusal. The referenced producer, request
+and output pins remain verified. This read-only comparison does not claim
+that the older executable completed the successor's full model build.
 Preparation also captures and restores a new exact Git fixture containing the
 expanded source set and the unchanged original software companions. The source
 cut and repository inventory therefore name the same selected files; the old
