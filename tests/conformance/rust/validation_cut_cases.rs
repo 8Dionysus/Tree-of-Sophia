@@ -801,7 +801,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         .iter()
         .map(|(path, _)| path.as_str())
         .collect::<Vec<_>>();
-    let opening_source = "da8fb0993298e7f1de20875cbf2bd19d9e2f5ed0";
+    let opening_source = include_str!("retained-opening-source.txt").trim();
     let opening_capture = tempfile::tempdir().unwrap();
     let captured = opening_capture.path().join("captured");
     let restored = opening_capture.path().join("restored");

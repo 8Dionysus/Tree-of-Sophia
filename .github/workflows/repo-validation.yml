@@ -855,6 +855,31 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
+      - name: Prepare retained source-cut fixture
+        run: |
+          source_ref="$(cat tests/conformance/rust/retained-opening-source.txt)"
+          [[ "$source_ref" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags --depth=1 --filter=blob:none origin "$source_ref"
+          SOURCE_REF="$source_ref" node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          import assert from 'node:assert/strict';
+          const planPath = 'ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json';
+          const plan = JSON.parse(readFileSync(planPath, 'utf8'));
+          const paths = [planPath,
+            ...['source_sentence_packet_ref', 'target_sentence_packet_ref', 'alignment_packet_ref', 'provenance_event_ref'].map(key => plan.outputs[key]),
+            ...['text_layer_ref', 'layout_packet_ref', 'edition_reading_admission_ref', 'rights_ref'].map(key => plan.source[key]),
+            ...['text_layer_ref', 'layout_packet_ref', 'expression_record_ref', 'responsibility_claims_ref', 'rights_ref'].map(key => plan.target[key])];
+          assert.equal(new Set(paths).size, 14);
+          for (const path of paths) {
+            assert.equal(typeof path, 'string');
+            assert(path.startsWith('ToS/source-witnesses/') && !path.split('/').includes('..'));
+            // Fetch only the selected historical blobs before the native
+            // capture deliberately disables network and lazy object fetching.
+            execFileSync('git', ['show', `${process.env.SOURCE_REF}:${path}`], { maxBuffer: 2 * 1024 * 1024, timeout: 30_000 });
+          }
+          console.log('Prepared 14 exact historical source members; native capture verifies their bytes.');
+          JS
       - name: Install verified wasm-bindgen CLI
         run: |
           archive="$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz"

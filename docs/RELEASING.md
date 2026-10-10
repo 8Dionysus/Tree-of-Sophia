@@ -54,6 +54,10 @@ owner surfaces.
    Conformance and Growth consume the pinned workspace images before package
    tests can relink the shared Cargo binary paths with different feature sets.
    The image digest checks remain active throughout those consumer steps.
+   The retained source-cut fixture also needs the exact commit named in
+   `tests/conformance/rust/retained-opening-source.txt` and its fourteen selected
+   metadata blobs. CI fetches that shallow commit and those blobs before the
+   native capture, which continues to disable lazy fetching and verify bytes.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
    `tos-validation-lanes --repo-root "$PWD" --run software_browser`.
