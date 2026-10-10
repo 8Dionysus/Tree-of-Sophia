@@ -28,7 +28,15 @@ fn run_native_corpus_build(binary: &Path, request: &serde_json::Value) -> Output
     let file_size_bytes = request["process_limits"]["file_size_bytes"]
         .as_u64()
         .expect("finite owner file-size cap");
-    let mut command = Command::new("prlimit");
+    let mut command = if let Some(launcher) = std::env::var_os("TOS_NATIVE_CORPUS_STAGE_LAUNCHER") {
+        let launcher = Path::new(&launcher);
+        assert!(launcher.is_absolute() && launcher.is_file());
+        let mut command = Command::new(launcher);
+        command.arg("/usr/bin/prlimit");
+        command
+    } else {
+        Command::new("prlimit")
+    };
     command
         .args([
             format!("--as={address_space_bytes}"),
@@ -647,16 +655,57 @@ pub(super) fn exercise_native_corpus_build(
     assert!(consumer.is_absolute() && consumer.is_file());
     assert!(worker_path.is_absolute() && worker_path.is_file());
 
-    // Read exact finite limits from the normal admitted ticket rather than
-    // inventing a larger request envelope in this controller.
-    let stage = tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::select_issued_from_environment()
-        .expect("OPS must issue the native producer private tmpfs ticket");
-    let (quota_bytes, inode_limit, working_ram_bytes) = stage.resource_limits();
-    let persistent_store = stage
-        .persistent_store()
-        .expect("OPS must admit the candidate's bounded persistent store")
-        .to_owned();
-    drop(stage);
+    // OPS can issue the real ticket at each producer exec. This keeps the
+    // consumer's fs-verity files and HTTP host outside the private tmpfs/network
+    // namespace. The production owner still verifies the sealed ticket and
+    // kernel boundaries against every requested limit before writing.
+    let (quota_bytes, inode_limit, working_ram_bytes, persistent_store) = if std::env::var_os(
+        "TOS_NATIVE_CORPUS_STAGE_LAUNCHER",
+    )
+    .is_some()
+    {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct IssuedLimits {
+            quota_bytes: u64,
+            inode_limit: u64,
+            working_ram_bytes: u64,
+            persistent_store: std::path::PathBuf,
+        }
+        let path = std::env::var_os("TOS_NATIVE_CORPUS_STAGE_CONFIG")
+            .expect("OPS must supply the exact launcher resource selection");
+        let path = Path::new(&path);
+        assert!(path.is_absolute() && path.is_file());
+        let mut raw = Vec::new();
+        File::open(path)
+            .unwrap()
+            .take(8193)
+            .read_to_end(&mut raw)
+            .unwrap();
+        assert!(raw.len() <= 8192);
+        let limits: IssuedLimits = serde_json::from_slice(&raw).unwrap();
+        assert!(limits.persistent_store.is_absolute() && limits.persistent_store.is_dir());
+        (
+            limits.quota_bytes,
+            limits.inode_limit,
+            limits.working_ram_bytes,
+            limits.persistent_store,
+        )
+    } else {
+        let stage = tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::select_issued_from_environment()
+                .expect("OPS must issue the native producer private tmpfs ticket");
+        let (quota_bytes, inode_limit, working_ram_bytes) = stage.resource_limits();
+        let persistent_store = stage
+            .persistent_store()
+            .expect("OPS must admit the candidate's bounded persistent store")
+            .to_owned();
+        (
+            quota_bytes,
+            inode_limit,
+            working_ram_bytes,
+            persistent_store,
+        )
+    };
 
     let process_limits = tos_compiler::NativeProcessLimits {
         address_space_bytes: NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS

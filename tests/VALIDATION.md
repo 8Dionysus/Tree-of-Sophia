@@ -29,6 +29,18 @@ Prior Python assertions and acquisition references are retained as nonexecutable
 `.py.snapshot` files under `tests/historical/`. Their maintained behavior runs through
 the native owner tests above. They are not a second validation route.
 
+The ignored `actual_native_corpus_managed_installed_consumer` case requires
+explicit installed native products and host resource admission. Its producer
+may inherit the host's private-stage ticket or enter that stage through the
+absolute `TOS_NATIVE_CORPUS_STAGE_LAUNCHER` executable. The launcher receives
+the bounded native command as arguments and issues the real sealed ticket
+before execution. `TOS_NATIVE_CORPUS_STAGE_CONFIG` selects its bounded JSON
+resource description: `quota_bytes`, `inode_limit`, `working_ram_bytes` and
+the absolute `persistent_store`. OPS binds this description to the launcher's
+actual admission. This per-producer launch keeps the test's fs-verity files
+and HTTP host on their separately admitted filesystem and network. The native
+producer always verifies the ticket, limits and kernel isolation itself.
+
 Select browser behavior through `software_browser` in root `VALIDATION.md`.
 Test success establishes its declared mechanics, not source meaning, rights,
 review, canon, deployment or ecosystem admission.
