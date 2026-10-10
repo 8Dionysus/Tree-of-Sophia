@@ -36,7 +36,12 @@ const MODEL_CONTEXT_INIT=`(() => {
 async function waitFor(page,expression,timeout=30000,arg=null){
   const until=performance.now()+timeout;
   do{
-    if(await page.evaluate(expression,arg))return;
+    let timer;
+    const matched=await Promise.race([
+      page.evaluate(expression,arg),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`Browser condition did not settle within ${timeout}ms`)),Math.max(1,until-performance.now()));}),
+    ]).finally(()=>clearTimeout(timer));
+    if(matched)return;
     await new Promise(resolve=>setTimeout(resolve,100));
   }while(performance.now()<until);
   throw new Error(`Browser condition did not settle within ${timeout}ms`);
