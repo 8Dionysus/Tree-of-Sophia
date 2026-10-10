@@ -2125,6 +2125,12 @@ fn validate_compiler_fingerprint(
     Ok(())
 }
 
+fn is_metadata_source_binding(input: &NativeDataSnapshotManifestInput<'_>, source: &str) -> bool {
+    source == RUNTIME_DATA_DECLARATION_PATH
+        || source == EVIDENCE_SCENES_PATH
+        || (source == NATIVE_SOURCE_PROFILE_BINDING_PATH && input.selected_runtime_source.is_some())
+}
+
 fn validate_manifest_input(
     input: &NativeDataSnapshotManifestInput<'_>,
     limits: NativeDataManifestLimits,
@@ -2236,10 +2242,7 @@ fn validate_manifest_input(
         ));
     }
     for source in input.source_bindings.keys() {
-        if source == RUNTIME_DATA_DECLARATION_PATH
-            || source == EVIDENCE_SCENES_PATH
-            || source == NATIVE_SOURCE_PROFILE_BINDING_PATH
-        {
+        if is_metadata_source_binding(input, source) {
             continue;
         }
         let member = format!("data/{source}");
@@ -2969,7 +2972,7 @@ fn write_native_data_manifest(
         return Err(Error::Invalid("native EvidenceLens source binding differs"));
     }
     for (source, expected) in input.source_bindings {
-        if source == RUNTIME_DATA_DECLARATION_PATH || source == EVIDENCE_SCENES_PATH {
+        if is_metadata_source_binding(input, source) {
             continue;
         }
         if member_digests.get(&format!("data/{source}")) != Some(expected) {
@@ -3411,7 +3414,7 @@ mod selected_snapshot_tests {
         .unwrap()
         .with_runtime_products(products)
         .unwrap();
-        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let deadline = Instant::now() + std::time::Duration::from_secs(300);
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let remaining = |bytes: usize| {
             (32 * 1024 * 1024usize)
@@ -3425,7 +3428,8 @@ mod selected_snapshot_tests {
             &cancelled,
         )
         .unwrap();
-        let limits = portable_native_snapshot_limits(30).unwrap().capture;
+        let snapshot_limits = portable_native_snapshot_limits(300).unwrap();
+        let limits = snapshot_limits.capture;
         let capture = |name: &str, profile| {
             crate::PublicCapture::create_runtime_with_owned_budget(
                 &root,
@@ -3481,6 +3485,115 @@ mod selected_snapshot_tests {
                 fs::read(root.join(&product.path)).unwrap()
             );
         }
+        let completed = crate::native_snapshot::build_native_snapshot_from_capture(
+            &current,
+            &temp.path().join("native-model.sqlite3"),
+            RUNTIME_DATA_DECLARATION,
+            &FixtureIsolation,
+            snapshot_limits,
+        )
+        .unwrap();
+        let compiler = fingerprint_native_compiler_source(deadline).unwrap();
+        let mut member_paths = retained
+            .iter()
+            .map(|member| format!("data/{}", member.source_path))
+            .collect::<Vec<_>>();
+        member_paths.extend([NATIVE_MODEL_PATH.into(), NATIVE_SELECTION_PATH.into()]);
+        let input = NativeDataSnapshotManifestInput {
+            corpus_revision: &profile.source_revision,
+            selected_profile: None,
+            selected_census: None,
+            selected_runtime_source: Some(&profile),
+            source_only_census: Some(&census),
+            model_abi: &completed.expectation().model_abi,
+            compiler: &compiler,
+            source_bindings: &census.source_bindings,
+            member_paths: &member_paths,
+            native_selection: NATIVE_SELECTION_PATH,
+        };
+        let manifest_limits = NativeDataManifestLimits {
+            max_manifest_bytes: MAX_MANIFEST_BYTES,
+            max_members: NATIVE_PRODUCER_MAX_MEMBERS,
+            max_member_bytes: NATIVE_PRODUCER_MAX_DATA_BYTES,
+            max_total_data_bytes: NATIVE_PRODUCER_MAX_DATA_BYTES,
+            deadline,
+        };
+        let cache_root = temp.path().join("current-cache");
+        let cold = crate::knowledge_full_fixture::native_fixture_cold_limits(
+            snapshot_limits.full,
+            completed.components().source_scope.source_count,
+        );
+        let (receipt, selection) = write_cache_tree(
+            &cache_root,
+            &current,
+            &retained,
+            &completed,
+            &input,
+            manifest_limits,
+            cold,
+            crate::knowledge_full_fixture::NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS,
+        );
+        assert!(
+            !cache_root
+                .join(format!("data/{NATIVE_SOURCE_PROFILE_BINDING_PATH}"))
+                .exists()
+        );
+        let previous = NativePreviousDataSnapshotProfile {
+            schema_version: "tos_native_previous_data_snapshot_profile_v1".into(),
+            root: cache_root.to_str().unwrap().into(),
+            manifest_sha256: receipt.manifest_sha256,
+            data_revision: receipt.data_revision,
+        };
+        assert!(
+            verify_previous_native_data_snapshot(
+                &previous,
+                &input,
+                &current.core_source_revision().unwrap(),
+                manifest_limits,
+            )
+            .unwrap()
+            .is_some()
+        );
+        for replacement in [None, Some(Digest256::of_bytes(b"wrong profile").to_hex())] {
+            let mut bindings = census.source_bindings.clone();
+            bindings.remove(NATIVE_SOURCE_PROFILE_BINDING_PATH);
+            if let Some(digest) = replacement {
+                bindings.insert(NATIVE_SOURCE_PROFILE_BINDING_PATH.into(), digest);
+            }
+            let invalid = NativeDataSnapshotManifestInput {
+                source_bindings: &bindings,
+                ..input
+            };
+            assert!(matches!(
+                write_completed_native_data_manifest(
+                    &completed,
+                    &cache_root,
+                    &invalid,
+                    &selection,
+                    manifest_limits
+                ),
+                Err(Error::Invalid("selected source root binding changed"))
+            ));
+        }
+        let missing_member_paths = member_paths
+            .iter()
+            .filter(|path| **path != format!("data/{}", crate::source_philosophy_views::ATLAS_REF))
+            .cloned()
+            .collect::<Vec<_>>();
+        let invalid = NativeDataSnapshotManifestInput {
+            member_paths: &missing_member_paths,
+            ..input
+        };
+        assert!(matches!(
+            write_completed_native_data_manifest(
+                &completed,
+                &cache_root,
+                &invalid,
+                &selection,
+                manifest_limits
+            ),
+            Err(Error::Invalid("native source binding lacks data member"))
+        ));
         fs::write(
             root.join(crate::source_philosophy_views::ATLAS_REF),
             b"changed",
@@ -3851,6 +3964,25 @@ mod selected_snapshot_tests {
         assert_eq!(first_manifest, second_manifest);
         assert_eq!(first.manifest_sha256, second.manifest_sha256);
         assert_eq!(first.data_revision, second.data_revision);
+        let mut unbound_profile = source_bindings.clone();
+        unbound_profile.insert(
+            NATIVE_SOURCE_PROFILE_BINDING_PATH.into(),
+            Digest256::of_bytes(b"unbound profile").to_hex(),
+        );
+        let invalid = NativeDataSnapshotManifestInput {
+            source_bindings: &unbound_profile,
+            ..input
+        };
+        assert!(matches!(
+            write_completed_native_data_manifest(
+                &completed,
+                &first_root,
+                &invalid,
+                &first_selection,
+                manifest_limits
+            ),
+            Err(Error::Invalid("native source binding lacks data member"))
+        ));
         assert!(
             write_completed_native_data_manifest(
                 &completed,
