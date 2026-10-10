@@ -22,6 +22,8 @@ use tos_foundation::{
 };
 use tos_query::corpus_read::CorpusReadRequest as R;
 
+const VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
+
 fn run_native_corpus_build(binary: &Path, request: &serde_json::Value, preflight: bool) -> Output {
     let address_space_bytes = request["process_limits"]["address_space_bytes"]
         .as_u64()
@@ -813,7 +815,6 @@ pub(super) fn prepare_native_corpus_build(
     assert!(worker_path.is_absolute() && worker_path.is_file());
 
     let worker_source = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
-    let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
     let source_selection = json!({
         "corpus_store": source_store.display().to_string(),
         "source_revision": source_revision.0.to_hex(),
@@ -826,7 +827,7 @@ pub(super) fn prepare_native_corpus_build(
         "source_git_commit": software.selection.source_git_commit,
         "source_git_tree": software.selection.source_git_tree,
         "capture_manifest_sha256": software.selection.capture_manifest_sha256.to_hex(),
-        "software_components": [vocabulary_path, worker_source],
+        "software_components": [VOCABULARY_PATH, worker_source],
         "schema_worker_path": worker_source,
         "schema_worker_absolute_path": worker_path.display().to_string(),
         "schema_worker_sha256": hash_file(worker_path).to_hex(),
@@ -1010,7 +1011,7 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
     // pointer or production release root.
     let selection_path = data.join("native-selection.json");
     let selection_raw = fs::read(&selection_path).unwrap();
-    let descriptor = fs::read(data.join(vocabulary_path)).unwrap();
+    let descriptor = fs::read(data.join(VOCABULARY_PATH)).unwrap();
     let entities =
         fs::read(data.join("ToS/doctrine/semantic-interchange/entity-types.v1.json")).unwrap();
     let relations =
@@ -1250,7 +1251,7 @@ pub(super) fn preflight(cold: tos_compiler::ColdOpenLimits) {
             "source_revision":"0".repeat(64),"software_capture":"/preflight/unopened-capture",
             "software_restored_root":"/preflight/unopened-restored","source_git_commit":"0".repeat(40),
             "source_git_tree":"0".repeat(40),"capture_manifest_sha256":"0".repeat(64),
-            "software_components":["ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",worker_source],
+            "software_components":[VOCABULARY_PATH,worker_source],
             "schema_worker_path":worker_source,"schema_worker_absolute_path":worker,
             "schema_worker_sha256":hash_file(&worker).to_hex()});
         let request = build_request(cold, source);
