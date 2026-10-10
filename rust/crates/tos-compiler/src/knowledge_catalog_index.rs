@@ -712,7 +712,7 @@ fn materialize_inner(
     }
     Ok(CatalogIndexReceipt {
         descriptor_sha256: desc.clone(),
-        catalog_packet_sha256: receipt.sha256.clone(),
+        catalog_packet_sha256: receipt.sha256.to_owned(),
         catalog_index_root_sha256: index_root,
         source_count: vocabulary.sources.len() as u64,
         facet_field_count: field_count,
@@ -808,7 +808,7 @@ fn verify_route_packet(
 fn index_root(
     db: &Connection,
     desc: &str,
-    receipt: &CatalogReceipt,
+    receipt: &CatalogPacketRef<'_>,
     fields: u64,
     values: u64,
     routes: u64,
@@ -820,7 +820,7 @@ fn index_root(
     hash_text(&mut hash, SCHEMA);
     hash_text(&mut hash, ORDER_PROFILE);
     hash_text(&mut hash, desc);
-    hash_text(&mut hash, &receipt.sha256);
+    hash_text(&mut hash, receipt.sha256);
     hash.update(packet_sha.as_bytes());
     for n in [
         receipt.node_count,
@@ -1073,7 +1073,7 @@ mod tests {
             let digest = Digest256::of_bytes(&packet);
             let index = materialize_inner(
                 &mut db,
-                &receipt,
+                &receipt.as_packet(),
                 &vocab,
                 CatalogIndexLimits::default(),
                 &packet,
@@ -1133,7 +1133,7 @@ mod tests {
         let digest = Digest256::of_bytes(&packet);
         let error = materialize_inner(
             &mut db,
-            &receipt,
+            &receipt.as_packet(),
             &vocab,
             CatalogIndexLimits::default(),
             &packet,
@@ -1147,7 +1147,7 @@ mod tests {
         let digest = Digest256::of_bytes(&packet);
         materialize_inner(
             &mut db,
-            &receipt,
+            &receipt.as_packet(),
             &vocab,
             CatalogIndexLimits::default(),
             &packet,
@@ -1175,7 +1175,7 @@ mod tests {
             max_decoded_bytes: 1,
             ..CatalogIndexLimits::default()
         };
-        let error = materialize_inner(&mut db, &receipt, &vocab, limits, &packet, &digest, None)
+        let error = materialize_inner(&mut db, &receipt.as_packet(), &vocab, limits, &packet, &digest, None)
             .unwrap_err();
         assert!(error.to_string().contains("catalog facet casefold bytes"));
     }
@@ -1189,7 +1189,7 @@ mod tests {
         let digest = Digest256::of_bytes(&packet);
         materialize_inner(
             &mut db,
-            &receipt,
+            &receipt.as_packet(),
             &vocab,
             CatalogIndexLimits::default(),
             &packet,
@@ -1210,7 +1210,7 @@ mod tests {
         let digest = Digest256::of_bytes(&packet);
         let error = materialize_inner(
             &mut db,
-            &receipt,
+            &receipt.as_packet(),
             &vocab,
             CatalogIndexLimits::default(),
             &packet,
@@ -1245,7 +1245,7 @@ mod tests {
         let digest = Digest256::of_bytes(&packet);
         materialize_inner(
             &mut db,
-            &receipt,
+            &receipt.as_packet(),
             &vocab,
             CatalogIndexLimits::default(),
             &packet,
