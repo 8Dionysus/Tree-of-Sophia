@@ -3,7 +3,7 @@ import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {createSourceFormSession} from './source-form-session-rust.mjs';
 
-const context={schema_version:'tos_local_source_command_result_v1',command_operations:['describe','prepare','apply'],
+const context={schema_version:'tos_local_source_command_result_v1',grants_admission:false,command_operations:['describe','prepare','apply'],
   source_fields:[{field_id:'metadata.preferred-name'}],allowed_form_ids:['tos.form.example'],
   source:{id:'tos.work.example',version:2,digest:'sha256:'+'a'.repeat(64)},revision:'sha256:before',owner_configuration:'sha256:grant'};
 const prepared={...context,revision:'sha256:prepared',prepared_change:{operation:'form.revise',
