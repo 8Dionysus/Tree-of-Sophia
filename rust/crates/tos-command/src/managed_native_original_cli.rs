@@ -5206,7 +5206,14 @@ fn run_request(
             }
         },
         Err(error) => {
-            let _ = writeln!(diagnostics, "native Original producer refused: {error}");
+            let reason = if let Some(error) = error.downcast_ref::<tos_compiler::Error>() {
+                crate::source_command::public_compiler_reason(error)
+            } else if let Some(error) = error.downcast_ref::<std::io::Error>() {
+                crate::source_command::public_io_reason(error)
+            } else {
+                error.to_string()
+            };
+            let _ = writeln!(diagnostics, "native Original producer refused: {reason}");
             2
         }
     }
