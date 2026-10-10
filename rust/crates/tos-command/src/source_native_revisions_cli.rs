@@ -359,7 +359,7 @@ fn bounded_context_files(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<cmd::SourceFile>> {
     let mut files = BTreeMap::<String, Vec<u8>>::new();
-    for file in crate::source_revisions::collect_readonly_record_files(
+    for file in crate::source_revisions::collect_revision_record_files(
         transport,
         source_path,
         deadline,
@@ -767,17 +767,36 @@ pub(super) fn run(
     };
     let now = crate::source_serialization::instant()?;
     let source_path = cmd::text(&configuration, "source_path")?;
-    let ctx = context_selected_record(
-        &configuration_raw,
-        request_raw,
-        &now,
-        source_path,
-        selected,
-        software,
-        components,
-        deadline,
-        cancelled,
-    )?;
+    let family = crate::source_revisions::RevisionFamily::parse(cmd::text(
+        &configuration,
+        "schema_version",
+    )?)?;
+    let ctx = if family.selected() {
+        context_selected_record(
+            &configuration_raw,
+            request_raw,
+            &now,
+            source_path,
+            selected,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?
+    } else {
+        // Flat owners bind every package member, including unrelated retained
+        // bytes. Their existing bounded context also retains complete archives.
+        context(
+            &configuration_raw,
+            request_raw,
+            &now,
+            selected,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?
+    };
     let mut worker = selected_schema_from_context(
         invocation,
         &ctx.files,

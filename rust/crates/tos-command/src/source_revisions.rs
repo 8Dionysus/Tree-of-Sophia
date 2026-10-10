@@ -598,6 +598,26 @@ pub fn collect_readonly_record_files(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<SourceFile>> {
+    collect_record_files(transport, owner_path, false, deadline, cancelled)
+}
+
+/// Revision writers verify the entire retained package when replaying history.
+pub(crate) fn collect_revision_record_files(
+    transport: &mut impl ReadonlyRecordFiles,
+    owner_path: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<SourceFile>> {
+    collect_record_files(transport, owner_path, true, deadline, cancelled)
+}
+
+fn collect_record_files(
+    transport: &mut impl ReadonlyRecordFiles,
+    owner_path: &str,
+    complete_archives: bool,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<SourceFile>> {
     selected_metadata_path(owner_path)?;
     let (parent, base) = split(owner_path)?;
     let mut reader = ReadonlyFileCollector {
@@ -708,13 +728,35 @@ pub fn collect_readonly_record_files(
             let manifest_path = format!("{directory}/manifest.json");
             reader.read(&manifest_path)?;
             let manifest = reader.parsed(&manifest_path)?;
-            let binding = cmd::field(cmd::field(&manifest, "files")?, base)?;
-            let digest = digest_text(cmd::field(binding, "sha256")?)?;
-            let blob = cmd::text(binding, "blob")?;
-            if blob != format!("{}.blob", &digest[7..]) {
-                return Err(SourceCommandError::Invalid("archive blob locator"));
+            let files = cmd::field(&manifest, "files")?;
+            let selected = cmd::field(files, base)?;
+            let bindings = if complete_archives {
+                let members = files
+                    .as_object()
+                    .ok_or(SourceCommandError::Invalid("archive files map"))?;
+                if members.is_empty() || members.len() > 64 {
+                    return Err(SourceCommandError::Invalid("archive package file budget"));
+                }
+                members.iter().map(|(_, value)| value).collect::<Vec<_>>()
+            } else {
+                vec![selected]
+            };
+            let mut declared_bytes = 0u64;
+            for binding in bindings {
+                let digest = digest_text(cmd::field(binding, "sha256")?)?;
+                let blob = cmd::text(binding, "blob")?;
+                if blob != format!("{}.blob", &digest[7..]) {
+                    return Err(SourceCommandError::Invalid("archive blob locator"));
+                }
+                let bytes = cmd::integer(binding, "bytes")?;
+                declared_bytes = declared_bytes
+                    .checked_add(bytes)
+                    .filter(|sum| bytes <= 2_097_152 && *sum <= 8_388_608)
+                    .ok_or(SourceCommandError::Unsupported(
+                        "archive declared package byte budget",
+                    ))?;
+                reader.read(&format!("{directory}/{blob}"))?;
             }
-            reader.read(&format!("{directory}/{blob}"))?;
         }
     }
     reader

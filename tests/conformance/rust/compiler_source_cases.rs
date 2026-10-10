@@ -1752,7 +1752,9 @@ fn native_corpus_composition_case(installed: bool) {
         .sqlite
         .max_output_bytes
         .min(stage_limits.max_temp_bytes / 2);
-    let search_postings = (100 * 1024 * 1024u64).min(search_work_bytes) / 3;
+    // The installed producer accepts at most ten million rows per cold table.
+    // Bind this fixture's posting declaration to the same finite envelope.
+    let search_postings = ((100 * 1024 * 1024u64).min(search_work_bytes) / 3).min(10_000_000);
     let selected_isolation = NativeSelectedIsolation {
         started,
         deadline,
