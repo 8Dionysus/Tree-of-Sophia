@@ -105,8 +105,13 @@ impl BrowserFixtureExecutor {
         let node_id = raw["node_id"].as_str().unwrap_or("a");
         let id = format!("philosophy:{node_id}");
         let label = raw["label"].clone();
+        let type_id = match raw["node_type"].as_str() {
+            Some("work") => "fixture.work",
+            Some("source") => "fixture.source",
+            _ => "fixture.concept",
+        };
         let mut packet = json!({"id":id,"node_id":node_id,"native_id":node_id,"source_graph":"philosophy","entity_id":format!("tos.node.fixture.{node_id}"),
-            "kind_id":raw["node_type"],"label":label,"content_revision":CONTENT,
+            "kind_id":raw["node_type"],"type_id":type_id,"label":label,"content_revision":CONTENT,
             "source_refs":[raw["source_ref"]],"display":{"title":{"ru":label,"en":label},
                 "kind_label":{"ru":"Материал","en":"Material"},"summary":{"ru":"Synthetic browser fixture","en":"Synthetic browser fixture"}},
             "attributes":{},"properties":raw["properties"]});
@@ -123,9 +128,9 @@ impl BrowserFixtureExecutor {
             "predicates":[{"predicate_id":"relates","display":{"ru":"Связано"}}],
             "lenses":[],"counts":{"nodes":3,"relations":3,"display_coverage":{"node_titles":3}},
             "semantic_registries":{"entity_types":{"entries":[
-                {"entity_type_id":"fixture.concept","source_mappings":[{"source_graph":"philosophy","source_kind_id":"candidate-node"}]},
-                {"entity_type_id":"fixture.work","source_mappings":[{"source_graph":"philosophy","source_kind_id":"work"}],"object_role":"meaning"},
-                {"entity_type_id":"fixture.source","source_mappings":[{"source_graph":"philosophy","source_kind_id":"source"}],"object_role":"meaning"}]},
+                {"type_id":"fixture.concept","source_mappings":[{"source_graph":"philosophy","source_kind_id":"candidate-node"}]},
+                {"type_id":"fixture.work","source_mappings":[{"source_graph":"philosophy","source_kind_id":"work"}],"object_role":"meaning"},
+                {"type_id":"fixture.source","source_mappings":[{"source_graph":"philosophy","source_kind_id":"source"}],"object_role":"meaning"}]},
                 "relation_types":{"entries":[]}},
             "capabilities":{"sources":["philosophy","source-navigation"],"filter_operators":["in"],
                 "node_fields":["kind_id"],"relation_fields":["predicate_id"],

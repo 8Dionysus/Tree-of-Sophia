@@ -167,7 +167,7 @@ for(const failure of ['network','malformed'])test(`test_source_metadata_remains_
 test('test_research_seeded_locale_and_panel_sequence',async()=>withNative('source',async(page,base)=>{
   const [_,nodeId]=await firstEdgeAndNode(page);await page.goto(`${base}/static/research.html?focus=${q('philosophy:'+nodeId)}`);await page.locator('#tree[data-ready="true"] .reading h1').waitFor();
   const names={ru:['Собрать линзу','Читать произведения и издания','Моя полка','Об этой области','Настроить связи','Закрыть'],en:['Build a lens','Read works and editions','My shelf','About this area','Choose relations','Close']};let language='ru';
-  const actions=['en','ru','sources','scope','conditions','shelf','library','search'].repeat(3);let seed=915236;for(let i=actions.length-1;i>0;i--){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const j=seed%(i+1);[actions[i],actions[j]]=[actions[j],actions[i]];}
+  const actions=Array.from({length:3},()=>['en','ru','sources','scope','conditions','shelf','library','search']).flat();let seed=915236;for(let i=actions.length-1;i>0;i--){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const j=seed%(i+1);[actions[i],actions[j]]=[actions[j],actions[i]];}
   for(const [step,action] of actions.entries()){
     if(action==='en'||action==='ru'){await page.locator(`[data-live-lang="${action}"]`).click();language=action;}
     else if(action==='sources'){const disclosure=page.locator('.reading details').filter({has:page.locator('[data-source-record-id]')}).locator(':scope > summary');await disclosure.click();assert.ok(await page.locator('.reading [data-source-record-id]').isVisible(),`${step}:${action}`);assert.equal(await page.locator('.reading pre').count(),0);await disclosure.click();}
