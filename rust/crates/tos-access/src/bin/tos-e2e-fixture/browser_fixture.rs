@@ -242,18 +242,40 @@ impl BrowserFixtureExecutor {
             "node_count":node_count,"edge_count":edge_count,"counts":{"nodes":node_count,"edges":edge_count,"relations":edge_count},
             "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}})
     }
-    fn lens(&self, focus: Option<&str>) -> Value {
+    fn lens(&self, focus: Option<&str>, spec: Option<&Value>) -> Value {
         let graph = self.graph();
-        let nodes = graph["nodes"]
+        let mut nodes = graph["nodes"]
             .as_array()
             .unwrap()
             .iter()
             .map(|n| self.material_node(n["node_id"].as_str().unwrap()))
             .collect::<Vec<_>>();
-        let relations = graph["edges"].as_array().unwrap().iter().map(|e| json!({
+        let mut relations = graph["edges"].as_array().unwrap().iter().map(|e| json!({
             "id":format!("philosophy:{}",e["edge_id"].as_str().unwrap()),"from_id":format!("philosophy:{}",e["from_id"].as_str().unwrap()),
             "to_id":format!("philosophy:{}",e["to_id"].as_str().unwrap()),"predicate_id":"relates","relation_type_id":"relates",
             "content_revision":CONTENT,"source_refs":[e["source_ref"]],"display":{"label":{"ru":"Связано","en":"Related"}},"attributes":{}})).collect::<Vec<_>>();
+        // Full material requests select the exact card or relation endpoints.
+        // The surrounding scene remains the separate three-node fixture.
+        if let Some(spec) =
+            spec.filter(|spec| spec.pointer("/traversal/depth").and_then(Value::as_u64) == Some(0))
+        {
+            if let Some(relation_id) = spec
+                .pointer("/relation_query/filters/0/value")
+                .and_then(Value::as_str)
+            {
+                relations.retain(|relation| relation["id"] == relation_id);
+                nodes.retain(|node| {
+                    relations.iter().any(|relation| {
+                        node["id"] == relation["from_id"] || node["id"] == relation["to_id"]
+                    })
+                });
+            } else if spec.pointer("/limits/nodes").and_then(Value::as_u64) == Some(1)
+                && spec.pointer("/limits/relations").and_then(Value::as_u64) == Some(0)
+            {
+                nodes.retain(|node| Some(node["id"].as_str().unwrap()) == focus);
+                relations.clear();
+            }
+        }
         let node_count = nodes.len();
         let relation_count = relations.len();
         let focus_id = focus
@@ -465,6 +487,15 @@ fn fixture_scene(
             "claim_paths":[],"folded_vertex_ids":[],"retained_claims":[],"authority":"presentation-only-no-new-assertion"}})
 }
 impl AccessExecutor for BrowserFixtureExecutor {
+    fn exploration_runtime_capabilities(&self) -> tos_foundation::JsonValue {
+        tos_foundation::parse_json(
+            &serde_json::to_vec(&self.exploration_capabilities()).unwrap(),
+            tos_foundation::JsonMode::PublishedStrict,
+            tos_foundation::JsonLimits::default(),
+        )
+        .expect("fixture exploration capabilities parse")
+        .into_root()
+    }
     fn source_descend_available(&self) -> bool {
         false
     }
@@ -582,7 +613,7 @@ impl AccessExecutor for BrowserFixtureExecutor {
             None
         };
         packet(
-            json!({"schema":"tos_knowledge_search_compressed_v3","search_mode":"compressed","source_revision":REV,
+            json!({"schema":"tos_knowledge_search_compressed_v3","search_mode":"compressed","source_revision":REV,"query":request.query,
             "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false},"nodes":page,"relations":relations,
             "counts":{"matching_nodes":null,"matching_relations":null},"page":{"cursor":request.cursor,"limit_per_kind":request.limit,
                 "has_more":next.is_some(),"next_cursor":next}}),
@@ -710,16 +741,18 @@ impl AccessExecutor for BrowserFixtureExecutor {
                     .collect::<Vec<_>>();
                 json!({"schema":"tos_philosophy_mcp_edge_v1","edge_id":edge_id,"edge":edge,"endpoints":endpoints})
             }
-            K::Lens(spec) => self.lens(
-                spec.object_get("seed")
-                    .and_then(|seed| seed.object_get("focus_node_id"))
-                    .and_then(tos_foundation::JsonValue::as_str),
-            ),
+            K::Lens(spec) => {
+                let spec = foundation_to_value(&spec);
+                self.lens(
+                    spec.pointer("/seed/focus_node_id").and_then(Value::as_str),
+                    Some(&spec),
+                )
+            }
             K::Explore(request) => self.exploration(&foundation_to_value(&request)),
             K::Temporal(_) => {
                 json!({"schema":"tos_interpretation_comparison_v1","source_revision":REV,"page_updated":true,"authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false},"comparisons":[],"items":[]})
             }
-            K::Focus(_) => self.lens(Some("philosophy:a")),
+            K::Focus(request) => self.lens(Some(&request.node_id), None),
             K::Relation { relation_id } => self.relation_inspect(&relation_id)?,
             K::Philosophy(_) => {
                 json!({"schema":"tos_philosophy_graph_packet_v1","source_revision":REV,"nodes":[],"edges":[],"authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}})
