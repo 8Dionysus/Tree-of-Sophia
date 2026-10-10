@@ -4624,25 +4624,26 @@ fn build_native_snapshot_from_capture_inner(
     let (header, prepared_catalog, producer) = if let Some(creation) =
         state.filter(|_| payload_layout.uses_carriers())
     {
-        let entity_value = crate::knowledge_full::registry_value(
+        let entity_value = crate::knowledge_full::registry_value_scoped(
             &entity,
             &registry.entity_sha256,
             limits.full.max_registry_bytes,
-            Some(creation),
+            creation,
         )?;
-        let relation_value = crate::knowledge_full::registry_value(
+        let relation_value = crate::knowledge_full::registry_value_scoped(
             &relation,
             &registry.relation_sha256,
             limits.full.max_registry_bytes,
-            Some(creation),
+            creation,
         )?;
         vocabulary.verify_authored_bytes_with_owned_state(&descriptor, creation)?;
-        let descriptor_value =
-            creation.serde_owned(&descriptor, limits.full.catalog.max_catalog_bytes)?;
+        let descriptor_limits = JsonLimits::new(limits.full.catalog.max_catalog_bytes, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("owned model serde limits"))?;
+        let descriptor_value = creation.serde_scoped_with_limits(&descriptor, descriptor_limits)?;
         let mut reduction = crate::catalog::CatalogReduction::new(
-            &entity_value,
-            &relation_value,
-            &descriptor_value,
+            &entity_value.0,
+            &relation_value.0,
+            &descriptor_value.0,
             &vocabulary,
             limits.full.catalog,
             Some(creation),

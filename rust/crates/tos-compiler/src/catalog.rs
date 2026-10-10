@@ -3071,13 +3071,16 @@ pub(crate) fn compile_catalog_with_state(
 #[allow(clippy::too_many_arguments)]
 /// Internal token tied to the final core and the exact header/configuration.
 /// Only the shared row reduction can create it; it is not stored in the model.
-pub(crate) struct PreparedCatalog {
+pub(crate) struct PreparedCatalog<'state, 'budget> {
     packet: CatalogParts,
     roots: crate::knowledge_stage::CoreRoots,
     header: Digest256,
     descriptor: String,
     entity: String,
     relation: String,
+    // Rust drops fields in declaration order: the owned packet and bindings
+    // must die before their admission is released. Header counts are borrowed.
+    _hold: Option<CreationStateHold<'state, 'budget>>,
 }
 fn prepared_header_digest(
     header: &Value,
@@ -3094,7 +3097,7 @@ fn prepared_header_digest(
         )?)),
     }
 }
-impl PreparedCatalog {
+impl PreparedCatalog<'_, '_> {
     pub(crate) fn packet<'a>(
         &'a self,
         stage: &mut crate::knowledge_stage::KnowledgeStage<'_>,
@@ -3415,7 +3418,30 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
         vocabulary: &QueryVocabulary,
         descriptor_bytes: &[u8],
         registry: &crate::KnowledgeRegistry,
-    ) -> Result<PreparedCatalog> {
+    ) -> Result<PreparedCatalog<'state, 'budget>> {
+        let construct = || {
+            self.finish_prepared_inner(
+                stage, graph_header, saved_lenses, vocabulary, descriptor_bytes, registry,
+            )
+        };
+        if let Some(state) = self.creation {
+            let (mut prepared, hold) = state.with_retained_result(construct)?;
+            prepared._hold = Some(hold);
+            Ok(prepared)
+        } else {
+            let mut construct = construct;
+            construct()
+        }
+    }
+    fn finish_prepared_inner(
+        &self,
+        stage: &mut crate::knowledge_stage::KnowledgeStage<'_>,
+        graph_header: &Value,
+        saved_lenses: &[Value],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
+        registry: &crate::KnowledgeRegistry,
+    ) -> Result<PreparedCatalog<'state, 'budget>> {
         if let Some(state) = self.creation {
             state.charge_work(descriptor_bytes.len())?;
         }
@@ -3454,6 +3480,7 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
             descriptor: vocabulary.descriptor_sha256.clone(),
             entity: registry.entity_sha256.clone(),
             relation: registry.relation_sha256.clone(),
+            _hold: None,
         })
     }
     pub(crate) fn finish(

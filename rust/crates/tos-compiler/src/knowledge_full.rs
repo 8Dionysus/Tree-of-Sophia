@@ -40,6 +40,30 @@ pub(crate) fn registry_value(
     cap: usize,
     state: Option<&crate::d1_public_capture::CreationState<'_>>,
 ) -> Result<Value> {
+    let limits = registry_limits(raw, expected_sha256, cap, state)?;
+    if let Some(state) = state {
+        return state.serde_owned_with_limits(raw, limits);
+    }
+    parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|e| Error::Source(e.to_string()))?;
+    serde_json::from_slice(raw).map_err(|_| Error::Invalid("full knowledge registry JSON"))
+}
+
+pub(crate) fn registry_value_scoped<'state, 'budget>(
+    raw: &[u8],
+    expected_sha256: &str,
+    cap: usize,
+    state: &'state crate::d1_public_capture::CreationState<'budget>,
+) -> Result<(Value, crate::d1_public_capture::CreationStateHold<'state, 'budget>)> {
+    let limits = registry_limits(raw, expected_sha256, cap, Some(state))?;
+    state.serde_scoped_with_limits(raw, limits)
+}
+
+fn registry_limits(
+    raw: &[u8],
+    expected_sha256: &str,
+    cap: usize,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<JsonLimits> {
     if cap == 0 || cap > 4 * 1024 * 1024 || raw.is_empty() || raw.len() > cap {
         return Err(Error::Budget("full knowledge registry bytes"));
     }
@@ -50,13 +74,8 @@ pub(crate) fn registry_value(
     if Digest256::of_bytes(raw).to_hex() != expected_sha256 {
         return Err(Error::Invalid("full knowledge registry byte root"));
     }
-    if let Some(state) = state {
-        return state.serde_owned(raw, cap);
-    }
-    let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
-        .map_err(|_| Error::Budget("full knowledge registry JSON limits"))?;
-    parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|e| Error::Source(e.to_string()))?;
-    serde_json::from_slice(raw).map_err(|_| Error::Invalid("full knowledge registry JSON"))
+    JsonLimits::new(cap, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("full knowledge registry JSON limits"))
 }
 
 /// Materialize all local read components in dependency order, then seal their
@@ -99,7 +118,7 @@ pub(crate) fn compile_full_knowledge_components_prepared(
     vocabulary: &QueryVocabulary,
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
-    prepared: Option<crate::catalog::PreparedCatalog>,
+    prepared: Option<crate::catalog::PreparedCatalog<'_, '_>>,
 ) -> Result<FullKnowledgeReceipt> {
     if stage.public_build() {
         return Err(Error::Invalid(
@@ -135,46 +154,40 @@ fn compile_inner(
     vocabulary: &QueryVocabulary,
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
-    prepared: Option<crate::catalog::PreparedCatalog>,
+    prepared: Option<crate::catalog::PreparedCatalog<'_, '_>>,
 ) -> Result<FullKnowledgeReceipt> {
     if let Some(creation) = stage.owned_creation_state() {
         vocabulary.verify_authored_bytes_with_owned_state(descriptor_bytes, creation)?;
     } else {
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
     }
-    let entity = registry_value(
-        entity_registry_bytes,
-        &registry.entity_sha256,
-        limits.max_registry_bytes,
-        stage.owned_creation_state(),
-    )?;
-    let relation = registry_value(
-        relation_registry_bytes,
-        &registry.relation_sha256,
-        limits.max_registry_bytes,
-        stage.owned_creation_state(),
-    )?;
     // All native normalization, readable joins and original capture precede
     // this full-component transition. These components use final core rows.
     stage.close_inputs_for_full_components()?;
-    let source_scope = full_component_stage("source-scope", || {
-        write_source_scope(stage, vocabulary, limits.scope)
-    })?;
     // This borrow points at the original invocation state, not a phase-local
     // copy. Capture it before taking the mutable SQLite connection.
     let creation = stage.owned_creation_state();
+    let source_scope = full_component_stage("source-scope", creation, || {
+        write_source_scope(stage, vocabulary, limits.scope)
+    })?;
     let payload_layout = stage.payload_layout();
     let catalog = match prepared {
         Some(prepared) => {
-            let packet = full_component_stage("catalog", || {
+            // The token binds the already parsed registries. Still verify the
+            // caller's actual bytes and caps before using that prepared result.
+            registry_limits(entity_registry_bytes, &registry.entity_sha256, limits.max_registry_bytes, creation)?;
+            registry_limits(relation_registry_bytes, &registry.relation_sha256, limits.max_registry_bytes, creation)?;
+            let packet = full_component_stage("catalog", creation, || {
                 prepared.packet(stage, graph_header, vocabulary, registry)
             })?;
-            full_component_stage("catalog-index", || {
+            full_component_stage("catalog-index", creation, || {
                 materialize_catalog_packet(stage, &packet, vocabulary, limits.catalog_index)
             })?
         }
         None => {
-            let packet = full_component_stage("catalog", || {
+            let entity = registry_value(entity_registry_bytes, &registry.entity_sha256, limits.max_registry_bytes, creation)?;
+            let relation = registry_value(relation_registry_bytes, &registry.relation_sha256, limits.max_registry_bytes, creation)?;
+            let packet = full_component_stage("catalog", creation, || {
                 stage.with_connection(WritePhase::Catalog, |db| {
                     compile_catalog_with_state(
                         db,
@@ -190,13 +203,13 @@ fn compile_inner(
                     )
                 })
             })?;
-            full_component_stage("catalog-index", || {
+            full_component_stage("catalog-index", creation, || {
                 materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)
             })?
         }
     };
-    let search = full_component_stage("search", || build_search_index(stage, limits.search))?;
-    let seal = full_component_stage("seal", || {
+    let search = full_component_stage("search", creation, || build_search_index(stage, limits.search))?;
+    let seal = full_component_stage("seal", creation, || {
         seal_knowledge_model(
             stage,
             graph_header,
@@ -217,20 +230,32 @@ fn compile_inner(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn full_component_stage<T>(name: &'static str, run: impl FnOnce() -> Result<T>) -> Result<T> {
-    eprintln!("Native full-components stage={name} status=start");
+fn full_component_stage<T>(
+    name: &'static str,
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    run: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    let retained = || state.map(|s| s.observed_retained_state_bytes());
+    let persistent = || state.map(|s| s.observed_persistent_state_bytes());
+    eprintln!("Native full-components stage={name} status=start retained={:?} persistent={:?}", retained(), persistent());
     let started = std::time::Instant::now();
     let result = run();
     eprintln!(
-        "Native full-components stage={name} status={} elapsed_ms={}",
+        "Native full-components stage={name} status={} elapsed_ms={} retained={:?} persistent={:?}",
         if result.is_ok() { "ok" } else { "refused" },
         started.elapsed().as_millis(),
+        retained(),
+        persistent(),
     );
     result
 }
 
 #[cfg(target_arch = "wasm32")]
-fn full_component_stage<T>(_: &'static str, run: impl FnOnce() -> Result<T>) -> Result<T> {
+fn full_component_stage<T>(
+    _: &'static str,
+    _: Option<&crate::d1_public_capture::CreationState<'_>>,
+    run: impl FnOnce() -> Result<T>,
+) -> Result<T> {
     run()
 }
 

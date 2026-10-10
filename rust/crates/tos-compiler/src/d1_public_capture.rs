@@ -657,6 +657,28 @@ impl<'budget> CreationState<'budget> {
     pub(crate) fn observed_persistent_state_bytes(&self) -> usize {
         self.persistent.get()
     }
+    /// Transfer this serial constructor's retained allocations to its result
+    /// lifetime, without refunding any live bytes. Every retained allocation
+    /// made by the callback must belong to its returned value or dropped local
+    /// scratch; the callback must not store new state in an external owner.
+    /// Drop the value before its hold. Work, JSON and SQL usage stay monotonic.
+    pub(crate) fn with_retained_result<'s, T>(
+        &'s self,
+        operation: impl FnOnce() -> Result<T>,
+    ) -> Result<(T, CreationStateHold<'s, 'budget>)> {
+        let before = self.persistent.get();
+        let result = operation();
+        let admitted = self
+            .persistent
+            .get()
+            .checked_sub(before)
+            .ok_or(Error::Budget("constructor result custody mismatch"))?;
+        self.persistent.set(before);
+        let hold = CreationStateHold { owner: self, admitted };
+        // On failure the constructor's locals have already dropped. Only its
+        // own admission is released; earlier persistent state remains live.
+        result.map(|value| (value, hold))
+    }
     pub(crate) fn active(&self) -> Result<()> {
         self.remaining(0).map(|_| ())
     }
@@ -7593,6 +7615,44 @@ mod construction_phase_tests {
         assert_eq!(state.retained.get(), baseline + canonical.capacity());
         assert_eq!(state.persistent.get(), canonical.capacity());
         drop(canonical);
+        state.transfer_persistent_to_capture().unwrap();
+        assert_eq!(state.retained.get(), baseline);
+
+        // Earlier live state survives a later constructor's success/failure.
+        // Its result receives the same admission, with no extra live capacity.
+        let outer = state.serde_owned(raw, 8192).unwrap();
+        let outer_retained = state.retained.get();
+        let outer_persistent = state.persistent.get();
+        let available = state.remaining(0).unwrap();
+        let before_work = work.load(Ordering::Acquire);
+        let before_visits = state.json_visits.get();
+        let (inner, inner_hold) = state
+            .with_retained_result(|| state.serde_owned(raw, 8192))
+            .unwrap();
+        assert!(inner_hold.admitted > 0);
+        assert_eq!(state.persistent.get(), outer_persistent);
+        assert_eq!(state.retained.get(), outer_retained + inner_hold.admitted);
+        assert!(state.hold(available).is_err());
+        assert_eq!(inner, outer);
+        drop(inner);
+        drop(inner_hold);
+        assert_eq!(state.retained.get(), outer_retained);
+        assert_eq!(state.persistent.get(), outer_persistent);
+        drop(state.hold(available).unwrap());
+        assert!(work.load(Ordering::Acquire) > before_work);
+        assert!(state.json_visits.get() > before_visits);
+        let before_work = work.load(Ordering::Acquire);
+        let before_visits = state.json_visits.get();
+        assert!(state.with_retained_result(|| {
+            let _local = state.serde_owned(raw, 8192)?;
+            Err::<(), _>(Error::Invalid("constructor refused"))
+        }).is_err());
+        assert_eq!(state.retained.get(), outer_retained);
+        assert_eq!(state.persistent.get(), outer_persistent);
+        assert!(work.load(Ordering::Acquire) > before_work);
+        assert!(state.json_visits.get() > before_visits);
+        assert_eq!(vm.load(Ordering::Acquire), 0);
+        drop(outer);
         state.transfer_persistent_to_capture().unwrap();
         assert_eq!(state.retained.get(), baseline);
 

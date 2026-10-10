@@ -759,7 +759,7 @@ fn finish_fixture_with_limits(
     corpus_original: Option<crate::CorpusOriginalReceipt>,
     limits: FullKnowledgeLimits,
     trace_native: bool,
-    prepared: Option<crate::catalog::PreparedCatalog>,
+    prepared: Option<crate::catalog::PreparedCatalog<'_, '_>>,
 ) -> FullKnowledgeFixture {
     let source_binding = stage
         .exact_receipt()
