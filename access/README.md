@@ -1086,7 +1086,13 @@ data product. Use the native source-only corpus owner with a bounded request:
 `tos-native-owner-command corpus-build < REQUEST_JSON`. Its
 `tos_native_corpus_build_request_v1` `mode=build` creates the private managed
 native Original data pair; `mode=check` requires absolute `comparison_root` and
-checks the six fixed runtime products without writing. The public Worker builder
+checks the six fixed runtime products without writing. Add `--preflight` to
+check the same request/family limits and current host admission before preparing
+data; execution repeats those checks. The general source-only request may omit
+external evidence references. If supplied, the three `admission`, `built` and
+`verified` references retain their exact custody checks; they do not grant
+source or publication authority. The historical `native-original-produce`
+entry still requires all three. The public Worker builder
 uses native `tos build-data`; its source selection, finite ceilings and artifact
 admission are documented in the [Worker route](deploy/cloudflare-worker/README.md).
 Managed NativeData preparation, status, promotion, rollback and revocation use

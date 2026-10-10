@@ -74,6 +74,38 @@ struct RelationInput {
     payload_sha: [u8; 32],
 }
 
+fn relation_page_sql(owned: bool, after: bool) -> String {
+    let payload = if owned { "NULL" } else { "payload" };
+    let columns = if owned {
+        "CASE WHEN length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN length(CAST(from_id AS BLOB)) BETWEEN 1 AND 4096 THEN from_id END,CASE WHEN length(CAST(to_id AS BLOB)) BETWEEN 1 AND 4096 THEN to_id END"
+    } else {
+        "id,source_graph,from_id,to_id"
+    };
+    let predicate = if owned {
+        "payload_len"
+    } else {
+        "length(payload)"
+    };
+    let inline = if owned {
+        ""
+    } else {
+        " AND payload_len=length(payload)"
+    };
+    if after {
+        format!(
+            "SELECT {columns},source_order,{payload},payload_sha256
+             FROM knowledge_relations WHERE source_order>?1
+             AND {predicate}<=?2{inline} ORDER BY source_order LIMIT ?3"
+        )
+    } else {
+        format!(
+            "SELECT {columns},source_order,{payload},payload_sha256
+             FROM knowledge_relations WHERE {predicate}<=?1{inline}
+             ORDER BY source_order LIMIT ?2"
+        )
+    }
+}
+
 fn read_page(
     stage: &mut KnowledgeStage<'_>,
     after: Option<i64>,
@@ -81,21 +113,7 @@ fn read_page(
 ) -> Result<Vec<RelationInput>> {
     let owned = stage.owned_creation_state();
     let batch = stage.with_connection(WritePhase::Sort, |db| {
-        let payload = if owned.is_some() { "NULL" } else { "payload" };
-        let columns = if owned.is_some() {
-            "CASE WHEN length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id END,CASE WHEN length(CAST(source_graph AS BLOB)) BETWEEN 1 AND 4096 THEN source_graph END,CASE WHEN length(CAST(from_id AS BLOB)) BETWEEN 1 AND 4096 THEN from_id END,CASE WHEN length(CAST(to_id AS BLOB)) BETWEEN 1 AND 4096 THEN to_id END"
-        } else { "id,source_graph,from_id,to_id" };
-        let predicate = if owned.is_some() { "payload_len" } else { "length(payload)" };
-        let inline = if owned.is_some() { "" } else { " AND payload_len=length(payload)" };
-        let sql = if after.is_some() {
-            format!("SELECT {columns},source_order,{payload},payload_sha256
-             FROM knowledge_relations WHERE source_order>?1
-             AND {predicate}<=?2{inline} ORDER BY source_order LIMIT ?3")
-        } else {
-            format!("SELECT {columns},source_order,{payload},payload_sha256
-             FROM knowledge_relations WHERE {predicate}<=?1{inline}
-             ORDER BY source_order LIMIT ?2")
-        };
+        let sql = relation_page_sql(owned.is_some(), after.is_some());
         let mut statement = db.prepare(&sql)?;
         let mut rows = match after {
             Some(order) => statement.query(params![
@@ -111,7 +129,11 @@ fn read_page(
         let mut result = Vec::with_capacity(limits.max_page_rows);
         let mut bytes = 0u64;
         while let Some(row) = rows.next()? {
-            let payload: Vec<u8> = if owned.is_some() { Vec::new() } else { row.get(5)? };
+            let payload: Vec<u8> = if owned.is_some() {
+                Vec::new()
+            } else {
+                row.get(5)?
+            };
             bytes = bytes
                 .checked_add(payload.len() as u64)
                 .ok_or(Error::Budget("inherited page bytes"))?;
@@ -735,5 +757,144 @@ mod tests {
             );
         }
         hash.finalize().to_hex()
+    }
+
+    #[test]
+    #[ignore = "requires an exact complete relation cut retained from the full native producer"]
+    fn retained_complete_relation_seek_matches_full_order_without_resorts() {
+        use rusqlite::{Connection, OpenFlags, StatementStatus};
+        let path = PathBuf::from(
+            std::env::var_os("TOS_INHERITED_RELATION_CUT").expect("explicit retained relation cut"),
+        );
+        let expected_hash = std::env::var("TOS_INHERITED_RELATION_CUT_SHA256").unwrap();
+        let expected_root = std::env::var("TOS_INHERITED_RELATION_ROOT").unwrap();
+        let count: u64 = std::env::var("TOS_INHERITED_RELATION_COUNT")
+            .unwrap()
+            .parse()
+            .unwrap();
+        let metadata = fs::symlink_metadata(&path).unwrap();
+        assert!(path.is_absolute() && metadata.is_file() && metadata.len() <= 512 * 1024 * 1024);
+        assert!((1..=1_000_000).contains(&count));
+        assert_eq!(
+            crate::stream_digest(&mut fs::File::open(&path).unwrap())
+                .unwrap()
+                .0,
+            expected_hash
+        );
+        let db = Connection::open_with_flags(
+            &path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .unwrap();
+        db.execute_batch("PRAGMA query_only=ON; PRAGMA temp_store=MEMORY; PRAGMA cache_size=-4096; PRAGMA mmap_size=0;").unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        db.progress_handler(1000, Some(move || std::time::Instant::now() >= deadline));
+        let plan = db
+            .prepare(&format!(
+                "EXPLAIN QUERY PLAN {}",
+                relation_page_sql(true, true)
+            ))
+            .unwrap()
+            .query_map(params![0i64, 8 * 1024 * 1024i64, 4i64], |row| {
+                row.get::<_, String>(3)
+            })
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        let reference_sql = "SELECT id,source_graph,from_id,to_id,source_order,NULL,payload_sha256 FROM knowledge_relations WHERE payload_len<=?1 ORDER BY source_graph,id";
+        let mut measurements = Vec::new();
+        for paged in [false, true] {
+            let mut root = Digest256Hasher::new();
+            let mut returned = Digest256Hasher::new();
+            let mut prior: Option<(String, String)> = None;
+            let mut seen = 0u64;
+            let mut after = None;
+            let mut pages = 0u64;
+            let mut vm_steps = 0u64;
+            let mut sorts = 0u64;
+            let mut fullscan_steps = 0u64;
+            loop {
+                let sql = if paged {
+                    relation_page_sql(true, after.is_some())
+                } else {
+                    reference_sql.to_owned()
+                };
+                let mut statement = db.prepare(&sql).unwrap();
+                let mut rows = if !paged {
+                    statement.query(params![8 * 1024 * 1024i64]).unwrap()
+                } else if let Some(order) = after {
+                    statement
+                        .query(params![order, 8 * 1024 * 1024i64, 4i64])
+                        .unwrap()
+                } else {
+                    statement.query(params![8 * 1024 * 1024i64, 4i64]).unwrap()
+                };
+                let start = seen;
+                while let Some(row) = rows.next().unwrap() {
+                    let id: String = row.get(0).unwrap();
+                    let graph: String = row.get(1).unwrap();
+                    let from: String = row.get(2).unwrap();
+                    let to: String = row.get(3).unwrap();
+                    let ordinal: i64 = row.get(4).unwrap();
+                    let payload: Option<Vec<u8>> = row.get(5).unwrap();
+                    let sha: Vec<u8> = row.get(6).unwrap();
+                    assert!(payload.is_none());
+                    assert_eq!(sha.len(), 32);
+                    assert_eq!(ordinal, seen as i64);
+                    let key = (graph.clone(), id.clone());
+                    assert!(prior.as_ref().is_none_or(|previous| previous < &key));
+                    root.update(&(id.len() as u64).to_be_bytes());
+                    root.update(id.as_bytes());
+                    root.update(&sha);
+                    for text in [&id, &graph, &from, &to] {
+                        returned.update(&(text.len() as u64).to_be_bytes());
+                        returned.update(text.as_bytes());
+                    }
+                    returned.update(&ordinal.to_be_bytes());
+                    returned.update(&sha);
+                    prior = Some(key);
+                    after = Some(ordinal);
+                    seen += 1;
+                    assert!(seen <= count);
+                }
+                drop(rows);
+                pages += 1;
+                vm_steps += statement.get_status(StatementStatus::VmStep) as u64;
+                sorts += statement.get_status(StatementStatus::Sort) as u64;
+                fullscan_steps += statement.get_status(StatementStatus::FullscanStep) as u64;
+                if !paged || seen == start {
+                    break;
+                }
+            }
+            assert_eq!(seen, count);
+            assert_eq!(root.finalize().to_hex(), expected_root);
+            if paged {
+                assert_eq!(sorts, 0, "indexed continuation must not repeat sorting");
+                assert!(
+                    vm_steps <= 256 * count + 128 * pages,
+                    "seek work must remain linear"
+                );
+            }
+            measurements.push(
+                serde_json::json!({"paged":paged,"rows":seen,"queries":pages,
+                "returned_root":returned.finalize().to_hex(),"vm_steps":vm_steps,
+                "sorts":sorts,"fullscan_steps":fullscan_steps}),
+            );
+        }
+        assert_eq!(
+            measurements[0]["returned_root"],
+            measurements[1]["returned_root"]
+        );
+        assert_eq!(
+            crate::stream_digest(&mut fs::File::open(&path).unwrap())
+                .unwrap()
+                .0,
+            expected_hash
+        );
+        println!(
+            "{}",
+            serde_json::json!({"sqlite_version":rusqlite::version(),"query_plan":plan,
+            "expected_root":expected_root,"measurements":measurements,"scope":"complete retained relation seek; not full corpus admission"})
+        );
     }
 }

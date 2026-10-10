@@ -32,7 +32,7 @@ pub struct RepositorySourceLimits {
     pub max_work_bytes: u64,
 }
 impl RepositorySourceLimits {
-    fn validate(self) -> Result<()> {
+    pub fn validate(self) -> Result<()> {
         if self.max_inventory_members == 0
             || self.max_inventory_members > 65_536
             || self.max_source_bytes == 0

@@ -45,7 +45,7 @@ pub struct CanonSourceLimits {
     pub max_work_bytes: u64,
 }
 impl CanonSourceLimits {
-    fn validate(self) -> Result<()> {
+    pub fn validate(self) -> Result<()> {
         if self.max_manifest_members == 0
             || self.max_selected_members == 0
             || self.max_nodes == 0

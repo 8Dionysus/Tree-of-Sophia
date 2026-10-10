@@ -28,7 +28,7 @@ impl NavigationOriginalLimits {
         crate::knowledge_original_rows::maximum_limits()
     }
 
-    pub(crate) fn validate(self) -> Result<()> {
+    pub fn validate(self) -> Result<()> {
         if self.max_rows == 0
             || self.max_rows > crate::knowledge_original_rows::MAX_ROWS
             || self.max_row_bytes == 0

@@ -76,7 +76,7 @@ pub struct StageLimits {
     pub max_seek_bytes: u64,
 }
 impl StageLimits {
-    pub(crate) fn validate(self) -> Result<()> {
+    pub fn validate(self) -> Result<()> {
         self.sqlite.validate()?;
         if self.max_temp_bytes == 0
             || self.max_seek_rows == 0

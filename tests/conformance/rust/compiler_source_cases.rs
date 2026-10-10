@@ -959,7 +959,34 @@ fn actual_native_corpus_composition_with_retained_claim_matches_maintained_pytho
 #[test]
 #[ignore = "requires admitted Linux private-stage ticket, fs-verity, and native owner/consumer binaries"]
 fn actual_native_corpus_managed_installed_consumer() {
-    native_corpus_composition_case(true);
+    if !native_managed_corpus_consumer::resume_selected_phase() {
+        native_corpus_composition_case(true);
+    }
+}
+
+fn corpus_full_limits(source_count: usize) -> tos_compiler::FullKnowledgeLimits {
+    tos_compiler::FullKnowledgeLimits {
+        scope: tos_compiler::ScopeLimits {
+            max_sources: source_count,
+            max_rows: 8192,
+            max_index_work_bytes: 8 * 1024 * 1024,
+        },
+        catalog: tos_compiler::catalog::CatalogLimits::default(),
+        catalog_index: tos_compiler::CatalogIndexLimits::default(),
+        search: tos_compiler::SearchBuildLimits {
+            max_payload_bytes: 1024 * 1024,
+            max_document_chars: 1024 * 1024,
+            max_document_bytes: 4 * 1024 * 1024,
+            max_rank_field_bytes: 1024 * 1024,
+            max_postings: 10_000_000,
+            max_work_bytes: 2 * 1024 * 1024 * 1024,
+            gram_batch_rows: 64,
+        },
+        seal: tos_compiler::SealLimits {
+            max_header_bytes: 1024 * 1024,
+        },
+        max_registry_bytes: 4 * 1024 * 1024,
+    }
 }
 
 fn native_corpus_composition_case(installed: bool) {
@@ -1034,6 +1061,23 @@ fn native_corpus_composition_case(installed: bool) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
+    let descriptor = fs::read(
+        repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
+    )
+    .unwrap();
+    let vocabulary =
+        QueryVocabulary::parse(&descriptor, tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES)
+            .unwrap();
+    let full_limits = corpus_full_limits(vocabulary.sources.len());
+    if installed {
+        native_managed_corpus_consumer::preflight(
+            tos_compiler::knowledge_full_fixture::native_fixture_cold_limits(
+                full_limits,
+                vocabulary.sources.len(),
+            ),
+        );
+        phase(started, deadline, "preflight-passed");
+    }
     let (mut files, _) = sources();
     let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
     files.insert(
@@ -1194,13 +1238,6 @@ fn native_corpus_composition_case(installed: bool) {
         .unwrap();
     phase(started, deadline, "source-cut-ready");
     let membership = cut.stream(revision).unwrap().expectation();
-    let descriptor = fs::read(
-        repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
-    )
-    .unwrap();
-    let vocabulary =
-        QueryVocabulary::parse(&descriptor, tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES)
-            .unwrap();
     let binding = SourceBinding {
         owner_profile: "private-selected-fixture".into(),
         source_cut: "finite-native-corpus-source".into(),
@@ -1752,9 +1789,6 @@ fn native_corpus_composition_case(installed: bool) {
         .sqlite
         .max_output_bytes
         .min(stage_limits.max_temp_bytes / 2);
-    // The installed producer accepts at most ten million rows per cold table.
-    // Bind this fixture's posting declaration to the same finite envelope.
-    let search_postings = ((100 * 1024 * 1024u64).min(search_work_bytes) / 3).min(10_000_000);
     let selected_isolation = NativeSelectedIsolation {
         started,
         deadline,
@@ -1934,28 +1968,7 @@ fn native_corpus_composition_case(installed: bool) {
         descriptor,
         &navigation_claim,
         additional,
-        tos_compiler::FullKnowledgeLimits {
-            scope: tos_compiler::ScopeLimits {
-                max_sources: vocabulary.sources.len(),
-                max_rows: stage_limits.sqlite.max_rows,
-                max_index_work_bytes: 8 * 1024 * 1024,
-            },
-            catalog: tos_compiler::catalog::CatalogLimits::default(),
-            catalog_index: tos_compiler::CatalogIndexLimits::default(),
-            search: tos_compiler::SearchBuildLimits {
-                max_payload_bytes: limits.catalog.max_output_row_bytes,
-                max_document_chars: limits.catalog.max_output_row_bytes,
-                max_document_bytes: 4 * 1024 * 1024,
-                max_rank_field_bytes: limits.catalog.max_output_row_bytes,
-                max_postings: search_postings,
-                max_work_bytes: search_work_bytes,
-                gram_batch_rows: 64,
-            },
-            seal: tos_compiler::SealLimits {
-                max_header_bytes: limits.catalog.max_output_row_bytes,
-            },
-            max_registry_bytes: 4 * 1024 * 1024,
-        },
+        full_limits,
     );
     phase(started, deadline, "selected-model-sealed");
     let cold = selected.open().unwrap();
@@ -2017,15 +2030,18 @@ fn native_corpus_composition_case(installed: bool) {
     );
     phase(started, deadline, "cold-query-matched");
     if installed {
-        native_managed_corpus_consumer::exercise_managed_native_corpus(
+        let case_root = fixture.path().join("continuation");
+        fs::create_dir(&case_root).unwrap();
+        let managed = native_managed_corpus_consumer::prepare_managed_native_corpus(
             &selected,
             &projection,
             &repository,
             &output_path,
             &files,
             &packets,
+            &case_root,
         );
-        native_managed_corpus_consumer::exercise_native_corpus_build(
+        let producer = native_managed_corpus_consumer::prepare_native_corpus_build(
             &selected,
             &projection,
             &repository,
@@ -2033,6 +2049,19 @@ fn native_corpus_composition_case(installed: bool) {
             revision,
             &capture,
             &super::validation_cut_cases::selected_worker_path(),
+        );
+        let (case, root, retain) =
+            native_managed_corpus_consumer::finish_preparation(managed, producer, &case_root);
+        if retain {
+            // Complete immutable inputs survive a later transport/producer
+            // failure. Incomplete preparation still has normal TempDir cleanup.
+            fixture.keep();
+            capture.temporary.keep();
+        }
+        native_managed_corpus_consumer::run_phase(
+            &case,
+            &native_managed_corpus_consumer::selected_phase(),
+            &root,
         );
     }
 }

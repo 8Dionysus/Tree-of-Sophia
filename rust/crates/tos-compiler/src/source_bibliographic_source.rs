@@ -47,7 +47,7 @@ pub struct SourceCatalogInputLimits {
     pub max_work_bytes: u64,
 }
 impl SourceCatalogInputLimits {
-    fn validate(self, l: BibliographicLimits) -> Result<()> {
+    pub fn validate(self, l: BibliographicLimits) -> Result<()> {
         l.validate()?;
         l.catalog.validate()?;
         if self.max_manifest_members == 0

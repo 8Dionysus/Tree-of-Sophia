@@ -373,6 +373,29 @@ pub(crate) struct CorpusIndexProjectionLimits {
     pub max_work_bytes: u64,
 }
 
+impl CorpusIndexProjectionLimits {
+    pub(crate) fn validate(&self) -> tos_compiler::Result<()> {
+        self.catalog_input.validate(self.bibliographic)?;
+        self.repository.validate()?;
+        self.canon.validate()?;
+        self.stage.validate()?;
+        self.schema_work
+            .validate()
+            .map_err(|_| tos_compiler::Error::Budget("native corpus worker stream limits"))?;
+        self.originals.validate()?;
+        if self.max_canon_input_bytes == 0
+            || self.max_output_bytes == 0
+            || self.max_work_bytes == 0
+            || self.max_work_bytes > 320 * 1024 * 1024
+        {
+            return Err(tos_compiler::Error::Budget(
+                "native corpus projection limits",
+            ));
+        }
+        Ok(())
+    }
+}
+
 struct BoundSourceStageOwner<'a> {
     binding: &'a SourceBinding,
     cut: &'a CorpusCutReader,
@@ -700,6 +723,7 @@ pub(crate) fn project(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> tos_compiler::Result<NativeCorpusIndexProducts> {
+    limits.validate()?;
     if Instant::now() >= deadline
         || binding.source_cut != root.source_cut
         || binding.index_generation != cut.current().revision().0.to_hex()
@@ -710,11 +734,6 @@ pub(crate) fn project(
                 .expectation()
                 .digest
                 .to_hex()
-        || limits.max_canon_input_bytes == 0
-        || limits.max_output_bytes == 0
-        || limits.max_work_bytes == 0
-        || limits.max_work_bytes > 320 * 1024 * 1024
-        || limits.stage.max_seek_rows == 0
     {
         return Err(tos_compiler::Error::Invalid(
             "native corpus selected profile/budget",

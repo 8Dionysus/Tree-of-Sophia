@@ -1685,6 +1685,20 @@ fn hold_evidence_refs(
     Ok(held)
 }
 
+fn hold_request_evidence(
+    request: &mut Request,
+    deadline: Instant,
+    uid: u32,
+) -> Result<Vec<HeldEvidenceRef>> {
+    // The general source-only builder has its explicit immutable source cut.
+    // The historical Original entry retains its exact three external refs.
+    // Optional supplied refs still receive the same complete custody checks.
+    if request.source_only.is_some() && request.evidence_refs.is_empty() {
+        return Ok(Vec::new());
+    }
+    hold_evidence_refs(std::mem::take(&mut request.evidence_refs), deadline, uid)
+}
+
 fn validate_request(request: &Request) -> Result<()> {
     let legacy_request = request.schema_version == REQUEST_SCHEMA
         && request.selected_snapshot.is_some()
@@ -1724,6 +1738,12 @@ fn validate_request(request: &Request) -> Result<()> {
     }
     if let Some(source) = &request.source_only {
         validate_source_only_request(source, request)?;
+        source_projection_limits(
+            source,
+            request,
+            Instant::now() + Duration::from_secs(request.max_build_seconds),
+        )?
+        .validate()?;
     }
     if let Some(previous) = &request.previous_native_snapshot {
         previous.validate()?;
@@ -3973,17 +3993,17 @@ pub fn run_corpus_assessed_candidate_args(
     report_assessed_candidate(result, output, diagnostics)
 }
 
-fn execute(mut request: Request) -> Result<Value> {
-    validate_request(&request)?;
-    let started = Instant::now();
-    let deadline = started
-        .checked_add(Duration::from_secs(request.max_build_seconds))
-        .ok_or(Refusal("native Original producer deadline arithmetic"))?;
-    let uid = rustix::process::getuid().as_raw();
-    if rustix::process::geteuid().as_raw() != uid {
-        return Err(Refusal("native Original producer refuses setuid execution").into());
-    }
+struct AdmittedProducerStage {
+    isolation: PrivateTmpfsStageIsolation,
+    persistent_store_path: PathBuf,
+    store: File,
+    data_root: PathBuf,
+    private_release_root: PathBuf,
+}
 
+// Shared by preflight and the real writer. Each invocation acquires and
+// verifies its own live ticket; preflight never authorizes a later run.
+fn admit_producer_stage(request: &Request, uid: u32) -> Result<AdmittedProducerStage> {
     // This exact host ticket must be selected before any source capture or
     // writer. Its selected persistent filesystem is the only output root.
     let isolation = PrivateTmpfsStageIsolation::select_from_environment(
@@ -4048,6 +4068,34 @@ fn execute(mut request: Request) -> Result<Value> {
         Err(error) => return Err(io::Error::from(error).into()),
     }
 
+    Ok(AdmittedProducerStage {
+        isolation,
+        persistent_store_path,
+        store,
+        data_root,
+        private_release_root,
+    })
+}
+
+fn execute(mut request: Request) -> Result<Value> {
+    validate_request(&request)?;
+    let started = Instant::now();
+    let deadline = started
+        .checked_add(Duration::from_secs(request.max_build_seconds))
+        .ok_or(Refusal("native Original producer deadline arithmetic"))?;
+    let uid = rustix::process::getuid().as_raw();
+    if rustix::process::geteuid().as_raw() != uid {
+        return Err(Refusal("native Original producer refuses setuid execution").into());
+    }
+
+    let AdmittedProducerStage {
+        isolation,
+        persistent_store_path,
+        store,
+        data_root,
+        private_release_root,
+    } = admit_producer_stage(&request, uid)?;
+
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
     let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
     limits.capture.max_work_bytes = request.max_work_bytes;
@@ -4100,8 +4148,7 @@ fn execute(mut request: Request) -> Result<Value> {
             .ok_or(Refusal("native corpus check comparison root absent"))?;
         return check_source_products(runtime, Path::new(comparison_root), deadline);
     }
-    let mut evidence_refs =
-        hold_evidence_refs(std::mem::take(&mut request.evidence_refs), deadline, uid)?;
+    let mut evidence_refs = hold_request_evidence(&mut request, deadline, uid)?;
     let selected_source_bytes = match (&historical, &source_runtime, &request.selected_snapshot) {
         (Some(census), _, Some(_)) => census.retained_state_upper_bound()?,
         (_, Some(runtime), None) => runtime.retained_state_upper_bound()?,
@@ -4863,7 +4910,7 @@ fn execute(mut request: Request) -> Result<Value> {
 /// one bounded JSON request and emits one bounded JSON receipt, with no argv
 /// path traversal, hidden defaults, installed-pointer write or MCP call.
 pub fn run(input: impl Read, output: &mut impl Write, diagnostics: &mut impl Write) -> i32 {
-    run_request(REQUEST_SCHEMA, input, output, diagnostics)
+    run_request(REQUEST_SCHEMA, false, input, output, diagnostics)
 }
 
 /// Native source-cut entry. It shares the managed producer/writer but accepts
@@ -4874,7 +4921,65 @@ pub fn run_corpus_build(
     output: &mut impl Write,
     diagnostics: &mut impl Write,
 ) -> i32 {
-    run_request(CORPUS_BUILD_REQUEST_SCHEMA, input, output, diagnostics)
+    run_request(
+        CORPUS_BUILD_REQUEST_SCHEMA,
+        false,
+        input,
+        output,
+        diagnostics,
+    )
+}
+
+/// Check the same request envelope and live host admission as the writer,
+/// without opening source data or creating a corpus candidate.
+pub fn preflight_corpus_build(
+    input: impl Read,
+    output: &mut impl Write,
+    diagnostics: &mut impl Write,
+) -> i32 {
+    run_request(
+        CORPUS_BUILD_REQUEST_SCHEMA,
+        true,
+        input,
+        output,
+        diagnostics,
+    )
+}
+
+fn preflight_request(mut request: Request) -> Result<Value> {
+    let mut errors = Vec::new();
+    if let Err(error) = validate_request(&request) {
+        errors.push(format!("request: {error}"));
+    }
+    let uid = rustix::process::getuid().as_raw();
+    if rustix::process::geteuid().as_raw() != uid {
+        errors.push("host: native Original producer refuses setuid execution".into());
+    }
+    match admit_producer_stage(&request, uid) {
+        Err(error) => errors.push(format!("stage: {error}")),
+        Ok(_stage) => {
+            let cancelled = Arc::new(AtomicBool::new(false));
+            if let Err(error) = LinuxCgroupColdOpenResourceHold::acquire_original_stage(
+                request.working_ram_bytes,
+                request.tmpfs_quota_bytes,
+                Instant::now() + Duration::from_secs(5),
+                cancelled,
+            ) {
+                errors.push(format!("resources: {error}"));
+            }
+        }
+    }
+    if let Err(error) =
+        hold_request_evidence(&mut request, Instant::now() + Duration::from_secs(5), uid)
+    {
+        errors.push(format!("evidence: {error}"));
+    }
+    if !errors.is_empty() {
+        return Err(io::Error::other(errors.join("; ")).into());
+    }
+    Ok(json!({"schema_version":"tos_native_corpus_preflight_v1",
+        "request_and_host_checked":true, "source_opened":false,
+        "candidate_created":false, "authorizes_future_execution":false}))
 }
 
 /// Read and validate the shared direct source projection request envelope.
@@ -5062,6 +5167,7 @@ pub fn run_corpus_projection_check_args(
 
 fn run_request(
     expected_schema: &str,
+    preflight: bool,
     input: impl Read,
     output: &mut impl Write,
     diagnostics: &mut impl Write,
@@ -5072,7 +5178,11 @@ fn run_request(
         if request.schema_version != expected_schema {
             return Err(Refusal("native producer request schema differs").into());
         }
-        execute(request)
+        if preflight {
+            preflight_request(request)
+        } else {
+            execute(request)
+        }
     })();
     match result {
         Ok(value) => match serde_json::to_vec(&value) {
@@ -5160,6 +5270,7 @@ mod projection_limit_tests {
                     Instant::now() + Duration::from_secs(60),
                 )
                 .unwrap();
+                limits.validate().unwrap();
                 limits.bibliographic.catalog.validate().unwrap();
                 limits.bibliographic.validate().unwrap();
                 limits.schema_work.validate().unwrap();

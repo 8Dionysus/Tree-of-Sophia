@@ -1205,7 +1205,42 @@ pub(crate) fn native_python_fixture(
             continue;
         };
         if rebase_grant(&mut value) {
-            fs::write(&target, serde_json::to_vec_pretty(&value).unwrap()).unwrap();
+            // Owner configuration identities bind the exact presentation.
+            // Replace only the unique numeric UID token, just as path rebasing
+            // above preserves every unrelated byte of the captured grant.
+            let mut spans = Vec::new();
+            for (offset, token) in raw.windows(5).enumerate() {
+                if token != b"\"uid\"" {
+                    continue;
+                }
+                let mut start = offset + 5;
+                while raw.get(start).is_some_and(u8::is_ascii_whitespace) {
+                    start += 1;
+                }
+                if raw.get(start) != Some(&b':') {
+                    continue;
+                }
+                start += 1;
+                while raw.get(start).is_some_and(u8::is_ascii_whitespace) {
+                    start += 1;
+                }
+                let mut end = start;
+                while raw.get(end).is_some_and(u8::is_ascii_digit) {
+                    end += 1;
+                }
+                assert!(
+                    end > start,
+                    "captured UID must be an unsigned integer token"
+                );
+                spans.push((start, end));
+            }
+            assert_eq!(spans.len(), 1, "runtime grant has one exact UID token");
+            let (start, end) = spans[0];
+            let mut updated = raw[..start].to_vec();
+            updated.extend_from_slice(uid.to_string().as_bytes());
+            updated.extend_from_slice(&raw[end..]);
+            assert_eq!(serde_json::from_slice::<Value>(&updated).unwrap(), value);
+            fs::write(&target, updated).unwrap();
             fs::set_permissions(&target, fs::Permissions::from_mode(file.mode)).unwrap();
         }
     }
