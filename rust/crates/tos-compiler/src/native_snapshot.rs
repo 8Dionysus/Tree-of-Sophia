@@ -78,7 +78,7 @@ pub struct CompletedNativeSnapshot {
     full: crate::FullKnowledgeReceipt,
     expectation: KnowledgeSelectedExpectation,
     producer: crate::knowledge_native::NativeProducerReceipt,
-    semantic_report: serde_json::Value,
+    semantic_report: Vec<u8>,
     declaration_sha256: Digest256,
     source_revision: String,
     descriptor: Vec<u8>,
@@ -1287,7 +1287,8 @@ fn build_native_addressed_report(
             "local":{"node_ids":[delta.normalized_id],"relation_ids":delta.incident_relation_ids},
             "global":"semantic",
             "structural":structural,
-            "semantic":completed.semantic_report,
+            "semantic":serde_json::from_slice::<serde_json::Value>(&completed.semantic_report)
+                .map_err(|_| Error::Invalid("completed semantic report"))?,
         },
         "snapshot":{"previous_snapshot_mutated":false},
         "native_build":"complete-native-source-reassembly",
@@ -2867,7 +2868,7 @@ impl CompletedNativeSnapshot {
     /// unchanged; Graph/Snapshot/addressed report producers do not take this
     /// transition and retain their existing diagnostic values.
     pub fn into_reference_query_delivery(mut self) -> Self {
-        self.semantic_report = serde_json::Value::Null;
+        self.semantic_report = Vec::new();
         self.vocabulary.discard_non_query_policy_caches();
         self
     }
@@ -2877,7 +2878,7 @@ impl CompletedNativeSnapshot {
     /// that model owner, not charged again here.
     pub fn retained_query_state_upper_bound(&self) -> Result<usize> {
         use tos_foundation::{OwnedState, checked_state_add};
-        if !self.semantic_report.is_null() {
+        if !self.semantic_report.is_empty() {
             return Err(Error::Invalid("query delivery diagnostics still retained"));
         }
         let mut bytes = std::mem::size_of::<Self>();
@@ -4620,7 +4621,7 @@ fn build_native_snapshot_from_capture_inner(
     };
     let (processor, configuration) =
         crate::d1_public_build::processor_binding(&repository, &descriptor, &entity, &relation)?;
-    let (header, prepared_catalog, semantics, producer) = if let Some(creation) =
+    let (header, prepared_catalog, producer) = if let Some(creation) =
         state.filter(|_| payload_layout.uses_carriers())
     {
         let entity_value = crate::knowledge_full::registry_value(
@@ -4692,7 +4693,7 @@ fn build_native_snapshot_from_capture_inner(
                     &source_revision,
                     processor,
                     configuration,
-                    &semantics,
+                    semantics,
                 )
             })?;
             let prepared = native_snapshot_phase(capture, "catalog-reduction", || {
@@ -4705,7 +4706,7 @@ fn build_native_snapshot_from_capture_inner(
                     &registry,
                 )
             })?;
-            Ok((header, Some(prepared), semantics, producer))
+            Ok((header, Some(prepared), producer))
         })();
         match outcome {
             Ok(value) => {
@@ -4747,10 +4748,10 @@ fn build_native_snapshot_from_capture_inner(
                 &source_revision,
                 processor,
                 configuration,
-                &semantics,
+                semantics,
             )
         })?;
-        (header, None, semantics, producer)
+        (header, None, producer)
     };
     check_snapshot_active(cancelled, deadline)?;
     let full = native_snapshot_phase(capture, "full-components", || {
@@ -4946,7 +4947,14 @@ fn build_native_snapshot_from_capture_inner(
         full,
         expectation,
         producer,
-        semantic_report: semantics.report,
+        semantic_report: match state {
+            Some(state) => state.encode_json(
+                &header["counts"]["semantic_validation"],
+                crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES,
+            )?,
+            None => serde_json::to_vec(&header["counts"]["semantic_validation"])
+                .map_err(|_| Error::Invalid("completed semantic report"))?,
+        },
         declaration_sha256,
         source_revision,
         descriptor,

@@ -482,7 +482,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
         &source_revision,
         processor,
         configuration,
-        &semantics,
+        semantics,
     )?;
     stage.close_inputs_for_full_components()?;
     let mut lenses = saved_lenses(&capture)?;

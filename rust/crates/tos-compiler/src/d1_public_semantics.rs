@@ -7,7 +7,7 @@ use crate::{
     d1_public_capture::{
         CreationState, CreationStateHold, MAX_ROW_BYTES, PublicCapture, json as strict_json,
     },
-    d1_public_header::{HeaderCounts, ValidatedGraphSemantics},
+    d1_public_header::{HeaderCounts, SemanticGap, ValidatedGraphSemantics},
     knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, WritePhase},
 };
 use rusqlite::{OptionalExtension, Row, Statement, params, types::ValueRef};
@@ -428,7 +428,7 @@ fn semantic_gap_encoded_len(id: &str, kind: &str) -> Result<usize> {
 
 fn push_gap(
     capture: &PublicCapture,
-    gaps: &mut Vec<Value>,
+    gaps: &mut Vec<SemanticGap>,
     live_bytes: &mut usize,
     id: &str,
     kind: &str,
@@ -444,10 +444,9 @@ fn push_gap(
         .ok_or(Error::Budget("public D1 semantic report bytes"))?;
     capture.charge_work(bytes as u64)?;
     if let Some(state) = state {
-        let object_bytes = crate::knowledge_normalization::serde_object_slots_upper(2)?
-            .checked_add("id".len() + "kind".len())
-            .and_then(|n| n.checked_add(id.len()))
-            .and_then(|n| n.checked_add(kind.len()))
+        let object_bytes = id
+            .len()
+            .checked_add(kind.len())
             .ok_or(Error::Budget("public D1 semantic report object"))?;
         state.retain(object_bytes)?;
         if gaps.len() == gaps.capacity() {
@@ -458,18 +457,16 @@ fn push_gap(
                 .unwrap_or(4);
             let added = next
                 .checked_sub(gaps.capacity())
-                .and_then(|slots| slots.checked_mul(std::mem::size_of::<Value>()))
+                .and_then(|slots| slots.checked_mul(std::mem::size_of::<SemanticGap>()))
                 .ok_or(Error::Budget("public D1 semantic report vector"))?;
             state.retain(added)?;
             gaps.reserve_exact(next.saturating_sub(gaps.len()));
         }
-        let mut object = serde_json::Map::new();
-        object.insert("id".to_owned(), Value::String(id.to_owned()));
-        object.insert("kind".to_owned(), Value::String(kind.to_owned()));
-        gaps.push(Value::Object(object));
-    } else {
-        gaps.push(json!({"id":id,"kind":kind}));
     }
+    gaps.push(SemanticGap {
+        id: id.to_owned(),
+        kind: kind.to_owned(),
+    });
     Ok(())
 }
 fn registry_entries<'a>(
@@ -2147,7 +2144,7 @@ fn validate_public_semantics_values_with_rows<T>(
     let mut claim_count = 0u64;
     let mut cross_layer = 0u64;
     let mut header_counts = HeaderCounts::default();
-    let mut gaps = Vec::<Value>::new();
+    let mut gaps = Vec::<SemanticGap>::new();
     let mut claim_gap_count = 0usize;
     let mut live_gap_bytes = 256usize;
     let layout = stage.payload_layout();
@@ -2907,12 +2904,12 @@ fn validate_public_semantics_values_with_rows<T>(
         }
         report.insert(name.into(), Value::from(count));
     }
-    report.insert("gaps".into(), Value::Array(gaps));
+    report.insert("gaps".into(), Value::Array(Vec::new()));
     if let Some(state) = state {
         state.retain(128 + std::mem::size_of::<crate::knowledge_stage::CoreRoots>())?;
     }
     Ok((
-        ValidatedGraphSemantics::new(Value::Object(report), header_counts, observed)?,
+        ValidatedGraphSemantics::new(Value::Object(report), gaps, header_counts, observed)?,
         driven,
     ))
 }
@@ -3138,11 +3135,43 @@ mod report_tests {
         }
         let mut bytes = 256usize;
         let mut old_bound = 256usize;
+        let mut gaps = Vec::new();
+        let mut legacy_gaps = Vec::new();
         for i in 0..11_692 {
             let id = format!("philosophy:edge:candidate-relation:table-i-a001-relation-{i:05}");
             bytes += semantic_gap_encoded_len(&id, "review-not-recorded").unwrap();
             old_bound += (id.len() + "review-not-recorded".len()) * 6 + 64;
+            legacy_gaps.push(json!({"id":id,"kind":"review-not-recorded"}));
+            gaps.push(SemanticGap {
+                id,
+                kind: "review-not-recorded".to_owned(),
+            });
         }
+        // Compare the complete legacy wire, including non-ASCII and escaped IDs,
+        // against the consuming phase handoff. No gap may become a summary.
+        let id = "Русский\n\"🦉";
+        legacy_gaps.push(json!({"id":id,"kind":"claim-evidence-not-projected"}));
+        gaps.push(SemanticGap {
+            id: id.into(),
+            kind: "claim-evidence-not-projected".into(),
+        });
+        let legacy = json!({"valid":true,"violations":[],"gaps":legacy_gaps});
+        let semantics = ValidatedGraphSemantics::new(
+            json!({"valid":true,"violations":[],"gaps":[]}),
+            gaps,
+            HeaderCounts::default(),
+            crate::knowledge_stage::CoreRoots {
+                nodes: 0,
+                relations: 0,
+                node_sha256: "a".repeat(64),
+                relation_sha256: "b".repeat(64),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            serde_json::to_vec(&semantics.into_report(None).unwrap()).unwrap(),
+            serde_json::to_vec(&legacy).unwrap()
+        );
         assert!(bytes > 1024 * 1024);
         assert!(bytes < crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES);
         assert!(old_bound > crate::knowledge_seal::MAX_GRAPH_HEADER_BYTES);

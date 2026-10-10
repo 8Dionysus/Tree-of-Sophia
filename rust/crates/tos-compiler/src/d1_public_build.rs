@@ -663,7 +663,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         &source_revision,
         processor,
         configuration,
-        &semantics,
+        semantics,
     )?;
     stage.close_inputs_for_full_components()?;
     let scope = write_source_scope(&mut stage, &vocabulary, limits.scope)?;

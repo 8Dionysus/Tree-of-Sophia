@@ -250,9 +250,29 @@ fn prepare_inner<'a>(
     };
     let navigation =
         navigation_original_plan(capture, limits.originals, deadline, cancelled, state)?;
+    // The decoded header exists only until canonical bytes are emitted. Keep
+    // its allocations scoped through that emission, then release both together.
+    let mut header_holds = Vec::new();
+    let json_limits =
+        tos_foundation::JsonLimits::new(limits.originals.max_row_bytes, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("snapshot philosophy header limits"))?;
     let mut header = match state {
         Some(state) => {
-            capture.header_object_owned("philosophy", "", limits.originals.max_row_bytes, state)?
+            let mut fields = serde_json::Map::new();
+            let mut slots = 0;
+            capture.visit_header_fields("philosophy", "", limits.originals.max_row_bytes, |name, raw| {
+                let next = crate::knowledge_normalization::serde_object_slots_upper(fields.len() + 1)?;
+                state.retain(8 * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>())?;
+                header_holds.push(state.hold(next - slots + name.len())?);
+                slots = next;
+                let (value, hold) = state.serde_scoped_with_limits(raw, json_limits)?;
+                header_holds.push(hold);
+                if fields.insert(name.to_owned(), value).is_some() {
+                    return Err(Error::Invalid("public D1 duplicate header path"));
+                }
+                Ok(())
+            })?;
+            serde_json::Value::Object(fields)
         }
         None => capture.header_object("philosophy", "", limits.originals.max_row_bytes)?,
     };
@@ -317,8 +337,13 @@ fn prepare_inner<'a>(
                 .filter(|n| *n <= limits.originals.max_row_bytes)
                 .ok_or(Error::Budget("snapshot philosophy header collection"))?;
             let value = if let Some(state) = state {
-                state.retain(4 * std::mem::size_of::<serde_json::Value>())?;
-                state.serde_owned(raw, limits.originals.max_row_bytes)?
+                state.retain(
+                    8 * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>(),
+                )?;
+                header_holds.push(state.hold(4 * std::mem::size_of::<serde_json::Value>())?);
+                let (value, hold) = state.serde_scoped_with_limits(raw, json_limits)?;
+                header_holds.push(hold);
+                value
             } else {
                 serde_json::from_slice::<serde_json::Value>(raw)
                     .map_err(|_| Error::Invalid("snapshot philosophy header row"))?
@@ -332,19 +357,25 @@ fn prepare_inner<'a>(
                 .ok_or(Error::Invalid("snapshot philosophy header"))?
                 .len();
             state.retain(
+                4 * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>(),
+            )?;
+            header_holds.push(state.hold(
                 crate::knowledge_normalization::serde_object_slots_upper(count + 1)?
                     + collection.len(),
-            )?;
+            )?);
         }
         header
             .as_object_mut()
             .ok_or(Error::Invalid("snapshot philosophy header"))?
             .insert(collection.into(), serde_json::Value::Array(rows));
     }
-    let header = match state {
+    let header_bytes = match state {
         Some(state) => state.encode_canonical(&header, limits.originals.max_row_bytes)?,
         None => crate::knowledge_corpus_source::encode(&header, limits.originals.max_row_bytes)?,
     };
+    drop(header);
+    drop(header_holds);
+    let header = header_bytes;
     total
         .checked_add(header.len() as u64)
         .filter(|n| *n <= limits.originals.max_total_bytes)

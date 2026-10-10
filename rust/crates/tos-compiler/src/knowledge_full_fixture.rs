@@ -485,7 +485,7 @@ fn build_fixture_configured(
                     limits.catalog,
                     fused,
                 );
-                header["counts"]["semantic_validation"] = semantics.report;
+                header["counts"]["semantic_validation"] = semantics.into_report(None).unwrap();
                 (ceiling, true)
             }
             #[cfg(not(test))]

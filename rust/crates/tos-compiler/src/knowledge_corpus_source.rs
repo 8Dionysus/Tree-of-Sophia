@@ -711,29 +711,41 @@ fn detached_header(
     let fields = payload
         .as_object()
         .ok_or(Error::Invalid("corpus original header object"))?;
+    let mut holds = Vec::new();
     let mut header = serde_json::Map::new();
     if let Some(state) = owned {
-        state.retain(crate::knowledge_normalization::serde_object_slots_upper(
-            fields.len(),
-        )?)?;
+        state.retain(
+            (fields.len() * 8 + 4)
+                * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>(),
+        )?;
+        holds.push(
+            state.hold(crate::knowledge_normalization::serde_object_slots_upper(
+                fields.len(),
+            )?)?,
+        );
     }
     for (field, value) in fields
         .iter()
         .filter(|(field, _)| !omitted.contains(&field.as_str()))
     {
         let value = if let Some(state) = owned {
-            state.retain(field.len())?;
-            state.clone_value(value)?
+            holds.push(state.hold(field.len())?);
+            let (value, hold) = state.clone_value_scoped(value)?;
+            holds.push(hold);
+            value
         } else {
             value.clone()
         };
         header.insert(field.clone(), value);
     }
     let header = Value::Object(header);
-    match owned {
+    let encoded = match owned {
         Some(state) => state.encode_canonical(&header, cap),
         None => encode(&header, cap),
-    }
+    };
+    drop(header);
+    drop(holds);
+    encoded
 }
 fn captured_source<'a>(
     capture: &'a SoftwareCaptureReader,

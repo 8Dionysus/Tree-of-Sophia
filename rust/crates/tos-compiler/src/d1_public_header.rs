@@ -78,21 +78,61 @@ impl HeaderCounts {
     }
 }
 
+// Keep repeated two-field gaps compact during the row scan. The DOM is
+// constructed once at the header handoff; moving strings preserves identity.
+pub(crate) struct SemanticGap {
+    pub(crate) id: String,
+    pub(crate) kind: String,
+}
 pub(crate) struct ValidatedGraphSemantics {
-    pub(crate) report: Value,
+    report: Value,
+    gaps: Vec<SemanticGap>,
     counts: HeaderCounts,
     roots: CoreRoots,
 }
 impl ValidatedGraphSemantics {
-    pub(crate) fn new(report: Value, counts: HeaderCounts, roots: CoreRoots) -> Result<Self> {
+    pub(crate) fn new(
+        report: Value,
+        gaps: Vec<SemanticGap>,
+        counts: HeaderCounts,
+        roots: CoreRoots,
+    ) -> Result<Self> {
         if counts.rows != [roots.nodes, roots.relations] {
             return Err(Error::Invalid("semantic header row coverage"));
         }
         Ok(Self {
             report,
+            gaps,
             counts,
             roots,
         })
+    }
+    pub(crate) fn into_report(mut self, state: Option<&CreationState<'_>>) -> Result<Value> {
+        if let Some(state) = state {
+            state.retain(
+                self.gaps
+                    .len()
+                    .checked_mul(std::mem::size_of::<Value>())
+                    .ok_or(Error::Budget("semantic report array"))?,
+            )?;
+        }
+        let mut gaps = Vec::with_capacity(self.gaps.len());
+        for gap in self.gaps {
+            if let Some(state) = state {
+                state.charge_work(gap.id.len() + gap.kind.len())?;
+                state.retain(
+                    crate::knowledge_normalization::serde_object_slots_upper(2)?
+                        + "id".len()
+                        + "kind".len(),
+                )?;
+            }
+            let mut object = serde_json::Map::new();
+            object.insert("id".into(), Value::String(gap.id));
+            object.insert("kind".into(), Value::String(gap.kind));
+            gaps.push(Value::Object(object));
+        }
+        self.report["gaps"] = Value::Array(gaps);
+        Ok(self.report)
     }
     fn counts_for(&self, roots: &CoreRoots) -> Result<&HeaderCounts> {
         if self.roots.nodes != roots.nodes
@@ -114,7 +154,7 @@ pub(crate) fn build_public_header(
     source_revision: &str,
     processor_digest: Digest256,
     configuration_digest: Digest256,
-    semantics: &ValidatedGraphSemantics,
+    semantics: ValidatedGraphSemantics,
 ) -> Result<Value> {
     if !stage.public_build() {
         return Err(Error::Invalid("public D1 stage required"));
@@ -139,7 +179,7 @@ pub(crate) fn build_native_snapshot_header(
     source_revision: &str,
     processor_digest: Digest256,
     configuration_digest: Digest256,
-    semantics: &ValidatedGraphSemantics,
+    semantics: ValidatedGraphSemantics,
 ) -> Result<Value> {
     if stage.public_build()
         || stage.exact_receipt()?.binding.owner_profile != "tos-native-projection-snapshot-v1"
@@ -166,7 +206,7 @@ fn build_public_header_captured(
     source_revision: &str,
     processor_digest: Digest256,
     configuration_digest: Digest256,
-    semantics: &ValidatedGraphSemantics,
+    semantics: ValidatedGraphSemantics,
 ) -> Result<Value> {
     let semantic_report = &semantics.report;
     if let Some(state) = stage.owned_creation_state() {
@@ -232,7 +272,7 @@ fn build_public_header_captured(
     if mapped[0] > roots.nodes || mapped[1] > roots.relations {
         return Err(Error::Invalid("public D1 semantic mapping counts"));
     }
-    Ok(json!({
+    let mut header = json!({
         "schema":"tos_knowledge_graph_v1",
         "source_revision":source_revision,
         "normalization_binding":{
@@ -258,14 +298,16 @@ fn build_public_header_captured(
                 "mapped_relations":mapped[1],"unmapped_relations":roots.relations-mapped[1],
                 "cross_layer_relations":cross_layer
             },
-            "semantic_validation":semantic_report
+            "semantic_validation":null
         },
         "authority_boundary":{
             "is_source":false,"is_canon":false,"writes_to_tree":false,
             "source_owner":"Tree-of-Sophia",
             "note":"This normalized graph is a consumer read model. Every item returns to its ToS source_refs."
         }
-    }))
+    });
+    header["counts"]["semantic_validation"] = semantics.into_report(None)?;
+    Ok(header)
 }
 
 const HEADER_TEMPLATE: &[u8] = br#"{
@@ -305,7 +347,7 @@ fn build_owned_header(
     source_revision: &str,
     processor: Digest256,
     configuration: Digest256,
-    semantics: &ValidatedGraphSemantics,
+    semantics: ValidatedGraphSemantics,
     state: &CreationState<'_>,
 ) -> Result<Value> {
     if source_revision.len() != 64
@@ -435,7 +477,7 @@ fn build_owned_header(
     ] {
         mapping[key] = Value::from(value);
     }
-    output["counts"]["semantic_validation"] = state.clone_value(&semantics.report)?;
+    output["counts"]["semantic_validation"] = semantics.into_report(Some(state))?;
     state.active()?;
     Ok(output)
 }
@@ -471,13 +513,20 @@ mod tests {
             node_sha256: "a".repeat(64),
             relation_sha256: "b".repeat(64),
         };
-        let validated =
-            ValidatedGraphSemantics::new(json!({"valid":true,"gaps":[]}), counts, roots.clone())
-                .unwrap();
+        let validated = ValidatedGraphSemantics::new(
+            json!({"valid":true,"gaps":[]}),
+            Vec::new(),
+            counts,
+            roots.clone(),
+        )
+        .unwrap();
         assert!(validated.counts_for(&roots).is_ok());
         roots.node_sha256 = "c".repeat(64);
         assert!(validated.counts_for(&roots).is_err());
-        assert!(ValidatedGraphSemantics::new(json!({}), HeaderCounts::default(), roots).is_err());
+        assert!(
+            ValidatedGraphSemantics::new(json!({}), Vec::new(), HeaderCounts::default(), roots)
+                .is_err()
+        );
         assert!(
             HeaderCounts::default()
                 .observe(0, "alpha", &json!({}), None)

@@ -1335,6 +1335,15 @@ impl<'budget> CreationState<'budget> {
     pub(crate) fn clone_value(&self, value: &serde_json::Value) -> Result<serde_json::Value> {
         self.clone_value_mode(value, true)
     }
+    pub(crate) fn clone_value_scoped<'s>(
+        &'s self,
+        value: &serde_json::Value,
+    ) -> Result<(serde_json::Value, CreationStateHold<'s, 'budget>)> {
+        let upper = self.value_clone_state_upper_bound(value)?;
+        let hold = self.hold(upper)?;
+        let value = self.clone_value_mode(value, false)?;
+        Ok((value, hold))
+    }
     pub(crate) fn remaining(&self, prospective: usize) -> Result<usize> {
         let deadline = match self.capture_owner {
             Some(capture) => self.deadline.min(capture.active_deadline()?),
