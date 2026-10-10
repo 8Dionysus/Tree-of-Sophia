@@ -1664,7 +1664,7 @@ pub fn plan_source_catalog_inputs(
         limits,
         l,
         cancelled,
-        l.catalog.max_file_bytes.min(8 * 1024 * 1024),
+        l.catalog.max_file_bytes,
         l.catalog.max_row_bytes,
         false,
         None,

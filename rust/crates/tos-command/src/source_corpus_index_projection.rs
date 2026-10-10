@@ -774,12 +774,14 @@ pub(crate) fn project(
             ));
         }
     }
-    let mut catalog_stage = KnowledgeStage::create(
+    let mut catalog_stage = KnowledgeStage::create_until_with_input_cap(
         &stage_catalog,
         limits.stage,
         catalog_plan.input_receipt(),
         &owner,
         isolation,
+        deadline,
+        bibliographic.catalog.max_file_bytes,
     )?;
     let remaining = deadline.saturating_duration_since(Instant::now());
     if remaining.is_zero() {
@@ -939,12 +941,17 @@ pub(crate) fn project(
         binding: binding.clone(),
         collections,
     };
-    let mut target = KnowledgeStage::create(
+    let mut target = KnowledgeStage::create_until_with_input_cap(
         &stage_target,
         limits.stage,
         target_receipt,
         &owner,
         isolation,
+        deadline,
+        bibliographic
+            .catalog
+            .max_file_bytes
+            .max(limits.stage.sqlite.max_row_bytes),
     )?;
     render_repository_source_plan(
         &mut target,

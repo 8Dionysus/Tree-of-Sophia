@@ -2356,6 +2356,11 @@ fn source_projection_limits(
         .map_err(|_| Refusal("native source projection file cap conversion"))?
         .max(1);
     let source_row_cap = source_file_cap.min(1024 * 1024).max(1);
+    // A catalog input is a complete file, including multi-row JSONL. Its
+    // admitted file ceiling is independent of normalized graph row widths.
+    let catalog_file_cap = usize::try_from(source.max_member_bytes.min(16 * 1024 * 1024))
+        .map_err(|_| Refusal("native catalog file cap conversion"))?
+        .max(1);
     let plan_cap = (request.max_state_bytes / 4).clamp(1, 64 * 1024 * 1024);
     let output_cap = request
         .persistent_write_cap_bytes
@@ -2378,7 +2383,7 @@ fn source_projection_limits(
     let catalog = SourceCatalogLimits {
         max_files: source.max_members.min(65_536),
         max_rows: row_count,
-        max_file_bytes: source_file_cap.min(16 * 1024 * 1024),
+        max_file_bytes: catalog_file_cap,
         max_row_bytes: source_row_cap,
         // Contracts are a retained set; the per-member ceiling still applies
         // to each input, while the set consumes the selected total budget.
@@ -5341,6 +5346,10 @@ mod projection_limit_tests {
                 limits.schema_work.validate().unwrap();
                 assert_eq!(request.cold_open.max_row_bytes, MAX_COLD_ROW_BYTES);
                 assert!(limits.repository.max_source_bytes <= MAX_COLD_ROW_BYTES);
+                assert_eq!(
+                    limits.bibliographic.catalog.max_file_bytes,
+                    (member_bytes as usize).min(16 * 1024 * 1024)
+                );
                 assert_eq!(
                     limits.schema_work.max_total_units,
                     source.max_schema_receipts as u64

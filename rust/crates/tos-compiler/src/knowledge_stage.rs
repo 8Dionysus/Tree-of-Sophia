@@ -1443,6 +1443,42 @@ impl<'a> KnowledgeStage<'a> {
         )
     }
 
+    /// Stage complete authored input files independently of normalized row
+    /// widths. The same projection owner, private quota, cumulative counters
+    /// and absolute deadline still govern every input and output operation.
+    pub fn create_until_with_input_cap(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        isolation: &'a dyn StageIsolation,
+        deadline: Instant,
+        max_input_bytes: usize,
+    ) -> Result<Self> {
+        if max_input_bytes == 0
+            || max_input_bytes as u64 > MAX_STAGE_PAGE_BYTES
+            || max_input_bytes as u128 > limits.sqlite.max_work_bytes as u128
+        {
+            return Err(Error::Budget("projection stage raw input ceiling"));
+        }
+        if Instant::now() >= deadline {
+            return Err(Error::Budget("projection stage deadline"));
+        }
+        let mut stage = Self::create_inner(
+            candidate,
+            limits,
+            StageStorageProfile::Persistent,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
+            Some(isolation),
+            Some(Arc::new(AtomicU64::new(0))),
+            None,
+            Some(deadline),
+        )?;
+        stage.raw_input_max_bytes = max_input_bytes;
+        Ok(stage)
+    }
+
     pub fn create_cold(
         candidate: &Path,
         limits: StageLimits,
@@ -8073,6 +8109,70 @@ mod tests {
             drop(statement);
             drop(cold);
             drop(stage);
+            fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
+        }
+    }
+
+    #[test]
+    fn projection_raw_file_ceiling_preserves_normalized_row_limit() {
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
+        let payload = vec![b'x'; 1536];
+        let mut hash = Digest256Hasher::new();
+        hash.update(&3u64.to_be_bytes());
+        hash.update(b"one");
+        hash.update(Digest256::of_bytes(&payload).as_bytes());
+        let receipt = exact_receipt(&hash.finalize().to_hex());
+        let mut selected = limits();
+        selected.sqlite.max_row_bytes = 1024;
+        selected.max_seek_bytes = 4096;
+        for oversized in [false, true] {
+            let candidate = stage_path(if oversized {
+                "raw-file-over-cap"
+            } else {
+                "raw-file-cap"
+            });
+            let mut stage = KnowledgeStage::create_until_with_input_cap(
+                &candidate,
+                selected,
+                receipt.clone(),
+                &owner,
+                &quota,
+                Instant::now() + std::time::Duration::from_secs(60),
+                2048,
+            )
+            .unwrap();
+            let excessive = vec![b'x'; 2049];
+            let input = InputRow {
+                source_graph: "fixture.graph",
+                collection: "fixture/raw",
+                id: "one",
+                payload: if oversized { &excessive } else { &payload },
+            };
+            if oversized {
+                assert!(matches!(
+                    stage.ingest_input(input),
+                    Err(Error::Budget("stage row bytes"))
+                ));
+            } else {
+                stage.ingest_input(input).unwrap();
+                let rows = stage
+                    .scan_input("fixture.graph", "fixture/raw", None, 1)
+                    .unwrap();
+                assert_eq!(rows.rows[0].payload, payload);
+                assert_eq!(stage.verified_input_rows().unwrap(), 1);
+                assert!(matches!(
+                    stage.charge(&payload),
+                    Err(Error::Budget("stage row bytes"))
+                ));
+            }
+            drop(stage);
+            assert!(!candidate.exists());
             fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
         }
     }

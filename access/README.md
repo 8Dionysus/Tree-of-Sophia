@@ -1099,6 +1099,8 @@ The selected authored cut retains its 64 MiB byte ceiling. Capture also includes
 the six generated products, so it uses the existing 512 MiB data allowance;
 sources, products, model and manifests must still fit that total candidate cap.
 Source bindings and manifest members share the 512 KiB aggregate path allowance.
+Catalog planning and raw staging use the catalog's 16 MiB file ceiling, while
+normalized graph rows retain their separate 8 MiB ceiling.
 The separate Site profile still requires a 512 MiB build and 256 MiB cold file.
 Managed NativeData preparation, status, promotion, rollback and revocation use
 the native actions in [native-managed-release.v1.md](contracts/native-managed-release.v1.md).
