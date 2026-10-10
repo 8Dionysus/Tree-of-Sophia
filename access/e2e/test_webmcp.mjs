@@ -83,17 +83,17 @@ async function openBrowserPage(url,{webmcp=true,locale='en-US',viewport}={}){
   return {browser,context,page,diagnostics,close:async()=>{await context.close();await browser.close();}};
 }
 async function withNative(scenario,fn,{webmcp=true,locale='en-US'}={}){
-  const host=await startNative(scenario);let opened;
+  const host=await startNative(scenario);let opened,timer;
   try{opened=await openBrowserPage(`${host.base}/?mode=philosophy&view=chronology&graph=nodes&ui=en`,{webmcp,locale});
     await waitFor(opened.page,'Boolean(document.getElementById("current-view-title")?.textContent)');
     if(webmcp){await waitFor(opened.page,"window.__TOS_E2E.names().includes('tos.page.context')");}
     await waitFor(opened.page,"document.getElementById('sophia-gestures')?.dataset.dataState === 'ready'");
-    await fn(opened.page,host.base);
+    await Promise.race([fn(opened.page,host.base),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Native browser scenario exceeded 90 seconds')),90000);})]);
   }catch(error){
     const state=opened?await opened.page.evaluate(()=>({url:location.href,observatory:document.getElementById('sophia-gestures')?.dataset,tree:document.getElementById('tree')?.dataset,text:document.body.innerText.slice(0,3000)})).catch(()=>null):null;
     error.message+=`\nBrowser diagnostics: ${JSON.stringify({events:opened?.diagnostics??[],state})}`;
     throw error;
-  }finally{if(opened)await opened.close();await host.close();}
+  }finally{clearTimeout(timer);if(opened)await opened.close();await host.close();}
 }
 async function withVite(fn){const host=await startVite();try{await fn(host.base);}finally{await host.close();}}
 async function idbReadings(page,dbName,store='readings'){
