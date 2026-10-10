@@ -103,6 +103,20 @@ fn field<'a>(value: &'a Value, name: &str) -> Result<&'a str> {
         .filter(|s| !s.is_empty() && s.len() <= 4096 && !s.contains('\0'))
         .ok_or(Error::Invalid("repository source required string"))
 }
+fn manifest_schema_version(value: &Value) -> Result<String> {
+    // Branch manifests need not declare a version. The maintained inventory
+    // records Python's str(value or ""); the projection contract permits "".
+    let version = value
+        .get("schema_version")
+        .filter(|value| crate::source_philosophy_support::truth(value))
+        .map(crate::prepared_semantic_kernel::python_str)
+        .transpose()?
+        .unwrap_or_default();
+    if version.len() > 4096 || version.contains('\0') {
+        return Err(Error::Invalid("repository manifest schema version"));
+    }
+    Ok(version)
+}
 fn selected_path(path: &str) -> bool {
     path.starts_with("ToS/")
         && path != SELF
@@ -449,7 +463,7 @@ pub fn plan_repository_source_inputs(
             "manifests",
             path,
             json!({"path":path,"manifest_kind":kind(path),
-            "owner_branch":branch(path),"authority_layer":authority(path),"schema_version":field(value,"schema_version")?,
+            "owner_branch":branch(path),"authority_layer":authority(path),"schema_version":manifest_schema_version(value)?,
             "branch_id":value.get("branch_id").and_then(Value::as_str),"declared_path":declared,"sha256":member.sha256.to_hex()}),
             limits,
         )?;
@@ -600,4 +614,24 @@ pub fn render_repository_source_plan(
         stage.poison();
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn manifest_version_preserves_absence_and_declared_metadata() {
+        assert_eq!(manifest_schema_version(&json!({"branch_id":"philosophy.atlas"})).unwrap(), "");
+        for (value, expected) in [
+            (Value::Null, ""), (json!(""), ""), (json!(false), ""),
+            (json!(0), ""), (json!("tos_source_home_v1"), "tos_source_home_v1"),
+            (json!(2), "2"), (json!(true), "True"),
+        ] {
+            assert_eq!(manifest_schema_version(&json!({"schema_version":value})).unwrap(), expected);
+        }
+        for value in [json!("a".repeat(4097)), json!("v1\0")] {
+            assert!(manifest_schema_version(&json!({"schema_version":value})).is_err());
+        }
+    }
 }
