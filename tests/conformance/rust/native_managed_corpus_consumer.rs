@@ -664,14 +664,6 @@ pub(super) fn exercise_native_corpus_build(
     )
     .is_some()
     {
-        #[derive(serde::Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct IssuedLimits {
-            quota_bytes: u64,
-            inode_limit: u64,
-            working_ram_bytes: u64,
-            persistent_store: std::path::PathBuf,
-        }
         let path = std::env::var_os("TOS_NATIVE_CORPUS_STAGE_CONFIG")
             .expect("OPS must supply the exact launcher resource selection");
         let path = Path::new(&path);
@@ -683,13 +675,30 @@ pub(super) fn exercise_native_corpus_build(
             .read_to_end(&mut raw)
             .unwrap();
         assert!(raw.len() <= 8192);
-        let limits: IssuedLimits = serde_json::from_slice(&raw).unwrap();
-        assert!(limits.persistent_store.is_absolute() && limits.persistent_store.is_dir());
+        let limits: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+        let keys = limits
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            keys,
+            BTreeSet::from([
+                "quota_bytes",
+                "inode_limit",
+                "working_ram_bytes",
+                "persistent_store"
+            ])
+        );
+        let persistent_store =
+            std::path::PathBuf::from(limits["persistent_store"].as_str().unwrap());
+        assert!(persistent_store.is_absolute() && persistent_store.is_dir());
         (
-            limits.quota_bytes,
-            limits.inode_limit,
-            limits.working_ram_bytes,
-            limits.persistent_store,
+            limits["quota_bytes"].as_u64().unwrap(),
+            limits["inode_limit"].as_u64().unwrap(),
+            limits["working_ram_bytes"].as_u64().unwrap(),
+            persistent_store,
         )
     } else {
         let stage = tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::select_issued_from_environment()
