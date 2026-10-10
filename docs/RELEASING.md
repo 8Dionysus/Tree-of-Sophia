@@ -51,6 +51,9 @@ owner surfaces.
    fixture separately from the workspace remainder. Its real captured corpus,
    pair switching and revocation checks take about ten minutes in CI; each
    command retains its own fifteen-minute bound within the same lane deadline.
+   Conformance and Growth consume the pinned workspace images before package
+   tests can relink the shared Cargo binary paths with different feature sets.
+   The image digest checks remain active throughout those consumer steps.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
    `tos-validation-lanes --repo-root "$PWD" --run software_browser`.

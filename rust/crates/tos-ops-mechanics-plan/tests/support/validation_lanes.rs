@@ -307,9 +307,7 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
             "tests/conformance/rust/command_claim_cases.rs",
         ),
     ];
-    let mut expected = vec![workspace, source, classes, segment];
     for (i, (label, name, path)) in cases.iter().enumerate() {
-        expected.push(label);
         let argv = if i < 3 {
             json!([
                 "cargo",
@@ -348,6 +346,13 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
             1
         );
     }
+    // All consumers of the pinned workspace products precede package-local
+    // Cargo tests. Those tests can relink target/debug/tos-access with a
+    // different dependency feature set, which must still fail the image guard.
+    let expected = vec![
+        source, classes, segment, cases[3].0, cases[4].0, cases[5].0,
+        cases[6].0, workspace, release, cases[0].0, cases[1].0, cases[2].0,
+    ];
     assert_eq!(
         labels
             .iter()
@@ -371,10 +376,10 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
                 .map(|b| (s["label"].as_str().unwrap(), b.as_u64().unwrap())))
             .collect::<Vec<_>>(),
         [
-            (workspace, 900000),
-            (release, 900000),
             (source, 900000),
             (classes, 900000),
+            (workspace, 900000),
+            (release, 900000),
             (cases[0].0, 1020000)
         ]
     );

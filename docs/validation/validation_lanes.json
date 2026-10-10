@@ -432,41 +432,6 @@
         ]
       },
       {
-        "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
-        "command_timeout_ms": 900000,
-        "command": [
-          "cargo",
-          "test",
-          "--workspace",
-          "--locked",
-          "--no-fail-fast",
-          "--exclude",
-          "tos-conformance",
-          "--",
-          "--nocapture",
-          "@tos-native-growth-exclusions",
-          "--skip",
-          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
-        ]
-      },
-      {
-        "label": "test native software/data release actions fixture",
-        "command_timeout_ms": 900000,
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-access",
-          "--test",
-          "native_release_actions",
-          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
-          "--",
-          "--exact",
-          "--nocapture"
-        ]
-      },
-      {
         "label": "test Rust conformance root and source families",
         "command_timeout_ms": 900000,
         "command": [
@@ -499,49 +464,6 @@
           "segment-conformance",
           "--",
           "--nocapture"
-        ]
-      },
-      {
-        "label": "test isolated process-cold source revision fixture",
-        "command_timeout_ms": 1020000,
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-command",
-          "--lib",
-          "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
-          "--",
-          "--exact"
-        ]
-      },
-      {
-        "label": "test isolated process-cold Work37 fixture",
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-command",
-          "--lib",
-          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-          "--",
-          "--exact"
-        ]
-      },
-      {
-        "label": "test isolated process-cold Work recovery fixture",
-        "command": [
-          "cargo",
-          "test",
-          "--locked",
-          "-p",
-          "tos-command",
-          "--lib",
-          "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
-          "--",
-          "--exact"
         ]
       },
       {
@@ -602,6 +524,84 @@
           "--",
           "--exact",
           "--nocapture"
+        ]
+      },
+      {
+        "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--no-fail-fast",
+          "--exclude",
+          "tos-conformance",
+          "--",
+          "--nocapture",
+          "@tos-native-growth-exclusions",
+          "--skip",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
+        ]
+      },
+      {
+        "label": "test native software/data release actions fixture",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-access",
+          "--test",
+          "native_release_actions",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated process-cold source revision fixture",
+        "command_timeout_ms": 1020000,
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
+          "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work37 fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
+          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work recovery fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
+          "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
+          "--",
+          "--exact"
         ]
       },
       {

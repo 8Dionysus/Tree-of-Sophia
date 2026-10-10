@@ -342,14 +342,10 @@ fn real_pending_refuses_changed_dependency_then_resumes_or_rolls_back() {
             deadline,
             &cancelled,
         );
-        let config = cmd::parse(&owner_raw).unwrap();
-        let mut request = fixture["request"].clone();
-        request["expected_configuration"] =
-            serde_json::json!(cmd::record_digest(&config).unwrap().to_prefixed());
-        let context = CommandContext {
+        let mut context = CommandContext {
             base_revision: revision,
             configuration_raw: owner_raw,
-            request_raw: serde_json::to_vec(&request).unwrap(),
+            request_raw: serde_json::to_vec(&fixture["proposal"]).unwrap(),
             recorded_at: "2026-01-01T12:34:56+00:00".to_owned(),
             effective_uid: fs::metadata(isolated.path()).unwrap().uid().into(),
             files: files
@@ -369,6 +365,21 @@ fn real_pending_refuses_changed_dependency_then_resumes_or_rolls_back() {
             max_issues: 256,
             deadline,
         };
+        // The frozen oracle owns the authored proposal. Native preview owns
+        // the current implementation and dependency bindings for this run.
+        let mut preview_worker = worker(&selected, deadline, &cancelled);
+        let preview = prepare_isolated_work_expression_from_proposal(
+            &filesystem, &context, &selected, &software, &components,
+            &mut preview_worker, limits, &cancelled,
+        ).unwrap();
+        drop(preview_worker);
+        let mut request = preview.request().clone();
+        assert_eq!(
+            serde_value(cmd::field(&request, "fields").unwrap()).unwrap(),
+            fixture["request"]["fields"]
+        );
+        cmd::set(&mut request, "command_id", cmd::string("native:pending-work")).unwrap();
+        context.request_raw = cmd::canonical(&request).unwrap();
         let mut schema = worker(&selected, deadline, &cancelled);
         let prepared = prepare_work_application(
             &filesystem,
@@ -646,7 +657,7 @@ fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
             "owner_config":owner,"owner_context":null,"assessment_schema_worker":null,
             "native_executable":native,"native_executable_sha256":native_guard.0.to_prefixed(),
             "corpus_store":store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),
-            "software_capture":temporary.path().join("capture"),"software_restored_root":temporary.path().join("restored"),
+            "software_capture":temporary.path().join("software-capture"),"software_restored_root":temporary.path().join("software-restored"),
             "software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,
                 "capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},
             "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),

@@ -193,6 +193,10 @@ jobs:
             /ToS/public-compatibility/source_node.example.json
             /ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md
             /ToS/source-witnesses/access-requests/public-ledger/*.access-request.json
+            /ToS/source-witnesses/relations/linguistic/
+            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16/
+            /ToS/source-witnesses/.record-revisions/b5fbd42a38469624a843e67afce57302734ba84d0a175a305e808f28621fabe6-b3809a94d176983232ec0a813d5547d651c0c309ea023853e9b1985379213d3b/
+            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-eef8a15aade0fca9a299aab2f9710d9a9376e7fe548d2387327269ad3ca6bdc5/
             /ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl
             /ToS/source-witnesses/relations/object-link/object-link-claims.jsonl
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json
@@ -293,6 +297,9 @@ jobs:
           printf '%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" >> "$GITHUB_PATH"
           printf 'TOS_SCHEMA_WORKER_PATH=%s\n' \
             "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-schema-worker" >> "$GITHUB_ENV"
+          printf 'TOS_NATIVE_OWNER_COMMAND_PATH=%s\nTOS_NATIVE_OWNER_COMMAND_BIN=%s\n' \
+            "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-native-owner-command" \
+            "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-native-owner-command" >> "$GITHUB_ENV"
 
       - name: Validate software contracts and build browser assets
         run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase checks'
@@ -747,6 +754,10 @@ jobs:
             /ToS/public-compatibility/event_node.example.json
             /ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md
             /ToS/source-witnesses/access-requests/public-ledger/*.access-request.json
+            /ToS/source-witnesses/relations/linguistic/
+            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16/
+            /ToS/source-witnesses/.record-revisions/b5fbd42a38469624a843e67afce57302734ba84d0a175a305e808f28621fabe6-b3809a94d176983232ec0a813d5547d651c0c309ea023853e9b1985379213d3b/
+            /ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-eef8a15aade0fca9a299aab2f9710d9a9376e7fe548d2387327269ad3ca6bdc5/
             /ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.jsonl
             /ToS/source-witnesses/relations/object-link/object-link-claims.jsonl
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json

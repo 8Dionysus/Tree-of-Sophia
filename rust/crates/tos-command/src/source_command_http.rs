@@ -754,7 +754,12 @@ mod tests {
         let (next, raw) = exchange(selection, "GET", "/commands/catalog", b"", &extra);
         selection = next;
         assert!(raw.starts_with("HTTP/1.1 401"));
-        assert!(!raw.contains("X-ToS-Response-Signature"));
+        let (headers, _) = raw.split_once("\r\n\r\n").unwrap();
+        assert!(
+            !headers
+                .lines()
+                .any(|line| line.starts_with("X-ToS-Response-Signature:"))
+        );
         std::fs::set_permissions(
             &selection.credential,
             std::fs::Permissions::from_mode(0o644),

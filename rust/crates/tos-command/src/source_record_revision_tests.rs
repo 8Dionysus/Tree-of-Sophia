@@ -760,7 +760,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             "owner_config":owner,"owner_context":null,"assessment_schema_worker":null,
             "native_executable":native,"native_executable_sha256":image_guards[1].0.to_prefixed(),
             "corpus_store":store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),
-            "software_capture":shared_software_scratch.path().join("capture"),"software_restored_root":shared_software_scratch.path().join("restored"),
+            "software_capture":shared_software_scratch.path().join("software-capture"),"software_restored_root":shared_software_scratch.path().join("software-restored"),
             "software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},
             "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
             "schema_worker":{"absolute_path":worker_path,"sha256":image_guards[2].0.to_prefixed()},
@@ -798,10 +798,12 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             preview["owner_configuration"],
             described["owner_configuration"]
         );
-        // The only request field rebased from the captured root is the owner
-        // configuration digest, refreshed by this native describe response.
+        // Source fields and history remain the independent frozen oracle.
+        // Root-bound configuration and current native implementation bindings
+        // come from the actual native describe/preview operation.
         let mut oracle = fixture["request"].clone();
         oracle["expected_configuration"] = described["owner_configuration"].clone();
+        oracle["expected_dependencies"] = preview["expected_dependencies"].clone();
         for (field, prepared) in [
             ("expected_configuration", "owner_configuration"),
             ("expected_source", "source"),
