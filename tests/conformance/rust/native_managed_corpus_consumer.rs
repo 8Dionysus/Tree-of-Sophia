@@ -976,7 +976,10 @@ pub(super) fn prepare_producer_source(
         serde_json::from_value(base["request"]["cold_open"].clone()).unwrap();
     cold.max_file_bytes = 512 * 1024 * 1024;
     cold.max_vm_steps = 50_000_000_000;
-    cold.max_rows = 100_000;
+    // The cold reader counts decoded postings as well as graph rows. Use the
+    // same finite envelope as the full-data qualification, not the small
+    // consumer fixture's row allowance.
+    cold.max_rows = 256_000_000;
     cold.max_work_bytes = 32 * 1024 * 1024 * 1024;
     cold.max_row_bytes = 8 * 1024 * 1024;
     cold.max_metadata_bytes = tos_compiler::ColdOpenLimits::MAX_METADATA_BYTES;

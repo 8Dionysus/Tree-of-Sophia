@@ -66,7 +66,10 @@ const MAX_COLD_VM_STEPS: u64 = 50_000_000_000;
 // reads. These ceilings do not increase memory, file, VM or deadline limits.
 const MAX_PRODUCER_WORK_BYTES: u64 = 512 * 1024 * 1024 * 1024;
 const MAX_COLD_WORK_BYTES: u64 = 32 * 1024 * 1024 * 1024;
-const MAX_COLD_ROWS: u64 = 10_000_000;
+// This shared cold budget also counts decoded search postings. The selected
+// full corpus already exceeds 64 million postings; keep the bounded producer
+// ceiling aligned with the full-data qualification's 256-million envelope.
+const MAX_COLD_ROWS: u64 = 256_000_000;
 const MAX_COLD_ROW_BYTES: usize = 8 * 1024 * 1024;
 const MAX_COLD_METADATA_BYTES: usize = ColdOpenLimits::MAX_METADATA_BYTES;
 const MAX_COLD_SOURCES: usize = 4096;
