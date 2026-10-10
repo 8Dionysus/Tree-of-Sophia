@@ -68,6 +68,9 @@ pub struct ItemExecutorRefusal {
     pub exchange: Option<crate::executor::ExchangeFailureContext>,
     /// Exact committed prefix before the failed attempt, never attempted work.
     pub quota: Option<crate::executor::SharedSchemaWorkerQuotaUsage>,
+    /// Observed partial batch coverage. These units were not admitted as receipts.
+    /// None means the refusal did not carry a batch checkpoint.
+    pub batch_completed_count: Option<u64>,
 }
 impl ItemExecutorRefusal {
     pub fn summary(&self) -> String {
@@ -78,12 +81,13 @@ impl ItemExecutorRefusal {
             .exchange
             .map(|context| Digest256::of_bytes(context.boundary.as_bytes()).to_hex());
         format!(
-            "executor stage={stage} reason={:?} boundary={boundary:?} exchange_reason={:?} natural_termination={:?} committed_quota_prefix={:?}",
+            "executor stage={stage} reason={:?} boundary={boundary:?} exchange_reason={:?} natural_termination={:?} committed_quota_prefix={:?} batch_completed_count={:?}",
             self.reason,
             self.exchange.map(|context| context.failure),
             self.exchange
                 .and_then(|context| context.natural_termination),
-            self.quota
+            self.quota,
+            self.batch_completed_count
         )
     }
 }
@@ -107,6 +111,7 @@ pub(crate) fn executor_refusal(
         reason,
         exchange: exchange.or_else(|| observed.and_then(|(context, _)| context)),
         quota: observed.map(|(_, usage)| usage),
+        batch_completed_count: None,
     }))
 }
 

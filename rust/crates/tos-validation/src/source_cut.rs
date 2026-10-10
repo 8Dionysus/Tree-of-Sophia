@@ -3403,13 +3403,20 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 ..
             } => return Err(ItemRefusal::Source("schema execution cancelled".into())),
             BatchOutcome::Incomplete {
-                reason, exchange, ..
+                reason,
+                exchange,
+                checkpoint,
+                ..
             } => {
-                return Err(operation_failure_with_context(
-                    reason,
-                    exchange,
-                    concat!(module_path!(), ":", line!()),
-                ));
+                return Err(ItemRefusal::Executor(Box::new(
+                    crate::item_rules::ItemExecutorRefusal {
+                        stage: concat!(module_path!(), ":", line!()),
+                        reason,
+                        exchange,
+                        quota: None,
+                        batch_completed_count: Some(checkpoint.completed_count),
+                    },
+                )));
             }
         };
         if checkpoint.worker_sha256 != self.worker.sha256

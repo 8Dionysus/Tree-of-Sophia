@@ -1875,12 +1875,18 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
         .check_batch(&incomplete, budget, deadline, &cancelled)
         .unwrap_err();
     match refusal {
-        tos_validation::item_rules::ItemRefusal::Unsupported(reason) => {
-            // The existing owner diagnostic retains the typed transport
-            // outcome: this must be a partial worker result, not an earlier
-            // adapter budget/deadline refusal that happened to leave no rows.
-            assert!(reason.contains("reason: InputBudget"), "{reason}");
-            assert!(reason.contains("completed_count: 1"), "{reason}");
+        tos_validation::item_rules::ItemRefusal::Executor(evidence) => {
+            // This must retain actual partial worker coverage, not merely an
+            // earlier adapter refusal that happened to leave no receipts.
+            assert_eq!(
+                evidence.reason,
+                tos_validation::executor::ExecutorFailure::InputBudget
+            );
+            assert_eq!(evidence.batch_completed_count, Some(1));
+            assert_eq!(
+                evidence.exchange.unwrap().boundary,
+                "worker-unit-input-budget"
+            );
         }
         other => panic!("expected actual partial worker refusal, got {other:?}"),
     }

@@ -2343,6 +2343,7 @@ mod executor_refusal_tests {
             let evidence = ItemExecutorRefusal {
                 stage: "private-owner-stage",
                 reason,
+                batch_completed_count: Some(1),
                 exchange: Some(ExchangeFailureContext {
                     boundary: "private-owner-path",
                     failure: reason,
@@ -2389,6 +2390,7 @@ mod executor_refusal_tests {
             );
             assert!(expected.contains(&format!("reason={reason:?}")));
             assert!(expected.contains("committed_quota_prefix="));
+            assert!(expected.contains("batch_completed_count=Some(1)"));
             assert!(!expected.contains("private-owner"));
             assert!(expected.len() < 1024);
         }
