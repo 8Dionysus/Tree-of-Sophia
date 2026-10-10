@@ -76,7 +76,7 @@ struct RelationInput {
 
 fn read_page(
     stage: &mut KnowledgeStage<'_>,
-    after: Option<(&str, &str)>,
+    after: Option<i64>,
     limits: InheritedViewLimits,
 ) -> Result<Vec<RelationInput>> {
     let owned = stage.owned_creation_state();
@@ -89,19 +89,17 @@ fn read_page(
         let inline = if owned.is_some() { "" } else { " AND payload_len=length(payload)" };
         let sql = if after.is_some() {
             format!("SELECT {columns},source_order,{payload},payload_sha256
-             FROM knowledge_relations WHERE
-             (source_graph>?1 OR (source_graph=?1 AND id>?2))
-             AND {predicate}<=?3{inline} ORDER BY source_graph,id LIMIT ?4")
+             FROM knowledge_relations WHERE source_order>?1
+             AND {predicate}<=?2{inline} ORDER BY source_order LIMIT ?3")
         } else {
             format!("SELECT {columns},source_order,{payload},payload_sha256
              FROM knowledge_relations WHERE {predicate}<=?1{inline}
-             ORDER BY source_graph,id LIMIT ?2")
+             ORDER BY source_order LIMIT ?2")
         };
         let mut statement = db.prepare(&sql)?;
         let mut rows = match after {
-            Some((source, id)) => statement.query(params![
-                source,
-                id,
+            Some(order) => statement.query(params![
+                order,
                 limits.max_row_bytes as i64,
                 limits.max_page_rows as i64
             ])?,
@@ -242,7 +240,7 @@ fn prepare_inner(
         return Err(Error::Invalid("inherited complete relation seal"));
     }
     create_tables(stage)?;
-    let mut after: Option<(String, String)> = None;
+    let mut after: Option<(i64, String, String)> = None;
     let mut count = 0u64;
     let mut work = 0u64;
     let mut view_tokens = 0u64;
@@ -250,7 +248,7 @@ fn prepare_inner(
     let mut hash = Digest256Hasher::new();
     let _cursor_hold = stage
         .owned_creation_state()
-        .map(|state| state.hold(2 * 4096 + std::mem::size_of::<(String, String)>()))
+        .map(|state| state.hold(2 * 4096 + std::mem::size_of::<(i64, String, String)>()))
         .transpose()?;
     loop {
         // Page storage owns only four bounded identity columns and fixed
@@ -265,11 +263,11 @@ fn prepare_inner(
                 state.hold(bytes)
             })
             .transpose()?;
-        let page = read_page(
-            stage,
-            after.as_ref().map(|(s, i)| (s.as_str(), i.as_str())),
-            limits,
-        )?;
+        // Native ordering already assigns the complete (source_graph,id) cut
+        // its unique source_order. Seek that existing index instead of sorting
+        // the remaining graph again for every bounded page. Both the order and
+        // complete root are independently checked below.
+        let page = read_page(stage, after.as_ref().map(|(order, _, _)| *order), limits)?;
         if page.is_empty() {
             break;
         }
@@ -297,7 +295,13 @@ fn prepare_inner(
                         if count > limits.max_relations {
                             return Err(Error::Budget("inherited relation count"));
                         }
-                        if relation.order < 0 || relation.order as u64 != count - 1 {
+                        if relation.order < 0
+                            || relation.order as u64 != count - 1
+                            || after.as_ref().is_some_and(|(_, graph, id)| {
+                                (graph.as_str(), id.as_str())
+                                    >= (relation.source_graph.as_str(), relation.id.as_str())
+                            })
+                        {
                             return Err(Error::Invalid("inherited relation source order"));
                         }
                         work = work
@@ -359,7 +363,11 @@ fn prepare_inner(
                             return Err(Error::Budget("inherited endpoint evidence"));
                         }
                         insert_relation(stage, &relation, &views)?;
-                        after = Some((relation.source_graph.clone(), relation.id.clone()));
+                        after = Some((
+                            relation.order,
+                            relation.source_graph.clone(),
+                            relation.id.clone(),
+                        ));
                         Ok(())
                     };
                     if stage.owned_creation_state().is_some() {
@@ -689,6 +697,17 @@ mod tests {
         let mut out_of_order = ROWS.to_vec();
         out_of_order.swap(0, 1);
         assert!(run(&out_of_order, seal(), limits()).is_err());
+        assert!(
+            run(
+                &out_of_order,
+                CompleteRelationSeal {
+                    relation_root_sha256: raw_root(&out_of_order),
+                    ..seal()
+                },
+                limits()
+            )
+            .is_err()
+        );
         let mut duplicate = ROWS.to_vec();
         duplicate.push(ROWS[0]);
         assert!(run(&duplicate, seal(), limits()).is_err());
