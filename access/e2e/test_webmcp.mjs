@@ -74,15 +74,25 @@ async function openBrowserPage(url,{webmcp=true,locale='en-US',viewport}={}){
   const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.TOS_E2E_CHROMIUM?{executablePath:process.env.TOS_E2E_CHROMIUM}:{})});
   const context=await browser.newContext({locale,acceptDownloads:true,...(viewport?{viewport}:{})});
   if(webmcp)await context.addInitScript(MODEL_CONTEXT_INIT);
-  const page=await context.newPage();await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
-  return {browser,context,page,close:async()=>{await context.close();await browser.close();}};
+  const page=await context.newPage(),diagnostics=[];
+  const record=value=>{if(diagnostics.length<20)diagnostics.push(String(value).slice(0,1000));};
+  page.on('pageerror',error=>record(error.message));
+  page.on('console',message=>{if(message.type()==='error')record(message.text());});
+  page.on('response',response=>{if(response.status()>=400)record(`${response.status()} ${new URL(response.url()).pathname}`);});
+  await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+  return {browser,context,page,diagnostics,close:async()=>{await context.close();await browser.close();}};
 }
 async function withNative(scenario,fn,{webmcp=true,locale='en-US'}={}){
   const host=await startNative(scenario);let opened;
   try{opened=await openBrowserPage(`${host.base}/?mode=philosophy&view=chronology&graph=nodes&ui=en`,{webmcp,locale});
     await waitFor(opened.page,'Boolean(document.getElementById("current-view-title")?.textContent)');
     if(webmcp){await waitFor(opened.page,"window.__TOS_E2E.names().includes('tos.page.context')");}
+    await waitFor(opened.page,"document.getElementById('sophia-gestures')?.dataset.dataState === 'ready'");
     await fn(opened.page,host.base);
+  }catch(error){
+    const state=opened?await opened.page.evaluate(()=>({url:location.href,observatory:document.getElementById('sophia-gestures')?.dataset,tree:document.getElementById('tree')?.dataset,text:document.body.innerText.slice(0,3000)})).catch(()=>null):null;
+    error.message+=`\nBrowser diagnostics: ${JSON.stringify({events:opened?.diagnostics??[],state})}`;
+    throw error;
   }finally{if(opened)await opened.close();await host.close();}
 }
 async function withVite(fn){const host=await startVite();try{await fn(host.base);}finally{await host.close();}}
