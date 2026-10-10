@@ -60,6 +60,10 @@ older consumer-only checkpoint without repeating that construction, select
 digest and keeps the original checkpoint intact. Select the new checkpoint
 for `producer`, `check` and `producer-read`. This operation adds real authored
 inputs; it does not admit an incomplete candidate or synthesize graph rows.
+Preparation also captures and restores a new exact Git fixture containing the
+expanded source set and the unchanged original software companions. The source
+cut and repository inventory therefore name the same selected files; the old
+consumer capture remains intact.
 The writer's working RAM must cover the complete philosophy producer; the
 small consumer's process allowance is independent. The source-file ceiling
 and cold-reader row ceiling also describe different resources.

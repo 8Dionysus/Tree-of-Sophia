@@ -971,10 +971,93 @@ pub(super) fn prepare_producer_source(
     for (path, sha) in &original {
         assert_eq!(Digest256::of_bytes(&files[path]), *sha);
     }
+    // Repository topology compares the selected source cut with its exact
+    // capture inventory. Extend both from the same bytes, retaining every old
+    // companion through the capture reader rather than an ambient checkout.
+    let inventory = tos_source_store::SoftwareCaptureReader::open(
+        Path::new(source["software_capture"].as_str().unwrap()),
+        Path::new(source["software_restored_root"].as_str().unwrap()),
+        tos_source_store::SoftwareCaptureSelectionV1 {
+            source_git_commit: source["source_git_commit"].as_str().unwrap().into(),
+            source_git_tree: source["source_git_tree"].as_str().unwrap().into(),
+            capture_manifest_sha256: Digest256::from_hex(
+                source["capture_manifest_sha256"].as_str().unwrap(),
+            )
+            .unwrap(),
+        },
+        ReadLimits {
+            max_manifest_bytes: 4 * 1024 * 1024,
+            max_manifest_entries: PRODUCER_SOURCE_MEMBERS as usize,
+            max_selected_object_bytes: PRODUCER_SOURCE_MEMBER_BYTES,
+            json: JsonLimits::default(),
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert!(inventory.exclude_prefixes().is_empty());
+    assert!(inventory.exclude_path_parts().is_empty());
+    let mut captured = files.clone();
+    for member in inventory.members() {
+        assert_eq!(member.mode, 0o644, "fixture companions are ordinary files");
+        if let Some(raw) = captured.get(member.path.as_str()) {
+            assert_eq!(raw.len() as u64, member.size_bytes);
+            assert_eq!(Digest256::of_bytes(raw), member.sha256);
+        } else {
+            let selected = inventory
+                .select_components(std::slice::from_ref(&member.path))
+                .unwrap();
+            let raw = inventory
+                .read_selected_component(
+                    &selected,
+                    &member.path,
+                    PRODUCER_SOURCE_MEMBER_BYTES,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            captured.insert(member.path.as_str().to_owned(), raw);
+        }
+    }
+    assert!(captured.len() <= PRODUCER_SOURCE_MEMBERS as usize);
+    assert!(captured.values().map(|raw| raw.len() as u64).sum::<u64>() <= PRODUCER_SOURCE_BYTES);
+    let git_root = target.with_file_name("producer-git");
+    fs::create_dir(&git_root).unwrap();
+    super::git(&git_root, &["init", "-q"]);
+    for (path, raw) in &captured {
+        let output = git_root.join(path);
+        fs::create_dir_all(output.parent().unwrap()).unwrap();
+        fs::write(output, raw).unwrap();
+    }
+    super::git(&git_root, &["add", "--force", "--all"]);
+    super::git(
+        &git_root,
+        &[
+            "-c", "user.name=Fixture", "-c", "user.email=fixture@invalid",
+            "-c", "commit.gpgsign=false", "commit", "-qm",
+            "Retained source cut with complete philosophy inputs",
+        ],
+    );
+    let commit = String::from_utf8(super::git(&git_root, &["rev-parse", "HEAD^{commit}"]))
+        .unwrap().trim().to_owned();
+    let capture = target.with_file_name("producer-software-capture");
+    let restored = target.with_file_name("producer-software-restored");
+    let prefixes = inventory.include_prefixes().iter().map(String::as_str).collect::<Vec<_>>();
+    let selection = super::super::source_cut_cases::capture_software_archive(
+        &git_root, &commit, &prefixes, &capture, deadline, &cancelled,
+    );
+    super::super::source_cut_cases::restore_software_archive(
+        &capture, &restored, &selection, deadline, &cancelled,
+    );
     let producer_revision = super::super::validation_cut_cases::write_cut_store(&files, target);
     let mut source = source.clone();
     source["corpus_store"] = serde_json::json!(target);
     source["source_revision"] = serde_json::json!(producer_revision.0.to_hex());
+    source["software_capture"] = serde_json::json!(capture);
+    source["software_restored_root"] = serde_json::json!(restored);
+    source["source_git_commit"] = serde_json::json!(selection.source_git_commit);
+    source["source_git_tree"] = serde_json::json!(selection.source_git_tree);
+    source["capture_manifest_sha256"] = serde_json::json!(selection.capture_manifest_sha256.to_hex());
     let mut cold: tos_compiler::ColdOpenLimits =
         serde_json::from_value(base["request"]["cold_open"].clone()).unwrap();
     cold.max_file_bytes = 512 * 1024 * 1024;
@@ -999,6 +1082,7 @@ pub(super) fn prepare_producer_source(
         "selection":"retained consumer sources plus complete authored ToS/philosophy branch",
         "original_members":original.len(),"producer_members":files.len(),"producer_bytes":bytes,
         "original_members_unchanged":true,
+        "capture_members":captured.len(),"original_companions_unchanged":true,
     });
     prepared
 }
