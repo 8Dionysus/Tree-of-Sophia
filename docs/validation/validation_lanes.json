@@ -385,6 +385,35 @@
         ]
       },
       {
+        "label": "check WASM foundation target",
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "-p",
+          "tos-foundation",
+          "--target",
+          "wasm32-unknown-unknown",
+          "--features",
+          "wasm"
+        ]
+      },
+      {
+        "label": "check WASM validation backend target",
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "-p",
+          "tos-validation",
+          "--no-default-features",
+          "--features",
+          "wasm",
+          "--target",
+          "wasm32-unknown-unknown"
+        ]
+      },
+      {
         "label": "build exact native schema worker for source-cut fixtures",
         "command": [
           "cargo",
@@ -634,35 +663,6 @@
           "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
           "--",
           "--exact"
-        ]
-      },
-      {
-        "label": "check WASM foundation target",
-        "command": [
-          "cargo",
-          "check",
-          "--locked",
-          "-p",
-          "tos-foundation",
-          "--target",
-          "wasm32-unknown-unknown",
-          "--features",
-          "wasm"
-        ]
-      },
-      {
-        "label": "check WASM validation backend target",
-        "command": [
-          "cargo",
-          "check",
-          "--locked",
-          "-p",
-          "tos-validation",
-          "--no-default-features",
-          "--features",
-          "wasm",
-          "--target",
-          "wasm32-unknown-unknown"
         ]
       },
       {

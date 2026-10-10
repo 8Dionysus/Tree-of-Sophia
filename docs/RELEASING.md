@@ -60,6 +60,9 @@ owner surfaces.
    on the two-worker host. This includes the remaining cold recovery, install
    and WASM checks after the source and package test groups; each command
    keeps its separate limit from the validation manifest.
+   The existing WASM foundation and validation type checks run immediately
+   after formatting, so portable-profile errors are found before native
+   code generation and the long fixture groups.
    Conformance and Growth consume the pinned workspace images before package
    tests can relink the shared Cargo binary paths with different feature sets.
    The image digest checks remain active throughout those consumer steps.
