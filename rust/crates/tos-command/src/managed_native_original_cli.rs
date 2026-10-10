@@ -2356,7 +2356,12 @@ fn source_projection_limits(
         max_rows: row_count,
         max_file_bytes: source_file_cap.min(16 * 1024 * 1024),
         max_row_bytes: source_row_cap,
-        max_contract_bytes: source_file_cap.min(16 * 1024 * 1024),
+        // Contracts are a retained set; the per-member ceiling still applies
+        // to each input, while the set consumes the selected total budget.
+        max_contract_bytes: source
+            .max_total_bytes
+            .min(SourceCatalogLimits::MAX_CONTRACT_BYTES as u64)
+            as usize,
         max_output_row_bytes: output_row_cap,
     };
     let bibliographic = BibliographicLimits {
@@ -5262,6 +5267,7 @@ mod projection_limit_tests {
         let original_ceiling = tos_compiler::NavigationOriginalLimits::maximum();
         for member_bytes in [4096, 1024 * 1024, 2 * 1024 * 1024, 8 * 1024 * 1024] {
             source.max_member_bytes = member_bytes;
+            source.max_total_bytes = 4 * member_bytes;
             for rows in [1, 128, 16_384, MAX_COLD_ROWS] {
                 request.cold_open.max_rows = rows;
                 let limits = source_projection_limits(
@@ -5274,6 +5280,11 @@ mod projection_limit_tests {
                 limits.bibliographic.catalog.validate().unwrap();
                 limits.bibliographic.validate().unwrap();
                 limits.schema_work.validate().unwrap();
+                assert_eq!(
+                    limits.bibliographic.catalog.max_contract_bytes,
+                    (source.max_total_bytes as usize)
+                        .min(tos_compiler::source_witness_catalog::SourceCatalogLimits::MAX_CONTRACT_BYTES)
+                );
                 assert_eq!(
                     limits.bibliographic.catalog.max_output_row_bytes,
                     (member_bytes as usize).min(1024 * 1024)
