@@ -595,8 +595,13 @@ pub(super) fn exercise_managed_native_corpus(
             .unwrap();
         assert_eq!(refusal.status.code(), Some(3), "{fault}");
         assert!(refusal.stdout.is_empty(), "{fault}");
+        let expected_boundary = if fault == "output-as-input" {
+            "corpus source member binding differs"
+        } else {
+            "native corpus"
+        };
         assert!(
-            String::from_utf8_lossy(&refusal.stderr).contains("native corpus"),
+            String::from_utf8_lossy(&refusal.stderr).contains(expected_boundary),
             "{fault}: {}",
             String::from_utf8_lossy(&refusal.stderr)
         );
