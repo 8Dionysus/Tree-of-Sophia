@@ -3345,6 +3345,153 @@ mod selected_snapshot_tests {
         }
     }
 
+    #[test]
+    fn source_only_capture_preserves_all_products_and_historical_scope() {
+        const CHILD: &str = "TOS_SOURCE_PRODUCT_CAPTURE_TEST_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "native_snapshot_manifest::selected_snapshot_tests::source_only_capture_preserves_all_products_and_historical_scope", "--nocapture"])
+                .env(CHILD, "1").output().unwrap();
+            assert!(
+                output.status.success(),
+                "{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("source");
+        materialize_runtime_fixture(&root);
+        for relative in [
+            crate::source_philosophy_views::ATLAS_REF,
+            crate::source_philosophy_graph::VIEWS_REF,
+        ] {
+            write_json_fixture(&root, relative, json!({"fixture":relative}));
+        }
+        let binding = |path: &str| {
+            let raw = fs::read(root.join(path)).unwrap();
+            NativeSourceMemberBinding {
+                path: path.into(),
+                mode: 0o644,
+                size_bytes: raw.len() as u64,
+                sha256: Digest256::of_bytes(&raw).to_hex(),
+            }
+        };
+        let members = vec![
+            binding("ToS/doctrine/semantic-interchange/entity-types.v1.json"),
+            binding("ToS/doctrine/semantic-interchange/relation-types.v1.json"),
+        ];
+        let worker = NativeSourceMemberBinding {
+            path: "software/schema-worker.rs".into(),
+            mode: 0o644,
+            size_bytes: 6,
+            sha256: Digest256::of_bytes(b"worker").to_hex(),
+        };
+        let software = NativeSelectedSoftwareBinding {
+            source_git_commit: "1".repeat(40),
+            source_git_tree: "2".repeat(40),
+            capture_manifest_sha256: Digest256::of_bytes(b"capture").to_hex(),
+            schema_worker_path: worker.path.clone(),
+            schema_worker_sha256: worker.sha256.clone(),
+            schema_worker_image_sha256: Digest256::of_bytes(b"image").to_hex(),
+            components: vec![worker],
+        };
+        let mut products = required_native_runtime_product_paths()
+            .into_iter()
+            .map(binding)
+            .collect::<Vec<_>>();
+        products.sort_by(|left, right| left.path.cmp(&right.path));
+        let profile = NativeSelectedRuntimeSourceProfile::new(
+            Digest256::of_bytes(b"cut").to_hex(),
+            source_membership(&members).unwrap().0,
+            members,
+            software,
+        )
+        .unwrap()
+        .with_runtime_products(products)
+        .unwrap();
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let remaining = |bytes: usize| {
+            (32 * 1024 * 1024usize)
+                .checked_sub(bytes)
+                .ok_or(Error::Budget("fixture state"))
+        };
+        let heap = crate::DedicatedSessionSqliteHeap::establish(
+            8 * 1024 * 1024,
+            &remaining,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let limits = portable_native_snapshot_limits(30).unwrap().capture;
+        let capture = |name: &str, profile| {
+            crate::PublicCapture::create_runtime_with_owned_budget(
+                &root,
+                profile,
+                &temp.path().join(name),
+                limits,
+                deadline,
+                cancelled.clone(),
+                crate::RuntimeCaptureOwnedBudget {
+                    remaining_after_retained: &remaining,
+                    original_work: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
+                    original_work_limit: limits.max_work_bytes,
+                    creation_work_allowance: limits.max_work_bytes,
+                    original_sql_vm: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
+                    original_sql_vm_limit: limits.max_sql_vm_steps,
+                    original_sqlite_heap: heap.clone(),
+                    max_creation_json_visits: 1_000_000,
+                    creation_deadline: deadline,
+                },
+                &mut crate::RuntimeCaptureCreationUsage::default(),
+            )
+        };
+        let historical = capture("historical.sqlite3", None).unwrap();
+        assert!(
+            !historical
+                .retained_input_members()
+                .unwrap()
+                .iter()
+                .any(
+                    |(path, _, _)| path == crate::source_philosophy_views::ATLAS_REF
+                        || path == crate::source_philosophy_graph::VIEWS_REF
+                )
+        );
+        drop(historical);
+        let current = capture("current.sqlite3", Some(&profile)).unwrap();
+        let census =
+            NativeSourceOnlySnapshotCensus::open(profile.clone(), &current, deadline).unwrap();
+        let retained = census.validate_capture_closure(&current, deadline).unwrap();
+        for product in &profile.products {
+            let member = retained
+                .iter()
+                .find(|member| member.source_path == product.path)
+                .unwrap();
+            assert_eq!(
+                (member.size_bytes, &member.sha256),
+                (product.size_bytes, &product.sha256)
+            );
+            assert_eq!(
+                current
+                    .read_input(&product.path, limits.max_input_bytes as usize)
+                    .unwrap()
+                    .unwrap(),
+                fs::read(root.join(&product.path)).unwrap()
+            );
+        }
+        fs::write(
+            root.join(crate::source_philosophy_views::ATLAS_REF),
+            b"changed",
+        )
+        .unwrap();
+        assert!(current.verify_inputs(limits).is_err());
+        assert!(capture("changed.sqlite3", Some(&profile)).is_err());
+        fs::remove_file(root.join(crate::source_philosophy_views::ATLAS_REF)).unwrap();
+        assert!(capture("missing.sqlite3", Some(&profile)).is_err());
+    }
+
     fn historical_runtime_fixture(root: &Path) -> NativeSelectedSnapshotProfile {
         let mut bindings = BTreeMap::new();
         let mut rows = Vec::new();

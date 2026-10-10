@@ -3897,6 +3897,7 @@ impl PublicCapture {
             Some(state.cancellation_handle()),
             None,
             Some(state),
+            &[],
         )?;
         state.active()?;
         // Constructor SQL connection has dropped. Later openings use the
@@ -4112,6 +4113,7 @@ impl PublicCapture {
             cancelled,
             budget,
             usage,
+            &[],
         )
     }
 
@@ -4137,14 +4139,19 @@ impl PublicCapture {
             cancelled,
             budget,
             usage,
+            &[],
         )
     }
 
     /// Runtime full-root capture under the original dedicated native process.
-    /// This preserves the maintained runtime input profile without requiring
-    /// selected-path aliases or constructing a new resource domain.
+    /// A source-only producer also hands off its exact completed product set.
+    /// Those bytes remain retained inputs even when the graph compiler does
+    /// not parse them. Historical captures retain their existing input set.
     pub fn create_runtime_with_owned_budget(
         root: &Path,
+        source_profile: Option<
+            &crate::native_snapshot_manifest::NativeSelectedRuntimeSourceProfile,
+        >,
         staging: &Path,
         limits: PublicCaptureLimits,
         deadline: Instant,
@@ -4152,6 +4159,24 @@ impl PublicCapture {
         budget: RuntimeCaptureOwnedBudget<'_>,
         usage: &mut RuntimeCaptureCreationUsage,
     ) -> Result<Self> {
+        let products = if let Some(profile) = source_profile {
+            let required = crate::native_snapshot_manifest::required_native_runtime_product_paths();
+            if profile.products.len() != required.len()
+                || required.iter().any(|path| {
+                    profile
+                        .products
+                        .iter()
+                        .filter(|product| product.path == *path)
+                        .count()
+                        != 1
+                })
+            {
+                return Err(Error::Invalid("native runtime product profile absent"));
+            }
+            profile.products.as_slice()
+        } else {
+            &[]
+        };
         Self::create_selected_with_owned_budget(
             root,
             None,
@@ -4163,6 +4188,7 @@ impl PublicCapture {
             cancelled,
             budget,
             usage,
+            products,
         )
     }
 
@@ -4177,6 +4203,7 @@ impl PublicCapture {
         cancelled: Arc<std::sync::atomic::AtomicBool>,
         budget: RuntimeCaptureOwnedBudget<'_>,
         usage: &mut RuntimeCaptureCreationUsage,
+        required_products: &[crate::native_snapshot_manifest::NativeSourceMemberBinding],
     ) -> Result<Self> {
         if usage.json_visits != 0 {
             return Err(Error::Invalid("runtime creation usage must start empty"));
@@ -4264,6 +4291,7 @@ impl PublicCapture {
                 Some(Arc::clone(&cancelled)),
                 role,
                 Some(&state),
+                required_products,
             )?;
             if let Some(role) = role {
                 let label = match role {
@@ -4494,6 +4522,7 @@ impl PublicCapture {
             cancelled,
             runtime_capture_role,
             None,
+            &[],
         )
     }
 
@@ -4509,8 +4538,18 @@ impl PublicCapture {
         cancelled: Option<Arc<std::sync::atomic::AtomicBool>>,
         runtime_capture_role: Option<RuntimeCaptureRole>,
         creation: Option<&'a CreationState<'a>>,
+        required_products: &[crate::native_snapshot_manifest::NativeSourceMemberBinding],
     ) -> Result<Self> {
         limits.validate()?;
+        if !required_products.is_empty()
+            && (!runtime_profile
+                || prepared_profile
+                || evidence_profile
+                || selected_paths.is_some()
+                || runtime_capture_role.is_some())
+        {
+            return Err(Error::Invalid("native product capture profile differs"));
+        }
         let cancelled =
             cancelled.unwrap_or_else(|| Arc::new(std::sync::atomic::AtomicBool::new(false)));
         let cancelled_ref = Some(cancelled.as_ref());
@@ -4613,7 +4652,7 @@ impl PublicCapture {
             .unwrap_or_else(|| Arc::new(AtomicU64::new(0)));
         if let Some(state) = creation {
             // Three main roles, one audit, eighteen contracts, two optional
-            // companions plus the maintained bounded4096 public-ledger
+            // companions, declared source products and the bounded4096 public-ledger
             // entries. Geometric source-vector old/new slots, no payload copy.
             state.retain(
                 std::mem::size_of::<SourceFile>()
@@ -4621,7 +4660,7 @@ impl PublicCapture {
                         4 * if runtime_capture_role.is_some() {
                             1
                         } else {
-                            4120
+                            4120 + required_products.len()
                         },
                     )
                     .ok_or(Error::Budget("runtime source slot state"))?,
@@ -4975,6 +5014,35 @@ impl PublicCapture {
                     });
                 }
             }
+        }
+        // Preserve the completed source-product handoff independently of the
+        // graph parser's input roles. Reuse captured roles once; retain the
+        // remaining products as exact bytes under the same work/state owner.
+        for product in required_products {
+            check_capture_active(cancelled_ref, deadline)?;
+            let expected = Digest256::from_hex(&product.sha256)
+                .map_err(|_| Error::Invalid("native runtime product digest invalid"))?;
+            if let Some(source) = sources.iter().find(|source| source.label == product.path) {
+                if source.digest != Some(expected) || source.len != product.size_bytes {
+                    return Err(Error::Invalid("native runtime product handoff differs"));
+                }
+                continue;
+            }
+            let path = creation_source_path(root, None, &product.path, creation)?;
+            let mut file = profile_open(&path, limits.max_input_bytes, false)?;
+            let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
+                check_capture_active(cancelled_ref, deadline)?;
+                checked_add(&work_bytes, n, limits.max_work_bytes)
+            })?;
+            if digest != expected || len != product.size_bytes {
+                return Err(Error::Invalid("native runtime product handoff differs"));
+            }
+            sources.push(SourceFile {
+                label: product.path.clone(),
+                origin: SourceOrigin::File(path),
+                digest: Some(digest),
+                len,
+            });
         }
         if std::fs::metadata(staging)?.len() > limits.max_staging_bytes {
             return Err(Error::Budget("public D1 capture physical bytes"));

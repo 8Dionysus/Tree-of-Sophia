@@ -4619,6 +4619,7 @@ fn execute(mut request: Request) -> Result<Value> {
     };
     let capture = PublicCapture::create_runtime_with_owned_budget(
         capture_source_root,
+        source_runtime.as_ref().map(|runtime| &runtime.profile),
         &temp_paths.capture,
         limits.capture,
         deadline,
