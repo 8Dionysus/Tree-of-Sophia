@@ -781,9 +781,12 @@ fn build_request(
     ] {
         source_selection[key] = json!(value);
     }
-    // Full philosophy materialization alone previously measured over nine
-    // minutes. Its independent producer needs the measured full-data work
-    // envelope; this changes no process-memory or physical-file ceiling.
+    // Capture, Originals and normalization spend one cumulative JSON owner.
+    // Their parse/canonical prefixes also charge the finite work owner, so use
+    // that existing full-data work grant instead of a small-fixture visit cap.
+    // State, process memory, file sizes and wall time remain independent limits.
+    let work_bytes = 32 * 1024 * 1024 * 1024u64;
+    let json_visits = usize::try_from(work_bytes).expect("full producer work width");
     json!({
        "schema_version": "tos_native_corpus_build_request_v1",
        "mode": "build",
@@ -791,8 +794,8 @@ fn build_request(
        "tmpfs_inode_limit": inode_limit,
        "working_ram_bytes": working_ram_bytes,
        "max_state_bytes": 512 * 1024 * 1024,
-       "max_json_visits": 8_000_000,
-       "max_work_bytes": 32 * 1024 * 1024 * 1024u64,
+       "max_json_visits": json_visits,
+       "max_work_bytes": work_bytes,
        "persistent_write_cap_bytes": 512 * 1024 * 1024u64,
        "max_build_seconds": 1800,
        "cold_open": serde_json::to_value(cold).unwrap(),
@@ -1509,18 +1512,47 @@ pub(super) fn resume_selected_phase() -> bool {
     verify_pins(&case["inputs"]);
     if phase == "producer-prepare" {
         let parent = path.parent().unwrap();
-        let temporary = tempfile::Builder::new()
-            .prefix("producer-inputs-")
-            .tempdir_in(parent)
-            .unwrap();
-        let repository = super::super::validation_cut_cases::repository()
-            .canonicalize()
-            .unwrap();
-        let producer = prepare_producer_source(
-            &case["producer"],
-            &repository,
-            &temporary.path().join("source-store"),
-        );
+        let temporary = case["producer"].get("source_cohort").is_none().then(|| {
+            tempfile::Builder::new()
+                .prefix("producer-inputs-")
+                .tempdir_in(parent)
+                .unwrap()
+        });
+        let producer = if let Some(temporary) = &temporary {
+            let repository = super::super::validation_cut_cases::repository()
+                .canonicalize()
+                .unwrap();
+            prepare_producer_source(
+                &case["producer"],
+                &repository,
+                &temporary.path().join("source-store"),
+            )
+        } else {
+            // An explicit new preparation may price the same frozen cut for
+            // this runner's resource plan. Preserve the previous checkpoint
+            // and every selected source/software member; only a new request
+            // and immutable preparation receipt are produced.
+            let mut producer = case["producer"].clone();
+            let previous = &producer["request"];
+            let cold = serde_json::from_value(previous["cold_open"].clone()).unwrap();
+            let revised = build_request(cold, previous["source_only"].clone());
+            for key in [
+                "schema_version",
+                "mode",
+                "source_only",
+                "cold_open",
+                "data_directory",
+                "private_release_directory",
+            ] {
+                assert_eq!(revised[key], previous[key], "replan changed selected {key}");
+            }
+            assert_ne!(
+                revised, *previous,
+                "producer request already uses this plan"
+            );
+            producer["request"] = revised;
+            producer
+        };
         let prepared = prepared_record(case["managed"].clone(), producer);
         let output = parent.join(format!(
             "producer-prepared-{}.json",
@@ -1531,7 +1563,9 @@ pub(super) fn resume_selected_phase() -> bool {
             "completed producer preparation is immutable"
         );
         write_record(&output, &prepared);
-        temporary.keep();
+        if let Some(temporary) = temporary {
+            temporary.keep();
+        }
         eprintln!(
             "native corpus checkpoint={} sha256={}",
             output.display(),

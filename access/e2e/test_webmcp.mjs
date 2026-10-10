@@ -82,13 +82,13 @@ async function openBrowserPage(url,{webmcp=true,locale='en-US',viewport}={}){
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
   return {browser,context,page,diagnostics,close:async()=>{await context.close();await browser.close();}};
 }
-async function withNative(scenario,fn,{webmcp=true,locale='en-US'}={}){
+async function withNative(scenario,fn,{webmcp=true,locale='en-US',scenarioTimeoutMs=90000}={}){
   const host=await startNative(scenario);let opened,timer;
   try{opened=await openBrowserPage(`${host.base}/?mode=philosophy&view=chronology&graph=nodes&ui=en`,{webmcp,locale});
     await waitFor(opened.page,'Boolean(document.getElementById("current-view-title")?.textContent)');
     if(webmcp){await waitFor(opened.page,"window.__TOS_E2E.names().includes('tos.page.context')");}
     await waitFor(opened.page,"document.getElementById('graph-caption')?.textContent?.includes('3') && document.getElementById('graph-empty')?.hidden === true");
-    await Promise.race([fn(opened.page,host.base),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Native browser scenario exceeded 90 seconds')),90000);})]);
+    await Promise.race([fn(opened.page,host.base),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`Native browser scenario exceeded ${scenarioTimeoutMs/1000} seconds`)),scenarioTimeoutMs);})]);
   }catch(error){
     const state=opened?await opened.page.evaluate(()=>({url:location.href,observatory:document.getElementById('sophia-gestures')?.dataset,tree:document.getElementById('tree')?.dataset,text:document.body.innerText.slice(0,3000)})).catch(()=>null):null;
     error.message+=`\nBrowser diagnostics: ${JSON.stringify({events:opened?.diagnostics??[],state})}`;
@@ -177,7 +177,9 @@ test('test_research_seeded_locale_and_panel_sequence',async()=>withNative('sourc
     else{await page.getByRole('button',{name:names[language][action==='scope'?3:4],exact:true}).click();const dialog=page.getByRole('dialog');assert.ok(await dialog.isVisible(),`${step}:${action}`);assert.equal(await dialog.locator('pre').count(),0);await dialog.getByRole('button',{name:names[language][5],exact:true}).click();}
     for(const name of names[language].slice(0,3))assert.ok(await page.getByRole('button',{name,exact:true}).isVisible(),`${step}:${action}:${name}`);
   }assert.ok(await page.locator('.reading h1').isVisible());
-}));
+// Twenty-four consecutive panel/locale actions share the same live reader.
+// Software WebGL on CI needs a longer whole-scenario envelope than one action.
+},{scenarioTimeoutMs:180000}));
 
 // 6. Cancellation, local workspace persistence, reload and URL state.
 test('test_real_browser_cancellation_reload_and_deep_link',async()=>withNative('default',async page=>{
