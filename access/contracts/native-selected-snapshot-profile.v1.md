@@ -53,7 +53,11 @@ intermediate SQL entries (at most the 10-million-row profile) and aggregate
 bytes (at most 256 MiB, also within the existing TEMP ceiling) from the final
 catalog (100,000 output entries and 16 MiB). Intermediate routes do not count
 as additional output catalog entries. MAIN, TEMP and final cold-file limits
-remain enforced independently. `cold_open.max_work_bytes` may
+remain enforced independently. Installed managed-release and explicit prepared
+readers share the existing 16 MiB logical response profile and its checked MCP
+frame allowance, so the consumer can return the complete produced catalog.
+Managed-release request deadlines and current release guards remain unchanged.
+`cold_open.max_work_bytes` may
 select up to 32 GiB for complete verification of expanded packed rows. These
 are work allowances, not larger files or memory reservations. The producer
 still requires its explicit deadline of at most three hours and all declared

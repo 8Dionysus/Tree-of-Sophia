@@ -705,7 +705,7 @@ tos --root /path/to/runtime-data --prepared-read-model /path/to/selected.sqlite 
 The Rust native candidate also accepts the paired prepared paths for
 `knowledge search QUERY --mode compressed`, `knowledge search-capabilities`,
 HTTP `/api/knowledge/search?mode=compressed`, and MCP `tos_knowledge_search`.
-This explicit local projection reader uses a 4 MiB logical response profile,
+This explicit local projection reader uses a 16 MiB logical response profile,
 64 KiB request/binding limits, and a separately checked complete MCP frame
 allowance. It observes the pathname/WAL and rechecks the binding in a fresh
 snapshot before delivery; it does not acquire managed-release custody or
@@ -716,6 +716,8 @@ selected binding, request meter and final currentness fence through CLI
 wording, field order and authority flags; catalogs exceeding the existing
 bounded carrier profile refuse explicitly. Native prepared node/relation inspection
 and lens compilation use that same selected snapshot and disclosure fence.
+The installed managed-release reader admits the same 16 MiB catalog and checked
+MCP frame limits, retaining its existing request deadline and release guards.
 Prepared exploration is wired to the shared Rust engine and metered SQLite
 producers; its composed build and functional acceptance are still pending.
 Source operations require their own selected source owner. The native candidate

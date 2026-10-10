@@ -439,6 +439,13 @@ fn main() {
     // frame allowance. Explicit prepared selection takes precedence over env.
     let profile = if prepared_model.is_some() {
         tos_access::prepared_local::profile()
+    } else if release_root.is_some() {
+        // Managed publication carries the same complete catalog packets as an
+        // explicit prepared reader. Keep its existing request deadline while
+        // admitting the producer's bounded packet and duplicated MCP frame.
+        let mut selected = tos_access::prepared_local::profile();
+        selected.query_timeout = profile.query_timeout;
+        selected
     } else if explicit_data_root || (prepared_root.is_some() && release_root.is_none()) {
         profile.with_query_timeout(std::time::Duration::from_secs(5))
     } else {
