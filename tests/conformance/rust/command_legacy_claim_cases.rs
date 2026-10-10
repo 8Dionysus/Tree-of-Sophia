@@ -526,6 +526,15 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     .into_iter()
     .map(str::to_owned)
     .collect::<Vec<_>>();
+    let mut native_rules = BTreeMap::new();
+    super::command_record_cases::native_metadata_rule_files(&repository, &mut native_rules, &[]);
+    software_names.extend(
+        native_rules
+            .keys()
+            .filter(|name| !name.starts_with("ToS/"))
+            .cloned(),
+    );
+    super::command_record_cases::materialize_native_fixture_software(&root, &native_rules);
     software_names.sort();
     software_names.dedup();
     let (fixture_bytes, fixture_files) =

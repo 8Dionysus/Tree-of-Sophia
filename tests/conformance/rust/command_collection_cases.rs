@@ -177,6 +177,10 @@ fn native_collection_cli_attaches_replays_and_recovers_multi_file_membership() {
             &mut capture_files,
             &native_owner_paths,
         );
+        super::command_record_cases::materialize_native_fixture_software(
+            isolated.path(),
+            &capture_files,
+        );
         assert!(capture_files.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024);
         let (capture, _software, components) =
             super::command_record_cases::captured_components(&capture_files, deadline, &cancelled);

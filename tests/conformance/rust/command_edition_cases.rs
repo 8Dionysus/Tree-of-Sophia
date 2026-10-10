@@ -165,6 +165,10 @@ fn native_edition_cli_preserves_topology_cold_replay_and_retained_recovery() {
             &mut capture_files,
             &native_owner_paths,
         );
+        super::command_record_cases::materialize_native_fixture_software(
+            isolated.path(),
+            &capture_files,
+        );
         assert!(capture_files.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024);
         eprintln!(
             "edition preflight: authored_members={} authored_bytes={} authored_max={} capture_bytes={}",

@@ -436,7 +436,7 @@ fn native_work_expression_publishes_replays_and_prepares_next_sibling() {
             deadline,
         );
         let second_config = sibling_work_configuration(&configuration, "second");
-        fs::write(&owner, serde_json::to_vec(&second_config).unwrap()).unwrap();
+        fs::write(&owner, canonical_json(&second_config)).unwrap();
         let second_files = authored_work_files(isolated.path());
         let second_store = temporary.path().join("second-cut");
         let second_revision =
@@ -458,6 +458,11 @@ fn native_work_expression_publishes_replays_and_prepares_next_sibling() {
                     .is_none()
             );
         }
+        super::command_record_cases::native_metadata_rule_files(
+            &repository,
+            &mut second_inputs,
+            &WORK_IMPLEMENTATIONS,
+        );
         let second_fs =
             CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancelled).unwrap();
         let mut proposal_ctx = super::command_form_cases::context(

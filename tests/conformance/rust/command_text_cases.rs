@@ -258,6 +258,7 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
         );
     } else {
         config["input"]["binding"] = seed.source_binding.clone();
+        config["input"]["binding"]["source_record_refs"] = config["source_record_refs"].clone();
     }
     for reference in material_refs {
         let target = seed.private_root.join(&reference);

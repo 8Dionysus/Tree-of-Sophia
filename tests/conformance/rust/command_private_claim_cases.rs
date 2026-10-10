@@ -728,7 +728,23 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         preview["prepared_sources"],
         oracle_preview["prepared_sources"]
     );
-    assert_eq!(preview["prepared_files"], oracle_preview["prepared_files"]);
+    // Only the protected owner path changes under relocation. Recompute that
+    // retained file from the explicitly selected owner, preserving every
+    // historical Claim and HumanForm byte expectation.
+    let owner_raw = fs::read(&owner).unwrap();
+    let owner_value =
+        parse_json(&owner_raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let retained_owner = emit_json_profile(
+        owner_value.root(),
+        JsonEmissionProfile::SourceFormSetPublishedV1,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .bytes;
+    let mut expected_files = oracle_preview["prepared_files"].clone();
+    expected_files["source-create-owner-configuration.json"] = serde_json::json!({
+        "sha256":Digest256::of_bytes(&retained_owner).to_prefixed(),"bytes":retained_owner.len()});
+    assert_eq!(preview["prepared_files"], expected_files);
     assert_eq!(
         preview["prepared_materializations"],
         oracle_preview["prepared_materializations"]
@@ -746,7 +762,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let oracle_created = &selected["created"];
     assert_eq!(
         created["owner_configuration"],
-        oracle_created["owner_configuration"]
+        expected_before["owner_configuration"]
     );
     assert_eq!(created["sources"], preview["prepared_sources"]);
     assert_eq!(created["sources"], oracle_created["sources"]);
@@ -789,6 +805,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
             0o600
         );
     }
+    assert_eq!(
+        fs::read(home.join("source-create-owner-configuration.json")).unwrap(),
+        retained_owner
+    );
     let source_file = Path::new(selected["source_ref"].as_str().unwrap())
         .file_name()
         .unwrap();
@@ -834,7 +854,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let oracle_form_preview = &selected["form_preview"];
     assert_eq!(
         form_preview["owner_configuration"],
-        oracle_form_preview["owner_configuration"]
+        expected_before["owner_configuration"]
     );
     assert_eq!(form_preview["source"], oracle_form_preview["source"]);
     assert_eq!(
@@ -904,7 +924,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let oracle_revision_preview = &selected["revision_preview"];
     assert_eq!(
         revision_preview["owner_configuration"],
-        oracle_revision_preview["owner_configuration"]
+        expected_before["owner_configuration"]
     );
     assert_eq!(
         revision_preview["source"],
@@ -947,7 +967,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let oracle_revised = &selected["revised"];
     assert_eq!(
         revised["owner_configuration"],
-        oracle_revised["owner_configuration"]
+        expected_before["owner_configuration"]
     );
     assert_eq!(revised["source"]["id"], oracle_revised["source"]["id"]);
     assert_eq!(

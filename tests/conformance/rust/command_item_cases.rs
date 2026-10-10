@@ -200,6 +200,10 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
         &mut capture_files,
         NATIVE_OWNER_PATHS,
     );
+    super::command_record_cases::materialize_native_fixture_software(
+        isolated.path(),
+        &capture_files,
+    );
     let (capture, _software, components) =
         super::command_record_cases::captured_components(&capture_files, deadline, &cancelled);
     let store = temporary.path().join("item-cut");

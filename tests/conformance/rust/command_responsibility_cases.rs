@@ -155,6 +155,10 @@ fn native_responsibility_cli_preserves_qualified_union_cold_replay_and_retained_
             &mut capture_files,
             &native_owner_paths,
         );
+        super::command_record_cases::materialize_native_fixture_software(
+            isolated.path(),
+            &capture_files,
+        );
         assert!(capture_files.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024);
         eprintln!(
             "responsibility preflight: authored_members={} authored_bytes={} authored_max={} capture_bytes={}",

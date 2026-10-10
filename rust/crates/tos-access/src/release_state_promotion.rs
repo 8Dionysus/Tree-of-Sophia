@@ -172,6 +172,27 @@ fn json(raw: &[u8], cap: usize, available_state: usize) -> Result<JsonValue> {
     }
     Ok(value)
 }
+// Generated values have no externally supplied encoding to authenticate. Parse
+// their bounded structure, then emit through the canonical owner below; serde's
+// workspace-wide map ordering feature must not become a release wire format.
+fn generated_json(
+    value: &serde_json::Value,
+    cap: usize,
+    available_state: usize,
+) -> Result<JsonValue> {
+    let raw = serde_json::to_vec(value).map_err(|e| e.to_string())?;
+    parse_json_with_state_budget(
+        &raw,
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: cap,
+            ..state::METADATA_LIMITS
+        },
+        available_state,
+    )
+    .map(|document| document.into_root())
+    .map_err(|e| e.to_string())
+}
 /// Native selection records are emitted under SourceRecordDigestV1 and end in
 /// one LF. Keep that authored profile distinct from the CorpusSnapshot
 /// manifest and request profile accepted by `json` above.
@@ -792,9 +813,8 @@ fn execute_prepare(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<se
         "query_schema":text(compiler, "schema")?,
         "compiler_version":text(compiler, "compiler_version")?,
     });
-    let pair_seed_raw = serde_json::to_vec(&pair_seed).map_err(|e| e.to_string())?;
-    let pair = json(
-        &pair_seed_raw,
+    let pair = generated_json(
+        &pair_seed,
         limits.max_metadata_bytes,
         limits.max_state_bytes.saturating_sub(budget.state),
     )?;
@@ -915,9 +935,8 @@ fn execute_prepare(raw: &[u8], original_ns: u64, deadline: Instant) -> Result<se
         "data_root":data_root.to_str().ok_or("data root UTF8 invalid")?,
         "software_archive":software_archive.to_str().ok_or("software archive path UTF8 invalid")?,
     });
-    let bindings_seed_raw = serde_json::to_vec(&binding_seed).map_err(|e| e.to_string())?;
-    let bindings = json(
-        &bindings_seed_raw,
+    let bindings = generated_json(
+        &binding_seed,
         limits.max_metadata_bytes,
         limits.max_state_bytes.saturating_sub(budget.state),
     )?;

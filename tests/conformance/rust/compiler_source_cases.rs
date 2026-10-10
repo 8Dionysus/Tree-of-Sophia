@@ -363,7 +363,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         if collection == "resources" {
             for row in &mut wanted {
                 let path = required(row, "path");
-                let raw = authored.get(path).expect("selected topology resource");
+                let raw = captured.get(path).expect("selected topology resource");
                 row["sha256"] = json!(Digest256::of_bytes(raw).to_hex());
                 row["size_bytes"] = json!(raw.len());
             }

@@ -771,6 +771,7 @@ fn context(selected: bool) -> CommandContext {
     owner!("rust/crates/tos-command/src/source_native_cli.rs");
     owner!("rust/crates/tos-command/src/source_command.rs");
     owner!("rust/crates/tos-command/src/source_revisions.rs");
+    owner!("rust/crates/tos-command/src/source_sign_native.rs");
     owner!("rust/crates/tos-command/src/source_forms.rs");
     owner!("rust/crates/tos-validation/src/assessment.rs");
     owner!("rust/crates/tos-command/src/source_private_profile.rs");
@@ -780,9 +781,6 @@ fn context(selected: bool) -> CommandContext {
     owner!("rust/crates/tos-command/src/source_private_claim.rs");
     owner!("rust/crates/tos-command/src/source_creation_store.rs");
     owner!("rust/crates/tos-command/src/source_work_transaction.rs");
-    if selected {
-        owner!("rust/crates/tos-command/src/source_work_transaction.rs");
-    }
     CommandContext {
         base_revision: SourceRevision(Digest256::of_bytes(b"bounded-fixture-cut")),
         configuration_raw: bytes(&config),
@@ -889,6 +887,12 @@ pub(super) fn native_metadata_rule_files(
         "rust/crates/tos-command/src/source_command.rs",
         "rust/crates/tos-command/src/source_corpus_index_projection.rs",
         "rust/crates/tos-command/src/source_forms.rs",
+        "rust/crates/tos-command/src/source_expression_edition.rs",
+        "rust/crates/tos-command/src/source_expression_responsibility.rs",
+        "rust/crates/tos-command/src/source_private_claim.rs",
+        "rust/crates/tos-command/src/source_private_owner_store.rs",
+        "rust/crates/tos-command/src/source_text_owner.rs",
+        "rust/crates/tos-command/src/source_sign_native.rs",
         "rust/crates/tos-command/src/source_item_deposit.rs",
         "rust/crates/tos-command/src/source_item_inventory.rs",
         "rust/crates/tos-command/src/source_item_inventory_extended.rs",
@@ -922,6 +926,19 @@ pub(super) fn native_metadata_rule_files(
         files
             .entry(path.into())
             .or_insert_with(|| fs::read(repository.join(path)).unwrap());
+    }
+}
+
+pub(super) fn materialize_native_fixture_software(root: &Path, files: &BTreeMap<String, Vec<u8>>) {
+    // The creation fence rereads the selected implementation at the isolated
+    // owner root. Frozen Python fixtures do not contain the current Rust cut.
+    for (reference, raw) in files.iter().filter(|(name, _)| !name.starts_with("ToS/")) {
+        RelativePath::parse(reference).unwrap();
+        let target = root.join(reference);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(fs::read(target).unwrap(), *raw);
     }
 }
 
@@ -1502,7 +1519,20 @@ fn retain_transport(
             ])),
         ));
     }
-    read_record_revision_publication(ctx, &[&transaction.transaction_id]).unwrap()
+    read_record_revision_publication(ctx, &[&transaction.transaction_id]).unwrap_or_else(|error| {
+        panic!(
+            "retained transaction {} committed={committed}: {error:?}; retained files={:?}",
+            transaction.transaction_id,
+            ctx.files
+                .iter()
+                .filter(|file| file
+                    .path
+                    .as_str()
+                    .starts_with("ToS/source-witnesses/.metadata-"))
+                .map(|file| file.path.as_str())
+                .collect::<Vec<_>>()
+        )
+    })
 }
 fn apply_request(ctx: &mut CommandContext, publication: Option<&RevisionPublication>) -> JsonValue {
     let prepared = run(ctx, publication).unwrap();

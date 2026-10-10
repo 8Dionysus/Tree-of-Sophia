@@ -295,6 +295,7 @@ fn native_object_link_cli_creates_and_cold_replays_original_package() {
         "rust/crates/tos-command/src/source_serialization.rs".into(),
         fs::read(repository.join("rust/crates/tos-command/src/source_serialization.rs")).unwrap(),
     );
+    super::command_record_cases::materialize_native_fixture_software(isolated.path(), &files);
     let scratch_bound = physical_fixture_budget(&files);
     temporary.physically_bounded = true;
     // The publication guard rechecks authenticated software at this root.
