@@ -779,6 +779,9 @@ fn build_request(
     ] {
         source_selection[key] = json!(value);
     }
+    // Full philosophy materialization alone previously measured over nine
+    // minutes. Its independent producer needs the measured full-data work
+    // envelope; this changes no process-memory or physical-file ceiling.
     json!({
        "schema_version": "tos_native_corpus_build_request_v1",
        "mode": "build",
@@ -787,9 +790,9 @@ fn build_request(
        "working_ram_bytes": working_ram_bytes,
        "max_state_bytes": 512 * 1024 * 1024,
        "max_json_visits": 8_000_000,
-       "max_work_bytes": 8 * 1024 * 1024 * 1024u64,
+       "max_work_bytes": 32 * 1024 * 1024 * 1024u64,
        "persistent_write_cap_bytes": 512 * 1024 * 1024u64,
-       "max_build_seconds": 600,
+       "max_build_seconds": 1800,
        "cold_open": serde_json::to_value(cold).unwrap(),
        "process_limits": serde_json::to_value(process_limits).unwrap(),
        "data_directory": "native-corpus-build-candidate",
