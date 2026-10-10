@@ -872,6 +872,11 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
         let result = read_record(&result_path);
         verify_pins(&result["inputs"]);
         assert_eq!(
+            result["producer_sha256"],
+            hash_file(&owner).to_hex(),
+            "changed producer requires a fresh producer result"
+        );
+        assert_eq!(
             result["request_sha256"],
             Digest256::of_bytes(&canonical(build_request)).to_hex()
         );
