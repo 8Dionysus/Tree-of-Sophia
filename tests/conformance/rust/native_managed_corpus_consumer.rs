@@ -781,12 +781,17 @@ fn build_request(
     ] {
         source_selection[key] = json!(value);
     }
-    // Capture, Originals and normalization spend one cumulative JSON owner.
-    // Their parse/canonical prefixes also charge the finite work owner, so use
-    // that existing full-data work grant instead of a small-fixture visit cap.
-    // State, process memory, file sizes and wall time remain independent limits.
-    let work_bytes = 32 * 1024 * 1024 * 1024u64;
-    let json_visits = usize::try_from(work_bytes).expect("full producer work width");
+    // The fixed full corpus already spends 28.31 GiB through relation
+    // materialization, before Claim binding, inherited views, finalization,
+    // Original retention, search and catalog verification. The former 32 GiB
+    // cold-reader allowance cannot price that complete producer sequence.
+    // Use the full-data producer's finite 512 GiB work envelope; the unchanged
+    // 30-minute deadline also bounds its execution. This is a work allowance,
+    // not a memory allocation or an estimate of a completed run's cost.
+    let work_bytes = 512 * 1024 * 1024 * 1024u64;
+    // Keep the independent JSON visit allowance already admitted for this cut.
+    // Every parse/canonical prefix also charges the cumulative work owner.
+    let json_visits = 32 * 1024 * 1024 * 1024usize;
     json!({
        "schema_version": "tos_native_corpus_build_request_v1",
        "mode": "build",
