@@ -4462,16 +4462,22 @@ fn build_native_snapshot_from_capture_inner(
         complete: true,
     };
     check_snapshot_active(cancelled, deadline)?;
+    // Tuple field order drops the value before its admission on every exit.
     let originals = native_snapshot_phase(capture, "prepare-originals", || match state {
-        Some(state) => crate::native_snapshot_originals::prepare_owned(
-            capture,
-            &binding,
-            &vocabulary,
-            limits.originals,
-            deadline,
-            cancelled,
-            state,
-        ),
+        Some(state) => {
+            let (plans, hold) = state.with_retained_result(|| {
+                crate::native_snapshot_originals::prepare_owned(
+                    capture,
+                    &binding,
+                    &vocabulary,
+                    limits.originals,
+                    deadline,
+                    cancelled,
+                    state,
+                )
+            })?;
+            Ok((plans, Some(hold)))
+        }
         None => crate::native_snapshot_originals::prepare(
             capture,
             &binding,
@@ -4479,10 +4485,11 @@ fn build_native_snapshot_from_capture_inner(
             limits.originals,
             deadline,
             cancelled,
-        ),
+        )
+        .map(|plans| (plans, None)),
     })?;
     check_snapshot_active(cancelled, deadline)?;
-    if originals.expected_model_abi_with_layout(payload_layout) != abi {
+    if originals.0.expected_model_abi_with_layout(payload_layout) != abi {
         return Err(Error::Invalid("native snapshot original component ABI"));
     }
     if let Some(state) = state {
@@ -4606,10 +4613,14 @@ fn build_native_snapshot_from_capture_inner(
     let repository =
         PublicRepositoryRoot::captured_native_projection(capture, &stage, &source_revision)?;
     let borrowed_originals = match state {
-        Some(state) => originals.borrowed_owned(state)?,
-        None => originals.borrowed(),
+        Some(state) => {
+            let (borrowed, hold) =
+                state.with_retained_result(|| originals.0.borrowed_owned(state))?;
+            (borrowed, Some(hold))
+        }
+        None => (originals.0.borrowed(), None),
     };
-    let mut families = borrowed_originals.family_inputs(limits.native);
+    let mut families = borrowed_originals.0.family_inputs(limits.native);
     families.repository_root = Some(repository.input());
     // This stage consumes captured projections, while Original plans retain the
     // exact carriers without making them authored source or canon.
@@ -4756,6 +4767,21 @@ fn build_native_snapshot_from_capture_inner(
         (header, None, producer)
     };
     check_snapshot_active(cancelled, deadline)?;
+    // Materialization has written and authenticated every Original carrier.
+    // Neither full component finalization nor cold admission reads these input
+    // vectors again. End their real lifetime before releasing their admission;
+    // the capture and completed receipts retain their own independent owners.
+    let originals_retained_before = state.map(|s| s.observed_retained_state_bytes());
+    drop(borrowed_originals);
+    drop(originals);
+    if let Some(state) = state {
+        state.active()?;
+        eprintln!(
+            "Native snapshot Original inputs released: retained_before={} retained_after={}",
+            originals_retained_before.unwrap(),
+            state.observed_retained_state_bytes(),
+        );
+    }
     let full = native_snapshot_phase(capture, "full-components", || {
         crate::knowledge_full::compile_full_knowledge_components_prepared(
             &mut stage,

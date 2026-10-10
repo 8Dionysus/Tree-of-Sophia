@@ -137,6 +137,16 @@ fn real_model_components_drop_graph_parser_before_originals() {
                         &mut 0,
                         Some(state),
                     )?;
+                    crate::knowledge_corpus_original::verify_with_owned_state(
+                        &db,
+                        &expected,
+                        limits,
+                        &mut 0,
+                        Some(state),
+                    )?;
+                    crate::knowledge_navigation_original::verify_with_owned_state(
+                        &db, &expected, limits, context,
+                    )?;
                     Ok(())
                 },
             )
@@ -146,10 +156,8 @@ fn real_model_components_drop_graph_parser_before_originals() {
         "legacy nested components: result={legacy:?} attempted_peak={} cap={CAP}",
         peak.get()
     );
-    assert!(matches!(
-        legacy,
-        Err(Error::Budget("component probe retained state"))
-    ));
+    legacy.unwrap();
+    let nested_peak = peak.get();
     // New independent verification session, same source bytes and finite caps.
     // Its component phases share the one state and existing work/VM counters.
     peak.set(0);
@@ -175,7 +183,7 @@ fn real_model_components_drop_graph_parser_before_originals() {
     .unwrap();
     let delta = work.load(Ordering::Acquire) - before;
     assert!(delta > 0 && delta <= limits.max_work_bytes);
-    assert!(peak.get() <= CAP);
+    assert!(peak.get() < nested_peak && peak.get() <= CAP);
     assert_eq!(
         Some(&verified.1.component_root_sha256),
         expected.navigation_original_root_sha256.as_ref()
@@ -189,7 +197,7 @@ fn real_model_components_drop_graph_parser_before_originals() {
         expected.corpus_original_root_sha256.as_ref()
     );
     eprintln!(
-        "sequential components: retained_peak={} cap={CAP} shared_work_delta={delta}; all three Original roots exact",
+        "sequential components: retained_peak={} nested_peak={nested_peak} cap={CAP} shared_work_delta={delta}; all three Original roots exact",
         peak.get()
     );
 }
