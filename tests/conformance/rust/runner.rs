@@ -1168,7 +1168,14 @@ pub(crate) fn native_python_fixture(
     } else {
         "owner"
     };
-    let owner = PathBuf::from(required(&packet, owner_field));
+    let owner = if id == "item-opaque" {
+        // This historical packet contains only config; the captured file census
+        // independently binds its ordinary Item owner filename.
+        assert!(files.contains_key("source-root/item-owner.json"));
+        root_paths["source-root"].join("item-owner.json")
+    } else {
+        PathBuf::from(required(&packet, owner_field))
+    };
     assert!(owner.is_absolute(), "captured owner path is absolute");
     assert!(owner.is_file(), "relocated owner file exists");
     assert!(

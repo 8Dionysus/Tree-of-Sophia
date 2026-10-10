@@ -829,6 +829,16 @@ fn native_catalog_fixture_with_graph(
 }
 
 pub(crate) fn publish_native_catalog_fixture(repository: &Path, root: &Path, deadline: Instant) {
+    // The migrated profile registry references the current contract closure.
+    // Frozen command fixtures retain their original schemas; add only missing
+    // owner schemas before freezing the next selected source revision.
+    for (relative, raw) in schema_sources(repository) {
+        let target = root.join(relative);
+        if !target.exists() {
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(target, raw).unwrap();
+        }
+    }
     let inputs = fixture_catalog_inputs(root);
     let publication_path = root.join("ToS/source-witnesses/.metadata-publication.json");
     let publication_raw = match fs::read(&publication_path) {

@@ -576,3 +576,111 @@ fn native_batch_keeps_exact_manifest_bytes_after_wire_expansion() {
         "tos_acquisition_batch_v1"
     );
 }
+
+#[test]
+fn native_handoff_verification_and_adaptation_preserve_the_accepted_base() {
+    use crate::source_acquisition_handoff::invoke;
+    let mut fixture = Fixture::new(1);
+    let root = fixture._temp.path();
+    let store = root.join("accepted-store");
+    let accepted = root.join("accepted-source");
+    let candidate = root.join("candidate");
+    fs::create_dir_all(store.join("objects")).unwrap();
+    fs::create_dir(&accepted).unwrap();
+    let validator_sha = sha(b"native-handoff-fixture-validator");
+    let mut manifest = fixture.manifest();
+    let mut records = manifest["selection"][0]["records"]
+        .as_array()
+        .unwrap()
+        .clone();
+    records.sort_by(|a, b| a["ref"].as_str().cmp(&b["ref"].as_str()));
+    let mut files = Vec::new();
+    for record in records {
+        let reference = record["ref"].as_str().unwrap();
+        let bytes = fs::read(fixture.metadata.join(reference)).unwrap();
+        write_metadata(&accepted, reference, &bytes);
+        fs::write(
+            store
+                .join("objects")
+                .join(record["sha256"].as_str().unwrap()),
+            &bytes,
+        )
+        .unwrap();
+        files.push(json!({"path":reference,"sha256":record["sha256"],"size_bytes":bytes.len(),"mode":0o644}));
+    }
+    let mut snapshot = json!({"schema_version":"tos_corpus_snapshot_v1","base_revision":null,
+        "validator_sha256":validator_sha,"files":files,"identities":{},"dependencies":{},"retirements":[]});
+    let revision = sha(&canonical(&snapshot).unwrap());
+    snapshot["revision"] = json!(revision);
+    let revisions = store.join("revisions").join(&revision);
+    fs::create_dir_all(&revisions).unwrap();
+    fs::write(
+        revisions.join("snapshot.json"),
+        canonical(&snapshot).unwrap(),
+    )
+    .unwrap();
+    let pointer = canonical(
+        &json!({"schema_version":"tos_corpus_pointer_v1","current":revision,"previous":null}),
+    )
+    .unwrap();
+    fs::write(store.join("current.json"), &pointer).unwrap();
+    manifest["base_revision"] = json!(revision);
+    manifest["provenance_delta"]["base_revision"] = json!(revision);
+    fixture.write_manifest(&manifest);
+    let produced = fixture
+        .acquire(&fixture.output, &mut |payload| {
+            Ok(fixture.bodies[payload["file_ref"].as_str().unwrap()].clone())
+        })
+        .unwrap();
+    assert_eq!(produced["status"], "acquired-not-admitted");
+    // Previously sealed handoffs used public directory modes. Read compatibility
+    // does not waive exact selection, payload fixity, or accepted-base binding.
+    for name in ["", "source", "payload", "receipts"] {
+        fs::set_permissions(fixture.output.join(name), fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let verify = json!({"operation":"verify","acquisition_root":fixture.output,
+        "handoff_ref":produced["handoff_ref"],"expected_base_revision":revision,
+        "expected_manifest_sha256":fixture.manifest_sha,"repo_root":fixture.repo});
+    let verified = invoke(&verify).unwrap();
+    assert_eq!(
+        verified["selected_source_rows"].as_array().unwrap().len(),
+        7
+    );
+    assert_eq!(verified["payloads"].as_array().unwrap().len(), 1);
+    assert_eq!(verified["context"]["manifest_sha256"], fixture.manifest_sha);
+    let mut wrong = verify;
+    wrong["expected_manifest_sha256"] = json!("f".repeat(64));
+    assert!(
+        invoke(&wrong)
+            .unwrap_err()
+            .contains("manifest digest differs")
+    );
+    let context = json!({"schema_version":"tos_corpus_validation_context_v1",
+        "validator_sha256":validator_sha,"grammar_root_ref":fixture.repo,"historical_evidence":[]});
+    let binding = invoke(&json!({"operation":"validation-context","validation_context":context,"validator_sha256":validator_sha})).unwrap();
+    assert_eq!(
+        binding["admission_flags"]["grammar_root"],
+        json!(fixture.repo)
+    );
+    let adapted = invoke(&json!({"operation":"adapt","acquisition_root":fixture.output,
+        "handoff_ref":produced["handoff_ref"],"expected_manifest_sha256":fixture.manifest_sha,
+        "output_root":candidate,"accepted_store_root":store,"accepted_source_root":accepted,
+        "base_revision":revision,"validator_sha256":validator_sha,"validation_context":context,"repo_root":fixture.repo})).unwrap();
+    assert_eq!(adapted["status"], "candidate-not-admitted");
+    assert_eq!(adapted["admission_status"], "not-admitted");
+    assert_eq!(adapted["admission_preflight"], "not-run-transport-only");
+    let batch_bytes =
+        fs::read(candidate.join(adapted["candidate_batch_ref"].as_str().unwrap())).unwrap();
+    let batch: Value = serde_json::from_slice(&batch_bytes).unwrap();
+    assert_eq!(batch["schema_version"], "tos_corpus_batch_v1");
+    assert_eq!(batch["base_revision"], revision);
+    assert_eq!(batch["updates"].as_array().unwrap().len(), 7);
+    assert_eq!(adapted["candidate_batch_sha256"], sha(&batch_bytes));
+    let receipt: Value = serde_json::from_slice(
+        &fs::read(candidate.join("receipts/acquisition-handoff-adapter.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(receipt["admission_status"], "not-admitted");
+    assert_eq!(receipt["publication_status"], "not-published");
+    assert_eq!(fs::read(store.join("current.json")).unwrap(), pointer);
+}

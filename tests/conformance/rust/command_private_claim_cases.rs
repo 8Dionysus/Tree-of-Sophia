@@ -1031,9 +1031,24 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         &fs::read(home.join(selected["form_file"].as_str().unwrap())).unwrap(),
     )
     .unwrap();
+    let mut expected_current_forms = selected["current_forms"].clone();
+    assert_eq!(current_forms["growth_history"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        expected_current_forms["growth_history"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        current_forms["growth_history"][0]["owner_configuration"],
+        form_request["expected_configuration"]
+    );
+    expected_current_forms["growth_history"][0]["owner_configuration"] =
+        form_request["expected_configuration"].clone();
     assert_eq!(
         stable_form_payload(&current_forms),
-        stable_form_payload(&selected["current_forms"])
+        stable_form_payload(&expected_current_forms)
     );
 
     let inspected = call(

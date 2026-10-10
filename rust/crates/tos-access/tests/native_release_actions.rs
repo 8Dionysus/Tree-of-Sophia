@@ -76,11 +76,16 @@ fn create_archive(path: &Path, marker: &str) -> String {
     let binary = fs::read(CLI).unwrap();
     let lock = include_bytes!("../../../../Cargo.lock").to_vec();
     let pin = include_bytes!("../../../../rust-toolchain.toml").to_vec();
+    // These aliases exercise archive/pair admission only; this fixture never
+    // invokes a source command or schema evaluation. Installed owner behavior
+    // is covered by the separate genuine-product conformance route.
     let native_owner = binary.clone();
+    let schema_worker = binary.clone();
     let files = BTreeMap::from([
         ("Cargo.lock", lock),
         ("access/src/tos_access/tos-access", binary),
         ("native/bin/tos-native-owner-command", native_owner),
+        ("native/bin/tos-schema-worker", schema_worker),
         (
             "access/src/tos_access/web_dist/assets/tos-graph.css",
             format!("body{{margin:0}}/*{marker}*/\n").into_bytes(),
@@ -142,6 +147,18 @@ fn create_archive(path: &Path, marker: &str) -> String {
                 "features":[],
                 "sha256":Digest256::of_bytes(&files["native/bin/tos-native-owner-command"]).to_hex(),
                 "size_bytes":files["native/bin/tos-native-owner-command"].len(),
+            },
+            "tos-schema-worker":{
+                "schema_version":"tos_native_software_command_build_v1",
+                "target":"x86_64-unknown-linux-gnu",
+                "source_commit":source,
+                "source_tree":source,
+                "profile":"debug",
+                "lock_sha256":Digest256::of_bytes(lock).to_hex(),
+                "toolchain":toolchain,
+                "features":["default","native"],
+                "sha256":Digest256::of_bytes(&files["native/bin/tos-schema-worker"]).to_hex(),
+                "size_bytes":files["native/bin/tos-schema-worker"].len(),
             }
         },
         "members":member_rows,
@@ -165,6 +182,7 @@ fn create_archive(path: &Path, marker: &str) -> String {
                             *name,
                             "access/src/tos_access/tos-access"
                                 | "native/bin/tos-native-owner-command"
+                                | "native/bin/tos-schema-worker"
                         ) {
                             0o755
                         } else {

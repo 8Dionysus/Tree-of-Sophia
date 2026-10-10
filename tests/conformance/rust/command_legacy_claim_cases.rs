@@ -231,11 +231,15 @@ fn selected_software(
 fn comparable(value: &Value, ignore_revision: bool) -> Value {
     let mut normalized = value.clone();
     if let Some(object) = normalized.as_object_mut() {
+        // Actual configuration digests are independently checked against the
+        // relocated protected owner (and selected contracts for form owners).
+        object.remove("owner_configuration");
         if ignore_revision {
             object.remove("revision");
         }
         if let Some(receipt) = object.get_mut("receipt").and_then(Value::as_object_mut) {
             receipt.remove("recorded_at");
+            receipt.remove("owner_configuration");
         }
     }
     normalized
@@ -273,6 +277,10 @@ fn assert_form_mutation(actual: &Value, expected: &Value, request: &Value, label
     let expected_revision = &request["expected_revision"];
     assert_eq!(actual["receipt"]["request_digest"], digest);
     assert_eq!(actual["receipt"]["previous_revision"], *expected_revision);
+    assert_eq!(
+        actual["receipt"]["owner_configuration"],
+        request["expected_configuration"]
+    );
     let mut expected = expected.clone();
     expected["receipt"]["request_digest"] = Value::String(digest);
     expected["receipt"]["previous_revision"] = expected_revision.clone();
@@ -293,7 +301,16 @@ fn assert_revision_mutation(
     assert_eq!(actual["receipt"]["request_digest"], digest);
     assert_eq!(actual["receipt"]["previous_revision"], previous_revision);
     assert_eq!(actual["receipt"]["archive_path"], archive);
+    assert_eq!(
+        actual["receipt"]["owner_configuration"],
+        request["expected_configuration"]
+    );
+    assert_eq!(
+        actual["receipt"]["dependencies"],
+        request["expected_dependencies"]
+    );
     let mut expected = expected.clone();
+    expected["receipt"]["dependencies"] = request["expected_dependencies"].clone();
     expected["receipt"]["request"] = request.clone();
     expected["receipt"]["request_digest"] = Value::String(digest);
     expected["receipt"]["previous_revision"] = Value::String(previous_revision.to_owned());
@@ -330,11 +347,19 @@ fn comparable_form_payload(value: &Value, request: &Value, verify_actual: bool) 
         if verify_actual {
             assert_eq!(receipt["request_digest"], digest);
             assert_eq!(receipt["previous_revision"], previous_revision);
+            assert_eq!(
+                receipt["owner_configuration"],
+                request["expected_configuration"]
+            );
         }
         let receipt = receipt.as_object_mut().unwrap();
         receipt.insert("request_digest".into(), Value::String(digest.clone()));
         receipt.insert("previous_revision".into(), previous_revision.clone());
         receipt.remove("recorded_at");
+        receipt.insert(
+            "owner_configuration".into(),
+            request["expected_configuration"].clone(),
+        );
     }
     assert!(found, "form command receipt is absent");
     normalized
@@ -425,6 +450,37 @@ fn native_call(
         "tos_local_native_source_result_v1"
     );
     assert_eq!(response["grants_admission"], false);
+    let config: Value = serde_json::from_slice(&fs::read(owner).unwrap()).unwrap();
+    let configuration = if config["schema_version"] == "tos_local_historical_claim_form_owner_v1" {
+        let root = Path::new(config["source_root"].as_str().unwrap());
+        let mut contracts = serde_json::Map::new();
+        for relative in [
+            "ToS/contracts/historical-claim.schema.json",
+            "ToS/contracts/claim-packet.schema.json",
+            "ToS/contracts/historical-record.schema.json",
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/knowledge-assessment.schema.json",
+            "ToS/contracts/claim-display-fields.schema.json",
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        ] {
+            contracts.insert(
+                relative.to_owned(),
+                Value::String(
+                    tos_foundation::Digest256::of_bytes(&fs::read(root.join(relative)).unwrap())
+                        .to_prefixed(),
+                ),
+            );
+        }
+        request_digest(&serde_json::json!({"configuration":config,"source_contracts":contracts}))
+    } else {
+        assert_eq!(
+            config["schema_version"],
+            "tos_local_historical_claim_revision_owner_v1"
+        );
+        request_digest(&config)
+    };
+    assert_eq!(response["result"]["owner_configuration"], configuration);
     response["result"].clone()
 }
 
@@ -616,18 +672,41 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
         deadline,
         &mut ledger,
     );
-    assert_oracle(
-        &preview,
-        &expected["revision_preview"],
-        false,
-        "prepare-revise",
+    // Code migration changes the dependency digest; the same bound source
+    // objects and evidence below must still match the frozen reference.
+    assert!(
+        tos_foundation::Digest256::from_prefixed(
+            preview["expected_dependencies"].as_str().unwrap()
+        )
+        .is_ok()
     );
+    let mut expected_preview = expected["revision_preview"].clone();
+    expected_preview["expected_dependencies"] = preview["expected_dependencies"].clone();
+    assert_oracle(&preview, &expected_preview, false, "prepare-revise");
     let mut revision_request = fixture["revision_request"].clone();
     revision_request["expected_source"] = preview["source"].clone();
     revision_request["expected_revision"] = preview["revision"].clone();
     revision_request["expected_configuration"] = preview["owner_configuration"].clone();
     revision_request["expected_dependencies"] = preview["expected_dependencies"].clone();
     revision_request["expected_inputs"] = preview["source_bindings"].clone();
+    let before_refusal = source_members(&root, deadline);
+    let mut stale_request = revision_request.clone();
+    stale_request["expected_dependencies"] = Value::String(format!("sha256:{}", "0".repeat(64)));
+    let (status, raw, error) = super::command_text_cases::native_owner_cli_observation(
+        &repository,
+        &revision_owner,
+        &invocation_path,
+        &stale_request,
+        deadline,
+    );
+    ledger.native_cli_spawns += 1;
+    assert!(
+        !status.success(),
+        "stale dependency accepted: {} {}",
+        String::from_utf8_lossy(&raw),
+        String::from_utf8_lossy(&error)
+    );
+    assert_eq!(source_members(&root, deadline), before_refusal);
     let revised = native_call(
         &revision_owner,
         &invocation_path,
@@ -779,7 +858,7 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     assert_eq!(form_replay["grants_admission"], false);
     assert!(Instant::now() < deadline);
     assert_eq!(ledger.git_spawns, 1);
-    assert_eq!(ledger.native_cli_spawns, 7);
+    assert_eq!(ledger.native_cli_spawns, 8);
 
     eprintln!(
         "Legacy Claim F={max_fixture_bytes} bytes/{max_fixture_files} files (max authored state {max_authored_bytes} bytes; initial closure {fixture_bytes} bytes/{fixture_files} files), E={native_bytes}, C={consumer_bytes}, W={worker_bytes}, E+C+W={selected_image_bytes}; native_cli_spawns={}",

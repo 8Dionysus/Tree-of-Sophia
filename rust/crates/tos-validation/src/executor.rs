@@ -9574,6 +9574,111 @@ mod native {
             .unwrap()
         }
 
+        #[derive(Clone, Copy)]
+        enum FixtureExit {
+            Exit(i32),
+            ReadThenExit(i32),
+            Sleep,
+            Signal(i32),
+        }
+
+        // Process/protocol fixtures use only raw syscalls after fork: no allocator,
+        // inherited Rust locks, interpreter, or production worker behavior is involved.
+        // The real exec/limits path is exercised separately by fixture_image tests.
+        fn spawn_protocol_fixture(
+            output: &[u8],
+            close_output: bool,
+            exit: FixtureExit,
+        ) -> OperationChild {
+            let (input_parent, input_child) = socket_pair().unwrap();
+            let (output_parent, output_child) = socket_pair().unwrap();
+            let input_fd = input_child.as_raw_fd();
+            let output_fd = output_child.as_raw_fd();
+            let parent_pid = unsafe { libc::getpid() };
+            let pid = unsafe { libc::fork() };
+            assert!(pid >= 0);
+            if pid == 0 {
+                unsafe {
+                    if libc::setpgid(0, 0) != 0
+                        || libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL, 0, 0, 0) != 0
+                        || libc::getppid() != parent_pid
+                        || libc::dup2(input_fd, 0) < 0
+                        || libc::dup2(output_fd, 1) < 0
+                        || libc::close_range(3, u32::MAX, 0) != 0
+                    {
+                        libc::_exit(126);
+                    }
+                    let mut offset = 0;
+                    while offset < output.len() {
+                        let count = libc::send(
+                            1,
+                            output.as_ptr().add(offset).cast(),
+                            output.len() - offset,
+                            libc::MSG_NOSIGNAL,
+                        );
+                        if count < 0 && *libc::__errno_location() == libc::EINTR {
+                            continue;
+                        }
+                        if count <= 0 {
+                            libc::_exit(126);
+                        }
+                        offset += count as usize;
+                    }
+                    if close_output {
+                        libc::close(1);
+                    }
+                    match exit {
+                        FixtureExit::Exit(code) => libc::_exit(code),
+                        FixtureExit::ReadThenExit(code) => {
+                            let mut byte = 0u8;
+                            loop {
+                                let count = libc::read(0, (&mut byte as *mut u8).cast(), 1);
+                                if count < 0 && *libc::__errno_location() == libc::EINTR {
+                                    continue;
+                                }
+                                libc::_exit(if count == 1 { code } else { 126 });
+                            }
+                        }
+                        FixtureExit::Sleep => {
+                            let delay = libc::timespec {
+                                tv_sec: 2,
+                                tv_nsec: 0,
+                            };
+                            let mut remaining = delay;
+                            while libc::nanosleep(&remaining, &mut remaining) != 0 {
+                                if *libc::__errno_location() != libc::EINTR {
+                                    libc::_exit(126);
+                                }
+                            }
+                            libc::_exit(0);
+                        }
+                        FixtureExit::Signal(signal) => {
+                            libc::signal(signal, libc::SIG_DFL);
+                            let mut signals: libc::sigset_t = std::mem::zeroed();
+                            libc::sigemptyset(&mut signals);
+                            libc::sigaddset(&mut signals, signal);
+                            libc::sigprocmask(libc::SIG_UNBLOCK, &signals, std::ptr::null_mut());
+                            libc::kill(libc::getpid(), signal);
+                            libc::_exit(126);
+                        }
+                    }
+                }
+            }
+            drop(input_child);
+            drop(output_child);
+            OperationChild {
+                pid,
+                input: input_parent,
+                output: output_parent,
+                status: None,
+                natural_status: None,
+                natural_cpu_micros: None,
+                exchanges_started: 0,
+                cleanup_grace: ExecutorBudget::laboratory().cleanup_grace,
+                cleanup_result: None,
+            }
+        }
+
         fn fixture_identity() -> ExecutionIdentity {
             ExecutionIdentity {
                 worker_sha256: Digest256::of_bytes(b"fixture-worker"),
@@ -10172,7 +10277,6 @@ mod native {
 
         #[test]
         fn batch_missing_or_trailing_worker_receipt_refuses_full_coverage() {
-            let image = fixture_image("/usr/bin/python3");
             let budget = BatchBudget::laboratory();
             for trailing in [false, true] {
                 let prepared = make_batch_request(
@@ -10194,20 +10298,18 @@ mod native {
                     output.extend_from_slice(prepared.units[0].unit_sha256.as_bytes());
                     output.extend_from_slice(&[0, 0, 0]);
                 }
-                let output_hex: String = output.iter().map(|byte| format!("{byte:02x}")).collect();
-                let output_arg = std::ffi::CString::new(output_hex).unwrap();
-                let script = c"import sys; sys.stdout.buffer.write(bytes.fromhex(sys.argv[1])); sys.stdout.buffer.flush()";
-                let argv = [
-                    c"python3".as_ptr() as *mut libc::c_char,
-                    c"-c".as_ptr() as *mut libc::c_char,
-                    script.as_ptr() as *mut libc::c_char,
-                    output_arg.as_ptr() as *mut libc::c_char,
-                    std::ptr::null_mut(),
-                ];
+                let mut child = spawn_protocol_fixture(&output, false, FixtureExit::Exit(0));
                 let mut results = Digest256Hasher::new();
                 results.update(b"tos-val2-batch-results-v1\0");
-                let outcome =
-                    run_batch_image(&image, prepared, results, budget, Instant::now(), &argv);
+                let outcome = run_batch_exchange(
+                    &mut child,
+                    prepared,
+                    results,
+                    budget,
+                    Instant::now(),
+                    None,
+                    false,
+                );
                 assert!(matches!(
                     outcome,
                     BatchOutcome::Incomplete {
@@ -10218,15 +10320,7 @@ mod native {
             }
             // Force EOF while the child is still blocked on input, then let
             // it exit naturally. EOF must not make cleanup immediately kill it.
-            let script = c"import os,sys; os.close(1); sys.stdin.buffer.read(1); sys.exit(17)";
-            let argv = [
-                c"python3".as_ptr() as *mut libc::c_char,
-                c"-c".as_ptr() as *mut libc::c_char,
-                script.as_ptr() as *mut libc::c_char,
-                std::ptr::null_mut(),
-            ];
-            let mut child =
-                spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+            let mut child = spawn_protocol_fixture(&[], true, FixtureExit::ReadThenExit(17));
             let eof_deadline = Instant::now() + Duration::from_millis(700);
             loop {
                 let mut byte = [0u8; 1];
@@ -10280,15 +10374,7 @@ mod native {
             // Closing stdout does not imply process exit. A live EOF child
             // receives only the original cleanup envelope and then is killed;
             // that SIGKILL is cleanup evidence, never natural termination.
-            let script = c"import os,time; os.close(1); time.sleep(2)";
-            let argv = [
-                c"python3".as_ptr() as *mut libc::c_char,
-                c"-c".as_ptr() as *mut libc::c_char,
-                script.as_ptr() as *mut libc::c_char,
-                std::ptr::null_mut(),
-            ];
-            let mut child =
-                spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+            let mut child = spawn_protocol_fixture(&[], true, FixtureExit::Sleep);
             let prepared = make_batch_request(
                 Digest256::of_bytes(b"fixture-worker"),
                 &batch_schema(),
@@ -10327,22 +10413,15 @@ mod native {
 
             // A status observed before cleanup is source of the termination
             // detail; unlike a cleanup SIGKILL, it may explain missing output.
-            for (script, expected) in [
-                (c"import sys; sys.exit(17)", ChildTermination::Exited(17)),
+            for (exit, expected) in [
+                (FixtureExit::Exit(17), ChildTermination::Exited(17)),
                 (
-                    c"import os,signal; os.kill(os.getpid(),signal.SIGTERM)",
+                    FixtureExit::Signal(libc::SIGTERM),
                     ChildTermination::Signalled(libc::SIGTERM),
                 ),
             ] {
                 let budget = BatchBudget::laboratory();
-                let argv = [
-                    c"python3".as_ptr() as *mut libc::c_char,
-                    c"-c".as_ptr() as *mut libc::c_char,
-                    script.as_ptr() as *mut libc::c_char,
-                    std::ptr::null_mut(),
-                ];
-                let mut child =
-                    spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+                let mut child = spawn_protocol_fixture(&[], false, exit);
                 let start = Instant::now();
                 while child.status.is_none() && start.elapsed() < Duration::from_millis(700) {
                     poll_exit(child.pid, &mut child.status).unwrap();
@@ -10453,7 +10532,6 @@ mod native {
 
         #[test]
         fn batch_per_unit_timeout_after_real_ack_kills_and_refuses() {
-            let image = fixture_image("/usr/bin/python3");
             let mut budget = BatchBudget::laboratory();
             budget.total_execution_wall = Duration::from_secs(1);
             budget.startup_wall = Duration::from_millis(700);
@@ -10471,20 +10549,12 @@ mod native {
             ack.extend_from_slice(prepared.request_sha256.as_bytes());
             ack.extend_from_slice(prepared.schema_set_sha256.as_bytes());
             ack.extend_from_slice(&1u32.to_be_bytes());
-            let ack_hex: String = ack.iter().map(|byte| format!("{byte:02x}")).collect();
-            let ack_arg = std::ffi::CString::new(ack_hex).unwrap();
-            let script = c"import sys,time; sys.stdout.buffer.write(bytes.fromhex(sys.argv[1])); sys.stdout.buffer.flush(); time.sleep(2)";
-            let argv = [
-                c"python3".as_ptr() as *mut libc::c_char,
-                c"-c".as_ptr() as *mut libc::c_char,
-                script.as_ptr() as *mut libc::c_char,
-                ack_arg.as_ptr() as *mut libc::c_char,
-                std::ptr::null_mut(),
-            ];
+            let mut child = spawn_protocol_fixture(&ack, false, FixtureExit::Sleep);
             let mut results = Digest256Hasher::new();
             results.update(b"tos-val2-batch-results-v1\0");
             let start = Instant::now();
-            let outcome = run_batch_image(&image, prepared, results, budget, start, &argv);
+            let outcome =
+                run_batch_exchange(&mut child, prepared, results, budget, start, None, false);
             assert!(matches!(
                 outcome,
                 BatchOutcome::Incomplete {
