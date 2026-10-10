@@ -26,6 +26,7 @@ const VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabular
 const PRODUCER_SOURCE_MEMBERS: u64 = 4090;
 const PRODUCER_SOURCE_BYTES: u64 = 64 * 1024 * 1024;
 const PRODUCER_SOURCE_MEMBER_BYTES: u64 = 32 * 1024 * 1024;
+const RECORD_MAX_BYTES: usize = 16 * 1024 * 1024;
 
 fn run_native_corpus_build(binary: &Path, request: &serde_json::Value, preflight: bool) -> Output {
     let address_space_bytes = request["process_limits"]["address_space_bytes"]
@@ -71,11 +72,17 @@ fn run_native_corpus_build(binary: &Path, request: &serde_json::Value, preflight
 }
 fn canonical(value: &serde_json::Value) -> Vec<u8> {
     let raw = serde_json::to_vec(value).unwrap();
-    let doc = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    // Expanded checkpoint inventories use the same finite record envelope
+    // for hashing, persistence and reopen. Production readers keep their caps.
+    let limits = JsonLimits {
+        max_bytes: RECORD_MAX_BYTES,
+        ..JsonLimits::default()
+    };
+    let doc = parse_json(&raw, JsonMode::PublishedStrict, limits).unwrap();
     canonical_bytes_v1(
         doc.root(),
         CanonicalProfile::CorpusSnapshotV1,
-        JsonLimits::default(),
+        limits,
     )
     .unwrap()
 }
@@ -1373,13 +1380,13 @@ fn read_record(path: &Path) -> serde_json::Value {
             && metadata.is_file()
             && metadata.uid() == fs::metadata("/proc/self").unwrap().uid()
     );
-    assert!(metadata.len() <= 16 * 1024 * 1024);
+    assert!(metadata.len() <= RECORD_MAX_BYTES as u64);
     serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
 }
 fn write_record(path: &Path, value: &serde_json::Value) {
     use std::os::unix::fs::OpenOptionsExt;
     let bytes = serde_json::to_vec(value).unwrap();
-    assert!(bytes.len() <= 16 * 1024 * 1024);
+    assert!(bytes.len() <= RECORD_MAX_BYTES);
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
