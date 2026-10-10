@@ -834,7 +834,16 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             let filesystem =
                 CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancelled)
                     .unwrap();
-            let ctx = command_context(original_revision, &owner_raw, &request, &files);
+            let mut ctx = command_context(original_revision, &owner_raw, &request, &files);
+            if scenario == 7 {
+                // Exercise original presentation independently of serde_json's
+                // optional preserve_order feature in this test build.
+                let JsonValue::Object(mut fields) = cmd::parse(&ctx.request_raw).unwrap() else {
+                    panic!("revision request object");
+                };
+                fields.sort_by(|(left, _), (right, _)| right.as_str().cmp(&left.as_str()));
+                ctx.request_raw = cmd::published(&JsonValue::Object(fields)).unwrap();
+            }
             let witnesses = pending_factory(
                 &filesystem,
                 &ctx,

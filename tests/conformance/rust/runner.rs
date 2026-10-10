@@ -4,7 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{self, Read, Write};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
 use flate2::read::GzDecoder;
@@ -107,6 +107,8 @@ fn fixtures() -> PathBuf {
 // fixture producer. Native tests can replay that fixture without importing or
 // executing its historical producer; only root-relative JSON path values
 // listed in the capture manifest are rebased into the new isolated directory.
+// Protected runtime grants also select that directory's current Unix owner;
+// authored and retained source bytes keep their captured account identities.
 #[derive(Clone, Debug)]
 pub(crate) struct CapturedFixtureFile {
     pub bytes: u64,
@@ -1161,6 +1163,58 @@ pub(crate) fn native_python_fixture(
         fs::write(&target, updated).unwrap();
         let mode = files[&format!("{root_name}/{relative}")].mode;
         fs::set_permissions(&target, fs::Permissions::from_mode(mode)).unwrap();
+    }
+
+    // The historical factories selected os.getuid(). A replay on another host
+    // must bind its protected grants to the new isolated account as well as
+    // rebasing paths. Never rewrite retained configurations inside ToS, whose
+    // original bytes remain history evidence.
+    let uid = fs::metadata(root_paths.values().next().unwrap())
+        .unwrap()
+        .uid();
+    assert!(
+        root_paths
+            .values()
+            .all(|root| fs::metadata(root).unwrap().uid() == uid)
+    );
+    let rebase_grant = |value: &mut Value| {
+        let is_grant = value["schema_version"].as_str().is_some_and(|schema| {
+            schema.starts_with("tos_local_") || schema.starts_with("tos_public_")
+        });
+        if !is_grant || value.get("uid").is_none() {
+            return false;
+        }
+        let captured_uid = value["uid"].as_u64().expect("captured grant account");
+        if captured_uid == u64::from(uid) {
+            return false;
+        }
+        value["uid"] = Value::from(uid);
+        true
+    };
+    for (key, file) in &files {
+        let (root_name, relative) = key.split_once('/').unwrap();
+        if file.mode != 0o600
+            || !relative.ends_with(".json")
+            || relative.split('/').any(|component| component == "ToS")
+        {
+            continue;
+        }
+        let target = root_paths[root_name].join(capture_relative_path(relative));
+        let raw = fs::read(&target).unwrap();
+        let Ok(mut value) = serde_json::from_slice::<Value>(&raw) else {
+            continue;
+        };
+        if rebase_grant(&mut value) {
+            fs::write(&target, serde_json::to_vec_pretty(&value).unwrap()).unwrap();
+            fs::set_permissions(&target, fs::Permissions::from_mode(file.mode)).unwrap();
+        }
+    }
+    // These are the factory's top-level runtime configuration packets, not
+    // its nested frozen expected results or captured source records.
+    for value in packet.as_object_mut().unwrap().values_mut() {
+        if value.is_object() {
+            rebase_grant(value);
+        }
     }
 
     let owner_field = if id == "legacy-claim" {

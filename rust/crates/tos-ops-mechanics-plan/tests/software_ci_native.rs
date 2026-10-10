@@ -584,7 +584,29 @@ fn sparse_checkout_preserves_exact_fixtures_without_whole_corpus() {
     assert_eq!(
         release_tests,
         vec![
-            vec!["cargo", "test", "--locked", "-p", "tos-access"],
+            vec![
+                "cargo",
+                "test",
+                "--locked",
+                "-p",
+                "tos-access",
+                "--",
+                "--skip",
+                "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
+            ],
+            vec![
+                "cargo",
+                "test",
+                "--locked",
+                "-p",
+                "tos-access",
+                "--test",
+                "native_release_actions",
+                "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+                "--",
+                "--exact",
+                "--nocapture"
+            ],
             vec!["cargo", "test", "--locked", "-p", "tos-query"],
             vec![
                 "cargo",

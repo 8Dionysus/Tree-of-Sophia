@@ -109,7 +109,32 @@ fn release_software_native_test_packages_are_selected_once() {
     let expected = [
         (
             "run tests: native access package".to_owned(),
-            vec!["cargo", "test", "--locked", "-p", "tos-access"],
+            vec![
+                "cargo",
+                "test",
+                "--locked",
+                "-p",
+                "tos-access",
+                "--",
+                "--skip",
+                "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+            ],
+        ),
+        (
+            "run tests: native software/data release actions fixture".to_owned(),
+            vec![
+                "cargo",
+                "test",
+                "--locked",
+                "-p",
+                "tos-access",
+                "--test",
+                "native_release_actions",
+                "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+                "--",
+                "--exact",
+                "--nocapture",
+            ],
         ),
         (
             "run tests: native query package".to_owned(),

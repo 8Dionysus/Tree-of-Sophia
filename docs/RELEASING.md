@@ -47,8 +47,9 @@ owner surfaces.
    longer command deadline only from the selected workload
    cost; a timeout is incomplete validation, not a passing test result. These
    flags do not change host resource admission or skip checks in that phase.
-   The Rust workspace lane runs the native software/data release actions
-   fixture separately from the workspace remainder. Its real captured corpus,
+   The Rust workspace lane and software release tests run the native
+   software/data release actions fixture as a separate command from their
+   remaining package tests. Its real captured corpus,
    pair switching and revocation checks take about ten minutes in CI; each
    command retains its own fifteen-minute bound within the same lane deadline.
    Conformance and Growth consume the pinned workspace images before package
