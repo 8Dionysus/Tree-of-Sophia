@@ -836,7 +836,7 @@
       "lines": 246,
       "path": ".agents/agent-surface.current.json",
       "role": "generated skill/port currentness read model",
-      "sha256": "d8e5f69325f4b90938170fa47b3773a55bf570f2f83231b6a365b038467d64bd",
+      "sha256": "9c9b947c6a83834aef0b97ca0c524d0be657e569bf55d9c3acb56e7a32c0201e",
       "whitespace_tokens": 376
     },
     {
@@ -978,10 +978,10 @@
     "near_duplicate_cards": "manual review"
   },
   "source_inventory": "docs/validation/agents_route_inventory.json",
-  "source_inventory_sha256": "d974b9f64b74ce696a0dc970403e4946fe1db74d4fdea003763ea6667e0d2728",
+  "source_inventory_sha256": "f79c6f4b7b8ebacf783a4b51d62c371f3d952ebc4de5ce41bdc2d5bb3f491146",
   "task_routes": [
     {
-      "additional_context_tokens": 18709,
+      "additional_context_tokens": 18710,
       "completion_evidence": [
         {
           "bytes": 7760,
@@ -993,18 +993,22 @@
           "whitespace_tokens": 995
         },
         {
-          "bytes": 98805,
+          "bytes": 98767,
           "exists": true,
           "lines": 1515,
           "path": "ToS/source-witnesses/README.md",
           "role": "completion",
-          "sha256": "bcbbbd1716bb2c09561bae30c43453b5e564134c1462d7afa71a265583c323df",
-          "whitespace_tokens": 12363
+          "sha256": "4d7f22370f12a2e99c9c8554133f9ce05d9e306102b37dfccffef48d02db55f9",
+          "whitespace_tokens": 12364
         },
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "completion"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "completion",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         }
       ],
       "id": "source_witness_intake",
@@ -1016,13 +1020,13 @@
       "inherited_context_tokens": 2664,
       "on_demand_surfaces": [
         {
-          "bytes": 98805,
+          "bytes": 98767,
           "exists": true,
           "lines": 1515,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "bcbbbd1716bb2c09561bae30c43453b5e564134c1462d7afa71a265583c323df",
-          "whitespace_tokens": 12363
+          "sha256": "4d7f22370f12a2e99c9c8554133f9ce05d9e306102b37dfccffef48d02db55f9",
+          "whitespace_tokens": 12364
         },
         {
           "bytes": 50577,
@@ -1051,9 +1055,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "validation"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "validation",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         },
         {
           "bytes": 133867,
@@ -1067,7 +1075,7 @@
       ]
     },
     {
-      "additional_context_tokens": 18709,
+      "additional_context_tokens": 18710,
       "completion_evidence": [
         {
           "bytes": 7760,
@@ -1088,9 +1096,13 @@
           "whitespace_tokens": 6346
         },
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "completion"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "completion",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         }
       ],
       "id": "corpus_identity_provenance_rights",
@@ -1111,13 +1123,13 @@
           "whitespace_tokens": 6346
         },
         {
-          "bytes": 98805,
+          "bytes": 98767,
           "exists": true,
           "lines": 1515,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "bcbbbd1716bb2c09561bae30c43453b5e564134c1462d7afa71a265583c323df",
-          "whitespace_tokens": 12363
+          "sha256": "4d7f22370f12a2e99c9c8554133f9ce05d9e306102b37dfccffef48d02db55f9",
+          "whitespace_tokens": 12364
         }
       ],
       "owner_exists": true,
@@ -1137,14 +1149,22 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "exists": false,
-          "path": "scripts/build_source_witness_catalog.py",
-          "role": "validation"
+          "bytes": 30465,
+          "exists": true,
+          "lines": 773,
+          "path": "rust/crates/tos-command/src/source_catalog_cli.rs",
+          "role": "validation",
+          "sha256": "dbc341ed5f76bfcb3e7668baff0f16a64c1be81870834f0bef566b4d7d2bfbf4",
+          "whitespace_tokens": 2157
         },
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "validation"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "validation",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         }
       ]
     },
@@ -1170,9 +1190,13 @@
           "whitespace_tokens": 1741
         },
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "completion"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "completion",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         }
       ],
       "id": "text_segmentation",
@@ -1219,9 +1243,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "validation"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "validation",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         },
         {
           "bytes": 133867,
@@ -1256,9 +1284,13 @@
           "whitespace_tokens": 1483
         },
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "completion"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "completion",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         }
       ],
       "id": "translation_alignment",
@@ -1305,9 +1337,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "exists": false,
-          "path": "scripts/validate_source_witness_foundation.py",
-          "role": "validation"
+          "bytes": 32454,
+          "exists": true,
+          "lines": 812,
+          "path": "rust/crates/tos-command/src/source_foundation_cli.rs",
+          "role": "validation",
+          "sha256": "af5d8a8526c979b0f2179a570eb65d2e6ea58b1a6fb9db158b6e27b4495a5481",
+          "whitespace_tokens": 2401
         },
         {
           "bytes": 133867,
@@ -2130,7 +2166,7 @@
       ]
     },
     {
-      "additional_context_tokens": 4997,
+      "additional_context_tokens": 5255,
       "completion_evidence": [
         {
           "bytes": 1647,
@@ -2156,7 +2192,7 @@
           "lines": 246,
           "path": ".agents/agent-surface.current.json",
           "role": "completion",
-          "sha256": "d8e5f69325f4b90938170fa47b3773a55bf570f2f83231b6a365b038467d64bd",
+          "sha256": "9c9b947c6a83834aef0b97ca0c524d0be657e569bf55d9c3acb56e7a32c0201e",
           "whitespace_tokens": 376
         },
         {
@@ -2195,13 +2231,13 @@
           "whitespace_tokens": 2527
         },
         {
-          "bytes": 23134,
+          "bytes": 27316,
           "exists": true,
-          "lines": 366,
+          "lines": 881,
           "path": "docs/validation/agents_route_inventory.json",
           "role": "on_demand",
-          "sha256": "d974b9f64b74ce696a0dc970403e4946fe1db74d4fdea003763ea6667e0d2728",
-          "whitespace_tokens": 1446
+          "sha256": "f79c6f4b7b8ebacf783a4b51d62c371f3d952ebc4de5ce41bdc2d5bb3f491146",
+          "whitespace_tokens": 1704
         }
       ],
       "owner_exists": true,
@@ -2528,12 +2564,12 @@
           "whitespace_tokens": 888
         },
         {
-          "bytes": 3802,
+          "bytes": 3819,
           "exists": true,
           "lines": 61,
           "path": "kag/VALIDATION.md",
           "role": "on_demand",
-          "sha256": "81b6b18668468814210841868aaf6faa2279e1f3b5f9ef2393c675c01bd950b3",
+          "sha256": "814c50165c84b5a8a87a40d0b494b7c85755d492672575bc74f52bd8561c8f1a",
           "whitespace_tokens": 426
         },
         {

@@ -428,8 +428,8 @@
         "standalone verification"
       ],
       "required_markers": [
-        "standalone profiles",
-        "native MCP adapter",
+        "`profiles/` own the portable consumer-facing ABI",
+        "HTTP/MCP service",
         "WebMCP action contract",
         "derived-export owners"
       ],
