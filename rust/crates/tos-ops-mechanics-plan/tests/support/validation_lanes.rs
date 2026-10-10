@@ -194,9 +194,11 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
         .unwrap();
     let labels: Vec<_> = steps.iter().map(|s| s["label"].as_str().unwrap()).collect();
     assert_eq!(
-        labels[..5],
+        labels[..7],
         [
             "check Rust formatting",
+            "check WASM foundation target",
+            "check WASM validation backend target",
             "build exact native schema worker for source-cut fixtures",
             "build exact native owner CLI for process-cold fixtures",
             "build exact native prepared consumer for conformance fixtures",
@@ -206,7 +208,7 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
     let command =
         |label: &str| steps.iter().find(|s| s["label"] == label).unwrap()["command"].clone();
     assert_eq!(
-        command(labels[3]),
+        command("build exact native prepared consumer for conformance fixtures"),
         json!([
             "cargo",
             "build",
@@ -218,7 +220,7 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
         ])
     );
     assert_eq!(
-        command(labels[4]),
+        command("compile exact Rust conformance test image"),
         json!([
             "cargo",
             "test",
