@@ -2,7 +2,7 @@
 
 `legacy-whole-form-set.jsonl` is derived by `generate_oracle.py` with CPython
 3.14.7 from the exact owner writer expression in
-`mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py:1709`:
+[historical source writer](https://github.com/8Dionysus/Tree-of-Sophia/blob/60e96eceb0903d74e287217fe5e8c1a891f4ab74/mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py) (line 1709):
 `(json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2) + "\n").encode("utf-8")`.
 It preserves insertion order, default separators, Python float spelling and
 the final LF. This is a **whole published form-set/history** byte profile,

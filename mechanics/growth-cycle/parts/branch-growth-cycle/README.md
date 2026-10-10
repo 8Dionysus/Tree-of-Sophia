@@ -236,7 +236,7 @@ declared metadata profiles and schema routes. Pass the locator to `supports`
 when one catalog contains more than one native/declared representation.
 
 An explicit `MetadataVersionReader(root, catalog_snapshot=SourceCatalogSnapshot(...))`
-uses the [addressed catalog v2](../../../../ToS/source-witnesses/README.md#explicit-addressed-record-catalog)
+uses the [addressed catalog v2](../../../../ToS/source-witnesses/README.md#native-catalog-and-projection-routes)
 for keyed record lookup. It verifies the catalog header's publication token and
 generation against the same coherent live source snapshot, and checks exact
 source raw bytes, length and record ref before opening retained history. There
@@ -600,7 +600,7 @@ them. `check` does not turn a local candidate into an authority source.
 ### Source-bound configuration v2
 
 The protected source/journal input may also be used by the
-[local assessed graph builders](#local-assessed-graph-builds). This remains
+[local assessed graph builders](#local-assessed-graph-candidates). This remains
 separate from source modification and from public export or runtime admission.
 
 `tos_local_assessment_owner_v2` retains the v1 fields and adds `source_root`

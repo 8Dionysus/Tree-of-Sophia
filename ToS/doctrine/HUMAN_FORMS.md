@@ -158,7 +158,7 @@ canon retain their respective owner routes.
 
 `ToS/contracts/human-form.schema.json` and `human-form-template.schema.json`
 define the source records. The pure owner mechanic is
-`mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py`.
+`rust/crates/tos-validation/src/source_forms.rs`.
 It returns `ready`, `invalid`, `unavailable`, `stale`, `restricted`,
 `needs-assessment` or `over-budget`. `ready` reports successful rendering. Acceptance of the represented assertion
 is recorded by its own assessment. Rejections and disputes remain in the separate
@@ -282,7 +282,7 @@ This optional input produces a **local research candidate**. Context and assessm
 and artifact-consumer clearance before publication or runtime connection. The
 ordinary deterministic builders and source-parity checks use no private owner
 configuration and keep their existing output. See the
-[local builder commands](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-builds).
+[local builder commands](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-candidates).
 The local CLI requires a separate new JSON target outside repository sources
 (or within private `.git` state), atomically creates it with mode `0600`, and
 never replaces an existing file. `--check` compares that candidate with current
@@ -335,7 +335,7 @@ the exact bibliographic record. The subject retains its own record and identity.
 graph objects until the source owner rebinds successor forms; older wording and exact dependencies remain in
 `prior_forms`. The adjacent set stores wording and its exact source bindings.
 
-`scripts/source_witness_human_forms.py` provides the first metadata-only
+`rust/crates/tos-command/src/source_forms.rs` provides the first metadata-only
 adapter: whole `preferred_label` and `variant_labels/*/value` names, and whole
 `notes` hover text. Identity status and equivalence posture remain mandatory;
 a variant also retains all its source metadata, including unknown members.
@@ -625,7 +625,7 @@ grammar. The independently chosen owner configuration binds the local account,
 creator, exact source route, authority reference, allowed operations/IDs and
 expiry; submitted prose cannot supply or widen that scope.
 
-`mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py`
+`rust/crates/tos-command/src/source_command.rs`
 implements this first Growth adapter. Discovery names semantic metadata fields;
 preparation constructs complete source-copy bindings from the same field and
 context rules as the existing bibliographic reader. Preparation writes nothing.

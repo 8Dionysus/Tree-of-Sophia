@@ -45,7 +45,7 @@ historical Collection versions remain available to exact metadata readers.
 
 ## Verification
 
-Run `mechanics/growth-cycle/tests/test_source_collection_commands.py`, the
+Run `tests/conformance/rust/command_collection_cases.rs`, the
 Collection creation cases in `test_source_commands.py`, metadata reader and
 discovery tests, then source-foundation and registry checks when their owner
 inputs change. Synthetic fixtures test mechanisms, never historical membership.

@@ -24,7 +24,7 @@ a fresh grant; double collection is not a cross-subject transaction or lease.
 The additive optional annotation is documented in the source materialization
 schema. Older closed-schema consumers must update, not strip it. Ordinary
 metadata-only builders and source-parity readers retain their public route.
-The [explicit local CLI](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-builds)
+The [explicit local CLI](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-candidates)
 creates only a separate new mode-0600 JSON candidate using exclusive staging,
 fsync and an atomic no-replace link. A failed build never replaces the prior
 reader or changes source/journal history. Separate CLI files are not an atomic

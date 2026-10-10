@@ -54,7 +54,7 @@ library and integration tests in their crate homes; navigation coverage is
 optional under TOS-D-0062.
 
 The remaining root Python assertions, acquisition references and HTTP bootstrap
-are retained byte-for-byte as `.py.txt` history under `tests/historical/`.
+are retained byte-for-byte as `.py.snapshot` history under `tests/historical/`.
 Their maintained successors are the existing native owners:
 
 - Root entry and release routes: `tos-ops-mechanics-plan` documentation checks.

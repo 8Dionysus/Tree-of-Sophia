@@ -1,13 +1,14 @@
-# Selected Agent to prepared publication (retired Python route)
+# Selected Agent to native prepared publication
 
-> Historical contract: `scripts/source_agent_publication.py` and the Python
-> prepared-publication transaction it described have been retired. The details
-> below record former behavior and are not active interfaces or supported
-> invocation instructions. Current exact-source disclosure follows the native
-> owner-selected contract in [`source-read.v1.schema.json`](source-read.v1.schema.json);
-> current release and corpus admission follow
-> [`native-managed-release.v1.md`](native-managed-release.v1.md). No native
-> Agent-specific prepared-publication transaction is claimed by this retirement.
+The Rust owner is `rust/crates/tos-command/src/source_agent_publication.rs`.
+Its public API exports `bootstrap_agent_source_addressing_extension_transaction`,
+`bootstrap_reviewed_agent_execution_profile_transaction` and
+`publish_committed_agent_correction`. These preserve the source-addressing,
+execution-profile and publication boundaries described below. The older helper
+names in this contract identify the original algorithm stages, not importable
+Python interfaces. Exact-source disclosure follows the owner-selected contract
+in [`source-read.v1.schema.json`](source-read.v1.schema.json); release selection
+and corpus admission follow [`native-managed-release.v1.md`](native-managed-release.v1.md).
 
 ## Independent source identity
 
@@ -174,7 +175,7 @@ belongs to the caller. `execution_profile_current=false` remains observable
 for an old execution profile: the extension cannot make a subsequent source
 command eligible by simply copying the current implementation hash.
 
-The Access-owned Python helper `scripts/authored_corpus_source_read.py` and
+The former Access-owned Python authored-corpus reader and
 its authored-CSV prepared-source bootstrap have been retired. Exact source
 disclosure follows the native owner-selected vector contract in
 [`source-read.v1.schema.json`](source-read.v1.schema.json); this

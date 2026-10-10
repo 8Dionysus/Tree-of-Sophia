@@ -368,10 +368,10 @@ fn reviewed_tei_profiles_bind_language_role_identity_and_exact_opening() {
         for (before, after) in [
             (
                 format!("xml:lang=\"{xml_language}\""),
-                "xml:lang=\"wrong\"".into(),
+                "xml:lang=\"wrong\"".to_owned(),
             ),
-            (urn.to_owned(), "urn:cts:other:wrong1".into()),
-            (format!("type=\"{xml_role}\""), "type=\"wrong\"".into()),
+            (urn.to_owned(), "urn:cts:other:wrong1".to_owned()),
+            (format!("type=\"{xml_role}\""), "type=\"wrong\"".to_owned()),
         ] {
             assert!(inspected(&target, "source.xml", &body.replace(&before, &after)).is_err());
         }

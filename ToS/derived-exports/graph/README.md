@@ -46,7 +46,7 @@ timeline facet or turn a date into an identity.
 
 ## Read-only query route
 
-An explicit [local assessed build](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-builds)
+An explicit [local assessed build](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-candidates)
 can carry current source-journal form results into the existing common reader.
 It writes a separate private research candidate, never this tracked public
 projection. Public-safety clearance, artifact admission and runtime publication

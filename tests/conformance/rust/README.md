@@ -19,7 +19,7 @@ CPython's default 4,300-digit limit. A companion source-parse vector checks
 4,301 digits fail with the declared budget code. Each oracle row records
 exact bytes and SHA-256 for two distinct existing owner algorithms:
 the former Python corpus-store canonical serializer appended one LF, while
-`scripts/source_record_profiles.py::catalog_entry` hashes the compact sorted
+[historical catalog-entry writer](https://github.com/8Dionysus/Tree-of-Sophia/blob/1b10f928da0a1d94f516f092de1cff9b45b6f5a1/scripts/source_record_profiles.py) hashes the compact sorted
 UTF-8 JSON body without that LF. The expected values came from Python
 `json.loads`/`json.dumps`, not Rust. The runner compares both snapshot and
 source-record outputs and their digests when the new FND API is integrated.

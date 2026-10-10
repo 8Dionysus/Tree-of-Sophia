@@ -49,7 +49,7 @@ input bytes are no longer available, the original origin cannot be rebound to
 today's rights or research; availability must be restored by their owner.
 Legacy discovery provenance keeps its separate unchanged validation branch.
 
-Run `mechanics/growth-cycle/tests/test_source_artifact_commands.py`, native
+Run `rust/crates/tos-command/src/source_artifact_native.rs`, native
 descriptive revision and exact metadata reader tests, then relevant source
 foundation, discovery and topology checks. These synthetic checks cover
 serialization and retained history. Real Artifact assessment, rights,

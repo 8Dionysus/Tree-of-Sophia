@@ -226,7 +226,7 @@ FD only to this exact command. Missing or mismatched source, worker, invocation,
 or stage custody fails closed; no Python validation fallback is invoked.
 
 For an explicit source-first migration observation, run
-`TOS_NATIVE_PREFIX=/absolute/installed/prefix python scripts/source_witness_projection_coverage.py --invocation /absolute/protected-invocation.json --rows`
+`tos source-projection-coverage --root /absolute/source-root --invocation /absolute/protected-invocation.json --rows`
 from the repository. `--invocation` selects the actual Access executable digest,
 native schema-worker image and original capture/resource controls using the
 protected `tos_local_native_foundation_invocation_v1` contract. The maintained

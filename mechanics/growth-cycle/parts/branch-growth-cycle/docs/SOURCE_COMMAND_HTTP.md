@@ -1,6 +1,6 @@
 # Explicit local source-command transport
 
-`../scripts/source_command_http.py` exposes the source-command front door on
+`tos-native-owner-command http` exposes the source-command front door on
 **127.0.0.1 only**. This separately started source-owner service dispatches
 commands under existing delegations and their exact target, identity and
 assessment requirements. Read-only access HTTP `/api`, WebMCP and native
@@ -20,9 +20,8 @@ tos-native-owner-command http \
 The protected native invocation selects the same owner configuration and the
 installed owner executable identity. Every command enters the existing native
 owner engine and rereads its current grant, rights, source and software fences.
-The transport token grants no source authority. The maintained Python listener
-remains an explicit compatibility/reference surface while retirement evidence
-is collected; it is not part of this native process.
+The transport token grants no source authority. The native listener owns this
+transport; the former Python listener is retired.
 
 The native catalog is the authored packaged descriptor
 `rust/crates/tos-command/src/source_command_catalog.json`. The installed
@@ -133,7 +132,7 @@ verification of their own resulting state.
 
 ## Verification
 
-`mechanics/growth-cycle/tests/test_source_command_http.py` exercises real HTTP
+`tests/conformance/rust/command_private_profile_cases.rs` exercises real HTTP
 describe/apply/replay/revocation against an isolated copy of owner metadata and
 forms. It also covers token rotation, permissions, cross-origin and rebinding
 protection, duplicate headers, framing/budgets and uncertain delivery. The copied record supplies a controlled mechanics fixture under an isolated

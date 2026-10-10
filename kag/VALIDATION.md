@@ -30,7 +30,7 @@ tos-kag-release status --release-root /path/to/kag-releases --expected-revision 
 
 The explicitly selected interpreter belongs to the external aoa-kag consumer.
 ToS export, verification and status require no Python. The selected aoa-kag
-version must expose `scripts/validate_repo_local_kag_family.py --probe-source`:
+version must expose `/path/to/aoa-kag/scripts/validate_repo_local_kag_family.py --probe-source`:
 it validates both the complete family and provider home before returning the
 exact source identity. Published v1 releases with the historical four-program
 binding remain readable; new publications also bind this owner CLI.

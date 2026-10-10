@@ -73,7 +73,7 @@ uses explicit manifest or inventory selection, verifies source fixity, and
 publishes read-only payloads without replacing conflicting destination bytes.
 Its immutable `0600` receipts contain custody metadata only, not payload bytes.
 The frozen Python reference is nonexecutable history at
-`tests/historical/oracles/acquisition/source_payload_custody.py.txt`. Custody and fixity do
+`tests/historical/oracles/acquisition/source_payload_custody.py.snapshot`. Custody and fixity do
 not admit an Item, assess rights, or authorize publication.
 
 For a growing provider queue, invoke the native batch route through

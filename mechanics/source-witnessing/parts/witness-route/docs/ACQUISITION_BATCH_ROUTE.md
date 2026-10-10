@@ -141,7 +141,7 @@ digest is independently retained.
 The registry and handoff families share the native owner-command entrypoint;
 no Python command or import facade is maintained for these routes.
 Historical Python implementations and assertions remain as nonexecutable
-`.py.txt` files under `tests/historical/`. Native fixture acceptance uses real filesystem descriptors and an
+`.py.snapshot` files under `tests/historical/`. Native fixture acceptance uses real filesystem descriptors and an
 isolated local HTTP provider. Product build, installed consumer verification
 and source/CI landing are separate evidence stages; neither local fixture
 acquisition nor transport establishes corpus admission or publication.
@@ -159,13 +159,13 @@ files and different bytes are conflicts. New receipts are immutable mode
 bytes or absolute host paths. The operation does not alter metadata, rights,
 Item admission, semantic review or publication state. The prior Python
 implementation is retained only as
-`tests/historical/oracles/acquisition/source_payload_custody.py.txt`.
+`tests/historical/oracles/acquisition/source_payload_custody.py.snapshot`.
 Maintained custody regressions live with the native owner.
 
 The historical September 8 registry-preparation producer is
 retired from the runtime scripts surface in this source cutover. Its complete
 implementation and repository-relative historical inputs remain in
-`tests/historical/oracles/acquisition/prepare_registry_sources.py.txt`. This preserves
+`tests/historical/oracles/acquisition/prepare_registry_sources.py.snapshot`. This preserves
 the one-off producer for retrospective comparison and does not establish
 parity with its historical metadata capture. Maintained preparation uses the
 versioned selection-driven native batch route described above; fixture and

@@ -343,7 +343,8 @@ it cannot weaken those common metadata fields. No source is rewritten into a
 new schema merely to make it readable.
 
 The catalog, claim-graph identity reader, source-navigation reader and source
-validator use `scripts/source_record_profiles.py`. A new metadata kind in this
+validator use `rust/crates/tos-validation/src/record_rules.rs` and
+`rust/crates/tos-compiler/src/source_witness_catalog.rs`. A new metadata kind in this
 reader is added as a source schema and a profile on its concrete identity type,
 with explicit mappings for both `source-claims` and `source-navigation`.
 The common reader resolves it from the declaration. The ordinary knowledge
@@ -407,7 +408,7 @@ checks separately. A first introduction with both registries and both
 contracts absent requires the separate `--allow-initial-introduction` option
 or `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`, selected by that owner.
 Complete baseline ancestry must also contain no
-earlier registry/contract or `scripts/source_record_profiles.py`; shallow
+earlier registry/contract or [historical source-profile reader](https://github.com/8Dionysus/Tree-of-Sophia/blob/1b10f928da0a1d94f516f092de1cff9b45b6f5a1/scripts/source_record_profiles.py); shallow
 history and local Git grafts are refused. A partial snapshot, deleted prior
 reader or missing Git history is not an introduction.
 The report names `initial-introduction` and no previous-registry comparison;

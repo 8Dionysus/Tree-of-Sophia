@@ -26,7 +26,7 @@ cargo test --locked -p tos-ops-mechanics-plan --test source_routes_native curren
 ```
 
 Prior Python assertions and acquisition references are retained as nonexecutable
-`.py.txt` files under `tests/historical/`. Their maintained behavior runs through
+`.py.snapshot` files under `tests/historical/`. Their maintained behavior runs through
 the native owner tests above. They are not a second validation route.
 
 Select browser behavior through `software_browser` in root `VALIDATION.md`.
