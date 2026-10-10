@@ -22,6 +22,12 @@ pub struct NavigationOriginalLimits {
     pub max_total_bytes: u64,
 }
 impl NavigationOriginalLimits {
+    /// Existing format ceilings. Operational callers narrow these with their
+    /// selected work and resource budgets before planning original rows.
+    pub fn maximum() -> Self {
+        crate::knowledge_original_rows::maximum_limits()
+    }
+
     pub(crate) fn validate(self) -> Result<()> {
         if self.max_rows == 0
             || self.max_rows > crate::knowledge_original_rows::MAX_ROWS

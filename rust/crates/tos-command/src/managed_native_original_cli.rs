@@ -2320,12 +2320,17 @@ fn source_projection_limits(
     let work_cap = request.max_work_bytes.min(320 * 1024 * 1024).max(1);
     let row_count = request.cold_open.max_rows.max(1);
     let output_row_cap = source_row_cap.min(4 * 1024 * 1024).max(1);
+    // The family validators require a whole page/cohort of maximum-size
+    // rows to fit its byte budget. Keep the row width; derive the row count
+    // from the bytes instead of pricing a narrower width that is never used.
+    let claim_byte_cap = 128 * 1024 * 1024usize;
     let claim_rows = usize::try_from(row_count.min(16_384))
         .unwrap_or(16_384)
+        .min(claim_byte_cap / output_row_cap)
         .max(1);
-    let claim_row_cap = output_row_cap
-        .min((128 * 1024 * 1024usize / claim_rows).max(1))
-        .max(1);
+    let canon_page_bytes = 64 * 1024 * 1024usize;
+    let canon_page_rows = (canon_page_bytes / source_row_cap).min(1024).max(1);
+    let original_ceiling = tos_compiler::NavigationOriginalLimits::maximum();
     let catalog = SourceCatalogLimits {
         max_files: source.max_members.min(65_536),
         max_rows: row_count,
@@ -2337,7 +2342,7 @@ fn source_projection_limits(
     let bibliographic = BibliographicLimits {
         catalog,
         max_claim_cohort_rows: claim_rows,
-        max_claim_cohort_bytes: (claim_rows * claim_row_cap).min(128 * 1024 * 1024),
+        max_claim_cohort_bytes: claim_rows * output_row_cap,
         max_output_rows: row_count,
         max_output_bytes: output_cap,
         deadline,
@@ -2423,8 +2428,8 @@ fn source_projection_limits(
                 max_csv_record_bytes: source_file_cap,
                 max_forms: 256,
                 max_forms_output_bytes: 256 * 1024,
-                max_page_rows: 1024,
-                max_page_bytes: 64 * 1024 * 1024,
+                max_page_rows: canon_page_rows,
+                max_page_bytes: canon_page_bytes,
                 max_work_bytes: work_cap,
             },
             stage: tos_compiler::knowledge_stage::StageLimits {
@@ -2444,9 +2449,15 @@ fn source_projection_limits(
             schema_worker_limits: worker_limits,
             schema_work,
             originals: tos_compiler::NavigationOriginalLimits {
-                max_rows: row_count,
-                max_row_bytes: request.cold_open.max_row_bytes,
-                max_total_bytes: request.cold_open.max_work_bytes,
+                max_rows: row_count.min(original_ceiling.max_rows),
+                max_row_bytes: request
+                    .cold_open
+                    .max_row_bytes
+                    .min(original_ceiling.max_row_bytes),
+                max_total_bytes: request
+                    .cold_open
+                    .max_work_bytes
+                    .min(original_ceiling.max_total_bytes),
             },
             max_canon_input_bytes: source.max_total_bytes.min(8 * 1024 * 1024),
             max_output_bytes: output_cap,
@@ -5082,6 +5093,96 @@ fn run_request(
         Err(error) => {
             let _ = writeln!(diagnostics, "native Original producer refused: {error}");
             2
+        }
+    }
+}
+
+#[cfg(test)]
+mod projection_limit_tests {
+    use super::*;
+
+    #[test]
+    fn source_projection_budgets_fit_family_rows_and_original_format() {
+        let profile = DirectRepositoryProjectionLimits::repo_validation_v1();
+        let mut source = NativeSourceOnlyRequest {
+            corpus_store: "/selected/source".into(),
+            source_revision: "0".repeat(64),
+            max_revisions: 1,
+            max_members: profile.max_source_members,
+            max_total_bytes: profile.max_source_bytes,
+            max_member_bytes: profile.max_member_bytes,
+            software_capture: "/selected/software".into(),
+            software_restored_root: "/selected/restored".into(),
+            source_git_commit: "0".repeat(40),
+            source_git_tree: "0".repeat(40),
+            capture_manifest_sha256: "0".repeat(64),
+            software_components: vec![
+                QUERY_VOCABULARY_PATH.into(),
+                SCHEMA_WORKER_SOURCE_PATH.into(),
+            ],
+            schema_worker_path: SCHEMA_WORKER_SOURCE_PATH.into(),
+            schema_worker_absolute_path: "/selected/worker".into(),
+            schema_worker_sha256: "0".repeat(64),
+            max_schema_receipts: profile.max_schema_receipts,
+            max_schema_receipt_bytes: profile.max_schema_receipt_bytes,
+            worker_cpu_seconds: profile.worker_cpu_seconds,
+            worker_address_space_bytes: profile.worker_address_space_bytes,
+        };
+        let mut request = Request {
+            schema_version: CORPUS_BUILD_REQUEST_SCHEMA.into(),
+            mode: Some("build".into()),
+            comparison_root: None,
+            selected_snapshot: None,
+            source_only: None,
+            tmpfs_quota_bytes: profile.tmpfs_quota_bytes,
+            tmpfs_inode_limit: profile.tmpfs_inode_limit,
+            working_ram_bytes: profile.working_ram_bytes,
+            max_state_bytes: profile.max_state_bytes,
+            max_json_visits: profile.max_json_visits,
+            max_work_bytes: profile.max_work_bytes,
+            persistent_write_cap_bytes: profile.max_output_bytes,
+            max_build_seconds: profile.max_build_seconds,
+            cold_open: profile.cold_open,
+            process_limits: profile.process_limits,
+            data_directory: "candidate".into(),
+            private_release_directory: "release".into(),
+            evidence_refs: Vec::new(),
+            previous_native_snapshot: None,
+        };
+        let original_ceiling = tos_compiler::NavigationOriginalLimits::maximum();
+        for member_bytes in [4096, 1024 * 1024, 2 * 1024 * 1024, 8 * 1024 * 1024] {
+            source.max_member_bytes = member_bytes;
+            for rows in [1, 128, 16_384, MAX_COLD_ROWS] {
+                request.cold_open.max_rows = rows;
+                let limits = source_projection_limits(
+                    &source,
+                    &request,
+                    Instant::now() + Duration::from_secs(60),
+                )
+                .unwrap();
+                limits.bibliographic.catalog.validate().unwrap();
+                limits.bibliographic.validate().unwrap();
+                limits.schema_work.validate().unwrap();
+                assert_eq!(
+                    limits.bibliographic.catalog.max_output_row_bytes,
+                    (member_bytes as usize).min(1024 * 1024)
+                );
+                assert!(limits.canon.max_page_rows > 0 && limits.canon.max_page_rows <= 1024);
+                assert!(
+                    limits.canon.max_page_rows * limits.canon.max_raw_row_bytes
+                        <= limits.canon.max_page_bytes
+                );
+                assert!(limits.canon.max_page_bytes <= 64 * 1024 * 1024);
+                assert!(limits.originals.max_rows > 0);
+                assert!(limits.originals.max_rows <= rows);
+                assert!(limits.originals.max_rows <= original_ceiling.max_rows);
+                assert!(limits.originals.max_row_bytes > 0);
+                assert!(limits.originals.max_row_bytes <= request.cold_open.max_row_bytes);
+                assert!(limits.originals.max_row_bytes <= original_ceiling.max_row_bytes);
+                assert!(limits.originals.max_total_bytes > 0);
+                assert!(limits.originals.max_total_bytes <= request.cold_open.max_work_bytes);
+                assert!(limits.originals.max_total_bytes <= original_ceiling.max_total_bytes);
+            }
         }
     }
 }
