@@ -483,11 +483,15 @@ const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_forms.rs",
     "rust/crates/tos-command/src/source_private_assessment_sources.rs",
+    "rust/crates/tos-validation/src/assessment.rs",
     "rust/crates/tos-command/src/source_private_profile.rs",
+    "rust/crates/tos-command/src/source_private_claim.rs",
+    "rust/crates/tos-command/src/source_private_owner_store.rs",
     "rust/crates/tos-command/src/source_sign_native.rs",
     "rust/crates/tos-command/src/source_text_owner.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
     "rust/crates/tos-command/src/source_work_transaction.rs",
+    "rust/crates/tos-command/src/source_creation_store.rs",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 
@@ -673,7 +677,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
         revision_cli_image(&worker_path),
     ];
     // The test's ten process-cold scenarios use the same repository commit and
-    // the same fourteen protected implementation paths. Capture and restore
+    // the same protected implementation paths. Capture and restore
     // that immutable software selection once, while each scenario still builds
     // a fresh source root, V1 cut, invocation and cold Native process.
     let shared_software_scratch = tempfile::tempdir().unwrap();
