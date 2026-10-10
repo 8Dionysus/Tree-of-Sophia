@@ -595,7 +595,10 @@ class NativeAccessCore(NativeCore):
         # owners retain their existing native routes and lifetime contracts.
         independent = (tool.startswith('tos_source_handle_') or tool == 'tos_source_read'
                        or tool.startswith('tos_source_read_')
-                       or tool.startswith('tos_zarathustra_'))
+                       or tool.startswith('tos_zarathustra_')
+                       # Software schemas are served by the selected native
+                       # executor even when no corpus can be admitted.
+                       or tool == 'tos_knowledge_exploration_contracts')
         if client is None or independent:
             return super()._packet(tool, request, absolute_deadline=absolute_deadline,
                                    source_errors=source_errors)

@@ -941,13 +941,32 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
     assert_eq!(stable["pair_id"], receipt["pair_id"]);
     assert_eq!(stable["previous"], second_receipt["pair_id"]);
 
-    // Native CLI revocation writes each immutable component record. Neither
-    // rollback nor repromotion may resurrect the revoked previous pair.
+    // Native CLI revocation writes each immutable component record. Revoking
+    // the second pair's data/software leaves the first available. Their shared
+    // corpus revocation must then make both unavailable without moving the CAS.
+    let current_pointer = fs::read(release_actions.join("current.json")).unwrap();
     for (kind, field) in [
         ("data", "data_revision"),
-        ("corpus", "corpus_revision"),
         ("software", "software_sha256"),
+        ("corpus", "corpus_revision"),
     ] {
+        if kind == "corpus" {
+            let available = action_with(
+                &first_program,
+                "native-release-status",
+                scratch.path(),
+                serde_json::json!({
+                    "schema_version":"tos_access_native_release_status_request_v1",
+                    "work_deadline_ns":deadline_ns(),
+                    "release_root":release_actions,
+                }),
+            );
+            assert!(
+                available.status.success(),
+                "{}",
+                String::from_utf8_lossy(&available.stderr)
+            );
+        }
         let revoked = action_with(
             &second_program,
             "native-release-revoke",
@@ -997,12 +1016,10 @@ fn native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidat
             "release_root":release_actions,
         }),
     );
-    assert!(
-        stable.status.success(),
-        "{}",
-        String::from_utf8_lossy(&stable.stderr)
+    assert!(!stable.status.success());
+    assert!(String::from_utf8_lossy(&stable.stderr).contains("selected release revoked"));
+    assert_eq!(
+        fs::read(release_actions.join("current.json")).unwrap(),
+        current_pointer
     );
-    let stable: serde_json::Value = serde_json::from_slice(&stable.stdout).unwrap();
-    assert_eq!(stable["pair_id"], receipt["pair_id"]);
-    assert_eq!(stable["previous"], second_receipt["pair_id"]);
 }

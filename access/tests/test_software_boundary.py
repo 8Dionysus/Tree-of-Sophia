@@ -60,7 +60,7 @@ class SoftwareBoundaryTests(unittest.TestCase):
             ('--prepared-read-model', '/owned/model', '--prepared-binding', '/owned/binding',
              '--root', '/owned/source', '--exploration-checkpoints', '/owned/checkpoints',
              '--source-inputs', '/owned/inputs'))
-        with self.assertRaisesRegex(ValueError, 'explicit native_prefix'):
+        with patch.dict(os.environ, {'TOS_NATIVE_PREFIX': '', 'PATH': ''}), self.assertRaisesRegex(ValueError, 'native_prefix'):
             NativeAccessCore.discover('/owned/source')
         with self.assertRaisesRegex(ValueError, 'model and owner-selected binding'):
             NativeAccessCore('/owned/software', published_read_model_path='/owned/model')
@@ -705,7 +705,7 @@ server.run(transport='streamable-http')
                      'include_semantic_neighbors': False},
                 )
                 assert structured['available'] is False
-                assert structured['reason'] == 'installed native prefix is required for local word-analysis'
+                assert structured['reason'] == 'local source-bound word-analysis provider is not installed', structured
                 assert json.loads(content[0].text) == structured
             asyncio.run(asyncio.wait_for(consume(), timeout=max(0, whole_deadline-time.monotonic())))
             assert not provider.exists() and not provider.is_symlink()
