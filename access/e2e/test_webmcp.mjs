@@ -87,7 +87,7 @@ async function withNative(scenario,fn,{webmcp=true,locale='en-US'}={}){
   try{opened=await openBrowserPage(`${host.base}/?mode=philosophy&view=chronology&graph=nodes&ui=en`,{webmcp,locale});
     await waitFor(opened.page,'Boolean(document.getElementById("current-view-title")?.textContent)');
     if(webmcp){await waitFor(opened.page,"window.__TOS_E2E.names().includes('tos.page.context')");}
-    await waitFor(opened.page,"document.getElementById('sophia-gestures')?.dataset.dataState === 'ready'");
+    await waitFor(opened.page,"document.getElementById('graph-caption')?.textContent?.includes('3') && document.getElementById('graph-empty')?.hidden === true");
     await Promise.race([fn(opened.page,host.base),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Native browser scenario exceeded 90 seconds')),90000);})]);
   }catch(error){
     const state=opened?await opened.page.evaluate(()=>({url:location.href,observatory:document.getElementById('sophia-gestures')?.dataset,tree:document.getElementById('tree')?.dataset,text:document.body.innerText.slice(0,3000)})).catch(()=>null):null;

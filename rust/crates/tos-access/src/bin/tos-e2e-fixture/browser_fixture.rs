@@ -212,7 +212,7 @@ impl BrowserFixtureExecutor {
         let edge_count = edges.len();
         json!({"schema":"tos_philosophy_graph_view_v1","source_revision":REV,"view_id":view_id,
             "title":if view_id=="chronology" {"Chronology"} else {"Direct only"},"nodes":nodes,"edges":edges.clone(),"relations":edges.clone(),
-            "view":{"view_id":view_id,"title":if view_id=="chronology" {"Chronology"} else {"Direct only"},"node_ids":node_ids,"edge_ids":edge_ids},
+            "view":{"view_id":view_id,"title":if view_id=="chronology" {"Chronology"} else {"Direct only"},"node_ids":node_ids,"edge_ids":edge_ids,"graph_layers":selected_view["graph_layers"]},
             "node_count":node_count,"edge_count":edge_count,"counts":{"nodes":node_count,"edges":edge_count,"relations":edge_count},
             "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}})
     }
