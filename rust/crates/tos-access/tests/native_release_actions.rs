@@ -12,7 +12,7 @@ use std::{
 
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, canonical_bytes_v1,
-    parse_json,
+    native_software_roles, parse_json,
 };
 use zip::{ZipWriter, write::SimpleFileOptions};
 
@@ -20,6 +20,7 @@ const CLI: &str = env!("CARGO_BIN_EXE_tos-access");
 // The selected relation registry is over 256 KiB; all vocabulary members
 // must fit the same explicit metadata envelope used by release preparation.
 const MAX_METADATA: usize = 524_288;
+const MAX_ARCHIVE_MEMBERS: usize = native_software_roles::COMMANDS.len() + 6;
 
 struct Scratch(PathBuf);
 impl Scratch {
@@ -76,16 +77,13 @@ fn create_archive(path: &Path, marker: &str) -> String {
     let binary = fs::read(CLI).unwrap();
     let lock = include_bytes!("../../../../Cargo.lock").to_vec();
     let pin = include_bytes!("../../../../rust-toolchain.toml").to_vec();
-    // These aliases exercise archive/pair admission only; this fixture never
-    // invokes a source command or schema evaluation. Installed owner behavior
-    // is covered by the separate genuine-product conformance route.
-    let native_owner = binary.clone();
-    let schema_worker = binary.clone();
-    let files = BTreeMap::from([
+    // Pair admission includes the complete shared delivery descriptor.
+    // These integrity-only command images are deliberately never executed;
+    // the real Access image runs installation, promotion, rollback and status.
+    // Genuine command execution is covered by the installed conformance route.
+    let mut files: BTreeMap<String, Vec<u8>> = [
         ("Cargo.lock", lock),
         ("access/src/tos_access/tos-access", binary),
-        ("native/bin/tos-native-owner-command", native_owner),
-        ("native/bin/tos-schema-worker", schema_worker),
         (
             "access/src/tos_access/web_dist/assets/tos-graph.css",
             format!("body{{margin:0}}/*{marker}*/\n").into_bytes(),
@@ -95,7 +93,17 @@ fn create_archive(path: &Path, marker: &str) -> String {
             b"export const softwareOwned=true;\n".to_vec(),
         ),
         ("rust-toolchain.toml", pin),
-    ]);
+    ]
+    .into_iter()
+    .map(|(path, bytes)| (path.to_owned(), bytes))
+    .collect();
+    for role in native_software_roles::COMMANDS {
+        let mut image = vec![0u8; 64];
+        image[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
+        image[18..20].copy_from_slice(&[0x3e, 0]);
+        image.extend_from_slice(role.as_bytes());
+        assert!(files.insert(format!("native/bin/{role}"), image).is_none());
+    }
     let source = Digest256::of_bytes(b"native release action integration fixture").to_hex();
     let pin_text = std::str::from_utf8(&files["rust-toolchain.toml"]).unwrap();
     let toolchain = pin_text
@@ -119,6 +127,16 @@ fn create_archive(path: &Path, marker: &str) -> String {
         .collect::<Vec<_>>();
     let lock = &files["Cargo.lock"];
     let image = &files["access/src/tos_access/tos-access"];
+    let native_commands: serde_json::Map<String, serde_json::Value> = native_software_roles::COMMANDS.iter().map(|role| {
+        let image = &files[&format!("native/bin/{role}")];
+        ((*role).to_owned(), serde_json::json!({
+            "schema_version":"tos_native_software_command_build_v1", "target":"x86_64-unknown-linux-gnu",
+            "source_commit":source, "source_tree":source, "profile":"debug",
+            "lock_sha256":Digest256::of_bytes(lock).to_hex(), "toolchain":toolchain,
+            "features":native_software_roles::features(role).unwrap(),
+            "sha256":Digest256::of_bytes(image).to_hex(), "size_bytes":image.len(),
+        }))
+    }).collect();
     let embedded = serde_json::json!({
         "schema_version":"tos_software_bundle_manifest_v1",
         "software_ref":source,
@@ -135,32 +153,7 @@ fn create_archive(path: &Path, marker: &str) -> String {
             "sha256":Digest256::of_bytes(image).to_hex(),
             "size_bytes":image.len(),
         },
-        "native_commands":{
-            "tos-native-owner-command":{
-                "schema_version":"tos_native_software_command_build_v1",
-                "target":"x86_64-unknown-linux-gnu",
-                "source_commit":source,
-                "source_tree":source,
-                "profile":"debug",
-                "lock_sha256":Digest256::of_bytes(lock).to_hex(),
-                "toolchain":toolchain,
-                "features":[],
-                "sha256":Digest256::of_bytes(&files["native/bin/tos-native-owner-command"]).to_hex(),
-                "size_bytes":files["native/bin/tos-native-owner-command"].len(),
-            },
-            "tos-schema-worker":{
-                "schema_version":"tos_native_software_command_build_v1",
-                "target":"x86_64-unknown-linux-gnu",
-                "source_commit":source,
-                "source_tree":source,
-                "profile":"debug",
-                "lock_sha256":Digest256::of_bytes(lock).to_hex(),
-                "toolchain":toolchain,
-                "features":["default","native"],
-                "sha256":Digest256::of_bytes(&files["native/bin/tos-schema-worker"]).to_hex(),
-                "size_bytes":files["native/bin/tos-schema-worker"].len(),
-            }
-        },
+        "native_commands":native_commands,
         "members":member_rows,
     });
     let mut writer = ZipWriter::new(
@@ -174,16 +167,13 @@ fn create_archive(path: &Path, marker: &str) -> String {
     for (name, bytes) in &files {
         writer
             .start_file(
-                *name,
+                name.as_str(),
                 SimpleFileOptions::default()
                     .compression_method(zip::CompressionMethod::Stored)
                     .unix_permissions(
-                        if matches!(
-                            *name,
-                            "access/src/tos_access/tos-access"
-                                | "native/bin/tos-native-owner-command"
-                                | "native/bin/tos-schema-worker"
-                        ) {
+                        if name == "access/src/tos_access/tos-access"
+                            || name.starts_with("native/bin/")
+                        {
                             0o755
                         } else {
                             0o644
@@ -402,7 +392,7 @@ fn install_archive(archive: &Path, prefix: &Path) -> Output {
             "--max-archive-bytes",
             "536870912",
             "--max-members",
-            "16",
+            &MAX_ARCHIVE_MEMBERS.to_string(),
             "--max-metadata-bytes",
             "262144",
         ]);
@@ -443,7 +433,7 @@ fn action_limits() -> serde_json::Value {
         "max_held_fds":64,
         "max_archive_bytes":536_870_912u64,
         "max_archive_expanded_bytes":536_870_912u64,
-        "max_archive_members":16,
+        "max_archive_members":MAX_ARCHIVE_MEMBERS,
         "max_image_bytes":536_870_912u64,
         "max_candidate_bytes":67_108_864u64,
         "max_candidate_members":32,

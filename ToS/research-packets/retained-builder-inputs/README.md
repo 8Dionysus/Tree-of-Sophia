@@ -32,9 +32,9 @@ paths and recorded digests determine their locations here.
 
 The additional Antonovsky v1 blob is exact maintained source from
 `0ee415f03553d745ff54e2d08ee447862e66c555`, 91,999 bytes. It is never imported
-or executed by the native producer. The active Python module temporarily retains
-helpers imported by the separately supported v2 builder; that dependency is not
-retirement of the entire Python family.
+or executed by the native producer. Both supported paragraph-builder versions
+now execute Rust owners; their former shared Python helpers remain historical
+recipe bytes and are not imported by maintained commands.
 
 The additional Antonovsky v2 blob is the exact 61,015-byte maintained source
 `fa3cd89b6cad07aa2f63dad6cc84707902586b2b262db4a98128d5def9261a01`,
