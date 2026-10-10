@@ -2,7 +2,7 @@
  * Ordinary JS values remain unchanged. Opaque per-document sidecars preserve
  * number lexemes/kinds and source object order, which JSON.parse alone loses.
  */
-import {codePointCompare, nativeUnicodeVersion} from './native-unicode.ts';
+import {nativeUnicodeVersion} from './native-unicode.ts';
 export {codePointCompare, nativeUnicodeVersion, nativeUnicodeAlgorithm} from './native-unicode.ts';
 
 export const nativeSemanticVersion = 'tos-python-native-semantics-v1';

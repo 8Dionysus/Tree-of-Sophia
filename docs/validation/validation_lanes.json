@@ -527,6 +527,38 @@
         ]
       },
       {
+        "label": "test isolated conformance public assessment lifecycle fixture",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_owner_text_cases::native_public_assessment_v1_v2_v3_append_replay_and_revocation_preserve_source",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance assessed form batch fixture",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_owner_text_cases::native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
         "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
         "command_timeout_ms": 900000,
         "command": [

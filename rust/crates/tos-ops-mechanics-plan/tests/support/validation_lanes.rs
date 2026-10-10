@@ -331,6 +331,16 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
             "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays",
             "tests/conformance/rust/command_claim_cases.rs",
         ),
+        (
+            "test isolated conformance public assessment lifecycle fixture",
+            "command_owner_text_cases::native_public_assessment_v1_v2_v3_append_replay_and_revocation_preserve_source",
+            "tests/conformance/rust/command_owner_text_cases.rs",
+        ),
+        (
+            "test isolated conformance assessed form batch fixture",
+            "command_owner_text_cases::native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift",
+            "tests/conformance/rust/command_owner_text_cases.rs",
+        ),
     ];
     for (i, (label, name, path)) in cases.iter().enumerate() {
         let argv = if i < 3 {
@@ -375,8 +385,8 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
     // Cargo tests. Those tests can relink target/debug/tos-access with a
     // different dependency feature set, which must still fail the image guard.
     let expected = vec![
-        source, classes, segment, cases[3].0, cases[4].0, cases[5].0, cases[6].0, workspace,
-        release, cases[0].0, cases[1].0, cases[2].0,
+        source, classes, segment, cases[3].0, cases[4].0, cases[5].0, cases[6].0, cases[7].0,
+        cases[8].0, workspace, release, cases[0].0, cases[1].0, cases[2].0,
     ];
     assert_eq!(
         labels
@@ -403,6 +413,8 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
         [
             (source, 900000),
             (classes, 900000),
+            (cases[7].0, 900000),
+            (cases[8].0, 900000),
             (workspace, 900000),
             (release, 900000),
             (cases[0].0, 1020000)
