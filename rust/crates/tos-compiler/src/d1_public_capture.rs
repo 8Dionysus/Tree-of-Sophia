@@ -195,7 +195,8 @@ impl PublicCaptureInputPaths {
 }
 
 impl PublicCaptureLimits {
-    pub(crate) fn validate(self) -> Result<()> {
+    /// Validate the same finite capture envelope before opening any input.
+    pub fn validate(self) -> Result<()> {
         if self.max_input_bytes == 0
             || self.max_rows == 0
             || self.max_staging_bytes == 0

@@ -340,6 +340,101 @@ impl NativeSourceOnlyRequest {
     }
 }
 
+/// One immutable budget decision for preflight and execution. Authored bytes,
+/// generated carriers, SQLite MAIN/TEMP, resident state, work and cold output
+/// retain their own dimensions; later stages do not reinterpret the request.
+#[derive(Clone, Copy)]
+struct NativeBuildPlan {
+    deadline: Instant,
+    tmpfs_quota_bytes: u64,
+    tmpfs_inode_limit: u64,
+    working_ram_bytes: u64,
+    max_state_bytes: usize,
+    max_json_visits: usize,
+    persistent_write_cap_bytes: u64,
+    cold_open: ColdOpenLimits,
+    process_limits: NativeProcessLimits,
+    snapshot: native_snapshot::NativeSnapshotLimits,
+    max_work_bytes: u64,
+    max_build_seconds: u64,
+    source: Option<SourceRuntimePlan>,
+}
+
+#[derive(Clone, Copy)]
+struct SourceRuntimePlan {
+    reader: ReadLimits,
+    cut: CutReadLimits,
+    projection: crate::source_corpus_index_projection::CorpusIndexProjectionLimits,
+    generated_capture: tos_compiler::PublicCaptureLimits,
+    philosophy_scratch_bytes: u64,
+}
+
+impl NativeBuildPlan {
+    fn new(request: &Request, started: Instant) -> Result<Self> {
+        validate_request(request)?;
+        let deadline = started
+            .checked_add(Duration::from_secs(request.max_build_seconds))
+            .ok_or(Refusal("native Original producer deadline arithmetic"))?;
+        let mut snapshot = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
+        snapshot.capture.max_work_bytes = request.max_work_bytes;
+        // Search shares the actual producer work budget. Its posting count
+        // remains finite and independent of the final physical cold-file check.
+        snapshot.full.search.max_work_bytes = request.max_work_bytes;
+        snapshot.full.search.max_postings = request.cold_open.max_file_bytes;
+        snapshot.capture.validate()?;
+        snapshot.stage.validate()?;
+        let source = request
+            .source_only
+            .as_ref()
+            .map(|source| source_runtime_plan(source, request, deadline, snapshot.capture))
+            .transpose()?;
+        Ok(Self {
+            deadline,
+            tmpfs_quota_bytes: request.tmpfs_quota_bytes,
+            tmpfs_inode_limit: request.tmpfs_inode_limit,
+            working_ram_bytes: request.working_ram_bytes,
+            max_state_bytes: request.max_state_bytes,
+            max_json_visits: request.max_json_visits,
+            persistent_write_cap_bytes: request.persistent_write_cap_bytes,
+            cold_open: request.cold_open,
+            process_limits: request.process_limits,
+            snapshot,
+            max_work_bytes: request.max_work_bytes,
+            max_build_seconds: request.max_build_seconds,
+            source,
+        })
+    }
+
+    fn summary(&self) -> Value {
+        json!({
+            "authored_source": self.source.map(|source| json!({
+                "members": source.cut.max_members, "member_bytes": source.cut.max_member_bytes,
+                "total_bytes": source.cut.max_total_bytes
+            })),
+            "generated_carriers": self.source.map(|source| json!({
+                "input_bytes": source.generated_capture.max_input_bytes,
+                "projection_output_bytes": source.projection.max_output_bytes,
+                "rows": source.projection.stage.sqlite.max_rows,
+                "row_bytes": source.projection.stage.sqlite.max_row_bytes,
+                "projection_work_bytes": source.projection.max_work_bytes,
+                "evidence_staging_bytes": source.generated_capture.max_staging_bytes,
+                "evidence_work_bytes": source.generated_capture.max_work_bytes
+            })),
+            "snapshot_capture_bytes": self.snapshot.capture.max_staging_bytes,
+            "snapshot_main_bytes": self.snapshot.stage.sqlite.max_output_bytes,
+            "snapshot_temp_bytes": self.snapshot.stage.max_temp_bytes,
+            "tmpfs_bytes": self.tmpfs_quota_bytes,
+            "working_ram_bytes": self.working_ram_bytes,
+            "resident_state_bytes": self.max_state_bytes,
+            "producer_work_bytes": self.snapshot.capture.max_work_bytes,
+            "persistent_result_bytes": self.persistent_write_cap_bytes,
+            "cold_file_bytes": self.cold_open.max_file_bytes,
+            "cold_rows": self.cold_open.max_rows,
+            "cold_row_bytes": self.cold_open.max_row_bytes
+        })
+    }
+}
+
 fn default_producer_work_bytes() -> u64 {
     tos_compiler::Limits::default().max_work_bytes
 }
@@ -1762,12 +1857,6 @@ fn validate_request(request: &Request) -> Result<()> {
     }
     if let Some(source) = &request.source_only {
         validate_source_only_request(source, request)?;
-        source_projection_limits(
-            source,
-            request,
-            Instant::now() + Duration::from_secs(request.max_build_seconds),
-        )?
-        .validate()?;
     }
     if let Some(previous) = &request.previous_native_snapshot {
         previous.validate()?;
@@ -2057,15 +2146,122 @@ fn json_object(fields: impl IntoIterator<Item = (&'static str, Value)>) -> Value
     Value::Object(object)
 }
 
-struct SourceOnlyRuntime {
+struct SourceRuntimeInputs {
     cut: CorpusCutReader,
     software: SoftwareCaptureReader,
     components: SoftwareComponentSelectionV1,
-    profile: manifest::NativeSelectedRuntimeSourceProfile,
     source_root: PathBuf,
     worker: ExactWorkerIdentity,
     member_count: usize,
     source_bytes: u64,
+}
+
+struct SourceOnlyRuntime {
+    inputs: SourceRuntimeInputs,
+    plan: SourceRuntimePlan,
+    profile: manifest::NativeSelectedRuntimeSourceProfile,
+    // Selection/materialization, corpus, philosophy, evidence, final recheck.
+    stage_elapsed_ns: [u64; 5],
+}
+
+struct HeldRuntimeProduct {
+    member: manifest::NativeSourceMemberBinding,
+    file: File,
+    stamp: Stamp,
+}
+
+/// A stage hands over exact created files and their original held identities.
+/// Capture reads each file once; subsequent stages retain the descriptors and
+/// completion rejects any change to either the held file or its named path.
+struct RuntimeProductStage<'a> {
+    root: &'a Path,
+    plan: &'a SourceRuntimePlan,
+    products: Vec<HeldRuntimeProduct>,
+}
+
+impl RuntimeProductStage<'_> {
+    fn capture(&mut self, path: &str, deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
+        if !manifest::required_native_runtime_product_paths().contains(&path)
+            || self
+                .products
+                .iter()
+                .any(|product| product.member.path == path)
+        {
+            return Err(Refusal("native runtime stage product identity invalid").into());
+        }
+        let full_path = self.root.join(path);
+        let cap = self.plan.generated_capture.max_input_bytes;
+        let (mut file, stamp) = open_regular(&full_path, cap, rustix::process::getuid().as_raw())?;
+        let mut hash = Digest256Hasher::new();
+        let mut count = 0u64;
+        let mut buffer = [0u8; 64 * 1024];
+        loop {
+            active(deadline)?;
+            if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err(Refusal("native runtime product capture cancelled").into());
+            }
+            let read = file.read(&mut buffer)?;
+            if read == 0 {
+                break;
+            }
+            count = count
+                .checked_add(read as u64)
+                .filter(|bytes| *bytes <= cap)
+                .ok_or(Refusal("native generated runtime product exceeded cap"))?;
+            hash.update(&buffer[..read]);
+        }
+        if count != stamp.size
+            || Stamp::from(&file.metadata()?) != stamp
+            || Stamp::from(&fs::symlink_metadata(&full_path)?) != stamp
+        {
+            return Err(Refusal("native generated runtime product changed during capture").into());
+        }
+        self.products.push(HeldRuntimeProduct {
+            member: manifest::NativeSourceMemberBinding {
+                path: path.to_owned(),
+                mode: stamp.mode & 0o777,
+                size_bytes: count,
+                sha256: hash.finalize().to_hex(),
+            },
+            file,
+            stamp,
+        });
+        Ok(())
+    }
+
+    fn require_paths(&self, paths: &[&str], deadline: Instant) -> Result<()> {
+        if self.products.len() != paths.len()
+            || paths.iter().any(|path| {
+                !self
+                    .products
+                    .iter()
+                    .any(|product| product.member.path == *path)
+            })
+        {
+            return Err(Refusal("native runtime stage input products differ").into());
+        }
+        for product in &self.products {
+            active(deadline)?;
+            if Stamp::from(&product.file.metadata()?) != product.stamp
+                || Stamp::from(&fs::symlink_metadata(self.root.join(&product.member.path))?)
+                    != product.stamp
+            {
+                return Err(Refusal("native generated runtime stage input changed").into());
+            }
+        }
+        Ok(())
+    }
+
+    fn finish(self, deadline: Instant) -> Result<Vec<manifest::NativeSourceMemberBinding>> {
+        self.require_paths(&manifest::required_native_runtime_product_paths(), deadline)?;
+        let mut members = self
+            .products
+            .into_iter()
+            .map(|product| product.member)
+            .collect::<Vec<_>>();
+        members.sort_by(|left, right| left.path.cmp(&right.path));
+        Ok(members)
+    }
 }
 
 enum SelectedSource {
@@ -2083,7 +2279,7 @@ impl SelectedSource {
     fn source_root(&self) -> &Path {
         match self {
             Self::Historical { census, .. } => census.source_root(),
-            Self::Current { runtime, .. } => &runtime.source_root,
+            Self::Current { runtime, .. } => &runtime.inputs.source_root,
         }
     }
 
@@ -2239,21 +2435,31 @@ impl SelectedSource {
                     json!(manifest::NativeSelectedRuntimeSourceProfile::SCHEMA_VERSION),
                 ),
                 ("source_revision", json!(census.profile().source_revision)),
-                ("source_members", json!(runtime.member_count)),
-                ("source_bytes", json!(runtime.source_bytes)),
+                ("source_members", json!(runtime.inputs.member_count)),
+                ("source_bytes", json!(runtime.inputs.source_bytes)),
                 (
                     "source_members_excluding_generated_products",
-                    json!(runtime.member_count),
+                    json!(runtime.inputs.member_count),
                 ),
                 (
                     "source_bytes_excluding_generated_products",
-                    json!(runtime.source_bytes),
+                    json!(runtime.inputs.source_bytes),
                 ),
                 (
                     "runtime_product_count",
                     json!(census.profile().products.len()),
                 ),
                 ("runtime_profile_sha256", json!(census.profile_sha256())),
+                (
+                    "runtime_stage_elapsed_ns",
+                    json!({
+                        "source_selection_and_materialization":runtime.stage_elapsed_ns[0],
+                        "corpus_projection":runtime.stage_elapsed_ns[1],
+                        "philosophy_products":runtime.stage_elapsed_ns[2],
+                        "evidence_projection":runtime.stage_elapsed_ns[3],
+                        "final_identity_recheck":runtime.stage_elapsed_ns[4]
+                    }),
+                ),
                 ("capture_member_count", json!(captured_count)),
                 ("capture_member_bytes", json!(captured_bytes)),
             ]),
@@ -2263,21 +2469,28 @@ impl SelectedSource {
 
 impl SourceOnlyRuntime {
     fn retained_state_upper_bound(&self) -> Result<usize> {
-        let component_bytes = self.components.members().try_fold(0usize, |sum, member| {
-            sum.checked_add(member.path.as_str().len())
-                .and_then(|n| n.checked_add(std::mem::size_of::<Digest256>()))
-                .and_then(|n| {
-                    n.checked_add(std::mem::size_of::<u64>() + 2 * std::mem::size_of::<usize>())
-                })
-                .ok_or(Refusal(
-                    "selected software component retained state overflow",
-                ))
-        })?;
+        let component_bytes =
+            self.inputs
+                .components
+                .members()
+                .try_fold(0usize, |sum, member| {
+                    sum.checked_add(member.path.as_str().len())
+                        .and_then(|n| n.checked_add(std::mem::size_of::<Digest256>()))
+                        .and_then(|n| {
+                            n.checked_add(
+                                std::mem::size_of::<u64>() + 2 * std::mem::size_of::<usize>(),
+                            )
+                        })
+                        .ok_or(Refusal(
+                            "selected software component retained state overflow",
+                        ))
+                })?;
         self.profile
             .retained_state_upper_bound()?
-            .checked_add(component_bytes)
-            .and_then(|n| n.checked_add(self.source_root.as_os_str().len()))
-            .and_then(|n| n.checked_add(self.worker.absolute_path.as_os_str().len()))
+            .checked_add(std::mem::size_of::<Self>())
+            .and_then(|n| n.checked_add(component_bytes))
+            .and_then(|n| n.checked_add(self.inputs.source_root.as_os_str().len()))
+            .and_then(|n| n.checked_add(self.inputs.worker.absolute_path.as_os_str().len()))
             .ok_or_else(|| Refusal("native source-only retained state overflow").into())
     }
 
@@ -2292,8 +2505,9 @@ impl SourceOnlyRuntime {
             Digest256::from_hex(&source.source_revision)
                 .map_err(|_| Refusal("native selected source revision invalid"))?,
         );
-        if self.cut.current().revision() != revision
+        if self.inputs.cut.current().revision() != revision
             || self
+                .inputs
                 .cut
                 .stream(revision)
                 .map_err(|_| Refusal("native selected source cut changed"))?
@@ -2301,20 +2515,25 @@ impl SourceOnlyRuntime {
                 .digest
                 .to_hex()
                 != self.profile.membership_root
-            || self.software.selection().source_git_commit != source.source_git_commit
-            || self.software.selection().source_git_tree != source.source_git_tree
-            || self.software.selection().capture_manifest_sha256.to_hex()
+            || self.inputs.software.selection().source_git_commit != source.source_git_commit
+            || self.inputs.software.selection().source_git_tree != source.source_git_tree
+            || self
+                .inputs
+                .software
+                .selection()
+                .capture_manifest_sha256
+                .to_hex()
                 != source.capture_manifest_sha256
-            || self.components.members().count() != source.software_components.len()
+            || self.inputs.components.members().count() != source.software_components.len()
         {
             return Err(Refusal("native source/software selection changed").into());
         }
-        for member in self.components.members() {
+        for member in self.inputs.components.members() {
             active(deadline)?;
-            let raw = self.software.read_selected_component(
-                &self.components,
+            let raw = self.inputs.software.read_selected_component(
+                &self.inputs.components,
                 &member.path,
-                source.max_member_bytes,
+                self.plan.cut.max_member_bytes,
                 deadline,
                 cancelled,
             )?;
@@ -2325,15 +2544,15 @@ impl SourceOnlyRuntime {
             }
         }
         let (mut worker_file, stamp) = open_regular(
-            &self.worker.absolute_path,
-            source.max_member_bytes,
+            &self.inputs.worker.absolute_path,
+            self.plan.cut.max_member_bytes,
             rustix::process::getuid().as_raw(),
         )?;
         let mut worker_bytes = Vec::new();
         worker_file.read_to_end(&mut worker_bytes)?;
         if Stamp::from(&worker_file.metadata()?) != stamp
-            || Stamp::from(&fs::symlink_metadata(&self.worker.absolute_path)?) != stamp
-            || Digest256::of_bytes(&worker_bytes) != self.worker.sha256
+            || Stamp::from(&fs::symlink_metadata(&self.inputs.worker.absolute_path)?) != stamp
+            || Digest256::of_bytes(&worker_bytes) != self.inputs.worker.sha256
         {
             return Err(
                 Refusal("selected schema worker changed during native corpus build").into(),
@@ -2343,11 +2562,12 @@ impl SourceOnlyRuntime {
     }
 }
 
-fn source_projection_limits(
+fn source_runtime_plan(
     source: &NativeSourceOnlyRequest,
     request: &Request,
     deadline: Instant,
-) -> Result<crate::source_corpus_index_projection::CorpusIndexProjectionLimits> {
+    mut generated_capture: tos_compiler::PublicCaptureLimits,
+) -> Result<SourceRuntimePlan> {
     use tos_compiler::source_bibliographic::BibliographicLimits;
     use tos_compiler::source_witness_catalog::SourceCatalogLimits;
     let sqlite_cache_kib = u32::try_from(request.cold_open.sqlite_cache_kib)
@@ -2457,70 +2677,101 @@ fn source_projection_limits(
             .max(1),
         max_distinct_selectors: source.max_members.min(BatchBudget::MAX_UNITS as u64) as usize,
     };
-    Ok(
-        crate::source_corpus_index_projection::CorpusIndexProjectionLimits {
-            catalog_input: tos_compiler::SourceCatalogInputLimits {
-                max_manifest_members: source.max_members,
-                max_selected_members: source.max_members.min(4096) as usize,
-                max_plan_bytes: plan_cap,
-                max_work_bytes: work_cap,
-            },
-            bibliographic,
-            repository: tos_compiler::knowledge_repository_source::RepositorySourceLimits {
-                max_inventory_members: source.max_members.min(65_536),
-                max_source_bytes: source_file_cap,
-                max_row_bytes: source_row_cap,
-                max_plan_bytes: plan_cap,
-                max_work_bytes: work_cap,
-            },
-            canon: tos_compiler::knowledge_canon_source::CanonSourceLimits {
-                max_manifest_members: source.max_members,
-                max_selected_members: source.max_members,
-                max_nodes: row_count,
-                max_packs: row_count,
-                max_edges: row_count,
-                max_source_bytes: source_file_cap,
-                max_raw_row_bytes: source_row_cap,
-                max_csv_fields: 1024,
-                max_csv_record_bytes: source_file_cap,
-                max_forms: 256,
-                max_forms_output_bytes: 256 * 1024,
-                max_page_rows: canon_page_rows,
-                max_page_bytes: canon_page_bytes,
-                max_work_bytes: work_cap,
-            },
-            stage: tos_compiler::knowledge_stage::StageLimits {
-                sqlite: tos_compiler::Limits {
-                    max_rows: row_count,
-                    max_row_bytes: request.cold_open.max_row_bytes,
-                    max_output_bytes: output_cap,
-                    max_work_bytes: work_cap,
-                    sqlite_cache_kib,
-                    max_sql_vm_steps: request.cold_open.max_vm_steps,
-                },
-                max_temp_bytes: request.tmpfs_quota_bytes.min(64 * 1024 * 1024).max(1),
-                max_seek_rows: row_count.min(1024) as usize,
-                max_seek_bytes: output_cap.min(64 * 1024 * 1024),
-            },
-            schema_worker: worker_budget,
-            schema_worker_limits: worker_limits,
-            schema_work,
-            originals: tos_compiler::NavigationOriginalLimits {
-                max_rows: row_count.min(original_ceiling.max_rows),
-                max_row_bytes: request
-                    .cold_open
-                    .max_row_bytes
-                    .min(original_ceiling.max_row_bytes),
-                max_total_bytes: request
-                    .cold_open
-                    .max_work_bytes
-                    .min(original_ceiling.max_total_bytes),
-            },
-            max_canon_input_bytes: source.max_total_bytes.min(8 * 1024 * 1024),
-            max_output_bytes: output_cap,
+    let projection = crate::source_corpus_index_projection::CorpusIndexProjectionLimits {
+        catalog_input: tos_compiler::SourceCatalogInputLimits {
+            max_manifest_members: source.max_members,
+            max_selected_members: source.max_members.min(4096) as usize,
+            max_plan_bytes: plan_cap,
             max_work_bytes: work_cap,
         },
-    )
+        bibliographic,
+        repository: tos_compiler::knowledge_repository_source::RepositorySourceLimits {
+            max_inventory_members: source.max_members.min(65_536),
+            max_source_bytes: source_file_cap,
+            max_row_bytes: source_row_cap,
+            max_plan_bytes: plan_cap,
+            max_work_bytes: work_cap,
+        },
+        canon: tos_compiler::knowledge_canon_source::CanonSourceLimits {
+            max_manifest_members: source.max_members,
+            max_selected_members: source.max_members,
+            max_nodes: row_count,
+            max_packs: row_count,
+            max_edges: row_count,
+            max_source_bytes: source_file_cap,
+            max_raw_row_bytes: source_row_cap,
+            max_csv_fields: 1024,
+            max_csv_record_bytes: source_file_cap,
+            max_forms: 256,
+            max_forms_output_bytes: 256 * 1024,
+            max_page_rows: canon_page_rows,
+            max_page_bytes: canon_page_bytes,
+            max_work_bytes: work_cap,
+        },
+        stage: tos_compiler::knowledge_stage::StageLimits {
+            sqlite: tos_compiler::Limits {
+                max_rows: row_count,
+                max_row_bytes: request.cold_open.max_row_bytes,
+                max_output_bytes: output_cap,
+                max_work_bytes: work_cap,
+                sqlite_cache_kib,
+                max_sql_vm_steps: request.cold_open.max_vm_steps,
+            },
+            max_temp_bytes: request.tmpfs_quota_bytes.min(64 * 1024 * 1024).max(1),
+            max_seek_rows: row_count.min(1024) as usize,
+            max_seek_bytes: output_cap.min(64 * 1024 * 1024),
+        },
+        schema_worker: worker_budget,
+        schema_worker_limits: worker_limits,
+        schema_work,
+        originals: tos_compiler::NavigationOriginalLimits {
+            max_rows: row_count.min(original_ceiling.max_rows),
+            max_row_bytes: request
+                .cold_open
+                .max_row_bytes
+                .min(original_ceiling.max_row_bytes),
+            max_total_bytes: request
+                .cold_open
+                .max_work_bytes
+                .min(original_ceiling.max_total_bytes),
+        },
+        max_canon_input_bytes: source.max_total_bytes.min(8 * 1024 * 1024),
+        max_output_bytes: output_cap,
+        max_work_bytes: work_cap,
+    };
+    projection.validate()?;
+    let reader = ReadLimits {
+        max_manifest_bytes: 4_194_304,
+        max_manifest_entries: source.max_members.min(4096) as usize,
+        max_selected_object_bytes: source.max_total_bytes,
+        json: JsonLimits::default(),
+    }
+    .validate()?;
+    let cut = CutReadLimits {
+        max_revisions: source.max_revisions,
+        max_members: source.max_members,
+        max_total_bytes: source.max_total_bytes,
+        max_member_bytes: source.max_member_bytes,
+    };
+    // These inputs are generated files. Their ceiling is selected from the
+    // generated carrier profile, never from the authored source-cut allowance.
+    generated_capture.max_input_bytes = generated_capture.max_input_bytes.min(output_cap);
+    generated_capture.max_rows = row_count;
+    generated_capture.max_staging_bytes = request.tmpfs_quota_bytes;
+    generated_capture.max_work_bytes = request.max_work_bytes;
+    generated_capture.max_sql_vm_steps = request.cold_open.max_vm_steps;
+    generated_capture.sqlite_cache_kib = sqlite_cache_kib;
+    generated_capture.validate()?;
+    if projection.max_output_bytes > generated_capture.max_input_bytes {
+        return Err(Refusal("generated producer output exceeds its next reader envelope").into());
+    }
+    Ok(SourceRuntimePlan {
+        reader,
+        cut,
+        projection,
+        generated_capture,
+        philosophy_scratch_bytes: request.tmpfs_quota_bytes,
+    })
 }
 
 fn write_source_file(root: &Path, relative: &str, raw: &[u8], mode: u32) -> Result<()> {
@@ -2543,7 +2794,7 @@ fn write_source_file(root: &Path, relative: &str, raw: &[u8], mode: u32) -> Resu
 }
 
 fn materialize_source_cut(
-    source: &NativeSourceOnlyRequest,
+    limits: CutReadLimits,
     cut: &CorpusCutReader,
     source_root: &Path,
     deadline: Instant,
@@ -2570,13 +2821,13 @@ fn materialize_source_cut(
         }
         count = count
             .checked_add(1)
-            .filter(|value| *value <= source.max_members as usize)
+            .filter(|value| *value <= limits.max_members as usize)
             .ok_or(Refusal("native source cut member count ceiling"))?;
         total_bytes = total_bytes
             .checked_add(member.size_bytes)
-            .filter(|value| *value <= source.max_total_bytes)
+            .filter(|value| *value <= limits.max_total_bytes)
             .ok_or(Refusal("native source cut byte ceiling"))?;
-        if member.size_bytes > source.max_member_bytes {
+        if member.size_bytes > limits.max_member_bytes {
             return Err(Refusal("native source cut member byte ceiling").into());
         }
         let path = RelativePath::parse(member.path.as_str())
@@ -2584,7 +2835,7 @@ fn materialize_source_cut(
         let raw = cut.read_member(
             cut.current().revision(),
             &path,
-            source.max_member_bytes,
+            limits.max_member_bytes,
             deadline,
             cancelled,
         )?;
@@ -2598,52 +2849,19 @@ fn materialize_source_cut(
     Ok((count, total_bytes))
 }
 
-fn source_runtime_evidence_limits(request: &Request) -> Result<tos_compiler::PublicCaptureLimits> {
-    let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?.capture;
-    // This stage reads the generated corpus and philosophy carriers. Their
-    // declared output envelope is independent of the authored source-cut
-    // allowance (the full philosophy graph already exceeds that allowance).
-    limits.max_input_bytes = limits
-        .max_input_bytes
-        .min(request.persistent_write_cap_bytes);
-    limits.max_rows = request.cold_open.max_rows;
-    limits.max_staging_bytes = request.tmpfs_quota_bytes;
-    limits.max_work_bytes = request.max_work_bytes;
-    limits.max_sql_vm_steps = request.cold_open.max_vm_steps;
-    limits.sqlite_cache_kib = u32::try_from(request.cold_open.sqlite_cache_kib)
-        .map_err(|_| Refusal("native SQLite cache cap conversion"))?;
-    Ok(limits)
-}
-
-fn prepare_source_only_runtime(
+fn open_source_runtime_inputs(
     source: &NativeSourceOnlyRequest,
-    request: &Request,
+    plan: &SourceRuntimePlan,
     isolation: &PrivateTmpfsStageIsolation,
     deadline: Instant,
     cancelled: &Arc<AtomicBool>,
-) -> Result<SourceOnlyRuntime> {
-    let read_limits = ReadLimits {
-        max_manifest_bytes: 4_194_304,
-        max_manifest_entries: source.max_members.min(4096) as usize,
-        max_selected_object_bytes: source.max_total_bytes,
-        json: JsonLimits::default(),
-    };
-    let store = CorpusReader::open_existing(Path::new(&source.corpus_store), read_limits)?;
+) -> Result<SourceRuntimeInputs> {
+    let store = CorpusReader::open_existing(Path::new(&source.corpus_store), plan.reader)?;
     let revision = SourceRevision(
         Digest256::from_hex(&source.source_revision)
             .map_err(|_| Refusal("native selected source revision invalid"))?,
     );
-    let cut = store.open_source_cut(
-        revision,
-        CutReadLimits {
-            max_revisions: source.max_revisions,
-            max_members: source.max_members,
-            max_total_bytes: source.max_total_bytes,
-            max_member_bytes: source.max_member_bytes,
-        },
-        deadline,
-        cancelled,
-    )?;
+    let cut = store.open_source_cut(revision, plan.cut, deadline, cancelled)?;
     if cut.current().revision() != revision {
         return Err(Refusal("native selected source revision differs from opened cut").into());
     }
@@ -2657,7 +2875,7 @@ fn prepare_source_only_runtime(
         Path::new(&source.software_capture),
         Path::new(&source.software_restored_root),
         selection,
-        read_limits,
+        plan.reader,
         deadline,
         cancelled,
     )?;
@@ -2682,27 +2900,42 @@ fn prepare_source_only_runtime(
     drop(software.read_selected_component(
         &components,
         &worker_relative,
-        source.max_member_bytes,
+        plan.cut.max_member_bytes,
         deadline,
         cancelled,
     )?);
-    let software_binding = manifest::NativeSelectedSoftwareBinding::from_capture(
-        &software,
-        &components,
-        &source.schema_worker_path,
-        &source.schema_worker_sha256,
-    )?;
-    let profile =
-        manifest::NativeSelectedRuntimeSourceProfile::from_current_cut(&cut, software_binding)?;
     let source_root = isolation.root().join("tos-native-corpus-source");
     let (member_count, source_bytes) =
-        materialize_source_cut(source, &cut, &source_root, deadline, cancelled)?;
+        materialize_source_cut(plan.cut, &cut, &source_root, deadline, cancelled)?;
+    Ok(SourceRuntimeInputs {
+        cut,
+        software,
+        components,
+        source_root,
+        worker,
+        member_count,
+        source_bytes,
+    })
+}
+
+fn project_source_runtime<'a>(
+    inputs: &'a SourceRuntimeInputs,
+    profile: &manifest::NativeSelectedRuntimeSourceProfile,
+    plan: &'a SourceRuntimePlan,
+    isolation: &PrivateTmpfsStageIsolation,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<RuntimeProductStage<'a>> {
+    let cut = &inputs.cut;
+    let software = &inputs.software;
+    let source_root = &inputs.source_root;
+    let revision = cut.current().revision();
     let source_home_path = RelativePath::parse("ToS/source_home.manifest.json")
         .map_err(|_| Refusal("native source-home manifest path invalid"))?;
     let source_home = cut.read_member(
         revision,
         &source_home_path,
-        source.max_member_bytes,
+        plan.cut.max_member_bytes,
         deadline,
         cancelled,
     )?;
@@ -2720,8 +2953,8 @@ fn prepare_source_only_runtime(
         material_sha256: &source_home_sha,
         identity_id,
     };
-    let projection_limits = source_projection_limits(source, request, deadline)?;
-    let worker_image = worker.clone();
+    let projection_limits = plan.projection;
+    let worker_image = inputs.worker.clone();
     let recheck = || -> tos_compiler::Result<()> {
         if cancelled.load(std::sync::atomic::Ordering::Relaxed)
             || Instant::now() >= deadline
@@ -2734,7 +2967,7 @@ fn prepare_source_only_runtime(
                 .to_hex()
                 != profile.membership_root
             || software.selection().capture_manifest_sha256.to_hex()
-                != source.capture_manifest_sha256
+                != profile.software.capture_manifest_sha256
         {
             return Err(tos_compiler::Error::Invalid(
                 "native source selection changed",
@@ -2743,8 +2976,8 @@ fn prepare_source_only_runtime(
         Ok(())
     };
     let products = crate::source_corpus_index_projection::project(
-        &cut,
-        &software,
+        cut,
+        software,
         &binding,
         root_input,
         worker_image,
@@ -2756,26 +2989,46 @@ fn prepare_source_only_runtime(
         cancelled,
     )?;
     write_source_file(
-        &source_root,
+        source_root,
         manifest::CORPUS_INDEX_PATH,
         products.corpus.output_bytes(),
         0o644,
     )?;
     write_source_file(
-        &source_root,
+        source_root,
         manifest::CLAIM_GRAPH_PATH,
         &products.bibliographic_claims,
         0o644,
     )?;
+    let mut stage = RuntimeProductStage {
+        root: source_root,
+        plan,
+        products: Vec::with_capacity(6),
+    };
+    stage.capture(manifest::CORPUS_INDEX_PATH, deadline, cancelled)?;
+    stage.capture(manifest::CLAIM_GRAPH_PATH, deadline, cancelled)?;
+    Ok(stage)
+}
+
+fn build_philosophy_runtime<'a>(
+    mut stage: RuntimeProductStage<'a>,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<RuntimeProductStage<'a>> {
+    stage.require_paths(
+        &[manifest::CORPUS_INDEX_PATH, manifest::CLAIM_GRAPH_PATH],
+        deadline,
+    )?;
+    active(deadline)?;
     let philosophy_args = vec![
         "--philosophy-product".to_owned(),
         "corpus".to_owned(),
         "--mode".to_owned(),
         "build".to_owned(),
         "--source-root".to_owned(),
-        source_root.display().to_string(),
+        stage.root.display().to_string(),
         "--output-root".to_owned(),
-        source_root.display().to_string(),
+        stage.root.display().to_string(),
         "--max-seconds".to_owned(),
         deadline
             .saturating_duration_since(Instant::now())
@@ -2784,67 +3037,97 @@ fn prepare_source_only_runtime(
             .min(3600)
             .to_string(),
         "--scratch-bytes".to_owned(),
-        request.tmpfs_quota_bytes.to_string(),
+        stage.plan.philosophy_scratch_bytes.to_string(),
     ];
     tos_ops_mechanics_plan::philosophy_products::run(&philosophy_args, Arc::clone(cancelled))
         .map_err(|reason| ProductRefusal {
             product: "philosophy products",
             reason_sha256: Digest256::of_bytes(reason.as_bytes()),
         })?;
+    for path in [
+        tos_compiler::source_philosophy_views::ATLAS_REF,
+        tos_compiler::source_philosophy_graph::VIEWS_REF,
+        manifest::PHILOSOPHY_GRAPH_PATH,
+    ] {
+        stage.capture(path, deadline, cancelled)?;
+    }
+    Ok(stage)
+}
+
+fn build_evidence_runtime<'a>(
+    mut stage: RuntimeProductStage<'a>,
+    isolation: &PrivateTmpfsStageIsolation,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<RuntimeProductStage<'a>> {
+    stage.require_paths(
+        &[
+            manifest::CORPUS_INDEX_PATH,
+            manifest::CLAIM_GRAPH_PATH,
+            tos_compiler::source_philosophy_views::ATLAS_REF,
+            tos_compiler::source_philosophy_graph::VIEWS_REF,
+            manifest::PHILOSOPHY_GRAPH_PATH,
+        ],
+        deadline,
+    )?;
     let evidence_stage = isolation.root().join("tos-native-evidence-stage.sqlite3");
-    let evidence_limits = source_runtime_evidence_limits(request)?;
+    let evidence_limits = stage.plan.generated_capture;
     let evidence = tos_compiler::epistemic_evidence::build(
-        &source_root,
+        stage.root,
         &evidence_stage,
         evidence_limits,
         deadline,
     )?;
     write_source_file(
-        &source_root,
+        stage.root,
         manifest::EVIDENCE_PROJECTION_PATH,
         &evidence,
         0o644,
     )?;
-    let product_paths = manifest::required_native_runtime_product_paths();
-    let mut product_rows = Vec::with_capacity(product_paths.len());
-    for path in product_paths {
-        active(deadline)?;
-        let full_path = source_root.join(path);
-        let (mut file, stamp) = open_regular(
-            &full_path,
-            request.persistent_write_cap_bytes,
-            rustix::process::getuid().as_raw(),
-        )?;
-        let mut raw = Vec::new();
-        (&mut file)
-            .take(request.persistent_write_cap_bytes.saturating_add(1))
-            .read_to_end(&mut raw)?;
-        if raw.len() as u64 > request.persistent_write_cap_bytes
-            || Stamp::from(&file.metadata()?) != stamp
-            || Stamp::from(&fs::symlink_metadata(&full_path)?) != stamp
-        {
-            return Err(Refusal("native generated runtime product changed or exceeded cap").into());
-        }
-        product_rows.push(manifest::NativeSourceMemberBinding {
-            path: path.to_owned(),
-            mode: stamp.mode & 0o777,
-            size_bytes: raw.len() as u64,
-            sha256: Digest256::of_bytes(&raw).to_hex(),
-        });
-    }
-    product_rows.sort_by(|left, right| left.path.cmp(&right.path));
-    let profile = profile.with_runtime_products(product_rows)?;
-    let runtime = SourceOnlyRuntime {
-        cut,
-        software,
-        components,
+    stage.capture(manifest::EVIDENCE_PROJECTION_PATH, deadline, cancelled)?;
+    Ok(stage)
+}
+
+fn prepare_source_only_runtime(
+    source: &NativeSourceOnlyRequest,
+    plan: &SourceRuntimePlan,
+    isolation: &PrivateTmpfsStageIsolation,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<SourceOnlyRuntime> {
+    let mut stage_elapsed_ns = [0; 5];
+    let started = Instant::now();
+    let inputs = open_source_runtime_inputs(source, plan, isolation, deadline, cancelled)?;
+    let software_binding = manifest::NativeSelectedSoftwareBinding::from_capture(
+        &inputs.software,
+        &inputs.components,
+        &source.schema_worker_path,
+        &source.schema_worker_sha256,
+    )?;
+    let profile = manifest::NativeSelectedRuntimeSourceProfile::from_current_cut(
+        &inputs.cut,
+        software_binding,
+    )?;
+    stage_elapsed_ns[0] = elapsed_ns(started);
+    let started = Instant::now();
+    let corpus = project_source_runtime(&inputs, &profile, plan, isolation, deadline, cancelled)?;
+    stage_elapsed_ns[1] = elapsed_ns(started);
+    let started = Instant::now();
+    let philosophy = build_philosophy_runtime(corpus, deadline, cancelled)?;
+    stage_elapsed_ns[2] = elapsed_ns(started);
+    let started = Instant::now();
+    let evidence = build_evidence_runtime(philosophy, isolation, deadline, cancelled)?;
+    stage_elapsed_ns[3] = elapsed_ns(started);
+    let started = Instant::now();
+    let profile = profile.with_runtime_products(evidence.finish(deadline)?)?;
+    let mut runtime = SourceOnlyRuntime {
+        inputs,
+        plan: *plan,
         profile,
-        source_root,
-        worker,
-        member_count,
-        source_bytes,
+        stage_elapsed_ns,
     };
     runtime.recheck(source, deadline, cancelled)?;
+    runtime.stage_elapsed_ns[4] = elapsed_ns(started);
     Ok(runtime)
 }
 
@@ -3475,11 +3758,16 @@ pub(crate) fn with_direct_repository_projection<T>(
                         evidence_refs: Vec::new(),
                         previous_native_snapshot: None,
                     };
-                    let projection_limits = source_projection_limits(
+                    let projection_limits = source_runtime_plan(
                         &projection_source,
                         &projection_request,
                         deadline,
-                    )?;
+                        manifest::portable_native_snapshot_limits(
+                            projection_request.max_build_seconds,
+                        )?
+                        .capture,
+                    )?
+                    .projection;
                     let recheck = || -> tos_compiler::Result<()> {
                         if cancelled.load(std::sync::atomic::Ordering::Relaxed)
                             || Instant::now() >= deadline
@@ -4051,13 +4339,17 @@ struct AdmittedProducerStage {
 
 // Shared by preflight and the real writer. Each invocation acquires and
 // verifies its own live ticket; preflight never authorizes a later run.
-fn admit_producer_stage(request: &Request, uid: u32) -> Result<AdmittedProducerStage> {
+fn admit_producer_stage(
+    request: &Request,
+    plan: &NativeBuildPlan,
+    uid: u32,
+) -> Result<AdmittedProducerStage> {
     // This exact host ticket must be selected before any source capture or
     // writer. Its selected persistent filesystem is the only output root.
     let isolation = PrivateTmpfsStageIsolation::select_from_environment(
-        request.tmpfs_quota_bytes,
-        request.tmpfs_inode_limit,
-        request.working_ram_bytes,
+        plan.tmpfs_quota_bytes,
+        plan.tmpfs_inode_limit,
+        plan.working_ram_bytes,
     )?;
     let persistent_store_path = isolation
         .persistent_store()
@@ -4126,11 +4418,9 @@ fn admit_producer_stage(request: &Request, uid: u32) -> Result<AdmittedProducerS
 }
 
 fn execute(mut request: Request) -> Result<Value> {
-    validate_request(&request)?;
     let started = Instant::now();
-    let deadline = started
-        .checked_add(Duration::from_secs(request.max_build_seconds))
-        .ok_or(Refusal("native Original producer deadline arithmetic"))?;
+    let plan = NativeBuildPlan::new(&request, started)?;
+    let deadline = plan.deadline;
     let uid = rustix::process::getuid().as_raw();
     if rustix::process::geteuid().as_raw() != uid {
         return Err(Refusal("native Original producer refuses setuid execution").into());
@@ -4142,25 +4432,14 @@ fn execute(mut request: Request) -> Result<Value> {
         store,
         data_root,
         private_release_root,
-    } = admit_producer_stage(&request, uid)?;
+    } = admit_producer_stage(&request, &plan, uid)?;
 
     let fingerprint_before = manifest::fingerprint_native_compiler_source(deadline)?;
-    let mut limits = manifest::portable_native_snapshot_limits(request.max_build_seconds)?;
-    limits.capture.max_work_bytes = request.max_work_bytes;
-    // Search participates in the same original cumulative work counter. Its
-    // local ceiling must not silently retain a smaller generic default.
-    limits.full.search.max_work_bytes = request.max_work_bytes;
-    // Each stored posting consumes physical space in its bounded block/row.
-    // Keep a finite, conservative count envelope tied to the selected cold
-    // byte cap; actual MAIN, TEMP and final cold-size checks remain decisive.
-    limits.full.search.max_postings = request.cold_open.max_file_bytes;
-    // The private stage's live main and TEMP databases use the maintained
-    // compiler limits covered by the tmpfs/RAM hold. The caller's cold-file
-    // ceiling applies to the finished selected model after compaction.
+    let limits = plan.snapshot;
     let cancelled = Arc::new(AtomicBool::new(false));
     let resources = LinuxCgroupColdOpenResourceHold::acquire_original_stage(
-        request.working_ram_bytes,
-        request.tmpfs_quota_bytes,
+        plan.working_ram_bytes,
+        plan.tmpfs_quota_bytes,
         deadline,
         Arc::clone(&cancelled),
     )?;
@@ -4173,7 +4452,15 @@ fn execute(mut request: Request) -> Result<Value> {
         .source_only
         .as_ref()
         .map(|source| {
-            prepare_source_only_runtime(source, &request, &isolation, deadline, &cancelled)
+            prepare_source_only_runtime(
+                source,
+                plan.source
+                    .as_ref()
+                    .ok_or(Refusal("native source build plan absent"))?,
+                &isolation,
+                deadline,
+                &cancelled,
+            )
         })
         .transpose()?;
     if request.mode.as_deref() == Some("check") {
@@ -4221,6 +4508,7 @@ fn execute(mut request: Request) -> Result<Value> {
     caller_bytes = caller_bytes
         .checked_add(
             std::mem::size_of::<Request>()
+                + std::mem::size_of::<NativeBuildPlan>()
                 + request
                     .selected_snapshot
                     .as_ref()
@@ -4248,8 +4536,7 @@ fn execute(mut request: Request) -> Result<Value> {
         .ok_or(Refusal("native Original request owner census overflow"))?;
     let retained = Cell::new(caller_bytes);
     let remaining = |extra: usize| {
-        request
-            .max_state_bytes
+        plan.max_state_bytes
             .checked_sub(retained.get())
             .and_then(|n| n.checked_sub(extra))
             .ok_or(tos_compiler::Error::Budget(
@@ -4257,7 +4544,7 @@ fn execute(mut request: Request) -> Result<Value> {
             ))
     };
     let heap = DedicatedSessionSqliteHeap::establish(
-        tos_compiler::dedicated_session_heap_bytes(request.max_state_bytes)?,
+        tos_compiler::dedicated_session_heap_bytes(plan.max_state_bytes)?,
         &remaining,
         deadline,
         cancelled.as_ref(),
@@ -4293,7 +4580,7 @@ fn execute(mut request: Request) -> Result<Value> {
     }
     let capture_source_root = match (&historical, &source_runtime) {
         (Some(census), None) => census.source_root(),
-        (None, Some(runtime)) => runtime.source_root.as_path(),
+        (None, Some(runtime)) => runtime.inputs.source_root.as_path(),
         _ => return Err(Refusal("native producer source root mode differs").into()),
     };
     let capture = PublicCapture::create_runtime_with_owned_budget(
@@ -4310,7 +4597,7 @@ fn execute(mut request: Request) -> Result<Value> {
             original_sql_vm: vm,
             original_sql_vm_limit: limits.capture.max_sql_vm_steps,
             original_sqlite_heap: Arc::clone(&heap),
-            max_creation_json_visits: request.max_json_visits,
+            max_creation_json_visits: plan.max_json_visits,
             creation_deadline: deadline,
         },
         &mut capture_usage,
@@ -4380,7 +4667,7 @@ fn execute(mut request: Request) -> Result<Value> {
         &provisional_bindings,
         &member_paths,
     );
-    let data_cap = request
+    let data_cap = plan
         .persistent_write_cap_bytes
         .min(manifest::NATIVE_PRODUCER_MAX_DATA_BYTES);
     let manifest_limits = manifest::NativeDataManifestLimits {
@@ -4409,7 +4696,7 @@ fn execute(mut request: Request) -> Result<Value> {
         );
         remaining(0)?;
     }
-    let remaining_visits = request
+    let remaining_visits = plan
         .max_json_visits
         .checked_sub(capture_usage.json_visits)
         .filter(|n| *n > 0)
@@ -4437,7 +4724,7 @@ fn execute(mut request: Request) -> Result<Value> {
             let model_bytes = snapshot_output.stage().sqlite_size_bytes;
             if model_bytes == 0
                 || model_bytes > manifest::NATIVE_PRODUCER_MAX_MODEL_BYTES
-                || model_bytes > request.cold_open.max_file_bytes
+                || model_bytes > plan.cold_open.max_file_bytes
             {
                 return Err(Refusal("completed native model exceeds selected ceiling").into());
             }
@@ -4457,7 +4744,7 @@ fn execute(mut request: Request) -> Result<Value> {
                 .ok_or(Refusal(
                     "512 MiB persistent candidate ceiling refuses before model copy",
                 ))?;
-            if persistent_candidate_upper > request.persistent_write_cap_bytes {
+            if persistent_candidate_upper > plan.persistent_write_cap_bytes {
                 return Err(
                     Refusal("persistent write reservation is below candidate upper bound").into(),
                 );
@@ -4506,15 +4793,15 @@ fn execute(mut request: Request) -> Result<Value> {
                     .selection_for_copied_model(
                         &model_path,
                         selection_paths,
-                        request.cold_open,
-                        request.process_limits,
+                        plan.cold_open,
+                        plan.process_limits,
                         MAX_SELECTION_BYTES,
                     )?,
                 native_snapshot::NativeSnapshotOutput::Reused(reused) => reused
                     .selection_for_copied_model(
                         &model_path,
-                        request.cold_open,
-                        request.process_limits,
+                        plan.cold_open,
+                        plan.process_limits,
                         MAX_SELECTION_BYTES,
                     )?,
             };
@@ -4539,7 +4826,7 @@ fn execute(mut request: Request) -> Result<Value> {
                 .ok_or(Refusal("candidate data plus manifest metadata ceiling"))?;
             let output_file_list_bytes = output.written_bytes;
             if output_file_list_bytes > data_cap
-                || estimated_output > request.persistent_write_cap_bytes
+                || estimated_output > plan.persistent_write_cap_bytes
             {
                 return Err(Refusal("candidate data premanifest ceiling").into());
             }
@@ -4553,7 +4840,7 @@ fn execute(mut request: Request) -> Result<Value> {
             let named_model_before = private_model_path_stamp(&model_path, uid, model_bytes)?;
             let cold_open_start_elapsed_ns = elapsed_ns(started);
             let custody_observer = Arc::new(ObservingNativeCustody::new(
-                LinuxFsVerityCustody::new(fs_verity.clone(), request.process_limits)?,
+                LinuxFsVerityCustody::new(fs_verity.clone(), plan.process_limits)?,
                 started,
             ));
             let custody: Arc<dyn ImmutableKnowledgeCustody> = custody_observer.clone();
@@ -4590,9 +4877,9 @@ fn execute(mut request: Request) -> Result<Value> {
                         &isolation,
                         &mut pinned_model,
                         custody.as_ref(),
-                        request.cold_open,
-                        request.process_limits,
-                        request.working_ram_bytes,
+                        plan.cold_open,
+                        plan.process_limits,
+                        plan.working_ram_bytes,
                         &resources,
                         deadline,
                         cold_check,
@@ -4603,9 +4890,9 @@ fn execute(mut request: Request) -> Result<Value> {
                         &mut pinned_model,
                         selection.expectation(),
                         custody.as_ref(),
-                        request.cold_open,
-                        request.process_limits,
-                        request.working_ram_bytes,
+                        plan.cold_open,
+                        plan.process_limits,
+                        plan.working_ram_bytes,
                         &resources,
                         deadline,
                         cold_check,
@@ -4668,8 +4955,7 @@ fn execute(mut request: Request) -> Result<Value> {
                 .written_bytes
                 .checked_add(manifest_receipt.manifest_bytes)
                 .ok_or(Refusal("native candidate total output arithmetic"))?;
-            if total_output_bytes > data_cap
-                || total_output_bytes > request.persistent_write_cap_bytes
+            if total_output_bytes > data_cap || total_output_bytes > plan.persistent_write_cap_bytes
             {
                 return Err(Refusal("candidate manifest exceeds persistent-write ceiling").into());
             }
@@ -4796,8 +5082,8 @@ fn execute(mut request: Request) -> Result<Value> {
                 ("philosophy_original_available", json!(true)),
                 ("corpus_original_receipt", corpus_original),
                 ("philosophy_original_receipt", philosophy_original),
-                ("process_limits", json!(request.process_limits)),
-                ("cold_open_limits", json!(request.cold_open)),
+                ("process_limits", json!(plan.process_limits)),
+                ("cold_open_limits", json!(plan.cold_open)),
                 ("model_path", json!(model_path)),
                 ("named_model_before", stamp_json(named_model_before)),
                 ("held_model_fd_first", held_model_fd_first),
@@ -4808,19 +5094,20 @@ fn execute(mut request: Request) -> Result<Value> {
                 ("named_and_held_stamps_agree", json!(true)),
             ]);
             let resource_envelope = json_object([
-                ("tmpfs_quota_bytes", json!(request.tmpfs_quota_bytes)),
+                ("build_plan", plan.summary()),
+                ("tmpfs_quota_bytes", json!(plan.tmpfs_quota_bytes)),
                 (
                     "minimum_composed_tmpfs_quota_bytes",
                     json!(manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES),
                 ),
-                ("working_ram_bytes", json!(request.working_ram_bytes)),
+                ("working_ram_bytes", json!(plan.working_ram_bytes)),
                 (
                     "original_kernel_memory_max_bytes",
                     json!(resources.original_kernel_memory_max()),
                 ),
-                ("producer_max_state_bytes", json!(request.max_state_bytes)),
-                ("producer_max_json_visits", json!(request.max_json_visits)),
-                ("producer_max_work_bytes", json!(request.max_work_bytes)),
+                ("producer_max_state_bytes", json!(plan.max_state_bytes)),
+                ("producer_max_json_visits", json!(plan.max_json_visits)),
+                ("producer_max_work_bytes", json!(plan.max_work_bytes)),
                 (
                     "capture_build_observed_work_bytes",
                     json!(capture.work_bytes()),
@@ -4836,7 +5123,7 @@ fn execute(mut request: Request) -> Result<Value> {
                 ("payload_layout", json!("CarrierOnceV4")),
                 (
                     "persistent_write_cap_bytes",
-                    json!(request.persistent_write_cap_bytes),
+                    json!(plan.persistent_write_cap_bytes),
                 ),
                 ("candidate_data_cap_bytes", json!(data_cap)),
                 (
@@ -4844,7 +5131,7 @@ fn execute(mut request: Request) -> Result<Value> {
                     json!(persistent_candidate_upper),
                 ),
                 ("pre_manifest_output_bytes", json!(output.written_bytes)),
-                ("whole_deadline_seconds", json!(request.max_build_seconds)),
+                ("whole_deadline_seconds", json!(plan.max_build_seconds)),
                 ("elapsed_seconds", json!(started.elapsed().as_secs())),
                 (
                     "limit_interpretation",
@@ -4998,24 +5285,30 @@ pub fn preflight_corpus_build(
 
 fn preflight_request(mut request: Request) -> Result<Value> {
     let mut errors = Vec::new();
-    if let Err(error) = validate_request(&request) {
-        errors.push(format!("request: {error}"));
-    }
+    let plan = match NativeBuildPlan::new(&request, Instant::now()) {
+        Ok(plan) => Some(plan),
+        Err(error) => {
+            errors.push(format!("request: {error}"));
+            None
+        }
+    };
     let uid = rustix::process::getuid().as_raw();
     if rustix::process::geteuid().as_raw() != uid {
         errors.push("host: native Original producer refuses setuid execution".into());
     }
-    match admit_producer_stage(&request, uid) {
-        Err(error) => errors.push(format!("stage: {error}")),
-        Ok(_stage) => {
-            let cancelled = Arc::new(AtomicBool::new(false));
-            if let Err(error) = LinuxCgroupColdOpenResourceHold::acquire_original_stage(
-                request.working_ram_bytes,
-                request.tmpfs_quota_bytes,
-                Instant::now() + Duration::from_secs(5),
-                cancelled,
-            ) {
-                errors.push(format!("resources: {error}"));
+    if let Some(plan) = &plan {
+        match admit_producer_stage(&request, plan, uid) {
+            Err(error) => errors.push(format!("stage: {error}")),
+            Ok(_stage) => {
+                let cancelled = Arc::new(AtomicBool::new(false));
+                if let Err(error) = LinuxCgroupColdOpenResourceHold::acquire_original_stage(
+                    plan.working_ram_bytes,
+                    plan.tmpfs_quota_bytes,
+                    plan.deadline.min(Instant::now() + Duration::from_secs(5)),
+                    cancelled,
+                ) {
+                    errors.push(format!("resources: {error}"));
+                }
             }
         }
     }
@@ -5027,9 +5320,11 @@ fn preflight_request(mut request: Request) -> Result<Value> {
     if !errors.is_empty() {
         return Err(io::Error::other(errors.join("; ")).into());
     }
+    let plan = plan.ok_or(Refusal("native preflight build plan absent"))?;
     Ok(json!({"schema_version":"tos_native_corpus_preflight_v1",
         "request_and_host_checked":true, "source_opened":false,
-        "candidate_created":false, "authorizes_future_execution":false}))
+        "candidate_created":false, "authorizes_future_execution":false,
+        "build_plan":plan.summary()}))
 }
 
 /// Read and validate the shared direct source projection request envelope.
@@ -5268,20 +5563,9 @@ fn run_request(
 mod projection_limit_tests {
     use super::*;
 
-    #[test]
-    fn source_projection_budgets_fit_family_rows_and_original_format() {
+    fn source_request() -> Request {
         let profile = DirectRepositoryProjectionLimits::repo_validation_v1();
-        profile.cold_open.validate().unwrap();
-        validate_direct_projection_request(&DirectRepositoryProjectionRequest {
-            repository_root: "/selected/repository".into(),
-            software_git_commit: "0".repeat(40),
-            software_git_tree: "0".repeat(40),
-            schema_worker_absolute_path: "/selected/worker".into(),
-            schema_worker_sha256: "0".repeat(64),
-            limits: profile,
-        })
-        .unwrap();
-        let mut source = NativeSourceOnlyRequest {
+        let source = NativeSourceOnlyRequest {
             corpus_store: "/selected/source".into(),
             source_revision: "0".repeat(64),
             max_revisions: 1,
@@ -5305,12 +5589,12 @@ mod projection_limit_tests {
             worker_cpu_seconds: profile.worker_cpu_seconds,
             worker_address_space_bytes: profile.worker_address_space_bytes,
         };
-        let mut request = Request {
+        Request {
             schema_version: CORPUS_BUILD_REQUEST_SCHEMA.into(),
             mode: Some("build".into()),
             comparison_root: None,
             selected_snapshot: None,
-            source_only: None,
+            source_only: Some(source),
             tmpfs_quota_bytes: profile.tmpfs_quota_bytes,
             tmpfs_inode_limit: profile.tmpfs_inode_limit,
             working_ram_bytes: profile.working_ram_bytes,
@@ -5325,7 +5609,24 @@ mod projection_limit_tests {
             private_release_directory: "release".into(),
             evidence_refs: Vec::new(),
             previous_native_snapshot: None,
-        };
+        }
+    }
+
+    #[test]
+    fn source_projection_budgets_fit_family_rows_and_original_format() {
+        let profile = DirectRepositoryProjectionLimits::repo_validation_v1();
+        profile.cold_open.validate().unwrap();
+        validate_direct_projection_request(&DirectRepositoryProjectionRequest {
+            repository_root: "/selected/repository".into(),
+            software_git_commit: "0".repeat(40),
+            software_git_tree: "0".repeat(40),
+            schema_worker_absolute_path: "/selected/worker".into(),
+            schema_worker_sha256: "0".repeat(64),
+            limits: profile,
+        })
+        .unwrap();
+        let mut request = source_request();
+        let mut source = request.source_only.take().unwrap();
         let original_ceiling = tos_compiler::NavigationOriginalLimits::maximum();
         for member_bytes in [
             4096,
@@ -5342,17 +5643,21 @@ mod projection_limit_tests {
             for rows in [1, 128, 16_384, MAX_COLD_ROWS] {
                 request.cold_open.max_rows = rows;
                 validate_source_only_request(&source, &request).unwrap();
-                let limits = source_projection_limits(
+                let source_plan = source_runtime_plan(
                     &source,
                     &request,
                     Instant::now() + Duration::from_secs(60),
+                    manifest::portable_native_snapshot_limits(request.max_build_seconds)
+                        .unwrap()
+                        .capture,
                 )
                 .unwrap();
+                let limits = source_plan.projection;
                 limits.validate().unwrap();
                 limits.bibliographic.catalog.validate().unwrap();
                 limits.bibliographic.validate().unwrap();
                 limits.schema_work.validate().unwrap();
-                let evidence = source_runtime_evidence_limits(&request).unwrap();
+                let evidence = source_plan.generated_capture;
                 assert_eq!(evidence.max_rows, rows);
                 assert_eq!(evidence.max_work_bytes, request.max_work_bytes);
                 assert_eq!(evidence.max_sql_vm_steps, request.cold_open.max_vm_steps);
@@ -5404,7 +5709,16 @@ mod projection_limit_tests {
         carrier.as_file().set_len(73_584_723).unwrap();
         let uid = rustix::process::getuid().as_raw();
         assert!(open_regular(carrier.path(), source.max_total_bytes, uid).is_err());
-        let evidence = source_runtime_evidence_limits(&request).unwrap();
+        let source_plan = source_runtime_plan(
+            &source,
+            &request,
+            Instant::now() + Duration::from_secs(60),
+            manifest::portable_native_snapshot_limits(request.max_build_seconds)
+                .unwrap()
+                .capture,
+        )
+        .unwrap();
+        let evidence = source_plan.generated_capture;
         open_regular(carrier.path(), evidence.max_input_bytes, uid).unwrap();
         carrier
             .as_file()
@@ -5412,9 +5726,32 @@ mod projection_limit_tests {
             .unwrap();
         assert!(open_regular(carrier.path(), evidence.max_input_bytes, uid).is_err());
         request.persistent_write_cap_bytes = 1024 * 1024;
-        let smaller = source_runtime_evidence_limits(&request).unwrap();
+        let smaller = source_runtime_plan(
+            &source,
+            &request,
+            Instant::now() + Duration::from_secs(60),
+            manifest::portable_native_snapshot_limits(request.max_build_seconds)
+                .unwrap()
+                .capture,
+        )
+        .unwrap()
+        .generated_capture;
         assert!(open_regular(carrier.path(), smaller.max_input_bytes, uid).is_err());
         assert_eq!(smaller.max_input_bytes, request.persistent_write_cap_bytes);
+        request.source_only = Some(source);
+        let plan = NativeBuildPlan::new(&request, Instant::now()).unwrap();
+        let source_plan = plan.source.unwrap();
+        assert_eq!(source_plan.generated_capture.max_input_bytes, 1024 * 1024);
+        assert_eq!(source_plan.projection.max_output_bytes, 1024 * 1024);
+        assert_eq!(
+            plan.summary()["authored_source"]["total_bytes"],
+            source_plan.cut.max_total_bytes
+        );
+        assert_eq!(
+            plan.summary()["cold_file_bytes"],
+            request.cold_open.max_file_bytes
+        );
+        let mut source = request.source_only.take().unwrap();
         source.max_member_bytes = source.max_total_bytes + 1;
         assert!(validate_source_only_request(&source, &request).is_err());
         let mut incompatible = profile;
@@ -5430,5 +5767,49 @@ mod projection_limit_tests {
             })
             .is_err()
         );
+    }
+
+    #[test]
+    fn runtime_stages_preserve_order_and_reject_changed_or_replaced_products() {
+        let request = source_request();
+        let plan = NativeBuildPlan::new(&request, Instant::now()).unwrap();
+        let source_plan = plan.source.unwrap();
+        let root = tempfile::tempdir().unwrap();
+        let cancelled = AtomicBool::new(false);
+        let paths = manifest::required_native_runtime_product_paths();
+        let mut stage = RuntimeProductStage {
+            root: root.path(),
+            plan: &source_plan,
+            products: Vec::new(),
+        };
+        for path in paths.iter().rev() {
+            write_source_file(root.path(), path, b"{}", 0o644).unwrap();
+            stage.capture(path, plan.deadline, &cancelled).unwrap();
+        }
+        assert!(stage.capture(paths[0], plan.deadline, &cancelled).is_err());
+        let members = stage.finish(plan.deadline).unwrap();
+        assert!(members.windows(2).all(|pair| pair[0].path < pair[1].path));
+        assert!(
+            members.iter().all(|member| member.size_bytes == 2
+                && member.sha256 == Digest256::of_bytes(b"{}").to_hex())
+        );
+        for replace in [false, true] {
+            let mut stage = RuntimeProductStage {
+                root: root.path(),
+                plan: &source_plan,
+                products: Vec::new(),
+            };
+            stage.capture(paths[0], plan.deadline, &cancelled).unwrap();
+            stage.require_paths(&[paths[0]], plan.deadline).unwrap();
+            let path = root.path().join(paths[0]);
+            if replace {
+                let replacement = root.path().join("replacement");
+                fs::write(&replacement, b"{}").unwrap();
+                fs::rename(replacement, path).unwrap();
+            } else {
+                fs::write(path, b"changed").unwrap();
+            }
+            assert!(stage.require_paths(&[paths[0]], plan.deadline).is_err());
+        }
     }
 }
