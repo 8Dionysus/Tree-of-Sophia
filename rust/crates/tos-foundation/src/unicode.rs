@@ -113,14 +113,10 @@ pub fn python_lower_unicode16_v1(
     max_output_bytes: usize,
 ) -> Result<String> {
     check_input(input, max_input_code_points)?;
-    let chars: Vec<char> = input.chars().collect();
-    let mut following_cased = vec![false; chars.len()];
     let mut check = || Ok(());
-    lower_following(&chars, &mut following_cased, &mut check)?;
     let mut output = String::with_capacity(input.len().min(max_output_bytes));
     lower_visit(
-        &chars,
-        &following_cased,
+        input,
         max_output_code_points,
         max_output_bytes,
         &mut check,
@@ -133,8 +129,8 @@ pub fn python_lower_unicode16_v1(
 }
 
 /// The same Unicode16/Final_Sigma visitor under the caller's original remaining
-/// workspace and cumulative work/cancellation callback. Every vector/string is
-/// exact-reserved after its complete live overlap is admitted. The callback
+/// workspace and cumulative work/cancellation callback. The input is borrowed;
+/// only the exact output String is allocated after its live overlap is admitted. The callback
 /// runs on input/count/emit scalars and every actual table comparison; callers
 /// must debit the same original meter, including terminal failures. Before
 /// entry the caller must reserve python_lower_unicode16_v1_error_state_upper_bound
@@ -160,32 +156,9 @@ pub fn python_lower_unicode16_v1_with_state_budget_and_check(
             .filter(|n| *n <= max_input_code_points)
             .ok_or_else(|| budget_error("Unicode input code-point budget exceeded"))?;
     }
-    let vectors = count
-        .checked_mul(std::mem::size_of::<char>() + std::mem::size_of::<bool>())
-        .and_then(|n| n.checked_add(fixed))
-        .filter(|n| *n <= available_state_bytes)
-        .ok_or_else(|| budget_error("Unicode input workspace exceeded"))?;
-    let mut chars = Vec::new();
-    chars
-        .try_reserve_exact(count)
-        .map_err(|_| budget_error("Unicode exact scalar reserve failed"))?;
-    let mut following_cased = Vec::new();
-    following_cased
-        .try_reserve_exact(count)
-        .map_err(|_| budget_error("Unicode exact flags reserve failed"))?;
-    if chars.capacity() != count || following_cased.capacity() != count {
-        return Err(budget_error("Unicode exact vector capacity differs"));
-    }
-    for ch in input.chars() {
-        check()?;
-        chars.push(ch);
-        following_cased.push(false);
-    }
-    lower_following(&chars, &mut following_cased, check)?;
     let mut counted_bytes = 0usize;
     lower_visit(
-        &chars,
-        &following_cased,
+        input,
         max_output_code_points,
         max_output_bytes,
         check,
@@ -196,7 +169,7 @@ pub fn python_lower_unicode16_v1_with_state_budget_and_check(
             Ok(())
         },
     )?;
-    vectors
+    fixed
         .checked_add(counted_bytes)
         .filter(|n| *n <= available_state_bytes)
         .ok_or_else(|| budget_error("Unicode output workspace exceeded"))?;
@@ -208,8 +181,7 @@ pub fn python_lower_unicode16_v1_with_state_budget_and_check(
         return Err(budget_error("Unicode exact output capacity differs"));
     }
     lower_visit(
-        &chars,
-        &following_cased,
+        input,
         max_output_code_points,
         max_output_bytes,
         check,
@@ -233,10 +205,6 @@ pub fn python_lower_unicode16_v1_error_state_upper_bound() -> usize {
     const MESSAGES: &[&str] = &[
         "Unicode controller state budget exceeded",
         "Unicode input code-point budget exceeded",
-        "Unicode input workspace exceeded",
-        "Unicode exact scalar reserve failed",
-        "Unicode exact flags reserve failed",
-        "Unicode exact vector capacity differs",
         "Unicode output count overflow",
         "Unicode output workspace exceeded",
         "Unicode exact output reserve failed",
@@ -265,20 +233,19 @@ fn lower_fixed_state() -> usize {
     // Every simultaneously active routine is represented separately. Tuple
     // temporaries are conservatively retained in addition to destructured
     // locals; shared heap/input/callback targets are not cloned here.
-    let main = std::mem::size_of::<Vec<char>>() + std::mem::size_of::<Vec<bool>>()
-        + std::mem::size_of::<String>() + std::mem::size_of::<std::str::Chars<'_>>()
+    let main = std::mem::size_of::<String>() + std::mem::size_of::<std::str::Chars<'_>>()
         + std::mem::size_of::<&str>() + std::mem::size_of::<&mut dyn FnMut() -> Result<()>>()
-        // Four limit/workspace parameters; count, vectors, counted_bytes.
+        // Four limit/workspace parameters; count, fixed, counted_bytes.
         + std::mem::size_of::<(usize, usize, usize, usize, usize, usize, usize)>()
         + std::mem::size_of::<char>() + std::mem::size_of::<Result<()>>();
-    let following = std::mem::size_of::<&[char]>()
-        + std::mem::size_of::<&mut [bool]>()
+    let context = std::mem::size_of::<&str>()
         + std::mem::size_of::<&mut dyn FnMut() -> Result<()>>()
-        + std::mem::size_of::<std::iter::Rev<std::ops::Range<usize>>>()
+        + std::mem::size_of::<std::str::Chars<'_>>()
         + std::mem::size_of::<bool>()
-        + std::mem::size_of::<usize>()
+        + std::mem::size_of::<Option<char>>()
+        + std::mem::size_of::<char>()
         + std::mem::size_of::<u32>()
-        + std::mem::size_of::<Result<()>>();
+        + std::mem::size_of::<Result<bool>>();
     let ranges = std::mem::size_of::<&[(u32, u32)]>()
         + std::mem::size_of::<&[bool; 128]>()
         + std::mem::size_of::<&mut dyn FnMut() -> Result<()>>()
@@ -286,41 +253,48 @@ fn lower_fixed_state() -> usize {
         + std::mem::size_of::<(usize, usize, usize)>()
         + std::mem::size_of::<(u32, u32, u32)>() + std::mem::size_of::<(u32, u32)>()
         + std::mem::size_of::<Result<bool>>();
-    let visit = std::mem::size_of::<&[char]>() + std::mem::size_of::<&[bool]>()
+    let visit = std::mem::size_of::<&str>()
         + std::mem::size_of::<&mut dyn FnMut() -> Result<()>>()
         + std::mem::size_of::<&mut dyn FnMut(&str) -> Result<()>>()
-        + std::mem::size_of::<std::iter::Enumerate<std::iter::Copied<std::slice::Iter<'_, char>>>>()
-        // max_points/max_bytes, points/bytes, index, low/high/middle.
+        + std::mem::size_of::<std::str::CharIndices<'_>>()
+        // max_points/max_bytes, points/bytes, offset, low/high/middle.
         + std::mem::size_of::<(usize, usize, usize, usize, usize, usize, usize, usize)>()
-        + std::mem::size_of::<bool>() + std::mem::size_of::<char>() + std::mem::size_of::<u32>()
+        + std::mem::size_of::<(usize, char)>() + std::mem::size_of::<char>() + std::mem::size_of::<u32>()
         + std::mem::size_of::<Option<&str>>() + std::mem::size_of::<&str>()
         + std::mem::size_of::<[u8; 4]>()
         + std::mem::size_of::<(usize, usize, Option<&str>)>()
         + std::mem::size_of::<(u32, &str)>() + std::mem::size_of::<u32>() + std::mem::size_of::<&str>()
         + std::mem::size_of::<std::str::Chars<'_>>() + std::mem::size_of::<Result<()>>();
     // Count and emission closures each capture exactly one mutable borrow.
-    main + following
+    main + context
         + ranges
         + visit
         + std::mem::size_of::<&mut usize>()
         + std::mem::size_of::<&mut String>()
 }
 
-fn lower_following(
-    chars: &[char],
-    following: &mut [bool],
+// Only Sigma has contextual lowercase. A context walk stops at the first
+// non-ignorable scalar, so adjacent Sigmas delimit each other's walks. Across
+// one visitor pass a context interval is scanned at most twice; no character
+// or following-context arrays and no per-character property prepass are needed.
+fn lower_context_cased(
+    input: &str,
+    reverse: bool,
     check: &mut dyn FnMut() -> Result<()>,
-) -> Result<()> {
-    let mut next = false;
-    for index in (0..chars.len()).rev() {
+) -> Result<bool> {
+    let mut chars = input.chars();
+    while let Some(ch) = if reverse {
+        chars.next_back()
+    } else {
+        chars.next()
+    } {
         check()?;
-        let point = chars[index] as u32;
-        following[index] = next;
+        let point = ch as u32;
         if !lower_ranges(point, CASE_IGNORABLE, &ASCII_CASE_IGNORABLE, check)? {
-            next = lower_ranges(point, CASED, &ASCII_CASED, check)?;
+            return lower_ranges(point, CASED, &ASCII_CASED, check);
         }
     }
-    Ok(())
+    Ok(false)
 }
 fn lower_ranges(
     point: u32,
@@ -348,21 +322,23 @@ fn lower_ranges(
     Ok(false)
 }
 fn lower_visit(
-    chars: &[char],
-    following: &[bool],
+    input: &str,
     max_points: usize,
     max_bytes: usize,
     check: &mut dyn FnMut() -> Result<()>,
     emit: &mut dyn FnMut(&str) -> Result<()>,
 ) -> Result<()> {
-    let (mut previous, mut points, mut bytes) = (false, 0usize, 0usize);
-    for (index, ch) in chars.iter().copied().enumerate() {
+    let (mut points, mut bytes) = (0usize, 0usize);
+    for (offset, ch) in input.char_indices() {
         check()?;
         let point = ch as u32;
         let mapped = if point < 128 {
             check()?;
             ASCII_LOWER[point as usize]
-        } else if point == 0x3a3 && previous && !following[index] {
+        } else if point == 0x3a3
+            && lower_context_cased(&input[..offset], true, check)?
+            && !lower_context_cased(&input[offset + ch.len_utf8()..], false, check)?
+        {
             Some("ς")
         } else {
             let (mut low, mut high, mut mapped) = (0, LOWER.len(), None);
@@ -399,9 +375,6 @@ fn lower_visit(
             return Err(budget_error("Unicode output budget exceeded"));
         }
         emit(piece)?;
-        if !lower_ranges(point, CASE_IGNORABLE, &ASCII_CASE_IGNORABLE, check)? {
-            previous = lower_ranges(point, CASED, &ASCII_CASED, check)?;
-        }
     }
     Ok(())
 }
@@ -654,8 +627,24 @@ mod lower_tests {
             ("AΣ\u{301}", "aς\u{301}"),
             ("AΣ\u{301}A", "aσ\u{301}a"),
             ("İAΣ ЯЁ", "i\u{307}aς яё"),
+            ("ΣΣ", "σς"),
+            ("AΣΣA", "aσσa"),
+            ("AΣ!Σ", "aς!σ"),
+            ("A\u{345}Σ\u{345}", "a\u{345}ς\u{345}"),
+            ("AΣ\u{345}B", "aσ\u{345}b"),
+            ("\u{345}Σ", "\u{345}σ"),
         ] {
             assert_eq!(checked(input, &mut || Ok(())).unwrap(), expected);
+            assert_eq!(
+                python_lower_unicode16_v1(input, 128, 128, 512).unwrap(),
+                expected
+            );
+        }
+        // Every pinned mapping retains its exact expansion in isolation;
+        // Sigma in isolation uses its default (non-final) table value.
+        for &(point, expected) in LOWER {
+            let input = char::from_u32(point).unwrap().to_string();
+            assert_eq!(checked(&input, &mut || Ok(())).unwrap(), expected);
         }
 
         let input = "{\"ID\":\"ABC-123\",\"SOURCE_GRAPH\":\"NAVIGATION\"}\n".repeat(4096);
@@ -669,12 +658,76 @@ mod lower_tests {
         assert_eq!(output, input.to_ascii_lowercase());
         // Repeated ASCII syntax must use direct lookups, while every input,
         // lookup and emitted scalar still reaches the caller's work callback.
-        assert!(calls <= input.len() * 18 + 1);
+        assert!(calls <= input.len() * 8 + 1);
         eprintln!(
             "checked ASCII lowercase bytes={} work_callbacks={calls} elapsed_us={}",
             input.len(),
             started.elapsed().as_micros()
         );
+        // The borrowed visitor needs its fixed controller plus the exact
+        // output, even for a long input. No scalar/flag vectors are retained.
+        let exact_state = lower_fixed_state() + input.len();
+        assert_eq!(
+            python_lower_unicode16_v1_with_state_budget_and_check(
+                &input,
+                input.len(),
+                input.len(),
+                input.len(),
+                exact_state,
+                &mut || Ok(())
+            )
+            .unwrap(),
+            output
+        );
+        assert!(
+            python_lower_unicode16_v1_with_state_budget_and_check(
+                &input,
+                input.len(),
+                input.len(),
+                input.len(),
+                exact_state - 1,
+                &mut || Ok(())
+            )
+            .is_err()
+        );
+
+        let marks = "\u{301}\u{345}".repeat(1024);
+        let context_input = format!("AΣ{marks}Σ!").repeat(4);
+        let expected = format!("aσ{marks}ς!").repeat(4);
+        let mut context_calls = 0usize;
+        assert_eq!(
+            checked(&context_input, &mut || {
+                context_calls += 1;
+                Ok(())
+            })
+            .unwrap(),
+            expected
+        );
+        assert!(context_calls <= context_input.chars().count() * 200 + 1);
+        // Cancellation remains visible inside the backwards/forwards context
+        // walks as well as count and emission, with no delayed batch flush.
+        let sample = "AΣ\u{301}\u{345}Σ!";
+        let mut sample_calls = 0usize;
+        checked(sample, &mut || {
+            sample_calls += 1;
+            Ok(())
+        })
+        .unwrap();
+        for cutoff in 1..=sample_calls {
+            let mut observed = 0usize;
+            assert!(
+                checked(sample, &mut || {
+                    observed += 1;
+                    if observed == cutoff {
+                        Err(budget_error("test context cutoff"))
+                    } else {
+                        Ok(())
+                    }
+                })
+                .is_err()
+            );
+            assert_eq!(observed, cutoff);
+        }
         let mut refused_calls = 0usize;
         assert!(
             checked(&input, &mut || {
