@@ -15,7 +15,7 @@ compatibility. It keeps tasks and obligations from replacing philosophy.
 | owner | `mechanics/questbook/AGENTS.md`, `PARTS.md`, and active part routes |
 | stronger route | `ToS/` for authored meaning; root `quests/` for public quest records |
 | next route | obligation boundary or dispatch contracts, then root `QUESTBOOK.md` when public index changes |
-| validation | `python mechanics/questbook/scripts/validate_questbook_surface.py`; `python scripts/validate_mechanics_topology.py`; questbook-focused tests |
+| validation | `tos-ops-mechanics-plan --repo-root . --questbook-validate`; `tos-ops-mechanics-plan --repo-root . --mechanics-topology-validate`; questbook-focused tests |
 
 ## Active Route
 

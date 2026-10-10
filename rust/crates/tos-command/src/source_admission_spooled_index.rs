@@ -1,0 +1,2398 @@
+//! Disk-backed storage for the maintained native source identity/link kernel.
+//!
+//! This module owns no admission law. `source_admission_index::build_index_into`
+//! supplies the same parser, schema, duplicate, reference and edge predicates
+//! used by the resident `Index`; this adapter only stores resulting rows in
+//! the candidate's shared-budget SQLite scope. A cursor view can be minted
+//! only after the native validator presents its private completion token.
+
+use crate::{
+    source_admission_candidate_records::CandidateRecordsInput,
+    source_admission_candidate_schema,
+    source_admission_index::{
+        self, AdmissionIndexBackend, BaseIdentityPath, CandidateIndexInput, FreshIndexRowsWriter,
+        IndexLimits, NativeSemanticStep, SchemaCheck,
+    },
+    source_admission_spooled_candidate::{CandidateFence, CandidateMemberRead, SpoolCandidate},
+    source_foundation_admission::NativeAdmissionComplete,
+};
+use rusqlite::{OptionalExtension, params};
+use std::{io, sync::Arc, sync::atomic::AtomicBool, time::Instant};
+use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, RelativePath};
+use tos_source_store::{
+    PinnedSqliteAuxLimits, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
+    SourceMembershipV1,
+};
+use tos_validation::{
+    item_rules::ItemRefusal, record_biblio_cut::SourceCutInput,
+    source_cut::CutPreparedSchemaExecutionBinding,
+    source_foundation_records::SourceFoundationRecordsStreamedReport,
+};
+
+#[path = "source_admission_spooled_records.rs"]
+mod records_store;
+
+fn invalid(message: &'static str) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, message)
+}
+
+/// Only fixed owner-authored causes cross the public refusal boundary.
+/// Unknown IO, SQL and source strings may contain paths or input bytes.
+pub(crate) fn receiver_source_reason(reason: &str) -> Option<&'static str> {
+    match reason {
+        "Biblio current-member path is invalid" => Some("Biblio current-member path is invalid"),
+        "Biblio cursor key row does not match collection" => {
+            Some("Biblio cursor key row does not match collection")
+        }
+        "Biblio fact coverage requested for ordered observations" => {
+            Some("Biblio fact coverage requested for ordered observations")
+        }
+        "Biblio metadata contained an invalid relative path" => {
+            Some("Biblio metadata contained an invalid relative path")
+        }
+        "Biblio record codec version invalid" => Some("Biblio record codec version invalid"),
+        "Biblio stream contained an invalid relative path" => {
+            Some("Biblio stream contained an invalid relative path")
+        }
+        "Item decoded instance disappeared" => Some("Item decoded instance disappeared"),
+        "Item manifest decoded instance unavailable" => {
+            Some("Item manifest decoded instance unavailable")
+        }
+        "Item record missing from current input" => Some("Item record missing from current input"),
+        "Item selection codec version invalid" => Some("Item selection codec version invalid"),
+        "RecordObservation expected kind invalid" => {
+            Some("RecordObservation expected kind invalid")
+        }
+        "RecordObservation path check invalid" => Some("RecordObservation path check invalid"),
+        "RecordObservation tag invalid" => Some("RecordObservation tag invalid"),
+        "bibliography cancelled" => Some("bibliography cancelled"),
+        "bound read outside candidate" => Some("bound read outside candidate"),
+        "candidate Records input refused" => Some("candidate Records input refused"),
+        "candidate bound member byte profile" => Some("candidate bound member byte profile"),
+        "candidate bound member owned allowance" => Some("candidate bound member owned allowance"),
+        "candidate bound member raw fixity" => Some("candidate bound member raw fixity"),
+        "candidate bound member retained state overflow" => {
+            Some("candidate bound member retained state overflow")
+        }
+        "candidate logical read bound" => Some("candidate logical read bound"),
+        "candidate schema binding refused" => Some("candidate schema binding refused"),
+        "candidate spool is unusable" => Some("candidate spool is unusable"),
+        "candidate spool per-row state exceeded" => Some("candidate spool per-row state exceeded"),
+        "candidate spool prior I/O failure" => Some("candidate spool prior I/O failure"),
+        "corpus object fixity differs" => Some("corpus object fixity differs"),
+        "corpus object grew" => Some("corpus object grew"),
+        "corpus object size/type differs" => Some("corpus object size/type differs"),
+        "current Record page row disappeared" => Some("current Record page row disappeared"),
+        "current path index target is missing" => Some("current path index target is missing"),
+        "direct record owner index drift" => Some("direct record owner index drift"),
+        "fact page capacity state overflow" => Some("fact page capacity state overflow"),
+        "fact page metadata state overflow" => Some("fact page metadata state overflow"),
+        "invalid current-member path" => Some("invalid current-member path"),
+        "invalid current-member prefix" => Some("invalid current-member prefix"),
+        "invalid finite native JSON" => Some("invalid finite native JSON"),
+        "native source index SQLite column type refused" => {
+            Some("native source index SQLite column type refused")
+        }
+        "native source index SQLite operation refused" => {
+            Some("native source index SQLite operation refused")
+        }
+        "native source index SQLite query shape refused" => {
+            Some("native source index SQLite query shape refused")
+        }
+        "native source index SQLite scalar missing" => {
+            Some("native source index SQLite scalar missing")
+        }
+        "owner issue codec version invalid" => Some("owner issue codec version invalid"),
+        "page capacity state overflow" => Some("page capacity state overflow"),
+        "page metadata state overflow" => Some("page metadata state overflow"),
+        "record ID carrier invalid" => Some("record ID carrier invalid"),
+        "record fact codec version invalid" => Some("record fact codec version invalid"),
+        "record fact collection does not match stored row" => {
+            Some("record fact collection does not match stored row")
+        }
+        "record family cancelled" => Some("record family cancelled"),
+        "record operation cancelled" => Some("record operation cancelled"),
+        "record path-reference check invalid" => Some("record path-reference check invalid"),
+        "record schema cancelled" => Some("record schema cancelled"),
+        "record schema diagnostics cancelled" => Some("record schema diagnostics cancelled"),
+        "record schema image preparation cancelled" => {
+            Some("record schema image preparation cancelled")
+        }
+        "record source EOF missing" => Some("record source EOF missing"),
+        "resident Record kernel has no SourceRevision" => {
+            Some("resident Record kernel has no SourceRevision")
+        }
+        "resident Record kernel requires an anchored cut" => {
+            Some("resident Record kernel requires an anchored cut")
+        }
+        "resident source-foundation report omitted Records output" => {
+            Some("resident source-foundation report omitted Records output")
+        }
+        "retained record EOF missing" => Some("retained record EOF missing"),
+        "schema check auxiliary bytes are unexpected" => {
+            Some("schema check auxiliary bytes are unexpected")
+        }
+        "schema check codec version invalid" => Some("schema check codec version invalid"),
+        "schema check family invalid" => Some("schema check family invalid"),
+        "schema diagnostic cap overflow" => Some("schema diagnostic cap overflow"),
+        "schema diagnostic checkpoint integer invalid" => {
+            Some("schema diagnostic checkpoint integer invalid")
+        }
+        "schema diagnostic codec version invalid" => {
+            Some("schema diagnostic codec version invalid")
+        }
+        "schema diagnostic compatibility text invalid" => {
+            Some("schema diagnostic compatibility text invalid")
+        }
+        "schema diagnostic failure invalid" => Some("schema diagnostic failure invalid"),
+        "schema diagnostic issues invalid" => Some("schema diagnostic issues invalid"),
+        "schema diagnostic path index invalid" => Some("schema diagnostic path index invalid"),
+        "schema diagnostic path invalid" => Some("schema diagnostic path invalid"),
+        "schema diagnostic path property invalid" => {
+            Some("schema diagnostic path property invalid")
+        }
+        "schema diagnostic path segment invalid" => Some("schema diagnostic path segment invalid"),
+        "schema diagnostic path segment kind invalid" => {
+            Some("schema diagnostic path segment kind invalid")
+        }
+        "schema diagnostic reason invalid" => Some("schema diagnostic reason invalid"),
+        "schema diagnostic status invalid" => Some("schema diagnostic status invalid"),
+        "schema diagnostics protocol overflow" => Some("schema diagnostics protocol overflow"),
+        "schema diagnostics report codec version invalid" => {
+            Some("schema diagnostics report codec version invalid")
+        }
+        "schema metadata path is invalid" => Some("schema metadata path is invalid"),
+        "selected Item index drift" => Some("selected Item index drift"),
+        "selected Item schema path is invalid" => Some("selected Item schema path is invalid"),
+        "source input omitted the requested current member" => {
+            Some("source input omitted the requested current member")
+        }
+        "source metadata contained an invalid path" => {
+            Some("source metadata contained an invalid path")
+        }
+        "source record registry absent from captured cut" => {
+            Some("source record registry absent from captured cut")
+        }
+        "source record registry absent from current input" => {
+            Some("source record registry absent from current input")
+        }
+        "source-foundation Item input is unavailable" => {
+            Some("source-foundation Item input is unavailable")
+        }
+        "source-foundation Item record index is unavailable" => {
+            Some("source-foundation Item record index is unavailable")
+        }
+        "source-foundation bounded index operation refused" => {
+            Some("source-foundation bounded index operation refused")
+        }
+        "source-foundation clone state overflow" => Some("source-foundation clone state overflow"),
+        "source-foundation collection cursor invalid" => {
+            Some("source-foundation collection cursor invalid")
+        }
+        "source-foundation collection ordinal exceeds SQLite range" => {
+            Some("source-foundation collection ordinal exceeds SQLite range")
+        }
+        "source-foundation collection ordinal overflow" => {
+            Some("source-foundation collection ordinal overflow")
+        }
+        "source-foundation cursor binding or codec invalid" => {
+            Some("source-foundation cursor binding or codec invalid")
+        }
+        "source-foundation cursor key invalid" => Some("source-foundation cursor key invalid"),
+        "source-foundation cursor key is not UTF-8" => {
+            Some("source-foundation cursor key is not UTF-8")
+        }
+        "source-foundation cursor key too long" => Some("source-foundation cursor key too long"),
+        "source-foundation cursor ordinal invalid" => {
+            Some("source-foundation cursor ordinal invalid")
+        }
+        "source-foundation cursor overflow" => Some("source-foundation cursor overflow"),
+        "source-foundation cursor size overflow" => Some("source-foundation cursor size overflow"),
+        "source-foundation cursor trailing bytes" => {
+            Some("source-foundation cursor trailing bytes")
+        }
+        "source-foundation cursor truncated" => Some("source-foundation cursor truncated"),
+        "source-foundation encoder state overflow" => {
+            Some("source-foundation encoder state overflow")
+        }
+        "source-foundation index operation expired" => {
+            Some("source-foundation index operation expired")
+        }
+        "source-foundation issue family invalid" => Some("source-foundation issue family invalid"),
+        "source-foundation owner issue invalid" => Some("source-foundation owner issue invalid"),
+        "source-foundation row JSON decoding failed" => {
+            Some("source-foundation row JSON decoding failed")
+        }
+        "source-foundation row JSON encoding failed" => {
+            Some("source-foundation row JSON encoding failed")
+        }
+        "source-foundation row state exceeds SQLite range" => {
+            Some("source-foundation row state exceeds SQLite range")
+        }
+        "source-foundation row state overflow" => Some("source-foundation row state overflow"),
+        "source-foundation stored digest invalid" => {
+            Some("source-foundation stored digest invalid")
+        }
+        "source-foundation stored format profile invalid" => {
+            Some("source-foundation stored format profile invalid")
+        }
+        "source-foundation stored row boolean invalid" => {
+            Some("source-foundation stored row boolean invalid")
+        }
+        "source-foundation stored row field missing" => {
+            Some("source-foundation stored row field missing")
+        }
+        "source-foundation stored row integer invalid" => {
+            Some("source-foundation stored row integer invalid")
+        }
+        "source-foundation stored row integer overflow" => {
+            Some("source-foundation stored row integer overflow")
+        }
+        "source-foundation stored row state overflow" => {
+            Some("source-foundation stored row state overflow")
+        }
+        "source-foundation stored row text invalid" => {
+            Some("source-foundation stored row text invalid")
+        }
+        "source-foundation text state overflow" => Some("source-foundation text state overflow"),
+        "source-foundation value state overflow" => Some("source-foundation value state overflow"),
+        "source-foundation wire allocation refused" => {
+            Some("source-foundation wire allocation refused")
+        }
+        "source-foundation wire capacity exceeded" => {
+            Some("source-foundation wire capacity exceeded")
+        }
+        "source-foundation wire length overflow" => Some("source-foundation wire length overflow"),
+        "source-foundation wire state overflow" => Some("source-foundation wire state overflow"),
+        "stored Records row codec version invalid" => {
+            Some("stored Records row codec version invalid")
+        }
+        "stored row auxiliary length invalid" => Some("stored row auxiliary length invalid"),
+        "stored row changed during bounded point read" => {
+            Some("stored row changed during bounded point read")
+        }
+        "stored row exceeds point-read envelope" => Some("stored row exceeds point-read envelope"),
+        "stored row payload length invalid" => Some("stored row payload length invalid"),
+        "stored row state invalid" => Some("stored row state invalid"),
+        "unknown static Item issue code in stored row" => {
+            Some("unknown static Item issue code in stored row")
+        }
+        "unknown static record issue code in stored row" => {
+            Some("unknown static record issue code in stored row")
+        }
+        "unsupported RecordObservation codec" => Some("unsupported RecordObservation codec"),
+        _ => None,
+    }
+}
+
+/// A total private-data-free identifier for source errors that have no fixed
+/// public literal. The module/site belongs to this source; only the digest of
+/// the original reason crosses the boundary.
+pub(crate) fn bounded_source_cause(module: &str, site: &str, reason: &str) -> String {
+    format!(
+        "source-cause:{module}:{site}:{}",
+        Digest256::of_bytes(reason.as_bytes()).to_hex()
+    )
+}
+/// A bounded collection of independently redacted owner diagnostics. The first
+/// entry remains the original predicate summary; later entries locate findings.
+/// The grammar admits only existing source-cause tokens, never source prose.
+pub(crate) const MAX_SOURCE_CAUSE_BYTES: usize = 4096;
+pub(crate) const MAX_SOURCE_CAUSES: usize = 17;
+pub(crate) fn is_bounded_source_cause(reason: &str) -> bool {
+    if let Some(causes) = reason.strip_prefix("source-causes:") {
+        if reason.len() > MAX_SOURCE_CAUSE_BYTES {
+            return false;
+        }
+        let mut count = 0usize;
+        for cause in causes.split('|') {
+            count += 1;
+            if count > MAX_SOURCE_CAUSES || !is_single_source_cause(cause) {
+                return false;
+            }
+        }
+        return count > 0;
+    }
+    is_single_source_cause(reason)
+}
+fn is_single_source_cause(reason: &str) -> bool {
+    let mut parts = reason.split(':');
+    let schema = parts.next();
+    let module = parts.next();
+    let site = parts.next();
+    let digest = parts.next();
+    schema == Some("source-cause")
+        && matches!(
+            module,
+            Some(
+                "candidate-input"
+                    | "candidate-schema"
+                    | "spooled-records"
+                    | "source-store"
+                    | "receiver-source"
+            )
+        )
+        && site.is_some_and(|site| {
+            !site.is_empty()
+                && site.len() <= 40
+                && site.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+        })
+        && digest.is_some_and(|digest| {
+            digest.len() == 64
+                && digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        })
+        && if site == Some("budget-check") {
+            let counter = |value: Option<&str>| {
+                value.is_some_and(|value| {
+                    value == "unknown"
+                        || (!value.is_empty()
+                            && value.len() <= 20
+                            && value.bytes().all(|byte| byte.is_ascii_digit())
+                            && value.parse::<u64>().is_ok())
+                })
+            };
+            counter(parts.next()) && counter(parts.next()) && parts.next().is_none()
+        } else {
+            parts.next().is_none()
+        }
+}
+
+pub(crate) fn receiver_refusal(error: ItemRefusal) -> io::Error {
+    // Keep only the bounded primary owner class; source paths and parser text
+    // remain private while the real refusal stage survives the IO boundary.
+    let reason = match error {
+        ItemRefusal::Budget => "candidate Records/Item receiver budget refused",
+        ItemRefusal::BudgetCheck { check, used, limit } => {
+            let fingerprint = bounded_source_cause("receiver-source", "budget-check", check);
+            let counter = |value: Option<u64>| {
+                value.map_or_else(|| "unknown".to_owned(), |value| value.to_string())
+            };
+            return io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{fingerprint}:{}:{}", counter(used), counter(limit)),
+            );
+        }
+        ItemRefusal::Executor(evidence) => {
+            return io::Error::new(io::ErrorKind::InvalidData, *evidence);
+        }
+        ItemRefusal::Deadline => "candidate Records/Item receiver deadline refused",
+        ItemRefusal::Source(reason) => {
+            return if let Some(fixed) = receiver_source_reason(&reason) {
+                invalid(fixed)
+            } else if is_bounded_source_cause(&reason) {
+                io::Error::new(io::ErrorKind::InvalidData, reason)
+            } else {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    bounded_source_cause("receiver-source", "ItemRefusal-Source", &reason),
+                )
+            };
+        }
+        ItemRefusal::Unsupported(reason) => {
+            // Retain enough shape to locate a formatted owner refusal without
+            // disclosing its source paths or parser text. The full digest is
+            // unchanged; the bounded prefix fingerprint distinguishes static
+            // error families whose variable details prevent literal lookup.
+            let prefix = Digest256::of_bytes(&reason.as_bytes()[..reason.len().min(32)]).to_hex();
+            let site = format!("Unsupported-{:x}-{}", reason.len(), &prefix[..8]);
+            return io::Error::new(
+                io::ErrorKind::InvalidData,
+                bounded_source_cause("receiver-source", &site, &reason),
+            );
+        }
+    };
+    invalid(reason)
+}
+
+fn sql(error: rusqlite::Error) -> io::Error {
+    // Report only SQLite's stable primary class, never SQL text or source paths.
+    let reason = match error {
+        rusqlite::Error::SqliteFailure(code, _) => match code.extended_code & 255 {
+            5 | 6 => "native source index SQLite busy",
+            7 => "native source index SQLite out of memory",
+            8 => "native source index SQLite read only",
+            10 => "native source index SQLite I/O refused",
+            11 => "native source index SQLite corrupt",
+            13 => "native source index SQLite full",
+            14 => "native source index SQLite open refused",
+            17 => "native source index SQLite schema changed",
+            _ => "native source index SQLite operation refused",
+        },
+        rusqlite::Error::QueryReturnedNoRows => "native source index SQLite scalar missing",
+        rusqlite::Error::InvalidColumnType(..) => "native source index SQLite column type refused",
+        rusqlite::Error::InvalidQuery => "native source index SQLite query shape refused",
+        _ => "native source index storage refused",
+    };
+    invalid(reason)
+}
+
+fn bounded_text(row: &rusqlite::Row<'_>, column: usize, cap: usize) -> rusqlite::Result<String> {
+    match row.get_ref(column)? {
+        rusqlite::types::ValueRef::Text(raw)
+            if raw
+                .len()
+                .checked_mul(16)
+                .and_then(|bytes| bytes.checked_add(2048))
+                .is_some_and(|bytes| bytes <= cap) =>
+        {
+            row.get(column)
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn bounded_text_pair(
+    row: &rusqlite::Row<'_>,
+    first: usize,
+    second: usize,
+    cap: usize,
+) -> rusqlite::Result<(String, String)> {
+    let first_len = match row.get_ref(first)? {
+        rusqlite::types::ValueRef::Text(raw) => raw.len(),
+        _ => return Err(rusqlite::Error::InvalidQuery),
+    };
+    let second_len = match row.get_ref(second)? {
+        rusqlite::types::ValueRef::Text(raw) => raw.len(),
+        _ => return Err(rusqlite::Error::InvalidQuery),
+    };
+    if first_len
+        .checked_add(second_len)
+        // SQLite text, the retained identity, and the path wrapper coexist
+        // while the cursor result is constructed; reserve all three copies.
+        .and_then(|bytes| bytes.checked_mul(32))
+        .and_then(|bytes| bytes.checked_add(4096))
+        .is_none_or(|bytes| bytes > cap)
+    {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
+    Ok((row.get(first)?, row.get(second)?))
+}
+
+fn text_pair_state_upper_bound(first: usize, second: usize) -> io::Result<usize> {
+    first
+        .checked_add(second)
+        .and_then(|bytes| bytes.checked_mul(32))
+        .and_then(|bytes| bytes.checked_add(4096))
+        .ok_or_else(|| invalid("native source row text state overflow"))
+}
+
+fn text_length(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<usize> {
+    let value: i64 = row.get(column)?;
+    usize::try_from(value).map_err(|_| rusqlite::Error::InvalidQuery)
+}
+
+fn text_lengths(row: &rusqlite::Row<'_>) -> rusqlite::Result<(usize, usize)> {
+    Ok((text_length(row, 0)?, text_length(row, 1)?))
+}
+
+fn bounded_u64(row: &rusqlite::Row<'_>, column: usize) -> rusqlite::Result<u64> {
+    let value: i64 = row.get(column)?;
+    u64::try_from(value).map_err(|_| rusqlite::Error::InvalidQuery)
+}
+
+fn path_text(path: &RelativePath, cap: usize) -> io::Result<()> {
+    let bytes = path
+        .as_str()
+        .len()
+        .checked_mul(16)
+        .and_then(|bytes| bytes.checked_add(2048))
+        .ok_or_else(|| invalid("native source index row state overflow"))?;
+    if bytes > cap {
+        return Err(invalid("native source index row state exceeds profile"));
+    }
+    Ok(())
+}
+
+pub(super) fn cursor_argument_state(bytes: usize) -> io::Result<usize> {
+    if bytes == 0 {
+        return Ok(0);
+    }
+    bytes
+        .checked_mul(16)
+        .and_then(|bytes| bytes.checked_add(2048))
+        .ok_or_else(|| invalid("native source index cursor argument state overflow"))
+}
+
+fn query_pragma_i64(db: &PinnedSqliteConnection, pragma: &'static str) -> io::Result<i64> {
+    db.query_row(pragma, [], |row| row.get(0)).map_err(sql)
+}
+
+fn query_pragma_text(db: &PinnedSqliteConnection, pragma: &'static str) -> io::Result<String> {
+    db.query_row(pragma, [], |row| match row.get_ref(0)? {
+        rusqlite::types::ValueRef::Text(raw) if raw.len() <= 128 => row.get(0),
+        _ => Err(rusqlite::Error::InvalidQuery),
+    })
+    .map_err(sql)
+}
+
+fn set_and_verify_connection_policy(
+    db: &PinnedSqliteConnection,
+    limits: SpoolIndexLimits,
+) -> io::Result<()> {
+    // The strict auxiliary VFS already limits the main inode to this caller's
+    // reserved ceiling. Check the selected SQLite policy before any DDL, then
+    // read back the cache size after rounding down to whole KiB.
+    if limits.sqlite.main_logical_bytes == 0
+        || limits.sqlite.main_allocated_bytes == 0
+        || limits.cache_bytes < 1024
+    {
+        return Err(invalid("native source index SQLite ceiling is too small"));
+    }
+    db.pragma_update(None, "journal_mode", "OFF").map_err(sql)?;
+    db.pragma_update(None, "synchronous", 0).map_err(sql)?;
+    db.pragma_update(None, "temp_store", "FILE").map_err(sql)?;
+    db.pragma_update(None, "mmap_size", 0).map_err(sql)?;
+    let cache_kib = limits.cache_bytes / 1024;
+    let cache_kib = i64::try_from(cache_kib)
+        .map_err(|_| invalid("native source index cache profile exceeds range"))?;
+    db.pragma_update(None, "cache_size", -cache_kib)
+        .map_err(sql)?;
+
+    let journal = query_pragma_text(db, "PRAGMA journal_mode")?;
+    let synchronous = query_pragma_i64(db, "PRAGMA synchronous")?;
+    let temp_store = query_pragma_i64(db, "PRAGMA temp_store")?;
+    let mmap = query_pragma_i64(db, "PRAGMA mmap_size")?;
+    let cache_readback = query_pragma_i64(db, "PRAGMA cache_size")?;
+    let page_size = query_pragma_i64(db, "PRAGMA page_size")?;
+    let expected_cache_kib = -cache_kib;
+    if !journal.eq_ignore_ascii_case("off")
+        || synchronous != 0
+        || temp_store != 1
+        || mmap != 0
+        || cache_readback != expected_cache_kib
+        || page_size <= 0
+        || u64::try_from(page_size)
+            .ok()
+            .is_none_or(|page| page > limits.sqlite.main_allocated_bytes)
+        || u64::try_from(cache_readback.unsigned_abs())
+            .ok()
+            .and_then(|kib| kib.checked_mul(1024))
+            .is_none_or(|bytes| bytes > limits.cache_bytes as u64)
+    {
+        return Err(invalid("native source index SQLite policy changed"));
+    }
+    Ok(())
+}
+
+pub(crate) fn feed_membership(
+    hash: &mut Digest256Hasher,
+    path: &RelativePath,
+    size: u64,
+    sha: Digest256,
+) {
+    hash.update(&(path.as_str().len() as u64).to_be_bytes());
+    hash.update(path.as_str().as_bytes());
+    hash.update(&size.to_be_bytes());
+    hash.update(sha.as_bytes());
+}
+
+/// SQLite and transient row bounds come from the enclosing native invocation
+/// profile. No limit here grants a separate disk, I/O, clock or cancellation
+/// budget; `SpoolCandidate::open_index_scope` joins its existing ledgers.
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) struct SpoolIndexLimits {
+    pub(crate) sqlite: PinnedSqliteAuxLimits,
+    pub(crate) cache_bytes: usize,
+    pub(crate) max_row_state_bytes: usize,
+}
+
+/// Evidence that the current-only Records/Item callback returned its sealed
+/// report over this exact candidate index sink. This boundary intentionally
+/// carries no native-admission authority: source selection, schema/render,
+/// history, global identity/link checks, and final grammar rechecks remain
+/// later obligations of the enclosing validator.
+pub(crate) struct CandidateRecordsReportVerified {
+    fence: CandidateFence,
+    sink_identity: Arc<()>,
+    membership: SourceMembershipV1,
+    prepared_schema: CutPreparedSchemaExecutionBinding,
+    selected_member_bytes: u64,
+    record_source_bytes_read: u64,
+    record_issue_count: usize,
+    item_issue_count: usize,
+    manifest_item_id_count: usize,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
+}
+
+/// Logical retained state for the private callback boundary and its stable
+/// Arc control block. The enclosing source invocation reserves this together
+/// with the sink before constructing the report; this is not an RSS estimate.
+pub(crate) const CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES: usize =
+    std::mem::size_of::<CandidateRecordsReportVerified>() + 2 * std::mem::size_of::<usize>();
+
+impl CandidateRecordsReportVerified {
+    pub(crate) fn fence(&self) -> CandidateFence {
+        self.fence
+    }
+
+    pub(crate) fn membership(&self) -> SourceMembershipV1 {
+        self.membership
+    }
+
+    pub(crate) fn prepared_schema(&self) -> CutPreparedSchemaExecutionBinding {
+        self.prepared_schema
+    }
+
+    pub(crate) fn selected_member_bytes(&self) -> u64 {
+        self.selected_member_bytes
+    }
+
+    pub(crate) fn record_source_bytes_read(&self) -> u64 {
+        self.record_source_bytes_read
+    }
+
+    pub(crate) fn record_issue_count(&self) -> usize {
+        self.record_issue_count
+    }
+
+    pub(crate) fn item_issue_count(&self) -> usize {
+        self.item_issue_count
+    }
+
+    pub(crate) fn manifest_item_id_count(&self) -> usize {
+        self.manifest_item_id_count
+    }
+}
+
+/// Durable mechanical binding for a current root produced by the native
+/// admission route. This records the full V1 membership digest only when the
+/// exact ordered membership was actually validated. Incremental V2 successors
+/// may omit it; their current membership remains bound by the separate V2
+/// authenticated tree commitment.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeAdmissionCompletionProofV1 {
+    validator_sha256: Digest256,
+    membership_v1: Option<SourceMembershipV1>,
+    source_bytes: u64,
+    prepared_schema: CutPreparedSchemaExecutionBinding,
+    identity_count: u64,
+    dependency_source_count: u64,
+    dependency_count: u64,
+}
+
+impl NativeAdmissionCompletionProofV1 {
+    /// Reconstitute only a completion binding decoded from an authenticated
+    /// current-root tuple. Fresh proof issuance remains on `IndexView`.
+    pub(crate) fn from_authenticated_root_fields(
+        validator_sha256: Digest256,
+        membership_v1: Option<SourceMembershipV1>,
+        source_bytes: u64,
+        prepared_schema: CutPreparedSchemaExecutionBinding,
+        identity_count: u64,
+        dependency_source_count: u64,
+        dependency_count: u64,
+    ) -> io::Result<Self> {
+        if dependency_source_count > dependency_count {
+            return Err(invalid("native completion root counts are inconsistent"));
+        }
+        Ok(Self {
+            validator_sha256,
+            membership_v1,
+            source_bytes,
+            prepared_schema,
+            identity_count,
+            dependency_source_count,
+            dependency_count,
+        })
+    }
+
+    /// Carry an exact bounded delta onto a rechecked latest root without
+    /// claiming a current V1 membership digest. The typed successor includes
+    /// both the authenticated current-root binding and latest readset proof.
+    pub(crate) fn from_validated_source_entry_successor(
+        successor: &crate::source_admission_index::ValidatedSourceEntrySuccessorV1<'_, '_>,
+    ) -> Self {
+        let selected = successor.current_base();
+        Self {
+            validator_sha256: selected.validator_sha256(),
+            membership_v1: None,
+            source_bytes: successor.source_bytes_after(),
+            prepared_schema: selected.completion_proof().prepared_schema(),
+            identity_count: successor.identity_count_after(),
+            dependency_source_count: successor.dependency_source_count_after(),
+            dependency_count: successor.dependency_count_after(),
+        }
+    }
+
+    pub(crate) fn validator_sha256(self) -> Digest256 {
+        self.validator_sha256
+    }
+
+    pub(crate) fn membership_v1(self) -> Option<SourceMembershipV1> {
+        self.membership_v1
+    }
+
+    pub(crate) fn source_bytes(self) -> u64 {
+        self.source_bytes
+    }
+
+    pub(crate) fn prepared_schema(self) -> CutPreparedSchemaExecutionBinding {
+        self.prepared_schema
+    }
+
+    pub(crate) fn identity_count(self) -> u64 {
+        self.identity_count
+    }
+
+    pub(crate) fn dependency_source_count(self) -> u64 {
+        self.dependency_source_count
+    }
+
+    pub(crate) fn dependency_count(self) -> u64 {
+        self.dependency_count
+    }
+
+    /// Copy the exact payload fields needed by the V2 rootset codec. Keeping
+    /// the tuple conversion here lets the sibling segment codec serialize the
+    /// proof without reaching through its private fields.
+    pub(crate) fn authenticated_root_fields(
+        self,
+    ) -> (
+        Digest256,
+        Option<SourceMembershipV1>,
+        u64,
+        CutPreparedSchemaExecutionBinding,
+        u64,
+        u64,
+        u64,
+    ) {
+        (
+            self.validator_sha256,
+            self.membership_v1,
+            self.source_bytes,
+            self.prepared_schema,
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+        )
+    }
+}
+
+#[derive(Clone, Copy)]
+enum FreshPairTable {
+    Record,
+    Claim,
+    Semantic,
+}
+
+trait CandidateFenceSource {
+    fn verify_prepared_request(
+        &self,
+        workspace: &std::fs::File,
+        io: &PinnedSqliteIoBudget,
+        space: &tos_source_store::PinnedSqliteSpaceBudget,
+        deadline: Instant,
+        cancelled: &Arc<AtomicBool>,
+    ) -> io::Result<()>;
+    fn shares_io_budget(&self, budget: &PinnedSqliteIoBudget) -> bool;
+    fn tick(&self) -> io::Result<()>;
+    fn matches_invocation(
+        &self,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> bool;
+    fn check_state(&self, bytes: usize) -> io::Result<()>;
+    fn fence(&self) -> io::Result<CandidateFence>;
+    fn member(&self, path: &RelativePath) -> io::Result<Option<tos_source_store::MemberMetadata>>;
+    fn member_after(
+        &self,
+        after: Option<&RelativePath>,
+    ) -> io::Result<Option<tos_source_store::MemberMetadata>>;
+    fn read_member_bound(
+        &self,
+        path: &RelativePath,
+        cap: usize,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<CandidateMemberRead>;
+    fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>>;
+    fn verify(&self, path: &str) -> io::Result<()>;
+    fn base_identity_path_bounded(
+        &self,
+        id: &str,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<Option<RelativePath>>;
+}
+
+impl CandidateFenceSource for SpoolCandidate<'_> {
+    fn verify_prepared_request(
+        &self,
+        workspace: &std::fs::File,
+        io: &PinnedSqliteIoBudget,
+        space: &tos_source_store::PinnedSqliteSpaceBudget,
+        deadline: Instant,
+        cancelled: &Arc<AtomicBool>,
+    ) -> io::Result<()> {
+        SpoolCandidate::verify_prepared_request(self, workspace, io, space, deadline, cancelled)
+    }
+    fn shares_io_budget(&self, budget: &PinnedSqliteIoBudget) -> bool {
+        SpoolCandidate::shares_io_budget(self, budget)
+    }
+    fn tick(&self) -> io::Result<()> {
+        SpoolCandidate::tick(self)
+    }
+
+    fn matches_invocation(
+        &self,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> bool {
+        SpoolCandidate::matches_invocation(self, deadline, cancelled)
+    }
+
+    fn check_state(&self, bytes: usize) -> io::Result<()> {
+        SpoolCandidate::check_state(self, bytes)
+    }
+
+    fn fence(&self) -> io::Result<CandidateFence> {
+        SpoolCandidate::fence(self)
+    }
+
+    fn member(&self, path: &RelativePath) -> io::Result<Option<tos_source_store::MemberMetadata>> {
+        SpoolCandidate::member(self, path)
+    }
+
+    fn member_after(
+        &self,
+        after: Option<&RelativePath>,
+    ) -> io::Result<Option<tos_source_store::MemberMetadata>> {
+        SpoolCandidate::member_after(self, after)
+    }
+
+    fn read_member_bound(
+        &self,
+        path: &RelativePath,
+        cap: usize,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<CandidateMemberRead> {
+        SpoolCandidate::read_member_bound(self, path, cap, max_owned_state_bytes)
+    }
+
+    fn read(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
+        SpoolCandidate::read(self, path, cap)
+    }
+
+    fn verify(&self, path: &str) -> io::Result<()> {
+        SpoolCandidate::verify(self, path)
+    }
+
+    fn base_identity_path_bounded(
+        &self,
+        id: &str,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<Option<RelativePath>> {
+        SpoolCandidate::base_identity_path_bounded(self, id, max_owned_state_bytes)
+    }
+}
+
+fn verify_coverage(
+    candidate: &dyn CandidateFenceSource,
+    expected: CandidateFence,
+    row_limit: usize,
+) -> io::Result<()> {
+    candidate.tick()?;
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-val-full-membership-v1\0");
+    let mut count = 0u64;
+    let mut source_bytes = 0u64;
+    let mut after = None;
+    while let Some(member) = candidate.member_after(after.as_ref())? {
+        candidate.tick()?;
+        path_text(&member.path, row_limit)?;
+        count = count
+            .checked_add(1)
+            .ok_or_else(|| invalid("native source membership count overflow"))?;
+        source_bytes = source_bytes
+            .checked_add(member.size_bytes)
+            .ok_or_else(|| invalid("native source membership byte count overflow"))?;
+        feed_membership(&mut hash, &member.path, member.size_bytes, member.sha256);
+        after = Some(member.path);
+    }
+    let membership = tos_source_store::SourceMembershipV1 {
+        count,
+        digest: hash.finalize(),
+    };
+    candidate.tick()?;
+    if membership != expected.membership || source_bytes != expected.source_bytes {
+        return Err(invalid(
+            "native source candidate membership did not reach its fenced EOF",
+        ));
+    }
+    Ok(())
+}
+
+struct SpoolInput<'a> {
+    candidate: &'a dyn CandidateFenceSource,
+    json: JsonLimits,
+    json_state_bytes: usize,
+    row_state_limit: usize,
+    record_selection: Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>>,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+
+impl CandidateIndexInput for SpoolInput<'_> {
+    fn record_selection(
+        &self,
+    ) -> Option<Arc<tos_validation::source_record_selection::SourceRecordSelection>> {
+        self.record_selection.clone()
+    }
+    fn selection_verification(&self) -> Option<(Instant, &AtomicBool)> {
+        Some((self.deadline, self.cancelled))
+    }
+    fn tick(&mut self) -> io::Result<()> {
+        self.candidate.tick()
+    }
+
+    fn check_row_state(&self, bytes: usize) -> io::Result<()> {
+        self.candidate.check_state(bytes)
+    }
+
+    fn row_state_limit(&self) -> usize {
+        self.row_state_limit
+    }
+
+    fn member(&mut self, path: &str) -> io::Result<bool> {
+        self.candidate.tick()?;
+        let Ok(path) = RelativePath::parse(path) else {
+            return Ok(false);
+        };
+        let found = self.candidate.member(&path)?.is_some();
+        self.candidate.tick()?;
+        Ok(found)
+    }
+
+    fn member_after(&mut self, after: Option<&str>) -> io::Result<Option<String>> {
+        self.candidate.tick()?;
+        let after = after
+            .map(RelativePath::parse)
+            .transpose()
+            .map_err(|_| invalid("native source member cursor path is invalid"))?;
+        let member = self.candidate.member_after(after.as_ref())?;
+        self.candidate.tick()?;
+        Ok(member.map(|member| member.path.as_str().to_owned()))
+    }
+
+    fn member_size(&mut self, path: &str) -> io::Result<u64> {
+        let path = RelativePath::parse(path)
+            .map_err(|_| invalid("native source member path is invalid"))?;
+        self.candidate
+            .member(&path)?
+            .map(|member| member.size_bytes)
+            .ok_or_else(|| invalid("native source member disappeared"))
+    }
+
+    fn member_digest(&mut self, path: &str) -> io::Result<Digest256> {
+        let path = RelativePath::parse(path)
+            .map_err(|_| invalid("native source member path is invalid"))?;
+        self.candidate
+            .member(&path)?
+            .map(|member| member.sha256)
+            .ok_or_else(|| invalid("native source member disappeared"))
+    }
+
+    fn read_raw(&mut self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
+        let raw = self.candidate.read(path, cap)?;
+        if let Some(selection) = &self.record_selection {
+            if !path.starts_with("ToS/contracts/")
+                && !path.starts_with("ToS/doctrine/semantic-interchange/")
+            {
+                selection
+                    .verify_metadata_member(path, &raw)
+                    .map_err(receiver_refusal)?;
+            }
+        }
+        Ok(raw)
+    }
+
+    fn verify_member(&mut self, path: &str) -> io::Result<()> {
+        self.candidate.verify(path)
+    }
+
+    fn json_limits(&self) -> JsonLimits {
+        self.json
+    }
+
+    fn json_state_bytes(&self) -> usize {
+        self.json_state_bytes
+    }
+}
+
+/// Private mutable backend retained through full FND completion. Calling the
+/// shared index kernel alone cannot expose rows to the manifest writer.
+pub(crate) struct IndexSink<'candidate> {
+    candidate: &'candidate dyn CandidateFenceSource,
+    fence: CandidateFence,
+    sink_identity: Arc<()>,
+    row_limit: usize,
+    fresh_sealed: bool,
+    fresh_record_rows: u64,
+    fresh_claim_rows: u64,
+    fresh_semantic_rows: u64,
+    records_collection_ordinals: [u64; 16],
+    record_observation_count: u64,
+    record_schema_diagnostic_count: u64,
+    native_index_built: bool,
+    selected_profile: SpoolIndexLimits,
+    db: std::rc::Rc<PinnedSqliteConnection>,
+    _scope: PinnedSqliteAuxScope,
+}
+
+impl<'candidate> IndexSink<'candidate> {
+    pub(crate) fn open(
+        candidate: &'candidate SpoolCandidate<'_>,
+        limits: SpoolIndexLimits,
+    ) -> io::Result<Self> {
+        if limits.cache_bytes == 0
+            || limits.cache_bytes > limits.max_row_state_bytes
+            || limits.max_row_state_bytes == 0
+            || limits.max_row_state_bytes == usize::MAX
+        {
+            return Err(invalid("native source index profile is invalid"));
+        }
+        candidate.tick()?;
+        let fence = candidate.fence()?;
+        candidate.check_state(limits.max_row_state_bytes)?;
+        verify_coverage(candidate, fence, limits.max_row_state_bytes)?;
+        // A retained Arc gives report tokens a stable, non-address-reuse
+        // identity for this exact DB/scope. The enclosing invocation profile
+        // must include this small identity handle in its retained-state ceiling.
+        let sink_identity_state = std::mem::size_of::<Arc<()>>()
+            .checked_add(2 * std::mem::size_of::<usize>())
+            .ok_or_else(|| invalid("native index scope identity state overflow"))?;
+        candidate.check_state(sink_identity_state)?;
+        let sink_identity = Arc::new(());
+        let mut scope = candidate.open_index_scope(limits.sqlite)?;
+        candidate.check_state(
+            std::mem::size_of::<PinnedSqliteConnection>()
+                .checked_add(2 * std::mem::size_of::<usize>())
+                .ok_or_else(|| invalid("native shared connection state overflow"))?,
+        )?;
+        let db = scope
+            .open_connection()
+            .map_err(|_| invalid("native source index shared-budget SQLite open refused"))?;
+        set_and_verify_connection_policy(&db, limits)?;
+        db.execute_batch(
+            "CREATE TABLE identities(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID;\
+             CREATE INDEX identities_by_path ON identities(path COLLATE BINARY,id COLLATE BINARY);\
+             CREATE TABLE dependencies(source TEXT COLLATE BINARY NOT NULL,target TEXT COLLATE BINARY NOT NULL,PRIMARY KEY(source,target)) WITHOUT ROWID;\
+             CREATE INDEX dependencies_reverse_order ON dependencies(target COLLATE BINARY,source COLLATE BINARY);\
+             CREATE TABLE fresh_record_rows(ordinal INTEGER PRIMARY KEY,id TEXT NOT NULL,source_ref TEXT NOT NULL);\
+             CREATE TABLE fresh_claim_rows(ordinal INTEGER PRIMARY KEY,id TEXT NOT NULL,source_ref TEXT NOT NULL);\
+             CREATE TABLE fresh_semantic_rows(ordinal INTEGER PRIMARY KEY,id TEXT COLLATE BINARY NOT NULL,path TEXT NOT NULL);\
+             CREATE INDEX fresh_semantic_order ON fresh_semantic_rows(id COLLATE BINARY,ordinal);\
+             CREATE TABLE sf_rows(collection INTEGER NOT NULL,seq INTEGER NOT NULL,key1 TEXT COLLATE BINARY NOT NULL,key2 TEXT COLLATE BINARY NOT NULL,payload BLOB NOT NULL,aux BLOB NOT NULL,state_bytes INTEGER NOT NULL,PRIMARY KEY(collection,seq)) WITHOUT ROWID;\
+             CREATE UNIQUE INDEX sf_rows_keyed_unique ON sf_rows(collection,key1 COLLATE BINARY,key2 COLLATE BINARY) WHERE collection IN (0,1,2,4,5,6,7,8);\
+             CREATE INDEX sf_rows_order ON sf_rows(collection,seq);\
+             CREATE INDEX sf_rows_key_order ON sf_rows(collection,key1 COLLATE BINARY,key2 COLLATE BINARY);\
+             CREATE TABLE sf_current_paths(path TEXT PRIMARY KEY COLLATE BINARY,record_id TEXT NOT NULL COLLATE BINARY,record_count INTEGER NOT NULL,schema_matches INTEGER NOT NULL,artifact_scope INTEGER NOT NULL,artifact_visited INTEGER NOT NULL) WITHOUT ROWID;\
+             CREATE INDEX sf_unvisited_artifact_paths ON sf_current_paths(artifact_visited,path COLLATE BINARY) WHERE artifact_scope=1;\
+             CREATE TABLE sf_candidate_artifact_schema_proofs(path TEXT PRIMARY KEY COLLATE BINARY,record_count INTEGER NOT NULL,target_diagnostic_count INTEGER NOT NULL,member_sha256_hex TEXT,member_size_bytes BLOB,diagnostic_unit_sha256_hex TEXT,diagnostic_report_sha256_hex TEXT,invalid INTEGER NOT NULL) WITHOUT ROWID;\
+             CREATE TABLE sf_facts(collection INTEGER NOT NULL,ordinal INTEGER NOT NULL,key1 TEXT COLLATE BINARY NOT NULL,payload BLOB NOT NULL,state_bytes INTEGER NOT NULL,PRIMARY KEY(collection,ordinal)) WITHOUT ROWID;\
+             CREATE INDEX sf_facts_key_order ON sf_facts(collection,key1 COLLATE BINARY,ordinal);",
+        )
+        .map_err(sql)?;
+        candidate.tick()?;
+        Ok(Self {
+            candidate,
+            fence,
+            sink_identity,
+            row_limit: limits.max_row_state_bytes,
+            selected_profile: limits,
+            fresh_sealed: false,
+            fresh_record_rows: 0,
+            fresh_claim_rows: 0,
+            fresh_semantic_rows: 0,
+            records_collection_ordinals: [0; 16],
+            record_observation_count: 0,
+            record_schema_diagnostic_count: 0,
+            native_index_built: false,
+            db: std::rc::Rc::new(db),
+            _scope: scope,
+        })
+    }
+
+    /// Run the existing candidate-fenced Records+Item receiver against this
+    /// exact SQLite sink and actual prepared candidate schema worker. This
+    /// report does not stand in for candidate catalog/render phases or the
+    /// remaining whole native admission callback.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn inspect_candidate_records(
+        &mut self,
+        input: &CandidateRecordsInput<'_, '_>,
+        worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<CandidateFence>,
+        limits: tos_validation::source_foundation_records::SourceFoundationRecordsLimits,
+        require_local_payloads: bool,
+        cancelled: &AtomicBool,
+        record_executor: &mut tos_validation::record_biblio_cut::BiblioRecordExecutor,
+        physical_facts: &tos_validation::source_foundation_discovery::SourcePhysicalFacts,
+        payloads: &mut impl tos_validation::source_cut::CutPayloadReader,
+        fact_budget: tos_validation::record_biblio_cut::SourceCutRecordFactBudget,
+        page_budget: tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget,
+        retained_state_bytes: usize,
+        max_operation_state_bytes: usize,
+    ) -> io::Result<CandidateRecordsReportVerified> {
+        self.with_candidate_records_report(
+            input,
+            worker,
+            limits,
+            require_local_payloads,
+            cancelled,
+            record_executor,
+            physical_facts,
+            payloads,
+            fact_budget,
+            page_budget,
+            retained_state_bytes,
+            max_operation_state_bytes,
+            0,
+            |_, _, _, _, _| Ok(()),
+        )
+        .map(|(verified, ())| verified)
+    }
+
+    /// Keep the genuine stored report and its read-only index borrowed through
+    /// the caller's bounded dependent owner phases. The caller cannot return a
+    /// report/store borrow: only its owned result escapes after report drop.
+    /// Fresh catalog rows may be written only after this method returns.
+    /// `callback_state_bytes` is an inclusive simultaneous bound for callback
+    /// captures/workspace and the owned result, including its heap allocations.
+    /// Its inline result header is checked here before any report read; actual
+    /// owner report cost remains part of the caller's whole operation ledger.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn with_candidate_records_report<
+        T,
+        P: tos_validation::source_cut::CutPayloadReader,
+    >(
+        &mut self,
+        input: &CandidateRecordsInput<'_, '_>,
+        worker: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<CandidateFence>,
+        limits: tos_validation::source_foundation_records::SourceFoundationRecordsLimits,
+        require_local_payloads: bool,
+        cancelled: &AtomicBool,
+        record_executor: &mut tos_validation::record_biblio_cut::BiblioRecordExecutor,
+        physical_facts: &tos_validation::source_foundation_discovery::SourcePhysicalFacts,
+        payloads: &mut P,
+        fact_budget: tos_validation::record_biblio_cut::SourceCutRecordFactBudget,
+        page_budget: tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget,
+        retained_state_bytes: usize,
+        max_operation_state_bytes: usize,
+        callback_state_bytes: usize,
+        receive: impl FnOnce(
+            &SourceFoundationRecordsStreamedReport<'_, CandidateFence>,
+            &CandidateRecordsReportVerified,
+            &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<CandidateFence>,
+            &mut tos_validation::record_biblio_cut::BiblioRecordExecutor,
+            &mut P,
+        ) -> io::Result<T>,
+    ) -> io::Result<(CandidateRecordsReportVerified, T)> {
+        let candidate = self.candidate;
+        let fence = self.fence;
+        if callback_state_bytes == usize::MAX || callback_state_bytes < std::mem::size_of::<T>() {
+            input.abandon();
+            return Err(invalid(
+                "candidate dependent callback state omits owned result",
+            ));
+        }
+        let retained_base = retained_state_bytes
+            .checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Arc<()>>()))
+            .ok_or_else(|| invalid("candidate retained Records state overflow"))?;
+        let retained = retained_base
+            .checked_add(callback_state_bytes)
+            .filter(|bytes| *bytes <= max_operation_state_bytes)
+            .ok_or_else(|| invalid("candidate dependent callback state exceeds operation"))?;
+        // This is the whole dependent callback envelope, not an individual
+        // SQLite row. The input owns its already selected callback grant;
+        // row readers/writers continue to use the candidate's local row cap.
+        if let Err(error) = input.require_callback_state(
+            retained,
+            max_operation_state_bytes,
+            "candidate record-sink callback state",
+        ) {
+            input.abandon();
+            return Err(receiver_refusal(error));
+        }
+        // Clone the stable scope handle before lending the store mutably to
+        // the kernel. Its allocation has already been admitted above.
+        let sink_identity = Arc::clone(&self.sink_identity);
+        let result = (|| {
+            let deadline = limits.operation.deadline;
+            let expected_schema = worker.prepared_execution_binding();
+            let report = source_admission_candidate_schema::inspect_candidate_records_stored(
+                input,
+                worker,
+                limits,
+                require_local_payloads,
+                cancelled,
+                record_executor,
+                physical_facts,
+                payloads,
+                fact_budget,
+                page_budget,
+                self,
+                // Records executes before receive. The later callback's
+                // workspace is not simultaneously retained by this engine.
+                retained_base,
+                max_operation_state_bytes,
+            )
+            .map_err(receiver_refusal)?;
+            // This report was constructed directly by the maintained receiver
+            // over this exact mutable store loan. No externally supplied
+            // report or reconstructed private report constructor enters here.
+            let mut verified = Self::verify_records_report_bound(
+                candidate,
+                fence,
+                &sink_identity,
+                &report,
+                expected_schema,
+                deadline,
+                cancelled,
+            )?;
+            verified.record_selection = input.record_selection();
+            let value = receive(&report, &verified, worker, record_executor, payloads)?;
+            candidate.tick()?;
+            if candidate.fence()? != fence {
+                return Err(invalid(
+                    "candidate changed during dependent Records callback",
+                ));
+            }
+            drop(report);
+            Ok((verified, value))
+        })();
+        if result.is_err() {
+            input.abandon();
+        }
+        result
+    }
+
+    pub(crate) fn build(
+        &mut self,
+        records: &CandidateRecordsReportVerified,
+        limits: IndexLimits,
+        json: JsonLimits,
+        json_state_bytes: usize,
+        schemas: &mut SchemaCheck<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> io::Result<usize> {
+        self.candidate.tick()?;
+        if records.fence != self.fence
+            || !Arc::ptr_eq(&records.sink_identity, &self.sink_identity)
+            || records.membership != self.fence.membership
+            || records.selected_member_bytes != self.fence.source_bytes
+            || self.candidate.fence()? != self.fence
+        {
+            return Err(invalid(
+                "native source records report belongs to another candidate fence",
+            ));
+        }
+        if self.fresh_sealed {
+            return Err(invalid("native source row spool already consumed"));
+        }
+        self.validate_fresh_tables()?;
+        self.fresh_sealed = true;
+        let candidate = self.candidate;
+        let mut input = SpoolInput {
+            candidate,
+            json,
+            json_state_bytes,
+            row_state_limit: self.row_limit,
+            record_selection: records.record_selection.clone(),
+            deadline,
+            cancelled,
+        };
+        let mut base_identity = |id: &str, max_state_bytes: usize| {
+            candidate
+                .base_identity_path_bounded(id, max_state_bytes)
+                .map(|path| path.map(BaseIdentityPath::Streamed))
+        };
+        let retained = source_admission_index::build_index_into(
+            &mut input,
+            &mut base_identity,
+            limits,
+            self,
+            schemas,
+        )?;
+        self.native_index_built = true;
+        Ok(retained)
+    }
+
+    /// Bind the opaque VAL report to this sink only after the Records/Item
+    /// kernel's full source traversal, currentness checks, and post-Item fence
+    /// verification returned successfully. The report is not a claim that the
+    /// candidate has no issues or that the remaining native callback passed.
+    pub(crate) fn verify_records_report(
+        &self,
+        report: &SourceFoundationRecordsStreamedReport<'_, CandidateFence>,
+        expected_schema: CutPreparedSchemaExecutionBinding,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> io::Result<CandidateRecordsReportVerified> {
+        if !report.index().is_backed_by(self) {
+            return Err(invalid("native Records report belongs to another store"));
+        }
+        Self::verify_records_report_bound(
+            self.candidate,
+            self.fence,
+            &self.sink_identity,
+            report,
+            expected_schema,
+            deadline,
+            cancelled,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn verify_records_report_bound(
+        candidate: &dyn CandidateFenceSource,
+        fence: CandidateFence,
+        sink_identity: &Arc<()>,
+        report: &SourceFoundationRecordsStreamedReport<'_, CandidateFence>,
+        expected_schema: CutPreparedSchemaExecutionBinding,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> io::Result<CandidateRecordsReportVerified> {
+        if !candidate.matches_invocation(deadline, cancelled) {
+            return Err(invalid(
+                "native source records report invocation differs from candidate",
+            ));
+        }
+        candidate.tick()?;
+        let before = candidate.fence()?;
+        if before != fence
+            || report.input_identity() != &fence
+            || *report.source_membership() != fence.membership
+            || report.cost().selected_current_member_bytes != fence.source_bytes
+        {
+            return Err(invalid(
+                "native source records report is not bound to this candidate index sink",
+            ));
+        }
+        let schema = report
+            .candidate_schema_identity()
+            .ok_or_else(|| invalid("candidate Records report omitted prepared schema identity"))?;
+        if schema.prepared_execution_binding() != expected_schema
+            || schema.profile() != expected_schema.schema_profile
+            || schema.schema_set_digest() != expected_schema.schema_set_sha256
+        {
+            return Err(invalid(
+                "candidate Records report differs from the prepared schema worker",
+            ));
+        }
+        let record_source_bytes_read = report.record_usage().source_bytes_read;
+        let selected_member_bytes = report.cost().selected_current_member_bytes;
+        let record_issue_count = report.record_usage().observed_issue_count;
+        let item_issue_count = report.items().issue_count;
+        let manifest_item_id_count = report.items().manifest_item_id_count;
+        candidate.check_state(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)?;
+        candidate.tick()?;
+        if !candidate.matches_invocation(deadline, cancelled) || candidate.fence()? != before {
+            return Err(invalid(
+                "native source candidate changed while binding the Records report",
+            ));
+        }
+        Ok(CandidateRecordsReportVerified {
+            fence: before,
+            sink_identity: Arc::clone(sink_identity),
+            membership: *report.source_membership(),
+            prepared_schema: expected_schema,
+            selected_member_bytes,
+            record_source_bytes_read,
+            record_issue_count,
+            item_issue_count,
+            manifest_item_id_count,
+            record_selection: None,
+        })
+    }
+
+    fn validate_fresh_tables(&self) -> io::Result<()> {
+        self.candidate.tick()?;
+        if std::rc::Rc::strong_count(&self.db) != 1 {
+            return Err(invalid(
+                "native catalog planning connection remains live at seal",
+            ));
+        }
+        let records = row_count(&self.db, "SELECT COUNT(*) FROM fresh_record_rows")?;
+        let claims = row_count(&self.db, "SELECT COUNT(*) FROM fresh_claim_rows")?;
+        let semantic = row_count(&self.db, "SELECT COUNT(*) FROM fresh_semantic_rows")?;
+        self.candidate.tick()?;
+        if records != self.fresh_record_rows
+            || claims != self.fresh_claim_rows
+            || semantic != self.fresh_semantic_rows
+        {
+            return Err(invalid("fresh native catalog row spool is incomplete"));
+        }
+        Ok(())
+    }
+
+    fn push_fresh_pair(&mut self, table: FreshPairTable, id: &str, value: &str) -> io::Result<()> {
+        if self.fresh_sealed {
+            return Err(invalid("native source row spool is sealed"));
+        }
+        let row_state = text_pair_state_upper_bound(id.len(), value.len())?;
+        self.candidate.check_state(row_state)?;
+        let (ordinal, insert) = match table {
+            FreshPairTable::Record => (
+                self.fresh_record_rows,
+                "INSERT INTO fresh_record_rows(ordinal,id,source_ref) VALUES(?1,?2,?3)",
+            ),
+            FreshPairTable::Claim => (
+                self.fresh_claim_rows,
+                "INSERT INTO fresh_claim_rows(ordinal,id,source_ref) VALUES(?1,?2,?3)",
+            ),
+            FreshPairTable::Semantic => (
+                self.fresh_semantic_rows,
+                "INSERT INTO fresh_semantic_rows(ordinal,id,path) VALUES(?1,?2,?3)",
+            ),
+        };
+        let ordinal = i64::try_from(ordinal)
+            .map_err(|_| invalid("native source row ordinal exceeds SQLite range"))?;
+        self.candidate.tick()?;
+        self.db
+            .execute(insert, params![ordinal, id, value])
+            .map_err(sql)?;
+        self.candidate.tick()?;
+        match table {
+            FreshPairTable::Record => {
+                self.fresh_record_rows = self
+                    .fresh_record_rows
+                    .checked_add(1)
+                    .ok_or_else(|| invalid("fresh record source row count overflow"))?;
+            }
+            FreshPairTable::Claim => {
+                self.fresh_claim_rows = self
+                    .fresh_claim_rows
+                    .checked_add(1)
+                    .ok_or_else(|| invalid("fresh claim source row count overflow"))?;
+            }
+            FreshPairTable::Semantic => {
+                self.fresh_semantic_rows = self
+                    .fresh_semantic_rows
+                    .checked_add(1)
+                    .ok_or_else(|| invalid("fresh semantic source row count overflow"))?;
+            }
+        }
+        Ok(())
+    }
+
+    fn pair_lengths_at(
+        &self,
+        table: FreshPairTable,
+        ordinal: u64,
+    ) -> io::Result<Option<(usize, usize)>> {
+        let query = match table {
+            FreshPairTable::Record => {
+                "SELECT length(CAST(id AS BLOB)),length(CAST(source_ref AS BLOB)) FROM fresh_record_rows WHERE ordinal=?1"
+            }
+            FreshPairTable::Claim => {
+                "SELECT length(CAST(id AS BLOB)),length(CAST(source_ref AS BLOB)) FROM fresh_claim_rows WHERE ordinal=?1"
+            }
+            FreshPairTable::Semantic => {
+                "SELECT length(CAST(id AS BLOB)),length(CAST(path AS BLOB)) FROM fresh_semantic_rows WHERE ordinal=?1"
+            }
+        };
+        let ordinal = i64::try_from(ordinal)
+            .map_err(|_| invalid("native source row ordinal exceeds SQLite range"))?;
+        self.candidate.tick()?;
+        let lengths = self
+            .db
+            .query_row(query, [ordinal], text_lengths)
+            .optional()
+            .map_err(sql)?;
+        self.candidate.tick()?;
+        Ok(lengths)
+    }
+
+    fn pair_at(
+        &self,
+        table: FreshPairTable,
+        ordinal: u64,
+        expected_lengths: (usize, usize),
+    ) -> io::Result<Option<(String, String)>> {
+        let query = match table {
+            FreshPairTable::Record => {
+                "SELECT id,source_ref FROM fresh_record_rows WHERE ordinal=?1"
+            }
+            FreshPairTable::Claim => "SELECT id,source_ref FROM fresh_claim_rows WHERE ordinal=?1",
+            FreshPairTable::Semantic => "SELECT id,path FROM fresh_semantic_rows WHERE ordinal=?1",
+        };
+        let ordinal = i64::try_from(ordinal)
+            .map_err(|_| invalid("native source row ordinal exceeds SQLite range"))?;
+        self.candidate.check_state(text_pair_state_upper_bound(
+            expected_lengths.0,
+            expected_lengths.1,
+        )?)?;
+        self.candidate.tick()?;
+        let pair = self
+            .db
+            .query_row(query, [ordinal], |row| {
+                bounded_text_pair(row, 0, 1, self.row_limit)
+            })
+            .optional()
+            .map_err(sql)?;
+        self.candidate.tick()?;
+        if pair.as_ref().is_some_and(|(first, second)| {
+            first.len() != expected_lengths.0 || second.len() != expected_lengths.1
+        }) {
+            return Err(invalid("native source row changed during cursor read"));
+        }
+        Ok(pair)
+    }
+
+    fn semantic_next_lengths(
+        &self,
+        after_id: Option<&str>,
+        after_ordinal: i64,
+    ) -> io::Result<Option<(usize, usize, i64)>> {
+        let query = match after_id {
+            Some(_) => {
+                "SELECT length(CAST(id AS BLOB)),length(CAST(path AS BLOB)),ordinal FROM fresh_semantic_rows WHERE (id COLLATE BINARY,ordinal)>(?1 COLLATE BINARY,?2) ORDER BY id COLLATE BINARY,ordinal LIMIT 1"
+            }
+            None => {
+                "SELECT length(CAST(id AS BLOB)),length(CAST(path AS BLOB)),ordinal FROM fresh_semantic_rows ORDER BY id COLLATE BINARY,ordinal LIMIT 1"
+            }
+        };
+        self.candidate.tick()?;
+        let next = match after_id {
+            Some(after) => self
+                .db
+                .query_row(query, params![after, after_ordinal], |row| {
+                    Ok((text_length(row, 0)?, text_length(row, 1)?, row.get(2)?))
+                })
+                .optional(),
+            None => self
+                .db
+                .query_row(query, [], |row| {
+                    Ok((text_length(row, 0)?, text_length(row, 1)?, row.get(2)?))
+                })
+                .optional(),
+        }
+        .map_err(sql)?;
+        self.candidate.tick()?;
+        Ok(next)
+    }
+
+    fn semantic_pair_at(
+        &self,
+        ordinal: i64,
+        expected_lengths: (usize, usize),
+    ) -> io::Result<(String, String)> {
+        self.candidate.check_state(text_pair_state_upper_bound(
+            expected_lengths.0,
+            expected_lengths.1,
+        )?)?;
+        self.candidate.tick()?;
+        let pair = self
+            .db
+            .query_row(
+                "SELECT id,path FROM fresh_semantic_rows WHERE ordinal=?1",
+                [ordinal],
+                |row| bounded_text_pair(row, 0, 1, self.row_limit),
+            )
+            .map_err(sql)?;
+        self.candidate.tick()?;
+        if pair.0.len() != expected_lengths.0 || pair.1.len() != expected_lengths.1 {
+            return Err(invalid(
+                "native semantic source row changed during cursor read",
+            ));
+        }
+        Ok(pair)
+    }
+
+    /// Only the full native validator owns this token, and calls this after its
+    /// complete source/history/schema callback and final source rechecks.
+    pub(crate) fn finish(
+        self,
+        complete: NativeAdmissionComplete,
+    ) -> io::Result<IndexView<'candidate>> {
+        self.candidate.verify_prepared_request(
+            complete.original_workspace(),
+            complete.original_io(),
+            complete.original_space(),
+            complete.deadline(),
+            complete.cancelled(),
+        )?;
+        if std::rc::Rc::strong_count(&self.db) != 1 {
+            return Err(invalid(
+                "native catalog planning connection remains live at completion",
+            ));
+        }
+        let records = complete.records();
+        if records.fence != self.fence
+            || records.membership != self.fence.membership
+            || records.selected_member_bytes != self.fence.source_bytes
+            || !Arc::ptr_eq(&records.sink_identity, &self.sink_identity)
+            || complete.index_profile() != self.selected_profile
+            || !self.candidate.shares_io_budget(complete.original_io())
+        {
+            return Err(invalid(
+                "native completion belongs to another candidate or index scope",
+            ));
+        }
+        if !self.fresh_sealed || !self.native_index_built {
+            return Err(invalid("native source index operation is incomplete"));
+        }
+        self.candidate.tick()?;
+        if self.candidate.fence()? != self.fence {
+            return Err(invalid("native source candidate fence changed"));
+        }
+        verify_coverage(self.candidate, self.fence, self.row_limit)?;
+        let identity_count = row_count(&self.db, "SELECT COUNT(*) FROM identities")?;
+        let dependency_count = row_count(&self.db, "SELECT COUNT(*) FROM dependencies")?;
+        let dependency_source_count = row_count(
+            &self.db,
+            "SELECT COUNT(*) FROM (SELECT source FROM dependencies GROUP BY source)",
+        )?;
+        self.candidate.tick()?;
+        if self.candidate.fence()? != self.fence {
+            return Err(invalid("native source candidate fence changed"));
+        }
+        Ok(IndexView {
+            candidate: self.candidate,
+            fence: self.fence,
+            complete,
+            identity_count,
+            dependency_source_count,
+            dependency_count,
+            row_limit: self.row_limit,
+            db: self.db,
+            _scope: self._scope,
+        })
+    }
+}
+
+impl FreshIndexRowsWriter for IndexSink<'_> {
+    fn push_record(&mut self, id: &str, source_ref: &str) -> io::Result<()> {
+        self.push_fresh_pair(FreshPairTable::Record, id, source_ref)
+    }
+
+    fn push_claim(&mut self, id: &str, source_ref: &str) -> io::Result<()> {
+        self.push_fresh_pair(FreshPairTable::Claim, id, source_ref)
+    }
+
+    fn push_native_semantic(&mut self, id: &str, path: &str) -> io::Result<()> {
+        self.push_fresh_pair(FreshPairTable::Semantic, id, path)
+    }
+    fn catalog_planning_storage(
+        &self,
+    ) -> io::Result<Option<(std::rc::Rc<PinnedSqliteConnection>, u64)>> {
+        self.candidate.tick()?;
+        if self.fresh_sealed || self.native_index_built {
+            return Err(invalid("native catalog planning custody already sealed"));
+        }
+        self.candidate.check_state(
+            std::mem::size_of::<std::rc::Rc<PinnedSqliteConnection>>()
+                + 2 * std::mem::size_of::<usize>(),
+        )?;
+        Ok(Some((
+            std::rc::Rc::clone(&self.db),
+            self.selected_profile.sqlite.main_logical_bytes,
+        )))
+    }
+}
+
+impl AdmissionIndexBackend for IndexSink<'_> {
+    fn retains_index_rows(&self) -> bool {
+        false
+    }
+
+    fn source_record_count(&self) -> io::Result<u64> {
+        Ok(self.fresh_record_rows)
+    }
+
+    fn source_claim_count(&self) -> io::Result<u64> {
+        Ok(self.fresh_claim_rows)
+    }
+
+    fn source_native_semantic_count(&self) -> io::Result<u64> {
+        self.candidate.tick()?;
+        let count = row_count(
+            &self.db,
+            "SELECT COUNT(*) FROM (SELECT id FROM fresh_semantic_rows GROUP BY id)",
+        )?;
+        self.candidate.tick()?;
+        Ok(count)
+    }
+
+    fn source_native_semantic_row_count(&self) -> io::Result<u64> {
+        self.candidate.tick()?;
+        let count = row_count(&self.db, "SELECT COUNT(*) FROM fresh_semantic_rows")?;
+        self.candidate.tick()?;
+        Ok(count)
+    }
+
+    fn for_each_source_record(
+        &mut self,
+        visit: &mut dyn FnMut(&mut dyn AdmissionIndexBackend, &str, &str) -> io::Result<()>,
+    ) -> io::Result<()> {
+        let expected = self.fresh_record_rows;
+        let candidate = self.candidate;
+        for ordinal in 0..expected {
+            let lengths = self
+                .pair_lengths_at(FreshPairTable::Record, ordinal)?
+                .ok_or_else(|| invalid("fresh record row spool ended before its count"))?;
+            candidate.check_state(text_pair_state_upper_bound(lengths.0, lengths.1)?)?;
+            let (id, source_ref) = self
+                .pair_at(FreshPairTable::Record, ordinal, lengths)?
+                .ok_or_else(|| invalid("fresh record row spool changed during read"))?;
+            candidate.tick()?;
+            visit(self, &id, &source_ref)?;
+            candidate.tick()?;
+        }
+        candidate.tick()?;
+        let observed = row_count(&self.db, "SELECT COUNT(*) FROM fresh_record_rows")?;
+        candidate.tick()?;
+        if observed != expected {
+            return Err(invalid("fresh record row spool did not reach EOF"));
+        }
+        Ok(())
+    }
+
+    fn for_each_source_claim(
+        &mut self,
+        visit: &mut dyn FnMut(&mut dyn AdmissionIndexBackend, &str, &str) -> io::Result<()>,
+    ) -> io::Result<()> {
+        let expected = self.fresh_claim_rows;
+        let candidate = self.candidate;
+        for ordinal in 0..expected {
+            let lengths = self
+                .pair_lengths_at(FreshPairTable::Claim, ordinal)?
+                .ok_or_else(|| invalid("fresh claim row spool ended before its count"))?;
+            candidate.check_state(text_pair_state_upper_bound(lengths.0, lengths.1)?)?;
+            let (id, source_ref) = self
+                .pair_at(FreshPairTable::Claim, ordinal, lengths)?
+                .ok_or_else(|| invalid("fresh claim row spool changed during read"))?;
+            candidate.tick()?;
+            visit(self, &id, &source_ref)?;
+            candidate.tick()?;
+        }
+        candidate.tick()?;
+        let observed = row_count(&self.db, "SELECT COUNT(*) FROM fresh_claim_rows")?;
+        candidate.tick()?;
+        if observed != expected {
+            return Err(invalid("fresh claim row spool did not reach EOF"));
+        }
+        Ok(())
+    }
+
+    fn for_each_source_native_semantic(
+        &mut self,
+        visit: &mut dyn for<'row> FnMut(NativeSemanticStep<'row>) -> io::Result<()>,
+    ) -> io::Result<()> {
+        let expected_rows = self.fresh_semantic_rows;
+        let candidate = self.candidate;
+        let mut after_id: Option<String> = None;
+        let mut after_ordinal = -1i64;
+        let mut seen = 0u64;
+        while seen < expected_rows {
+            let cursor_id_bytes = after_id.as_ref().map_or(0, String::len);
+            let (id_bytes, path_bytes, ordinal) = self
+                .semantic_next_lengths(after_id.as_deref(), after_ordinal)?
+                .ok_or_else(|| invalid("fresh semantic row spool ended before its count"))?;
+            visit(NativeSemanticStep::Preflight {
+                cursor_id_bytes,
+                id_bytes,
+                path_bytes,
+            })?;
+            let (id, path) = self.semantic_pair_at(ordinal, (id_bytes, path_bytes))?;
+            candidate.tick()?;
+            let group_first = after_id.as_deref() != Some(id.as_str());
+            visit(NativeSemanticStep::Row {
+                backend: self,
+                cursor_id_bytes,
+                id: &id,
+                path: &path,
+                group_first,
+            })?;
+            candidate.tick()?;
+            after_id = Some(id);
+            after_ordinal = ordinal;
+            seen = seen
+                .checked_add(1)
+                .ok_or_else(|| invalid("fresh semantic row count overflow"))?;
+        }
+        candidate.tick()?;
+        let observed = row_count(&self.db, "SELECT COUNT(*) FROM fresh_semantic_rows")?;
+        candidate.tick()?;
+        if observed != expected_rows {
+            return Err(invalid("fresh semantic row spool did not reach EOF"));
+        }
+        Ok(())
+    }
+
+    fn identity_path(
+        &mut self,
+        id: &str,
+        max_owned_state_bytes: usize,
+    ) -> io::Result<Option<String>> {
+        self.candidate.check_state(max_owned_state_bytes)?;
+        let result = self
+            .db
+            .query_row("SELECT path FROM identities WHERE id=?1", [id], |row| {
+                bounded_text(row, 0, max_owned_state_bytes)
+            })
+            .optional()
+            .map_err(sql)?;
+        self.candidate.tick()?;
+        Ok(result)
+    }
+
+    fn insert_identity(&mut self, id: &str, path: &str) -> io::Result<()> {
+        let state = id
+            .len()
+            .checked_add(path.len())
+            .and_then(|bytes| bytes.checked_mul(16))
+            .and_then(|bytes| bytes.checked_add(4096))
+            .ok_or_else(|| invalid("native source identity insert state overflow"))?;
+        self.candidate.check_state(state)?;
+        self.db
+            .execute(
+                "INSERT INTO identities(id,path) VALUES(?1,?2)",
+                params![id, path],
+            )
+            .map_err(sql)?;
+        self.candidate.tick()
+    }
+
+    fn dependency_source_exists(&mut self, source: &str) -> io::Result<bool> {
+        self.candidate.check_state(
+            source
+                .len()
+                .checked_mul(16)
+                .and_then(|bytes| bytes.checked_add(4096))
+                .ok_or_else(|| invalid("native dependency lookup state overflow"))?,
+        )?;
+        let result = self
+            .db
+            .query_row(
+                "SELECT 1 FROM dependencies WHERE source=?1 LIMIT 1",
+                [source],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?
+            .is_some();
+        self.candidate.tick()?;
+        Ok(result)
+    }
+
+    fn dependency_exists(&mut self, source: &str, target: &str) -> io::Result<bool> {
+        let state = source
+            .len()
+            .checked_add(target.len())
+            .and_then(|bytes| bytes.checked_mul(16))
+            .and_then(|bytes| bytes.checked_add(4096))
+            .ok_or_else(|| invalid("native dependency lookup state overflow"))?;
+        self.candidate.check_state(state)?;
+        let result = self
+            .db
+            .query_row(
+                "SELECT 1 FROM dependencies WHERE source=?1 AND target=?2",
+                params![source, target],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql)?
+            .is_some();
+        self.candidate.tick()?;
+        Ok(result)
+    }
+
+    fn insert_dependency(&mut self, source: &str, target: &str) -> io::Result<()> {
+        let state = source
+            .len()
+            .checked_add(target.len())
+            .and_then(|bytes| bytes.checked_mul(16))
+            .and_then(|bytes| bytes.checked_add(4096))
+            .ok_or_else(|| invalid("native dependency insert state overflow"))?;
+        self.candidate.check_state(state)?;
+        self.db
+            .execute(
+                "INSERT INTO dependencies(source,target) VALUES(?1,?2)",
+                params![source, target],
+            )
+            .map_err(sql)?;
+        self.candidate.tick()
+    }
+}
+
+fn row_count(db: &PinnedSqliteConnection, query: &'static str) -> io::Result<u64> {
+    let count = db
+        .query_row(query, [], |row| bounded_u64(row, 0))
+        .map_err(sql)?;
+    Ok(count)
+}
+
+/// Opaque native-validator result. The SQLite connection and its budget lease
+/// remain alive until the held source serializer has consumed every cursor.
+pub(crate) struct IndexView<'candidate> {
+    complete: NativeAdmissionComplete,
+    candidate: &'candidate dyn CandidateFenceSource,
+    fence: CandidateFence,
+    identity_count: u64,
+    dependency_source_count: u64,
+    dependency_count: u64,
+    row_limit: usize,
+    db: std::rc::Rc<PinnedSqliteConnection>,
+    _scope: PinnedSqliteAuxScope,
+}
+
+impl IndexView<'_> {
+    /// Issue the root-bound seed for later bounded owner deltas. `IndexView`
+    /// can only be constructed from `NativeAdmissionComplete`, which the full
+    /// candidate validator creates after exact membership, Records/Item,
+    /// schema, identity, semantic, and dependency checks have completed.
+    ///
+    /// This is intentionally a pure projection of that sealed result: it does
+    /// not restart a clock, allocate another ledger, or repeat the full source
+    /// walk while the publisher holds its short serialization lock.
+    pub(crate) fn completion_proof(&self) -> io::Result<NativeAdmissionCompletionProofV1> {
+        let records = self.complete.records();
+        if records.fence() != self.fence
+            || records.membership() != self.fence.membership
+            || records.selected_member_bytes() != self.fence.source_bytes
+            || records.record_issue_count() != 0
+            || records.item_issue_count() != 0
+            || self.dependency_source_count > self.dependency_count
+        {
+            return Err(invalid(
+                "native full completion binding differs from its sealed index",
+            ));
+        }
+        Ok(NativeAdmissionCompletionProofV1 {
+            validator_sha256: self.fence.validator_sha256,
+            membership_v1: Some(self.fence.membership),
+            source_bytes: self.fence.source_bytes,
+            prepared_schema: records.prepared_schema(),
+            identity_count: self.identity_count,
+            dependency_source_count: self.dependency_source_count,
+            dependency_count: self.dependency_count,
+        })
+    }
+
+    /// Declared retained Rust and nominal SQLite-cache state while publication
+    /// consumes the completed index. Opaque SQLite allocator pages and process
+    /// RSS remain under the enclosing native operation's existing external
+    /// memory prerequisite.
+    pub(crate) fn declared_retained_state_bytes(&self) -> io::Result<usize> {
+        std::mem::size_of::<Self>()
+            .checked_add(std::mem::size_of::<PinnedSqliteConnection>())
+            .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
+            .and_then(|bytes| bytes.checked_add(self.complete.index_profile().cache_bytes))
+            .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
+            .ok_or_else(|| invalid("native index retained state overflow"))
+    }
+
+    /// The actual per-row allowance used by this retained SQLite index while
+    /// producing owned identity and dependency rows for the V2 tree writer.
+    pub(crate) fn writer_row_state_limit(&self) -> usize {
+        self.row_limit
+    }
+
+    pub(crate) fn publication_epoch(&self) -> &tos_source_store::MetadataPublicationEpoch {
+        self.complete.original_epoch()
+    }
+    pub(crate) fn prepared_schema(&self) -> CutPreparedSchemaExecutionBinding {
+        self.complete.records().prepared_schema()
+    }
+    /// Invocation-selected persistent V2 IO/allocation limits carried only by
+    /// the genuine native completion witness. This is a budget profile, not a
+    /// source or publication permission.
+    pub(crate) fn segment_v2_budget(
+        &self,
+    ) -> Option<&super::source_foundation_admission::NativeSegmentV2Budget> {
+        self.complete.segment_v2()
+    }
+    /// Bind a publication receiver to this genuinely sealed scope. A base-only
+    /// candidate cannot stand in for a different pending merged membership.
+    pub(crate) fn verify_publication_receiver(
+        &self,
+        candidate: &SpoolCandidate<'_>,
+        selected_index: SpoolIndexLimits,
+    ) -> io::Result<()> {
+        if candidate.fence()? != self.fence
+            || !candidate.shares_io_budget(self.complete.original_io())
+            || selected_index != self.complete.index_profile()
+        {
+            return Err(invalid(
+                "native publication receiver differs from completed candidate",
+            ));
+        }
+        self.verify_candidate()
+    }
+
+    pub(crate) fn fence(&self) -> CandidateFence {
+        self.fence
+    }
+
+    pub(crate) fn identity_count(&self) -> u64 {
+        self.identity_count
+    }
+
+    pub(crate) fn dependency_source_count(&self) -> u64 {
+        self.dependency_source_count
+    }
+
+    pub(crate) fn dependency_count(&self) -> u64 {
+        self.dependency_count
+    }
+
+    pub(crate) fn verify_candidate(&self) -> io::Result<()> {
+        self.candidate.verify_prepared_request(
+            self.complete.original_workspace(),
+            self.complete.original_io(),
+            self.complete.original_space(),
+            self.complete.deadline(),
+            self.complete.cancelled(),
+        )?;
+        self.candidate.tick()?;
+        if self.complete.records().fence() != self.fence
+            || self.complete.records().membership() != self.fence.membership
+            || !self.candidate.shares_io_budget(self.complete.original_io())
+        {
+            return Err(invalid("native completed index binding changed"));
+        }
+        if self.candidate.fence()? != self.fence {
+            return Err(invalid("native source candidate fence changed"));
+        }
+        verify_coverage(self.candidate, self.fence, self.row_limit)
+    }
+
+    pub(crate) fn identities_after(
+        &self,
+        after: Option<&str>,
+    ) -> io::Result<Option<(String, RelativePath)>> {
+        self.candidate.tick()?;
+        // The previous key remains live while SQLite constructs the returned
+        // (id,path) strings and RelativePath. Subtract its bound before asking
+        // rusqlite for owned text, and let the row converter enforce the
+        // remaining allowance before allocating either returned String.
+        let argument_state = cursor_argument_state(after.map_or(0, str::len))?;
+        self.candidate.check_state(self.row_limit)?;
+        let returned_row_limit = self
+            .row_limit
+            .checked_sub(argument_state)
+            .ok_or_else(|| invalid("native identity cursor state exceeds profile"))?;
+        let row = match after {
+            Some(after) => self.db.query_row(
+                "SELECT id,path FROM identities WHERE id>?1 ORDER BY id LIMIT 1",
+                [after],
+                |row| bounded_text_pair(row, 0, 1, returned_row_limit),
+            ),
+            None => self.db.query_row(
+                "SELECT id,path FROM identities ORDER BY id LIMIT 1",
+                [],
+                |row| bounded_text_pair(row, 0, 1, returned_row_limit),
+            ),
+        }
+        .optional()
+        .map_err(sql)?;
+        let row = row
+            .map(|(id, path)| {
+                Ok::<_, io::Error>((
+                    id,
+                    RelativePath::parse(&path)
+                        .map_err(|_| invalid("native index identity path is invalid"))?,
+                ))
+            })
+            .transpose()?;
+        self.candidate.tick()?;
+        Ok(row)
+    }
+
+    /// Reverse-cursor identities owned by one changed source path. Native
+    /// identity validation has already completed; this is bounded writer input
+    /// for the corresponding authenticated V2 successor delta.
+    pub(crate) fn identity_for_path_after(
+        &self,
+        path: &RelativePath,
+        after_id: Option<&str>,
+    ) -> io::Result<Option<String>> {
+        self.candidate.tick()?;
+        path_text(path, self.row_limit)?;
+        let argument_bytes = path
+            .as_str()
+            .len()
+            .checked_add(after_id.map_or(0, str::len))
+            .ok_or_else(|| invalid("native identity path cursor argument overflow"))?;
+        let argument = cursor_argument_state(argument_bytes)?;
+        self.candidate.check_state(self.row_limit)?;
+        let result_limit = self
+            .row_limit
+            .checked_sub(argument)
+            .ok_or_else(|| invalid("native identity path cursor state exceeds profile"))?;
+        let id = match after_id {
+            Some(after) => self.db.query_row(
+                "SELECT id FROM identities WHERE path=?1 AND id>?2 ORDER BY id LIMIT 1",
+                params![path.as_str(), after],
+                |row| bounded_text(row, 0, result_limit),
+            ),
+            None => self.db.query_row(
+                "SELECT id FROM identities WHERE path=?1 ORDER BY id LIMIT 1",
+                [path.as_str()],
+                |row| bounded_text(row, 0, result_limit),
+            ),
+        }
+        .optional()
+        .map_err(sql)?;
+        self.candidate.tick()?;
+        Ok(id)
+    }
+
+    pub(crate) fn dependency_source_after(
+        &self,
+        after: Option<&RelativePath>,
+    ) -> io::Result<Option<RelativePath>> {
+        self.candidate.tick()?;
+        let argument_state = cursor_argument_state(after.map_or(0, |path| path.as_str().len()))?;
+        self.candidate.check_state(self.row_limit)?;
+        let returned_row_limit = self
+            .row_limit
+            .checked_sub(argument_state)
+            .ok_or_else(|| invalid("native dependency cursor state exceeds profile"))?;
+        let source = match after {
+            Some(after) => self.db.query_row(
+                "SELECT source FROM dependencies WHERE source>?1 ORDER BY source LIMIT 1",
+                [after.as_str()],
+                |row| bounded_text(row, 0, returned_row_limit),
+            ),
+            None => self.db.query_row(
+                "SELECT source FROM dependencies ORDER BY source LIMIT 1",
+                [],
+                |row| bounded_text(row, 0, returned_row_limit),
+            ),
+        }
+        .optional()
+        .map_err(sql)?;
+        let source = source
+            .map(|source| {
+                RelativePath::parse(&source)
+                    .map_err(|_| invalid("native dependency source path is invalid"))
+            })
+            .transpose()?;
+        self.candidate.tick()?;
+        Ok(source)
+    }
+
+    /// Stream the actual maintained edge table in the chosen native key order.
+    /// The tuple is always (source,target); no native row or completion is minted.
+    pub(crate) fn dependency_pair_after(
+        &self,
+        direction: source_admission_index::NativeDependencyDirectionV1,
+        after: Option<(&RelativePath, &RelativePath)>,
+    ) -> io::Result<Option<(RelativePath, RelativePath)>> {
+        self.candidate.tick()?;
+        let argument_bytes = match after {
+            Some((source, target)) => {
+                path_text(source, self.row_limit)?;
+                path_text(target, self.row_limit)?;
+                source
+                    .as_str()
+                    .len()
+                    .checked_add(target.as_str().len())
+                    .ok_or_else(|| invalid("native dependency pair cursor argument overflow"))?
+            }
+            None => 0,
+        };
+        let argument_state = cursor_argument_state(argument_bytes)?;
+        self.candidate.check_state(self.row_limit)?;
+        let returned_row_limit = self
+            .row_limit
+            .checked_sub(argument_state)
+            .ok_or_else(|| invalid("native dependency pair cursor state exceeds profile"))?;
+        use source_admission_index::NativeDependencyDirectionV1::{Forward, Reverse};
+        // Both orders have a maintained SQLite index. The pinned connection
+        // accounts reverse-index insertion pages in the SAME IO/space budget.
+        let row = match (direction, after) {
+            (Forward, Some((source, target))) => self.db.query_row(
+                "SELECT source,target FROM dependencies WHERE (source,target)>(?1,?2) ORDER BY source,target LIMIT 1",
+                params![source.as_str(),target.as_str()],
+                |row| bounded_text_pair(row,0,1,returned_row_limit)),
+            (Reverse, Some((source, target))) => self.db.query_row(
+                "SELECT source,target FROM dependencies INDEXED BY dependencies_reverse_order WHERE (target,source)>(?1,?2) ORDER BY target,source LIMIT 1",
+                params![target.as_str(),source.as_str()],
+                |row| bounded_text_pair(row,0,1,returned_row_limit)),
+            (Forward, None) => self.db.query_row(
+                "SELECT source,target FROM dependencies ORDER BY source,target LIMIT 1", [],
+                |row| bounded_text_pair(row,0,1,returned_row_limit)),
+            (Reverse, None) => self.db.query_row(
+                "SELECT source,target FROM dependencies INDEXED BY dependencies_reverse_order ORDER BY target,source LIMIT 1", [],
+                |row| bounded_text_pair(row,0,1,returned_row_limit)),
+        }.optional().map_err(sql)?;
+        let pair = row
+            .map(|(source, target)| {
+                Ok::<_, io::Error>((
+                    RelativePath::parse(&source)
+                        .map_err(|_| invalid("native dependency source path is invalid"))?,
+                    RelativePath::parse(&target)
+                        .map_err(|_| invalid("native dependency target path is invalid"))?,
+                ))
+            })
+            .transpose()?;
+        self.candidate.tick()?;
+        Ok(pair)
+    }
+
+    pub(crate) fn dependency_after(
+        &self,
+        source: &RelativePath,
+        after: Option<&RelativePath>,
+    ) -> io::Result<Option<RelativePath>> {
+        self.candidate.tick()?;
+        path_text(source, self.row_limit)?;
+        let argument_bytes = source
+            .as_str()
+            .len()
+            .checked_add(after.map_or(0, |path| path.as_str().len()))
+            .ok_or_else(|| invalid("native dependency cursor argument overflow"))?;
+        let argument_state = cursor_argument_state(argument_bytes)?;
+        self.candidate.check_state(self.row_limit)?;
+        let returned_row_limit = self
+            .row_limit
+            .checked_sub(argument_state)
+            .ok_or_else(|| invalid("native dependency cursor state exceeds profile"))?;
+        let row = match after {
+            Some(after) => self.db.query_row(
+                "SELECT target FROM dependencies WHERE source=?1 AND target>?2 ORDER BY target LIMIT 1",
+                params![source.as_str(), after.as_str()],
+                |row| bounded_text(row, 0, returned_row_limit),
+            ),
+            None => self.db.query_row(
+                "SELECT target FROM dependencies WHERE source=?1 ORDER BY target LIMIT 1",
+                [source.as_str()],
+                |row| bounded_text(row, 0, returned_row_limit),
+            ),
+        }
+        .optional()
+        .map_err(sql)?;
+        let target = row
+            .map(|target| {
+                RelativePath::parse(&target)
+                    .map_err(|_| invalid("native dependency target path is invalid"))
+            })
+            .transpose()?;
+        self.candidate.tick()?;
+        Ok(target)
+    }
+}
+
+#[cfg(test)]
+mod executor_refusal_tests {
+    use super::*;
+    use tos_validation::executor::{
+        ChildTermination, ExchangeFailureContext, ExecutorFailure, SharedSchemaWorkerQuotaUsage,
+    };
+    use tos_validation::item_rules::ItemExecutorRefusal;
+
+    #[test]
+    fn multiple_source_causes_preserve_only_bounded_redacted_tokens() {
+        let first = bounded_source_cause("receiver-source", "df-c-0123456789ab", "private input A");
+        let second =
+            bounded_source_cause("receiver-source", "df-c-fedcba987654", "private input B");
+        let reason = format!("source-causes:{first}|{second}");
+        assert!(is_bounded_source_cause(&reason));
+        assert_eq!(
+            receiver_refusal(ItemRefusal::Source(reason.clone())).to_string(),
+            reason
+        );
+        for bad in [
+            "source-causes:".to_owned(),
+            format!("source-causes:{first}|private input B"),
+            format!("source-causes:{first}|source-causes:{second}"),
+            format!(
+                "source-causes:{}",
+                vec![first; MAX_SOURCE_CAUSES + 1].join("|")
+            ),
+        ] {
+            assert!(!is_bounded_source_cause(&bad));
+        }
+        assert!(!reason.contains("private"));
+    }
+
+    #[test]
+    fn unsupported_shape_fingerprint_preserves_digest_without_private_text() {
+        let private = "owner refusal: /private/source/member.json";
+        let reason = receiver_refusal(ItemRefusal::Unsupported(private.into())).to_string();
+        assert!(is_bounded_source_cause(&reason));
+        assert!(reason.ends_with(&Digest256::of_bytes(private.as_bytes()).to_hex()));
+        assert!(!reason.contains("private") && !reason.contains("owner refusal"));
+        assert!(reason.len() <= 192);
+    }
+
+    #[test]
+    fn receiver_preserves_all_executor_codes_and_committed_prefix_without_private_text() {
+        for reason in [
+            ExecutorFailure::UnsupportedHost,
+            ExecutorFailure::WorkerIdentity,
+            ExecutorFailure::InputBudget,
+            ExecutorFailure::ResourceLimitUnknown,
+            ExecutorFailure::Spawn,
+            ExecutorFailure::Timeout,
+            ExecutorFailure::Cancelled,
+            ExecutorFailure::CpuLimit,
+            ExecutorFailure::CrashSignal(9),
+            ExecutorFailure::CrashExit(7),
+            ExecutorFailure::ReapPending(12),
+            ExecutorFailure::Protocol,
+            ExecutorFailure::Backend,
+            ExecutorFailure::ParseRejected,
+            ExecutorFailure::CoverageMismatch,
+        ] {
+            let evidence = ItemExecutorRefusal {
+                stage: "private-owner-stage",
+                reason,
+                batch_completed_count: Some(1),
+                exchange: Some(ExchangeFailureContext {
+                    boundary: "private-owner-path",
+                    failure: reason,
+                    natural_termination: Some(ChildTermination::Exited(7)),
+                    child_cpu_micros: Some(10),
+                    child_pid: 42,
+                    child_exchange_ordinal: 1,
+                    retained_session: false,
+                }),
+                quota: Some(SharedSchemaWorkerQuotaUsage {
+                    max_total_cpu_micros: 100,
+                    max_total_wire_bytes: 200,
+                    max_total_units: 3,
+                    worker_cpu_micros: 10,
+                    worker_wire_bytes: 20,
+                    worker_units: 1,
+                }),
+            };
+            if reason == ExecutorFailure::Timeout {
+                assert_eq!(
+                    ItemRefusal::Executor(Box::new(evidence.clone())).compatibility_category(),
+                    ItemRefusal::Deadline
+                );
+            }
+            if matches!(
+                reason,
+                ExecutorFailure::InputBudget | ExecutorFailure::CpuLimit
+            ) {
+                assert_eq!(
+                    ItemRefusal::Executor(Box::new(evidence.clone())).compatibility_category(),
+                    ItemRefusal::Budget
+                );
+            }
+            let expected = evidence.summary();
+            let error = receiver_refusal(ItemRefusal::Executor(Box::new(evidence)));
+            assert_eq!(error.to_string(), expected);
+            assert!(error.get_ref().unwrap().is::<ItemExecutorRefusal>());
+            assert_eq!(
+                crate::source_current_cut::foundation_orchestrator::FoundationOrchestratorError::Admission(
+                    error
+                )
+                .public_reason(),
+                expected
+            );
+            assert!(expected.contains(&format!("reason={reason:?}")));
+            assert!(expected.contains("committed_quota_prefix="));
+            assert!(expected.contains("batch_completed_count=Some(1)"));
+            assert!(!expected.contains("private-owner"));
+            assert!(expected.len() < 1024);
+        }
+    }
+}

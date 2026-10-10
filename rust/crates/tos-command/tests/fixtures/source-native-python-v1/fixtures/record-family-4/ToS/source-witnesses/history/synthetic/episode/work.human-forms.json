@@ -1,0 +1,109 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.selected-fixture",
+    "version": 1,
+    "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.revision-name",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.selected-fixture",
+        "version": 1,
+        "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+      },
+      "role": "name",
+      "language": "x-test",
+      "script": null,
+      "creator_id": "test:author",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.selected-fixture",
+            "version": 1,
+            "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.selected-fixture",
+            "version": 1,
+            "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.selected-fixture",
+            "version": 1,
+            "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.work.selected-fixture",
+            "version": 1,
+            "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.revision-note",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.selected-fixture",
+        "version": 1,
+        "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "test:author",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.selected-fixture",
+            "version": 1,
+            "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.selected-fixture",
+            "version": 1,
+            "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.selected-fixture",
+            "version": 1,
+            "digest": "sha256:c821874ee8791abefc2cbe926f0dca72c9609fb3730b6a7d39c2bf95eebb6446"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

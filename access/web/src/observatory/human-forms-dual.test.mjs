@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {encodeHumanFormSelection,boundedFormCost,FORM_WIRE_BUDGET} from '../../../shared/human-form-selection-codec.ts';
 import {validateHumanForms,formView,formIdentity,formLanguages,resolveClaimReading,claimPathClosure,FormContractError} from './human-forms.mjs';

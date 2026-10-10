@@ -3,9 +3,17 @@
 Under TOS-D-0062, select one accepted corpus revision and build its bounded
 source-return export outside the software checkout:
 
+The installed `tos-kag-release` command owns source-export construction,
+verification, immutable publication and status. Its Rust owner is
+`rust/crates/tos-ops-mechanics-plan/src/kag_release.rs`; source-return rules live
+in `kag_corpus_export.rs`. Native tests in that source and
+`rust/crates/tos-ops-mechanics-plan/tests/provider_controls_native.rs` cover
+exact identities, repeat publication, failure preservation, complete membership,
+changed consumer programs, historical program bindings and tamper refusal.
+
 ```sh
-python scripts/build_kag_export.py build --store /path/to/corpus-store --revision CORPUS_SHA256 --output /path/to/new-export
-python scripts/validate_local_kag_provider.py --export /path/to/new-export
+tos-kag-release export-build --repo-root /path/to/tos-software --store /path/to/corpus-store --revision CORPUS_SHA256 --output /path/to/new-export
+tos-kag-release export-verify --release /path/to/new-export
 ```
 
 The export contains a bounded canonical source, its public entry and supporting
@@ -16,9 +24,16 @@ rejects undeclared, missing, changed or linked files and mismatched source ident
 Build the independent local KAG artifact with an explicitly selected consumer:
 
 ```sh
-python scripts/publish_kag_release.py build --store /path/to/corpus-store --revision CORPUS_SHA256 --kag-root /path/to/aoa-kag --release-root /path/to/kag-releases
-python scripts/publish_kag_release.py status --release-root /path/to/kag-releases --expected-revision CORPUS_SHA256
+tos-kag-release build --repo-root /path/to/tos-software --python /path/to/aoa-kag-python --store /path/to/corpus-store --revision CORPUS_SHA256 --kag-root /path/to/aoa-kag --release-root /path/to/kag-releases
+tos-kag-release status --release-root /path/to/kag-releases --expected-revision CORPUS_SHA256
 ```
+
+The explicitly selected interpreter belongs to the external aoa-kag consumer.
+ToS export, verification and status require no Python. The selected aoa-kag
+version must expose `/path/to/aoa-kag/scripts/validate_repo_local_kag_family.py --probe-source`:
+it validates both the complete family and provider home before returning the
+exact source identity. Published v1 releases with the historical four-program
+binding remain readable; new publications also bind this owner CLI.
 
 The consumer receives a private copy of the export and owns its full index,
 shard, schema and family checks. A fresh consumer process verifies the produced

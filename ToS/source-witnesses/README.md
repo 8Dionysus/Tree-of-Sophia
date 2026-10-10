@@ -13,6 +13,8 @@ Source-visible review evaluates meaning and quality, while the rights and
 publication owners decide permitted use. Each section below records its actual
 evidence and source-specific limits under that common law.
 
+The standalone native source-catalog route is `tos-native-owner-command source-catalog`. Run `check --repo-root ABS --invocation ABS` for the protected published-root foundation audit and catalog parity check. Run `build --repo-root ABS --invocation ABS --max-candidate-bytes N --max-stage-read-bytes N --max-state-bytes N` only with an owned-cold foundation invocation; it emits a bounded `TOS_SOURCE_CATALOG_CANDIDATE_V1` frame stream to stdout after the final source and metadata fences pass. `max-state-bytes` must cover the selected profile's derived peak for the candidate frame, largest catalog file, bounded manifest working set, and report. Both commands require the private-tmpfs issuer ticket supplied by the launcher. The candidate is not admitted into the authored source tree by this command.
+
 Curated authored records remain Git-backed. Bulk imports use immutable corpus
 revisions in permanent local storage, with permitted private R2 backups.
 Catalogs and projections are built into a separate data snapshot. The same
@@ -158,203 +160,28 @@ reviewed public-safe derivative. Filesystem paths are human navigation and may
 improve through reviewed migrations. A path change never silently changes
 object or claim identity.
 
-### Explicit addressed record catalog
+### Native catalog and projection routes
 
-The additive [catalog-v2 contract](../contracts/source-catalog-projection-v2.schema.json)
-and [`source_catalog_projection.py`](../../scripts/source_catalog_projection.py)
-provide an explicit immutable `records` collection keyed and ordered by stable
-record ID. The addressed catalog is published separately from the tracked legacy catalog.
-Each row preserves its exact legacy entry plus the original source locator,
-raw-byte SHA-256/length and canonical record ref. The legacy canonical record
-digest, raw source-byte digest and addressed row digest are different bindings.
-Source body, HumanForms and retained history remain with their source owners;
-the catalog returns their exact source bindings.
+The Rust `source-catalog` owner is the supported route for full source-witness
+catalog validation. Its protected `source-catalog check` runs the complete
+source-foundation audit and exact generated-catalog parity; `source-catalog
+build` emits a bounded candidate and does not write authored source. The
+invocation and sealed-stage requirements are documented by the native
+[`source_witness_foundation` validation route](../../docs/validation/README.md).
 
-`bootstrap_source_catalog(root, namespace_path, catalog_namespace=...,
-expected_manifest_sha256=..., expected_publication_token=..., work_dir=...)`
-is explicitly a full bootstrap. It checks complete record membership,
-duplicates and native identity reservations, native/declared source schemas,
-exact row rendering and full legacy catalog parity, then rechecks observed
-bytes, membership, profile inputs and the cooperating publication snapshot.
-The existing full collector and pure file renderer remain the parity owner;
-native Agent validation uses its actual Corpus schema and registry mappings,
-never the declared-profile adapter. Native reservation/text dependencies retain
-their owner's bounded opaque snapshot checks. This verifies catalog/source mechanical closure. The foundation validator and
-source review separately check reference closure, historical coverage, rights
-and Claim admission.
+The corpus index and bibliographic graph use the native corpus-projection
+owner. Its exact request, finite budgets, tracked-product parity check, and
+managed snapshot build are documented in
+[`Data and corpus operations`](../../docs/RELEASING.md#data-and-corpus-operations).
+The native owner composes the existing Rust catalog, Claim, navigation, and
+bibliographic renderers; this README remains the source for ToS identity and
+projection boundaries, not a second operational API.
 
-The full writer uses only explicit disposable bootstrap scratch. Immutable parts
-are installed without replacement into the caller's existing namespace parent;
-the target root pathname is never written or selected. The result returns exact
-root bytes for a separately owned paired publication. A failure may leave
-unselected immutable parts, never permission to prune source or retained parts.
-
-`SourceCatalogSnapshot(ProjectionSnapshotView(...), expected_root_sha256=...,
-trusted_baseline_sha256=...)` performs budgeted keyed access without opening the
-root pathname or reading a legacy JSONL family. `lookup(record_id)` distinguishes
-absence in that explicit snapshot; `get(record_id)` requires presence. Returned
-`CatalogRecord.entry`, `.source` and `.provenance` are detached. A row's provenance
-contains stable catalog namespace/profile, key, row digest and exact source/ref
-bindings only. Global catalog root digests, publication tokens, baseline anchors,
-processor/schema bindings and prepared epochs belong to the outer envelope.
-Record/history/version rows retain their local provenance. An unrelated Agent revision must not change
-another record's provenance merely by changing the catalog root.
-
-`stage_agent_catalog_transition(root, before, transaction_id=...,
-expected_publication_token=...)` supports only one immediate committed,
-present-to-present native Agent descriptive correction. It checks the retained
-transaction, exact old row/raw binding, current after bytes, unchanged ID/type/path,
-allowed descriptive fields, version increment, reconstructed HumanForms/history,
-predecessor archive and revision dependencies. It executes no source command.
-Insertions, deletions, moves, non-Agent transitions and a skipped publication
-predecessor fail; missing source/carrier files are never deletion authority.
-Candidates remain unpublished and establish neither a prepared epoch nor fresh
-availability of reused sibling parts. Native writer/archive/transaction reads
-keep their existing per-package bounds; catalog capture and COW access have their
-own explicit `CatalogLimits` and `MutationLimits`. Full bootstrap is not a hidden
-fallback when a bounded transition refuses.
-
-An explicitly requested `include_claims=True` bootstrap adds `claims` and
-`source_slots` collections without changing the `records` API. The default
-records-only snapshot retains `claims_addressed=false`; the expanded snapshot
-declares `claims_addressed=true`, exact counts and
-`tos.source-catalog.current-jsonl-slots.v1`. `lookup_claim`/`get_claim` return a
-detached exact native catalog entry and canonical Claim ref. `lookup_slot(kind,
-identity)`/`get_slot` address current `claim`, `provenance_event` and `anchor`
-rows through a reversible canonical JSON pair key, not a delimiter heuristic.
-Full bootstrap uses only the existing native Claim basenames and event/anchor
-producer patterns (`*provenance*.jsonl`, `*anchor*.jsonl`) in public source scope.
-Duplicate typed identities, source membership drift and malformed rows refuse.
-
-Slot bindings retain the original physical line number (blank lines count),
-byte offset and row length, LF/CRLF/CR/EOF delimiter, exact raw row digest,
-canonical payload digest and complete source-file digest/length from bootstrap.
-Bodies remain at their source, including unknown and literal fields. Non-JSONL
-Unicode line separators refuse rather than inventing a physical source line.
-The existing pure `render_claim_catalog_entry` is shared with the full collector;
-schema and source checks remain separate from rendering.
-
-`SourceCatalogSourceReader(root, catalog_snapshot=...)` verifies exact source and
-processor profile inputs, then `read_claim(claim_id, expected_row_sha256=...)`
-or `read_slot(kind, identity)` uses protected descriptors, bounded byte ranges,
-boundary/digest/identity checks and file metadata before/after. `verify_current()`
-rechecks the observed paths and coherent publication token/generation. It never
-loads a whole JSONL file to locate a row or rehashes unread source-file bytes.
-`SourceSlotLimits` bound source files, slots, row/read bytes and profile inputs.
-Changed profiles require explicit bootstrap; there is no automatic migration.
-`whole_file_rehashed=false` is explicit: source line/range and full-file fixity
-rely on the trusted bootstrap and cooperating source owner, not protection
-against arbitrary same-UID changes to unobserved bytes. A selected Agent
-transition reuses Claim/slot descriptors without changing their local addresses.
-General Claim mutation/history transport is unsupported by this current-slot
-reader. The bounded assembler uses the owner ClaimVersionReader only for an
-explicit collection-order version basis; a historical Claim cannot be
-silently rebound to its current row.
-
-### Concrete selected source assembly
-
-[`BibliographicClaimAssembler`](../../scripts/bibliographic_claim_assembler.py)
-joins one explicit `SourceCatalogSnapshot` to the real current-slot reader and
-one concrete `MetadataVersionReader` using that same catalog/publication.
-`assemble(claim_id, expected_row_sha256=...)` returns detached
-`BibliographicClaimInput`, the shared forward dependency rows and observed
-source/catalog/file bindings. `project()` uses the full builder's pure renderer
-for all raw nodes, edges and the Claim trace. Exact source line, raw versus
-canonical digests, unknown Claim/review/provenance fields, ordered duplicate
-evidence, typed members, normalized provision/date references, alternative and
-superseded Claims, current adjacent Forms and address-only external citations
-retain their source roles. No network address is opened. Unknown strings in
-literal values are not mined for identities.
-
-`assemble_record(record_id, expected_row_sha256=...)` currently accepts only a
-native Agent. It returns detached `SourceNavigationRecordInput` (current record,
-Forms, exact retained history and every ordered version resolution) plus
-`BibliographicIdentityInput`, using the same metadata reader and Forms as Claim
-endpoints. `project_navigation()` and `project_bibliographic()` share the full
-owner renderers. Historical metadata remains an exact version return with its
-actual retained source/archive provenance, never current-use permission.
-
-`ClaimAssemblyLimits` bound selected Claim/metadata counts, addressed lookups,
-protected adjacent/schema/evidence files, bytes read and complete returned
-inputs plus expanded projection bytes. The catalog's explicit `MutationLimits`,
-source reader's `SourceSlotLimits`, metadata reader's and ClaimVersionReader's
-existing bounded aggregate/per-record/history limits remain separate owner
-bounds. A limit refusal returns no partial cohort. The addressed current-slot
-lane performs no source discovery or whole-JSONL lookup. An explicit
-collection-order version basis is different by design: its owner
-`ClaimVersionReader` reads the bounded Claim catalog and selected source package
-to resolve each exact retained ref; its aggregate work is exposed in the `claim_versions` accounting and includes
-those bounded catalog and package reads. Neither
-lane accepts a caller-supplied node/verification flag, performs an implicit
-bootstrap or fetches remote schemas. Unsupported metadata transport and
-historical Claim versions outside the explicit collection-order basis fail
-closed without latest fallback; that basis is resolved through exact retained
-Claim refs.
-
-The assembler takes no writer lock. `verify_current()` rechecks the cooperating
-source publication, observed protected metadata and source-slot inputs, plus
-adjacent-form absence. The calling source/prepared owner must maintain its
-guarded publication boundary. A before cohort must be captured before a real
-source revision; an old catalog after revision is rejected, not dressed up as
-a historical current-source snapshot. The assembler returns the selected exact source cohort. Source writes,
-prepared publication, dependency closure, normalization and admission retain
-their separate owner operations. A result's
-detached public fields may be modified by its caller without changing the
-assembler's private snapshot; such edits are not source verification.
-
-Graph incidence alone cannot prove source-reference dependency closure: an
-Agent may supply maker/evidence labels and digests without a direct identity
-graph edge. The separate offline
-[selected Agent publication profile](../../access/contracts/source-agent-publication.v1.md)
-joins real reverse Claim declarations, current source/history readers, COW raw
-roots and shared normalization to one guarded prepared transaction. It requires
-an explicit root-vector/WAL bootstrap and verifies the old prepared cohort;
-it does not silently adopt the legacy global-catalog-provenance profile.
-`build_source_navigation(..., catalog_snapshot=...)` provides the full new-profile
-bootstrap/oracle using the same actual addressed metadata reader; its legacy
-default is unchanged. General source membership, Claim mutation transport and non-descriptive
-transitions require their own publication profiles. Collection-order bases use
-the exact version reader and retain the membership Claims’ assessment context.
-
-`scripts/source_claim_catalog.py` adds a separate addressed **catalog** step
-for an exact, already committed initial `claims.create` package. The caller
-selects its protected v1 delegation, exact request digest, receipt byte digest
-and admitted catalog predecessor. Within the existing source writer lock,
-`claim_catalog_addition(...)` checks current delegation, unchanged initial
-package bytes, source-bound endpoint versions, public metadata path evidence,
-declared identity-relation profiles and absence of the new Claim/event slots.
-It stages only changed immutable Claim and source-slot parts and increments
-their counts; it does not scan the corpus or rewrite the selected root.
-
-The source metadata publication token stays unchanged: this creation package
-is not a selected Agent transaction. `last_transition` is cleared rather than
-inventing a metadata transaction. The detached candidate receipt binds the
-exact creation request and receipt; the candidate binds both catalog roots.
-Current scope and bytes are rechecked through `verify_current()` while its
-context is open. Revocation, drift, occupied identities and exhausted budgets
-refuse; staged parts may remain unselected and are not automatically deleted.
-
-This initial profile stages catalog entries for existing identity endpoints
-and exact public metadata path evidence. Other value families, proposals,
-correction history and evidence transports require their corresponding
-profiles. Source currentness and reverse dependency closure are checked by the
-prepared publisher. A prepared publisher still must assemble
-the new Claim and affected shared contexts, update declarations and all reader
-lanes atomically, and verify source guards before its own commit. Catalog
-staging alone does not make a new Claim visible to a running human/agent reader.
-
-The separate [initial metadata publication route](../../access/contracts/source-metadata-publication.v1.md)
-adds a source-created standalone identity of a registered profile without a
-full corpus rebuild. It retains the subject, exact RecordVersion, source-copy
-forms and provenance through the existing renderers and one guarded prepared
-transaction. The previous Agent-only correction route remains bounded to
-correction; new metadata does not inherit that restriction. Initial metadata
-publication neither performs compound growth nor repairs existing unresolved
-dependencies, switches consumers, or grants source assessment or text access.
-The separate [initial Claim publication composition](../../access/contracts/source-claim-publication.v1.md)
-joins this exact catalog candidate to complete affected incidence, new source
-declarations, singleton Claim contexts and all prepared lanes in one guarded
-transaction. Consumer switching and other mutation profiles remain separate.
+The addressed-catalog schema and earlier Python APIs remain evidence of their
+historical contract. They do not provide a runnable Python builder, transition
+writer, Claim assembler, or source-row reader. Stable ToS IDs and authored
+records remain authoritative; generated catalogs and graphs remain deletable
+navigation products.
 
 Evidence nodes carry a bounded readable `display` from owner metadata.
 An identity can reuse its catalog `preferred_label`. Direct Markdown
@@ -380,19 +207,63 @@ Full addresses, source references, IDs and digests remain unchanged in their
 existing fields even when the display's 240-character title or 1024-character
 description is shortened.
 
+The complete local source-witness audit and generated-catalog parity use the
+native owner directly through this lane, run inside the abyss-machine
+private-tmpfs owner launcher:
+
+```sh
+TOS_NATIVE_FOUNDATION_INVOCATION=/absolute/protected-invocation.json \
+  tos-validation-lanes --repo-root /absolute/Tree-of-Sophia --run source_witness_foundation
+```
+
+The owner-issued `tos_local_native_foundation_invocation_v1` request must bind
+the installed `tos-native-owner-command` and schema-worker digests and select
+finite source, CPU, private-stage, state and output budgets; omit an explicit
+validation profile so the route retains the complete declared audit. The
+launcher-provided sealed `ABYSS_STAGE_TICKET_FD` and `ABYSS_STAGE_ROOT` remain
+required and are verified by the native owner. The validation lane passes the
+FD only to this exact command. Missing or mismatched source, worker, invocation,
+or stage custody fails closed; no Python validation fallback is invoked.
+
 For an explicit source-first migration observation, run
-`python scripts/source_witness_projection_coverage.py --rows` from the repository.
-It verifies the public catalog against its current sources, enumerates every
-catalog-owned object and Claim (including carriers filtered out by one graph
-builder), and compares complete retained JSON fields in the ordinary normalized
-reader. Rows distinguish direct/adapted mapping, missing carriers, conflicting
-records and unresolved source return. The final summary alone confirms that
-enumeration completed; an interrupted or stale-input stream is incomplete.
-This offline diagnostic measures retained source fields and carrier coverage. It reports no source wording, private native inventory or
-payload. Exact JSON-field retention is separate from source-file byte formatting,
-semantic understanding, form quality and admission. Uncatalogued families and
-the rest of the ToS corpus remain outside this bounded report and require their
-own source routes; a missing carrier does not imply restricted access or falsity.
+`tos source-projection-coverage --root /absolute/source-root --invocation /absolute/protected-invocation.json --rows`
+from the repository. `--invocation` selects the actual Access executable digest,
+native schema-worker image and original capture/resource controls using the
+protected `tos_local_native_foundation_invocation_v1` contract. The maintained
+Foundation kernel owns the complete catalogue and worker exchange; coverage
+consumes its sealed stage in a borrowed callback and checks final source/root
+and metadata-publication currentness before its complete summary. The Rust
+`tos-access` command validates the exact public
+catalog inputs and Claims, checks generated-catalog currentness, then compares
+the full source JSON values (including unknown fields and explicit nulls) with
+the ordinary normalized read model. Rows distinguish direct/adapted mapping,
+missing carriers, conflicting records and unresolved source return. The final
+`tos_source_projection_coverage_v1` summary alone confirms that enumeration
+completed; an interrupted, stale-input or refused-budget stream is incomplete.
+`--root`, `--max-input-bytes`, `--max-rows` and `--max-seconds` bound the scan;
+`--graph /absolute/graph.json` supplies an explicit normalized graph snapshot
+instead of reading the native held snapshot. `--native-prefix` may be used
+instead of `TOS_NATIVE_PREFIX`. Imported callers retain `observe_record` and
+`coverage_report(..., invocation=protected_path)` callbacks, which forward to the same installed native
+command; their graph-currentness callback remains caller-owned and runs after
+the native stream has reached successful EOF/status and child cleanup, before
+the summary is returned. `coverage_report` accepts an encoded graph request up
+to 256 MiB, depth 64, and 1,000,000 JSON visits; `observe_record` remains bounded
+to a 16 MiB request. The imported call uses a 120-second work limit plus five
+seconds for cleanup. Its clock starts before graph encoding and process setup,
+so those steps use part of that limit. The command-line `--max-seconds` accepts
+up to 3600; the native wrapper uses that value plus five cleanup seconds on one
+original clock. Neither limit promises a runtime fit. Graph bytes also count
+against the native command's combined selected-input budget, so 256 MiB is a
+transport ceiling rather than an allowance in addition to source inputs.
+
+This offline diagnostic reports source identities, source references, field
+names and source-file SHA-256 values; it does not export source wording, private
+native inventory or payload. Exact JSON-field retention is separate from
+source-file formatting, semantic understanding, form quality, rights and
+admission. Uncatalogued families and the rest of the ToS corpus remain outside
+this bounded report; a missing carrier does not imply restricted access or
+falsity.
 
 A `Link` is a first-class observed route with provider, interface kind,
 technical access status, observation timestamp, provenance event, and a stable
@@ -750,10 +621,39 @@ record and, when materially distinct, a new item or item version.
 `resource-inventory.json` is a tracked mechanical companion generated from the
 exact payload digest. It enumerates PDF page geometry and image counts, bundled
 DjVu page order and geometry, EPUB member/spine order and member fixity, TEI
-page-break/division structure, or provider DjVu/ABBYY OCR page geometry and
-counts. Text-bearing EPUB, TEI, and OCR resources may carry only one-way
-normalized fingerprints and character or word counts. The inventory supplies text-free mechanical structure; reading, edition
-identification and rights assessment retain their owner routes.
+page-break/division structure, OSIS chapter/verse order, top-level JSON
+members/counts, or provider DjVu/ABBYY OCR page geometry and counts. Text-bearing
+EPUB, TEI, OSIS, JSON, plain-text, and OCR resources may carry only one-way
+fingerprints and bounded counts. The inventory supplies text-free mechanical
+structure; reading, edition identification and rights assessment retain their
+owner routes.
+
+The maintained resource-inventory route is `tos-native-owner-command acquisition`
+with a bounded one-line JSON request on stdin. It selects repository and payload
+roots explicitly, writes or checks each Item's declared `resource-inventory.json`,
+and verifies payload fixity and the source-resource-inventory schema before
+writing. Replace the example roots and date with the selected local source and
+run date. For a read-only check, set `check` to `true`:
+
+```json
+{"family":"inventory","operation":"build","repo_root":"/absolute/Tree-of-Sophia","payload_source_root":"/absolute/local/payload-root","event_date":"YYYY-MM-DD","check":true}
+```
+
+Omit `check` to regenerate declared inventories from the same verified payloads.
+The Rust owner covers PDF, DjVu, DjVu XML, ABBYY XML gzip, JP2 ZIP, scandata XML,
+EPUB, plain UTF-8/text, JSON, TEI, and OSIS profiles. The source-resource-inventory
+contract retains `build_source_resource_inventories.py` as its historical
+generator identifier; the Rust owner is the active producer. The preserved
+Python implementation is retained at `tests/oracles/source_resource_inventory/`
+for migration fixtures and historical reference behavior, not as a production
+fallback.
+
+Payload custody verification and copy receipts use the same native acquisition
+command (`family: custody`, `operation: cli`, `command: verify` or `copy`) with
+explicit payload roots and manifest/inventory selectors. The Rust owner checks
+fixity, no-follow path custody and no-clobber publication, then writes an
+immutable metadata-only receipt; it does not change rights, source assessment or
+admission status.
 The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
 Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
 and observed Unicode-form facts only. It neither rewrites bytes nor interprets
@@ -1385,10 +1285,42 @@ crosswalks and translation packets are unchanged.
 
 ## Rebuild local resource inventories
 
-The payloads may be absent from a public clone, so the inventory builder is a
-focused local operation rather than a release-gate download. Its authoritative
-local invocation and explicit payload-root requirement live in
-[`scripts/AGENTS.md`](../../scripts/AGENTS.md).
+The payloads may be absent from a public clone, so inventory generation is a
+focused local operation rather than a release-gate download. The native
+`family: inventory` request takes an explicit repository and payload root; the
+source-witness foundation lane remains the declared whole-tree validation route.
+
+The native owner preserves the maintained selector table below. Rows are
+separate branches where the same media type selects a distinct profile. The
+registry JSON/XML branches use the existing JSON, TEI, and OSIS inventory
+owners; remaining profiles stay with the source-item inventory extension.
+
+| # | Maintained selector | Native owner and resulting profile |
+| --- | --- | --- |
+| 1 | `application/json` | `source_item_inventory::json_inventory` → `json_members_v1` |
+| 2 | `text/plain` with `plain_text_v1` | `plain_text_inventory` → `plain_text_v1` |
+| 3 | `text/plain` with `plain_utf8_file_v1` | `source_item_inventory::observe` → `plain_utf8_file_v1` |
+| 4 | `text/markdown` | `source_item_inventory::observe` → `plain_utf8_file_v1` |
+| 5 | `application/osis+xml` | `source_item_inventory::osis_inventory` → `osis_structure_v1` |
+| 6 | `application/pdf` | `pdf_inventory` → `pdf_pages_v1` |
+| 7 | `application/epub+zip` | `source_item_inventory::observe` → `epub_resources_v1` |
+| 8 | `application/zip` with `_jp2.zip` path | `jp2_zip_inventory` → `jp2_zip_pages_v1` |
+| 9 | `image/vnd.djvu` | `djvu_inventory` → `djvu_pages_v1` |
+| 10 | `application/vnd.djvu+xml` | `djvu_xml_inventory` → `djvu_xml_pages_v1` |
+| 11 | `application/gzip` with `.abbyy.xml.gz` path | `abbyy_inventory` → `abbyy_xml_pages_v1` |
+| 12 | `application/xml` or `text/xml` with `_scandata.xml` path | `scandata_inventory` → `scandata_pages_v1` |
+| 13 | `application/xml` or `text/xml` with an OSIS root | `source_item_inventory::osis_inventory` → `osis_structure_v1` |
+| 14 | `application/tei+xml` | `source_item_inventory::tei_inventory` → `tei_structure_v1` |
+| 15 | `application/xml` or `text/xml` containing TEI text | `source_item_inventory::tei_inventory` → `tei_structure_v1` |
+
+Only PDF geometry and image enumeration call external parsers. Under the
+bounded runner's fixed `/usr/bin` search path, the required programs are
+`/usr/bin/pdfinfo` and `/usr/bin/pdfimages`; the runner sends the exact
+fixity-checked PDF bytes on stdin to `pdfinfo -`,
+`pdfinfo -f 1 -l N -box -`, and `pdfimages -list -`. The binary DjVu parser,
+DjVu XML parser, scandata/TEI/OSIS XML parsers, ABBYY gzip/XML parser, and EPUB
+or JP2 ZIP member walkers run in the native owner and require no external
+DjVu or archive command.
 
 Omit `--check` only when intentionally regenerating tracked inventories from
 the same fixity-verified local payloads. The source-foundation validator checks
@@ -1396,6 +1328,15 @@ their schema, manifest closure, counts, and digest-bound provenance without
 claiming content correctness.
 
 ## Witness structure correspondence
+
+The maintained producer is `tos witness-structure-correspondence`. Supply
+`--source-root ABS --local-input-root ABS --check` to reconstruct the retained
+82 correspondence candidates and 246 proposed anchors without writes. The
+local input root is the repository-shaped payload custody root. A fresh run uses
+`--build --generation NAME --event-at RFC3339 --scratch-bytes RESERVED_BYTES`
+and creates a separate `native-NAME` directory. It verifies all six payloads,
+including the PDF, and binds native provenance to their metadata and rights.
+
 
 The tracked Naumann 1893 ↔ DTA-parts map under
 `works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/`
@@ -1431,6 +1372,22 @@ printed `237.` on PDF page 189, retained locally as `237a`. The result is 299
 monotonic proposed start-page candidates for §§1–296 plus 65a, 73a, and 237a,
 with 299 whole-page proposed source anchors.
 
+`tos jenseits-numbered-structure --source-root ABS --local-input-root ABS --check`
+reconstructs that retained map through the native bounded ABBYY reader. A new
+`--build` requires `--generation NAME --event-at RFC3339 --scratch-bytes BYTES`
+and writes a separate `structure/native-NAME/` map, anchors and Rust provenance.
+The local input root names the corpus root containing `ToS/source-witnesses/`;
+original payloads and the historical generation remain unchanged.
+
+The Polilov/Mysl target uses
+`tos jenseits-polilov-numbered-structure --source-root ABS --local-input-root ABS --check`
+with the exact held PDF and its metadata. `--check` verifies the retained
+298 proposed page anchors and their provenance. A fresh `--build` requires a
+writable selected source root, `--generation`, `--event-at` and an explicit
+`--scratch-bytes` allowance; replay compares all output bytes before writing.
+Historical reconstruction preserves its original provenance and the
+unmaterialized source-only label `237a`.
+
 The OCR supplies proposed page starts; exact line boundaries require
 separately resolved anchors.
 The parallel German ↔ Russian map still stops at division granularity and
@@ -1464,6 +1421,14 @@ identities prevent repeated numerals from collapsing into a false flat unit
 namespace. The original target-only crosswalks narrow the twelve frozen pages
 to twenty possible target routes and remain unchanged as historical inputs.
 
+`tos mysl-transfer-target-structure --source-root ABS --local-input-root ABS --check`
+reconstructs both retained target maps, their anchors and frozen-page crosswalks.
+Historical events keep the input and output digests from their original revision,
+including events that predate later plan or rights changes. New `--build`
+generations bind current inputs and cite the retained scan-review decisions.
+Use `--generation NAME --event-at RFC3339 --scratch-bytes BYTES`; the producer
+checks every existing destination before writing, and matching replay writes nothing.
+
 Separate German source maps now materialize the same 140 structural labels.
 The 1892 *Genealogie* Item supplies 78 proposed PDF starts. The 1906
 *Antichrist* route preserves a stronger boundary: the 523-page Commons DjVu is
@@ -1473,6 +1438,13 @@ offset. This relation is not full-container or textual identity. A payload-free
 intersection pairs only identical `series:unit` keys, and a second composition
 gives all twelve frozen pages twenty possible German structural routes. These routes provide proposed German structural starts; passage ends and
 source-to-target correspondences remain unresolved.
+
+`tos nietzsche-transfer-source-structure --source-root ABS --local-input-root ABS --check`
+reconstructs the two retained German maps, anchors and provenance through Rust.
+It holds the PDF, DjVu and DjVuXML witnesses separately, verifies their fixity
+and keeps the declared page offset. The same explicit generation, timestamp
+and admitted-byte options create separate native generations. Numbered-page
+ranges remain inside their wider work boundary, which can also include title pages.
 
 The frozen target side now has a separate exact-layer boundary preparation
 step over the ignored Mysl PDF. It expands the twenty page candidates into

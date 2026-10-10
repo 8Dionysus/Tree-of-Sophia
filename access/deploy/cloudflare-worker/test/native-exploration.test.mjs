@@ -1,19 +1,20 @@
+import {parseLosslessJson,stringifyLosslessJson,compareLosslessValues} from './lossless-json-compare.mjs';
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {mkdtempSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
-import {build} from 'esbuild';
+import {publishedNodeFixtureWorker,publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
-import {exploreD1} from '../src/exploration.ts';
+import {HttpError} from '../src/common.ts';
 
 const repo=fileURLToPath(new URL('../../../../',import.meta.url));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
-const python=(code,input)=>JSON.parse(execFileSync('python3',['-B','-c',"import sys,json;sys.path[:0]=['access/src','access/tests','access/deploy/cloudflare-worker/scripts'];"+code],
+const python=(code,input)=>JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',"import sys,json;sys.path[:0]=['access/src','access/tests','access/deploy/cloudflare-worker/scripts'];"+code],
  {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
 const fixture=python(String.raw`
 from test_exploration_origin import origin_graph
@@ -48,7 +49,7 @@ const fields={node:['id','entity_id','native_id','source_graph','kind_id','type_
 const bindings=(kind,raw)=>{const value=JSON.parse(raw);return [...fields[kind].map(k=>value[k]),raw];};
 function database() {
  const directory=mkdtempSync(join(tmpdir(),'tos-native-exploration-')),path=join(directory,'published.sqlite'),sqlite=new DatabaseSync(path);
- sqlite.exec(schema);sqlite.exec(migration);
+ sqlite.exec('PRAGMA secure_delete=ON');sqlite.exec(schema);sqlite.exec(migration);
  for(const [key,raw]of Object.entries(fixture.metadata))sqlite.prepare('INSERT INTO edge_meta VALUES (?,0,?)').run(key,raw);
  for(const kind of ['node','relation'])for(const raw of fixture[kind+'s'])sqlite.prepare(`INSERT INTO knowledge_${kind}s VALUES (${bindings(kind,raw).map(()=>'?').join(',')})`).run(...bindings(kind,raw));
  const statements=[],hook={after:null,beforeBatch:null};
@@ -83,9 +84,12 @@ except Exception as e:
  print(json.dumps({'status':status,'error':str(e)}))
 `,{path:data.path,binding:data.binding(),request,stream});
 }
-let workerPromise,bundlePromise;
-async function bundle(){return bundlePromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'}).then(result=>result.outputFiles[0].text);}
-async function worker(){return workerPromise??=bundle().then(async code=>(await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'))).default);}
+const worker=publishedNodeFixtureWorker;
+async function exploreD1(db,request) {
+ const result=await response({db},request),raw=await result.text();
+ if(result.status!==200)throw new HttpError(result.status,raw);
+ return raw;
+}
 async function response(data,request,raw){return (await worker()).fetch(new Request('https://tos.test/api/knowledge/explore',{
  method:'POST',headers:{'Content-Type':'application/json'},body:raw??JSON.stringify(request)}),{DB:data.db,ASSETS:{fetch(){throw Error('no source/asset fallback');}}},{});}
 async function stream(data,query){const pages=[];for(let count=0;count<500;count++){
@@ -94,40 +98,44 @@ async function stream(data,query){const pages=[];for(let count=0;count<500;count
  const cursor=JSON.parse(raw).page.next_cursor;if(!cursor)return pages;query={cursor};
  }throw Error('nonterminating bounded fixture');}
 function compareStreams(actual,expected){
- const diff=python(String.raw`
-def check(a,b,path):
- if type(a)!=type(b):return [path+': numeric/value kind differs']
- if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': source member order differs']
-  return [d for k in a for d in check(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': length differs']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in check(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float representation differs']
- return [] if a==b else [path+': value differs']
-def union(pages,kind):
- result={}
- for page in pages:
-  for value in page[kind]:
-   if value['id'] in result:
-    assert not check(value,result[value['id']],kind+'.'+value['id'])
-   result[value['id']]=value
- return result
-p=json.load(sys.stdin);a=list(map(json.loads,p['actual']));b=list(map(json.loads,p['expected']));errors=[]
+ const a=actual.map(parseLosslessJson),b=expected.map(parseLosslessJson);
+ const field=(node,key)=>{assert.equal(node.kind,'dict');const pair=node.value.find(([name])=>name===key);assert.ok(pair,`missing ${key}`);return pair[1];};
+ const nullValue={kind:'null',value:null};
+ // Freeze independent scene outputs for exactly the carriers the former pure
+ // Python function reads. The comparisons below always evaluate current data.
+ const scenes=python(String.raw`
 from tos_access.knowledge import knowledge_scene
-for page in a:
- origin=page.get('origin');focus=origin['id'] if origin and origin['kind']=='node' else None if origin else page['focus']['node_id']
- selected_relation=origin['id'] if origin and origin['kind']=='relation' else None
- if page['scene']!=knowledge_scene(page['nodes'],page['relations'],focus,selected_relation):errors.append('page scene differs from Python over the same native page carriers')
-for kind in ('nodes','relations'):
- x,y=union(a,kind),union(b,kind)
- if set(x)!=set(y):errors.append(kind+': full traversal selection differs')
- else:
-  for key in sorted(x):errors+=check(x[key],y[key],kind+'.'+key)
-for key in ('status','limit_reason','counts','authority_boundary'):
- errors+=check(a[-1][key],b[-1][key],key)
-print(json.dumps(errors))
-`,{actual,expected});assert.deepEqual(diff,[]);
+p=json.load(sys.stdin);out=[]
+for raw in p:
+ c=json.loads(raw)
+ out.append(json.dumps(knowledge_scene(c['nodes'],c['relations'],c['focus'],c['relation']),ensure_ascii=False,separators=(',',':'),allow_nan=False))
+print(json.dumps(out))
+`,a.map(page=>{
+   const origin=page.value.find(([name])=>name==='origin')?.[1];
+   const hasOrigin=origin?.kind==='dict';
+   const kind=hasOrigin?field(origin,'kind').value:null;
+   const focus=hasOrigin?(kind==='node'?field(origin,'id'):nullValue):field(field(page,'focus'),'node_id');
+   const relation=kind==='relation'?field(origin,'id'):nullValue;
+   return stringifyLosslessJson({kind:'dict',value:[['nodes',field(page,'nodes')],['relations',field(page,'relations')],['focus',focus],['relation',relation]]});
+ }));
+ assert.equal(scenes.length,a.length);
+ for(let i=0;i<a.length;i++)assert.deepEqual(compareLosslessValues(field(a[i],'scene'),parseLosslessJson(scenes[i]),{unordered:()=>true}),[],`page ${i} scene`);
+ function union(pages,kind){
+   const result=new Map();
+   for(const page of pages){const values=field(page,kind);assert.equal(values.kind,'list');for(const value of values.value){
+     const id=field(value,'id');assert.equal(id.kind,'str');
+     if(result.has(id.value))assert.deepEqual(compareLosslessValues(value,result.get(id.value)),[],`${kind}.${id.value} repeated source`);
+     result.set(id.value,value);
+   }}
+   return result;
+ }
+ for(const kind of ['nodes','relations']){
+   const left=union(a,kind),right=union(b,kind);
+   assert.deepEqual([...left.keys()].sort(),[...right.keys()].sort(),`${kind} full traversal selection`);
+   for(const [id,value]of left)assert.deepEqual(compareLosslessValues(value,right.get(id)),[],`${kind}.${id}`);
+ }
+ assert.ok(a.length&&b.length);
+ for(const key of ['status','limit_reason','counts','authority_boundary'])assert.deepEqual(compareLosslessValues(field(a.at(-1),key),field(b.at(-1),key)),[],key);
 }
 
 test('native exploration full traversal selections and source packets equal current published Python',async t=>{
@@ -150,7 +158,7 @@ test('native exploration replay and concurrent CAS winner retain identical store
   assert.equal(await exploreD1(data.db,{cursor}),raw);
   const state=data.sqlite.prepare('SELECT state FROM knowledge_exploration_checkpoints WHERE token=?').get(JSON.parse(raw).page.next_cursor).state;
   assert.doesNotMatch(state,/transport_probe|9007199254740993|authority_boundary|display_selection/);
-  assert.match(data.sqlite.prepare('SELECT version FROM knowledge_exploration_checkpoints WHERE token=?').get(cursor).version,/native-json-v1\/selected-relation-first-v1$/);
+  assert.equal(data.sqlite.prepare('SELECT version FROM knowledge_exploration_checkpoints WHERE token=?').get(cursor).version,'tos-exploration-d1-execution-v6/rust-state-v1');
  }finally{data.close();}
 });
 
@@ -308,8 +316,8 @@ test('reserved source IDs stay owned inclusion keys rather than JavaScript proto
 });
 
 test('real D1 raw HTTP restart and concurrent retries preserve native checkpoint pages',async()=>{
- const directory=mkdtempSync(join(tmpdir(),'tos-native-explore-real-')),code=await bundle();
- const options=()=>convertV4MiniflareOptions({modules:true,script:code,d1Databases:['DB'],resourcePersistencePath:directory});
+ const directory=mkdtempSync(join(tmpdir(),'tos-native-explore-real-')),modules=await publishedWorkerFixtureModules();
+ const options=()=>convertV4MiniflareOptions({...modules,d1Databases:['DB'],resourcePersistencePath:directory});
  let mf=new Miniflare(options());
  const post=query=>mf.dispatchFetch('https://tos.test/api/knowledge/explore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(query)});
  try {

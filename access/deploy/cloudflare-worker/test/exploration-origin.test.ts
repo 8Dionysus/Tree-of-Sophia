@@ -1,17 +1,18 @@
+import {validateNativePackets} from './native-schema-worker.mjs';
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
-import {exploreD1,publishExplorationFixture} from './native-exploration-fixture.ts';
-import {bindOriginD1, REQUEST_V2, RESULT_V2, type Origin, type ResolvedOrigin} from '../src/exploration-origin.ts';
+import {explorationCapabilitiesD1} from '../src/exploration.ts';
+import {exploreD1,publishExplorationFixture,validateExploration} from './native-exploration-fixture.ts';
+import {REQUEST_V2, RESULT_V2, type Origin, type ResolvedOrigin} from '../src/exploration-origin.ts';
+import {publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import {HttpError, type Item} from '../src/common.ts';
-import {knowledgeScene} from '../src/knowledge.ts';
+import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
 
 type Graph = {source_revision: string; nodes: Item[]; relations: Item[]; authority_boundary: Item};
 type Query = {schema_version: string; source_revision: string; origin: Origin} & Item;
@@ -22,7 +23,7 @@ type Packet = Item & {origin: ResolvedOrigin; nodes: Item[]; relations: Item[];
   counts: {discovered_nodes: number; emitted_relations: number}};
 const repo = fileURLToPath(new URL('../../../../', import.meta.url));
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
-const python = (code: string, input: unknown) => JSON.parse(execFileSync('python3', ['-c',
+const python = (code: string, input: unknown) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
   "import sys,json;sys.path[:0]=['access/src','access/tests'];" + code],
   {cwd: repo, input: JSON.stringify(input), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}));
 function graph(seed = 0, identities = false): Graph {
@@ -109,8 +110,8 @@ test('Unicode edge-whitespace schema uses the same policy as the runtime', () =>
     const request = {schema_version: REQUEST_V2, source_revision: 'a'.repeat(64),
       origin: {kind: 'node', id, content_revision: 'a'.repeat(64)}};
     assert.equal(pattern.test(id), expected, JSON.stringify(id));
-    if (expected) assert.doesNotThrow(() => normalizeExploration(request));
-    else assert.throws(() => normalizeExploration(request), (e: unknown) => e instanceof HttpError && e.status === 400);
+    if (expected) assert.doesNotThrow(() => validateExploration(request));
+    else assert.throws(() => validateExploration(request), (e: unknown) => e instanceof HttpError && e.status === 400);
   }
 });
 
@@ -144,8 +145,8 @@ test(`D1 typed origins conserve Python pages and independent zero/one-distance r
         assert.deepEqual(semanticPages(pages), semanticPages(oracle.pages), JSON.stringify(request));
         if (request.max_depth !== 0) assert.ok(pages[0]!.page.primary_node_ids.length + pages[0]!.page.primary_relation_ids.length > 0);
       }
-      if(direction==='either')python("from test_exploration_origin import ExplorationOriginTests;ExplorationOriginTests.setUpClass();p=json.load(sys.stdin)\nfor packet in p: ExplorationOriginTests.validator.validate(packet)\nprint(json.dumps(True))",
-        await collect(db, query(g, 'relation', {page_nodes: 1, page_relations: 1})));
+      if(direction==='either')validateNativePackets(
+        await collect(db, query(g, 'relation', {page_nodes: 1, page_relations: 1})), 'exploration-result.v2.schema.json');
     }
   } finally {await mf.dispose();}
 });
@@ -228,33 +229,48 @@ test('exact D1 origin closure uses one indexed relation and at most two indexed 
   const mf = new Miniflare(convertV4MiniflareOptions({...inlineWorker, d1Databases: ['DB']}));
   try {
     const g = graph(), db = await mf.getD1Database('DB'); await init(db, g);
-    const sql: string[] = [];
+    const reads:{sql:string;args:unknown[]}[]=[];
     const counted = new Proxy(db, {get(target, property) {
-      if (property === 'prepare') return (statement: string) => {sql.push(statement); return target.prepare(statement);};
+      if (property === 'prepare') return (sql:string) => {
+        const record={sql,args:[] as unknown[]};reads.push(record);
+        return new Proxy(target.prepare(sql),{get(statement,key) {
+          if(key==='bind')return (...args:unknown[])=>{record.args=args;return statement.bind(...args);};
+          const value=Reflect.get(statement,key);return typeof value==='function'?value.bind(statement):value;
+        }});
+      };
       const value = Reflect.get(target, property); return typeof value === 'function' ? value.bind(target) : value;
     }});
-    const requested = normalizeExploration(query(g)); assert.ok('origin' in requested);
-    const result = await bindOriginD1(counted, requested, g.source_revision);
-    assert.equal(sql.length, 3); assert.equal(result.roots.length, 2);
-    for (const statement of sql) {
-      assert.match(statement, /WHERE id=\? LIMIT 2$/);
-      const plan = await db.prepare('EXPLAIN QUERY PLAN ' + statement).bind(requested.origin.id).all<{detail: string}>();
-      assert.match(plan.results.map(r => r.detail).join('\n'), /SEARCH .* USING INDEX .* \(id=\?\)/);
-    }
-    await db.prepare('UPDATE knowledge_relations SET json=json_set(json,\'$.to_id\',?) WHERE id=?')
-      .bind(g.relations[0]!.from_id, requested.origin.id).run();
-    sql.length = 0;
-    const loop = await bindOriginD1(counted, requested, g.source_revision);
-    assert.equal(sql.length, 2); assert.equal(loop.roots.length, 1);
+    const requested=query(g,'relation',{max_depth:0});
+    const verify=async(expectedNodes:number)=>{
+      reads.length=0;
+      const result=await exploreD1(counted,requested) as Packet;
+      assert.equal(result.nodes.length,expectedNodes);assert.equal(result.relations.length,1);
+      // Inspect the actual verified full-payload producer. Publication/digest
+      // reads remain separate, and no snapshot scan is substituted for closure.
+      const payloads=reads.filter(read=>read.sql.includes('json_bytes')&&/FROM knowledge_(nodes|relations) WHERE id IN/.test(read.sql));
+      const relations=payloads.filter(read=>/FROM knowledge_relations /.test(read.sql));
+      const nodes=payloads.filter(read=>/FROM knowledge_nodes /.test(read.sql));
+      assert.equal(relations.length,1);assert.ok(nodes.length>=1&&nodes.length<=2);
+      const nodeIds=nodes.flatMap(read=>JSON.parse(read.args[0] as string) as string[]);
+      assert.equal(nodeIds.length,expectedNodes);assert.equal(new Set(nodeIds).size,expectedNodes);
+      assert.deepEqual(JSON.parse(relations[0]!.args[0] as string),[requested.origin.id]);
+      for(const read of payloads) {
+        const plan=await db.prepare('EXPLAIN QUERY PLAN '+read.sql).bind(...read.args).all<{detail:string}>();
+        assert.match(plan.results.map(row=>row.detail).join('\n'),/SEARCH .* USING INDEX .* \(id=\?\)/);
+      }
+    };
+    await verify(2);
+    await db.prepare('UPDATE knowledge_relations SET to_id=?,json=json_set(json,\'$.to_id\',?) WHERE id=?')
+      .bind(g.relations[0]!.from_id,g.relations[0]!.from_id,requested.origin.id).run();
+    await publishExplorationFixture(db);
+    await verify(1);
   } finally {await mf.dispose();}
 });
 
 test('actual Worker v2 HTTP replay survives isolate restart and concurrency, but rejects ABA and expiry', async () => {
-  const bundle = await build({entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
-    bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022'});
+  const modules = await publishedWorkerFixtureModules();
   const directory = mkdtempSync(join(tmpdir(), 'tos-origin-'));
-  const options = () => convertV4MiniflareOptions({modules: true, script: bundle.outputFiles[0]!.text,
-    d1Databases: ['DB'], resourcePersistencePath: directory});
+  const options = () => convertV4MiniflareOptions({...modules,d1Databases: ['DB'], resourcePersistencePath: directory});
   let mf = new Miniflare(options());
   const post = (body: unknown) => mf.dispatchFetch('http://tos.test/api/knowledge/explore',
     {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});

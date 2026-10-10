@@ -18,7 +18,7 @@ doctrine, or public authority.
 | owner | `ToS/candidate-intake/AGENTS.md` and the pass-local README or manifest |
 | next route | source witness -> candidate pass -> philosophy branch or canon review -> compatibility/export only after owned surfaces change |
 | tools | tabular base contract, relation pack contract, review checklist, route validators |
-| check | `scripts/validate_intake_pack.py` when a bounded intake pack changes |
+| check | `rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs` when a bounded intake pack changes |
 
 ## Boundary Routes
 
@@ -33,6 +33,6 @@ doctrine, or public authority.
 
 Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for
 scope-broadening review. For the current bounded intake pack, use
-`scripts/validate_intake_pack.py` and any route/export validator named by the
+`rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs` and any route/export validator named by the
 touched surface. Select the nearest source-home or intake route in
 [`ToS/VALIDATION.md`](../VALIDATION.md) after that surface is known.

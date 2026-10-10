@@ -67,7 +67,7 @@ function sync(){
   reader?.selectionChanged();
   travel?.observe();
 }
-const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
+const commit=action=>{const previous=syncing;syncing=true;try{return action();}finally{try{sync();}finally{syncing=previous;}}};
 scene=mountScene(root,{client,autoStart:false,initialFocus:new URLSearchParams(initialRoute).get('focus')||DEFAULT_FOCUS,initialLens:new URLSearchParams(initialRoute).get('lens'),onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
 const panels=createPanelHost(root,scene,{onUserAction:()=>registry?.notifyStateChange()});
 tools=createTools(root,scene,{data,selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});

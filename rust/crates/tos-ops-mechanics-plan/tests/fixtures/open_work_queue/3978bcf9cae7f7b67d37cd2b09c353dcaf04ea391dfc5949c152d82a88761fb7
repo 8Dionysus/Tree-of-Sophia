@@ -1,0 +1,51 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.synthetic",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/synthetic",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/synthetic/sources/source-anchor-backlog.jsonl",
+    "line": 1,
+    "source_table_index": 1,
+    "source_row_index": 1,
+    "source_label": "Synthetic source"
+  },
+  "source_witness": {
+    "work_id": "tos.work.other",
+    "record_ref": "ToS/source-witnesses/works/synthetic/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/synthetic/discovery.json",
+  "provenance_event_ref": "tos.event.annotation.synthetic",
+  "research_ref": "ToS/research-packets/synthetic/records.json",
+  "fulfilled_source_needs": [
+    "Synthetic locally accessible witness"
+  ],
+  "remaining_controls": [
+    "No semantic or textual admission"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "codex:synthetic",
+    "human_review_performed": false
+  },
+  "created_at": "2026-09-08T12:00:00Z",
+  "record_version": 1
+}

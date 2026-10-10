@@ -1,19 +1,21 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {ADJACENCY_SQL, IDENTITY_SQL, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
-import {exploreD1,publishExplorationFixture} from './native-exploration-fixture.ts';
-import {knowledgeScene, type Item} from '../src/knowledge.ts';
+import {explorationCapabilitiesD1} from '../src/exploration.ts';
+import {PUBLISHED_EXPLORATION_ADJACENCY_SQL as ADJACENCY_SQL,PUBLISHED_EXPLORATION_IDENTITY_SQL as IDENTITY_SQL} from '../src/native-exploration-store.ts';
+import {publishedWorkerFixtureModules} from './native-lens-fixture.ts';
+import {exploreD1,publishExplorationFixture,validateExploration} from './native-exploration-fixture.ts';
+import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
+import type {Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
 const repo = fileURLToPath(new URL('../../../../', import.meta.url));
-const python = (code: string, input: unknown) => JSON.parse(execFileSync('python3', ['-c',
+const python = (code: string, input: unknown) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
   "import sys,json;sys.path[:0]=['access/src','access/tests'];" + code], {cwd: repo, input: JSON.stringify(input), encoding: 'utf8'}));
 function graph(size = 12, seed = 0) {
   return python("from test_exploration import graph_for;p=json.load(sys.stdin);print(json.dumps(graph_for(p['size'],p['seed'])))", {size, seed});
@@ -77,6 +79,88 @@ function valueMemberGraph() {
   ].map(([id, to_id, relation_type_id]) => ({...g.relations[0], id, from_id: '1', to_id, relation_type_id}));
   return g;
 }
+
+test('scene Claim phases retain lazy classification, mapping and endpoint reads', () => {
+  for (const mode of ['unmapped', 'duplicate-subject', 'wrong-subject', 'complete']) {
+    const endpointReads: string[] = [];
+    const claim: Item = {subject_node_id: 'subject', object_node_id: 'object'};
+    Object.defineProperty(claim, 'predicate_mapping_status', {get: () => mode === 'unmapped' ? 'unmapped' : 'mapped'});
+    Object.defineProperty(claim, 'relation_type_id', {get() {
+      assert.notEqual(mode, 'unmapped', 'predicate is read only after mapped status admission');
+      return 'tos.relation.related';
+    }});
+    const semantics: Item = {claim};
+    Object.defineProperty(semantics, 'type_ancestors', {get() {
+      throw new Error('direct Claim classification must not read ancestors');
+    }});
+    const nodes: Item[] = [{id: 'subject'}, {id: 'object'}, {id: 'claim', type_id: 'tos.entity.claim', semantics}];
+    const relations: Item[] = [
+      ['a-subject', 'subject', 'tos.relation.has-subject'],
+      ['b-object', 'object', 'tos.relation.has-object'],
+      ...(mode === 'duplicate-subject' ? [['c-subject', 'subject', 'tos.relation.has-subject']] : []),
+    ].map(([id, target, relation_type_id]) => {
+      let reads = 0;
+      const relation: Item = {id, from_id: 'claim', relation_type_id};
+      Object.defineProperty(relation, 'to_id', {get() {
+        if (++reads === 1) return target; // Raw scene endpoint observation.
+        endpointReads.push(target!);
+        assert.notEqual(mode, 'duplicate-subject', 'ambiguous cardinality stops before endpoints');
+        assert.notEqual(mode, 'unmapped', 'mapping refusal stops before endpoints');
+        if (mode === 'wrong-subject') {
+          assert.equal(target, 'subject', 'failed subject stops before object equality');
+          return 'object';
+        }
+        return target;
+      }});
+      return relation;
+    });
+    const compact = knowledgeScene(nodes, relations).compact;
+    if (mode === 'complete') {
+      assert.equal(compact.claim_paths.length, 1);
+      assert.deepEqual(endpointReads, ['subject', 'object']);
+    } else {
+      assert.deepEqual(compact.retained_claims, [{node_id: 'claim', reason: mode === 'unmapped'
+        ? 'unmapped-claim-predicate' : 'incomplete-or-ambiguous-path'}]);
+      assert.deepEqual(endpointReads, mode === 'wrong-subject' ? ['subject'] : []);
+    }
+  }
+});
+
+test('scene member context preserves raw proxy length truthiness and strict comparisons', () => {
+  for (const rawLength of [1, 1n, new Number(1), Symbol('length'), '1']) {
+    const observed: string[] = [];
+    const members = new Proxy(['member'], {get(target, property, receiver) {
+      if (property === 'length') {observed.push('length'); return rawLength;}
+      if (property === 'some') {
+        observed.push('some');
+        return (predicate: (member: string) => unknown) => target.some(predicate);
+      }
+      if (property === Symbol.iterator) {
+        observed.push('iterator');
+        return () => target[Symbol.iterator]();
+      }
+      return Reflect.get(target, property, receiver);
+    }});
+    const nodes: Item[] = ['subject', 'object', 'member'].map(id => ({id}));
+    nodes.push({id: 'claim', type_id: 'tos.entity.claim', semantics: {claim: {
+      subject_node_id: 'subject', object_node_id: 'object', predicate_mapping_status: 'mapped',
+      relation_type_id: 'tos.relation.related', value_member_node_ids: members,
+    }}});
+    const relations: Item[] = [
+      ['subject-edge', 'subject', 'tos.relation.has-subject'],
+      ['object-edge', 'object', 'tos.relation.has-object'],
+      ['member-edge', 'member', 'tos.relation.claim-value-member'],
+    ].map(([id, to_id, relation_type_id]) => ({id, from_id: 'claim', to_id, relation_type_id}));
+    const compact = knowledgeScene(nodes, relations).compact;
+    if (rawLength === 1) {
+      assert.equal(compact.claim_paths.length, 1);
+      assert.deepEqual(observed, ['length', 'some', 'iterator', 'length', 'some', 'length', 'length']);
+    } else {
+      assert.deepEqual(compact.retained_claims, [{node_id: 'claim', reason: 'incomplete-value-member-context'}]);
+      assert.deepEqual(observed, ['length', 'some', 'iterator', 'length']);
+    }
+  }
+});
 
 test('compact value-member context requires the full set and preserves focused or shared details', () => {
   const original = valueMemberGraph();
@@ -185,7 +269,7 @@ test('overview identity steps are resumable, zero distance, filtered and promote
       await db.prepare('UPDATE knowledge_nodes SET source_graph=?,json=? WHERE id=?').bind('source-claims',JSON.stringify(g.nodes[1]),'1').run();
       const filtered = await collect(db,{focus_node_id:'0',sources:['philosophy'],max_depth:2,page_nodes:1});
       assert.ok(filtered.every(p => (p.nodes as {source_graph:string}[]).every(n => n.source_graph==='philosophy')));
-      const plan = await db.prepare('EXPLAIN QUERY PLAN '+IDENTITY_SQL).bind('0','[]','',JSON.stringify(['philosophy'])).all<{detail:string}>();
+      const plan = await db.prepare('EXPLAIN QUERY PLAN '+IDENTITY_SQL).bind('0','tos.','tos.','[]','',JSON.stringify(['philosophy']),32).all<{detail:string}>();
       assert.match(plan.results.map(r=>r.detail).join('\n'),/knowledge_nodes_identity_seek.*entity_id=\? AND id>\?/);
       await db.exec('DROP INDEX knowledge_nodes_identity_seek');
       assert.equal((await explorationCapabilitiesD1(db)).available, false);
@@ -245,7 +329,7 @@ test('D1 motif value-member pages preserve the complete context and fail closed 
       await init(db, g);
       for (const focus of ['2', '0', '5']) for (const size of [1, 8]) {
         const pages = await collect(db, {focus_node_id: focus, max_depth: 3, page_nodes: size, page_relations: size});
-        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['nodes'],c['relations'],c['focus']['node_id']) for c in p]))", pages);
+        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['nodes'],c['relations'],c['focus']['node_id']) for c in p]))", pages.map(page => ({nodes:page.nodes,relations:page.relations,focus:{node_id:(page.focus as {node_id:string}).node_id}})));
         let folded = 0;
         for (const [index, page] of pages.entries()) {
           assert.deepEqual(page.scene, expected[index]);
@@ -293,7 +377,7 @@ test('D1 exploration conserves Python BFS order across direction, depth, size an
         for (const e of page.relations as {id:string;from_id:string;to_id:string}[]) assert.ok(ids.has(e.from_id)&&ids.has(e.to_id));
       }
     }
-    const plan = await db.prepare('EXPLAIN QUERY PLAN '+ADJACENCY_SQL).bind('0','','0','').all<{detail:string}>();
+    const plan = await db.prepare('EXPLAIN QUERY PLAN '+ADJACENCY_SQL).bind('0','',32,'0','',32,32).all<{detail:string}>();
     const details = plan.results.map(r=>r.detail).join('\n');
     assert.match(details,/knowledge_relations_from_seek.*from_id=\? AND id>\?/);
     assert.match(details,/knowledge_relations_to_seek.*to_id=\? AND id>\?/);
@@ -336,9 +420,9 @@ test('overview exploration excludes typed record provenance but not unknown pred
 });
 
 test('actual Worker HTTP continuation survives isolate restart and concurrent retries', async () => {
-  const bundle = await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+  const modules = await publishedWorkerFixtureModules();
   const directory = mkdtempSync(join(tmpdir(),'tos-exploration-'));
-  const options = () => convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0]!.text,d1Databases:['DB'],resourcePersistencePath:directory});
+  const options = () => convertV4MiniflareOptions({...modules,d1Databases:['DB'],resourcePersistencePath:directory});
   let mf = new Miniflare(options());
   const post = (body: unknown) => mf.dispatchFetch('http://tos.test/api/knowledge/explore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   try {
@@ -405,5 +489,5 @@ test('D1 rejects crossed publication before committing a page; cache admission i
 });
 
 test('D1 request validation agrees with local schema boundaries', () => {
-  for (const value of [{},{focus_node_id:' '},{focus_node_id:'0',sources:[]},{focus_node_id:'0',page_nodes:true},{focus_node_id:'0',max_depth:null},{focus_node_id:'0',profile:null},{focus_node_id:'0',direction:[]},{focus_node_id:'0',extra:1}]) assert.throws(()=>normalizeExploration(value));
+  for (const value of [{},{focus_node_id:' '},{focus_node_id:'0',sources:[]},{focus_node_id:'0',page_nodes:true},{focus_node_id:'0',max_depth:null},{focus_node_id:'0',profile:null},{focus_node_id:'0',direction:[]},{focus_node_id:'0',extra:1}]) assert.throws(()=>validateExploration(value));
 });

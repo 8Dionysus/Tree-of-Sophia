@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_tiny_entry_documentation_policy_v1",
+  "documentation_requirements": {
+    "README.md": {
+      "required_tokens": [
+        "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+        "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
+        "scripts/root_entry_map.source.json",
+        "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+        "VALIDATION.md"
+      ],
+      "forbidden_tokens": [
+        "python scripts/",
+        "python -m unittest"
+      ]
+    },
+    "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md": {
+      "required_tokens": [
+        "## Source-first re-entry",
+        "README.md",
+        "ToS/public-compatibility/tos_tiny_entry_route.example.json",
+        "ToS/public-compatibility/source_node.example.json",
+        "aoa-sdk",
+        "routing control plane",
+        "aoa-routing",
+        "compatibility namespace",
+        "rust/crates/tos-ops-mechanics-plan/src/tiny_entry.rs"
+      ],
+      "forbidden_tokens": []
+    },
+    "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md": {
+      "required_tokens": [
+        "docs/validation/validation_lanes.json"
+      ],
+      "forbidden_tokens": []
+    },
+    "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md": {
+      "required_tokens": [
+        "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
+        "--kag-source-export-verify",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs"
+      ],
+      "forbidden_tokens": []
+    }
+  }
+}

@@ -1,16 +1,69 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 /** Test-only v9 publication for legacy hand-built tiny D1 fixtures.
  * Numeric/Unicode production-emission parity is independently covered by
- * native-lens.test.mjs, whose raw rows and metadata come from Python owners.
+ * native-lens.test.mjs against frozen Python reference outcomes.
  */
 import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {executeKnowledgeLensD1} from '../src/knowledge-store.ts';
-import {nativePacketJson, parseNativeRequest} from '../src/native-lens.ts';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {build} from 'esbuild';
+import {lensSnapshotResponseD1} from '../src/knowledge-store.ts';
+import {initSync,LensSession,validate_lens_request_wasm_v1,worker_knowledge_search_controls_wasm_v1} from '../generated/tos_web_rules.js';
+import type {NativeD1Limits} from '../src/native-d1-read.ts';
+import {parseNativeJson, type NativeRef} from '../src/native-lens.ts';
+import {HttpError} from '../src/common.ts';
 import {nativeLower, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-semantics.ts';
-import type {executeKnowledgeLens} from '../src/knowledge.ts';
+import type {Item, KnowledgeNode, KnowledgeRelation, LensSpec} from '../src/knowledge.ts';
+type FixtureLensReply = Item & {nodes:KnowledgeNode[];relations:KnowledgeRelation[];presentation:LensSpec['presentation'];fingerprint:string;authority_boundary:Item};
 const initialized = new WeakSet<object>();
 const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');
+
+// Direct consumer checks with selected host budgets use the same mandatory
+// generated binding as the actual route. wasm-bindgen owns initialization;
+// there is no fetched product, alternate executor, or runtime availability cache.
+initSync({module:new WebAssembly.Module(Uint8Array.from(readFileSync(new URL('../generated/tos_web_rules_bg.wasm',import.meta.url))))});
+export const publishedFixtureLensRuntime={LensSession,validate_lens_request_wasm_v1};
+export const publishedFixtureSearchControlsRuntime={worker_knowledge_search_controls_wasm_v1};
+export function executePublishedLensResponse(db:D1Database,raw:string,operation:'compile'|'focus'|'stored'='compile',
+  limits:Partial<NativeD1Limits>={},method='GET'):Promise<Response> {
+  return lensSnapshotResponseD1(db,publishedFixtureLensRuntime,new TextEncoder().encode(raw),operation,undefined,method,limits);
+}
+
+// Existing tiny-fixture inspection checks consume the maintained HTTP route.
+// Its WASM module is the build-owned product, never a TS inspection executor.
+let inspectionWorker: Promise<{fetch(request: Request, env: Env, context: unknown): Promise<Response>}> | undefined;
+export function publishedNodeFixtureWorker() {
+  return inspectionWorker ??= build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],
+    bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
+      contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
+    .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0]!.text).toString('base64'))).default);
+}
+async function inspectFixture(db: D1Database, kind: 'node' | 'relation', id: string, limit = 200): Promise<NativeRef> {
+  const response = await (await publishedNodeFixtureWorker()).fetch(new Request(
+    `https://tos.test/api/knowledge/${kind}s/${encodeURIComponent(id)}?relation_limit=${limit}`),
+    {DB:db,ASSETS:{fetch(){throw new Error('inspection must not read static assets');}}} as unknown as Env, {});
+  const raw = await response.text();
+  if (response.status !== 200) throw new HttpError(response.status, raw);
+  return parseNativeJson(raw, {maxBytes:16*1024*1024});
+}
+export const inspectPublishedFixtureNode = (db: D1Database, id: string, limit: number): Promise<NativeRef> => inspectFixture(db,'node',id,limit);
+export const inspectPublishedFixtureRelation = (db: D1Database, id: string): Promise<NativeRef> => inspectFixture(db,'relation',id);
+
+/** The existing real Worker fixtures consume the same mandatory static product
+ * as deployment. This only supplies Miniflare's module handles; no loader,
+ * publication, runtime grant or generated product is fabricated. */
+export async function publishedWorkerFixtureModules() {
+  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],
+    bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-workerd-wasm-module',setup(build){build.onResolve({filter:/\.wasm$/},()=>({path:'./tos_web_rules_bg.wasm',external:true}));}}]});
+  const modulesRoot=fileURLToPath(new URL('../generated/',import.meta.url));
+  return {modulesRoot,modules:[
+    {type:'ESModule' as const,path:join(modulesRoot,'published-worker-test.mjs'),contents:bundle.outputFiles[0]!.text},
+    {type:'CompiledWasm' as const,path:join(modulesRoot,'tos_web_rules_bg.wasm'),contents:readFileSync(join(modulesRoot,'tos_web_rules_bg.wasm'))}],
+    compatibilityDate:'2026-09-03'};
+}
 
 export async function publishNativeLensFixture(db: D1Database): Promise<void> {
   if (!initialized.has(db)) {
@@ -56,17 +109,24 @@ export async function publishNativeLensFixture(db: D1Database): Promise<void> {
   for (const [key,raw] of metadata) statements.push(db.prepare('DELETE FROM edge_meta WHERE key=?').bind(key),db.prepare('INSERT INTO edge_meta VALUES (?,0,?)').bind(key,raw));
   for (let at=0;at<statements.length;at+=64) await db.batch(statements.slice(at,at+64));
 }
-export async function executePublishedFixtureLens(db: D1Database, spec: unknown): Promise<Awaited<ReturnType<typeof executeKnowledgeLens>>> {
+export async function executePublishedFixtureLens(db: D1Database, spec: unknown): Promise<FixtureLensReply> {
   await publishNativeLensFixture(db);
-  return JSON.parse(nativePacketJson((await executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec)))).packet,{maxBytes:16*1024*1024}));
+  return JSON.parse(await (await executePublishedLensResponse(db,JSON.stringify(spec))).text());
 }
 
-/** Exact Python oracle for publication-bound cursors, not in-memory cursors. */
-export async function executePublishedFixturePythonLens(db: D1Database, graph: unknown, spec: unknown): Promise<Awaited<ReturnType<typeof executeKnowledgeLens>>> {
+/** Frozen Python reference outcome for mixed native D1 fixture controls. */
+export async function executeFixtureReferenceLens(graph:unknown,spec:unknown,sourceUrl:string):Promise<FixtureLensReply> {
+  return JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
+    {cwd:fileURLToPath(new URL('../../../../',import.meta.url)),input:JSON.stringify({graph,spec}),encoding:'utf8',maxBuffer:32*1024*1024}));
+}
+
+/** Frozen Python reference for publication-bound cursors, not in-memory cursors. */
+export async function executePublishedFixtureReferenceLens(db: D1Database, graph: unknown, spec: unknown, sourceUrl:string): Promise<FixtureLensReply> {
   const rows = await db.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top' ORDER BY part").all<{json_chunk:string}>();
   const clock = await db.prepare('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').first<{epoch:number}>();
   if (!clock) throw new Error('published fixture clock absent');
-  return JSON.parse(execFileSync('python3',['-B','-c',String.raw`
+  return JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',String.raw`
 import sys,json
 sys.path.insert(0,'access/src')
 from tos_access.knowledge import execute_knowledge_lens
@@ -78,12 +138,12 @@ print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'],
     input:JSON.stringify({graph,spec,top:JSON.parse(rows.results.map(row=>row.json_chunk).join('')),epoch:clock.epoch})}));
 }
 
-/** Publish the current tiny fixture with the actual Python search emitters. */
-export async function publishNativeSearchFixture(db:D1Database):Promise<void> {
+/** Publish search rows from captured Python reference outcomes. */
+export async function publishNativeSearchFixture(db:D1Database,sourceUrl:string):Promise<void> {
   await publishNativeLensFixture(db);
   const raw:Record<string,string[]>={};
   for(const kind of ['nodes','relations'])raw[kind]=(await db.prepare(`SELECT json FROM knowledge_${kind} ORDER BY id`).all<{json:string}>()).results.map(row=>row.json);
-  const emitted=JSON.parse(execFileSync('python3',['-B','-c',String.raw`
+  const emitted=JSON.parse(frozenPythonOracleExec(sourceUrl, ['-B','-c',String.raw`
 import sys,json,hashlib
 sys.path.insert(0,'access/src')
 from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S

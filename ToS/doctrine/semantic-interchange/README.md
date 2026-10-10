@@ -7,6 +7,94 @@ registry 45 state their definitions through each subject’s properties, purpose
 and relations. Source-specific uncertainty and substantive negation remain
 part of the authored meaning.
 
+## Source validation profiles
+
+[`source-validation-profiles.v1.json`](source-validation-profiles.v1.json)
+declares the software-owned mechanical validation scope selected by native
+admission with `--validation-profile ID`. Omission selects `full-audit`, which
+continues to require the whole repository's laboratory and Goldset districts.
+The explicit `selected-source-closure` profile validates the authenticated
+selected source membership through Records, bibliography, rights, review,
+references, dependency closure, Discovery and Closure. It does not claim that
+whole-repository laboratories or Goldsets were executed, including any such
+files present in selected membership. Their bytes still participate in
+applicable Records and reference checks; this is never a whole-audit certificate.
+
+Scope comes from the declaration, never from whether a directory exists.
+The selected scope does not require the historical whole-tree private/handoff,
+server-plan coverage, topology, derivation or chronology demonstration batches.
+Discovery traverses authenticated selected family members and provenance streams;
+Closure validates their declared Claims, endpoints, backlinks and dependencies.
+A selected record's required target or contract remains mandatory even when the
+historical demonstration packet is outside this scope. Full audit retains its
+original batch requirements.
+
+Required selected references and their exact dependencies must resolve;
+missing inputs, unsupported contracts and incomplete owner checks refuse
+admission. This profile does not accept source meaning, rights, canon or
+publication. The software catalog's exact bytes and selected profile ID bind
+the validator identity and admission receipt. Unknown IDs or scope dialects
+refuse selection. The existing lab-only evaluation mode remains ineligible
+for corpus admission; ordinary foundation commands reject explicit admission
+profiles rather than ignoring them.
+
+The distinct `selected-record-closure` profile requires
+`--record-selection-manifest PATH` with the
+[source record selection grammar](../../contracts/source-record-closure-selection.schema.json).
+It binds stable roots and exact catalog slot addresses to the same candidate
+fence. Whole physical files remain retained with their original bytes and EOF;
+only the verified selected records and required closure receive mechanical
+acceptance. Validator identity and receipts bind the exact selection manifest,
+software grammar, roots and slot bindings. Downstream semantic catalogs must
+consume that selected index without accepting other retained ledger rows.
+Required references, rights and payload custody remain mandatory. The existing
+whole-file selected profile and full-audit default keep their original scope.
+
+## Query vocabulary for derived readers
+
+[`query-vocabulary.v1.json`](query-vocabulary.v1.json) registers the source
+graphs, owner routes, adapter profiles, representative order, overview routes,
+exact declared-identity grammar, and safe filter grammar used by derived
+knowledge readers. Its initial seven registrations describe the existing
+knowledge producer; they are data for that producer, not a closed list of
+possible future sources. A further source needs an owner registration and a
+supported, versioned adapter. Unknown or duplicate registrations cannot be
+treated as empty input. Native kinds and predicates remain exact, with
+unmapped values retaining the registries' explicit fallback IDs rather than
+receiving a name-derived classification.
+
+The entity and relation registries continue to own type and relation
+definitions. Queryable properties come from the selected entity registry's
+`property_definitions`, including applicability, inheritance, value type and
+operators; this descriptor does not copy them. A zero-distance carrier group
+requires an exact declared entity ID under its selected grammar. A `same-as`
+relation remains a separately reviewed relation and never merges carriers by
+itself. Source dossier handles are issued by the source-navigation owner and
+are never reconstructed from transport IDs or paths.
+
+The authored descriptor has the structural contract
+[`knowledge-query-vocabulary.schema.json`](../../contracts/knowledge-query-vocabulary.schema.json).
+Selection of exact descriptor and registry bytes, source cut, graph and catalog
+roots, compiler generation, rights posture and cursor freshness belongs to a
+derived binding. Neither the descriptor nor a selected read model grants
+source access, review, canon or publication authority. An incompatible change
+to this vocabulary or its selected registry invalidates derived query
+fingerprints and requires a rebuilt reader or an explicit refusal.
+
+The `indexed-node-edge-v1` extension adapter accepts an owner-selected,
+complete pair of normalized node and relation collections with exact IDs,
+declared source graph, native vocabulary, provenance and source-layer fields.
+It is a byte-preserving indexing route for already normalized owner carriers,
+not a route that invents a subject, identity, summary or semantic mapping.
+The compiler checks every carrier's declared graph against its single
+registration and the selected semantic registries, requires both collections
+even when one is empty, and verifies their complete owner roots before making
+them eligible to query. An owner with different raw material must supply a
+separate reviewed adapter rather than relabel that material as this profile.
+This profile does not make the current Python knowledge builder emit an eighth
+source; its public graph contract and readers have their own compatibility
+route.
+
 ## Scoped composition and research corpora
 
 Entity registry 32 adds the persistent `research-corpus` source profile and two
@@ -147,10 +235,11 @@ geographic referents.
 `tos.relation.claim-counterevidenced-by` preserves the existing source-claims
 `counterevidenced_by` edge as a separate Claim → Evidence role: the Claim cites
 that Evidence as counterevidence. Its inverse reads “cited as counterevidence
-by claim”. This derived edge records the Claim’s explicit counterevidence role. The
-[bibliographic producer](../../../scripts/source_witness_bibliographic_graph_common.py)
-derives this edge only from the Claim's explicit `counterevidence_refs` and
-retains its exact source, version, qualified context and recorded review state.
+by claim”. This derived edge records the Claim’s explicit counterevidence role.
+The native Rust bibliographic projection composes this edge only from the
+Claim's explicit `counterevidence_refs` and retains its exact source, version,
+qualified context and recorded review state. Its tracked parity route is the
+native `corpus-projection-check` owner.
 Counterevidence is optional; absence does not establish that a search was done.
 The same Evidence may support the qualified Claim while limiting an overreading,
 as in `tos.claim.jgb21-conception-inversion`; the two roles retain their own meaning, with judgment and admission supplied
@@ -175,12 +264,13 @@ their authorized review routes.
 
 ## Retained object-Link v1 context
 
-The retained `relations/object-link/object-link-claims.jsonl` stream has an
-explicit read-only adapter in `scripts/source_object_link_read.py`. It reads
-the unchanged `tos_object_link_claim_v1` contract: Work, Expression, Edition,
-Collection or Item as subject, Link as object, and the four declared access
-predicates. The newer six-kind native v2 write route has its own contract; legacy v1
-retains the subject domain and read-only adapter stated here.
+The retained `relations/object-link/object-link-claims.jsonl` stream is returned
+as source context by the Rust bibliographic projection in
+`tos-compiler::source_bibliographic`. It reads the unchanged
+`tos_object_link_claim_v1` contract: Work, Expression, Edition, Collection or
+Item as subject, Link as object, and the four declared access predicates. The
+newer six-kind native v2 write route has its own contract; legacy v1 retains
+the subject domain and read-only projection stated here.
 
 Every retained Claim has both its existing direct navigation edge and an
 additive reified source-claim carrier. Both preserve the exact raw Claim,
@@ -189,10 +279,11 @@ empty reviews, version and supersession return through ordinary core/agent
 inspection. The existing Link navigation body remains unchanged; its second source-claims endpoint carries the same declared Link ID in reified
 Claim topology.
 
-The adapter preserves the legacy record’s available wording, language, Forms,
-assessments and history. Missing Forms remain explicit missing roles. A Link
-returns the recorded observation; acquisition, rights clearance and content
-assessment use their respective owner routes. The portable consumer checks exact
+The projection returns the complete source Claim, including unknown qualifier
+members and explicit empty or false values, without fabricating wording,
+language, Forms, assessments or history. A Link returns the recorded
+observation; acquisition, rights clearance and content assessment use their
+respective owner routes. The portable consumer checks exact
 body/digest/endpoint agreement and rejects conflicting marked carriers; source validation and export authentication remain independent checks. Older
 unmarked projections retain their absent-context state.
 
@@ -252,7 +343,8 @@ it cannot weaken those common metadata fields. No source is rewritten into a
 new schema merely to make it readable.
 
 The catalog, claim-graph identity reader, source-navigation reader and source
-validator use `scripts/source_record_profiles.py`. A new metadata kind in this
+validator use `rust/crates/tos-validation/src/record_rules.rs` and
+`rust/crates/tos-compiler/src/source_witness_catalog.rs`. A new metadata kind in this
 reader is added as a source schema and a profile on its concrete identity type,
 with explicit mappings for both `source-claims` and `source-navigation`.
 The common reader resolves it from the declaration. The ordinary knowledge
@@ -303,7 +395,7 @@ authorizes publication of source contents.
 The blocking `semantic_registry_transition` lane compares current working-tree
 registries with an explicitly selected pre-change commit. Set
 `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID` before
-`python scripts/validation_lanes.py --run semantic_registry_transition`;
+`tos-validation-lanes --repo-root "$PWD" --run semantic_registry_transition`;
 the direct validator also accepts `--baseline-commit`. This source-contract
 operation has its own result under
 [the independent release boundaries](../../../docs/RELEASING.md#registry-source-contract-changes).
@@ -316,7 +408,7 @@ checks separately. A first introduction with both registries and both
 contracts absent requires the separate `--allow-initial-introduction` option
 or `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`, selected by that owner.
 Complete baseline ancestry must also contain no
-earlier registry/contract or `scripts/source_record_profiles.py`; shallow
+earlier registry/contract or [historical source-profile reader](https://github.com/8Dionysus/Tree-of-Sophia/blob/1b10f928da0a1d94f516f092de1cff9b45b6f5a1/scripts/source_record_profiles.py); shallow
 history and local Git grafts are refused. A partial snapshot, deleted prior
 reader or missing Git history is not an introduction.
 The report names `initial-introduction` and no previous-registry comparison;

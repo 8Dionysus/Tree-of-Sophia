@@ -16,7 +16,7 @@ guards without becoming runtime or canon authority.
 | owner | `mechanics/experience/AGENTS.md`, `PARTS.md`, and active part routes |
 | stronger route | `ToS/` for authored meaning; owner repos for runtime, proof, memory, SDK, service, office, and governance activation |
 | next route | owning Experience part first; stronger owner when activation is requested |
-| validation | focused Experience tests plus `python scripts/validate_mechanics_topology.py` |
+| validation | focused Experience tests plus `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
 
 ## Active Route
 

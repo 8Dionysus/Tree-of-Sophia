@@ -1,6 +1,6 @@
 # Explicit local source-command transport
 
-`../scripts/source_command_http.py` exposes the source-command front door on
+`tos-native-owner-command http` exposes the source-command front door on
 **127.0.0.1 only**. This separately started source-owner service dispatches
 commands under existing delegations and their exact target, identity and
 assessment requirements. Read-only access HTTP `/api`, WebMCP and native
@@ -10,11 +10,27 @@ The local operator selects one existing protected owner configuration, one
 private credential file, one exact browser origin and one unused port:
 
 ```sh
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_http.py \
+tos-native-owner-command http \
   --owner-config /absolute/protected/owner.json \
+  --native-invocation /absolute/protected/native-invocation.json \
   --token-file /absolute/protected/transport-token \
   --browser-origin http://127.0.0.1:44257 --port 44259
 ```
+
+The protected native invocation selects the same owner configuration and the
+installed owner executable identity. Every command enters the existing native
+owner engine and rereads its current grant, rights, source and software fences.
+The transport token grants no source authority. The native listener owns this
+transport; the former Python listener is retired.
+
+The native catalog is the authored packaged descriptor
+`rust/crates/tos-command/src/source_command_catalog.json`. The installed
+listener and CLI discovery read that same descriptor through
+`tos_command::source_native_cli::discover_commands`. It needs no Python,
+checkout, owner configuration or source target. Entries name their native
+implementation and remain weaker than the selected owner and current
+delegation. Update a descriptor with its owner grammar; the former Python
+catalog builder is retired.
 
 Use the host's resource launcher where required. Starting this process is
 separate from installing, activating or restarting any existing application.
@@ -116,7 +132,7 @@ verification of their own resulting state.
 
 ## Verification
 
-`mechanics/growth-cycle/tests/test_source_command_http.py` exercises real HTTP
+`tests/conformance/rust/command_private_profile_cases.rs` exercises real HTTP
 describe/apply/replay/revocation against an isolated copy of owner metadata and
 forms. It also covers token rotation, permissions, cross-origin and rebinding
 protection, duplicate headers, framing/budgets and uncertain delivery. The copied record supplies a controlled mechanics fixture under an isolated

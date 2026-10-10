@@ -53,7 +53,7 @@ string, sequence, context, or occurrence position. The baseline claims no
 sentence or sense boundary, creates no linguistic or semantic entity, opens
 no human backlog, and leaves `initial-sign-packet.v3.json` unchanged.
 
-The plan is `index-plan.v1.json`. The generated source-withholding companion
+The plan is `index-plan.v1.json`. The maintained producer is the native `tos lexical-index` command. Its `build` action writes a fresh private candidate from an explicit source cut; `validate-tracked` checks the read-only source closure and optional local database fixity. The prior active Python builder bytes are retained at `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/69e6475b17774b2aa41ab4be77050b6ada04ecba67cd8833c25b6d62e27502a2.py`; the earlier historical bytes remain at `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/44bb4f9ad6f3bcc76d877366a87efb77f0eacb6cc999eec0f461ab5f35c37372.py`. Existing provenance keeps the original [historical lexical builder](https://github.com/8Dionysus/Tree-of-Sophia/blob/c04257b4f2270587856ac94d3fb28a5a9d5afa25/scripts/build_zarathustra_lexical_index.py) logical reference. Retained bytes are not executable fallbacks. The generated source-withholding companion
 (not cleared for publication) is:
 
 `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
@@ -73,3 +73,28 @@ promotion. The source-gated plan and text-free materialization receipt live at:
 They admit an exhaustive direct-form DWDSmor coverage census only. The exact
 input stays ignored, and contextual A/B/C, German acceptance, lemma/lexeme
 promotion, signs, and semantics remain separate blocked stages.
+
+The maintained downstream commands are `tos zarathustra-recurrence-projection`
+and `tos zarathustra-usage-context`. Select an absolute `--source-root` and
+`--local-output-root`; usage context also requires `--local-input-root` for the
+private database. `--check` reconstructs the complete retained result and
+preserves its original provenance. Recurrence checks select an output root
+containing the retained projection and provenance; usage checks select the
+private packet root, with tracked receipt and provenance in the source root.
+
+For a new generation, use `--build --generation NAME --event-at RFC3339
+--scratch-bytes RESERVED_BYTES` with a separate output root. Reserve that
+space through the host storage owner first. Generated names retain the
+historical basename and add `.native-NAME`; the receipt records the Rust
+generator. Replaying a matching generation preserves its files and completes
+missing outputs. Conflicting bytes, wrong file modes and symlinks refuse.
+The private usage packet remains mode `0600`; tracked metadata stays `0644`.
+
+`tos semantic-source-recurrence` returns the complete selected recurrence to
+the four fixity-bound raw TEI witnesses. `tos zarathustra-morphology-context`
+freezes the planned first, inclusive-median and last contexts; select the
+retained provider stream with `--a-raw-output ABS`. Both commands require
+explicit source, private input and output roots and support the same retained
+`--check` and fresh generation modes above. They run no morphology provider.
+The context selection remains output-blind; private source strings and
+positions remain in the mode-`0600` packet.

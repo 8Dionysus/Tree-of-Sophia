@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {afterEach,expect,test,vi} from 'vitest';
 import {renderHumanForms} from './human-forms-view.mjs';
 import {formNode,ref} from '../../fixtures/human-form-data.mjs';

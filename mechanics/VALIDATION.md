@@ -4,10 +4,57 @@ Select the changed package or part before running checks. Exact internal
 sequences remain in `docs/validation/validation_lanes.json`.
 
 ```bash
-python scripts/validation_lanes.py --run mechanics_topology
-python scripts/validation_lanes.py --run mechanics_local
+tos-validation-lanes --repo-root "$PWD" --run mechanics_topology
+tos-validation-lanes --repo-root "$PWD" --run mechanics_local
 ```
 
 Use `experience_contracts`, `questbook_surface`, `public_entry`, or
 `artifact_bundles` when that named package surface changed. Mechanics checks
 prove operation shape only; they do not author ToS meaning or runtime policy.
+
+The installed `tos-ops-mechanics-plan` executor runs the retained Agon,
+Experience and Questbook assertion bodies as native children. Their five
+independent Cargo tests share those same bodies; the installed invocation reads
+the selected repository's current authored schema/example bytes. Growth Cycle's
+maintained behavior route is `rust_workspace`: it builds the native owner and
+prepared consumer, runs Rust unit tests, then runs the existing source-command
+conformance families. Plain `mechanics_local` executes that actual source-owned
+pipeline alongside the retained other-mechanics checks, using one executor lane
+wall limit. The owner contract selects its command sequence and native source
+classes; preparation must select the actual current Cargo products before class
+dispatch. Missing route/product, zero-test selection, ignored-scope drift or a
+failed assertion prevents success. The owner contract lives in
+`growth-cycle/parts/branch-growth-cycle/docs/native-behavior-coverage.json`;
+`NATIVE_BEHAVIOR_COVERAGE.md` describes native predicates and retained API fate.
+A successful run proves its declared native pipeline and consumer contracts;
+source-language adequacy, rights, canon and semantic assessment retain their
+actual owners. Reference file/method counts are inventory dimensions.
+
+Retained Growth Python material is historical comparison evidence. The maintained
+executor has no Python oracle or discovered-script execution mode.
+
+For the bounded three-home native mechanics cohort, use:
+
+```bash
+tos-ops-mechanics-plan --repo-root ROOT --execute --native-contracts-only
+```
+
+The maintained assertion source is
+`rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts/`. Historical Python
+material retains its original meaning and bytes outside executable discovery.
+The installed executor preserves time, cancellation and output limits, requires
+all three contract homes, and refuses unexpected Python test/build/validator
+files before starting any command.
+
+For a read-only source-owned native Growth class plan, use
+`tos-ops-mechanics-plan --repo-root ROOT --growth-native-plan`. It resolves
+actual Cargo/Rust declarations and marks ignored assertions; it neither executes
+those classes nor establishes whole Growth equivalence.
+
+The `rust_workspace` command authority uses `@tos-native-growth-classes` and
+`@tos-native-growth-exclusions` as native executor markers. They expand through
+the source-owned Growth class plan; grouped classes use current-lane prepared
+Cargo test images directly, and exact isolated steps retain their existing route.
+The generic workspace/Conformance remainder excludes those same owned classes,
+so source changes cannot silently omit a new class or run the old isolated case
+twice. These markers are not shell programs or interpreter fallbacks.

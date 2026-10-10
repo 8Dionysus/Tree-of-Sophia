@@ -3,9 +3,15 @@ resolver = "3"
 members = [
   "rust/crates/tos-foundation",
   "rust/crates/tos-source-store",
-  "rust/crates/tos-web-codec",
+  "rust/crates/tos-fd-open",
+  "rust/crates/tos-compiler",
+  "rust/crates/tos-query",
+  "rust/crates/tos-access",
+  "rust/crates/tos-ops-mechanics-plan",
   "rust/crates/tos-validation",
   "rust/crates/tos-command",
+  "rust/crates/tos-web-codec",
+  "rust/crates/tos-web-rules",
   "rust/crates/tos-reader",
   "rust/crates/tos-segment-store",
   "tests/conformance/rust",
@@ -15,3 +21,6 @@ members = [
 edition = "2024"
 rust-version = "1.98.1"
 license = "Apache-2.0"
+
+[profile.test.package.tos-conformance]
+strip = "debuginfo"

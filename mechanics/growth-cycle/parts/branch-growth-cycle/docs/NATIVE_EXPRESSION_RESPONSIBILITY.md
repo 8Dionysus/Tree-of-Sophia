@@ -134,7 +134,7 @@ publication and canon follow their owner routes.
 
 ## Verification
 
-`mechanics/growth-cycle/tests/test_source_responsibility_commands.py`
+`tests/conformance/rust/command_responsibility_cases.rs`
 exercises the actual adapter and transaction engine on bounded synthetic
 metadata, including current grants, competing assertions, process
 death/recovery, historical raw-byte resolution and independent Claim

@@ -1,0 +1,85 @@
+[package]
+name = "tos-ops-mechanics-plan"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = ["compiler-backed-validators"]
+compiler-backed-validators = ["dep:tos-compiler"]
+
+[dependencies]
+csv = "=1.4.0"
+jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
+num-bigint = "=0.4.8"
+regex = "=1.13.1"
+rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
+tos-foundation = { path = "../tos-foundation" }
+tos-source-store = { path = "../tos-source-store" }
+tos-compiler = { path = "../tos-compiler", optional = true, features = ["preserve-order-workspace"] }
+tos-validation = { path = "../tos-validation" }
+toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
+unicode-general-category = "=1.1.0"
+yaml-rust2 = { version = "=0.13.0", default-features = false }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+tos-fd-open = { path = "../tos-fd-open" }
+
+[[bin]]
+name = "tos-ops-mechanics-plan"
+path = "src/main.rs"
+
+[[bin]]
+name = "tos-validation-lanes"
+path = "src/validation_lanes_main.rs"
+
+[[bin]]
+name = "tos-release-check"
+path = "src/release_check_main.rs"
+
+[[bin]]
+name = "tos-software-ci"
+path = "src/software_ci_main.rs"
+
+[[bin]]
+name = "tos-route-cards"
+path = "src/route_cards_main.rs"
+
+[[bin]]
+name = "tos-agents-route-harness"
+path = "src/route_harness_main.rs"
+
+[[bin]]
+name = "tos-kag-provider-controls"
+path = "src/provider_controls_main.rs"
+
+[[bin]]
+name = "tos-kag-release"
+path = "src/kag_release_main.rs"
+
+[[bin]]
+name = "tos-stats-release"
+path = "src/stats_release_main.rs"
+
+[[bin]]
+name = "tos-source-registry"
+path = "src/source_registry_main.rs"
+required-features = ["compiler-backed-validators"]
+
+[[bin]]
+name = "tos-open-work-queue"
+path = "src/open_work_queue_main.rs"
+required-features = ["compiler-backed-validators"]
+
+[[bin]]
+name = "tos-unicode-tables"
+path = "src/unicode_tables_main.rs"
+
+[[bin]]
+name = "tos-constructor-desktop"
+path = "src/constructor_desktop_main.rs"

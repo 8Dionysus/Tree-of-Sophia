@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+// Exact generated-WASM browser consumer against the retained local JS oracle.
+import assert from 'node:assert/strict';
+import {readFile,stat} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import {join} from 'node:path';
+
+const [bindingPath,wasmPath]=process.argv.slice(2);
+if(!bindingPath||!wasmPath)throw new Error('usage: node research-shelf-wasm-host.mjs BINDING.mjs MODULE_bg.wasm');
+const binding=await import(pathToFileURL(bindingPath).href);
+const wasm=await readFile(wasmPath);
+const started=performance.now();
+await binding.default({module_or_path:wasm});
+const startupMs=performance.now()-started;
+// The maintained browser module graph includes extensionless TS imports. Use
+// its existing esbuild dependency to load one in-memory consumer module.
+const root=fileURLToPath(new URL('../../../../',import.meta.url));
+const require=createRequire(pathToFileURL(join(root,'access/web/package.json')).href);
+const {build}=require('esbuild');
+const bundled=await build({stdin:{contents:`
+  export {installResearchShelfRules} from './access/web/src/research-shelf/rules.mjs';
+  export {createMemoryResearchShelfStore} from './access/web/src/research-shelf/storage.mjs';
+  export {importSuppliedResearchPacket,validateShelfExport} from './access/web/src/research-shelf/model.mjs';
+  export {readingKey} from './access/web/src/observatory/reader-model.mjs';
+`,resolveDir:root,sourcefile:'research-shelf-consumer.mjs'},bundle:true,platform:'node',format:'esm',write:false});
+const consumer=await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`);
+const {installResearchShelfRules,createMemoryResearchShelfStore,importSuppliedResearchPacket,
+  validateShelfExport,readingKey}=consumer;
+const revision='a'.repeat(64),content='b'.repeat(64),at='2026-09-28T12:00:00.000Z';
+const target={kind:'node',id:'tos.node.shelf-wasm',sourceRevision:revision,contentRevision:content};
+const input=id=>({id,title:`  Shelf ${id} `,type:'material',target,collectionIds:[]});
+async function exercise(){
+  const store=createMemoryResearchShelfStore({now:()=>at});
+  const supplied={...input('one'),target:{...target},collectionIds:[]};
+  const created=await store.save(supplied,{expectedRevision:null});
+  supplied.target.id='changed-input';supplied.collectionIds.push('changed-input');
+  assert.deepEqual(await store.get('one'),created.item,'save detaches public input');
+  const read=await store.get('one');read.target.id='changed-read';read.collectionIds.push('changed-read');
+  const list=await store.list();list.items[0].target.id='changed-list';
+  const exported=await store.export();exported.records[0].target.id='changed-export';
+  assert.deepEqual(await store.get('one'),created.item,'get/list/export remain detached');
+  await store.save(input('two'),{expectedRevision:null});
+  const collection=await store.saveCollection({id:'group',title:' Group '});
+  await assert.rejects(store.save({...created.item,target:{...target,id:'other-node'}},
+    {expectedRevision:created.item.revision}),error=>error.code==='invalid-input','exact target is immutable');
+  const renamed=await store.saveCollection({id:'group',title:'Renamed'},
+    {expectedRevision:collection.item.revision});
+  await store.save({...created.item,collectionIds:['group']},{expectedRevision:created.item.revision});
+  const page=await store.list({limit:1});
+  assert.ok(page.nextCursor);
+  const packet=await store.export();
+  const identical=await store.import(packet);
+  assert.deepEqual(identical.counts,{records:0,collections:0});
+  await store.removeCollection('group',renamed.item.revision);
+  const detached=await store.get('one');
+  const after=await store.export();
+  await store.close();
+  const withoutExportTime=({exportedAt,...body})=>body;
+  return {packet:withoutExportTime(packet),after:withoutExportTime(after),detached,page,identical};
+}
+const oracle=await exercise();
+const reading={v:1,activeKey:readingKey('node',target.id),entries:[{...target,preferred:'default',positions:[[JSON.stringify([readingKey('node',target.id),revision,content,'default']),{top:0,details:[],anchor:null}]]}]};
+const migrationOptions={source:'reading-resume',now:()=>at};
+const reportCases=[
+  {source:'research-workspace',section:'notes',count:256,single:false},
+  {source:'workspace-copy',section:'history',count:3,single:false},
+  {source:'workspace-copy',section:'resume',count:1,single:true},
+];
+const oracleMigration=importSuppliedResearchPacket(reading,migrationOptions);
+installResearchShelfRules(binding);
+const actual=await exercise();
+assert.deepEqual(actual,oracle,'shelf records, CAS, collection detach, export and cursor');
+const collision={...actual.packet,records:[actual.packet.records[0],actual.packet.records[0]]};
+assert.throws(()=>validateShelfExport(collision),error=>error.code==='invalid-packet','duplicate exact ID');
+// Migration in the active path must retain the old FNV identity and skip rules.
+const actualMigration=importSuppliedResearchPacket(reading,migrationOptions);
+assert.deepEqual(actualMigration.packet.records,oracleMigration.packet.records);
+assert.deepEqual(actualMigration.retained,oracleMigration.retained);
+assert.deepEqual(actualMigration.skipped,oracleMigration.skipped);
+assert.match(actualMigration.packet.records[0].id,/^import:material:[a-f0-9]{16}$/u);
+const encode=new TextEncoder();
+const header=count=>encode.encode(JSON.stringify({schema:'tos.research_shelf.export.v1',version:1,
+  generation:0,recordCount:count,collectionCount:0}));
+const ordered=new binding.ResearchShelfPacketIndex(header(2));
+try{ordered.accept_records(encode.encode(JSON.stringify(['\uE000','😀'].sort())));ordered.finish();}
+finally{ordered.free();}
+const duplicate=new binding.ResearchShelfPacketIndex(header(2));
+try{duplicate.accept_records(encode.encode(JSON.stringify(['same'])));
+  assert.throws(()=>duplicate.accept_records(encode.encode(JSON.stringify(['same']))),/invalid-packet/u,'cross-chunk duplicate');}
+finally{duplicate.free();}
+assert.throws(()=>new binding.ResearchShelfPacketIndex(encode.encode(JSON.stringify({
+  schema:'tos.research_shelf.export.v1',version:1,generation:0,recordCount:200_001,collectionCount:0,
+}))),/limit/u,'record bound without whole-record allocation');
+const decode=new TextDecoder();
+for(const value of reportCases){
+  const actual=JSON.parse(decode.decode(binding.research_shelf_rule_wasm_v1(encode.encode(JSON.stringify({operation:'migration_skips',value})))));
+  const reason=value.section==='notes'?'non-portable-note':'legacy-graph-pose';
+  assert.deepEqual(actual,Array.from({length:value.count},(_,index)=>({source:value.source,section:value.section,index:value.single?null:index,reason})));
+}
+const lateCollision={...actual.packet,records:[{...actual.packet.records[0],id:'new-first'}, {...actual.packet.records[1],title:'conflict'}]};
+const atomic=createMemoryResearchShelfStore({now:()=>at});
+await atomic.import(actual.packet);
+await assert.rejects(atomic.import(lateCollision),error=>error.code==='conflict');
+assert.equal(await atomic.get('new-first'),null,'late collision leaves no early import');
+await atomic.close();
+const members=createMemoryResearchShelfStore({now:()=>at});
+await members.saveCollection({id:'group',title:'Group'});
+await members.save({...input('a-first'),collectionIds:['group']});
+await members.save({...input('z-last'),collectionIds:['group']});
+const memberPacket=await members.export();memberPacket.records.find(item=>item.id==='z-last').revision=Number.MAX_SAFE_INTEGER;
+const rollback=createMemoryResearchShelfStore({now:()=>at});await rollback.import(memberPacket);
+const before=await rollback.export();
+await assert.rejects(rollback.removeCollection('group',1),error=>error.code==='invalid-input');
+const after=await rollback.export();
+assert.deepEqual(after.records,before.records,'late detach failure preserves prior records');
+assert.deepEqual(after.collections,before.collections);assert.equal(after.generation,before.generation);
+await members.close();await rollback.close();
+console.log(JSON.stringify({status:'pass',cases:18,host:`Node ${process.version} WebAssembly`,
+  wasm_bytes:wasm.byteLength,glue_bytes:(await stat(bindingPath)).size,startup_ms:Number(startupMs.toFixed(3)),
+  packet_index:'chunked ids',whole_packet_wasm_copy:false}));

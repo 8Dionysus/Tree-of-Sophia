@@ -28,7 +28,7 @@ evidence for ToS surfaces.
 
 ## Validation
 
-Use `scripts/validate_tos_source_home.py` and
-`scripts/validate_nested_agents.py` for review-ledger moves or route changes.
+Use `rust/crates/tos-ops-mechanics-plan/src/source_home.rs` and
+`rust/crates/tos-ops-mechanics-plan/src/route_cards.rs` for review-ledger moves or route changes.
 Select the review or `source_home` route in [`ToS/VALIDATION.md`](../VALIDATION.md)
 after the moved surface is known.

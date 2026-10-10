@@ -12,7 +12,7 @@
 | owner | `mechanics/distillation/` |
 | stronger route | `ToS/` owns source, philosophy, and canon meaning |
 | next route | [Source Compost](parts/source-compost/README.md) |
-| validation | `python scripts/validate_tos_source_home.py` |
+| validation | `tos-ops-mechanics-plan --repo-root ABS --source-home` |
 
 ## Active Route
 

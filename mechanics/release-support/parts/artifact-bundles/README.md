@@ -10,8 +10,8 @@
 | owner | `mechanics/release-support/parts/artifact-bundles/` |
 | stronger route | `abyss-machine` owns artifact/signature policy and verifier logic |
 | next route | `ToS/derived-exports/AGENTS.md`, `docs/validation/validation_lanes.json`, or failing generated export |
-| tools | `scripts/validate_abyss_machine_generated_readmodel_bundle.py` |
-| check | `python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py` |
+| tools | `tos-ops-mechanics-plan --artifact-bundle` |
+| check | `tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT` |
 
 ## Boundary
 
@@ -41,7 +41,7 @@ The static `generated_readmodel.bundle.json` manifest declares exact
 `artifact_subjects.path` entries. The OS Abyss resolver does not recursively
 follow a `tos_partitioned_projection_v1` root into its digest-named parts. The
 ToS validator therefore resolves each declared partition root through the
-owner `ProjectionReader` and rejects the bundle before sidecar or trust work
+shared native partition reader and rejects the bundle before sidecar or trust work
 when any manifest or part is absent from the exact subject list; a glob does
 not satisfy this requirement.
 
@@ -50,3 +50,20 @@ equivalent consumer contract that carries the per-snapshot closure, the
 static ABI bundle cannot admit the new partitioned corpus. Return that
 admission here after closure support exists; a successful source or access
 build does not widen the current artifact subject set.
+
+The native entry requires an explicit source root. `--abyss-machine` selects the
+external owner CLI; `TOS_ABYSS_MACHINE_EXECUTABLE` or `PATH` is used when omitted.
+It requires the owner's `artifact_subject_store.search_scope` capability and
+binds each child to `ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ISOLATED_ROOT`, including
+fresh negative and nested materialization rehearsals. Ambient stores cannot
+satisfy those checks. `--abyss-machine-root` supplies an optional source root
+for portable provenance redaction; it never selects or imports owner code.
+
+The existing runtime integration pause is checked before owner execution.
+Changing implementation does not enable AbyssOS admission. Outside the pause,
+all declared partition manifests and parts must be exact subjects. The entry
+checks public content and preserves subject hashes across owner operations,
+then verifies consumer admission again after portable metadata sanitization.
+`--no-clean` preserves a previous generated output for an idempotent rerun;
+cleaning outside the default generated directories requires the validator
+marker and cannot overlap source subjects or another selected output.

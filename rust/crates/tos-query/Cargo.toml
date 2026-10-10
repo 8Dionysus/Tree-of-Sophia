@@ -1,0 +1,32 @@
+[package]
+name = "tos-query"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+test-fixture = []
+
+[dependencies]
+tos-foundation = { path = "../tos-foundation" }
+regex = "1.13.1"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rusqlite = { version = "0.37", features = ["bundled", "hooks"] }
+tos-compiler = { path = "../tos-compiler" }
+tos-fd-open = { path = "../tos-fd-open" }
+tos-source-store = { path = "../tos-source-store" }
+tos-validation = { path = "../tos-validation" }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+unicode-normalization = "=0.1.24"
+unicode-general-category = "=1.1.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
+
+[lib]
+name = "tos_query"
+path = "src/lib.rs"

@@ -1,0 +1,38 @@
+[package]
+name = "tos-compiler"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98.1"
+license = "Apache-2.0"
+publish = false
+
+[features]
+# Selects the pinned IndexMap allocation envelope for cold raw normalization.
+preserve-order-workspace = ["serde_json/preserve_order"]
+test-fixture = []
+
+[dependencies]
+quick-xml = "=0.41.0"
+tos-foundation = { path = "../tos-foundation" }
+tos-fd-open = { path = "../tos-fd-open" }
+tos-validation = { path = "../tos-validation" }
+tos-source-store = { path = "../tos-source-store" }
+tos-segment-store = { path = "../tos-segment-store" }
+rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision", "raw_value"] }
+unicode-normalization = "0.1.24"
+regex = "1"
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+# Same pinned decoder backend; its public state geometry admits hidden heap
+# before the existing flate2 decoder, without a second decoding implementation.
+miniz_oxide = "=0.9.1"
+fs2 = "0.4"
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "=3.27.0"
+
+[lib]
+name = "tos_compiler"
+path = "src/lib.rs"

@@ -6,6 +6,9 @@
 //! FND's published strict parser, exact source revisions, owner rule modules,
 //! current authority fences, and CMD's atomic seal before publishing.
 
+#[cfg(all(target_arch = "wasm32", feature = "native", feature = "wasm"))]
+compile_error!("the WASM target requires the `wasm` profile without `native`");
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use jsonschema::{Draft, Registry};
@@ -13,6 +16,46 @@ use serde_json::Value;
 use tos_foundation::{
     Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, parse_json,
 };
+
+mod controlled_schema;
+pub use controlled_schema::{ControlledSchemaBackendProbe, SchemaProbeControl};
+
+#[cfg(feature = "native")]
+pub mod assessment;
+#[cfg(feature = "native")]
+pub mod biblio_rules;
+mod datetime_support;
+pub use datetime_support::{ObservedDateTimeError, observed_utc_or_naive_timestamp_micros};
+#[cfg(feature = "native")]
+pub mod executor;
+pub mod item_rules;
+#[cfg(feature = "native")]
+pub mod layer_family_cut;
+pub mod layer_family_rules;
+#[cfg(feature = "native")]
+pub mod native_compound;
+#[cfg(feature = "native")]
+pub mod operation;
+pub mod provenance_rules;
+#[cfg(feature = "native")]
+pub mod record_biblio_cut;
+#[cfg(feature = "native")]
+pub mod record_rules;
+pub mod relation_rules;
+#[cfg(feature = "native")]
+pub mod retirement_rules;
+#[cfg(feature = "native")]
+pub mod rights_rules;
+pub mod semantic_registry_rules;
+pub mod source_copy;
+#[cfg(feature = "native")]
+pub mod source_cut;
+pub mod source_forms;
+#[cfg(feature = "native")]
+pub mod source_shapes;
+pub mod text_metadata_rules;
+pub mod text_rules;
+mod validation_codec;
 
 /// An immutable private prepare view over an exact base plus proposed delta.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -184,6 +227,9 @@ pub struct ValidationTrace {
 
 /// Stored with CMD's atomic receipt after predicates and owner fences are
 /// checked against the complete coordinator cut. No publication root exists yet.
+/// No external crate can construct this until the private engine and CMD
+/// attestation path are implemented and expose a checked constructor.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitValidationAttestation {
     pub commit_seq: u64,
@@ -197,6 +243,7 @@ pub struct CommitValidationAttestation {
 }
 
 /// Issued later by the publisher for one exact, fully materialized cut.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PublicationValidationSeal {
     pub through_commit_seq: u64,
@@ -240,6 +287,9 @@ pub struct CoverageCertificate {
     pub replayable_counts_digest: String,
 }
 
+/// `Unsupported` names missing required rule code or coverage; it is distinct
+/// from an invalid judgment and a transient budget failure.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationOutcome {
     Invalid {
@@ -249,6 +299,11 @@ pub enum ValidationOutcome {
     Indeterminate {
         reason: IndeterminateReason,
     },
+    Unsupported {
+        required_profile: String,
+        missing_rule_ids: Vec<String>,
+    },
+    #[non_exhaustive]
     MechanicallyValid {
         scope: ValidationScope,
         trace: ValidationTrace,
@@ -263,6 +318,8 @@ pub enum SchemaProbeError {
     InvalidJson,
     InvalidPublishedJson(FoundationErrorCode),
     IncompatibleJsonRepresentation,
+    /// The controlled backend does not implement this schema assertion or shape.
+    UnsupportedControlledSchema,
     NotSchema202012,
     InvalidResourceId,
     DuplicateResourceId,
@@ -346,6 +403,29 @@ fn published_value(raw: &[u8], max_bytes: usize) -> Result<Value, SchemaProbeErr
     convert(document.root())
 }
 
+/// Native source loaders retain last decoded field semantics, while FND owns
+/// parsing budgets. A Python-admitted WTF-16 scalar gap is Unsupported, never
+/// relabeled as an invalid source instance by serde's narrower representation.
+pub(crate) fn native_decoded_value(
+    raw: &[u8],
+    max_bytes: usize,
+) -> Result<Value, crate::item_rules::ItemRefusal> {
+    use crate::item_rules::ItemRefusal;
+    let limits = JsonLimits::new(max_bytes, 64, 300_000, 4_300).map_err(|_| ItemRefusal::Budget)?;
+    parse_json(raw, JsonMode::RequestLastWins, limits).map_err(|error| {
+        if error.code == FoundationErrorCode::BudgetExceeded {
+            ItemRefusal::Budget
+        } else {
+            ItemRefusal::Source("invalid finite native JSON".into())
+        }
+    })?;
+    serde_json::from_slice(raw).map_err(|_| {
+        ItemRefusal::Unsupported(
+            "native JSON representation outside the scalar-string Rust profile".into(),
+        )
+    })
+}
+
 pub struct SchemaBackendProbe {
     resources: BTreeMap<String, Value>,
     resource_digests: BTreeMap<String, Digest256>,
@@ -362,6 +442,24 @@ impl SchemaBackendProbe {
     pub fn new(
         resources: impl IntoIterator<Item = SchemaResource>,
         profile: FormatProfile,
+    ) -> Result<Self, SchemaProbeError> {
+        Self::prepare_resources(resources, profile, true)
+    }
+
+    // Only the framed diagnostics worker may defer keyword semantics until
+    // after its authenticated ACK. All raw/resource identity checks are shared
+    // with the public strict probe; an unchecked root must never be evaluated.
+    pub(crate) fn prepare_diagnostics_resources(
+        resources: impl IntoIterator<Item = SchemaResource>,
+        profile: FormatProfile,
+    ) -> Result<Self, SchemaProbeError> {
+        Self::prepare_resources(resources, profile, false)
+    }
+
+    fn prepare_resources(
+        resources: impl IntoIterator<Item = SchemaResource>,
+        profile: FormatProfile,
+        require_known_keywords: bool,
     ) -> Result<Self, SchemaProbeError> {
         let mut parsed = BTreeMap::new();
         let mut digests = BTreeMap::new();
@@ -388,7 +486,9 @@ impl SchemaBackendProbe {
             {
                 return Err(SchemaProbeError::InvalidResourceId);
             }
-            check_known_keywords(&value)?;
+            if require_known_keywords {
+                check_known_keywords(&value)?;
+            }
             let digest = Digest256::of_bytes(&resource.raw);
             if parsed.insert(resource.uri.clone(), value).is_some() {
                 return Err(SchemaProbeError::DuplicateResourceId);
@@ -424,16 +524,19 @@ impl SchemaBackendProbe {
     /// profile before schema evaluation. This remains a probe, not admission.
     pub fn is_valid_raw(&self, root_uri: &str, raw: &[u8]) -> Result<bool, SchemaProbeError> {
         let instance = published_value(raw, Self::MAX_INSTANCE_BYTES)?;
-        self.is_valid(root_uri, &instance)
+        self.is_valid_value(root_uri, &instance)
     }
 
-    /// Internal structural probe. Public callers enter through `is_valid_raw`
-    /// so an already-collapsed JSON object cannot bypass `PublishedStrict`.
-    fn is_valid(&self, root_uri: &str, instance: &Value) -> Result<bool, SchemaProbeError> {
-        let schema = self
-            .resources
-            .get(root_uri)
-            .ok_or(SchemaProbeError::MissingResource)?;
+    /// Validate an already-decoded value with this exact local schema set.
+    /// Callers must first decode source bytes with `PublishedStrict`; this
+    /// entry point exists for owner routes whose strict decoder produced the
+    /// `Value` before selecting a schema.
+    pub fn is_valid_value(
+        &self,
+        root_uri: &str,
+        instance: &Value,
+    ) -> Result<bool, SchemaProbeError> {
+        let schema = self.selected_schema(root_uri)?;
         let registry = Registry::new()
             .extend(
                 self.resources
@@ -456,9 +559,44 @@ impl SchemaBackendProbe {
                 .with_format("uri-reference", |_| true);
         }
         let validator = options
-            .build(schema)
+            .build(schema.as_ref())
             .map_err(|error| SchemaProbeError::Backend(error.to_string()))?;
         Ok(validator.is_valid(instance))
+    }
+
+    /// Compatibility name for existing in-crate callers. New source routes
+    /// should use `is_valid_value` to make strict-decoding responsibility clear.
+    fn is_valid(&self, root_uri: &str, instance: &Value) -> Result<bool, SchemaProbeError> {
+        self.is_valid_value(root_uri, instance)
+    }
+
+    /// Keep fragment resolution inside the original registry and its $id scopes.
+    fn selected_schema(
+        &self,
+        root_uri: &str,
+    ) -> Result<std::borrow::Cow<'_, Value>, SchemaProbeError> {
+        let (base_uri, fragment) = match root_uri.split_once('#') {
+            Some((base, fragment))
+                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
+            {
+                (base, Some(fragment))
+            }
+            Some(_) => return Err(SchemaProbeError::InvalidResourceId),
+            None => (root_uri, None),
+        };
+        let root_schema = self
+            .resources
+            .get(base_uri)
+            .ok_or(SchemaProbeError::MissingResource)?;
+        // Resolve a selected JSON Pointer through the original registry. Taking
+        // a Value::pointer subtree and compiling it alone would lose enclosing
+        // $id scopes and relative $ref resolution. This selector adds no resource
+        // bytes, identity, network retrieval or alternative schema engine.
+        Ok(if fragment.is_some() {
+            std::borrow::Cow::Owned(serde_json::json!({"$ref": root_uri}))
+        } else {
+            std::borrow::Cow::Borrowed(root_schema)
+        })
     }
 
     /// Compile the complete supplied set against one bounded, local registry.
@@ -496,8 +634,13 @@ impl SchemaBackendProbe {
 
 // The current authored 2020-12 corpus schemas use exactly these keyword
 // positions. A future keyword is an explicit engine/owner conformance change.
-fn check_known_keywords(root: &Value) -> Result<(), SchemaProbeError> {
+fn check_schema_keyword_node<'a>(
+    schema: &'a Value,
+    follow_definitions: bool,
+    mut child: impl FnMut(&'a Value) -> Result<(), SchemaProbeError>,
+) -> Result<(), SchemaProbeError> {
     const KNOWN: &[&str] = &[
+        "$comment",
         "$defs",
         "$id",
         "$ref",
@@ -554,34 +697,95 @@ fn check_known_keywords(root: &Value) -> Result<(), SchemaProbeError> {
     ];
     const ARRAYS: &[&str] = &["allOf", "anyOf", "oneOf", "prefixItems"];
     const MAPS: &[&str] = &["$defs", "properties", "patternProperties"];
-    let known: BTreeSet<&str> = KNOWN.iter().copied().collect();
-    fn visit(schema: &Value, known: &BTreeSet<&str>) -> Result<(), SchemaProbeError> {
-        let Some(object) = schema.as_object() else {
-            return Ok(());
-        };
-        for (key, value) in object {
-            if !known.contains(key.as_str()) {
-                return Err(SchemaProbeError::UnknownKeyword(key.clone()));
-            }
-            if SINGLE.contains(&key.as_str()) {
-                visit(value, known)?;
-            } else if ARRAYS.contains(&key.as_str()) {
-                if let Some(array) = value.as_array() {
-                    for item in array {
-                        visit(item, known)?;
-                    }
+    let Some(object) = schema.as_object() else {
+        return Ok(());
+    };
+    for (key, value) in object {
+        if !KNOWN.contains(&key.as_str()) {
+            return Err(SchemaProbeError::UnknownKeyword(key.clone()));
+        }
+        if SINGLE.contains(&key.as_str()) {
+            child(value)?;
+        } else if ARRAYS.contains(&key.as_str()) {
+            if let Some(array) = value.as_array() {
+                for item in array {
+                    child(item)?;
                 }
-            } else if MAPS.contains(&key.as_str()) {
-                if let Some(map) = value.as_object() {
-                    for item in map.values() {
-                        visit(item, known)?;
-                    }
+            }
+        } else if MAPS.contains(&key.as_str()) && (follow_definitions || key != "$defs") {
+            if let Some(map) = value.as_object() {
+                for item in map.values() {
+                    child(item)?;
                 }
             }
         }
-        Ok(())
     }
-    visit(root, &known)
+    Ok(())
+}
+
+fn check_known_keywords(root: &Value) -> Result<(), SchemaProbeError> {
+    check_schema_keyword_node(root, true, check_known_keywords)
+}
+
+// Use the same schema positions/keyword policy as the public probe, with the
+// original prepared registry retaining URI scopes and JSON Pointer selectors.
+// Only the requested closure is classified: unrelated resources cannot poison
+// a unit, and jsonschema must not silently ignore an unknown reachable keyword.
+fn check_selected_schema_keywords(
+    registry: &Registry<'_>,
+    root_uri: &str,
+    mut charge: impl FnMut(usize) -> Result<(), SchemaProbeError>,
+) -> Result<(), SchemaProbeError> {
+    let backend =
+        |error: jsonschema::ReferencingError| SchemaProbeError::Backend(error.to_string());
+    charge(256 + root_uri.len())?;
+    let base_uri = root_uri.split_once('#').map_or(root_uri, |(base, _)| base);
+    let uri = jsonschema::uri::from_str(base_uri).map_err(backend)?;
+    let resolver = registry.resolver(uri);
+    let (root, resolver, _) = resolver.lookup(root_uri).map_err(backend)?.into_inner();
+    // Charge before allocating traversal state. The caller supplies the
+    // existing preparation scan-work/scan-byte budget, including mixed-call
+    // remaining counters; there is no additional whole-call budget.
+    charge(256 + resolver.base_uri().as_str().len())?;
+    let mut pending = vec![(root, resolver)];
+    let mut visited = BTreeSet::new();
+    while let Some((schema, resolver)) = pending.pop() {
+        // Include the resolver's static scope in cycle identity. Dynamic-ref
+        // keywords remain unknown under the shared strict keyword policy.
+        let base = resolver.base_uri();
+        charge(256 + base.as_str().len())?;
+        if !visited.insert((schema as *const Value as usize, base.as_str().to_owned())) {
+            continue;
+        }
+        // Charge keyword visits before inspecting or allocating child state.
+        if let Some(object) = schema.as_object() {
+            for keyword in object.keys() {
+                charge(keyword.len())?;
+                charge(0)?; // Reserve the shared keyword-policy inspection too.
+            }
+        }
+        // Definitions do not apply a schema: skip their child enumeration.
+        // Resolved references bring selected definition children into closure.
+        check_schema_keyword_node(schema, false, |child| {
+            let id_bytes = child.get("$id").and_then(Value::as_str).map_or(0, str::len);
+            charge(256 + base.as_str().len() + id_bytes)?;
+            let child_resolver = resolver
+                .in_subresource(Draft::Draft202012.create_resource_ref(child))
+                .map_err(backend)?;
+            pending.push((child, child_resolver));
+            Ok(())
+        })?;
+        if let Some(reference) = schema.get("$ref") {
+            let reference = reference.as_str().ok_or_else(|| {
+                SchemaProbeError::Backend("non-string schema reference".to_owned())
+            })?;
+            charge(256 + base.as_str().len() + reference.len())?;
+            let (target, target_resolver, _) =
+                resolver.lookup(reference).map_err(backend)?.into_inner();
+            pending.push((target, target_resolver));
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -602,6 +806,100 @@ mod tests {
             FormatProfile::AssertedSourceCandidateV1,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn diagnostics_keyword_refusal_follows_only_the_requested_closure() {
+        let uri = "https://tree-of-sophia.local/diagnostics-keywords";
+        let clean_uri = "https://tree-of-sophia.local/diagnostics-clean";
+        let unsupported_uri = "https://tree-of-sophia.local/diagnostics-unsupported";
+        let unknown = "x-conformance-unsupported-assertion";
+        let resources = || {
+            vec![
+                resource(
+                    uri,
+                    &json!({
+                        "$schema": DRAFT, "$id": uri,
+                        "$defs": {
+                            "supported": {"type": "integer"},
+                            "unsupported": {(unknown): true},
+                            "cycle": {"$ref": "#/$defs/cycle"}
+                        }
+                    })
+                    .to_string(),
+                ),
+                resource(
+                    clean_uri,
+                    &json!({
+                        "$schema": DRAFT, "$id": clean_uri,
+                        "$ref": format!("{uri}#/$defs/supported")
+                    })
+                    .to_string(),
+                ),
+                resource(
+                    unsupported_uri,
+                    &json!({
+                        "$schema": DRAFT, "$id": unsupported_uri,
+                        "$ref": format!("{uri}#/$defs/unsupported")
+                    })
+                    .to_string(),
+                ),
+            ]
+        };
+        assert!(matches!(
+            SchemaBackendProbe::new(resources(), FormatProfile::AssertedSourceCandidateV1),
+            Err(SchemaProbeError::UnknownKeyword(_))
+        ));
+        let prepared = SchemaBackendProbe::prepare_diagnostics_resources(
+            resources(),
+            FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        let registry = Registry::new()
+            .extend(
+                prepared
+                    .resources
+                    .iter()
+                    .map(|(uri, value)| (uri.as_str(), value.clone())),
+            )
+            .unwrap()
+            .prepare()
+            .unwrap();
+        let scan = |root: &str| {
+            let mut work = 0usize;
+            let mut bytes = 0usize;
+            check_selected_schema_keywords(&registry, root, |cost| {
+                work += 1;
+                bytes += cost;
+                if work > 300_000 || bytes > SchemaBackendProbe::MAX_TOTAL_BYTES {
+                    Err(SchemaProbeError::BudgetExceeded)
+                } else {
+                    Ok(())
+                }
+            })
+        };
+        assert_eq!(scan(uri), Ok(())); // Unreferenced definitions do not apply.
+        assert_eq!(scan(clean_uri), Ok(()));
+        assert_eq!(
+            scan(unsupported_uri),
+            Err(SchemaProbeError::UnknownKeyword(unknown.to_owned()))
+        );
+        assert_eq!(scan(&format!("{uri}#/$defs/supported")), Ok(()));
+        assert_eq!(scan(&format!("{uri}#/$defs/cycle")), Ok(()));
+        assert_eq!(
+            scan(&format!("{uri}#/$defs/unsupported")),
+            Err(SchemaProbeError::UnknownKeyword(unknown.to_owned()))
+        );
+        assert!(matches!(
+            scan(&format!("{uri}#/$defs/missing")),
+            Err(SchemaProbeError::Backend(_))
+        ));
+        assert_eq!(
+            check_selected_schema_keywords(&registry, clean_uri, |_| {
+                Err(SchemaProbeError::BudgetExceeded)
+            }),
+            Err(SchemaProbeError::BudgetExceeded)
+        );
     }
 
     #[test]
@@ -656,25 +954,58 @@ mod tests {
         let contract_dir =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../ToS/contracts");
         let mut resources = Vec::new();
+        let mut paths = std::collections::BTreeSet::new();
+        let mut ids = std::collections::BTreeMap::new();
         for entry in std::fs::read_dir(contract_dir).unwrap() {
             let entry = entry.unwrap();
             if entry.path().extension().and_then(|value| value.to_str()) != Some("json") {
                 continue;
             }
+            let filename = entry.file_name().to_string_lossy().into_owned();
+            assert!(
+                filename.ends_with(".schema.json"),
+                "every owner contract JSON must be an explicit schema resource: {filename}"
+            );
+            assert!(paths.insert(filename.clone()), "duplicate contract path");
             let raw = std::fs::read(entry.path()).unwrap();
             let value: Value = serde_json::from_slice(&raw).unwrap();
-            if value.get("$schema").and_then(Value::as_str) == Some(DRAFT) {
-                resources.push(SchemaResource {
-                    uri: value.get("$id").and_then(Value::as_str).unwrap().into(),
-                    raw,
-                });
-            }
+            assert_eq!(
+                value.get("$schema").and_then(Value::as_str),
+                Some(DRAFT),
+                "all enumerated owner contract JSON must declare the supported dialect"
+            );
+            let uri = value.get("$id").and_then(Value::as_str).unwrap().to_owned();
+            ids.insert(filename, uri.clone());
+            resources.push(SchemaResource { uri, raw });
         }
         let expected = resources.len();
-        assert_eq!(
-            expected, 185,
-            "source schema set includes the two acquisition batch contracts; re-inventory the profile on future changes"
-        );
+        for (required, uri) in [
+            (
+                "corpus-record.schema.json",
+                "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json",
+            ),
+            (
+                "human-form.schema.json",
+                "https://treeofsophia.local/ToS/contracts/human-form.schema.json",
+            ),
+            (
+                "human-form-set.schema.json",
+                "https://treeofsophia.local/ToS/contracts/human-form-set.schema.json",
+            ),
+            (
+                "provenance-event.schema.json",
+                "https://tree-of-sophia.local/ToS/contracts/provenance-event.schema.json",
+            ),
+            (
+                "source-structured-value.schema.json",
+                "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json",
+            ),
+        ] {
+            assert!(
+                paths.contains(required) && ids.get(required).map(String::as_str) == Some(uri),
+                "missing or changed required owner contract: {required}"
+            );
+        }
         let backend =
             SchemaBackendProbe::new(resources, FormatProfile::AssertedSourceCandidateV1).unwrap();
         assert_eq!(backend.compile_all(), Ok(expected));
@@ -826,6 +1157,13 @@ mod tests {
     fn resource_identity_unknown_keyword_and_absent_resource_fail_closed() {
         let root = "https://tree-of-sophia.local/probe";
         let simple = format!(r#"{{"$schema":"{DRAFT}","$id":"{root}","type":"string"}}"#);
+        let annotated = format!(
+            r#"{{"$schema":"{DRAFT}","$id":"{root}","$comment":"owner annotation","type":"string"}}"#
+        );
+        let annotation_probe = probe(&annotated);
+        assert_eq!(annotation_probe.compile_all(), Ok(1));
+        assert_eq!(annotation_probe.is_valid(root, &json!("text")), Ok(true));
+        assert_eq!(annotation_probe.is_valid(root, &json!(1)), Ok(false));
         assert_eq!(
             SchemaBackendProbe::new(
                 [resource(root, &simple), resource(root, &simple)],
@@ -862,6 +1200,53 @@ mod tests {
             probe(&unavailable_format)
                 .is_valid(root, &json!("x"))
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn selected_json_pointer_keeps_original_resource_scope_and_failures() {
+        let root = "https://tree-of-sophia.local/schemas/root.json";
+        let types = "https://tree-of-sophia.local/schemas/nested/types.json";
+        let source = format!(
+            r#"{{"$schema":"{DRAFT}","$id":"{root}","$defs":{{"scoped":{{"$id":"nested/child.json","properties":{{"a/b~c":{{"$ref":"types.json#/$defs/code"}}}}}},"allow":true,"deny":false}}}}"#
+        );
+        let target = format!(
+            r#"{{"$schema":"{DRAFT}","$id":"{types}","$defs":{{"code":{{"type":"string","const":"owned"}}}}}}"#
+        );
+        let backend = SchemaBackendProbe::new(
+            [resource(root, &source), resource(types, &target)],
+            FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        let digest = backend.schema_set_digest();
+        let selected = format!("{root}#/$defs/scoped/properties/a~1b~0c");
+        assert_eq!(backend.is_valid_raw(&selected, br#""owned""#), Ok(true));
+        assert_eq!(backend.is_valid_raw(&selected, br#""other""#), Ok(false));
+        assert_eq!(
+            backend.is_valid_raw(&format!("{root}#/$defs/allow"), b"3"),
+            Ok(true)
+        );
+        assert_eq!(
+            backend.is_valid_raw(&format!("{root}#/$defs/deny"), b"3"),
+            Ok(false)
+        );
+        assert!(
+            backend
+                .is_valid_raw(&format!("{root}#/$defs/absent"), b"3")
+                .is_err()
+        );
+        assert_eq!(
+            backend.is_valid_raw(&format!("{root}#named-anchor"), b"3"),
+            Err(SchemaProbeError::InvalidResourceId)
+        );
+        assert_eq!(
+            backend.is_valid_raw("https://tree-of-sophia.local/absent#/type", b"3"),
+            Err(SchemaProbeError::MissingResource)
+        );
+        assert_eq!(backend.schema_set_digest(), digest);
+        assert_eq!(
+            backend.resource_digest(root),
+            Some(Digest256::of_bytes(source.as_bytes()))
         );
     }
 
@@ -1069,3 +1454,28 @@ mod tests {
         assert!(matches!(outcome, ValidationOutcome::Indeterminate { .. }));
     }
 }
+
+#[cfg(feature = "native")]
+pub mod source_witness_foundation;
+
+#[cfg(feature = "native")]
+pub mod source_foundation_schema;
+
+#[cfg(feature = "native")]
+pub mod source_foundation_records;
+
+#[cfg(feature = "native")]
+pub mod source_foundation_labs;
+
+#[cfg(feature = "native")]
+pub mod source_foundation_goldsets;
+
+#[cfg(feature = "native")]
+pub mod source_foundation_discovery;
+
+#[cfg(feature = "native")]
+pub mod source_foundation_closure;
+
+#[cfg(feature = "native")]
+pub mod source_foundation_default_rules;
+pub mod source_record_selection;

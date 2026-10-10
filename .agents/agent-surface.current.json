@@ -1,5 +1,5 @@
 {
-  "builder": "scripts/build_agent_surface_currentness.py",
+  "builder": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
   "legacy_projection": {
     "entry_count": 25,
     "legacy_ids": [
@@ -30,7 +30,7 @@
       "aoa-tdd-slice"
     ]
   },
-  "manifest_sha256": "8323d0d7cde98df8428f6d9ac9d2e7ff552110dbfcf1bd4413fee44ad22f0d8e",
+  "manifest_sha256": "38f0a2e0352d78dc8ff98d4f90345da216dc2a033629d08bcdc8067a3c9fc10c",
   "owner_ports": [
     {
       "id": "eval_port",
@@ -77,62 +77,47 @@
           "sha256": "7ef05e98e563c3d882dbaebed19b85372c157b955bf33b19ef7593ad02c4464c"
         },
         {
-          "missing": true,
-          "path": "kag/manifest.json"
+          "bytes": 13576,
+          "path": "kag/provider-template.json",
+          "sha256": "e32247e0bd17193ffe18e0a07eda43e9f217f9e1b2300451884954a0544d3d52"
         },
         {
-          "missing": true,
-          "path": "kag/provider_pin.json"
-        },
-        {
-          "bytes": 1829,
+          "bytes": 2921,
           "path": "kag/README.md",
-          "sha256": "c176d4549e354a5eac24e545e9d4f20bc6042a211634e9c9068176ef27bf5c2d"
+          "sha256": "26ac58519c0d01898bfb64049a63e8c94b2d86e34443e120ef24ea576d230dd9"
         },
         {
-          "bytes": 1098,
-          "path": "scripts/validate_local_kag_provider.py",
-          "sha256": "456cc189ffc47ee58463d59a67e741a9197975102038fb6e0ba68a30b8c69325"
+          "bytes": 3819,
+          "path": "kag/VALIDATION.md",
+          "sha256": "814c50165c84b5a8a87a40d0b494b7c85755d492672575bc74f52bd8561c8f1a"
         },
         {
-          "missing": true,
-          "path": "scripts/validate_local_segmented_kag_provider.py"
+          "bytes": 8251,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/provider_controls.rs",
+          "sha256": "3b60b60588b3ba02ec992e3b6f08b2125efa108d519fdfffb5f6f3347103477f"
         },
         {
-          "missing": true,
-          "path": "kag/indexes/provider_readiness_index.json"
+          "bytes": 30623,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
+          "sha256": "4b7c127061dcb4e786d5255a504ae6b43a52b94610f461270bb4acc373bcf086"
         },
         {
-          "missing": true,
-          "path": "kag/nodes/kag_export_capsule.json"
+          "bytes": 31146,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
+          "sha256": "51a85073a3a5dac7286de0bbffa34ad01125ead0f54fa9081dada40c055b75d2"
         },
         {
-          "missing": true,
-          "path": "kag/nodes/derived_export_route.json"
-        },
-        {
-          "missing": true,
-          "path": "kag/edges/kag_export_returns_to_route.json"
-        },
-        {
-          "missing": true,
-          "path": "kag/projections/mcp_source_return.json"
-        },
-        {
-          "missing": true,
-          "path": "ToS/derived-exports/kag_export.min.json"
-        },
-        {
-          "missing": true,
-          "path": "ToS/derived-exports/philosophy_graph_projection.min.json"
-        },
-        {
-          "bytes": 3723,
+          "bytes": 4136,
           "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-          "sha256": "45d6e5c54559eb511782e5729ceaadd3413a215e203be9502309a1f98f13db3a"
+          "sha256": "5af42633167049ceebc9a3b0b70a9c29ecff42fbf7ad58b735d91685bf7ebfba"
+        },
+        {
+          "bytes": 6384,
+          "path": "docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md",
+          "sha256": "a21f53e286be49fd5950c18242a715c89be0fe39311675347322f62c1579b5cb"
         }
       ],
-      "manifest": "kag/manifest.json"
+      "manifest": "kag/provider-template.json"
     },
     {
       "id": "memo_port",
@@ -174,9 +159,9 @@
           "sha256": "2dc41fe34854f4e80323be557c9188be5cb0ff35f83a422fbb2ee51060d4332b"
         },
         {
-          "bytes": 4062,
+          "bytes": 4095,
           "path": "stats/port.manifest.json",
-          "sha256": "733089f2ee84ee4be4bb627ce894584a8447c021c7c7c73cab5ba4872b551ac7"
+          "sha256": "67a1209a96acff52abe78fa80a58c0813b56cd667916c30d9e8505c65f6a854f"
         },
         {
           "bytes": 2435,
@@ -184,9 +169,9 @@
           "sha256": "86af031ab31a74f81cb888f8de8544680c6f552e528dbb69a316334017ebea29"
         },
         {
-          "bytes": 2504,
+          "bytes": 2526,
           "path": "stats/packets/table-i-prepared-dossier-route-ratio.reference.json",
-          "sha256": "dac59301912b4c455d0ac3596b46dc021f5e3235f678f12decc53e5a9f0128bb"
+          "sha256": "eaea2368dcd1877677ad05c728d583c5ef40cdf6ebab575681953e7b9d0fac08"
         },
         {
           "bytes": 223514,

@@ -3,6 +3,7 @@ import {readingKey} from './reader-model.mjs';
 import {validateClaimReference} from './knowledge-client.mjs';
 import {contentLanguage,validFormIdentity} from './human-forms.mjs';
 import {persistentReadingAnchorKey} from './reading-anchor.mjs';
+import {normalizeReadingResume} from './reading-resume-rust.mjs';
 
 export const READING_KEY='tos-observatory-reading-v1';
 export const emptyReading=()=>({v:1,activeKey:null,entries:[]});
@@ -11,6 +12,7 @@ const language=value=>value==='default'||contentLanguage(value);
 const bounded=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
 const bad=()=>{throw new Error(t("Сохранённое чтение повреждено. Исходная запись оставлена в браузере."));};
 export function validateReading(value){
+  try{const fromRust=normalizeReadingResume(value);if(fromRust)return fromRust;}catch{bad();}
   if(value?.v!==1||!Array.isArray(value.entries)||value.entries.length>2)bad();
   const entries=value.entries.map(entry=>{
     if(!['node','relation'].includes(entry.kind)||typeof entry.id!=='string'||!entry.id||entry.id.length>1024

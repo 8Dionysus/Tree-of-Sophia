@@ -10,22 +10,39 @@
 | owner | `mechanics/source-witnessing/parts/witness-route/` |
 | next route | `ToS/source-witnesses/`, `ToS/philosophy/`, or `ToS/candidate-intake/` |
 | tools | source-home manifest and witness manifests |
-| check | `python scripts/validate_tos_source_home.py` |
+| check | `tos-ops-mechanics-plan --repo-root ABS --source-home` |
 
 ## Registry-to-source operation
 
 Research originals and reported normalized values belong to
 `ToS/research-packets/source-registries/`. The field adapter in
-`config/registry-normalization.v1.json` and the `normalize_source_registries.py`
-entrypoint preserve complete raw/source trace; they never clear rights or admit
-identity. `inspect_source_registry.py` opens a scoped record or report, and
-`build_source_registry_reconciliation.py` exposes possible current owner matches.
+`config/registry-normalization.v1.json` and `tos-source-registry normalize`
+preserve complete raw/source trace; they never clear rights or admit identity.
+Select the adapter owner with `--source-root`, the packet with `--packet-root`
+and new originals with `--input-root`. Without an input root, normalization
+replays the packet's retained originals. New snapshots identify the actual
+native producer; `check` reproduces an existing snapshot while preserving its
+recorded producer provenance. `validate` additionally checks the document
+schema, exact field accounting and record counts.
+
+`tos-source-registry inspect --packet-root PACKET --corpus ID --document ID`
+opens a report; `--record ID` selects a source or normalized record ID.
+`reconcile --source-root SOURCE_ROOT --output-root OUTPUT_ROOT` exposes possible
+owner matches. `coverage` uses the same explicit roots to project reviewed
+preparation, acquisition and exact-version planting evidence. Its
+`--verify-local` mode reads current file hashes; `--remaining` and `--document`
+print selected registry rows. These observation modes write no projection.
+Output roots for these views remain separate from the selected source root.
 
 Before acquisition, review exact versions, live access, intended-use rights,
 local presence and branch anchors independently. Use the existing discovery
 queue's readiness mode to freeze a source-bound plan, preserving chronological
-selection and historical receipts. `prepare_philosophy_source_planting.py`
-resolves actual branch/backlog anchors without creating planted records.
+selection and historical receipts. `tos-ops-mechanics-plan --repo-root ROOT --prepare-source-anchor`
+resolves actual branch/backlog anchors without creating planted records. Pass
+`--atlas-row`, `--source-table-index`, `--source-row-index` and the exact
+`--source-label`. The JSON plan retains the source row number, row digest,
+branch manifest digest and complete backlog digest. Duplicate, missing,
+escaping or mismatched selections fail before producing a plan.
 
 Actual acquisition retains upstream bytes, checks their pinned identity and
 content structure, records per-file fixity and rights, and links the exact
@@ -40,20 +57,28 @@ The ordered checks remain in `docs/validation/validation_lanes.json` under
 queue or resource inventory does not accept source text, translation, semantics,
 canon, public transfer or deployment.
 
-The implemented bounded acquisition entrypoint is
-`scripts/acquire_registry_sources.py`: `verify-preparation` checks the frozen
-manifest and retained evidence; `acquire` requires the actual preparation
-checkpoint receipt; `verify-local` opens and verifies the exact installed files.
-New acquisitions must explicitly select `--payload-source-root`, the durable
-source-witness root whose relative Item paths contain `payload/`. Metadata and
-review records stay in the source checkout; payload custody must survive its
-worktree. Pass that same root to `verify-local` and to the foundation validator
-with `--require-local-payloads`. Existing retained files can be copied and
-independently verified with `scripts/source_payload_custody.py`; a verified
-copy preserves its source and never overwrites conflicting destination bytes.
+The bounded registry route is the native acquisition owner, invoked through
+`tos-native-owner-command acquisition` with `family` set to `registry`.
+`registry.verify_preparation` checks the frozen manifest and retained evidence;
+`registry.acquire` requires the actual preparation checkpoint receipt;
+`registry.verify_local` opens and verifies the exact installed files. Select the
+durable payload root explicitly in `payload_source_root`; its relative Item
+paths contain `payload/`. Metadata and review records stay in the source
+checkout; payload custody must survive its worktree. Pass that same root to
+`registry.verify_local` and to the foundation validator with
+`--require-local-payloads`. Existing retained files can be copied and
+independently verified through `tos-native-owner-command acquisition`, selecting
+the `custody` family, `cli` operation and `verify` or `copy` command. Copying
+uses explicit manifest or inventory selection, verifies source fixity, and
+publishes read-only payloads without replacing conflicting destination bytes.
+Its immutable `0600` receipts contain custody metadata only, not payload bytes.
+The frozen Python reference is nonexecutable history at
+`tests/historical/oracles/acquisition/source_payload_custody.py.snapshot`. Custody and fixity do
+not admit an Item, assess rights, or authorize publication.
 
-For a growing provider queue, use the versioned batch route in
-`scripts/acquisition_batch.py` with the
+For a growing provider queue, invoke the native batch route through
+`tos-native-owner-command acquisition` with `family` set to `batch` and an
+operation of `prepare`, `acquire`, or `verify_local`, using the
 `ToS/contracts/acquisition-batch.schema.json` manifest. It copies only the
 explicitly selected reviewed records into a new handoff, writes one
 batch-level provenance delta bound to the exact base revision, and acquires
@@ -68,10 +93,10 @@ remain distinct for each Item/File destination; the provenance delta lists
 that File ID once. The acquisition journal isolates
 source failures and allows restart; `receipts/handoff-*.json` reports `admission_status` as
 `not-admitted` even when all bytes have been verified. The independent fixity
-receipt is a separate handoff input for the corpus-intake owner. The
-route-owned `scripts/acquisition_handoff_adapter.py` verifies one selected
-handoff against the accepted-store pointer and accepted source bytes, then
-emits the existing `tos_corpus_batch_v1` input shape for `corpus_admit` without
+receipt is a separate handoff input for the corpus-intake owner. The native
+`handoff` family on the same acquisition command verifies one selected handoff
+against the accepted-store pointer and accepted source bytes, then emits the
+existing `tos_corpus_batch_v1` input shape for `corpus-admit` without
 performing admission; it remains separate from the legacy seven-package
 converter.
 The separate frozen-plan import route in
@@ -96,7 +121,7 @@ earlier preparations.
 
 An additional language version may extend an existing Work only through a
 prepared `existing_work` binding to its retained exact preimage and SHA-256.
-The acquisition helper permits only the new Expression claim refs and the
+The native registry owner permits only the new Expression claim refs and the
 Work's next record version; it preserves all previous fields and claims and
 fails on live preimage drift. Expression, Edition and Item records remain new
 identities. A later `operation_date` names its discovery/acquisition events

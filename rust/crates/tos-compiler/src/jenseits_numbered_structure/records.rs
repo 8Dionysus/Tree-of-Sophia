@@ -1,0 +1,308 @@
+//! Ordered record shapes ported from the maintained source recipe.
+use super::*;
+pub(super) fn map(
+    manifest: &Value,
+    entries: &BTreeMap<String, Value>,
+    units: &[Out],
+    matched: usize,
+    inventory_digest: &str,
+    map_id: &str,
+    event_id: &str,
+    provenance_ref: &str,
+) -> Result<Out> {
+    Ok(o(vec![
+        (
+            "$schema",
+            q("https://tree-of-sophia.local/ToS/contracts/numbered-unit-page-map.schema.json"),
+        ),
+        ("schema_version", q("tos_numbered_unit_page_map_v1")),
+        ("map_id", q(map_id)),
+        ("work_ref", q(WORK_REF)),
+        ("expression_ref", q(EXPRESSION_REF)),
+        ("edition_ref", q(EDITION_REF)),
+        ("item_ref", q(s(&manifest["item_id"])?)),
+        (
+            "scan_file",
+            o(vec![
+                ("file_ref", q(s(&entries["pdf"]["file_id"])?)),
+                ("file_sha256", q(s(&entries["pdf"]["sha256"])?)),
+                ("inventory_profile", q("pdf_pages_v1")),
+            ]),
+        ),
+        (
+            "navigation_files",
+            Out::Array(vec![
+                o(vec![
+                    ("role", q("djvu_xml")),
+                    ("file_ref", q(s(&entries["djvu"]["file_id"])?)),
+                    ("file_sha256", q(s(&entries["djvu"]["sha256"])?)),
+                    ("inventory_profile", q("djvu_xml_pages_v1")),
+                ]),
+                o(vec![
+                    ("role", q("abbyy_xml_gzip")),
+                    ("file_ref", q(s(&entries["abbyy"]["file_id"])?)),
+                    ("file_sha256", q(s(&entries["abbyy"]["sha256"])?)),
+                    ("inventory_profile", q("abbyy_xml_pages_v1")),
+                ]),
+            ]),
+        ),
+        (
+            "inventory",
+            o(vec![
+                ("ref", q(INVENTORY_PATH)),
+                ("sha256", q(inventory_digest)),
+            ]),
+        ),
+        (
+            "map_authority",
+            q("model_reviewed_source_structure_candidate_only"),
+        ),
+        ("source_text_included", Out::Bool(false)),
+        (
+            "method",
+            o(vec![
+                (
+                    "name",
+                    q("ordered-ocr-candidate-plus-source-visible-gap-review"),
+                ),
+                ("version", q("1")),
+                ("maker_type", q("mixed")),
+                ("local_payloads_read", Out::Bool(true)),
+                (
+                    "layer_trials",
+                    Out::Array(vec![
+                        o(vec![
+                            ("layer", q("embedded_pdf_text")),
+                            (
+                                "result",
+                                q(
+                                    "substantial numeral loss; insufficient for a complete numbered-unit map",
+                                ),
+                            ),
+                            ("selected_role", q("rejected_as_complete_map_source")),
+                        ]),
+                        o(vec![
+                            ("layer", q("djvu_xml")),
+                            (
+                                "result",
+                                q(
+                                    "274-page word-coordinate navigation retained as an independent provider OCR comparison",
+                                ),
+                            ),
+                            ("selected_role", q("secondary_coordinate_navigation")),
+                        ]),
+                        o(vec![
+                            ("layer", q("abbyy_xml_gzip")),
+                            (
+                                "result",
+                                q(
+                                    "274-page paragraph, line, word, and character geometry selected for ordered numeral candidates",
+                                ),
+                            ),
+                            ("selected_role", q("primary_machine_candidate_navigation")),
+                        ]),
+                    ]),
+                ),
+                ("ordered_abbyy_candidate_matches", n(matched as u64)),
+                (
+                    "source_visible_review",
+                    o(vec![
+                        ("maker_type", q("model")),
+                        ("human_repeat_performed", Out::Bool(false)),
+                        (
+                            "gap_review_unit_keys",
+                            Out::Array(GAP_REVIEW_KEYS.iter().map(|v| q(*v)).collect()),
+                        ),
+                        (
+                            "ocr_disambiguation_unit_keys",
+                            Out::Array(OCR_DISAMBIGUATION_KEYS.iter().map(|v| q(*v)).collect()),
+                        ),
+                        ("repeated_number_unit_keys", Out::Array(vec![q("237a")])),
+                    ]),
+                ),
+                ("cross_lingual_text_matching_used", Out::Bool(false)),
+                ("semantic_matching_used", Out::Bool(false)),
+                ("no_source_text_emitted", Out::Bool(true)),
+            ]),
+        ),
+        ("unit_starts", Out::Array(units.to_vec())),
+        (
+            "summary",
+            o(vec![
+                ("integer_numbered_unit_count", n(296)),
+                (
+                    "supplemental_numbered_units",
+                    Out::Array(vec![q("65a"), q("73a"), q("237a")]),
+                ),
+                ("numbered_unit_count", n(299)),
+                ("exact_start_page_candidates_materialized", n(299)),
+                ("unresolved_unit_count", n(0)),
+                ("start_pages_monotonic", Out::Bool(true)),
+                ("all_anchor_statuses", Out::Array(vec![q("proposed")])),
+                ("human_review_performed", Out::Bool(false)),
+            ]),
+        ),
+        ("provenance_ref", q(provenance_ref)),
+        ("provenance_event_ref", q(event_id)),
+        ("map_version", n(1)),
+        ("supersedes_map_ref", Out::Null),
+        (
+            "authority_boundary",
+            q(
+                "This map records model-reviewed numbered-unit start-page candidates and proposed whole-page addresses for one exact source scan.",
+            ),
+        ),
+        (
+            "does_not_establish",
+            Out::Array(vec![
+                q("source_text"),
+                q("exact_line_boundaries"),
+                q("exact_passage_end_boundaries"),
+                q("accepted_original_language_text"),
+                q("critical_edition_equivalence"),
+                q("translation_correspondence"),
+                q("translation_equivalence"),
+                q("translation_quality"),
+                q("semantics"),
+                q("rights_clearance"),
+                q("canon_promotion"),
+            ]),
+        ),
+    ]))
+}
+pub(super) fn event(
+    entries: &BTreeMap<String, Value>,
+    matched: usize,
+    inventory_digest: &str,
+    map_digest: &str,
+    anchor_digest: &str,
+    map_ref: &str,
+    anchor_ref: &str,
+    event_id: &str,
+    event_at: &str,
+) -> Result<Out> {
+    Ok(o(vec![
+        ("schema_version", q("tos_provenance_event_v1")),
+        ("event_id", q(event_id)),
+        ("event_type", q("segmentation")),
+        ("started_at", q(event_at)),
+        ("ended_at", q(event_at)),
+        (
+            "agent_refs",
+            Out::Array(vec![
+                q("model:codex"),
+                q("software:python-standard-library"),
+                q("software:poppler-26.01.0"),
+            ]),
+        ),
+        (
+            "inputs",
+            Out::Array(vec![
+                o(vec![
+                    ("ref", q(s(&entries["pdf"]["file_id"])?)),
+                    ("role", q("source-visible-scan-witness")),
+                    ("sha256", q(s(&entries["pdf"]["sha256"])?)),
+                ]),
+                o(vec![
+                    ("ref", q(s(&entries["djvu"]["file_id"])?)),
+                    ("role", q("secondary-provider-ocr-coordinate-layer")),
+                    ("sha256", q(s(&entries["djvu"]["sha256"])?)),
+                ]),
+                o(vec![
+                    ("ref", q(s(&entries["abbyy"]["file_id"])?)),
+                    ("role", q("primary-machine-candidate-coordinate-layer")),
+                    ("sha256", q(s(&entries["abbyy"]["sha256"])?)),
+                ]),
+                o(vec![
+                    ("ref", q(INVENTORY_PATH)),
+                    ("role", q("tracked-text-free-resource-inventory")),
+                    ("sha256", q(inventory_digest)),
+                ]),
+            ]),
+        ),
+        (
+            "outputs",
+            Out::Array(vec![
+                o(vec![
+                    ("ref", q(map_ref)),
+                    ("role", q("tracked-text-free-numbered-unit-page-map")),
+                    ("sha256", q(map_digest)),
+                ]),
+                o(vec![
+                    ("ref", q(anchor_ref)),
+                    ("role", q("tracked-proposed-whole-page-source-anchors")),
+                    ("sha256", q(anchor_digest)),
+                ]),
+            ]),
+        ),
+        (
+            "method",
+            o(vec![
+                ("maker_type", q("mixed")),
+                (
+                    "name",
+                    q("ordered-ocr-candidate-plus-source-visible-gap-review"),
+                ),
+                ("version", q("1")),
+                ("artifact_digest", Out::Null),
+                (
+                    "runtime",
+                    q("Python standard library gzip/XML parser; Poppler-rendered exact scan pages"),
+                ),
+                ("device", q("abyss-machine")),
+                (
+                    "configuration",
+                    o(vec![
+                        ("expected_integer_units", n(296)),
+                        (
+                            "supplemental_numbered_units",
+                            Out::Array(vec![q("65a"), q("73a"), q("237a")]),
+                        ),
+                        ("ordered_abbyy_candidate_matches", n(matched as u64)),
+                        (
+                            "source_visible_gap_review_count",
+                            n(GAP_REVIEW_KEYS.len() as u64),
+                        ),
+                        (
+                            "source_visible_ocr_disambiguation_count",
+                            n(OCR_DISAMBIGUATION_KEYS.len() as u64),
+                        ),
+                        ("human_repeat_performed", Out::Bool(false)),
+                        ("source_text_included", Out::Bool(false)),
+                    ]),
+                ),
+                (
+                    "prompt_or_instruction_ref",
+                    q("ToS/doctrine/CORPUS_FOUNDATION.md#address-law"),
+                ),
+            ]),
+        ),
+        ("status", q("completed_with_warnings")),
+        (
+            "warnings",
+            Out::Array(vec![
+                q(
+                    "All 299 addresses are proposed start-page candidates for one scan; they are not exact line or passage-end boundaries.",
+                ),
+                q(
+                    "OCR layers supplied navigation candidates only and were not accepted as German source text.",
+                ),
+                q(
+                    "The scan-visible review was model-performed and has not been independently repeated by a human.",
+                ),
+                q(
+                    "The source-visible repeated 237 is retained as 237a; this local structural key does not claim critical-edition equivalence.",
+                ),
+            ]),
+        ),
+        ("receipt_refs", Out::Array(vec![q(map_ref), q(anchor_ref)])),
+        (
+            "rights_basis_ref",
+            q(
+                "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
+            ),
+        ),
+        ("event_version", n(1)),
+        ("supersedes_event_ref", Out::Null),
+    ]))
+}

@@ -1,0 +1,55 @@
+[package]
+name = "tos-access"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+load-readiness = ["dep:hmac", "dep:sha2"]
+e2e-fixture = []
+
+[dependencies]
+libc = "0.2"
+tos-foundation = { path = "../tos-foundation" }
+tos-fd-open = { path = "../tos-fd-open" }
+tos-source-store = { path = "../tos-source-store" }
+tos-validation = { path = "../tos-validation" }
+tos-query = { path = "../tos-query" }
+tos-compiler = { path = "../tos-compiler" }
+toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
+rawzip = { version = "=0.5.1", default-features = false, features = ["std"] }
+zip = { version = "=2.4.2", default-features = false, features = ["deflate-flate2", "flate2"] }
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tos-command = { path = "../tos-command" }
+tos-segment-store = { path = "../tos-segment-store" }
+hmac = { version = "=0.13.0", optional = true }
+sha2 = { version = "=0.11.0", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+rusqlite = { version = "=0.37.0", features = ["bundled", "hooks", "limits"] }
+
+[lib]
+name = "tos_access"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tos-query = { path = "../tos-query", features = ["test-fixture"] }
+tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
+
+[[bin]]
+name = "tos-access"
+path = "src/main.rs"
+
+[[bin]]
+name = "tos-load-readiness"
+path = "src/bin/tos-load-readiness.rs"
+required-features = ["load-readiness"]
+
+[[bin]]
+name = "tos-e2e-fixture"
+path = "src/bin/tos-e2e-fixture.rs"
+required-features = ["e2e-fixture"]

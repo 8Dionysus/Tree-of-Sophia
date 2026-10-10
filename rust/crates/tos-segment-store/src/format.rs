@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
+use std::mem::size_of;
 
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -11,6 +12,18 @@ pub(crate) const HEADER_BYTES: u64 = 8 + 2 + 2 + 4 + 32;
 pub(crate) const FRAME_HEADER_BYTES: u64 = 8 + 32;
 pub(crate) const END_BYTES: u64 = 8;
 const BLOCK_BYTES: usize = 64 * 1024;
+const PACKED_READ_FIXED_STATE_BYTES: usize = 1024;
+
+/// Optional invocation meter used by ledger-bound segment operations.
+pub(crate) trait SegmentIoObserver {
+    fn checkpoint(&mut self) -> Result<()>;
+    fn reserve_state(&mut self, bytes: usize) -> Result<()>;
+    fn work_unit(&mut self) -> Result<()>;
+    fn before_read(&mut self, bytes: usize) -> Result<()>;
+    fn after_read(&mut self, bytes: usize) -> Result<()>;
+    fn before_write(&mut self, bytes: usize) -> Result<()>;
+    fn after_write(&mut self, bytes: usize) -> Result<()>;
+}
 
 /// Explicit finite limits for one physical segment, not a source ontology rule.
 #[derive(Clone, Copy, Debug)]
@@ -66,11 +79,47 @@ pub(crate) fn frame_header(size: u64, digest: Digest256) -> [u8; FRAME_HEADER_BY
 }
 
 pub(crate) fn verify_whole(
+    file: File,
+    expected_segment: Digest256,
+    expected_size: u64,
+    domain_digest: Digest256,
+    limits: SegmentLimits,
+) -> Result<Vec<FrameCoordinate>> {
+    verify_whole_inner(
+        file,
+        expected_segment,
+        expected_size,
+        domain_digest,
+        limits,
+        None,
+    )
+}
+
+pub(crate) fn verify_whole_accounted(
+    file: File,
+    expected_segment: Digest256,
+    expected_size: u64,
+    domain_digest: Digest256,
+    limits: SegmentLimits,
+    observer: &mut dyn SegmentIoObserver,
+) -> Result<Vec<FrameCoordinate>> {
+    verify_whole_inner(
+        file,
+        expected_segment,
+        expected_size,
+        domain_digest,
+        limits,
+        Some(observer),
+    )
+}
+
+fn verify_whole_inner(
     mut file: File,
     expected_segment: Digest256,
     expected_size: u64,
     domain_digest: Digest256,
     limits: SegmentLimits,
+    mut observer: Option<&mut dyn SegmentIoObserver>,
 ) -> Result<Vec<FrameCoordinate>> {
     let size = file
         .metadata()
@@ -84,7 +133,7 @@ pub(crate) fn verify_whole(
     }
     let mut hasher = Digest256Hasher::new();
     let mut head = [0u8; HEADER_BYTES as usize];
-    read_hashed(&mut file, &mut head, &mut hasher)?;
+    read_hashed_metered(&mut file, &mut head, &mut hasher, &mut observer)?;
     if &head[..8] != MAGIC
         || u16::from_le_bytes([head[8], head[9]]) != 1
         || head[10..12] != [0, 0]
@@ -105,12 +154,24 @@ pub(crate) fn verify_whole(
             "segment frame count exceeds limit",
         ));
     }
+    let coordinate_state = (count as usize)
+        .checked_mul(size_of::<FrameCoordinate>())
+        .and_then(|bytes| bytes.checked_add(BLOCK_BYTES))
+        .ok_or_else(|| {
+            SegmentError::new(Code::BudgetExceeded, "segment verifier state overflow")
+        })?;
+    if let Some(observer) = observer.as_deref_mut() {
+        observer.reserve_state(coordinate_state)?;
+    }
     let mut offset = HEADER_BYTES;
-    let mut frames = Vec::with_capacity(count as usize);
+    let mut frames = Vec::new();
+    frames.try_reserve_exact(count as usize).map_err(|_| {
+        SegmentError::new(Code::BudgetExceeded, "segment coordinate allocation failed")
+    })?;
     let mut block = [0u8; BLOCK_BYTES];
     for _ in 0..count {
         let mut envelope = [0u8; FRAME_HEADER_BYTES as usize];
-        read_hashed(&mut file, &mut envelope, &mut hasher)?;
+        read_hashed_metered(&mut file, &mut envelope, &mut hasher, &mut observer)?;
         let length = u64::from_le_bytes(envelope[..8].try_into().expect("eight bytes"));
         let digest = Digest256::from_hex(&hex_bytes(&envelope[8..40])).map_err(|_| {
             SegmentError::new(Code::InvalidFormat, "segment frame digest encoding invalid")
@@ -132,7 +193,7 @@ pub(crate) fn verify_whole(
         while remaining > 0 {
             let request =
                 usize::try_from(remaining.min(BLOCK_BYTES as u64)).expect("bounded block");
-            read_hashed(&mut file, &mut block[..request], &mut hasher)?;
+            read_hashed_metered(&mut file, &mut block[..request], &mut hasher, &mut observer)?;
             frame_hash.update(&block[..request]);
             remaining -= request as u64;
         }
@@ -156,7 +217,7 @@ pub(crate) fn verify_whole(
         ));
     }
     let mut trailer = [0u8; END_BYTES as usize];
-    read_hashed(&mut file, &mut trailer, &mut hasher)?;
+    read_hashed_metered(&mut file, &mut trailer, &mut hasher, &mut observer)?;
     if &trailer != END || hasher.finalize() != expected_segment {
         return Err(SegmentError::new(
             Code::CorruptBytes,
@@ -268,10 +329,158 @@ pub(crate) fn read_selected(
     Ok(coordinate.size_bytes)
 }
 
+/// Read and verify one packed-object frame under the operation's shared
+/// accounting. The pack's full content digest is checked by the cold closure;
+/// this point read checks the anchored digest-named file, segment envelope,
+/// exact frame ordinal and selected payload before disclosing bytes.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn read_selected_accounted(
+    mut file: File,
+    segment_size: u64,
+    header_offset: u64,
+    payload_digest: Digest256,
+    payload_size: u64,
+    domain_digest: Digest256,
+    expected_count: u32,
+    frame_index: u32,
+    max_frame_bytes: u64,
+    max_bytes: u64,
+    observer: &mut dyn SegmentIoObserver,
+) -> Result<Vec<u8>> {
+    if expected_count == 0
+        || frame_index >= expected_count
+        || header_offset < HEADER_BYTES
+        || payload_size > max_bytes
+        || payload_size > max_frame_bytes
+        || segment_size < HEADER_BYTES + END_BYTES
+    {
+        return Err(SegmentError::new(
+            Code::BudgetExceeded,
+            "packed frame exceeds selected read limits",
+        ));
+    }
+    let capacity = usize::try_from(payload_size).map_err(|_| {
+        SegmentError::new(Code::BudgetExceeded, "packed frame exceeds address space")
+    })?;
+    let state_bytes = capacity
+        .checked_add(PACKED_READ_FIXED_STATE_BYTES)
+        .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "packed frame state overflow"))?;
+    observer.reserve_state(state_bytes)?;
+
+    let frame_end = header_offset
+        .checked_add(FRAME_HEADER_BYTES)
+        .and_then(|value| value.checked_add(payload_size))
+        .ok_or_else(|| SegmentError::new(Code::InvalidReceipt, "packed frame offset overflow"))?;
+    if frame_end > segment_size.saturating_sub(END_BYTES) {
+        return Err(SegmentError::new(
+            Code::InvalidReceipt,
+            "packed frame exceeds segment bounds",
+        ));
+    }
+
+    let mut head = [0u8; HEADER_BYTES as usize];
+    read_observed(&mut file, &mut head, observer)?;
+    if head != header(domain_digest, expected_count) {
+        return Err(SegmentError::new(
+            Code::CorruptBytes,
+            "packed segment header differs",
+        ));
+    }
+
+    // The authenticated extent commits the exact offset and frame index.
+    // Reading an extent is constant in the pack's cardinality: the selected
+    // envelope and payload are checked below. The cold pack-closure audit
+    // verifies every ordinal/offset pair and the full segment digest, so a
+    // point read need not rescan all preceding frame headers.
+
+    file.seek(SeekFrom::End(-(END_BYTES as i64)))
+        .map_err(|error| SegmentError::io("cannot seek packed segment trailer", error))?;
+    let mut trailer = [0u8; END_BYTES as usize];
+    read_observed(&mut file, &mut trailer, observer)?;
+    if &trailer != END {
+        return Err(SegmentError::new(
+            Code::CorruptBytes,
+            "packed segment trailer differs",
+        ));
+    }
+
+    file.seek(SeekFrom::Start(header_offset))
+        .map_err(|error| SegmentError::io("cannot seek packed frame", error))?;
+    let mut envelope = [0u8; FRAME_HEADER_BYTES as usize];
+    read_observed(&mut file, &mut envelope, observer)?;
+    if envelope != frame_header(payload_size, payload_digest) {
+        return Err(SegmentError::new(
+            Code::CorruptBytes,
+            "packed frame header differs",
+        ));
+    }
+
+    let mut verified = Vec::new();
+    verified
+        .try_reserve_exact(capacity)
+        .map_err(|_| SegmentError::new(Code::BudgetExceeded, "packed frame allocation failed"))?;
+    verified.resize(capacity, 0);
+    file.seek(SeekFrom::Start(header_offset + FRAME_HEADER_BYTES))
+        .map_err(|error| SegmentError::io("cannot seek packed frame payload", error))?;
+    read_observed(&mut file, &mut verified, observer)?;
+    if Digest256::of_bytes(&verified) != payload_digest {
+        return Err(SegmentError::new(
+            Code::CorruptBytes,
+            "packed frame payload digest differs",
+        ));
+    }
+    Ok(verified)
+}
+
 fn read_hashed(file: &mut File, buffer: &mut [u8], hasher: &mut Digest256Hasher) -> Result<()> {
-    file.read_exact(buffer)
-        .map_err(|error| SegmentError::io("cannot read sealed segment", error))?;
+    read_hashed_metered(file, buffer, hasher, &mut None)
+}
+
+fn read_hashed_metered(
+    file: &mut File,
+    buffer: &mut [u8],
+    hasher: &mut Digest256Hasher,
+    observer: &mut Option<&mut dyn SegmentIoObserver>,
+) -> Result<()> {
+    match observer.as_deref_mut() {
+        Some(observer) => read_observed(file, buffer, observer)?,
+        None => file
+            .read_exact(buffer)
+            .map_err(|error| SegmentError::io("cannot read sealed segment", error))?,
+    }
     hasher.update(buffer);
+    Ok(())
+}
+
+fn read_observed(
+    file: &mut File,
+    buffer: &mut [u8],
+    observer: &mut dyn SegmentIoObserver,
+) -> Result<()> {
+    observer.checkpoint()?;
+    observer.before_read(buffer.len())?;
+    let mut filled = 0usize;
+    let mut attempted = false;
+    while filled < buffer.len() {
+        if attempted {
+            observer.work_unit()?;
+        }
+        attempted = true;
+        match file.read(&mut buffer[filled..]) {
+            Ok(0) => {
+                return Err(SegmentError::new(
+                    Code::CorruptBytes,
+                    "sealed segment truncated",
+                ));
+            }
+            Ok(count) => {
+                observer.after_read(count)?;
+                filled += count;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(SegmentError::io("cannot read sealed segment", error)),
+        }
+    }
     Ok(())
 }
 

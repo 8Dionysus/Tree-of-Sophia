@@ -1,11 +1,11 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 
 test("D1 publishes a staged delta atomically and rejects an incomplete stage", async () => {
-  const fixture = JSON.parse(execFileSync("python", ["-c", `
+  const fixture = JSON.parse(frozenPythonOracleExec(import.meta.url, ["-c", `
 import json, tempfile
 from pathlib import Path
 from access.tests.test_incremental_runtime import IncrementalRuntimeTests

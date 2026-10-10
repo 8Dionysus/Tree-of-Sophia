@@ -1,3 +1,4 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
 import {describe,it,expect} from 'vitest';
 import {createAtlasLibrary} from './atlas-data.mjs';
 import {NODE_CONTENT} from './atlas-content.mjs';

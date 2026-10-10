@@ -17,11 +17,51 @@ The generated manifest, coverage receipt, reading census, quote ledger and gap
 ledger belong to the explicitly selected private dataset, not this source tree.
 
 ```bash
-python scripts/build_zarathustra_reading_workbench_v1.py --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data
-python scripts/build_zarathustra_reading_workbench_v1.py --check --source-root /path/to/private-source-root --output-root /path/to/reading-data
-python scripts/build_zarathustra_reading_workbench_v1.py --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
-python scripts/query_zarathustra_reading_workbench_v1.py --query судьбы --language ru --limit 100 --group-by speaker,formula --source-root /path/to/private-source-root --analysis-root /path/to/reading-data
+tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
+tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --check --source-root /path/to/private-source-root --output-root /path/to/reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
+tos zarathustra-reading-workbench-v1 --software-root /absolute/installed-prefix --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
+/absolute/installed-prefix/bin/tos --root /path/to/private-source-root --reading-analysis-root /path/to/reading-data reading-search --query судьбы --language ru --limit 100 --group-by speaker,formula
 ```
+
+The installed native producer runs directly through `tos`. `--source-root` and `--output-root` select data directories,
+and build may create its separate output directory. Build and check require
+`--scratch-bytes` with the admitted remaining quota; this selector does not
+grant storage. Both directories share one original operation deadline,
+cancellation state, IO, work and scratch ledgers. The default deadline is 180
+seconds, selectable with `--max-seconds` from 1 to 600.
+
+Set `ADMITTED_READING_BYTES` to the remaining bytes from the host storage
+admission before running build or check. The fixed Reading profile permits
+512 MiB per source file and 4 GiB cumulative source/SQLite reads. The retained
+analysis input is 379,699,200 bytes; generic Research limits remain 256 MiB
+and 2 GiB. Output files remain limited to 256 MiB and cumulative writes to
+1 GiB. The output SQLite pager targets 96 MiB of cache; VACUUM may use a
+second target, totalling 192 MiB before overhead. These are finite refusal
+boundaries and planning targets, with the admitted outer RAM/storage limits
+still binding. They do not establish runtime fit.
+
+The native producer preserves the frozen v1 recipe, code-point offsets,
+quotation and formula candidates, all copied alignment fields, private SQLite
+schema and candidate ceilings. Its execution receipt identifies the native
+kernel separately from the historical recipe references. `--check` reconstructs
+and compares that selected dataset; `--validate-tracked` checks its existing
+tracked companions and policy binding. Neither mode accepts semantic judgments.
+The former Python producer and discourse, voice-policy and formula helpers are
+retired. Frozen recipe digests remain historical provenance; execution uses the
+Rust kernels. Native contracts preserve 49 synthetic cases plus the exact-offset
+occurrence bridge. The full private comparison covered 189,790 rows; physical
+SQLite byte identity is not claimed across different SQLite writer versions.
+
+The maintained query CLI selects installed native code before importing the retained
+reference helpers. `--data-root` selects source data and `--analysis-root` selects
+reading outputs; neither selects software. The native selector is `--root` plus
+`--reading-analysis-root`. Omitting the analysis selector preserves the existing
+single-root local-provider contract. Larger selected files require the explicit paired native selectors
+`--reading-max-file-bytes N --reading-max-total-file-bytes N`, also accepted by
+the maintained script. They alter only file and aggregate fixity limits; the
+existing deadline, SQL, materialization, work and response bounds still apply.
+No default limit is increased. Both root identities and the selected input
+bindings are checked before returning a packet.
 
 The source and analysis roots are explicit data selections. The builder requires a
 separate output root outside both the software checkout and the input dataset; it
@@ -85,10 +125,9 @@ quotation conventions and Antonovsky OCR policies stay witness-local; they are
 not universal defaults for another work. Changes to evidence or a method require
 regeneration and a new checked manifest, without silently accepting the output.
 
-Focused tests live in `tests/test_zarathustra_discourse.py`,
-`tests/test_zarathustra_recurring_formulas.py`,
-`tests/test_zarathustra_reading_challenger.py`,
-`tests/test_zarathustra_reading_workbench_v1.py`,
+Native contract tests live in `rust/crates/tos-compiler/src/research_reading_discourse.rs`,
+`research_reading_formulas.rs` and `research_reading_workbench.rs`, using the retained
+synthetic `reading-contracts.v1.json` fixture. Query-specific checks remain in
 `tests/test_zarathustra_reading_query_v1.py` and `access/tests/test_reading_access.py`.
 Full source checks run only where the private material is installed; public CI
 checks the software and synthetic contracts without installing private data.

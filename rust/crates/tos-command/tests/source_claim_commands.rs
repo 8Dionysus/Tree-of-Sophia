@@ -1,0 +1,134 @@
+// Test public production functions with the maintained Claim fixture.
+use tos_command::source_claims::{advance_claim, replace_claim_row};
+use tos_foundation::{
+    CanonicalProfile, JsonLimits, JsonMode, JsonString, JsonValue, canonical_bytes_v1, parse_json,
+};
+fn parse(raw: &[u8]) -> Option<JsonValue> {
+    parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+        .ok()
+        .map(|doc| doc.into_root())
+}
+fn canonical(value: &JsonValue) -> Option<Vec<u8>> {
+    canonical_bytes_v1(
+        value,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits::default(),
+    )
+    .ok()
+}
+fn object(entries: Vec<(&str, JsonValue)>) -> JsonValue {
+    JsonValue::Object(
+        entries
+            .into_iter()
+            .map(|(key, value)| (JsonString::from_utf8(key), value))
+            .collect(),
+    )
+}
+fn string(value: &str) -> JsonValue {
+    JsonValue::String(JsonString::from_utf8(value))
+}
+fn field<'a>(value: &'a JsonValue, key: &str) -> Option<&'a JsonValue> {
+    value.object_get(key)
+}
+fn text<'a>(value: &'a JsonValue, key: &str) -> Option<&'a str> {
+    field(value, key)?.as_str()
+}
+fn integer(value: &JsonValue, key: &str) -> Option<u64> {
+    field(value, key)?.as_u64()
+}
+
+const SOURCE: &[u8] = include_bytes!("fixtures/source_forms_shadow/claim_v1/source.json");
+
+#[test]
+fn successor_preserves_full_qualifier_context_and_sibling_bytes() {
+    let source = parse(SOURCE).unwrap();
+    let patch = object(vec![(
+        "qualifiers",
+        object(vec![("statement", string("Revised source wording."))]),
+    )]);
+    let revised = advance_claim(&source, &patch, None).unwrap();
+    assert_eq!(
+        integer(&revised, "claim_version").unwrap(),
+        integer(&source, "claim_version").unwrap() + 1
+    );
+    for (key, value) in field(&source, "qualifiers").unwrap().as_object().unwrap() {
+        if key.as_str() != Some("statement") {
+            assert_eq!(
+                field(
+                    field(&revised, "qualifiers").unwrap(),
+                    key.as_str().unwrap()
+                )
+                .unwrap(),
+                value
+            );
+        }
+    }
+    let mut original = b" \r\n".to_vec();
+    original.extend(canonical(&source).unwrap());
+    original.extend(b"\r\n\t\n");
+    let replacement = replace_claim_row(&original, &revised).unwrap();
+    let mut expected = b" \r\n".to_vec();
+    expected.extend(canonical(&revised).unwrap());
+    expected.extend(b"\r\n\t\n");
+    assert_eq!(replacement, expected);
+    assert_eq!(
+        text(&source, "claim_id").unwrap(),
+        text(&revised, "claim_id").unwrap()
+    );
+}
+#[test]
+fn immutable_claim_fields_and_endpoint_kind_are_refused() {
+    let source = parse(SOURCE).unwrap();
+    for key in [
+        "claim_id",
+        "subject_ref",
+        "maker",
+        "review_status",
+        "claim_version",
+    ] {
+        assert!(advance_claim(&source, &object(vec![(key, string("changed"))]), None).is_err());
+    }
+    assert!(advance_claim(&source, &object(vec![("object", object(vec![]))]), None).is_err());
+    assert!(advance_claim(&source, &object(vec![]), None).is_err());
+}
+#[test]
+fn layer_transition_requires_exact_predecessor_and_keeps_qualifiers() {
+    let source = parse(SOURCE).unwrap();
+    let before = text(&source, "assertion_layer").unwrap();
+    let transition = object(vec![
+        ("from", string(before)),
+        ("to", string("scholarly_report")),
+    ]);
+    if before != "scholarly_report" {
+        let revised = advance_claim(
+            &source,
+            &object(vec![("assertion_layer", string("scholarly_report"))]),
+            Some(&transition),
+        )
+        .unwrap();
+        assert_eq!(
+            field(&source, "qualifiers").unwrap(),
+            field(&revised, "qualifiers").unwrap()
+        );
+    }
+    let bad = object(vec![
+        ("from", string("unrelated_layer")),
+        ("to", string("scholarly_report")),
+    ]);
+    assert!(
+        advance_claim(
+            &source,
+            &object(vec![("assertion_layer", string("scholarly_report"))]),
+            Some(&bad)
+        )
+        .is_err()
+    );
+}
+#[test]
+fn repeated_id_is_not_silently_replaced() {
+    let source = parse(SOURCE).unwrap();
+    let mut raw = canonical(&source).unwrap();
+    raw.push(b'\n');
+    raw.extend(canonical(&source).unwrap());
+    assert!(replace_claim_row(&raw, &source).is_err());
+}

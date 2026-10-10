@@ -1,3 +1,4 @@
+import '../src/observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it, vi } from 'vitest';
 import { createConstructorModel, CONSTRUCTOR_LIMITS } from './model.mjs';
 import { createResearchWorkspace } from '../src/research-workspace.ts';

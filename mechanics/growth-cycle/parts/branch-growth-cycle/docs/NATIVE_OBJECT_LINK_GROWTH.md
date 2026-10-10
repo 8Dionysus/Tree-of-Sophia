@@ -65,7 +65,7 @@ Historical retry returns the exact original receipt. Indexing and graph
 projection consume the resulting source metadata through their own builders.
 
 Focused validation:
-`mechanics/growth-cycle/tests/test_source_link_commands.py`, shared discovery,
+`tests/conformance/rust/command_object_link_cases.rs`, shared discovery,
 Claim/metadata history tests, source-witness foundation and the explicit
 semantic-registry transition baseline. All fixtures are synthetic; green
 mechanics never constitutes a real source assessment or rights acceptance.

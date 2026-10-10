@@ -1,3 +1,29 @@
+import type {WebMcpRules, WebMcpResultChoice, WebMcpToolSession, WebMcpViewSelectorSession} from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
+type WebMcpRuntime={WebMcpRules:typeof WebMcpRules;WebMcpResultChoice:typeof WebMcpResultChoice;WebMcpToolSession:typeof WebMcpToolSession;WebMcpViewSelectorSession:typeof WebMcpViewSelectorSession};
+let installedWebMcp:WebMcpRuntime|undefined;
+export function installWebMcpRules(runtime:WebMcpRuntime) {
+  if(typeof runtime?.WebMcpRules!=='function'||typeof runtime.WebMcpResultChoice!=='function'||typeof runtime.WebMcpToolSession!=='function'||typeof runtime.WebMcpViewSelectorSession!=='function')throw new TypeError('Generated WebMCP Rust rules are incomplete');
+  installedWebMcp=runtime;
+}
+function webMcpRuntime(){if(!installedWebMcp)throw new Error('WebMCP Rust rules are not installed');return installedWebMcp;}
+export function webMcpViewSelector(){return webMcpRuntime().WebMcpViewSelectorSession;}
+function webMcpRules(){return webMcpRuntime().WebMcpRules;}
+const toUnits=(value:string)=>Uint16Array.from({length:value!.length},(_,index)=>value!.charCodeAt(index));
+function fromUnits(units:Uint16Array){const chunks:string[]=[];for(let i=0;i<units.length;i+=4096)chunks.push(String.fromCharCode(...units.subarray(i,i+4096)));return chunks.join('');}
+function choice(policy:string,reads:Array<()=>unknown>):unknown {
+  const session=new (webMcpRuntime().WebMcpResultChoice)(policy);
+  try{let value:unknown;while(!session.done()){value=reads[session.need()]!();if(session.needs_array())session.observe_array(Array.isArray(value));else if(policy==='knowledge-cursor')session.observe_string(typeof value==='string',Boolean(value));else session.observe(Boolean(value),value===null||value===undefined,typeof value==='object',value===null);}return value;}
+  finally{session.free();}
+}
+function optionalText(value:string,kind:'undefined'|'null'|'unresolved'='undefined'):string|undefined|null {
+  switch(webMcpRules().optional_text(kind,Boolean(value))){case 1:return undefined;case 2:return null;case 3:return 'unresolved';default:return value;}
+}
+function optionalIdentity(value:unknown):string|undefined {return optionalText(identity(value)) as string|undefined;}
+function knowledgeNextAction(value:unknown){return webMcpRules().knowledge_next_action(typeof value==='boolean',Boolean(value));}
+function wordNextAction(value:unknown){return webMcpRules().word_next_action(typeof value==='boolean',Boolean(value));}
+function trueFlag(value:unknown){return webMcpRules().strict_true(typeof value==='boolean',Boolean(value));}
+function shape(kind:string,value:unknown){const object=typeof value==='object';const array=webMcpRules().shape_array_needed(kind,Boolean(value),object)?Array.isArray(value):false;return webMcpRules().shape(kind,Boolean(value),object,array);}
+
 import type { PageCommandId, PageCommandRegistry, PageContext } from "./page-commands";
 
 type JsonSchema = Record<string, unknown>;
@@ -69,26 +95,26 @@ function commandTool(
   return tool;
 }
 
-function identity(value: unknown): string { return typeof value === "string" ? value : ""; }
+function identity(value: unknown): string { return webMcpRules().identity_action(typeof value === "string") === 1 ? value as string : ""; }
 
 function compactSelectionResult(result: Record<string, unknown>): unknown {
   const context = result.context as Record<string, unknown> | undefined;
   const selection = result.value as Record<string, unknown> | undefined;
   return {
-    selection: selection ? {
-      id: identity(selection.id),
-      page_kind: clipped(selection.kind, 24),
-      semantic_kind: clipped(selection.semantic_kind || selection.kind, 48),
-      label: clipped(selection.label, 120),
-      subtitle: clipped(selection.subtitle, 100),
-      from_id: identity(selection.from_id) || undefined,
-      to_id: identity(selection.to_id) || undefined,
-      predicate_id: identity(selection.predicate_id) || undefined,
-      source_refs: Array.isArray(selection.source_refs) ? selection.source_refs.slice(0, 3).map((ref) => identity(ref)) : [],
-      authority_posture: clipped(selection.authority_posture, 48) || undefined,
-      review_posture: clipped(selection.review_posture, 48) || undefined,
-      canon_status: clipped(selection.canon_status, 48) || undefined,
-      confidence: clipped(selection.confidence, 48) || undefined,
+    selection: shape('selection',selection)===1 ? {
+      id: identity(selection!.id),
+      page_kind: clipped(selection!.kind, 'compactSelectionResult.text.0'),
+      semantic_kind: clipped(choice('selected-kind',[()=>selection!.semantic_kind,()=>selection!.kind]), 'compactSelectionResult.text.1'),
+      label: clipped(selection!.label, 'compactSelectionResult.text.2'),
+      subtitle: clipped(selection!.subtitle, 'compactSelectionResult.text.3'),
+      from_id: optionalIdentity(selection!.from_id),
+      to_id: optionalIdentity(selection!.to_id),
+      predicate_id: optionalIdentity(selection!.predicate_id),
+      source_refs: choice('array-preview-0',[()=>(selection!.source_refs),()=>((selection!.source_refs as unknown[]).slice(0,webMcpRules().array_bound('compactSelectionResult.array.0')).map((ref) => identity(ref))),()=>[]]),
+      authority_posture: optionalText(clipped(selection!.authority_posture, 'compactSelectionResult.text.4')),
+      review_posture: optionalText(clipped(selection!.review_posture, 'compactSelectionResult.text.5')),
+      canon_status: optionalText(clipped(selection!.canon_status, 'compactSelectionResult.text.6')),
+      confidence: optionalText(clipped(selection!.confidence, 'compactSelectionResult.text.7')),
     } : null,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
@@ -96,44 +122,44 @@ function compactSelectionResult(result: Record<string, unknown>): unknown {
 }
 
 function compactPageContext(value: Record<string, unknown>): unknown {
-  const selected = value.selected as Record<string, unknown> | undefined;
+  const selected = value!.selected as Record<string, unknown> | undefined;
   return {
-    schema: value.schema,
-    revision: value.revision,
-    mode: value.mode,
-    view_id: clipped(value.view_id, 96),
-    graph_mode: value.graph_mode,
-    selected: selected ? {
-      id: identity(selected.id),
-      page_kind: clipped(selected.kind, 24),
-      semantic_kind: clipped(selected.semantic_kind || selected.kind, 48),
-      label: clipped(selected.label, 120),
-      from_id: identity(selected.from_id) || undefined,
-      to_id: identity(selected.to_id) || undefined,
-      source_refs: Array.isArray(selected.source_refs) ? selected.source_refs.slice(0, 3).map((ref) => identity(ref)) : [],
+    schema: value!.schema,
+    revision: value!.revision,
+    mode: value!.mode,
+    view_id: clipped(value!.view_id, 'compactPageContext.text.0'),
+    graph_mode: value!.graph_mode,
+    selected: shape('page-selected',selected)===1 ? {
+      id: identity(selected!.id),
+      page_kind: clipped(selected!.kind, 'compactPageContext.text.1'),
+      semantic_kind: clipped(choice('selected-kind',[()=>selected!.semantic_kind,()=>selected!.kind]), 'compactPageContext.text.2'),
+      label: clipped(selected!.label, 'compactPageContext.text.3'),
+      from_id: optionalIdentity(selected!.from_id),
+      to_id: optionalIdentity(selected!.to_id),
+      source_refs: choice('array-preview-1',[()=>(selected!.source_refs),()=>((selected!.source_refs as unknown[]).slice(0,webMcpRules().array_bound('compactPageContext.array.0')).map((ref) => identity(ref))),()=>[]]),
     } : null,
-    path_start_node_id: identity(value.path_start_node_id) || null,
-    active_layers: Array.isArray(value.active_layers) ? value.active_layers.slice(0, 16) : [],
-    active_predicates: Array.isArray(value.active_predicates) ? value.active_predicates.slice(0, 16) : [],
-    research_workspace: value.research_workspace,
-    deep_link: identity(value.deep_link),
-    pending_command_ids: Array.isArray(value.pending_command_ids) ? value.pending_command_ids.slice(0, 8) : [],
+    path_start_node_id: optionalText(identity(value!.path_start_node_id),'null'),
+    active_layers: choice('array-preview-2',[()=>(value!.active_layers),()=>((value!.active_layers as unknown[]).slice(0,webMcpRules().array_bound('compactPageContext.array.1'))),()=>[]]),
+    active_predicates: choice('array-preview-3',[()=>(value!.active_predicates),()=>((value!.active_predicates as unknown[]).slice(0,webMcpRules().array_bound('compactPageContext.array.2'))),()=>[]]),
+    research_workspace: value!.research_workspace,
+    deep_link: identity(value!.deep_link),
+    pending_command_ids: choice('array-preview-4',[()=>(value!.pending_command_ids),()=>((value!.pending_command_ids as unknown[]).slice(0,webMcpRules().array_bound('compactPageContext.array.3'))),()=>[]]),
   };
 }
 
 function compactSearchResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
-  const results = Array.isArray(value?.results) ? value.results as Array<Record<string, unknown>> : [];
+  const results = choice('array-preview-5',[()=>(value?.results),()=>(value!.results as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
   return {
-    query: clipped(value?.query, 160),
-    result_count: value?.result_count === null ? null : Number(value?.result_count || 0),
-    results: results.slice(0, 6).map((item) => ({
+    query: clipped(value?.query, 'compactSearchResult.text.0'),
+    result_count: choice('search-count',[()=>value?.result_count,()=>Number(choice('result-count',[()=>value?.result_count,()=>0]))]),
+    results: results.slice(0,webMcpRules().array_bound('compactSearchResult.array.0')).map((item) => ({
       id: identity(item.id),
-      kind: clipped(item.semantic_kind || item.kind, 48),
-      label: clipped(item.label, 80),
-      posture: clipped(item.review_posture || item.canon_status || item.authority_posture, 56),
-      summary: clipped(item.summary, 72),
+      kind: clipped(choice('item-kind',[()=>item.semantic_kind,()=>item.kind]), 'compactSearchResult.text.1'),
+      label: clipped(item.label, 'compactSearchResult.text.2'),
+      posture: clipped(choice('search-posture',[()=>item.review_posture,()=>item.canon_status,()=>item.authority_posture]), 'compactSearchResult.text.3'),
+      summary: clipped(item.summary, 'compactSearchResult.text.4'),
     })),
     page_updated: true,
     context_revision: result.context_revision,
@@ -145,54 +171,54 @@ function compactSearchResult(result: Record<string, unknown>): unknown {
 function compactKnowledgeSearchResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
-  const compactItems = (items: unknown): unknown[] => (Array.isArray(items) ? items : [])
-    .slice(0, 6)
+  const compactItems = (items: unknown): unknown[] => (choice('array-preview-6',[()=>(items),()=>(items),()=>[]]) as unknown[])
+    .slice(0,webMcpRules().array_bound('compactKnowledgeSearchResult.array.0'))
     .map((item) => {
-      const source = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
+      const source = shape('knowledge-item',item)===1 ? item as Record<string,unknown> : {};
       return {
-        id: identity(source.id),
-        kind: clipped(source.semantic_kind || source.kind || source.knowledge_search_kind, 48),
-        label: clipped(source.label, 120),
-        subtitle: clipped(source.subtitle || source.node_type || source.predicate_id, 80),
-        from_id: identity(source.from_id) || undefined,
-        to_id: identity(source.to_id) || undefined,
-        source_refs: Array.isArray(source.source_refs) ? source.source_refs.slice(0, 3).map(identity) : [],
+        id: identity(source!.id),
+        kind: clipped(choice('knowledge-kind',[()=>source!.semantic_kind,()=>source!.kind,()=>source!.knowledge_search_kind]), 'compactKnowledgeSearchResult.text.0'),
+        label: clipped(source!.label, 'compactKnowledgeSearchResult.text.1'),
+        subtitle: clipped(choice('knowledge-subtitle',[()=>source!.subtitle,()=>source!.node_type,()=>source!.predicate_id]), 'compactKnowledgeSearchResult.text.2'),
+        from_id: optionalIdentity(source!.from_id),
+        to_id: optionalIdentity(source!.to_id),
+        source_refs: choice('array-preview-7',[()=>(source!.source_refs),()=>((source!.source_refs as unknown[]).slice(0,webMcpRules().array_bound('compactKnowledgeSearchResult.array.1')).map(identity)),()=>[]]),
       };
     });
-  const page = value?.page && typeof value.page === "object" ? value.page as Record<string, unknown> : {};
+  const page = choice('knowledge-page',[()=>value?.page,()=>value!.page,()=>value!.page,()=>({})]) as Record<string,unknown>;
   return {
     schema: value?.schema,
     search_mode: value?.search_mode,
-    query: clipped(value?.query, 160),
-    result_count: Number(value?.result_count || 0),
+    query: clipped(value?.query, 'compactKnowledgeSearchResult.text.3'),
+    result_count: Number(choice('result-count',[()=>value?.result_count,()=>0])),
     nodes: compactItems(value?.nodes),
     relations: compactItems(value?.relations),
     counts: value?.counts,
     // Cursors are opaque continuation state.  Do not truncate them while
     // compacting the human-readable result envelope.
-    next_cursor: typeof page.next_cursor === "string" && page.next_cursor ? page.next_cursor : null,
-    has_more: page.has_more === true,
-    source_revision: clipped(value?.source_revision, 96),
+    next_cursor: choice('knowledge-cursor',[()=>page.next_cursor,()=>page.next_cursor,()=>page.next_cursor,()=>null]),
+    has_more: trueFlag(page.has_more),
+    source_revision: clipped(value?.source_revision, 'compactKnowledgeSearchResult.text.4'),
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
-    next_action: page.has_more === true ? "invoke this tool again with next_cursor" : "select one returned stable id",
+    next_action: knowledgeNextAction(page.has_more),
   };
 }
 
 function compactSourceGapResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
-  const gaps = Array.isArray(value?.gaps) ? value.gaps as Array<Record<string, unknown>> : [];
+  const gaps = choice('array-preview-8',[()=>(value?.gaps),()=>(value!.gaps as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
   return {
-    query: clipped(value?.query, 160),
-    result_count: Number(value?.result_count || 0),
-    gaps: gaps.slice(0, 6).map((item) => ({
+    query: clipped(value?.query, 'compactSourceGapResult.text.0'),
+    result_count: Number(choice('result-count',[()=>value?.result_count,()=>0])),
+    gaps: gaps.slice(0,webMcpRules().array_bound('compactSourceGapResult.array.0')).map((item) => ({
       id: identity(item.id),
-      label: clipped(item.label, 160),
-      status: clipped(item.review_posture || item.authority_posture, 64),
-      summary: clipped(item.summary, 180),
+      label: clipped(item.label, 'compactSourceGapResult.text.1'),
+      status: clipped(choice('gap-posture',[()=>item.review_posture,()=>item.authority_posture]), 'compactSourceGapResult.text.2'),
+      summary: clipped(item.summary, 'compactSourceGapResult.text.3'),
     })),
-    authority_note: clipped(value?.authority_note, 300),
+    authority_note: clipped(value?.authority_note, 'compactSourceGapResult.text.4'),
     page_updated: true,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
@@ -203,7 +229,7 @@ function compactSourceGapResult(result: Record<string, unknown>): unknown {
 function compactEvidenceResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const summary = value?.agent_summary as Record<string, unknown> | undefined;
-  if (!summary) return result;
+  if (shape('evidence',summary)===2) return result;
   const context = result.context as Record<string, unknown> | undefined;
   return {
     ...summary,
@@ -212,33 +238,37 @@ function compactEvidenceResult(result: Record<string, unknown>): unknown {
   };
 }
 
-function clipped(value: unknown, maximum = 96): string {
-  const output = typeof value === "string" ? value : "";
-  return output.length > maximum ? `${output.slice(0, maximum - 1)}…` : output;
+function clipped(value: unknown, field: string): string {
+  const Rule=webMcpRules();
+  const action=Rule.text_action(field,typeof value==='string',typeof value==='string'?value!.length:0);
+  if(action===0)return '';
+  if(action===1)return value as string;
+  const prefix=(value as string).slice(0,Rule.text_prefix(field));
+  return fromUnits(Rule.text_finish(toUnits(prefix)));
 }
 
 function compactPathResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
-  if (!value) return result;
-  const paths = Array.isArray(value.paths) ? value.paths as Array<Record<string, unknown>> : [];
-  const first = paths[0] || {};
-  const nodeIds = Array.isArray(first.node_ids) ? first.node_ids.map(identity).slice(0, 10) : [];
-  const edgeIds = Array.isArray(first.edge_ids) ? first.edge_ids : [];
+  if (shape('path',value)===2) return result;
+  const paths = choice('array-preview-9',[()=>(value!.paths),()=>(value!.paths as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
+  const first = choice('path-first',[()=>paths[0],()=>({})]) as Record<string,unknown>;
+  const nodeIds = choice('array-preview-10',[()=>(first.node_ids),()=>((first.node_ids as unknown[]).map(identity).slice(0,webMcpRules().array_bound('compactPathResult.array.0'))),()=>[]]) as unknown[];
+  const edgeIds = choice('array-preview-11',[()=>(first.edge_ids),()=>(first.edge_ids),()=>[]]) as unknown[];
   const context = result.context as Record<string, unknown> | undefined;
   return {
-    finding: value.found ? "route found and shown on the page" : "no route found within the requested bounds",
-    found: value.found === true,
-    from_id: identity(value.from_id),
-    to_id: identity(value.to_id),
-    route_count: Number(value.path_count || paths.length || 0),
+    finding: webMcpRules().path_finding(Boolean(value!.found)),
+    found: trueFlag(value!.found),
+    from_id: identity(value!.from_id),
+    to_id: identity(value!.to_id),
+    route_count: Number(choice('path-count',[()=>value!.path_count,()=>paths.length,()=>0])),
     first_route_node_ids: nodeIds,
     first_route_edge_count: edgeIds.length,
-    excluded_edge_count: Array.isArray(value.excluded_edge_ids) ? value.excluded_edge_ids.length : 0,
+    excluded_edge_count: choice('array-preview-12',[()=>(value!.excluded_edge_ids),()=>((value!.excluded_edge_ids as unknown[]).length),()=>0]),
     page_updated: true,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
-    exploration_truncated: value.exploration_truncated === true,
-    next_actions: value.next_actions || (value.found ? ["save the route for comparison", "inspect its uncertain edges"] : ["widen the route bounds", "restore an excluded edge"]),
+    exploration_truncated: trueFlag(value!.exploration_truncated),
+    next_actions: choice('path-actions',[()=>value!.next_actions,()=>webMcpRules().path_actions(Boolean(value!.found)).split('\n')]),
   };
 }
 
@@ -246,25 +276,25 @@ function compactNeighborhoodResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
   const node = value?.node as Record<string, unknown> | undefined;
-  const neighbors = Array.isArray(value?.neighbors) ? value.neighbors as Array<Record<string, unknown>> : [];
-  const edges = Array.isArray(value?.edges) ? value.edges as Array<Record<string, unknown>> : [];
+  const neighbors = choice('array-preview-13',[()=>(value?.neighbors),()=>(value!.neighbors as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
+  const edges = choice('array-preview-14',[()=>(value?.edges),()=>(value!.edges as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
   const page = value?.page as Record<string, unknown> | undefined;
   return {
     selection: {
-      id: identity(node?.node_id || node?.id),
-      label: clipped(node?.label || node?.title, 120),
+      id: identity(choice('neighborhood-id',[()=>node?.node_id,()=>node?.id])),
+      label: clipped(choice('neighborhood-label',[()=>node?.label,()=>node?.title]), 'compactNeighborhoodResult.text.0'),
     },
     neighbor_count: neighbors.length,
     relation_count: edges.length,
-    scope: page ? "exploration-page" : "bounded-neighborhood",
+    scope: webMcpRules().neighborhood_scope(Boolean(page)),
     page_number: page?.number,
-    has_more: page ? Boolean(page.next_cursor) : undefined,
-    neighbors: neighbors.slice(0, 6).map((item) => ({
-      id: identity(item.node_id || item.id),
-      label: clipped(item.label || item.title, 72),
-      kind: clipped(item.node_type, 36),
+    has_more: shape('neighborhood-page',page)===1 ? Boolean(page!.next_cursor) : undefined,
+    neighbors: neighbors.slice(0,webMcpRules().array_bound('compactNeighborhoodResult.array.0')).map((item) => ({
+      id: identity(choice('neighbor-id',[()=>item.node_id,()=>item.id])),
+      label: clipped(choice('neighbor-label',[()=>item.label,()=>item.title]), 'compactNeighborhoodResult.text.1'),
+      kind: clipped(item.node_type, 'compactNeighborhoodResult.text.2'),
     })),
-    predicates: Array.isArray(value?.predicates) ? value.predicates.slice(0, 12) : [],
+    predicates: choice('array-preview-15',[()=>(value?.predicates),()=>((value!.predicates as unknown[]).slice(0,webMcpRules().array_bound('compactNeighborhoodResult.array.1'))),()=>[]]),
     page_updated: true,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
@@ -275,22 +305,22 @@ function compactReadingComparison(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
   const selection = value?.selection as Record<string, unknown> | undefined;
-  const readings = Array.isArray(value?.competing_readings) ? value.competing_readings as Array<Record<string, unknown>> : [];
+  const readings = choice('array-preview-16',[()=>(value?.competing_readings),()=>(value!.competing_readings as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
   return {
     schema: value?.schema,
-    selection: selection ? { id: identity(selection.id), kind: clipped(selection.semantic_kind || selection.kind, 48), label: clipped(selection.label, 120) } : null,
+    selection: shape('selection',selection)===1 ? { id: identity(selection!.id), kind: clipped(choice('selected-kind',[()=>selection!.semantic_kind,()=>selection!.kind]), 'compactReadingComparison.text.0'), label: clipped(selection!.label, 'compactReadingComparison.text.1') } : null,
     posture: value?.posture,
-    can_conclude: value?.can_conclude === true,
-    competing_reading_count: Number(value?.competing_reading_count || 0),
-    competing_readings: readings.slice(0, 4).map((reading) => ({
+    can_conclude: trueFlag(value?.can_conclude),
+    competing_reading_count: Number(choice('reading-count',[()=>value?.competing_reading_count,()=>0])),
+    competing_readings: readings.slice(0,webMcpRules().array_bound('compactReadingComparison.array.0')).map((reading) => ({
       id: identity(reading.id),
-      label: clipped(reading.label, 96),
+      label: clipped(reading.label, 'compactReadingComparison.text.2'),
       predicate_id: identity(reading.predicate_id),
-      review_posture: clipped(reading.review_posture, 48) || "unresolved",
-      source_refs: Array.isArray(reading.source_refs) ? reading.source_refs.slice(0, 2).map((ref) => identity(ref)) : [],
+      review_posture: optionalText(clipped(reading.review_posture, 'compactReadingComparison.text.3'),'unresolved'),
+      source_refs: choice('array-preview-17',[()=>(reading.source_refs),()=>((reading.source_refs as unknown[]).slice(0,webMcpRules().array_bound('compactReadingComparison.array.1')).map((ref) => identity(ref))),()=>[]]),
     })),
-    gaps: Array.isArray(value?.gaps) ? value.gaps.slice(0, 4).map((gap) => clipped(gap, 120)) : [],
-    authority_note: clipped(value?.authority_note, 180),
+    gaps: choice('array-preview-18',[()=>(value?.gaps),()=>((value!.gaps as unknown[]).slice(0,webMcpRules().array_bound('compactReadingComparison.array.2')).map((gap) => clipped(gap, 'compactReadingComparison.text.4'))),()=>[]]),
+    authority_note: clipped(value?.authority_note, 'compactReadingComparison.text.5'),
     page_updated: true,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
@@ -301,21 +331,21 @@ function compactReadingComparison(result: Record<string, unknown>): unknown {
 function compactWorkspaceMutation(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
-  const summary = value?.summary || context?.research_workspace;
+  const summary = choice('workspace-summary',[()=>value?.summary,()=>context?.research_workspace]);
   const hypothesis = value?.hypothesis as Record<string, unknown> | undefined;
   const route = value?.route as Record<string, unknown> | undefined;
   const proposal = value?.proposal as Record<string, unknown> | undefined;
   return {
-    changed: value?.changed ?? value?.added ?? value?.imported ?? true,
-    ...(value?.excluded_edge_id ? { excluded_edge_id: clipped(value.excluded_edge_id) } : {}),
-    ...(hypothesis ? { hypothesis: { id: clipped(hypothesis.id), title: clipped(hypothesis.title, 140), posture: hypothesis.posture } } : {}),
-    ...(route ? { route: { id: clipped(route.id), label: clipped(route.label, 140), node_count: Array.isArray(route.nodeIds) ? route.nodeIds.length : 0, edge_count: Array.isArray(route.edgeIds) ? route.edgeIds.length : 0 } } : {}),
-    ...(proposal ? { proposal: {
-      id: identity(proposal.id),
-      kind: clipped(proposal.kind, 48),
-      statement: clipped(proposal.statement, 180),
-      status: proposal.reviewStatus || proposal.review_status,
-      digest: clipped(proposal.digest, 96),
+    changed: choice('workspace-changed',[()=>value?.changed,()=>value?.added,()=>value?.imported,()=>true]),
+    ...(shape('excluded-edge',value?.excluded_edge_id)===1 ? { excluded_edge_id: clipped(value!.excluded_edge_id, 'compactWorkspaceMutation.text.0') } : {}),
+    ...(shape('workspace-hypothesis',hypothesis)===1 ? { hypothesis: { id: clipped(hypothesis!.id, 'compactWorkspaceMutation.text.1'), title: clipped(hypothesis!.title, 'compactWorkspaceMutation.text.2'), posture: hypothesis!.posture } } : {}),
+    ...(shape('workspace-route',route)===1 ? { route: { id: clipped(route!.id, 'compactWorkspaceMutation.text.3'), label: clipped(route!.label, 'compactWorkspaceMutation.text.4'), node_count: choice('array-preview-19',[()=>(route!.nodeIds),()=>((route!.nodeIds as unknown[]).length),()=>0]), edge_count: choice('array-preview-20',[()=>(route!.edgeIds),()=>((route!.edgeIds as unknown[]).length),()=>0]) } } : {}),
+    ...(shape('workspace-proposal',proposal)===1 ? { proposal: {
+      id: identity(proposal!.id),
+      kind: clipped(proposal!.kind, 'compactWorkspaceMutation.text.5'),
+      statement: clipped(proposal!.statement, 'compactWorkspaceMutation.text.6'),
+      status: choice('proposal-status',[()=>proposal!.reviewStatus,()=>proposal!.review_status]),
+      digest: clipped(proposal!.digest, 'compactWorkspaceMutation.text.7'),
     } } : {}),
     comparison_ready: value?.comparison_ready,
     research_workspace: summary,
@@ -331,20 +361,20 @@ function compactWorkspaceRead(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const packet = value?.packet as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
-  const hypotheses = Array.isArray(packet?.hypotheses) ? packet.hypotheses as Array<Record<string, unknown>> : [];
-  const proposals = Array.isArray(packet?.proposals) ? packet.proposals as Array<Record<string, unknown>> : [];
-  const routes = Array.isArray(packet?.route_snapshots) ? packet.route_snapshots as Array<Record<string, unknown>> : [];
-  const notes = Array.isArray(packet?.notes) ? packet.notes as Array<Record<string, unknown>> : [];
-  const journal = Array.isArray(packet?.journal) ? packet.journal as Array<Record<string, unknown>> : [];
+  const hypotheses = choice('array-preview-21',[()=>(packet?.hypotheses),()=>(packet!.hypotheses as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
+  const proposals = choice('array-preview-22',[()=>(packet?.proposals),()=>(packet!.proposals as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
+  const routes = choice('array-preview-23',[()=>(packet?.route_snapshots),()=>(packet!.route_snapshots as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
+  const notes = choice('array-preview-24',[()=>(packet?.notes),()=>(packet!.notes as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
+  const journal = choice('array-preview-25',[()=>(packet?.journal),()=>(packet!.journal as Array<Record<string, unknown>>),()=>[]]) as Array<Record<string,unknown>>;
   return {
     research_workspace: context?.research_workspace,
-    selected_lens: packet?.selected_lens || null,
-    hypothesis_preview: hypotheses.slice(-1).map((item) => ({ id: identity(item.id), title: clipped(item.title, 80), body: clipped(item.body, 96), posture: item.posture })),
-    proposal_preview: proposals.slice(-2).map((item) => ({ id: identity(item.id), kind: item.kind, statement: clipped(item.statement, 120), review_status: item.review_status, digest: clipped(item.digest, 80) })),
-    excluded_edge_ids: (Array.isArray(packet?.excluded_edge_ids) ? packet.excluded_edge_ids : []).slice(-3).map((id) => clipped(id, 72)),
-    route_preview: routes.slice(-2).map((item) => ({ label: clipped(item.label, 80), node_count: Array.isArray(item.node_ids) ? item.node_ids.length : 0, edge_count: Array.isArray(item.edge_ids) ? item.edge_ids.length : 0 })),
-    note_preview: notes.slice(-1).map((item) => ({ body: clipped(item.body, 96), target_id: identity(item.target_id) })),
-    recent_actions: journal.slice(-3).map((item) => ({ action: clipped(item.action, 48), target_id: identity(item.target_id) })),
+    selected_lens: choice('workspace-lens',[()=>packet?.selected_lens,()=>null]),
+    hypothesis_preview: hypotheses.slice(webMcpRules().array_tail('compactWorkspaceRead.array.0')).map((item) => ({ id: identity(item.id), title: clipped(item.title, 'compactWorkspaceRead.text.0'), body: clipped(item.body, 'compactWorkspaceRead.text.1'), posture: item.posture })),
+    proposal_preview: proposals.slice(webMcpRules().array_tail('compactWorkspaceRead.array.1')).map((item) => ({ id: identity(item.id), kind: item.kind, statement: clipped(item.statement, 'compactWorkspaceRead.text.2'), review_status: item.review_status, digest: clipped(item.digest, 'compactWorkspaceRead.text.3') })),
+    excluded_edge_ids: (choice('array-preview-26',[()=>(packet?.excluded_edge_ids),()=>(packet!.excluded_edge_ids),()=>[]]) as unknown[]).slice(webMcpRules().array_tail('compactWorkspaceRead.array.2')).map((id) => clipped(id, 'compactWorkspaceRead.text.4')),
+    route_preview: routes.slice(webMcpRules().array_tail('compactWorkspaceRead.array.3')).map((item) => ({ label: clipped(item.label, 'compactWorkspaceRead.text.5'), node_count: choice('array-preview-27',[()=>(item.node_ids),()=>((item.node_ids as unknown[]).length),()=>0]), edge_count: choice('array-preview-28',[()=>(item.edge_ids),()=>((item.edge_ids as unknown[]).length),()=>0]) })),
+    note_preview: notes.slice(webMcpRules().array_tail('compactWorkspaceRead.array.4')).map((item) => ({ body: clipped(item.body, 'compactWorkspaceRead.text.6'), target_id: identity(item.target_id) })),
+    recent_actions: journal.slice(webMcpRules().array_tail('compactWorkspaceRead.array.5')).map((item) => ({ action: clipped(item.action, 'compactWorkspaceRead.text.7'), target_id: identity(item.target_id) })),
     local_only: true,
     authority: { source: false, reviewed: false, canon: false },
     context_revision: result.context_revision,
@@ -358,20 +388,23 @@ function compactWordAnalysisResult(result: Record<string, unknown>): unknown {
   const context = result.context as Record<string, unknown> | undefined;
   return {
     schema: value?.schema,
-    available: value?.available === true,
-    reason: clipped(value?.reason, 180) || null,
+    available: trueFlag(value?.available),
+    reason: optionalText(clipped(value?.reason, 'compactWordAnalysisResult.text.0'),'null'),
     publication_posture: value?.publication_posture,
-    source: source ? {
-      occurrence_id: clipped(source.occurrence_id || source.id, 96),
-      language: clipped(source.language, 24),
-      surface: clipped(source.surface || source.text, 160),
-      source_ref: clipped(source.source_ref, 180),
+    source: shape('word-source',source)===1 ? {
+      occurrence_candidate_ref: identity(source!.occurrence_candidate_ref),
+      existing_occurrence_ref: identity(source!.existing_occurrence_ref),
+      context_unit_ref: identity(source!.context_unit_ref),
+      anchor_refs: source!.anchor_refs,
+      reading_ref: identity(source!.reading_ref),
+      language: clipped(source!.language, 'compactWordAnalysisResult.text.2'),
+      surface: clipped(choice('word-surface',[()=>source!.surface,()=>source!.text]), 'compactWordAnalysisResult.text.3'),
     } : null,
-    task_schema: task?.schema_version || task?.schema,
+    task_schema: choice('word-task-schema',[()=>task?.schema_version,()=>task?.schema]),
     page_updated: true,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
-    next_action: value?.available === true ? "perform the source-bound analysis and preserve citations" : "install the local source-bound provider",
+    next_action: wordNextAction(value?.available),
   };
 }
 
@@ -463,7 +496,7 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
       // envelope is intentionally bounded to six per kind.  Binding this
       // default before invoking the page command prevents a backend cursor
       // from advancing past items that compaction cannot return.
-      limit: Math.max(1, Math.min(6, Math.trunc(Number(input.limit) || 6))),
+      limit: webMcpRules().knowledge_limit(Number(input.limit)),
     })),
     commandTool(registry, "tos.page.find-source-gaps", {
       name: "tos.page.find-source-gaps",
@@ -499,10 +532,12 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
   ];
 }
 
-function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebMCPTool[] {
-  const selected = context.selected;
-  if (!selected) return [];
-  const tools: WebMCPTool[] = [
+function dynamicTools(registry:PageCommandRegistry,context:PageContext):WebMCPTool[] {
+  const selected=context.selected!;
+  const session=new (webMcpRuntime().WebMcpToolSession)(Boolean(selected));
+  const tools:WebMCPTool[]=[];
+  try{while(session.need()!=='done'){switch(session.need()){
+      case 'base': {tools.push(
     commandTool(registry, "tos.page.inspect-selection", {
       name: "tos.page.inspect-selection",
       title: "Inspect this selected ToS object",
@@ -532,12 +567,8 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
       }, ["kind", "statement"]),
       annotations: { readOnlyHint: false, untrustedContentHint: true },
     }, context.revision, compactWorkspaceMutation, (input) => ({ ...input, target_id: selected.id, actor_origin: "agent" })),
-  ];
-  const evidenceAvailable = context.mode === "philosophy"
-    || (context.mode === "corpus" && context.view_id === "route-graph");
-  if (!evidenceAvailable) return tools;
-  if ((selected.kind === "node" || selected.kind === "edge") && (selected.evidence_available ?? selected.reroutable !== false)) {
-    tools.push(
+    );session.emitted();break;}
+      case 'evidence-tools': {tools.push(
       commandTool(registry, "tos.page.inspect-epistemic", {
         name: "tos.page.inspect-epistemic",
         title: "Open Evidence Lens for this selection",
@@ -552,15 +583,8 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         inputSchema: objectSchema({ limit: { type: "integer", minimum: 1, maximum: 80 } }),
         annotations: { readOnlyHint: false, untrustedContentHint: true },
       }, context.revision, compactReadingComparison),
-    );
-  }
-  if (
-    selected.kind === "edge" &&
-    selected.reroutable !== false &&
-    selected.from_id &&
-    selected.to_id
-  ) {
-    tools.push(
+    );session.emitted();break;}
+      case 'mutation-tools': {tools.push(
       commandTool(registry, "tos.page.add-session-hypothesis", {
         name: "tos.page.add-session-hypothesis",
         title: "Add a hypothesis for this relation",
@@ -585,12 +609,8 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         inputSchema: objectSchema({ label: { type: "string", maxLength: 120 } }),
         annotations: { readOnlyHint: false, untrustedContentHint: true },
       }, context.revision, compactWorkspaceMutation),
-    );
-  }
-  if (context.mode !== "philosophy") return tools;
-  if (context.active_layers.length === 0 || context.active_predicates.length === 0) return tools;
-  if (selected.kind === "node") {
-    tools.push(
+    );session.emitted();break;}
+      case 'neighborhood-tool': {tools.push(
       commandTool(registry, "tos.page.show-neighborhood", {
         name: "tos.page.show-neighborhood",
         title: "Show this node's neighborhood",
@@ -598,17 +618,16 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         inputSchema: objectSchema({ depth: { type: "integer", minimum: 1, maximum: 3 } }),
         annotations: { readOnlyHint: false },
       }, context.revision, compactNeighborhoodResult),
-    );
-    if (selected.path_available !== false) tools.push(commandTool(registry, "tos.page.start-path", {
+    );session.emitted();break;}
+      case 'start-tool': {tools.push(commandTool(registry, "tos.page.start-path", {
         name: "tos.page.start-path",
         title: "Start a path from this node",
         description: `Use the currently selected node ${selected.id} as the deictic start of the next path query.`,
         inputSchema: emptySchema,
         annotations: { readOnlyHint: false },
       }, context.revision),
-    );
-    if (selected.path_available !== false && context.path_start_node_id && context.path_start_node_id !== selected.id) {
-      tools.push(
+    );session.emitted();break;}
+      case 'find-tool': {tools.push(
         commandTool(registry, "tos.page.find-path", {
           name: "tos.page.find-path-to-selection",
           title: "Find paths to this node",
@@ -622,16 +641,8 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
           }),
           annotations: { readOnlyHint: false },
         }, context.revision, compactPathResult),
-      );
-    }
-  }
-  if (
-    selected.kind === "edge" &&
-    selected.reroutable !== false &&
-    selected.from_id &&
-    selected.to_id
-  ) {
-    tools.push(
+      );session.emitted();break;}
+      case 'reroute-tool': {tools.push(
       commandTool(registry, "tos.page.reroute-without-selection", {
         name: "tos.page.reroute-without-selection",
         title: "Find alternatives without this edge",
@@ -644,9 +655,33 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         }),
         annotations: { readOnlyHint: false },
       }, context.revision, compactPathResult),
-    );
-  }
-  return tools;
+    );session.emitted();break;}
+      case 'evidence-mode-first':session.observe_equal(context.mode===session.literal());break;
+      case 'evidence-mode-corpus':session.observe_equal(context.mode===session.literal());break;
+      case 'evidence-view':session.observe_equal(context.view_id===session.literal());break;
+      case 'evidence-kind-node':session.observe_equal(selected.kind===session.literal());break;
+      case 'evidence-kind-edge':session.observe_equal(selected.kind===session.literal());break;
+      case 'mutation-kind':session.observe_equal(selected.kind===session.literal());break;
+      case 'philosophy-mode':session.observe_equal(context.mode===session.literal());break;
+      case 'node-kind':session.observe_equal(selected.kind===session.literal());break;
+      case 'reroute-kind':session.observe_equal(selected.kind===session.literal());break;
+      case 'evidence-reroutable':session.observe_equal(selected.reroutable===false);break;
+      case 'mutation-reroutable':session.observe_equal(selected.reroutable===false);break;
+      case 'start-available':session.observe_equal(selected.path_available===false);break;
+      case 'find-available':session.observe_equal(selected.path_available===false);break;
+      case 'reroute-reroutable':session.observe_equal(selected.reroutable===false);break;
+      case 'mutation-from':session.observe_truthy(Boolean(selected.from_id));break;
+      case 'mutation-to':session.observe_truthy(Boolean(selected.to_id));break;
+      case 'path-start':session.observe_truthy(Boolean(context.path_start_node_id));break;
+      case 'reroute-from':session.observe_truthy(Boolean(selected.from_id));break;
+      case 'reroute-to':session.observe_truthy(Boolean(selected.to_id));break;
+      case 'evidence-available': {const value=selected.evidence_available;session.observe_optional(Boolean(value),value===null||value===undefined);break;}
+      case 'layers':session.observe_equal(context.active_layers.length===0);break;
+      case 'predicates':session.observe_equal(context.active_predicates.length===0);break;
+      case 'path-distinct':session.observe_equal(context.path_start_node_id===selected.id);break;
+      default:throw new Error('Unknown maintained WebMCP tool phase');
+
+  }}return tools;}finally{session.free();}
 }
 
 export function createWebMCPAdapter(

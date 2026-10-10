@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import assert from 'node:assert/strict';
 import {lensContext} from '../../fixtures/lens-scenarios.mjs';

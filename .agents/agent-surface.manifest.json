@@ -4,8 +4,8 @@
   "owner_surface": ".agents/AGENTS.md",
   "human_entrypoint": ".agents/README.md",
   "generated_currentness": ".agents/agent-surface.current.json",
-  "builder": "scripts/build_agent_surface_currentness.py",
-  "validator": "scripts/validate_agent_surface.py",
+  "builder": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
+  "validator": "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
   "context_budget": {
     "metric": "whitespace_tokens_v1",
     "discovery_description_max_words": 100,
@@ -202,37 +202,37 @@
     },
     "kag_provider": {
       "local_owner": "kag/AGENTS.md",
-      "manifest": "kag/manifest.json",
+      "manifest": "kag/provider-template.json",
       "consumer": "aoa-kag registry/composition, abyss-stack federation, and MCP resources",
       "load_moment": "when a downstream consumer requests the portable ToS provider family or its currentness",
       "canonical_owner": "8Dionysus/aoa-kag for registry/composition; ToS derived exports own meaning",
-      "freshness": "source export, derived seam, local manifest/index family, and compact provider records; runtime graph status remains downstream",
-      "next_organ": "ToS derived-export owner -> local KAG validator -> aoa-kag registry/MCP consumer",
+      "freshness": "authored provider template and explicit external publication route; selected integration identity/currentness remains at its independent release owner",
+      "next_organ": "authored provider template -> explicit immutable export/publication -> selected aoa-kag consumer",
       "currentness_inputs": [
         "kag/AGENTS.md",
-        "kag/manifest.json",
-        "kag/provider_pin.json",
+        "kag/provider-template.json",
         "kag/README.md",
-        "scripts/validate_local_kag_provider.py",
-        "scripts/validate_local_segmented_kag_provider.py",
-        "kag/indexes/provider_readiness_index.json",
-        "kag/nodes/kag_export_capsule.json",
-        "kag/nodes/derived_export_route.json",
-        "kag/edges/kag_export_returns_to_route.json",
-        "kag/projections/mcp_source_return.json",
-        "ToS/derived-exports/kag_export.min.json",
-        "ToS/derived-exports/philosophy_graph_projection.min.json",
-        "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"
+        "kag/VALIDATION.md",
+        "rust/crates/tos-ops-mechanics-plan/src/provider_controls.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
+        "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+        "docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md"
       ],
       "generated_family": {
         "manifest": "kag/indexes/index_family.manifest.json",
         "segments": "kag/indexes/segments/",
         "receipt_root": "kag/receipts/index_family_budget/",
-        "freshness": "family digest, canonical generator check, segmented family validator, bounded provider adapter, and budget receipt",
-        "currentness_boundary": "separate generated-family carrier; the KAG family indexes this currentness read model, so hashing the raw family here would create a self-index cycle",
+        "freshness": "declares external release validation; selected artifact digest, receipt, source-return and consumer identity require explicit integration publication",
+        "currentness_boundary": "authored software route only; no external integration is selected or checked by this agent-surface verdict",
         "builder": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "validator": "aoa-kag:scripts/validate_repo_local_kag_family.py",
-        "consumer_adapter": "scripts/validate_local_segmented_kag_provider.py"
+        "consumer_adapter": "rust/crates/tos-ops-mechanics-plan/src/provider_controls.rs",
+        "scope": "external_integration_release",
+        "provider_template": "kag/provider-template.json",
+        "owner_route": "kag/AGENTS.md",
+        "publication_route": "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
+        "validation_route": "kag/VALIDATION.md"
       },
       "carrier_classes": [
         "machine_manifest",
@@ -386,19 +386,20 @@
     },
     {
       "id": "kag_currentness",
-      "first_route": "kag/manifest.json",
+      "first_route": "kag/provider-template.json",
       "skill_ids": [],
       "port_id": "kag_provider",
       "required_chain": [
-        "ToS derived export",
-        "derived KAG seam",
-        "local provider validation",
-        "aoa-kag/MCP consumer"
+        "authored provider template",
+        "explicit immutable ToS export",
+        "external integration publication",
+        "selected aoa-kag/MCP consumer"
       ],
       "mandatory_reading_depth": 5,
       "negative_controls": [
         "local provider is not runtime graph authority",
-        "generated record does not author ToS meaning"
+        "generated record does not author ToS meaning",
+        "software route validation does not check an unselected external integration"
       ]
     },
     {

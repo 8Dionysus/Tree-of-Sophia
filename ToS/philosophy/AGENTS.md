@@ -20,7 +20,7 @@ branch-shaped topology.
 | owner | `ToS/philosophy/AGENTS.md` and `ToS/philosophy/philosophy.manifest.json` |
 | next route | atlas row or source witness -> branch growth -> local graph workbench -> proposed nodes -> proposed relations -> relation pack -> canon promotion -> derived graph/export |
 | tools | trunk vocabularies, branch manifests, research packet contracts, source witness routes, graph view cards, local ledgers, canon route cards |
-| check | `scripts/validate_philosophy_topology.py` |
+| check | `rust/crates/tos-ops-mechanics-plan/src/philosophy_topology.rs` |
 
 ## Boundary Routes
 

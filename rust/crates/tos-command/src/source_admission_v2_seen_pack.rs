@@ -1,0 +1,1748 @@
+//! Held operation-local spill for the physical pack inventory used by native
+//! V2 cold closure. The selected rootset and exact auxiliary SQLite scope are
+//! fixed at construction; the segment-store callback alone can complete rows.
+
+use super::source_admission::AdmissionWorkBudget;
+use super::source_admission_packed_objects::PackedObjectLocationV2;
+use super::source_admission_segment_v2::{SourceRevisionRootsV2, decode_workspace_upper_bound};
+use rusqlite::{OptionalExtension, params, types::ValueRef};
+use std::{
+    cell::{Cell, RefCell},
+    fs::File,
+    mem::size_of,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Instant,
+};
+use tos_foundation::Digest256;
+use tos_segment_store::{
+    AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1, AuthenticatedTreePackSetV2,
+    FrameCoordinate, Result as SegmentResult, SegmentError, SegmentErrorCode,
+    SegmentOperationLimitsV1, SegmentOperationWorkV1, SegmentStore,
+};
+use tos_source_store::{
+    PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteConnection, PinnedSqliteIoBudget,
+    PinnedSqliteSpaceBudget,
+};
+
+const DIGEST_BYTES: usize = 32;
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum SpillPhase {
+    Observing,
+    Verifying,
+    Failed,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum HistoryPhase {
+    Loading,
+    Sealed,
+    Iterating,
+    Complete,
+    Failed,
+}
+
+pub(crate) struct V2ColdHistoryRow {
+    pub revision: [u8; DIGEST_BYTES],
+    pub base_revision: Option<[u8; DIGEST_BYTES]>,
+    pub raw: Vec<u8>,
+}
+
+pub(crate) fn history_row_holder_upper_bound(raw_bytes: usize) -> std::io::Result<usize> {
+    let sql_row = size_of::<V2ColdHistoryRow>()
+        .checked_add(raw_bytes)
+        .ok_or_else(|| invalid("V2 pack spill SQL row state overflow"))?;
+    let authenticated_row = size_of::<AuthenticatedTreeEntryV1>()
+        .checked_add(raw_bytes)
+        .and_then(|bytes| bytes.checked_add(DIGEST_BYTES))
+        .ok_or_else(|| invalid("V2 pack spill authenticated row state overflow"))?;
+    Ok(sql_row.max(authenticated_row))
+}
+
+/// Finite in-memory terms for the SQLite-backed exact digest set.
+///
+/// The SQLite main-file logical/allocation limits remain on the held request.
+/// `retained_operation_state_bytes` and `sqlite_native_overhead_bytes` are
+/// caller-owned terms in the same operation state bill; this type does not
+/// create a new state or storage grant.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct V2SeenPackSpillLimits {
+    /// Existing cumulative tree-node ceiling; distinct observed packs cannot
+    /// exceed the number of physical nodes traversed.
+    pub max_tree_nodes: u64,
+    /// Existing retained-history ceiling; the spill does not create a larger
+    /// row grant.
+    pub max_history_roots: u64,
+    /// Cumulative retained object-reference rows across all revisions.
+    pub max_object_rows: u64,
+    /// Producer/profile maximum for any one immutable packed payload segment.
+    pub max_pack_frames: u32,
+    /// Largest key in the selected authenticated tree profile, used to bound
+    /// the two keyed identity rows retained by the semantic cross-check.
+    pub max_identity_key_bytes: usize,
+    /// Source-owned maximum canonical history-row encoding.
+    pub max_history_row_bytes: usize,
+    pub cache_bytes: usize,
+    pub max_operation_state_bytes: usize,
+    pub retained_operation_state_bytes: usize,
+    pub sqlite_native_overhead_bytes: usize,
+}
+
+/// Owner-supplied scratch for one side of a cold source/target verification.
+/// The workspace FD, auxiliary request and finite cache/native overhead are
+/// selected under the original operation's grants.
+pub struct V2SeenPackSpillRequest {
+    pub workspace: File,
+    pub request: PinnedSqliteAuxRequest,
+    pub cache_bytes: usize,
+    pub sqlite_native_overhead_bytes: usize,
+}
+
+/// Independent held scratch requests for the source and fresh target. These
+/// scopes never share verified rows, even when the copied rootset is equal.
+pub struct V2SeenPackSpillRequests {
+    pub source: V2SeenPackSpillRequest,
+    pub target: V2SeenPackSpillRequest,
+}
+
+pub(crate) struct V2ColdPayloadFrameRow {
+    pub frame_index: u32,
+    pub digest: Digest256,
+    pub location: PackedObjectLocationV2,
+}
+
+impl V2SeenPackSpillRequests {
+    pub(crate) fn validate_for_operation(
+        &self,
+        io: &PinnedSqliteIoBudget,
+        auxiliary_space: &PinnedSqliteSpaceBudget,
+        deadline: Instant,
+        cancelled: &Arc<AtomicBool>,
+    ) -> std::io::Result<()> {
+        let source_cap = validate_request(&self.source, io, auxiliary_space, deadline, cancelled)?;
+        let target_cap = validate_request(&self.target, io, auxiliary_space, deadline, cancelled)?;
+        let remaining = auxiliary_space.snapshot();
+        let combined_cap = source_cap
+            .checked_add(target_cap)
+            .ok_or_else(|| invalid("V2 spill allocation ceiling overflow"))?;
+        if !remaining.ledger_consistent
+            || remaining.allocation_anomalies != 0
+            || remaining.reserved_current_bytes > remaining.declared_available_bytes
+            || combined_cap
+                > remaining
+                    .declared_available_bytes
+                    .saturating_sub(remaining.reserved_current_bytes)
+        {
+            return Err(invalid(
+                "V2 source and target spill ceilings exceed held auxiliary space",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn validate_request(
+    request: &V2SeenPackSpillRequest,
+    io: &PinnedSqliteIoBudget,
+    auxiliary_space: &PinnedSqliteSpaceBudget,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> std::io::Result<u64> {
+    let limits = request.request.limits;
+    let allocation_ceiling = [
+        limits.main_allocated_bytes,
+        limits.temp_db_allocated_bytes,
+        limits.main_journal_allocated_bytes,
+        limits.temp_journal_allocated_bytes,
+        limits.other_aux_aggregate_allocated_bytes,
+    ]
+    .into_iter()
+    .try_fold(0u64, |total, bytes| total.checked_add(bytes))
+    .ok_or_else(|| invalid("V2 spill auxiliary allocation ceiling overflow"))?;
+    if !request.request.io_budget.shares_with(io)
+        || !request.request.space_budget.shares_with(auxiliary_space)
+        || request.request.deadline != deadline
+        || !Arc::ptr_eq(&request.request.cancelled, cancelled)
+        || allocation_ceiling == 0
+        || request.cache_bytes == 0
+        || request.cache_bytes == usize::MAX
+        || request.sqlite_native_overhead_bytes == 0
+        || request.sqlite_native_overhead_bytes == usize::MAX
+    {
+        return Err(invalid(
+            "V2 spill request differs from the original operation envelope",
+        ));
+    }
+    Ok(allocation_ceiling)
+}
+
+impl V2SeenPackSpillLimits {
+    pub(crate) fn state_charge(self) -> std::io::Result<usize> {
+        let history_decode_workspace = decode_workspace_upper_bound(self.max_history_row_bytes)?;
+        let history_decoded_state = SourceRevisionRootsV2::retained_state_upper_bound_for_value(
+            self.max_history_row_bytes,
+        )?;
+        let history_row_state = history_row_holder_upper_bound(self.max_history_row_bytes)?
+            .checked_add(history_decode_workspace)
+            .and_then(|bytes| bytes.checked_add(history_decoded_state))
+            .ok_or_else(|| invalid("V2 pack spill history row state overflow"))?;
+        let payload_frame_cursor_state = size_of::<PackedObjectLocationV2>()
+            .checked_add(size_of::<Digest256>() * 2)
+            .and_then(|bytes| bytes.checked_add(64))
+            .ok_or_else(|| invalid("V2 packed payload row state overflow"))?;
+        let identity_pair_state = self
+            .max_identity_key_bytes
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(2 * size_of::<Vec<u8>>() + 4096))
+            .ok_or_else(|| invalid("V2 identity pair state overflow"))?;
+        let coordinate_state = usize::try_from(self.max_pack_frames)
+            .map_err(|_| invalid("V2 packed payload frame state overflow"))?
+            .checked_mul(size_of::<FrameCoordinate>())
+            .and_then(|bytes| bytes.checked_add(65_536))
+            .ok_or_else(|| invalid("V2 packed payload frame state overflow"))?;
+        let cache_kib = self.cache_bytes / 1024;
+        if self.max_tree_nodes == 0
+            || self.max_tree_nodes == u64::MAX
+            || self.max_history_roots == 0
+            || self.max_history_roots == u64::MAX
+            || self.max_object_rows == 0
+            || self.max_object_rows == u64::MAX
+            || self.max_pack_frames == 0
+            || self.max_pack_frames == u32::MAX
+            || self.max_identity_key_bytes == 0
+            || self.max_identity_key_bytes == usize::MAX
+            || self.max_history_row_bytes == 0
+            || self.max_history_row_bytes == usize::MAX
+            || cache_kib == 0
+            || cache_kib > i32::MAX as usize
+            || self.cache_bytes == usize::MAX
+            || self.sqlite_native_overhead_bytes == 0
+            || self.sqlite_native_overhead_bytes == usize::MAX
+            || self.max_operation_state_bytes == 0
+            || self.max_operation_state_bytes == usize::MAX
+        {
+            return Err(invalid("V2 pack spill profile is not finite"));
+        }
+        let charge = size_of::<V2SeenPackSpill>()
+            .checked_add(self.cache_bytes)
+            // Includes the ordered cursor, returned row, digest passed to the
+            // physical verifier, and one conversion/callback scratch copy.
+            .and_then(|bytes| bytes.checked_add(4 * DIGEST_BYTES))
+            // One bounded history row is resident at a time. The row holder
+            // is the larger of the authenticated stream entry and the SQL
+            // cursor's cloned BLOB row; it is accompanied by the full
+            // malformed-input parser/canonical workspace and typed roots
+            // retained while its closure is checked. SQLite's native
+            // row/page-cache residency is separately covered below.
+            .and_then(|bytes| bytes.checked_add(history_row_state))
+            .and_then(|bytes| bytes.checked_add(payload_frame_cursor_state))
+            .and_then(|bytes| bytes.checked_add(identity_pair_state))
+            .and_then(|bytes| bytes.checked_add(coordinate_state))
+            .and_then(|bytes| bytes.checked_add(self.sqlite_native_overhead_bytes))
+            .ok_or_else(|| invalid("V2 pack spill state charge overflow"))?;
+        if self
+            .retained_operation_state_bytes
+            .checked_add(charge)
+            .is_none_or(|bytes| bytes > self.max_operation_state_bytes)
+        {
+            return Err(invalid(
+                "V2 pack spill exceeds the held operation state bill",
+            ));
+        }
+        Ok(charge)
+    }
+}
+
+/// Creates a fresh spill for one held physical store verification. Callers
+/// must open a distinct spill for source and fresh-target closure, even when
+/// their copied selector and store metadata match.
+pub(crate) struct V2SeenPackSpill {
+    db: RefCell<PinnedSqliteConnection>,
+    _scope: PinnedSqliteAuxScope,
+    io: PinnedSqliteIoBudget,
+    space: PinnedSqliteSpaceBudget,
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+    physical_root: (u64, u64),
+    store_id: [u8; 16],
+    domain_digest: Digest256,
+    closure_binding: Digest256,
+    limits: V2SeenPackSpillLimits,
+    entries: Cell<u64>,
+    phase: Cell<SpillPhase>,
+    binding_checked: Cell<bool>,
+    history_entries: Cell<u64>,
+    history_phase: Cell<HistoryPhase>,
+    expected_object_rows: Cell<u64>,
+    actual_object_rows: Cell<u64>,
+    identity_expected_rows: Cell<u64>,
+    identity_inverse_rows: Cell<u64>,
+    payload_frame_rows: Cell<u64>,
+    packed_revision_count: Cell<u64>,
+    packed_phase: Cell<PackedObjectPhase>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum PackedObjectPhase {
+    Loading,
+    Verifying,
+    Complete,
+    Failed,
+}
+
+pub(crate) struct V2ColdPayloadPackRow {
+    pub segment_digest: [u8; DIGEST_BYTES],
+    pub segment_size: u64,
+    pub frame_count: u32,
+}
+
+impl V2SeenPackSpill {
+    pub(crate) fn open(
+        workspace: File,
+        request: PinnedSqliteAuxRequest,
+        physical_root: (u64, u64),
+        store_id: [u8; 16],
+        domain_digest: Digest256,
+        closure_binding: Digest256,
+        limits: V2SeenPackSpillLimits,
+    ) -> std::io::Result<Arc<Self>> {
+        limits.state_charge()?;
+        let io = request.io_budget.clone();
+        let space = request.space_budget.clone();
+        let deadline = request.deadline;
+        let cancelled = request.cancelled.clone();
+        let mut scope = PinnedSqliteAuxScope::new(workspace, request)
+            .map_err(|_| invalid("V2 pack spill auxiliary scope refused"))?;
+        let db = scope
+            .open_connection()
+            .map_err(|_| invalid("V2 pack spill auxiliary connection refused"))?;
+        configure_db(&db, limits.cache_bytes)?;
+        db.execute_batch(
+            "CREATE TABLE v2_cold_seen_pack(\
+                 digest BLOB NOT NULL PRIMARY KEY CHECK(length(digest)=32),\
+                 verified INTEGER NOT NULL CHECK(verified IN (0,1))\
+             ) WITHOUT ROWID;\
+             CREATE INDEX v2_cold_seen_pack_pending ON v2_cold_seen_pack(digest)\
+                 WHERE verified=0;\
+             CREATE TABLE v2_cold_history(\
+                 revision BLOB NOT NULL PRIMARY KEY CHECK(length(revision)=32),\
+                 base_revision BLOB CHECK(base_revision IS NULL OR length(base_revision)=32),\
+                 raw BLOB NOT NULL CHECK(length(raw)>0),\
+                 color INTEGER NOT NULL DEFAULT 0 CHECK(color IN (0,1,2)),\
+                 walk_root BLOB CHECK(walk_root IS NULL OR length(walk_root)=32)\
+             ) WITHOUT ROWID;\
+             CREATE INDEX v2_cold_history_unvisited ON v2_cold_history(revision)\
+                 WHERE color=0;\
+             CREATE INDEX v2_cold_history_walk ON v2_cold_history(walk_root)\
+                 WHERE color=1;\
+             CREATE TABLE v2_cold_object_expected(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 digest BLOB NOT NULL CHECK(length(digest)=32),\
+                 size BLOB CHECK(size IS NULL OR length(size)=8),\
+                 PRIMARY KEY(revision,digest)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE v2_cold_object_extent(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 digest BLOB NOT NULL CHECK(length(digest)=32),\
+                 size BLOB NOT NULL CHECK(length(size)=8),\
+                 segment_digest BLOB NOT NULL CHECK(length(segment_digest)=32),\
+                 segment_size BLOB NOT NULL CHECK(length(segment_size)=8),\
+                 frame_index BLOB NOT NULL CHECK(length(frame_index)=4),\
+                 frame_count BLOB NOT NULL CHECK(length(frame_count)=4),\
+                 header_offset BLOB NOT NULL CHECK(length(header_offset)=8),\
+                 PRIMARY KEY(revision,digest)\
+             ) WITHOUT ROWID;\
+             CREATE INDEX v2_cold_object_extent_pack ON v2_cold_object_extent(\
+                 segment_digest,frame_index);\
+             CREATE TABLE v2_cold_payload_frame(\
+                 segment_digest BLOB NOT NULL CHECK(length(segment_digest)=32),\
+                 frame_index BLOB NOT NULL CHECK(length(frame_index)=4),\
+                 segment_size BLOB NOT NULL CHECK(length(segment_size)=8),\
+                 frame_count BLOB NOT NULL CHECK(length(frame_count)=4),\
+                 digest BLOB NOT NULL CHECK(length(digest)=32),\
+                 size BLOB NOT NULL CHECK(length(size)=8),\
+                 header_offset BLOB NOT NULL CHECK(length(header_offset)=8),\
+                 PRIMARY KEY(segment_digest,frame_index)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE v2_cold_identity_expected(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 id BLOB NOT NULL CHECK(length(id)>0),\
+                 path BLOB NOT NULL CHECK(length(path)>0),\
+                 PRIMARY KEY(revision,id)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE v2_cold_identity_inverse(\
+                 revision BLOB NOT NULL CHECK(length(revision)=32),\
+                 path BLOB NOT NULL CHECK(length(path)>0),\
+                 id BLOB NOT NULL CHECK(length(id)>0),\
+                 PRIMARY KEY(revision,path,id),\
+                 UNIQUE(revision,id)\
+             ) WITHOUT ROWID;",
+        )
+        .map_err(sql_invalid)?;
+        let spill = Arc::new(Self {
+            db: RefCell::new(db),
+            _scope: scope,
+            io,
+            space,
+            deadline,
+            cancelled,
+            physical_root,
+            store_id,
+            domain_digest,
+            closure_binding,
+            limits,
+            entries: Cell::new(0),
+            phase: Cell::new(SpillPhase::Observing),
+            binding_checked: Cell::new(false),
+            history_entries: Cell::new(0),
+            history_phase: Cell::new(HistoryPhase::Loading),
+            expected_object_rows: Cell::new(0),
+            actual_object_rows: Cell::new(0),
+            identity_expected_rows: Cell::new(0),
+            identity_inverse_rows: Cell::new(0),
+            payload_frame_rows: Cell::new(0),
+            packed_revision_count: Cell::new(0),
+            packed_phase: Cell::new(PackedObjectPhase::Loading),
+        });
+        spill
+            .check_context()
+            .map_err(|_| invalid("V2 pack spill request context is unavailable"))?;
+        Ok(spill)
+    }
+
+    pub(crate) fn state_charge(&self) -> std::io::Result<usize> {
+        self.limits.state_charge()
+    }
+
+    pub(crate) fn packed_verifier_caller_state_bytes(&self) -> std::io::Result<usize> {
+        let coordinate_state = usize::try_from(self.limits.max_pack_frames)
+            .map_err(|_| invalid("V2 packed payload frame state overflow"))?
+            .checked_mul(size_of::<FrameCoordinate>())
+            .and_then(|bytes| bytes.checked_add(65_536))
+            .ok_or_else(|| invalid("V2 packed payload frame state overflow"))?;
+        self.limits
+            .retained_operation_state_bytes
+            .checked_add(self.limits.state_charge()?)
+            .and_then(|bytes| bytes.checked_sub(coordinate_state))
+            .ok_or_else(|| invalid("V2 packed verifier state overflow"))
+    }
+
+    pub(crate) fn has_packed_revisions(&self) -> bool {
+        self.packed_revision_count.get() != 0
+    }
+
+    pub(crate) fn observe_history(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        base_revision: Option<[u8; DIGEST_BYTES]>,
+        raw: &[u8],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            if self.history_phase.get() != HistoryPhase::Loading
+                || raw.is_empty()
+                || raw.len() > self.limits.max_history_row_bytes
+            {
+                return Err(invalid("V2 cold history row is outside its finite profile"));
+            }
+            let next_entries = self
+                .history_entries
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_history_roots)
+                .ok_or_else(|| invalid("V2 cold history row ceiling exceeded"))?;
+            let base = base_revision.as_ref().map(|value| value.as_slice());
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_history(revision,base_revision,raw) VALUES(?1,?2,?3)",
+                    params![revision.as_slice(), base, raw],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid(
+                    "V2 cold history insertion changed an unexpected row count",
+                ));
+            }
+            self.history_entries.set(next_entries);
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))
+        })();
+        if result.is_err() {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+
+    /// Seal the authenticated stream after its true EOF, check all base links,
+    /// and walk indexed color rows without a resident history vector or an
+    /// in-memory DFS stack. Each row transitions through the colors at most
+    /// once, so the number of row visits and updates stays linear in history.
+    pub(crate) fn seal_history(
+        &self,
+        current_revision: [u8; DIGEST_BYTES],
+        expected_entries: u64,
+    ) -> std::io::Result<()> {
+        let result = self.seal_history_inner(current_revision, expected_entries);
+        if result.is_err() {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+
+    fn seal_history_inner(
+        &self,
+        current_revision: [u8; DIGEST_BYTES],
+        expected_entries: u64,
+    ) -> std::io::Result<()> {
+        self.check_context()
+            .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+        if self.history_phase.get() != HistoryPhase::Loading
+            || self.history_entries.get() != expected_entries
+            || expected_entries == 0
+            || expected_entries > self.limits.max_history_roots
+        {
+            return Err(invalid("V2 cold history EOF or row count differs"));
+        }
+        let db = self.db.borrow();
+        let current_exists = db
+            .query_row(
+                "SELECT 1 FROM v2_cold_history WHERE revision=?1",
+                params![current_revision.as_slice()],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql_invalid)?
+            .is_some();
+        if !current_exists {
+            return Err(invalid("V2 cold current revision is absent from history"));
+        }
+        let missing_base = db
+            .query_row(
+                "SELECT child.revision FROM v2_cold_history AS child \
+                 WHERE child.base_revision IS NOT NULL \
+                   AND NOT EXISTS (SELECT 1 FROM v2_cold_history AS parent \
+                                   WHERE parent.revision=child.base_revision) LIMIT 1",
+                [],
+                digest_row,
+            )
+            .optional()
+            .map_err(sql_invalid)?;
+        drop(db);
+        if missing_base.is_some() {
+            return Err(invalid("V2 cold history base revision is absent"));
+        }
+
+        loop {
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            let start = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT revision FROM v2_cold_history WHERE color=0 ORDER BY revision LIMIT 1",
+                    [],
+                    digest_row,
+                )
+                .optional()
+                .map_err(sql_invalid)?;
+            let Some(start) = start else { break };
+            let mut current = start;
+            let mut hops = 0u64;
+            loop {
+                self.check_context()
+                    .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+                let (base, color) = self
+                    .db
+                    .borrow()
+                    .query_row(
+                        "SELECT base_revision,color FROM v2_cold_history WHERE revision=?1",
+                        params![current.as_slice()],
+                        |row| {
+                            let base = match row.get_ref(0)? {
+                                ValueRef::Null => None,
+                                ValueRef::Blob(raw) if raw.len() == DIGEST_BYTES => {
+                                    let mut digest = [0; DIGEST_BYTES];
+                                    digest.copy_from_slice(raw);
+                                    Some(digest)
+                                }
+                                _ => return Err(rusqlite::Error::InvalidQuery),
+                            };
+                            Ok((base, row.get::<_, i64>(1)?))
+                        },
+                    )
+                    .optional()
+                    .map_err(sql_invalid)?
+                    .ok_or_else(|| invalid("V2 cold history walk lost a revision"))?;
+                match color {
+                    0 => {
+                        let changed = self
+                            .db
+                            .borrow()
+                            .execute(
+                                "UPDATE v2_cold_history SET color=1,walk_root=?1 \
+                                 WHERE revision=?2 AND color=0",
+                                params![start.as_slice(), current.as_slice()],
+                            )
+                            .map_err(sql_invalid)?;
+                        if changed != 1 {
+                            return Err(invalid("V2 cold history walk color changed unexpectedly"));
+                        }
+                        hops = hops
+                            .checked_add(1)
+                            .filter(|count| *count <= self.limits.max_history_roots)
+                            .ok_or_else(|| invalid("V2 cold history cycle detected"))?;
+                        match base {
+                            Some(base) => current = base,
+                            None => break,
+                        }
+                    }
+                    1 => return Err(invalid("V2 cold history cycle detected")),
+                    2 => break,
+                    _ => return Err(invalid("V2 cold history walk color is invalid")),
+                }
+            }
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "UPDATE v2_cold_history SET color=2,walk_root=NULL \
+                     WHERE color=1 AND walk_root=?1",
+                    params![start.as_slice()],
+                )
+                .map_err(sql_invalid)?;
+            if changed == 0 {
+                return Err(invalid("V2 cold history walk made no progress"));
+            }
+        }
+        self.check_context()
+            .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+        self.history_phase.set(HistoryPhase::Sealed);
+        Ok(())
+    }
+
+    pub(crate) fn next_history(
+        &self,
+        after: Option<[u8; DIGEST_BYTES]>,
+    ) -> std::io::Result<Option<V2ColdHistoryRow>> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            if !matches!(
+                self.history_phase.get(),
+                HistoryPhase::Sealed | HistoryPhase::Iterating
+            ) {
+                return Err(invalid("V2 cold history cursor is not sealed"));
+            }
+            let row = {
+                let db = self.db.borrow();
+                let query = match after {
+                    Some(_) => {
+                        "SELECT revision,base_revision,raw FROM v2_cold_history \
+                                WHERE revision>?1 ORDER BY revision LIMIT 1"
+                    }
+                    None => {
+                        "SELECT revision,base_revision,raw FROM v2_cold_history \
+                             ORDER BY revision LIMIT 1"
+                    }
+                };
+                let decode = |row: &rusqlite::Row<'_>| {
+                    let revision = digest_row(row)?;
+                    let base_revision = match row.get_ref(1)? {
+                        ValueRef::Null => None,
+                        ValueRef::Blob(raw) if raw.len() == DIGEST_BYTES => {
+                            let mut digest = [0; DIGEST_BYTES];
+                            digest.copy_from_slice(raw);
+                            Some(digest)
+                        }
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    let raw = match row.get_ref(2)? {
+                        ValueRef::Blob(raw)
+                            if !raw.is_empty()
+                                && raw.len() <= self.limits.max_history_row_bytes =>
+                        {
+                            let mut bytes = Vec::new();
+                            bytes
+                                .try_reserve_exact(raw.len())
+                                .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                            bytes.extend_from_slice(raw);
+                            bytes
+                        }
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    Ok(V2ColdHistoryRow {
+                        revision,
+                        base_revision,
+                        raw,
+                    })
+                };
+                if let Some(after) = after {
+                    db.query_row(query, params![after.as_slice()], decode)
+                        .optional()
+                } else {
+                    db.query_row(query, [], decode).optional()
+                }
+                .map_err(sql_invalid)?
+            };
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            match row {
+                Some(row) => {
+                    self.history_phase.set(HistoryPhase::Iterating);
+                    Ok(Some(row))
+                }
+                None => {
+                    self.history_phase.set(HistoryPhase::Complete);
+                    Ok(None)
+                }
+            }
+        })();
+        if result.is_err() {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn finish_history(&self, processed: u64) -> std::io::Result<()> {
+        self.check_context()
+            .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+        if self.history_phase.get() != HistoryPhase::Complete
+            || processed != self.history_entries.get()
+            || processed == 0
+        {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+            return Err(invalid("V2 cold history ordered EOF differs"));
+        }
+        Ok(())
+    }
+
+    /// Capture the ID->path rows so a revision's optional path->ID tree can be
+    /// checked as an exact inverse during cold closure. Values stay in the
+    /// selected AUX SQLite scope; no corpus-sized Rust map is retained.
+    pub(crate) fn observe_identity_binding(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        id: &[u8],
+        path: &[u8],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 identity cross-check context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading
+                || id.is_empty()
+                || id.len() > self.limits.max_identity_key_bytes
+                || id.contains(&0)
+                || path.is_empty()
+                || path.len() > self.limits.max_identity_key_bytes
+            {
+                return Err(invalid("V2 identity cross-check row exceeds profile"));
+            }
+            let next = self
+                .identity_expected_rows
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_object_rows)
+                .ok_or_else(|| invalid("V2 identity cross-check row ceiling exceeded"))?;
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_identity_expected(revision,id,path) VALUES(?1,?2,?3)",
+                    params![revision.as_slice(), id, path],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid("V2 identity cross-check row insertion differs"));
+            }
+            self.identity_expected_rows.set(next);
+            self.check_context()
+                .map_err(|_| invalid("V2 identity cross-check context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    /// Capture one `path\0id` row from the reverse index and bind it to the
+    /// exact ID->path member row already observed for this revision.
+    pub(crate) fn observe_identity_path_key(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        key: &[u8],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 identity inverse is not loading"));
+            }
+            let separator = key
+                .iter()
+                .position(|byte| *byte == 0)
+                .ok_or_else(|| invalid("V2 identity inverse delimiter absent"))?;
+            let (path, suffix) = key.split_at(separator);
+            let id = &suffix[1..];
+            if path.is_empty()
+                || id.is_empty()
+                || path.len() > self.limits.max_identity_key_bytes
+                || id.len() > self.limits.max_identity_key_bytes
+                || id.contains(&0)
+            {
+                return Err(invalid("V2 identity inverse key exceeds profile"));
+            }
+            let next = self
+                .identity_inverse_rows
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_object_rows)
+                .ok_or_else(|| invalid("V2 identity inverse row ceiling exceeded"))?;
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_identity_inverse(revision,path,id) VALUES(?1,?2,?3)",
+                    params![revision.as_slice(), path, id],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid("V2 identity inverse row insertion differs"));
+            }
+            self.identity_inverse_rows.set(next);
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn finish_identity_paths_revision(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        expected_count: u64,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 identity inverse is not loading"));
+            }
+            let (expected, actual): (u64, u64) = {
+                let db = self.db.borrow();
+                (
+                    db.query_row(
+                        "SELECT count(*) FROM v2_cold_identity_expected WHERE revision=?1",
+                        params![revision.as_slice()],
+                        |row| row.get(0),
+                    )
+                    .map_err(sql_invalid)?,
+                    db.query_row(
+                        "SELECT count(*) FROM v2_cold_identity_inverse WHERE revision=?1",
+                        params![revision.as_slice()],
+                        |row| row.get(0),
+                    )
+                    .map_err(sql_invalid)?,
+                )
+            };
+            let mismatch = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT 1 FROM v2_cold_identity_expected AS expected \
+                     LEFT JOIN v2_cold_identity_inverse AS actual \
+                       ON actual.revision=expected.revision AND actual.id=expected.id \
+                     WHERE expected.revision=?1 AND \
+                       (actual.id IS NULL OR actual.path!=expected.path) LIMIT 1",
+                    params![revision.as_slice()],
+                    |_| Ok(()),
+                )
+                .optional()
+                .map_err(sql_invalid)?
+                .is_some()
+                || self
+                    .db
+                    .borrow()
+                    .query_row(
+                        "SELECT 1 FROM v2_cold_identity_inverse AS actual \
+                         LEFT JOIN v2_cold_identity_expected AS expected \
+                           ON expected.revision=actual.revision AND expected.id=actual.id \
+                         WHERE actual.revision=?1 AND \
+                           (expected.id IS NULL OR expected.path!=actual.path) LIMIT 1",
+                        params![revision.as_slice()],
+                        |_| Ok(()),
+                    )
+                    .optional()
+                    .map_err(sql_invalid)?
+                    .is_some();
+            if expected != expected_count || actual != expected_count || mismatch {
+                return Err(invalid(
+                    "V2 inverse identity root differs from identity root",
+                ));
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 identity inverse context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    /// Record one member or retirement digest expected by a packed revision.
+    /// A null size is reserved for retired target bytes whose historical size
+    /// is not part of the V2 retirement tuple; the digest remains mandatory.
+    pub(crate) fn expect_packed_object(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        digest: Digest256,
+        expected_size: Option<u64>,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 packed-object inventory is not loading"));
+            }
+            let digest_bytes = *digest.as_bytes();
+            let encoded_size = expected_size.map(u64_bytes);
+            let existing = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT size FROM v2_cold_object_expected WHERE revision=?1 AND digest=?2",
+                    params![revision.as_slice(), digest_bytes.as_slice()],
+                    |row| optional_u64_blob(row, 0),
+                )
+                .optional()
+                .map_err(sql_invalid)?;
+            match existing {
+                Some(old) => {
+                    if old.is_some() && encoded_size.is_some() && old != encoded_size {
+                        return Err(invalid("V2 packed-object expected sizes conflict"));
+                    }
+                    if old.is_none() && encoded_size.is_some() {
+                        let changed = self
+                            .db
+                            .borrow()
+                            .execute(
+                                "UPDATE v2_cold_object_expected SET size=?3 WHERE revision=?1 AND digest=?2 AND size IS NULL",
+                                params![revision.as_slice(), digest_bytes.as_slice(), encoded_size.as_ref().map(|bytes| bytes.as_slice())],
+                            )
+                            .map_err(sql_invalid)?;
+                        if changed != 1 {
+                            return Err(invalid("V2 packed-object expected size update differs"));
+                        }
+                    }
+                }
+                None => {
+                    let next = self
+                        .expected_object_rows
+                        .get()
+                        .checked_add(1)
+                        .filter(|count| *count <= self.limits.max_object_rows)
+                        .ok_or_else(|| invalid("V2 packed-object expected row ceiling exceeded"))?;
+                    let changed = self
+                        .db
+                        .borrow()
+                        .execute(
+                            "INSERT INTO v2_cold_object_expected(revision,digest,size) VALUES(?1,?2,?3)",
+                            params![revision.as_slice(), digest_bytes.as_slice(), encoded_size.as_ref().map(|bytes| bytes.as_slice())],
+                        )
+                        .map_err(sql_invalid)?;
+                    if changed != 1 {
+                        return Err(invalid("V2 packed-object expected insert differs"));
+                    }
+                    self.expected_object_rows.set(next);
+                }
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    /// Record the exact authenticated extent row and union its immutable
+    /// physical coordinate into the bounded per-operation pack inventory.
+    pub(crate) fn observe_packed_extent(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        digest: Digest256,
+        location: PackedObjectLocationV2,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading
+                || location.frame_count > self.limits.max_pack_frames
+            {
+                return Err(invalid("V2 packed-object extent exceeds its profile"));
+            }
+            let digest_bytes = *digest.as_bytes();
+            let segment_bytes = *location.segment_digest.as_bytes();
+            let size = u64_bytes(location.size);
+            let segment_size = u64_bytes(location.segment_size);
+            let frame_index = u32_bytes(location.frame_index);
+            let frame_count = u32_bytes(location.frame_count);
+            let header_offset = u64_bytes(location.header_offset);
+            let next = self
+                .actual_object_rows
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_object_rows)
+                .ok_or_else(|| invalid("V2 packed-object extent row ceiling exceeded"))?;
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_object_extent(\
+                         revision,digest,size,segment_digest,segment_size,frame_index,frame_count,header_offset\
+                     ) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
+                    params![
+                        revision.as_slice(),
+                        digest_bytes.as_slice(),
+                        size.as_slice(),
+                        segment_bytes.as_slice(),
+                        segment_size.as_slice(),
+                        frame_index.as_slice(),
+                        frame_count.as_slice(),
+                        header_offset.as_slice(),
+                    ],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid("V2 packed-object extent insertion differs"));
+            }
+            self.actual_object_rows.set(next);
+
+            let existing = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT segment_size,frame_count,digest,size,header_offset \
+                     FROM v2_cold_payload_frame WHERE segment_digest=?1 AND frame_index=?2",
+                    params![segment_bytes.as_slice(), frame_index.as_slice()],
+                    |row| {
+                        Ok((
+                            u64_blob(row, 0)?,
+                            u32_blob(row, 1)?,
+                            digest_row_at(row, 2)?,
+                            u64_blob(row, 3)?,
+                            u64_blob(row, 4)?,
+                        ))
+                    },
+                )
+                .optional()
+                .map_err(sql_invalid)?;
+            let expected = (
+                location.segment_size,
+                location.frame_count,
+                digest_bytes,
+                location.size,
+                location.header_offset,
+            );
+            if let Some(existing) = existing {
+                if existing != expected {
+                    return Err(invalid("V2 packed frame is multiply bound"));
+                }
+            } else {
+                let next = self
+                    .payload_frame_rows
+                    .get()
+                    .checked_add(1)
+                    .filter(|count| *count <= self.limits.max_object_rows)
+                    .ok_or_else(|| invalid("V2 packed-frame row ceiling exceeded"))?;
+                let changed = self
+                    .db
+                    .borrow()
+                    .execute(
+                        "INSERT INTO v2_cold_payload_frame(\
+                             segment_digest,frame_index,segment_size,frame_count,digest,size,header_offset\
+                         ) VALUES(?1,?2,?3,?4,?5,?6,?7)",
+                        params![
+                            segment_bytes.as_slice(),
+                            frame_index.as_slice(),
+                            segment_size.as_slice(),
+                            frame_count.as_slice(),
+                            digest_bytes.as_slice(),
+                            size.as_slice(),
+                            header_offset.as_slice(),
+                        ],
+                    )
+                    .map_err(sql_invalid)?;
+                if changed != 1 {
+                    return Err(invalid("V2 packed-frame row insertion differs"));
+                }
+                self.payload_frame_rows.set(next);
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn finish_packed_revision(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading {
+                return Err(invalid("V2 packed-object inventory is not loading"));
+            }
+            let missing_or_size_mismatch = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT 1 FROM v2_cold_object_expected AS expected \
+                     LEFT JOIN v2_cold_object_extent AS actual \
+                       ON actual.revision=expected.revision AND actual.digest=expected.digest \
+                     WHERE expected.revision=?1 AND \
+                       (actual.digest IS NULL OR (expected.size IS NOT NULL AND expected.size!=actual.size)) LIMIT 1",
+                    params![revision.as_slice()],
+                    |_| Ok(()),
+                )
+                .optional()
+                .map_err(sql_invalid)?
+                .is_some();
+            let orphan = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT 1 FROM v2_cold_object_extent AS actual \
+                     LEFT JOIN v2_cold_object_expected AS expected \
+                       ON expected.revision=actual.revision AND expected.digest=actual.digest \
+                     WHERE actual.revision=?1 AND expected.digest IS NULL LIMIT 1",
+                    params![revision.as_slice()],
+                    |_| Ok(()),
+                )
+                .optional()
+                .map_err(sql_invalid)?
+                .is_some();
+            if missing_or_size_mismatch || orphan {
+                return Err(invalid(
+                    "V2 packed extent root differs from revision object closure",
+                ));
+            }
+            let next = self
+                .packed_revision_count
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_history_roots)
+                .ok_or_else(|| invalid("V2 packed revision closure count exceeded"))?;
+            self.packed_revision_count.set(next);
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn verify_packed_payload_segments(
+        &self,
+        segment: &SegmentStore,
+        segment_limits: tos_segment_store::SegmentLimits,
+        io_ledger: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        max_working_state_bytes: usize,
+        caller_live_state_bytes: usize,
+        work: AdmissionWorkBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            segment_limits
+                .validate()
+                .map_err(|_| invalid("V2 packed segment limits differ"))?;
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            if self.packed_phase.get() != PackedObjectPhase::Loading
+                || max_working_state_bytes == 0
+                || max_working_state_bytes == usize::MAX
+                || caller_live_state_bytes >= max_working_state_bytes
+            {
+                return Err(invalid("V2 packed-object verifier profile differs"));
+            }
+            self.packed_phase.set(PackedObjectPhase::Verifying);
+            let mut previous = None;
+            let mut processed = 0u64;
+            while let Some(pack) = self.next_payload_pack(previous)? {
+                self.check_context()
+                    .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+                if previous.is_some_and(|prior| pack.segment_digest <= prior)
+                    || pack.frame_count == 0
+                    || pack.frame_count > self.limits.max_pack_frames
+                    || pack.frame_count > segment_limits.max_frames
+                    || pack.segment_size > segment_limits.max_segment_bytes
+                {
+                    return Err(invalid("V2 packed payload pack inventory differs"));
+                }
+                let remaining = work.remaining()?;
+                if remaining == 0 {
+                    return Err(invalid("V2 image shared work ceiling exhausted"));
+                }
+                let mut debit = || work.charge(()).is_ok();
+                let mut operation_work = SegmentOperationWorkV1::default();
+                let operation_limits = SegmentOperationLimitsV1 {
+                    max_working_state_bytes,
+                    caller_live_state_bytes,
+                    max_work_bytes: pack.segment_size,
+                    max_work_units: remaining,
+                };
+                let coordinates = segment
+                    .verify_packed_segment_accounted(
+                        Digest256::from_bytes(pack.segment_digest),
+                        pack.segment_size,
+                        pack.frame_count,
+                        io_ledger.clone(),
+                        operation_limits,
+                        deadline,
+                        cancelled,
+                        &mut debit,
+                        &mut operation_work,
+                    )
+                    .map_err(|_| invalid("V2 packed payload segment closure failed"))?;
+                if coordinates.len() != pack.frame_count as usize {
+                    return Err(invalid("V2 packed payload frame coverage differs"));
+                }
+                let mut frame_after = None;
+                let mut seen = 0u32;
+                while let Some(row) = self.next_payload_frame(pack.segment_digest, frame_after)? {
+                    self.check_context()
+                        .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+                    let Some(coordinate) = coordinates.get(row.frame_index as usize) else {
+                        return Err(invalid("V2 packed payload extent index exceeds pack"));
+                    };
+                    if frame_after.is_some_and(|prior| row.frame_index <= prior)
+                        || row.frame_index != seen
+                        || row.location.segment_digest.as_bytes() != &pack.segment_digest
+                        || row.location.segment_size != pack.segment_size
+                        || row.location.frame_count != pack.frame_count
+                        || coordinate.header_offset != row.location.header_offset
+                        || coordinate.size_bytes != row.location.size
+                        || coordinate.sha256 != row.digest
+                    {
+                        return Err(invalid("V2 packed payload extent coordinate differs"));
+                    }
+                    seen = seen
+                        .checked_add(1)
+                        .ok_or_else(|| invalid("V2 packed payload frame count overflow"))?;
+                    frame_after = Some(row.frame_index);
+                }
+                if seen != pack.frame_count {
+                    return Err(invalid("V2 packed payload segment has unreferenced frames"));
+                }
+                processed = processed
+                    .checked_add(1)
+                    .filter(|count| *count <= self.limits.max_object_rows)
+                    .ok_or_else(|| invalid("V2 packed payload pack count exceeded"))?;
+                previous = Some(pack.segment_digest);
+            }
+            self.check_context()
+                .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+            self.packed_phase.set(PackedObjectPhase::Complete);
+            Ok(())
+        })();
+        if result.is_err() {
+            self.packed_phase.set(PackedObjectPhase::Failed);
+        }
+        result
+    }
+
+    fn next_payload_pack(
+        &self,
+        after: Option<[u8; DIGEST_BYTES]>,
+    ) -> std::io::Result<Option<V2ColdPayloadPackRow>> {
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        let row = {
+            let db = self.db.borrow();
+            let digest: Option<[u8; DIGEST_BYTES]> = if let Some(after) = after {
+                db.query_row(
+                    "SELECT segment_digest FROM v2_cold_payload_frame WHERE segment_digest>?1 \
+                     GROUP BY segment_digest ORDER BY segment_digest LIMIT 1",
+                    params![after.as_slice()],
+                    digest_row,
+                )
+                .optional()
+            } else {
+                db.query_row(
+                    "SELECT segment_digest FROM v2_cold_payload_frame \
+                     GROUP BY segment_digest ORDER BY segment_digest LIMIT 1",
+                    [],
+                    digest_row,
+                )
+                .optional()
+            }
+            .map_err(sql_invalid)?;
+            if let Some(digest) = digest {
+                let (segment_size, frame_count, row_count) = db
+                    .query_row(
+                        "SELECT min(segment_size),min(frame_count),count(*) \
+                         FROM v2_cold_payload_frame WHERE segment_digest=?1",
+                        params![digest.as_slice()],
+                        |row| Ok((u64_blob(row, 0)?, u32_blob(row, 1)?, row.get::<_, u64>(2)?)),
+                    )
+                    .map_err(sql_invalid)?;
+                let inconsistent = db
+                    .query_row(
+                        "SELECT 1 FROM v2_cold_payload_frame WHERE segment_digest=?1 \
+                         AND (segment_size!=?2 OR frame_count!=?3) LIMIT 1",
+                        params![
+                            digest.as_slice(),
+                            u64_bytes(segment_size).as_slice(),
+                            u32_bytes(frame_count).as_slice()
+                        ],
+                        |_| Ok(()),
+                    )
+                    .optional()
+                    .map_err(sql_invalid)?
+                    .is_some();
+                if inconsistent || row_count != u64::from(frame_count) {
+                    return Err(invalid("V2 packed payload pack inventory is not bijective"));
+                }
+                Some(V2ColdPayloadPackRow {
+                    segment_digest: digest,
+                    segment_size,
+                    frame_count,
+                })
+            } else {
+                None
+            }
+        };
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        Ok(row)
+    }
+
+    fn next_payload_frame(
+        &self,
+        segment_digest: [u8; DIGEST_BYTES],
+        after: Option<u32>,
+    ) -> std::io::Result<Option<V2ColdPayloadFrameRow>> {
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        let db = self.db.borrow();
+        let decode = |row: &rusqlite::Row<'_>| {
+            let frame_index = u32_blob(row, 0)?;
+            let segment_size = u64_blob(row, 1)?;
+            let frame_count = u32_blob(row, 2)?;
+            let digest = Digest256::from_bytes(digest_row_at(row, 3)?);
+            let size = u64_blob(row, 4)?;
+            let header_offset = u64_blob(row, 5)?;
+            Ok(V2ColdPayloadFrameRow {
+                frame_index,
+                digest,
+                location: PackedObjectLocationV2 {
+                    size,
+                    segment_digest: Digest256::from_bytes(segment_digest),
+                    segment_size,
+                    frame_index,
+                    frame_count,
+                    header_offset,
+                },
+            })
+        };
+        let row = if let Some(after) = after {
+            db.query_row(
+                "SELECT frame_index,segment_size,frame_count,digest,size,header_offset \
+                 FROM v2_cold_payload_frame WHERE segment_digest=?1 AND frame_index>?2 \
+                 ORDER BY frame_index LIMIT 1",
+                params![segment_digest.as_slice(), u32_bytes(after).as_slice()],
+                decode,
+            )
+            .optional()
+        } else {
+            db.query_row(
+                "SELECT frame_index,segment_size,frame_count,digest,size,header_offset \
+                 FROM v2_cold_payload_frame WHERE segment_digest=?1 \
+                 ORDER BY frame_index LIMIT 1",
+                params![segment_digest.as_slice()],
+                decode,
+            )
+            .optional()
+        }
+        .map_err(sql_invalid)?;
+        drop(db);
+        self.check_context()
+            .map_err(|_| invalid("V2 packed-object context is unavailable"))?;
+        Ok(row)
+    }
+
+    fn check_context(&self) -> SegmentResult<()> {
+        if self.phase.get() == SpillPhase::Failed {
+            return Err(segment_error(
+                SegmentErrorCode::BudgetExceeded,
+                "V2 pack spill is terminal after a prior refusal",
+            ));
+        }
+        if Instant::now() >= self.deadline {
+            return Err(segment_error(
+                SegmentErrorCode::DeadlineExceeded,
+                "V2 pack spill deadline exceeded",
+            ));
+        }
+        if self.cancelled.load(Ordering::Acquire) {
+            return Err(segment_error(
+                SegmentErrorCode::Cancelled,
+                "V2 pack spill cancelled",
+            ));
+        }
+        if self.io.snapshot().failure.is_some() {
+            return Err(segment_error(
+                SegmentErrorCode::BudgetExceeded,
+                "V2 pack spill shares a failed I/O ledger",
+            ));
+        }
+        let space = self.space.snapshot();
+        if !space.ledger_consistent || space.allocation_anomalies != 0 {
+            return Err(segment_error(
+                SegmentErrorCode::BudgetExceeded,
+                "V2 pack spill shares a failed physical-space ledger",
+            ));
+        }
+        Ok(())
+    }
+
+    fn observe_inner(&self, digest: Digest256) -> SegmentResult<()> {
+        self.check_context()?;
+        if !self.binding_checked.get() || self.phase.get() != SpillPhase::Observing {
+            return Err(segment_error(
+                SegmentErrorCode::InvalidReceipt,
+                "V2 pack spill is not bound for observation",
+            ));
+        }
+        let bytes = *digest.as_bytes();
+        let existing = self
+            .db
+            .borrow()
+            .query_row(
+                "SELECT verified FROM v2_cold_seen_pack WHERE digest=?1",
+                params![bytes.as_slice()],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()
+            .map_err(|_| segment_error(SegmentErrorCode::Io, "V2 pack spill lookup failed"))?;
+        match existing {
+            Some(0 | 1) => return self.check_context(),
+            Some(_) => {
+                return Err(segment_error(
+                    SegmentErrorCode::InvalidFormat,
+                    "V2 pack spill row state differs",
+                ));
+            }
+            None => {}
+        }
+        let next_entries = self
+            .entries
+            .get()
+            .checked_add(1)
+            .filter(|count| *count <= self.limits.max_tree_nodes)
+            .ok_or_else(|| {
+                segment_error(
+                    SegmentErrorCode::BudgetExceeded,
+                    "V2 pack spill distinct digest ceiling exceeded",
+                )
+            })?;
+        let changed = self
+            .db
+            .borrow()
+            .execute(
+                "INSERT INTO v2_cold_seen_pack(digest,verified) VALUES(?1,0)",
+                params![bytes.as_slice()],
+            )
+            .map_err(|_| segment_error(SegmentErrorCode::Io, "V2 pack spill insert failed"))?;
+        if changed != 1 {
+            return Err(segment_error(
+                SegmentErrorCode::InvalidFormat,
+                "V2 pack spill insertion changed an unexpected row count",
+            ));
+        }
+        self.entries.set(next_entries);
+        self.check_context()
+    }
+
+    fn next_pending(
+        &self,
+        after: Option<[u8; DIGEST_BYTES]>,
+    ) -> SegmentResult<Option<[u8; DIGEST_BYTES]>> {
+        self.check_context()?;
+        let db = self.db.borrow();
+        let query = match after {
+            Some(_) => {
+                "SELECT digest FROM v2_cold_seen_pack WHERE verified=0 AND digest>?1 ORDER BY digest LIMIT 1"
+            }
+            None => "SELECT digest FROM v2_cold_seen_pack WHERE verified=0 ORDER BY digest LIMIT 1",
+        };
+        let value = if let Some(after) = after {
+            db.query_row(query, params![after.as_slice()], digest_row)
+                .optional()
+        } else {
+            db.query_row(query, [], digest_row).optional()
+        }
+        .map_err(|_| segment_error(SegmentErrorCode::Io, "V2 pack spill ordered read failed"))?;
+        drop(db);
+        self.check_context()?;
+        Ok(value)
+    }
+
+    fn mark_verified(&self, digest: [u8; DIGEST_BYTES]) -> SegmentResult<()> {
+        self.check_context()?;
+        if self.phase.get() != SpillPhase::Verifying {
+            return Err(segment_error(
+                SegmentErrorCode::InvalidReceipt,
+                "V2 pack spill is not verifying pending rows",
+            ));
+        }
+        let changed = self
+            .db
+            .borrow()
+            .execute(
+                "UPDATE v2_cold_seen_pack SET verified=1 WHERE digest=?1 AND verified=0",
+                params![digest.as_slice()],
+            )
+            .map_err(|_| segment_error(SegmentErrorCode::Io, "V2 pack spill completion failed"))?;
+        if changed != 1 {
+            return Err(segment_error(
+                SegmentErrorCode::InvalidFormat,
+                "V2 pack spill pending row changed unexpectedly",
+            ));
+        }
+        self.check_context()
+    }
+}
+
+// SAFETY: this implementation holds one private auxiliary SQLite database
+// whose request is fixed at construction. All digest writes are exact 32-byte
+// primary-key inserts under a finite row cap. Pending rows are traversed by a
+// binary-key cursor and changed to verified only after SegmentStore's supplied
+// physical read, digest verification and packed-frame scan succeeds. Any error
+// makes the instance terminal, and each source/target closure gets a new scope.
+unsafe impl AuthenticatedTreePackSetV2 for V2SeenPackSpill {
+    fn check_binding(
+        &self,
+        physical_root: (u64, u64),
+        store_id: [u8; 16],
+        domain_digest: Digest256,
+        closure_binding: Digest256,
+    ) -> SegmentResult<()> {
+        self.check_context()?;
+        if self.physical_root != physical_root
+            || self.store_id != store_id
+            || self.domain_digest != domain_digest
+            || self.closure_binding != closure_binding
+        {
+            self.phase.set(SpillPhase::Failed);
+            return Err(segment_error(
+                SegmentErrorCode::InvalidReceipt,
+                "V2 pack spill store or selected closure binding differs",
+            ));
+        }
+        self.binding_checked.set(true);
+        Ok(())
+    }
+
+    fn observe(&self, digest: Digest256) -> SegmentResult<()> {
+        let result = self.observe_inner(digest);
+        if result.is_err() {
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+
+    fn verify_pending(
+        &self,
+        verify: &mut dyn FnMut(Digest256) -> SegmentResult<()>,
+    ) -> SegmentResult<()> {
+        let result = (|| {
+            self.check_context()?;
+            if !self.binding_checked.get() || self.phase.get() != SpillPhase::Observing {
+                return Err(segment_error(
+                    SegmentErrorCode::InvalidReceipt,
+                    "V2 pack spill is not ready to verify pending rows",
+                ));
+            }
+            self.phase.set(SpillPhase::Verifying);
+            let mut after = None;
+            while let Some(raw) = self.next_pending(after)? {
+                if after.is_some_and(|previous| raw <= previous) {
+                    return Err(segment_error(
+                        SegmentErrorCode::InvalidFormat,
+                        "V2 pack spill order did not advance",
+                    ));
+                }
+                let digest = Digest256::from_bytes(raw);
+                verify(digest)?;
+                self.mark_verified(raw)?;
+                after = Some(raw);
+            }
+            self.check_context()?;
+            self.phase.set(SpillPhase::Observing);
+            Ok(())
+        })();
+        if result.is_err() {
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+}
+
+pub(crate) fn configure_db(db: &PinnedSqliteConnection, cache_bytes: usize) -> std::io::Result<()> {
+    let cache_kib = cache_bytes / 1024;
+    if cache_kib == 0 || cache_kib > i32::MAX as usize {
+        return Err(invalid("V2 pack spill cache is not representable"));
+    }
+    db.pragma_update(None, "page_size", 4096i64)
+        .map_err(sql_invalid)?;
+    db.pragma_update(None, "journal_mode", "OFF")
+        .map_err(sql_invalid)?;
+    db.pragma_update(None, "synchronous", 0i64)
+        .map_err(sql_invalid)?;
+    db.pragma_update(None, "temp_store", "FILE")
+        .map_err(sql_invalid)?;
+    db.pragma_update(None, "cache_spill", "ON")
+        .map_err(sql_invalid)?;
+    db.pragma_update(None, "mmap_size", 0i64)
+        .map_err(sql_invalid)?;
+    db.pragma_update(None, "cache_size", -(cache_kib as i64))
+        .map_err(sql_invalid)?;
+    let journal = db
+        .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+        .map_err(sql_invalid)?;
+    let synchronous = db
+        .query_row("PRAGMA synchronous", [], |row| row.get::<_, i64>(0))
+        .map_err(sql_invalid)?;
+    let temp_store = db
+        .query_row("PRAGMA temp_store", [], |row| row.get::<_, i64>(0))
+        .map_err(sql_invalid)?;
+    let cache_spill = db
+        .query_row("PRAGMA cache_spill", [], |row| row.get::<_, i64>(0))
+        .map_err(sql_invalid)?;
+    let mmap = db
+        .query_row("PRAGMA mmap_size", [], |row| row.get::<_, i64>(0))
+        .map_err(sql_invalid)?;
+    let cache = db
+        .query_row("PRAGMA cache_size", [], |row| row.get::<_, i64>(0))
+        .map_err(sql_invalid)?;
+    let page_size = db
+        .query_row("PRAGMA page_size", [], |row| row.get::<_, i64>(0))
+        .map_err(sql_invalid)?;
+    if !journal.eq_ignore_ascii_case("off")
+        || synchronous != 0
+        || temp_store != 1
+        || cache_spill == 0
+        || mmap != 0
+        || cache != -(cache_kib as i64)
+        || page_size != 4096
+    {
+        return Err(invalid("V2 pack spill SQLite policy changed"));
+    }
+    Ok(())
+}
+
+fn digest_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<[u8; DIGEST_BYTES]> {
+    match row.get_ref(0)? {
+        ValueRef::Blob(raw) if raw.len() == DIGEST_BYTES => {
+            let mut digest = [0; DIGEST_BYTES];
+            digest.copy_from_slice(raw);
+            Ok(digest)
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn digest_row_at(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<[u8; DIGEST_BYTES]> {
+    match row.get_ref(index)? {
+        ValueRef::Blob(raw) if raw.len() == DIGEST_BYTES => {
+            let mut digest = [0; DIGEST_BYTES];
+            digest.copy_from_slice(raw);
+            Ok(digest)
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn optional_u64_blob(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<Option<[u8; 8]>> {
+    match row.get_ref(index)? {
+        ValueRef::Null => Ok(None),
+        ValueRef::Blob(raw) if raw.len() == 8 => {
+            let mut bytes = [0; 8];
+            bytes.copy_from_slice(raw);
+            Ok(Some(bytes))
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn u64_blob(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<u64> {
+    optional_u64_blob(row, index)?
+        .map(u64::from_be_bytes)
+        .ok_or(rusqlite::Error::InvalidQuery)
+}
+
+fn u32_blob(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<u32> {
+    match row.get_ref(index)? {
+        ValueRef::Blob(raw) if raw.len() == 4 => {
+            let mut bytes = [0; 4];
+            bytes.copy_from_slice(raw);
+            Ok(u32::from_be_bytes(bytes))
+        }
+        _ => Err(rusqlite::Error::InvalidQuery),
+    }
+}
+
+fn u64_bytes(value: u64) -> [u8; 8] {
+    value.to_be_bytes()
+}
+
+fn u32_bytes(value: u32) -> [u8; 4] {
+    value.to_be_bytes()
+}
+
+fn segment_error(code: SegmentErrorCode, detail: &'static str) -> SegmentError {
+    SegmentError::new(code, detail)
+}
+
+fn invalid(detail: &'static str) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::InvalidData, detail)
+}
+
+fn sql_invalid(error: rusqlite::Error) -> std::io::Error {
+    // Preserve the mechanical code without exposing SQL text or host paths.
+    match error {
+        rusqlite::Error::SqliteFailure(code, _) => std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "V2 pack spill SQLite operation refused: code {}",
+                code.extended_code
+            ),
+        ),
+        rusqlite::Error::QueryReturnedNoRows => invalid("V2 pack spill SQLite scalar missing"),
+        rusqlite::Error::InvalidColumnType(..) => {
+            invalid("V2 pack spill SQLite column type refused")
+        }
+        rusqlite::Error::ExecuteReturnedResults => {
+            invalid("V2 pack spill SQLite unexpected result rows")
+        }
+        _ => invalid("V2 pack spill SQLite operation refused"),
+    }
+}

@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {validateHumanForms,formView,formIdentity,contentLanguage,FormContractError,inspectExactHumanForm,inspectExactHumanForms,resolveClaimReading} from './human-forms.mjs';
 import {KnowledgeClient,RevisionError} from './knowledge-client.mjs';

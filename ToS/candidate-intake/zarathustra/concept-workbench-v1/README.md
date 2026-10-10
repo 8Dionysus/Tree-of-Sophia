@@ -61,7 +61,7 @@ identity.
 For example, the Russian genitive form `судьбы` is recognized as a reversible
 morphology candidate for the discovery label `судьба` and returns the German
 source cards in work order. The local query adapter is
-`scripts/query_zarathustra_concept_workbench_v1.py`; use the query `судьбы`,
+`tos --root /absolute/source-root concept-search`; use the query `судьбы`,
 language `ru`, and the required result limit.
 
 Use `--data-root` to select a separate local dataset. Query code, morphology
@@ -91,7 +91,7 @@ translation comparator and English generated candidate.
 ## On-demand word analysis
 
 One search result can now be compiled into a source-bound task by
-`scripts/prepare_zarathustra_word_analysis_v1.py`, using the query `судьбы`,
+`tos --root /absolute/source-root word-analysis`, using the query `судьбы`,
 language `ru`, and the selected result rank.
 
 The task contains the exact German form and barrier-bounded context, stable
@@ -124,10 +124,41 @@ excluded from the Zarathustra work scope. In particular, three apparent extra
 `Schicksal` occurrences belong to that separate work; the German direct core
 inside Zarathustra is therefore 26 occurrences, not 29.
 
-The implementation and focused validation are owned by
-`scripts/build_zarathustra_concept_workbench_v1.py` and
-`tests/test_zarathustra_concept_workbench_v1.py`; execute them through the
-[ToS validation routes](../../../VALIDATION.md).
+The native producer is `tos zarathustra-concept-workbench-v1 --source-root
+<absolute-source-root> --scratch-bytes <reserved-remaining-bytes>
+--preview|--build|--check`. Its complete generation
+kernel lives in `rust/crates/tos-compiler/src/research_concept_workbench.rs`;
+source hydration, candidate rendering and private SQLite serialization are
+separate children of that kernel. The producer reconstructs exact German
+anchors and Antonovsky logical rows, scans every exact occurrence, proposes
+reversible form families, speaker states and request-local relations, and
+writes the tracked dossier plus mode-`0600` private source-return artifacts.
+Identity issuance remains explicit through `--build --issue-identities` and
+refuses an existing issuance. The native invocation shares one caller-owned
+execution deadline across source reads, corpus scans, SQLite work and native
+child processes; the Access command accepts `--max-seconds` and defaults to
+180 seconds. `--check` requires the selected data root's Git ignore and tracking
+boundary: an untracked result is specifically exit code 1, while a fatal Git
+probe is an error. Captured child output and private database growth have
+explicit limits. SQLite work and Rust file I/O use one cumulative read/write
+budget. Before reconstruction the producer reserves the structural owner's
+finite read allowance and reports the actual reads separately. SQLite scratch
+and retained outputs share one physical reservation ledger. The explicit
+`--scratch-bytes` value is the remaining operation quota after the selected
+carrier, Git metadata and other scratch; it neither grants storage nor selects
+a default physical profile. SQL scratch closes before output staging. An output
+reservation remains charged after publication, and exhaustion is an error.
+
+The v1 manifest retains its historical recipe references. These describe the
+frozen derivation contract; they do not identify the currently executing
+native binary. A changed historical builder input resolves only to retained
+bytes matching its declared digest. Native execution evidence must identify
+its own implementation independently. The former Python producer, query and word-analysis entrypoints are retired.
+Focused native producer tests protect request identity isolation, frequency-one
+form expansion, scope exclusions, private modes and source-path boundaries.
+The Rust query/word-analysis tests protect exact source return and candidate
+validation; the original Reading query responses are frozen test data.
+Execute the selected checks through the [ToS validation routes](../../../VALIDATION.md).
 
 Another schema-valid request needs no builder change: pass its path through
 the builder's `--request` option and use the routed preview, build, and check
@@ -150,3 +181,25 @@ If every declared probe is absent, the request remains a valid negative result:
 the graph contains only its concept candidate and sets `empty_result: true`.
 The no-isolated-node invariant applies to evidence-bearing form, occurrence,
 and speaker nodes; absence is recorded rather than padded with invented edges.
+
+The installed native `tos zarathustra-concept-workbench-v1` owns producer
+execution; `concept-search` and `word-analysis` use the Rust query owner.
+The exact c60 recipe remains nonexecuted provenance, with its own identity
+separate from the executing native product.
+
+An explicit `--plan-ref` selects a bounded technical successor only: a distinct
+plan ID, proposed status and exact predecessor lineage may accompany changes to
+the SHA256 pins for paragraph alignment, parallel lexical, morphology theme,
+eternal-return review preparation and the German exact-occurrence database.
+Every reference, other pin, frozen timestamp and semantic field stays equal to
+the authored default. Custom plans require an owned 0700 carrier and 0600 plan,
+cannot issue identities, and preview checks the full retained identity binding.
+The selected raw plan digest is propagated into the manifest; default input
+pins and candidate-only authority remain unchanged.
+
+Native request/schema and manifest checks bind each selected operation.
+Variant requests require a disposable owned carrier, a root-relative request,
+an admitted scratch quota and explicit identity issuance where applicable.
+Private artifact presence alone authorizes no production-root write or cleanup.
+Historical comparison receipts retain their exact original implementation and
+input identities; they do not identify the current installed native product.

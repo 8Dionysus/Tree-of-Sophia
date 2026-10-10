@@ -1,6 +1,7 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {createResearchWorkspace,createLocalStoragePersistence} from '../research-workspace';
+import {createLocalStoragePersistence} from '../research-workspace';
+import {createBrowserResearchWorkspace} from '../research-workspace-rust';
 import {localized,displayTitle,RequestSlots} from './knowledge-client.mjs';
 import {refreshIcons} from './icons';
 import {stageObservation} from './research-actions';
@@ -36,7 +37,8 @@ const humanStatus=humanSourceStatus;
 export function createTools(root,scene,{data:{queries,client},selected,panels,onChange}){
   let persistence=false;
   try{persistence=createLocalStoragePersistence(localStorage,'tos-research-workspace-v1');}catch{/* Workspace remains usable in memory. */}
-  const workspace=createResearchWorkspace({sessionId:'tos-local-research',persistence});
+  const workspace=createBrowserResearchWorkspace({sessionId:'tos-local-research',persistence});
+  window.addEventListener('pagehide',event=>{if(!event.persisted&&'dispose' in workspace)workspace.dispose();});
   const requests=new RequestSlots(),gapHits=new Map();let gapSelection=null;
   const open=button('',()=>show('notes'));open.className='sc-control sc-workspace-open';uiAttribute(open, 'aria-label', ui("Исследование"));uiAttribute(open, 'aria-expanded', 'false');
   uiHTML(open, '<i data-lucide="notebook-pen" aria-hidden="true"></i><span>Исследование</span>');
@@ -186,7 +188,9 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
     const label=el('label',ui("Запрос"));label.htmlFor='sc-analysis-query';const input=el('input');input.id='sc-analysis-query';uiAttribute(input, "placeholder", ui("Название источника или слово…"));input.maxLength=256;
     const result=el('div');uiChildren(body, "append", label, input, actions(button(ui("Пробелы в источниках"),()=>runTool('gaps',input.value,result).catch(()=>{})),button(ui("Разобрать слово"),()=>runTool('word',input.value,result).catch(()=>{}))), result);
   }
+  let analysisGeneration=0;
   async function runTool(kind,query,out,externalSignal,options={}){
+    const generation=++analysisGeneration;
     uiText(status, ui("Получаю материал…"));uiChildren(out, "replaceChildren");
     try{
       const operation=kind==='gaps'?'tos.source-gaps.search':'tos.zarathustra.word-analysis.prepare';
@@ -198,13 +202,13 @@ export function createTools(root,scene,{data:{queries,client},selected,panels,on
         if(!packet.gaps?.length)uiChildren(out, "append", el('p',ui("По этому запросу пробелов не найдено.")));
       }else if(packet.available!==true){uiChildren(out, "append", el('p',ui("Разбор для этого запроса сейчас недоступен. Попробуйте другой запрос.")));}
       else{
-        const source=packet.task?.source||{};uiChildren(out, "append", el('h4',source.surface||source.text||query), el('p',source.context||source.excerpt||source.sentence||''));if(source.source_ref)uiChildren(out, "append", link(source.source_ref));
+        const source=packet.task?.source||{};uiChildren(out, "append", el('h4',source.surface||source.text||query), el('p',source.exact_context??(source.context||source.excerpt||source.sentence||'')));if(source.source_ref)uiChildren(out, "append", link(source.source_ref));
         uiChildren(out, "append", el('p',ui("Подготовлен разбор по исходному тексту. Результат требует рассмотрения."),'sc-muted'));
         // Preserve the full source-bound analysis task for the agent and local export.
         uiChildren(out, "append", actions(rawDataDownload(packet,ui("Сохранить задание"),'sophia-word-analysis.json')));
       }
       scene.invalidate();return packet;
-    }catch(error){report(error,ui("Не удалось выполнить исследование. Повторите запрос."));throw error;}
+    }catch(error){if(error?.name==='AbortError'){if(generation===analysisGeneration&&!panel.hidden&&active==='analysis')uiText(status, '');}else report(error,ui("Не удалось выполнить исследование. Повторите запрос."));throw error;}
   }
   function selectionChanged(){/* Drafts remain anchored to their explicit target. */}
   function chooseGap(id){

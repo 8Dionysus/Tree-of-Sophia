@@ -8,8 +8,12 @@ license.workspace = true
 
 [dependencies]
 tempfile = "3"
+rustix = { version = "=1.1.5", features = ["fs", "process"] }
 tos-foundation = { path = "../tos-foundation" }
+tos-command = { path = "../tos-command" }
+tos-fd-open = { path = "../tos-fd-open" }
 tos-source-store = { path = "../tos-source-store" }
+tos-segment-store = { path = "../tos-segment-store" }
 
 [[bin]]
 name = "tos-reader"

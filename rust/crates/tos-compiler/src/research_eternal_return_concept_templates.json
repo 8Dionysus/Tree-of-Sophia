@@ -1,0 +1,395 @@
+{
+  "alignment_gaps": [
+    {
+      "alignment_ref": "tos.translation-alignment.sid-6922c0b268a890cf94d0454b67143f43",
+      "gap_code": "one_to_many_mapping",
+      "reading_ref": "p3.r2"
+    },
+    {
+      "alignment_ref": "tos.translation-alignment.sid-a1f9250a6975af780fb35023b6070ff2",
+      "gap_code": "ru_formula_broken_by_letterspacing",
+      "reading_ref": "p3.r13"
+    },
+    {
+      "alignment_ref": "tos.translation-alignment.sid-a474f471a32163007afa33b3ae624ab9",
+      "gap_code": "ru_formula_blocked_by_ocr_substitution",
+      "reading_ref": "p3.r13"
+    },
+    {
+      "alignment_ref": "tos.translation-alignment.sid-b3ce5734f20040829abd1acbbf5c17bd",
+      "gap_code": "machine_target_gap_not_translation_omission",
+      "reading_ref": "p3.r15"
+    },
+    {
+      "alignment_ref": "tos.translation-alignment.sid-f7e6b8c00ed9861bf01841a9b0212e78",
+      "gap_code": "one_to_many_mapping",
+      "reading_ref": "p3.r16"
+    }
+  ],
+  "audit": {
+    "annotation_ref": "@annotation",
+    "audit_kind": "two_independent_codex_agent_challengers",
+    "authority_boundary": "Receipt of independent model challenge and integration, preserving model authorship and the recorded assessment status.",
+    "comparison_limit": "the source challenger counts anchor occurrences and passages while the primary dossier counts selected alignment units; their denominators are intentionally not collapsed",
+    "human_review": false,
+    "integrated_controls": {
+      "accepted_candidate_count": 0,
+      "bare_again_eternity_ring_and_liturgical_controls_present": true,
+      "canon_effect": false,
+      "five_interpretive_axes_are_separate": true,
+      "graph_effect": false,
+      "human_review_count": 0,
+      "interpretations_are_templates_not_claims": true,
+      "ocr_and_letterspacing_gaps_not_silently_corrected": true,
+      "one_sided_alignment_residue_preserved": true,
+      "speaker_flattening_forbidden": true
+    },
+    "schema_version": "tos_zarathustra_eternal_return_independent_agent_audit_v1",
+    "semantic_design_challenger": {
+      "amor_fati_cross_work_slot_blocked": true,
+      "artifact_sha256": {
+        "claim_relation_design": "8d2c061fc9ead09c0b1553aec2db3c2b46cffb13be730ac8ea0c62f079667ddb",
+        "negative_controls": "db9ccabc7dd3c665e7fa93f34b960e0991d7866290be147789a2448bcd3721bc",
+        "schema_fit": "91a685a2f205bf9868cfffc33c233eb742bee712bd81062ccbf23ba343e0435f"
+      },
+      "five_axes_preserved": true,
+      "graph_must_remain_empty": true,
+      "interpretations_materialized_as_claims": false,
+      "route_fit_confirmed": true,
+      "semantic_annotation_v2_rejected_for_bilingual_umbrella": true,
+      "sign_annotation_concept_candidate_selected": true
+    },
+    "source_evidence_challenger": {
+      "alignment_gaps": [
+        {
+          "alignment_ref": "tos.translation-alignment.sid-6922c0b268a890cf94d0454b67143f43",
+          "gap_code": "one_to_many_mapping",
+          "reading_ref": "p3.r2"
+        },
+        {
+          "alignment_ref": "tos.translation-alignment.sid-a1f9250a6975af780fb35023b6070ff2",
+          "gap_code": "ru_formula_broken_by_letterspacing",
+          "reading_ref": "p3.r13"
+        },
+        {
+          "alignment_ref": "tos.translation-alignment.sid-a474f471a32163007afa33b3ae624ab9",
+          "gap_code": "ru_formula_blocked_by_ocr_substitution",
+          "reading_ref": "p3.r13"
+        },
+        {
+          "alignment_ref": "tos.translation-alignment.sid-b3ce5734f20040829abd1acbbf5c17bd",
+          "gap_code": "machine_target_gap_not_translation_omission",
+          "reading_ref": "p3.r15"
+        },
+        {
+          "alignment_ref": "tos.translation-alignment.sid-f7e6b8c00ed9861bf01841a9b0212e78",
+          "gap_code": "one_to_many_mapping",
+          "reading_ref": "p3.r16"
+        }
+      ],
+      "alignment_groups_scanned": 3423,
+      "deterministic_check_passed": true,
+      "dossier_sha256": "92e81e1e85dcf8fd4818934517b04778bcd38f1891c35e3f0759a34e2b2832c6",
+      "formula_correspondence_count": 34,
+      "manifest_sha256": "bc3ab711c1de33110ed073948abb14f9cee027cffd0677a51a499466a0b5095e",
+      "occurrence_candidate_count": 791,
+      "occurrence_class_counts": {
+        "ambiguous": 161,
+        "core": 127,
+        "excluded": 357,
+        "supporting": 146
+      },
+      "passage_candidate_count": 171,
+      "source_paragraph_anchors_visited": 3447,
+      "target_paragraph_anchors_visited": 3569,
+      "whole_work_lexical_probe_occurrence_count": 823
+    }
+  },
+  "claim_order": [
+    "cosmological_recurrence",
+    "temporality_and_augenblick",
+    "existential_test_and_affirmation",
+    "ring_and_wholeness",
+    "life_joy_pain_affirmation",
+    "poetic_symbolic_affirmation",
+    "amor_fati_cross_work",
+    "distinguished_from_return_as_action"
+  ],
+  "claim_specs": {
+    "amor_fati_cross_work": {
+      "kind": "blocked_cross_work_relation_slot",
+      "statement": "A relation to amor fati is reserved for cross-work evidence and is not established by this Zarathustra-only dossier.",
+      "status": "deferred"
+    },
+    "cosmological_recurrence": {
+      "kind": "interpretive_axis",
+      "statement": "The dossier candidate includes recurrence of the whole course of becoming, not merely a local act of going back.",
+      "status": "ambiguous"
+    },
+    "distinguished_from_return_as_action": {
+      "kind": "candidate_relation",
+      "statement": "Return to human beings in Prologue 1 is distinguished from the later eternal-return candidate.",
+      "status": "proposed"
+    },
+    "existential_test_and_affirmation": {
+      "kind": "interpretive_axis",
+      "statement": "The recurrence formulation can function as an existential test of affirmation; the dossier does not reduce it to this reading.",
+      "status": "ambiguous"
+    },
+    "life_joy_pain_affirmation": {
+      "kind": "interpretive_axis",
+      "statement": "Life, joy, pain, and affirmation form a distinct candidate axis without asserting semantic identity with eternal return.",
+      "status": "ambiguous"
+    },
+    "poetic_symbolic_affirmation": {
+      "kind": "competing_reading",
+      "statement": "The ring, song, dance, and eternity formulas can be read as poetic-symbolic affirmation without deciding a cosmology.",
+      "status": "ambiguous"
+    },
+    "ring_and_wholeness": {
+      "kind": "interpretive_axis",
+      "statement": "Ring and wholeness remain a distinct symbolic axis rather than an automatic synonym for recurrence.",
+      "status": "ambiguous"
+    },
+    "temporality_and_augenblick": {
+      "kind": "interpretive_axis",
+      "statement": "The dossier candidate preserves temporality and the moment as a distinct interpretive axis.",
+      "status": "ambiguous"
+    }
+  },
+  "concept": {
+    "alternatives": [
+      {
+        "interpretation_template_ref": "@id:template|cosmological_recurrence"
+      },
+      {
+        "interpretation_template_ref": "@id:template|existential_test_and_affirmation"
+      },
+      {
+        "interpretation_template_ref": "@id:template|poetic_symbolic_affirmation"
+      }
+    ],
+    "anchor_refs": [],
+    "annotation_id": "@annotation",
+    "annotation_version": 1,
+    "assertion_layer": "semantic_interpretation",
+    "body": {
+      "blocked_cross_work_relation_ref": "@id:template|amor_fati_cross_work",
+      "candidate_type": "semantic_concept_dossier",
+      "canon_effect": false,
+      "competing_reading_refs": [
+        "@id:template|cosmological_recurrence",
+        "@id:template|existential_test_and_affirmation",
+        "@id:template|poetic_symbolic_affirmation"
+      ],
+      "concept_id": null,
+      "core_readings": [
+        "p3.r13",
+        "p3.r16",
+        "p3.r2",
+        "p4.r19"
+      ],
+      "distinguished_from_refs": [
+        "ToS/canon/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/return-as-action/node.json"
+      ],
+      "formula_candidate_refs": [
+        "@id:formula|de_recurrence_noun",
+        "@id:formula|de_eternal_again",
+        "@id:formula|de_ring_of_recurrence",
+        "@id:formula|de_address_to_eternity",
+        "@id:formula|de_deep_eternity",
+        "@id:formula|ru_forever_returns",
+        "@id:formula|ru_ring_of_return",
+        "@id:formula|ru_joy_wants_eternity"
+      ],
+      "graph_effect": false,
+      "inclusion_law": "include source-addressed recurrence formulas and their eternity/ring/time/affirmation neighborhood; retain lexical neighbors as ambiguous and declared local-return passages as excluded controls",
+      "independent_agent_audit_ref": "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/independent-agent-audit.v1.json",
+      "interpretation_template_refs": [
+        "@id:template|cosmological_recurrence",
+        "@id:template|temporality_and_augenblick",
+        "@id:template|existential_test_and_affirmation",
+        "@id:template|ring_and_wholeness",
+        "@id:template|life_joy_pain_affirmation",
+        "@id:template|poetic_symbolic_affirmation",
+        "@id:template|amor_fati_cross_work",
+        "@id:template|distinguished_from_return_as_action"
+      ],
+      "labels": {
+        "de": "ewige Wiederkunft",
+        "en": "eternal return",
+        "identity_dependency": false,
+        "ru": "вечное возвращение"
+      },
+      "languages": [
+        "de",
+        "ru"
+      ],
+      "materialized_claim_refs": [],
+      "parts": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "semantic_fact_asserted": false,
+      "sign_id": null,
+      "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    },
+    "epistemic_status": "uncertain",
+    "maker": {
+      "agent_ref": "codex-internal-agents.eternal-return-dossier-v1",
+      "maker_type": "model"
+    },
+    "provenance_event_ref": "tos.event.zarathustra-eternal-return-concept-candidate-v1.build",
+    "review_refs": [],
+    "review_status": "unreviewed",
+    "schema_version": "tos_sign_annotation_v1",
+    "sign_layer": "concept_candidate",
+    "source_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json",
+      "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1/plan.v1.json"
+    ],
+    "supersedes_annotation_ref": null
+  },
+  "formulas": [
+    [
+      "de_recurrence_noun",
+      [
+        "de",
+        [
+          "wiederkunft"
+        ]
+      ]
+    ],
+    [
+      "de_eternal_again",
+      [
+        "de",
+        [
+          "ewig",
+          "wieder"
+        ]
+      ]
+    ],
+    [
+      "de_ring_of_recurrence",
+      [
+        "de",
+        [
+          "ring",
+          "der",
+          "wiederkunft"
+        ]
+      ]
+    ],
+    [
+      "de_address_to_eternity",
+      [
+        "de",
+        [
+          "dich",
+          "oh",
+          "ewigkeit"
+        ]
+      ]
+    ],
+    [
+      "de_deep_eternity",
+      [
+        "de",
+        [
+          "tiefe",
+          "tiefe",
+          "ewigkeit"
+        ]
+      ]
+    ],
+    [
+      "ru_forever_returns",
+      [
+        "ru",
+        [
+          "вечно",
+          "возвращается"
+        ]
+      ]
+    ],
+    [
+      "ru_ring_of_return",
+      [
+        "ru",
+        [
+          "кольцу",
+          "возвращения"
+        ]
+      ]
+    ],
+    [
+      "ru_joy_wants_eternity",
+      [
+        "ru",
+        [
+          "радость",
+          "хочет",
+          "вечности"
+        ]
+      ]
+    ]
+  ],
+  "method_controls": [
+    [
+      "bare_again_is_not_membership",
+      "Bare again/once-more vocabulary does not establish eternal return."
+    ],
+    [
+      "isolated_eternity_is_not_membership",
+      "Eternity vocabulary outside a recurrence argument remains ambiguous rather than core."
+    ],
+    [
+      "ring_without_recurrence_is_not_membership",
+      "Ring imagery without a recurrence link does not establish eternal return."
+    ],
+    [
+      "liturgical_eternity_is_not_membership",
+      "A liturgical or rhetorical eternity formula does not become doctrine by lexical recurrence alone."
+    ],
+    [
+      "speaker_flattening_forbidden",
+      "Narrator, Zarathustra, dwarf, animals, and chorus must not be collapsed into one unmarked speaker."
+    ],
+    [
+      "alignment_proposal_is_not_semantic_equivalence",
+      "The machine DE/RU paragraph alignment supplies a comparison proposal for separate translation and semantic-equivalence assessment."
+    ]
+  ],
+  "promotion": {
+    "annotation_ref": "@annotation",
+    "blocked_semantic_ladder_stages": [
+      "stable_sign_candidate",
+      "manual_confirmation_or_rejection",
+      "relations_between_signs",
+      "conceptual_interpretations",
+      "competing_readings",
+      "graph_projection"
+    ],
+    "blockers": [
+      "human semantic review has not occurred",
+      "competing cosmological, existential, and poetic-symbolic readings remain open",
+      "paragraph alignments are machine proposals rather than accepted translation mappings",
+      "lexical and morphology inputs remain candidate layers",
+      "exact DE/RU passages require source-visible review against both witnesses",
+      "two central Russian formulas in p3.r13 are detector gaps caused by letterspacing and OCR substitution and must not be silently corrected",
+      "a relation to amor fati is deferred because it is not established by this scoped Zarathustra dossier"
+    ],
+    "next_owner_route": "ToS/review-ledger after a source-visible semantic review; only an accepted review may route a new sign or concept identity toward ToS/canon",
+    "ready_for_canon": false,
+    "ready_for_graph_projection": false,
+    "ready_for_sign_or_concept_identity_issuance": false,
+    "ready_for_source_visible_semantic_review": false,
+    "schema_version": "tos_zarathustra_eternal_return_promotion_readiness_v1",
+    "semantic_ladder_contract_ref": "ToS/contracts/semantic-ladder-packet.schema.json",
+    "semantic_ladder_packet_materialized": false,
+    "semantic_ladder_posture": "witness-local child packets remain future lifecycle controllers; this bilingual umbrella does not impersonate them"
+  }
+}

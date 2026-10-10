@@ -1,0 +1,2375 @@
+{
+  "schema_version": "tos_legacy_python_oracle_capture_v1",
+  "oracle_id": "repository-topology",
+  "repository_head": "c2a32e9a2ea9d85d7d27e0a5964fdd5e6c807bca",
+  "python_executable": "<captured-maintained-python>",
+  "owner_sources": [
+    {
+      "path": "scripts/acquire_registry_sources.py",
+      "bytes": 11343,
+      "sha256": "f78240e67bb7e6ca485bc553a2e6aee971af3f4ccbb20a25542f6ef27be21ad3"
+    },
+    {
+      "path": "scripts/acquisition_batch.py",
+      "bytes": 7051,
+      "sha256": "e6b9f7467814e9368f21cb1d4c86635f638970935c4421a15d55abcbd3f34c3c"
+    },
+    {
+      "path": "scripts/acquisition_handoff_adapter.py",
+      "bytes": 5973,
+      "sha256": "1e4f1325756b81a8d15eca39c4c211fc04a345e63d8d29eb7c839a329ca4e0db"
+    },
+    {
+      "path": "scripts/acquisition_native.py",
+      "bytes": 6267,
+      "sha256": "53b98ef7372d342aaad76982e17da370232ad7d36347928629a2de7d273f0ee4"
+    },
+    {
+      "path": "scripts/authored_corpus_source_read.py",
+      "bytes": 19499,
+      "sha256": "12e58742fdc49a38fc1722b0c6fafeba9c0e0b407daa4aa96ae703697a320410"
+    },
+    {
+      "path": "scripts/bibliographic_claim_assembler.py",
+      "bytes": 29269,
+      "sha256": "171e70b2d77585135e9069571534d6abe7950a6f1f3adc91f5ed4827edb0a886"
+    },
+    {
+      "path": "scripts/build_antonovsky_1911_structural_paragraph_v2.py",
+      "bytes": 32099,
+      "sha256": "529927110affd9a6059c85867ad8a66e8db0c438e3327239a430261efd7f5283"
+    },
+    {
+      "path": "scripts/build_antonovsky_1911_technical_markup.py",
+      "bytes": 90825,
+      "sha256": "277e8464dc8a8f124e5863d126592115b8ba6a71f26d545d4ce43f9fd1733671"
+    },
+    {
+      "path": "scripts/build_source_resource_inventories.py",
+      "bytes": 6193,
+      "sha256": "31988286af420be8524230b0bd5618665ecc1de3e17e580cc8a4a126d2412023"
+    },
+    {
+      "path": "scripts/build_source_witness_bibliographic_graph.py",
+      "bytes": 2491,
+      "sha256": "00dea8d023f60c3bf66c5c1ef614b331e02e346e479bd88afc92a9ccce342e1f"
+    },
+    {
+      "path": "scripts/build_source_witness_catalog.py",
+      "bytes": 30121,
+      "sha256": "cf46896daa378930fc666727606836ceb7aa2a8a7be95b4eb3f22ad1255bacfd"
+    },
+    {
+      "path": "scripts/build_tos_corpus_index.py",
+      "bytes": 2608,
+      "sha256": "6af57424771575ba0e55f2d8359282e3b618684ab249a14025693e0e079847fb"
+    },
+    {
+      "path": "scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py",
+      "bytes": 1504,
+      "sha256": "b54ee0d9056efb22dc3d1618e9e7ac925c3dd6d33887742505f49c32fcb1d832"
+    },
+    {
+      "path": "scripts/claim_navigation.py",
+      "bytes": 12336,
+      "sha256": "2c87ecfba5e93892cdab9ed5f698393e390f6fe7246cb3ff992b6dea2f5b1afc"
+    },
+    {
+      "path": "scripts/corpus_admit.py",
+      "bytes": 5850,
+      "sha256": "6a6312bd00070aa92be5211209f509b84d817a94dba8f65f281620e75503fd47"
+    },
+    {
+      "path": "scripts/corpus_archive.py",
+      "bytes": 46387,
+      "sha256": "58503c14ba1da445ae2547485ce5e559053e397d8967bf81fc029eb1b7c2c619"
+    },
+    {
+      "path": "scripts/corpus_build_worker.py",
+      "bytes": 8064,
+      "sha256": "d5af16048749e0e2a63a460a162b3aab9aed14aa2ffcd84c3f6e0e68ca998ed2"
+    },
+    {
+      "path": "scripts/corpus_locator.py",
+      "bytes": 26282,
+      "sha256": "fd28ad5ec1298448e46b29bbd32f68962eda36f4953eed1eadeee388ac1597db"
+    },
+    {
+      "path": "scripts/corpus_r2.py",
+      "bytes": 26037,
+      "sha256": "67c16019ce985b4ae7f8c63ed2d353e0ed105f4169a54be5b7c675c423be682a"
+    },
+    {
+      "path": "scripts/corpus_source_retirement.py",
+      "bytes": 8442,
+      "sha256": "f1dd386487582fe69a3d4abc85b475447e89ea2a94c36d03491bbee9ea106fe6"
+    },
+    {
+      "path": "scripts/corpus_source_validation.py",
+      "bytes": 19615,
+      "sha256": "0150ec3b9bdff01d8a84cb9e0754d7935c3a8888d1b5348d8041a002abde8cd9"
+    },
+    {
+      "path": "scripts/corpus_store.py",
+      "bytes": 34119,
+      "sha256": "aba53fe86b4726505b481c92e6caa8eb1809601e4f9bfcc92278359e4e0cedf4"
+    },
+    {
+      "path": "scripts/downstream_status.py",
+      "bytes": 21089,
+      "sha256": "80e55d6c0a836ef73c61fdfc2dd0d23da96cf71ddf4850cdac2576c62d7e5b3e"
+    },
+    {
+      "path": "scripts/material_discovery_semantics.py",
+      "bytes": 4614,
+      "sha256": "d3e7afafeceb187d411b1cdd8b101c7a87b02383ef3d3fad7c698ee546c35659"
+    },
+    {
+      "path": "scripts/native_text_binding.py",
+      "bytes": 47568,
+      "sha256": "84113ed2ea0334cb9b5ce44baa940b7199893ab5389cabb78659cdcd1b2d058a"
+    },
+    {
+      "path": "scripts/native_text_return.py",
+      "bytes": 15872,
+      "sha256": "ccec680659bb339ccf3edd452a7aa21ffea29ea9d93a38c551274575a9c253e6"
+    },
+    {
+      "path": "scripts/partitioned_projection_common.py",
+      "bytes": 7108,
+      "sha256": "fd1f3a55e3b0c10f2d60490d605abcd221725107ce8a029010f68e62bcfc5010"
+    },
+    {
+      "path": "scripts/philosophy_atlas_projection_common.py",
+      "bytes": 47739,
+      "sha256": "b5182a7e290cace1406d882007278e1400e2015cfa61d94173917c75e1509927"
+    },
+    {
+      "path": "scripts/philosophy_graph_projection_common.py",
+      "bytes": 50655,
+      "sha256": "d736568e31b090f6460daafc60a56f6693aba3e131f621fde690095e2aed25a2"
+    },
+    {
+      "path": "scripts/philosophy_graph_views_common.py",
+      "bytes": 18623,
+      "sha256": "bbd9e20c52ff82ac39da0ad8ea675789711d61887136e012d916172281ff19ca"
+    },
+    {
+      "path": "scripts/philosophy_multilingual_common.py",
+      "bytes": 14815,
+      "sha256": "0a145b6781ba2f170aafe804daf92d017bd42c3eaf719485e09ab354b1c216ce"
+    },
+    {
+      "path": "scripts/philosophy_native_command.py",
+      "bytes": 2951,
+      "sha256": "86dccbd2cd88726a86cf54215bfbf1835b87f6b833beef82dbddfe65c7759cc4"
+    },
+    {
+      "path": "scripts/philosophy_post_planting_audit_common.py",
+      "bytes": 16867,
+      "sha256": "9a3243ae4b5addea901c3e5393ef516ee8303c7f5abc523c2ffcdc0c8a1a361e"
+    },
+    {
+      "path": "scripts/plant_prepared_dossiers.py",
+      "bytes": 13224,
+      "sha256": "639a7be22ee013f0692d66dd86ae4461dcbe9652f7410dd46da14ca7b9ab9dea"
+    },
+    {
+      "path": "scripts/plant_table_i_prepared_dossiers.py",
+      "bytes": 116568,
+      "sha256": "37dae5ec990beba8b60fc5fb597c8ac496b54ea50912327fb7f5304bf4214e57"
+    },
+    {
+      "path": "scripts/query_source_witness_bibliographic_graph.py",
+      "bytes": 2820,
+      "sha256": "ba41eed7f12b2b0b0f123aaabf32d4e705e8bc1c32224122f3d92cc6c7d2a71a"
+    },
+    {
+      "path": "scripts/source_agent_publication.py",
+      "bytes": 57530,
+      "sha256": "2300799af91eaf9db1443bffb5b305b2fd0c9bfab594a9bd5257c52619ece2a9"
+    },
+    {
+      "path": "scripts/source_bibliographic_responsibility.py",
+      "bytes": 4407,
+      "sha256": "5d81df0aee99385c5af5def6ab455f75ac957dec8076c07cf535e9fb631524fc"
+    },
+    {
+      "path": "scripts/source_bibliographic_topology.py",
+      "bytes": 27636,
+      "sha256": "a0317de42284ab3e5111d79d08f5a4504877a62a8fe389c6615f680f9327359c"
+    },
+    {
+      "path": "scripts/source_catalog_projection.py",
+      "bytes": 57182,
+      "sha256": "aa5bf934932f6a02d6a184ebeab68263eea1e553e5257789dfd147938d706f21"
+    },
+    {
+      "path": "scripts/source_claim_catalog.py",
+      "bytes": 14211,
+      "sha256": "23fcdb0c9f2a377e7966dcf970361b3ca440455296f92cc2082bdd9743bac75c"
+    },
+    {
+      "path": "scripts/source_claim_publication.py",
+      "bytes": 23836,
+      "sha256": "0fa51c931312f1ec420153bea436afed906a1b16f5ca29e63cb1ad738dabdbd2"
+    },
+    {
+      "path": "scripts/source_document_catalogue.py",
+      "bytes": 1639,
+      "sha256": "ec109209caf59f299c185ecd7de1089e31610b77eb3cda604f083151bade2670"
+    },
+    {
+      "path": "scripts/source_identity_proposals.py",
+      "bytes": 13224,
+      "sha256": "96539b59a4c86175b868bb8ff6a0ee2d7d9663ff9987ca4e378d0d0a995a813a"
+    },
+    {
+      "path": "scripts/source_metadata_catalog.py",
+      "bytes": 16433,
+      "sha256": "7bfcb3445ed59e288dd60f8ee0f4b436d4958d3ab73da804288f6f74c0ef8acf"
+    },
+    {
+      "path": "scripts/source_metadata_publication.py",
+      "bytes": 18498,
+      "sha256": "43b188428694b487bae45414aa88b7e407a55267ae23d523a9152ed661f2d755"
+    },
+    {
+      "path": "scripts/source_metadata_snapshot.py",
+      "bytes": 7995,
+      "sha256": "3632d442f3fda3dcd4c29598597852f84e2edbd2ad9171c4352de73ebabd4f1b"
+    },
+    {
+      "path": "scripts/source_object_link_read.py",
+      "bytes": 7047,
+      "sha256": "e7421c9882f2c4bc198176a0c768109af6d61e3a5f351bbe8086a205706902e5"
+    },
+    {
+      "path": "scripts/source_owner_claim_profiles.py",
+      "bytes": 31364,
+      "sha256": "4cec627126f35cc3975efe965ea1177be3d63d32055bb6779172b7030930469b"
+    },
+    {
+      "path": "scripts/source_owner_context.py",
+      "bytes": 11761,
+      "sha256": "0bb984830b5bc234f97b9e17b17a3f94d5360e17889a32ea1e10a1ffc60e2b2d"
+    },
+    {
+      "path": "scripts/source_owner_record_profiles.py",
+      "bytes": 12396,
+      "sha256": "29e920f3c172bfc55310ad79a5669787d015e05cf33497853fc4aae2ac3ee7da"
+    },
+    {
+      "path": "scripts/source_payload_batch.py",
+      "bytes": 17075,
+      "sha256": "5a099145120b876eb89da6fafe2e2a50f33e7a744ac4d38b7b553335340b5825"
+    },
+    {
+      "path": "scripts/source_payload_custody.py",
+      "bytes": 12694,
+      "sha256": "0705384b2982be92b6074bfd122491613bb861da8653bf3a8dbc423c7bcdc77d"
+    },
+    {
+      "path": "scripts/source_payload_import.py",
+      "bytes": 79720,
+      "sha256": "096961bf2deacb99bf6db6f47b2f3782614145c3939b7ccccff2661c52cc729a"
+    },
+    {
+      "path": "scripts/source_payload_r2.py",
+      "bytes": 27025,
+      "sha256": "c3e93d1c53347312a63723a2686b711e0d425249328219dfcd836ea78ec38cae"
+    },
+    {
+      "path": "scripts/source_record_profiles.py",
+      "bytes": 56546,
+      "sha256": "87703622c296bf1d5b87775f2b4a9ec2c70d7083aca62b2500475dcec341e2a9"
+    },
+    {
+      "path": "scripts/source_text_layer_proposal.py",
+      "bytes": 42607,
+      "sha256": "f1a6687874269a1b6aa96cdedf263be2a421c7ecd92bbb8715532e0d82fc1c0c"
+    },
+    {
+      "path": "scripts/source_text_unit_proposal.py",
+      "bytes": 25768,
+      "sha256": "4dde53fbdccc07b47b1fb048736ec7ee1383a82cba18d44de15e6e220599e87b"
+    },
+    {
+      "path": "scripts/source_witness_bibliographic_graph_common.py",
+      "bytes": 103130,
+      "sha256": "00b09e31a53d3f17d318be353ac7a3a06061c0e6a16cca5810514dbd0ed5bb23"
+    },
+    {
+      "path": "scripts/source_witness_human_forms.py",
+      "bytes": 46829,
+      "sha256": "59f6bb4c09fed4c5b2649b9ff71aa3fd66e5f131a806b2481fd44e84b57c880b"
+    },
+    {
+      "path": "scripts/source_witness_projection_coverage.py",
+      "bytes": 8150,
+      "sha256": "32d22b5f09bef5267baf4931d183bb74fff36a3139ae38bd4c352395929e8d3c"
+    },
+    {
+      "path": "scripts/text_packet_projection.py",
+      "bytes": 9805,
+      "sha256": "814271787ce72971d58d83fca25d7d431e6742a1fa4c310dbbf15c4e76d8a78c"
+    },
+    {
+      "path": "scripts/tos_corpus_index_common.py",
+      "bytes": 69483,
+      "sha256": "c1c08b9a2fd19f955c17d986ca063076defe4d4daf89f17437a5de9bb8a46f37"
+    },
+    {
+      "path": "scripts/validate_source_witness_bibliographic_graph.py",
+      "bytes": 4538,
+      "sha256": "dbf6e176f47b55c7c9ebef1bcd02f7adce860d736f5400ce66269a5c4f4f228f"
+    },
+    {
+      "path": "scripts/validate_source_witness_foundation.py",
+      "bytes": 727049,
+      "sha256": "effd2ee4341e9b8b640c251adff39a4aed2533f17afb640eecde11b5917d7ef0"
+    },
+    {
+      "path": "scripts/validate_tos_corpus_index.py",
+      "bytes": 4554,
+      "sha256": "6298d7b1fcdca26490de02f2eca2a21f598f4b7526c82e72ab2adc69ddf08e71"
+    },
+    {
+      "path": "tests/conformance/rust/compiler_source_cases.rs",
+      "bytes": 95066,
+      "sha256": "8161c2497e783366e92984dd5d6880019d69843281dcbaff1daaabf9dec25f0d"
+    }
+  ],
+  "input_witness": {
+    "selected_authored_inputs": {
+      "entry_count": 200,
+      "total_bytes": 1758845,
+      "files": [
+        {
+          "path": "ToS/candidate-intake/AGENTS.md",
+          "bytes": 1831,
+          "sha256": "d3a8aee27a1bc13d241b01de8f50ed350cc721b0a98072f8c64f9b1676bc0649"
+        },
+        {
+          "path": "ToS/canon/AGENTS.md",
+          "bytes": 1825,
+          "sha256": "4749e265ec08138582f56af1cf8027268afa6cd234b919aa1678b9029c4d577f"
+        },
+        {
+          "path": "ToS/contracts/AGENTS.md",
+          "bytes": 2341,
+          "sha256": "ddb06f5c855fb5c7aff7722ec90642d2b316210e976c7dae83d342ed8c34023a"
+        },
+        {
+          "path": "ToS/contracts/access-request.schema.json",
+          "bytes": 9346,
+          "sha256": "885c0be76e1ef44a6809945eda395e3830fd429ef81ca0eb7a9ab5712ae2bc4d"
+        },
+        {
+          "path": "ToS/contracts/acquisition-batch.schema.json",
+          "bytes": 6800,
+          "sha256": "43445c580399ec5aa3013254fdc04143c945666ba8c874d2c137f24e6b8799a9"
+        },
+        {
+          "path": "ToS/contracts/acquisition-provenance-delta.schema.json",
+          "bytes": 2400,
+          "sha256": "9a8ab57ceb87c299ecae69e8275613625d19684c30070f1c83a57eab1b4bda7a"
+        },
+        {
+          "path": "ToS/contracts/artifact-source-witness-v2.schema.json",
+          "bytes": 11257,
+          "sha256": "bdedd892c9cce4120dd77fb78d4bb953127919149ba2a7583b7934dec7f15215"
+        },
+        {
+          "path": "ToS/contracts/artifact-source-witness.schema.json",
+          "bytes": 11046,
+          "sha256": "1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+        },
+        {
+          "path": "ToS/contracts/artifact-visual-representation.schema.json",
+          "bytes": 6972,
+          "sha256": "2317c4671aee44730c9b4176511853a01e4729714fbfedf1fcb0c01b9cc3c506"
+        },
+        {
+          "path": "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+          "bytes": 8828,
+          "sha256": "358fb2effe1393e77cbaabca5cd3da659c006bbf78870548890661b9d07545ad"
+        },
+        {
+          "path": "ToS/contracts/bounded-translation-research-input.schema.json",
+          "bytes": 13020,
+          "sha256": "25c93ac6f1f1c557e720742a1aa11bf961c937e92b8e2d69445404b16592a522"
+        },
+        {
+          "path": "ToS/contracts/claim-display-fields.schema.json",
+          "bytes": 2445,
+          "sha256": "b1cec0d2104822e74a522847eae9bc65b4ce89db61d8d339de1aed6c973a80f7"
+        },
+        {
+          "path": "ToS/contracts/claim-packet.schema.json",
+          "bytes": 5632,
+          "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd"
+        },
+        {
+          "path": "ToS/contracts/collection-work-boundary-map.schema.json",
+          "bytes": 6591,
+          "sha256": "edfdd60bdc77dbf75e59bc2b420912d2b62363a46c8e42f3c95a4e5db08d4e38"
+        },
+        {
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "bytes": 8744,
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851"
+        },
+        {
+          "path": "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
+          "bytes": 11874,
+          "sha256": "e203e6c10eab31ff7d6d87cae56b6accc77f31b1fd66f6a5c2b0933ea5beae70"
+        },
+        {
+          "path": "ToS/contracts/critical-edition-witness-admission.schema.json",
+          "bytes": 14037,
+          "sha256": "976489b0088a0d6e943781a9e00a8dfe6bc7c3da34fd6244e1686e30bb0b18e7"
+        },
+        {
+          "path": "ToS/contracts/document-catalogue-claim.schema.json",
+          "bytes": 7527,
+          "sha256": "1e3d42da65403eaefff1da668c31843dbe8b7f0c3420cda0a82356e7de085be6"
+        },
+        {
+          "path": "ToS/contracts/document-record.schema.json",
+          "bytes": 1602,
+          "sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef"
+        },
+        {
+          "path": "ToS/contracts/edition-reading-admission.schema.json",
+          "bytes": 8871,
+          "sha256": "a62d3f5e9182d557c35070d9d18b32a8c1685b998c4d837feb2da34a291d8ade"
+        },
+        {
+          "path": "ToS/contracts/epistemic-evidence-projection.schema.json",
+          "bytes": 4883,
+          "sha256": "0baf90f7966714d4ce4141d61552416186050f97d7a9b391b077c399b8c43459"
+        },
+        {
+          "path": "ToS/contracts/experimental-translation-candidate.schema.json",
+          "bytes": 9533,
+          "sha256": "a9c8a1c7d6266515ad5cdbc70376f08e7adcdfa8919ebc4e69dfe6c20b34caa0"
+        },
+        {
+          "path": "ToS/contracts/experimental-translation-episode.schema.json",
+          "bytes": 32739,
+          "sha256": "388a5008add385eb528cea843c72250e7148cc54e88f248f392df83fa93ccc7b"
+        },
+        {
+          "path": "ToS/contracts/expression-derivation.schema.json",
+          "bytes": 1621,
+          "sha256": "6f78998c37b54beef3822688fcd9985186c21621e8e61ef1a23b1e92abfc237e"
+        },
+        {
+          "path": "ToS/contracts/first-publication-chronology.schema.json",
+          "bytes": 4580,
+          "sha256": "84ad73a011a1bc951d31401d0872da17d6f031270f4a8a047b675e32bd3812e8"
+        },
+        {
+          "path": "ToS/contracts/formation-relation-claim.schema.json",
+          "bytes": 2468,
+          "sha256": "85a67de9cae49ba5771efde9d8569b675c0aa0cbfa2f5c101316135571282ba1"
+        },
+        {
+          "path": "ToS/contracts/german-assisted-source-review.schema.json",
+          "bytes": 8856,
+          "sha256": "491c85ffc0837c2c1d1248ae6ca9973b1e1d888f8e43725016ef55ffa4bfd529"
+        },
+        {
+          "path": "ToS/contracts/german-source-triangulation.schema.json",
+          "bytes": 16586,
+          "sha256": "522e94f24eacc4404c0ca26cf506e80894b312b468921f1317dda9263aa0455f"
+        },
+        {
+          "path": "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+          "bytes": 25666,
+          "sha256": "7ef08d7840c40ffe7342c6356b1df8dd19c577a5d4eb95845bc8ab49441c81ca"
+        },
+        {
+          "path": "ToS/contracts/graph-query-plan.schema.json",
+          "bytes": 3445,
+          "sha256": "2ee33b77c496e732e22932e8fc24b1c0fe4087745eac434946d9580edf9e3afd"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+          "bytes": 6117,
+          "sha256": "9173ee5c2bb9349be004ae39f57204c34840d604f96e387d04f09d9778e11e17"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+          "bytes": 12796,
+          "sha256": "126dd8d448581b976062ff58bd2064b3de3b9d8c505b387bd2fbf90712b0d1ae"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+          "bytes": 11506,
+          "sha256": "db229136190729a8f6648c12c3a5ed3a1c00c79b460593e73d80c8fc1a5ef877"
+        },
+        {
+          "path": "ToS/contracts/historical-claim.schema.json",
+          "bytes": 10780,
+          "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750"
+        },
+        {
+          "path": "ToS/contracts/historical-context-claim.schema.json",
+          "bytes": 3187,
+          "sha256": "15e5823b6b812494853076223025250afa9922636ff9509ec20129d8972f894d"
+        },
+        {
+          "path": "ToS/contracts/historical-context-record.schema.json",
+          "bytes": 10879,
+          "sha256": "6f025746a87ffc2a7be8d7a745bcd6cd9438fa9d04e0add43fb1a9854d44efef"
+        },
+        {
+          "path": "ToS/contracts/historical-record.schema.json",
+          "bytes": 3705,
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2"
+        },
+        {
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "bytes": 2486,
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2"
+        },
+        {
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "bytes": 1527,
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e"
+        },
+        {
+          "path": "ToS/contracts/human-form.schema.json",
+          "bytes": 16342,
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980"
+        },
+        {
+          "path": "ToS/contracts/intellectual-formation-record.schema.json",
+          "bytes": 4412,
+          "sha256": "8228e76df5b471e334c952918bb23928f4eede10b3e57657e2456d056b61aa09"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-authority.schema.json",
+          "bytes": 2011,
+          "sha256": "8ae72f8e24ffba3bec8c7f4ff0d3c56d90e9e4f33b4795aabe217df3dd5e50cd"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-batch.schema.json",
+          "bytes": 3566,
+          "sha256": "66144d009da2268001b356ba4ef39da09dc408e43b1edceee9c6a3c17ea924ea"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-competence.schema.json",
+          "bytes": 1586,
+          "sha256": "b0f6466b7eb175b9c9b4f1e5f4df0f93c853d0ebc9acb5f3606fe052ede19cb1"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-policy.schema.json",
+          "bytes": 2094,
+          "sha256": "77d4956a4d9f6f5ea8a78a338a655d39957c9cbe0a5d425bab77ca3ad301b511"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "bytes": 5043,
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298"
+        },
+        {
+          "path": "ToS/contracts/knowledge-query-vocabulary.schema.json",
+          "bytes": 6064,
+          "sha256": "aac63ec709e34679539d96c523bc86df3d77a8d2f4315155586e8a8fc4d466df"
+        },
+        {
+          "path": "ToS/contracts/laboratory-sample-plan.schema.json",
+          "bytes": 5659,
+          "sha256": "0c7019f06ee5159610d83244543cb89f6ae55f4eea3738db57c23b97619d17af"
+        },
+        {
+          "path": "ToS/contracts/lexical-comparison-claim.schema.json",
+          "bytes": 3976,
+          "sha256": "0720a6a93c4c9e671ac875100ba6afc0e0f34cf3aef5a4b93b43f6cacb2a9fbe"
+        },
+        {
+          "path": "ToS/contracts/lexical-description-record.schema.json",
+          "bytes": 5835,
+          "sha256": "268b1d163386dc408a02ad27c353e0ba46cad22c580caaf8219af9657b264adc"
+        },
+        {
+          "path": "ToS/contracts/lexical-index-plan.schema.json",
+          "bytes": 10202,
+          "sha256": "b7348fc25e1954a043bcc8e30579d70ee93949bbd1717bf993b4080600e1a717"
+        },
+        {
+          "path": "ToS/contracts/lexical-index-projection.schema.json",
+          "bytes": 14424,
+          "sha256": "80a327913f6ea61c62f303577b5799be396db506089e6fb92ed8e3fdc5ca562c"
+        },
+        {
+          "path": "ToS/contracts/lexical-recurrence-plan.schema.json",
+          "bytes": 8002,
+          "sha256": "524d93c61b9d28a2a7281dc97d3f31a4aa0732d442bb7beba75872cac0197982"
+        },
+        {
+          "path": "ToS/contracts/lexical-recurrence-projection.schema.json",
+          "bytes": 8579,
+          "sha256": "661a53ddc3153fa98b973fec87676d8f8b04614669f9e7bb707ca1b2d16f3fde"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-plan.schema.json",
+          "bytes": 12160,
+          "sha256": "41cb2c56edb259994ef073ef4d4c2965d7e0bf5ecaf313b9a416e03169b3def3"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-receipt.schema.json",
+          "bytes": 13317,
+          "sha256": "5120eb7a26263c392d9011182ac3172f42665be4ce9b1bad10c70b421ed30194"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-row.schema.json",
+          "bytes": 3050,
+          "sha256": "7e21f763d5826680eb4b0dc2bb2ff5f82ecbbf88211e66eabcf4cc7992f7befb"
+        },
+        {
+          "path": "ToS/contracts/linguistic-description-record.schema.json",
+          "bytes": 5764,
+          "sha256": "c6cb0872541eebdb10c22b80bc15d7037e58d0070f594509167967d767b65d36"
+        },
+        {
+          "path": "ToS/contracts/linguistic-relation-claim.schema.json",
+          "bytes": 1003,
+          "sha256": "0ab386046f113d6c16fc6e627153e37baa38231383cd7bee51ced3f0d3cfd73e"
+        },
+        {
+          "path": "ToS/contracts/lived-witness-packet.schema.json",
+          "bytes": 18822,
+          "sha256": "0f9a9a3aa8f8ddc406a7a11b23dcbc3934b317a6be1201d285efa4ef0f09ce79"
+        },
+        {
+          "path": "ToS/contracts/manual-error-ledger-record.schema.json",
+          "bytes": 6574,
+          "sha256": "9d4dbe5455b705bba2f6f123176eb9b4afe850c47c05da30b78a24122491b162"
+        },
+        {
+          "path": "ToS/contracts/manual-gold-assurance.schema.json",
+          "bytes": 14738,
+          "sha256": "3bcad7751309658ba2c38f020f50558a8c6bd40179b3da31b7b50f65b9baa943"
+        },
+        {
+          "path": "ToS/contracts/manual-gold-status.schema.json",
+          "bytes": 4030,
+          "sha256": "26f56b8e8bbe343c0ca1cdce7357453a7ff2a3b96aaf79073b7ce0d27167b2e7"
+        },
+        {
+          "path": "ToS/contracts/material-discovery-record.schema.json",
+          "bytes": 12974,
+          "sha256": "0e8093dc2ccb0410c455a875f746b2202e852051455ac26444ceb10aea948a07"
+        },
+        {
+          "path": "ToS/contracts/morphology-census-result-receipt.schema.json",
+          "bytes": 21174,
+          "sha256": "1228c378de944fb361cb0725be56d6cfeebf6f2a83564845e14802c41c003fbd"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+          "bytes": 10977,
+          "sha256": "7433b21c9a5eb9d405d54cc472c5671a2d7ce770f829ae0b8c9a9c3519907110"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+          "bytes": 11816,
+          "sha256": "80372c7521f13f7026dcb13bd203c6189366b91f6ccda6527654d9f5f2d4d396"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+          "bytes": 7287,
+          "sha256": "16a4b86d8051af2aa62766dfcb6b59a78a6632e94c79e4a571339b5eb256bab7"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-row.schema.json",
+          "bytes": 2782,
+          "sha256": "1a7734a4a20c05268fe8cb1a724405bf88ed138f8d936f7c775dd0dc3123af39"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-result-receipt.schema.json",
+          "bytes": 18462,
+          "sha256": "328be01e9dc71f3cbe1148c78630d4fcef3dfe42e44a91d28c0fea689a684c2a"
+        },
+        {
+          "path": "ToS/contracts/morphology-evaluation-plan.schema.json",
+          "bytes": 11648,
+          "sha256": "7efc8eeb49380cda387387898432666b7add0188b12a9558a70916c3ab1a83d6"
+        },
+        {
+          "path": "ToS/contracts/morphology-input-receipt.schema.json",
+          "bytes": 5533,
+          "sha256": "fa0f95170ad727cee670df2793d2dc34a7b026bd499092a33058b355029ac25d"
+        },
+        {
+          "path": "ToS/contracts/native-local-text-read.schema.json",
+          "bytes": 4034,
+          "sha256": "fce62db90ff0224e70980b54b4123141c575f21182054f56cc0bfb7c320cb921"
+        },
+        {
+          "path": "ToS/contracts/native-page-ocr-comparison.schema.json",
+          "bytes": 12056,
+          "sha256": "e3c656b790c00be278ea36e9ebae8d8469529e63470d70a0a4b5cec75312e7a7"
+        },
+        {
+          "path": "ToS/contracts/native-private-text-read.schema.json",
+          "bytes": 3589,
+          "sha256": "b8654549c2a0f4803cb69e0b2807be6ba010df05c3b58022bacaece30c3eda52"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-binding.schema.json",
+          "bytes": 1885,
+          "sha256": "da7fa3c3cb42ba0e83f632034daf024f826dc73926d0c09f1878c13ecc7d629d"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-comparison.schema.json",
+          "bytes": 7194,
+          "sha256": "80e3e14673eb1f782980700d86efa9cc3a4a183f7bd818f963d3d4498140351b"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-derivation-comparison.schema.json",
+          "bytes": 6984,
+          "sha256": "c73f2b147da964325d244c5d3feb5c9e60bf1fe4d4d3d320ee6403443b6ac6ae"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-quality-basis.schema.json",
+          "bytes": 3828,
+          "sha256": "152f7b0aee8fee47603b8fc9aa283a7776b8c09f34415226523c68150d95c929"
+        },
+        {
+          "path": "ToS/contracts/native-text-unit-assessment-subject.schema.json",
+          "bytes": 1781,
+          "sha256": "36dcdc9b41f91360950a99f1678afef6626a620a314a38108f39353cce64e5b4"
+        },
+        {
+          "path": "ToS/contracts/native-text-unit-binding.schema.json",
+          "bytes": 3255,
+          "sha256": "957dbe7d4309068b7d4c19ccf0a4c5a65f0ec0c39a829e0aaf3e4ea6732ed3a2"
+        },
+        {
+          "path": "ToS/contracts/native-translation-alignment-record-v1.schema.json",
+          "bytes": 10767,
+          "sha256": "5fa732463078756c9ac511ea9c57e00c02e4ff77948465375b1271f3d30726a4"
+        },
+        {
+          "path": "ToS/contracts/numbered-unit-page-map.schema.json",
+          "bytes": 8874,
+          "sha256": "43ecb437771e8b13b64159630776c232a6b2c778c63b8691043c8f3c70374da0"
+        },
+        {
+          "path": "ToS/contracts/object-link-claim-v2.schema.json",
+          "bytes": 1462,
+          "sha256": "ff0046e2e05dd67c68a75af02429d609baae75dba8db3aa4147ac0297cd50e92"
+        },
+        {
+          "path": "ToS/contracts/object-link-claim.schema.json",
+          "bytes": 2303,
+          "sha256": "fbc77bdc6c756daf5f26c4474b59b3f8c79e8cfb8e8f12b12052ec0802da8de8"
+        },
+        {
+          "path": "ToS/contracts/occurrence-description-record.schema.json",
+          "bytes": 2418,
+          "sha256": "a63e24545410c7f6da351cd14af6f219902e2f9fdcb39a2b472105b3b1cdf86a"
+        },
+        {
+          "path": "ToS/contracts/ocr-visual-sample-plan.schema.json",
+          "bytes": 9423,
+          "sha256": "efc5af081de74da05360644e23455527214b8e836ebc37c8aa95a6a38f729324"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate-queue.schema.json",
+          "bytes": 4892,
+          "sha256": "4dfae12cde9388b9f97a28d1afbf6d753d2a9d119f487c00e033700fe0fcdb36"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate-receipt.schema.json",
+          "bytes": 8288,
+          "sha256": "c8c7d5f1a7e88d300fa2d5853f19187a1a3d6f5208cbbb1f4f489c68edf438ed"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate.schema.json",
+          "bytes": 6549,
+          "sha256": "bfccc41d462838019d29a78c8868155441d980025fde13c7f8c092479dc06c8b"
+        },
+        {
+          "path": "ToS/contracts/open-work-channel-timing-receipt.schema.json",
+          "bytes": 2857,
+          "sha256": "bed2e70d8b92844aeecdcda37ece41426711dfee1ba5bea896e8afd355a2feaf"
+        },
+        {
+          "path": "ToS/contracts/open-work-readiness-plan.schema.json",
+          "bytes": 8484,
+          "sha256": "12343a5e5db2579b51eec4b0479512fa2cafae7c93ae27c0413f3e3b814fced1"
+        },
+        {
+          "path": "ToS/contracts/owner-local-source-context.schema.json",
+          "bytes": 1353,
+          "sha256": "4261950c0f2f48001498b0bee0cbe1ff4e702af45688090e8123f080b5c17127"
+        },
+        {
+          "path": "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+          "bytes": 7416,
+          "sha256": "8ced68903506d323be129d84c4e40093ed153ad01f6962063d59e7e767d575e8"
+        },
+        {
+          "path": "ToS/contracts/parallel-witness-structure-map.schema.json",
+          "bytes": 10847,
+          "sha256": "19d9847a7ee3091a6869f5907009ceab6662712c6dc3e2984e62cd5d48ba7a02"
+        },
+        {
+          "path": "ToS/contracts/partitioned-projection.schema.json",
+          "bytes": 3950,
+          "sha256": "55969fd4b048f93a73b6a6740ea7392ac7b475baa9520bf75352ed6be283ea3c"
+        },
+        {
+          "path": "ToS/contracts/philosophy-atlas-projection.schema.json",
+          "bytes": 13662,
+          "sha256": "e65ce0cdad3661bbb35a5d8d07134c587e684ef19a83dd920575974e70468373"
+        },
+        {
+          "path": "ToS/contracts/philosophy-graph-projection.schema.json",
+          "bytes": 31123,
+          "sha256": "49a3f59da10cf8823c45446c52c9237f4d2f96d28af4e068a8a36acac9814b19"
+        },
+        {
+          "path": "ToS/contracts/philosophy-graph-views.schema.json",
+          "bytes": 9208,
+          "sha256": "cd5d10561ba2c692b9766294d82ecf8b5e60a9b76428ebe8695e68bb2c43b601"
+        },
+        {
+          "path": "ToS/contracts/philosophy-source-planting.schema.json",
+          "bytes": 6106,
+          "sha256": "749f55fb4b54474e06259b63bf5f99f4074dcb17ba2c3110c49e54f2e09721fd"
+        },
+        {
+          "path": "ToS/contracts/private-laboratory-evidence-handoff.schema.json",
+          "bytes": 12373,
+          "sha256": "1b65ff635b5a12c5957eab87c7de336ad68fc0017b5f9ab2b6ea83a525495fec"
+        },
+        {
+          "path": "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+          "bytes": 8742,
+          "sha256": "eecf83a707f6588412032c0dbc570744634e5eb45bb5aad7abe2c3e1116add59"
+        },
+        {
+          "path": "ToS/contracts/provenance-event-v2.schema.json",
+          "bytes": 34901,
+          "sha256": "bc56f527b580e3c4728fcb2ebe8cfa333b75a7db56922226d1eaec6de0557ae0"
+        },
+        {
+          "path": "ToS/contracts/provenance-event.schema.json",
+          "bytes": 4253,
+          "sha256": "d4f9a09f65c91c478dfc93d4b26feca70e8204b2b946c9eee6bac4c8c872d0a2"
+        },
+        {
+          "path": "ToS/contracts/provision-activity.schema.json",
+          "bytes": 8607,
+          "sha256": "27d53ef0f739b4e640311d625b9abd6a6cab0c21e808a9872776d1f660c0451b"
+        },
+        {
+          "path": "ToS/contracts/public-laboratory-evidence-derivative.schema.json",
+          "bytes": 10806,
+          "sha256": "b0594f9064b132b2654722919ebea8ed6ef4aafc7a940d8c4779fe41e9fc9bdf"
+        },
+        {
+          "path": "ToS/contracts/public-native-text-authority.schema.json",
+          "bytes": 3566,
+          "sha256": "8ca983cc9347c044f2f1b0b58fdf70e933d73f5d54b168f3b8d7f173c4f66f55"
+        },
+        {
+          "path": "ToS/contracts/public-native-text-create-owner.schema.json",
+          "bytes": 10668,
+          "sha256": "a71a29e30d3279e9d20367ea665acc3d495f37b9097c28cada5dde2709df260b"
+        },
+        {
+          "path": "ToS/contracts/reception-record.schema.json",
+          "bytes": 7303,
+          "sha256": "f7bb253ac378449b29eaa46464136cb3c75892bc735a41df9e978a38b0fb8923"
+        },
+        {
+          "path": "ToS/contracts/record-version-view.schema.json",
+          "bytes": 7514,
+          "sha256": "e543b1b235302ec547128564f1e0792ecbc091eec9acca8b1d789c2ea2ff3cf0"
+        },
+        {
+          "path": "ToS/contracts/research-corpus-record.schema.json",
+          "bytes": 1841,
+          "sha256": "a8828699d4b8ad0bc24853c68474ee4a2fa7f061a24228585eeee0ce73a06de8"
+        },
+        {
+          "path": "ToS/contracts/retrieval-query-plan.schema.json",
+          "bytes": 4193,
+          "sha256": "bdf3b6ac181da9db91feb7358b9dbf925bdddfb46ae3978bb6e1062e0d87cbf9"
+        },
+        {
+          "path": "ToS/contracts/rights-record.schema.json",
+          "bytes": 8264,
+          "sha256": "a8b4e440a9cbb8053653d310e70a1f5405b621e258277d8e76ac7f6bac7d864f"
+        },
+        {
+          "path": "ToS/contracts/root-entry-map.schema.json",
+          "bytes": 4333,
+          "sha256": "476f2135fa4b049480a7282cbe014f61f1c4072268d53f09e9dd72d5316c28f5"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-claim.schema.json",
+          "bytes": 1844,
+          "sha256": "bfeb29b1e654fae5bae6bc6d4c73fb1ee3de0da3dd7120ee2d31f2573306935e"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-file-representation.schema.json",
+          "bytes": 10212,
+          "sha256": "8bd1149a13cd8f330ed428a55bf5a4f8048d65423c1da8c39dd3b7230bdcc2da"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-record.schema.json",
+          "bytes": 2417,
+          "sha256": "7531fe0f32247a87991e42fa8eb6f8d93efe70dda3e4d299b6c339d4dc698a81"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-witness.schema.json",
+          "bytes": 9755,
+          "sha256": "d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+        },
+        {
+          "path": "ToS/contracts/scoped-member-structure.schema.json",
+          "bytes": 3509,
+          "sha256": "e6ffd025d1905de1f19acbda575aa82b60050e6754b0433cd0148f1ec81ef2b3"
+        },
+        {
+          "path": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+          "bytes": 26114,
+          "sha256": "1a3e8bf71f47c8c655c00cc9b7401cb621b5136ee52567ab3c34c2022c2b65d8"
+        },
+        {
+          "path": "ToS/contracts/semantic-description-record.schema.json",
+          "bytes": 4643,
+          "sha256": "4fa3fda61509be3740911e7c8422ba2b68117a81d7c5abc61b5f02d1e18b271b"
+        },
+        {
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "bytes": 16948,
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29"
+        },
+        {
+          "path": "ToS/contracts/semantic-ladder-packet.schema.json",
+          "bytes": 54667,
+          "sha256": "b4e06f0599ae52c0df4dbf4b13d6a3b3b68d17064957553fce392f626e3ed8b7"
+        },
+        {
+          "path": "ToS/contracts/semantic-relation-claim.schema.json",
+          "bytes": 1997,
+          "sha256": "8c0f0c80c58c6196d197e36fab79259d09d36ff41b529dfa983af5c35a25856f"
+        },
+        {
+          "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
+          "bytes": 19804,
+          "sha256": "6b977aa01ac54172ee7d50618867edc75cefa395f22767cd4450211ca2c39894"
+        },
+        {
+          "path": "ToS/contracts/server-import-contract.schema.json",
+          "bytes": 11091,
+          "sha256": "817e7f1c163f250d37a30f531c1f2de1a52d23cb8f0a6b1e23f91cd39885afe1"
+        },
+        {
+          "path": "ToS/contracts/server-import-receipt.schema.json",
+          "bytes": 4296,
+          "sha256": "efd8946b0eba1a76503e232ed27e3fcec43e1b429e39304d9d02d4251ecadd70"
+        },
+        {
+          "path": "ToS/contracts/sign-annotation.schema.json",
+          "bytes": 3924,
+          "sha256": "823cd06541a8ac4dd79f21428d0351fdff3b4802b93d6621254b39f93efa4427"
+        },
+        {
+          "path": "ToS/contracts/sign-description-record.schema.json",
+          "bytes": 4844,
+          "sha256": "04646f22a48ff306d47513505080e5fe4c03cd52a07d968ac8bf7991af274dfe"
+        },
+        {
+          "path": "ToS/contracts/social-body-record.schema.json",
+          "bytes": 4722,
+          "sha256": "e95527b594aad14214b6a7b73feef54bf7fbb848e83e7d6a1925c4e79642fb9f"
+        },
+        {
+          "path": "ToS/contracts/social-relation-claim.schema.json",
+          "bytes": 2528,
+          "sha256": "befabc307e1591c3ed0f7cbe381900fb3b849ca1628b051b8705139df982e500"
+        },
+        {
+          "path": "ToS/contracts/source-anchor-v2.schema.json",
+          "bytes": 14126,
+          "sha256": "99e60f433a8545495706216bb66dfbae241cadf44086b59100af87464f5d8235"
+        },
+        {
+          "path": "ToS/contracts/source-anchor.schema.json",
+          "bytes": 4864,
+          "sha256": "6b493f99d06aa76e3254eb2cd3f46907969a3ad43416e100333ead20f6244e8c"
+        },
+        {
+          "path": "ToS/contracts/source-catalog-projection-v2.schema.json",
+          "bytes": 12417,
+          "sha256": "56831635e4a21ad6e97bfe96855d5b32257b462627b0d6ae18f9c17bbf7d2db8"
+        },
+        {
+          "path": "ToS/contracts/source-claim-record.schema.json",
+          "bytes": 4297,
+          "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+        },
+        {
+          "path": "ToS/contracts/source-classification-claim.schema.json",
+          "bytes": 3136,
+          "sha256": "8dccdd325290c0ef8b98ad2acb9d3c7d59b3d0e0fe4e9886472417bb716c14ba"
+        },
+        {
+          "path": "ToS/contracts/source-gated-evaluation-plan.schema.json",
+          "bytes": 13172,
+          "sha256": "10874bb36b6cdb91366f298373d80872fd782ca727fa829a2c52c396675dc0c9"
+        },
+        {
+          "path": "ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+          "bytes": 20735,
+          "sha256": "6ffd85230ac3d9e49642d61ae82d59e300ba6c9c5429cd75459d0b41fb6fad83"
+        },
+        {
+          "path": "ToS/contracts/source-gated-semantic-evaluation-plan.schema.json",
+          "bytes": 26657,
+          "sha256": "a59831e51ddf2a19d79000d81ce276a9bb09734e6470a420283181403a911288"
+        },
+        {
+          "path": "ToS/contracts/source-identity-transition-claim.schema.json",
+          "bytes": 3670,
+          "sha256": "4fda26cff3b9373647c090ffed3ee48b8ca81b9a25851fbc2a73647be75c7b94"
+        },
+        {
+          "path": "ToS/contracts/source-item-manifest.schema.json",
+          "bytes": 3431,
+          "sha256": "fc768e6245bbfcc16bc004abffc28bb7dca25239b3eb1b68ed7260fa9e0af18b"
+        },
+        {
+          "path": "ToS/contracts/source-lexical-translatability-claim.schema.json",
+          "bytes": 6265,
+          "sha256": "bb71e78d2b0a5cd8b6baec105d04fe6ab681daa086c99772ddf66a6316e50feb"
+        },
+        {
+          "path": "ToS/contracts/source-link.schema.json",
+          "bytes": 2618,
+          "sha256": "0c2ca8b65823e69bf80417b029149f392e934b41c02dcbcfae0a198a4f2867b3"
+        },
+        {
+          "path": "ToS/contracts/source-member-structure-claim.schema.json",
+          "bytes": 2070,
+          "sha256": "a24a423ffbdb36ea18474edd38ba267e91e98f868e72b031b334b996639ef123"
+        },
+        {
+          "path": "ToS/contracts/source-metadata-record.schema.json",
+          "bytes": 2779,
+          "sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4"
+        },
+        {
+          "path": "ToS/contracts/source-occurrence-motif-claim.schema.json",
+          "bytes": 4004,
+          "sha256": "eb79f3b3c9467a21bab13bb9981c8b45782bd75ed2e67d1cb48326a387631ec3"
+        },
+        {
+          "path": "ToS/contracts/source-payload-rights-review.schema.json",
+          "bytes": 4543,
+          "sha256": "fbc75f9adbf508e0c90770eabd4be58f54ef1b1447576f62c91d42bc772b6e06"
+        },
+        {
+          "path": "ToS/contracts/source-record-closure-selection.schema.json",
+          "bytes": 2096,
+          "sha256": "26ef7d0fc255018a002905922c09d845b5933d1626d796e3a84aae394ddd6867"
+        },
+        {
+          "path": "ToS/contracts/source-registry-normalization.schema.json",
+          "bytes": 4156,
+          "sha256": "22778baf9bec309709ecd59c9c50e68b44a0edf52b6cddccad4d7b42e7021eaf"
+        },
+        {
+          "path": "ToS/contracts/source-relation-claim.schema.json",
+          "bytes": 604,
+          "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe"
+        },
+        {
+          "path": "ToS/contracts/source-resource-inventory.schema.json",
+          "bytes": 13926,
+          "sha256": "71b5ae06f827a0bfcbe2063cae808e59a6803265af0a8e5943f1afaa6d137910"
+        },
+        {
+          "path": "ToS/contracts/source-structured-value.schema.json",
+          "bytes": 1289,
+          "sha256": "d0392d43c8e45671894174fc09bc930fa696766d1a803494096ad04cd6f2fcf8"
+        },
+        {
+          "path": "ToS/contracts/source-temporal-claim.schema.json",
+          "bytes": 1820,
+          "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4"
+        },
+        {
+          "path": "ToS/contracts/source-text-layer.schema.json",
+          "bytes": 23349,
+          "sha256": "019b223d7f2449979d0671f3e4e46dc443a4c9f71097874db5fca904e05b4b95"
+        },
+        {
+          "path": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+          "bytes": 28409,
+          "sha256": "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab"
+        },
+        {
+          "path": "ToS/contracts/source-textual-survival-claim.schema.json",
+          "bytes": 2653,
+          "sha256": "4422d5f94055523a34029b26360adcccec320e6ebee1e486db6e595ea2242f38"
+        },
+        {
+          "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+          "bytes": 18615,
+          "sha256": "e1b3237b9ff29c30504b28ed662959848a1724bc0eb169015324618ccd063b1f"
+        },
+        {
+          "path": "ToS/contracts/source-witness-catalog.schema.json",
+          "bytes": 16261,
+          "sha256": "678c1f2f0ab01085d5e90d3d85fcea307023e3a44ada064a3eaae70fd6a32d40"
+        },
+        {
+          "path": "ToS/contracts/subject-identity-transition-claim.schema.json",
+          "bytes": 3736,
+          "sha256": "024bb9459f2ecba2986552dfba2cd2fdef6a3a95a20e63c6e16a2174b7fbcc33"
+        },
+        {
+          "path": "ToS/contracts/target-numbered-unit-page-map.schema.json",
+          "bytes": 11540,
+          "sha256": "531cc5674180a864d25ba3246110e560503417880731aa8ebd923719a6ea1d7a"
+        },
+        {
+          "path": "ToS/contracts/textual-passage-claim.schema.json",
+          "bytes": 1834,
+          "sha256": "d56a151d3c76ae01200945b3755ae243506213e705be18444ce6ed0f34c8375e"
+        },
+        {
+          "path": "ToS/contracts/textual-passage-record.schema.json",
+          "bytes": 3643,
+          "sha256": "fee443fc946283732e937ba60c603066aa52e65fe5b66eccdd9d7012e8fc5cc8"
+        },
+        {
+          "path": "ToS/contracts/thought-description-record.schema.json",
+          "bytes": 5888,
+          "sha256": "c1071eea9c5a58fb3dc2339094d76d74fb49a22e9c5d48569d16b48ba3f91edd"
+        },
+        {
+          "path": "ToS/contracts/thought-practice-record.schema.json",
+          "bytes": 14518,
+          "sha256": "2d42c171b2f01d9ae4963860d1473724d7958f7c6e67b29012c269716826b702"
+        },
+        {
+          "path": "ToS/contracts/thought-relation-claim.schema.json",
+          "bytes": 1046,
+          "sha256": "fbe86b15696550317f20cf5526ae96af1d514b0cc7c48ebd9ba04b1e3a975016"
+        },
+        {
+          "path": "ToS/contracts/thought-topic-record.schema.json",
+          "bytes": 9117,
+          "sha256": "41291684c19b66e6ab2041e2cd48adb5c42cb02f841d8b5c333754feeb2c2cf4"
+        },
+        {
+          "path": "ToS/contracts/tos-corpus-index.schema.json",
+          "bytes": 21026,
+          "sha256": "2dfd8d0a8076e8c7d7a93c1c23dc727bcbbf599e53641e95c888e3cde492d411"
+        },
+        {
+          "path": "ToS/contracts/tos-node-contract.schema.json",
+          "bytes": 11754,
+          "sha256": "738dac1048745056ac1710d30ad38fa3b636dc8307f0f4c8ce7775c814861daa"
+        },
+        {
+          "path": "ToS/contracts/tos-source-home.schema.json",
+          "bytes": 2549,
+          "sha256": "1d0676db1088240200f4d98323af04197d05153587724971be12502cd6f67dfa"
+        },
+        {
+          "path": "ToS/contracts/tos-tiny-entry-route.schema.json",
+          "bytes": 2207,
+          "sha256": "aafb6f5c79981ee87f4b6dfd2c7866ba51146d5eb8f264bc9b66438b64551507"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+          "bytes": 6087,
+          "sha256": "977998fc42f869a28cbc7dc7011e62c820a8146a88df1720055c46c9de4c8a84"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-structural-crosswalk.schema.json",
+          "bytes": 8229,
+          "sha256": "adbcfd47146cf1149e5fe5a20ecfa408983083d10c406130ac0344f237cdd922"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+          "bytes": 8366,
+          "sha256": "d42c611b518390b133efd0bea877791e1c4425a0eb50c09ad17546d416fe4850"
+        },
+        {
+          "path": "ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+          "bytes": 9723,
+          "sha256": "7de355ab3338f84d8380d30f76cafd2aa4d59f0efba2566695a37996d7cd5b18"
+        },
+        {
+          "path": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+          "bytes": 7936,
+          "sha256": "6e5ab096f2f901805b93bfc15d5903f9644891a32b6020270450e624377c4a2d"
+        },
+        {
+          "path": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+          "bytes": 18121,
+          "sha256": "23c616725cd98f7e4477b26fd07703531f7fe86df480af428870ddf6cafbde41"
+        },
+        {
+          "path": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+          "bytes": 12467,
+          "sha256": "af388db349c40dfc8e5ac5604dfa1db90c3e77839c4332ec9df9e0f48b869f65"
+        },
+        {
+          "path": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+          "bytes": 10528,
+          "sha256": "91365cd5f4f75cc7340ff17b5cceb74657d7e3f13e6d6dfeee06cb33d81c7345"
+        },
+        {
+          "path": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+          "bytes": 23228,
+          "sha256": "69be2c70d9eac1cd1ccef165d99b5c7709cd2e52f8ec8022548ce33eb7cca130"
+        },
+        {
+          "path": "ToS/contracts/translation-exposure-aware-plan.schema.json",
+          "bytes": 20024,
+          "sha256": "fc5bbf611f88034d0222d44abea827b566d43b362c7bca8b34b66295f6db1539"
+        },
+        {
+          "path": "ToS/contracts/translation-laboratory-plan.schema.json",
+          "bytes": 17079,
+          "sha256": "930f3282ebb53a340d0432f8c8020f900cdc2788084b0fa975d06091fdc10649"
+        },
+        {
+          "path": "ToS/contracts/translation-packet.schema.json",
+          "bytes": 38562,
+          "sha256": "5ba678a45af75398b64a2411a545d054213848b251c413f84e6f5176f9db1517"
+        },
+        {
+          "path": "ToS/contracts/translation-pre-draft-analysis.schema.json",
+          "bytes": 17377,
+          "sha256": "f3f5d8fd72c74bb8e0d7f132651823f20d02efe97edcac3d058a3616df087d5c"
+        },
+        {
+          "path": "ToS/contracts/translation-reference-register.schema.json",
+          "bytes": 13720,
+          "sha256": "f0cec14021dbb5f84639cabc2bba5ab118c8a150a1ca238aeeb25337aa2f6dbf"
+        },
+        {
+          "path": "ToS/contracts/translation-sample-plan.schema.json",
+          "bytes": 5566,
+          "sha256": "a4f98c74e0c33dd89c0151679608fd1b9f19f3f1fce5843a2676400bb888a157"
+        },
+        {
+          "path": "ToS/contracts/translation-source-review-plan.schema.json",
+          "bytes": 8342,
+          "sha256": "fd79297ab1c4ff0ac60e17206e046d97362af14a8ab93d5c100194dabe500341"
+        },
+        {
+          "path": "ToS/contracts/visual-retrieval-plan.schema.json",
+          "bytes": 13550,
+          "sha256": "24194109f9d6003268fd5ab9542cea56d7765edc9a6a286032ffeb037b07026b"
+        },
+        {
+          "path": "ToS/contracts/visual-retrieval-result-receipt.schema.json",
+          "bytes": 18851,
+          "sha256": "932254b4a85327cee032b77b613678fa5c0c138591d5192752e682e323ca3028"
+        },
+        {
+          "path": "ToS/contracts/witness-structure-anchor-set.schema.json",
+          "bytes": 5179,
+          "sha256": "f44e4830dd5f1ed55aac798846f783da4f189eb94f13fb7e9a2a7c5280c7e98b"
+        },
+        {
+          "path": "ToS/contracts/witness-structure-correspondence.schema.json",
+          "bytes": 12697,
+          "sha256": "c34c26c11b45eaa1310f0be3b9044d805a318a340c6032df99ca99485142c2e2"
+        },
+        {
+          "path": "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+          "bytes": 20584,
+          "sha256": "492e0976d2f93d266b84a2916f8269e1e7f5c8dafda2f1921cc0ac9a023687cf"
+        },
+        {
+          "path": "ToS/derived-exports/AGENTS.md",
+          "bytes": 3692,
+          "sha256": "f4474c63196080a8a62cedcd92263717fe6d7cb3edd4e901bbf904da2e28439f"
+        },
+        {
+          "path": "ToS/doctrine/AGENTS.md",
+          "bytes": 1765,
+          "sha256": "86bb0407c807b8f750d6e459068ea006073b98c4272a6c162be39f655ee82449"
+        },
+        {
+          "path": "ToS/philosophy/AGENTS.md",
+          "bytes": 2859,
+          "sha256": "76fa170ee5fecd2f2aa987eaa8a05399690ad6fc4b978aebd21485d4a39593c4"
+        },
+        {
+          "path": "ToS/public-compatibility/AGENTS.md",
+          "bytes": 1669,
+          "sha256": "e5ca6cf4cc02f52f20d7cc30b6694b76e78ff1f03a50d508fe791ecd851e2df4"
+        },
+        {
+          "path": "ToS/research-packets/AGENTS.md",
+          "bytes": 1640,
+          "sha256": "4dcc276b93136e5bab8b18565716e7694487d21bdecd8aee8e83adac26a53883"
+        },
+        {
+          "path": "ToS/review-ledger/AGENTS.md",
+          "bytes": 1323,
+          "sha256": "9bc72ad16d89ebd1942bfa330f58501ae961b08fb25f06ac6de69a4f7fbf165e"
+        },
+        {
+          "path": "ToS/source-witnesses/AGENTS.md",
+          "bytes": 7760,
+          "sha256": "d3f2e4d7de8bb7e03794abd559225f07167c54cf660150e6efd9658ed30a3509"
+        },
+        {
+          "path": "ToS/source_home.manifest.json",
+          "bytes": 5683,
+          "sha256": "89d243df361586d2435748ec5d32b5929ddfa2a0742d6776f1e661319635126c"
+        },
+        {
+          "path": "ToS/zarathustra/AGENTS.md",
+          "bytes": 3896,
+          "sha256": "9ef6b57edd3ebdb632a3d0537d421be71211b6052457000721a4ad7b52910acb"
+        }
+      ]
+    },
+    "selected_software_inputs": {
+      "entry_count": 203,
+      "total_bytes": 1940471,
+      "files": [
+        {
+          "path": "ToS/candidate-intake/AGENTS.md",
+          "bytes": 1831,
+          "sha256": "d3a8aee27a1bc13d241b01de8f50ed350cc721b0a98072f8c64f9b1676bc0649"
+        },
+        {
+          "path": "ToS/canon/AGENTS.md",
+          "bytes": 1825,
+          "sha256": "4749e265ec08138582f56af1cf8027268afa6cd234b919aa1678b9029c4d577f"
+        },
+        {
+          "path": "ToS/contracts/AGENTS.md",
+          "bytes": 2341,
+          "sha256": "ddb06f5c855fb5c7aff7722ec90642d2b316210e976c7dae83d342ed8c34023a"
+        },
+        {
+          "path": "ToS/contracts/access-request.schema.json",
+          "bytes": 9346,
+          "sha256": "885c0be76e1ef44a6809945eda395e3830fd429ef81ca0eb7a9ab5712ae2bc4d"
+        },
+        {
+          "path": "ToS/contracts/acquisition-batch.schema.json",
+          "bytes": 6800,
+          "sha256": "43445c580399ec5aa3013254fdc04143c945666ba8c874d2c137f24e6b8799a9"
+        },
+        {
+          "path": "ToS/contracts/acquisition-provenance-delta.schema.json",
+          "bytes": 2400,
+          "sha256": "9a8ab57ceb87c299ecae69e8275613625d19684c30070f1c83a57eab1b4bda7a"
+        },
+        {
+          "path": "ToS/contracts/artifact-source-witness-v2.schema.json",
+          "bytes": 11257,
+          "sha256": "bdedd892c9cce4120dd77fb78d4bb953127919149ba2a7583b7934dec7f15215"
+        },
+        {
+          "path": "ToS/contracts/artifact-source-witness.schema.json",
+          "bytes": 11046,
+          "sha256": "1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+        },
+        {
+          "path": "ToS/contracts/artifact-visual-representation.schema.json",
+          "bytes": 6972,
+          "sha256": "2317c4671aee44730c9b4176511853a01e4729714fbfedf1fcb0c01b9cc3c506"
+        },
+        {
+          "path": "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+          "bytes": 8828,
+          "sha256": "358fb2effe1393e77cbaabca5cd3da659c006bbf78870548890661b9d07545ad"
+        },
+        {
+          "path": "ToS/contracts/bounded-translation-research-input.schema.json",
+          "bytes": 13020,
+          "sha256": "25c93ac6f1f1c557e720742a1aa11bf961c937e92b8e2d69445404b16592a522"
+        },
+        {
+          "path": "ToS/contracts/claim-display-fields.schema.json",
+          "bytes": 2445,
+          "sha256": "b1cec0d2104822e74a522847eae9bc65b4ce89db61d8d339de1aed6c973a80f7"
+        },
+        {
+          "path": "ToS/contracts/claim-packet.schema.json",
+          "bytes": 5632,
+          "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd"
+        },
+        {
+          "path": "ToS/contracts/collection-work-boundary-map.schema.json",
+          "bytes": 6591,
+          "sha256": "edfdd60bdc77dbf75e59bc2b420912d2b62363a46c8e42f3c95a4e5db08d4e38"
+        },
+        {
+          "path": "ToS/contracts/corpus-record.schema.json",
+          "bytes": 8744,
+          "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851"
+        },
+        {
+          "path": "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
+          "bytes": 11874,
+          "sha256": "e203e6c10eab31ff7d6d87cae56b6accc77f31b1fd66f6a5c2b0933ea5beae70"
+        },
+        {
+          "path": "ToS/contracts/critical-edition-witness-admission.schema.json",
+          "bytes": 14037,
+          "sha256": "976489b0088a0d6e943781a9e00a8dfe6bc7c3da34fd6244e1686e30bb0b18e7"
+        },
+        {
+          "path": "ToS/contracts/document-catalogue-claim.schema.json",
+          "bytes": 7527,
+          "sha256": "1e3d42da65403eaefff1da668c31843dbe8b7f0c3420cda0a82356e7de085be6"
+        },
+        {
+          "path": "ToS/contracts/document-record.schema.json",
+          "bytes": 1602,
+          "sha256": "f1da16a065ecf024ac7b9dc707a9b0bab7f8ea9d405954ed9ee3f8821e5e05ef"
+        },
+        {
+          "path": "ToS/contracts/edition-reading-admission.schema.json",
+          "bytes": 8871,
+          "sha256": "a62d3f5e9182d557c35070d9d18b32a8c1685b998c4d837feb2da34a291d8ade"
+        },
+        {
+          "path": "ToS/contracts/epistemic-evidence-projection.schema.json",
+          "bytes": 4883,
+          "sha256": "0baf90f7966714d4ce4141d61552416186050f97d7a9b391b077c399b8c43459"
+        },
+        {
+          "path": "ToS/contracts/experimental-translation-candidate.schema.json",
+          "bytes": 9533,
+          "sha256": "a9c8a1c7d6266515ad5cdbc70376f08e7adcdfa8919ebc4e69dfe6c20b34caa0"
+        },
+        {
+          "path": "ToS/contracts/experimental-translation-episode.schema.json",
+          "bytes": 32739,
+          "sha256": "388a5008add385eb528cea843c72250e7148cc54e88f248f392df83fa93ccc7b"
+        },
+        {
+          "path": "ToS/contracts/expression-derivation.schema.json",
+          "bytes": 1621,
+          "sha256": "6f78998c37b54beef3822688fcd9985186c21621e8e61ef1a23b1e92abfc237e"
+        },
+        {
+          "path": "ToS/contracts/first-publication-chronology.schema.json",
+          "bytes": 4580,
+          "sha256": "84ad73a011a1bc951d31401d0872da17d6f031270f4a8a047b675e32bd3812e8"
+        },
+        {
+          "path": "ToS/contracts/formation-relation-claim.schema.json",
+          "bytes": 2468,
+          "sha256": "85a67de9cae49ba5771efde9d8569b675c0aa0cbfa2f5c101316135571282ba1"
+        },
+        {
+          "path": "ToS/contracts/german-assisted-source-review.schema.json",
+          "bytes": 8856,
+          "sha256": "491c85ffc0837c2c1d1248ae6ca9973b1e1d888f8e43725016ef55ffa4bfd529"
+        },
+        {
+          "path": "ToS/contracts/german-source-triangulation.schema.json",
+          "bytes": 16586,
+          "sha256": "522e94f24eacc4404c0ca26cf506e80894b312b468921f1317dda9263aa0455f"
+        },
+        {
+          "path": "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+          "bytes": 25666,
+          "sha256": "7ef08d7840c40ffe7342c6356b1df8dd19c577a5d4eb95845bc8ab49441c81ca"
+        },
+        {
+          "path": "ToS/contracts/graph-query-plan.schema.json",
+          "bytes": 3445,
+          "sha256": "2ee33b77c496e732e22932e8fc24b1c0fe4087745eac434946d9580edf9e3afd"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+          "bytes": 6117,
+          "sha256": "9173ee5c2bb9349be004ae39f57204c34840d604f96e387d04f09d9778e11e17"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+          "bytes": 12796,
+          "sha256": "126dd8d448581b976062ff58bd2064b3de3b9d8c505b387bd2fbf90712b0d1ae"
+        },
+        {
+          "path": "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+          "bytes": 11506,
+          "sha256": "db229136190729a8f6648c12c3a5ed3a1c00c79b460593e73d80c8fc1a5ef877"
+        },
+        {
+          "path": "ToS/contracts/historical-claim.schema.json",
+          "bytes": 10780,
+          "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750"
+        },
+        {
+          "path": "ToS/contracts/historical-context-claim.schema.json",
+          "bytes": 3187,
+          "sha256": "15e5823b6b812494853076223025250afa9922636ff9509ec20129d8972f894d"
+        },
+        {
+          "path": "ToS/contracts/historical-context-record.schema.json",
+          "bytes": 10879,
+          "sha256": "6f025746a87ffc2a7be8d7a745bcd6cd9438fa9d04e0add43fb1a9854d44efef"
+        },
+        {
+          "path": "ToS/contracts/historical-record.schema.json",
+          "bytes": 3705,
+          "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2"
+        },
+        {
+          "path": "ToS/contracts/human-form-set.schema.json",
+          "bytes": 2486,
+          "sha256": "e2d5ea3dcb3c779466adcca2940165ec8def74f0bc2dd783666e5d08bf52aff2"
+        },
+        {
+          "path": "ToS/contracts/human-form-template.schema.json",
+          "bytes": 1527,
+          "sha256": "558527b3c0de451a7210fe2c62503bc5ce9592bbf2d2390aba9a1b5f8ab4e91e"
+        },
+        {
+          "path": "ToS/contracts/human-form.schema.json",
+          "bytes": 16342,
+          "sha256": "1af83793ef571fc3b8cbc1f03f9c8ad8e54fe07a8b17c5337195f7fcb39d3980"
+        },
+        {
+          "path": "ToS/contracts/intellectual-formation-record.schema.json",
+          "bytes": 4412,
+          "sha256": "8228e76df5b471e334c952918bb23928f4eede10b3e57657e2456d056b61aa09"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-authority.schema.json",
+          "bytes": 2011,
+          "sha256": "8ae72f8e24ffba3bec8c7f4ff0d3c56d90e9e4f33b4795aabe217df3dd5e50cd"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-batch.schema.json",
+          "bytes": 3566,
+          "sha256": "66144d009da2268001b356ba4ef39da09dc408e43b1edceee9c6a3c17ea924ea"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-competence.schema.json",
+          "bytes": 1586,
+          "sha256": "b0f6466b7eb175b9c9b4f1e5f4df0f93c853d0ebc9acb5f3606fe052ede19cb1"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment-policy.schema.json",
+          "bytes": 2094,
+          "sha256": "77d4956a4d9f6f5ea8a78a338a655d39957c9cbe0a5d425bab77ca3ad301b511"
+        },
+        {
+          "path": "ToS/contracts/knowledge-assessment.schema.json",
+          "bytes": 5043,
+          "sha256": "71cd4aa22c4b89f4077fde98b09e5baa375525162ff499066845d7af811e0298"
+        },
+        {
+          "path": "ToS/contracts/knowledge-query-vocabulary.schema.json",
+          "bytes": 6064,
+          "sha256": "aac63ec709e34679539d96c523bc86df3d77a8d2f4315155586e8a8fc4d466df"
+        },
+        {
+          "path": "ToS/contracts/laboratory-sample-plan.schema.json",
+          "bytes": 5659,
+          "sha256": "0c7019f06ee5159610d83244543cb89f6ae55f4eea3738db57c23b97619d17af"
+        },
+        {
+          "path": "ToS/contracts/lexical-comparison-claim.schema.json",
+          "bytes": 3976,
+          "sha256": "0720a6a93c4c9e671ac875100ba6afc0e0f34cf3aef5a4b93b43f6cacb2a9fbe"
+        },
+        {
+          "path": "ToS/contracts/lexical-description-record.schema.json",
+          "bytes": 5835,
+          "sha256": "268b1d163386dc408a02ad27c353e0ba46cad22c580caaf8219af9657b264adc"
+        },
+        {
+          "path": "ToS/contracts/lexical-index-plan.schema.json",
+          "bytes": 10202,
+          "sha256": "b7348fc25e1954a043bcc8e30579d70ee93949bbd1717bf993b4080600e1a717"
+        },
+        {
+          "path": "ToS/contracts/lexical-index-projection.schema.json",
+          "bytes": 14424,
+          "sha256": "80a327913f6ea61c62f303577b5799be396db506089e6fb92ed8e3fdc5ca562c"
+        },
+        {
+          "path": "ToS/contracts/lexical-recurrence-plan.schema.json",
+          "bytes": 8002,
+          "sha256": "524d93c61b9d28a2a7281dc97d3f31a4aa0732d442bb7beba75872cac0197982"
+        },
+        {
+          "path": "ToS/contracts/lexical-recurrence-projection.schema.json",
+          "bytes": 8579,
+          "sha256": "661a53ddc3153fa98b973fec87676d8f8b04614669f9e7bb707ca1b2d16f3fde"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-plan.schema.json",
+          "bytes": 12160,
+          "sha256": "41cb2c56edb259994ef073ef4d4c2965d7e0bf5ecaf313b9a416e03169b3def3"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-receipt.schema.json",
+          "bytes": 13317,
+          "sha256": "5120eb7a26263c392d9011182ac3172f42665be4ce9b1bad10c70b421ed30194"
+        },
+        {
+          "path": "ToS/contracts/lexical-usage-context-row.schema.json",
+          "bytes": 3050,
+          "sha256": "7e21f763d5826680eb4b0dc2bb2ff5f82ecbbf88211e66eabcf4cc7992f7befb"
+        },
+        {
+          "path": "ToS/contracts/linguistic-description-record.schema.json",
+          "bytes": 5764,
+          "sha256": "c6cb0872541eebdb10c22b80bc15d7037e58d0070f594509167967d767b65d36"
+        },
+        {
+          "path": "ToS/contracts/linguistic-relation-claim.schema.json",
+          "bytes": 1003,
+          "sha256": "0ab386046f113d6c16fc6e627153e37baa38231383cd7bee51ced3f0d3cfd73e"
+        },
+        {
+          "path": "ToS/contracts/lived-witness-packet.schema.json",
+          "bytes": 18822,
+          "sha256": "0f9a9a3aa8f8ddc406a7a11b23dcbc3934b317a6be1201d285efa4ef0f09ce79"
+        },
+        {
+          "path": "ToS/contracts/manual-error-ledger-record.schema.json",
+          "bytes": 6574,
+          "sha256": "9d4dbe5455b705bba2f6f123176eb9b4afe850c47c05da30b78a24122491b162"
+        },
+        {
+          "path": "ToS/contracts/manual-gold-assurance.schema.json",
+          "bytes": 14738,
+          "sha256": "3bcad7751309658ba2c38f020f50558a8c6bd40179b3da31b7b50f65b9baa943"
+        },
+        {
+          "path": "ToS/contracts/manual-gold-status.schema.json",
+          "bytes": 4030,
+          "sha256": "26f56b8e8bbe343c0ca1cdce7357453a7ff2a3b96aaf79073b7ce0d27167b2e7"
+        },
+        {
+          "path": "ToS/contracts/material-discovery-record.schema.json",
+          "bytes": 12974,
+          "sha256": "0e8093dc2ccb0410c455a875f746b2202e852051455ac26444ceb10aea948a07"
+        },
+        {
+          "path": "ToS/contracts/morphology-census-result-receipt.schema.json",
+          "bytes": 21174,
+          "sha256": "1228c378de944fb361cb0725be56d6cfeebf6f2a83564845e14802c41c003fbd"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+          "bytes": 10977,
+          "sha256": "7433b21c9a5eb9d405d54cc472c5671a2d7ce770f829ae0b8c9a9c3519907110"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+          "bytes": 11816,
+          "sha256": "80372c7521f13f7026dcb13bd203c6189366b91f6ccda6527654d9f5f2d4d396"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+          "bytes": 7287,
+          "sha256": "16a4b86d8051af2aa62766dfcb6b59a78a6632e94c79e4a571339b5eb256bab7"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-episode-row.schema.json",
+          "bytes": 2782,
+          "sha256": "1a7734a4a20c05268fe8cb1a724405bf88ed138f8d936f7c775dd0dc3123af39"
+        },
+        {
+          "path": "ToS/contracts/morphology-contextual-result-receipt.schema.json",
+          "bytes": 18462,
+          "sha256": "328be01e9dc71f3cbe1148c78630d4fcef3dfe42e44a91d28c0fea689a684c2a"
+        },
+        {
+          "path": "ToS/contracts/morphology-evaluation-plan.schema.json",
+          "bytes": 11648,
+          "sha256": "7efc8eeb49380cda387387898432666b7add0188b12a9558a70916c3ab1a83d6"
+        },
+        {
+          "path": "ToS/contracts/morphology-input-receipt.schema.json",
+          "bytes": 5533,
+          "sha256": "fa0f95170ad727cee670df2793d2dc34a7b026bd499092a33058b355029ac25d"
+        },
+        {
+          "path": "ToS/contracts/native-local-text-read.schema.json",
+          "bytes": 4034,
+          "sha256": "fce62db90ff0224e70980b54b4123141c575f21182054f56cc0bfb7c320cb921"
+        },
+        {
+          "path": "ToS/contracts/native-page-ocr-comparison.schema.json",
+          "bytes": 12056,
+          "sha256": "e3c656b790c00be278ea36e9ebae8d8469529e63470d70a0a4b5cec75312e7a7"
+        },
+        {
+          "path": "ToS/contracts/native-private-text-read.schema.json",
+          "bytes": 3589,
+          "sha256": "b8654549c2a0f4803cb69e0b2807be6ba010df05c3b58022bacaece30c3eda52"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-binding.schema.json",
+          "bytes": 1885,
+          "sha256": "da7fa3c3cb42ba0e83f632034daf024f826dc73926d0c09f1878c13ecc7d629d"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-comparison.schema.json",
+          "bytes": 7194,
+          "sha256": "80e3e14673eb1f782980700d86efa9cc3a4a183f7bd818f963d3d4498140351b"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-derivation-comparison.schema.json",
+          "bytes": 6984,
+          "sha256": "c73f2b147da964325d244c5d3feb5c9e60bf1fe4d4d3d320ee6403443b6ac6ae"
+        },
+        {
+          "path": "ToS/contracts/native-text-layer-quality-basis.schema.json",
+          "bytes": 3828,
+          "sha256": "152f7b0aee8fee47603b8fc9aa283a7776b8c09f34415226523c68150d95c929"
+        },
+        {
+          "path": "ToS/contracts/native-text-unit-assessment-subject.schema.json",
+          "bytes": 1781,
+          "sha256": "36dcdc9b41f91360950a99f1678afef6626a620a314a38108f39353cce64e5b4"
+        },
+        {
+          "path": "ToS/contracts/native-text-unit-binding.schema.json",
+          "bytes": 3255,
+          "sha256": "957dbe7d4309068b7d4c19ccf0a4c5a65f0ec0c39a829e0aaf3e4ea6732ed3a2"
+        },
+        {
+          "path": "ToS/contracts/native-translation-alignment-record-v1.schema.json",
+          "bytes": 10767,
+          "sha256": "5fa732463078756c9ac511ea9c57e00c02e4ff77948465375b1271f3d30726a4"
+        },
+        {
+          "path": "ToS/contracts/numbered-unit-page-map.schema.json",
+          "bytes": 8874,
+          "sha256": "43ecb437771e8b13b64159630776c232a6b2c778c63b8691043c8f3c70374da0"
+        },
+        {
+          "path": "ToS/contracts/object-link-claim-v2.schema.json",
+          "bytes": 1462,
+          "sha256": "ff0046e2e05dd67c68a75af02429d609baae75dba8db3aa4147ac0297cd50e92"
+        },
+        {
+          "path": "ToS/contracts/object-link-claim.schema.json",
+          "bytes": 2303,
+          "sha256": "fbc77bdc6c756daf5f26c4474b59b3f8c79e8cfb8e8f12b12052ec0802da8de8"
+        },
+        {
+          "path": "ToS/contracts/occurrence-description-record.schema.json",
+          "bytes": 2418,
+          "sha256": "a63e24545410c7f6da351cd14af6f219902e2f9fdcb39a2b472105b3b1cdf86a"
+        },
+        {
+          "path": "ToS/contracts/ocr-visual-sample-plan.schema.json",
+          "bytes": 9423,
+          "sha256": "efc5af081de74da05360644e23455527214b8e836ebc37c8aa95a6a38f729324"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate-queue.schema.json",
+          "bytes": 4892,
+          "sha256": "4dfae12cde9388b9f97a28d1afbf6d753d2a9d119f487c00e033700fe0fcdb36"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate-receipt.schema.json",
+          "bytes": 8288,
+          "sha256": "c8c7d5f1a7e88d300fa2d5853f19187a1a3d6f5208cbbb1f4f489c68edf438ed"
+        },
+        {
+          "path": "ToS/contracts/open-work-candidate.schema.json",
+          "bytes": 6549,
+          "sha256": "bfccc41d462838019d29a78c8868155441d980025fde13c7f8c092479dc06c8b"
+        },
+        {
+          "path": "ToS/contracts/open-work-channel-timing-receipt.schema.json",
+          "bytes": 2857,
+          "sha256": "bed2e70d8b92844aeecdcda37ece41426711dfee1ba5bea896e8afd355a2feaf"
+        },
+        {
+          "path": "ToS/contracts/open-work-readiness-plan.schema.json",
+          "bytes": 8484,
+          "sha256": "12343a5e5db2579b51eec4b0479512fa2cafae7c93ae27c0413f3e3b814fced1"
+        },
+        {
+          "path": "ToS/contracts/owner-local-source-context.schema.json",
+          "bytes": 1353,
+          "sha256": "4261950c0f2f48001498b0bee0cbe1ff4e702af45688090e8123f080b5c17127"
+        },
+        {
+          "path": "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+          "bytes": 7416,
+          "sha256": "8ced68903506d323be129d84c4e40093ed153ad01f6962063d59e7e767d575e8"
+        },
+        {
+          "path": "ToS/contracts/parallel-witness-structure-map.schema.json",
+          "bytes": 10847,
+          "sha256": "19d9847a7ee3091a6869f5907009ceab6662712c6dc3e2984e62cd5d48ba7a02"
+        },
+        {
+          "path": "ToS/contracts/partitioned-projection.schema.json",
+          "bytes": 3950,
+          "sha256": "55969fd4b048f93a73b6a6740ea7392ac7b475baa9520bf75352ed6be283ea3c"
+        },
+        {
+          "path": "ToS/contracts/philosophy-atlas-projection.schema.json",
+          "bytes": 13662,
+          "sha256": "e65ce0cdad3661bbb35a5d8d07134c587e684ef19a83dd920575974e70468373"
+        },
+        {
+          "path": "ToS/contracts/philosophy-graph-projection.schema.json",
+          "bytes": 31123,
+          "sha256": "49a3f59da10cf8823c45446c52c9237f4d2f96d28af4e068a8a36acac9814b19"
+        },
+        {
+          "path": "ToS/contracts/philosophy-graph-views.schema.json",
+          "bytes": 9208,
+          "sha256": "cd5d10561ba2c692b9766294d82ecf8b5e60a9b76428ebe8695e68bb2c43b601"
+        },
+        {
+          "path": "ToS/contracts/philosophy-source-planting.schema.json",
+          "bytes": 6106,
+          "sha256": "749f55fb4b54474e06259b63bf5f99f4074dcb17ba2c3110c49e54f2e09721fd"
+        },
+        {
+          "path": "ToS/contracts/private-laboratory-evidence-handoff.schema.json",
+          "bytes": 12373,
+          "sha256": "1b65ff635b5a12c5957eab87c7de336ad68fc0017b5f9ab2b6ea83a525495fec"
+        },
+        {
+          "path": "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+          "bytes": 8742,
+          "sha256": "eecf83a707f6588412032c0dbc570744634e5eb45bb5aad7abe2c3e1116add59"
+        },
+        {
+          "path": "ToS/contracts/provenance-event-v2.schema.json",
+          "bytes": 34901,
+          "sha256": "bc56f527b580e3c4728fcb2ebe8cfa333b75a7db56922226d1eaec6de0557ae0"
+        },
+        {
+          "path": "ToS/contracts/provenance-event.schema.json",
+          "bytes": 4253,
+          "sha256": "d4f9a09f65c91c478dfc93d4b26feca70e8204b2b946c9eee6bac4c8c872d0a2"
+        },
+        {
+          "path": "ToS/contracts/provision-activity.schema.json",
+          "bytes": 8607,
+          "sha256": "27d53ef0f739b4e640311d625b9abd6a6cab0c21e808a9872776d1f660c0451b"
+        },
+        {
+          "path": "ToS/contracts/public-laboratory-evidence-derivative.schema.json",
+          "bytes": 10806,
+          "sha256": "b0594f9064b132b2654722919ebea8ed6ef4aafc7a940d8c4779fe41e9fc9bdf"
+        },
+        {
+          "path": "ToS/contracts/public-native-text-authority.schema.json",
+          "bytes": 3566,
+          "sha256": "8ca983cc9347c044f2f1b0b58fdf70e933d73f5d54b168f3b8d7f173c4f66f55"
+        },
+        {
+          "path": "ToS/contracts/public-native-text-create-owner.schema.json",
+          "bytes": 10668,
+          "sha256": "a71a29e30d3279e9d20367ea665acc3d495f37b9097c28cada5dde2709df260b"
+        },
+        {
+          "path": "ToS/contracts/reception-record.schema.json",
+          "bytes": 7303,
+          "sha256": "f7bb253ac378449b29eaa46464136cb3c75892bc735a41df9e978a38b0fb8923"
+        },
+        {
+          "path": "ToS/contracts/record-version-view.schema.json",
+          "bytes": 7514,
+          "sha256": "e543b1b235302ec547128564f1e0792ecbc091eec9acca8b1d789c2ea2ff3cf0"
+        },
+        {
+          "path": "ToS/contracts/research-corpus-record.schema.json",
+          "bytes": 1841,
+          "sha256": "a8828699d4b8ad0bc24853c68474ee4a2fa7f061a24228585eeee0ce73a06de8"
+        },
+        {
+          "path": "ToS/contracts/retrieval-query-plan.schema.json",
+          "bytes": 4193,
+          "sha256": "bdf3b6ac181da9db91feb7358b9dbf925bdddfb46ae3978bb6e1062e0d87cbf9"
+        },
+        {
+          "path": "ToS/contracts/rights-record.schema.json",
+          "bytes": 8264,
+          "sha256": "a8b4e440a9cbb8053653d310e70a1f5405b621e258277d8e76ac7f6bac7d864f"
+        },
+        {
+          "path": "ToS/contracts/root-entry-map.schema.json",
+          "bytes": 4333,
+          "sha256": "476f2135fa4b049480a7282cbe014f61f1c4072268d53f09e9dd72d5316c28f5"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-claim.schema.json",
+          "bytes": 1844,
+          "sha256": "bfeb29b1e654fae5bae6bc6d4c73fb1ee3de0da3dd7120ee2d31f2573306935e"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-file-representation.schema.json",
+          "bytes": 10212,
+          "sha256": "8bd1149a13cd8f330ed428a55bf5a4f8048d65423c1da8c39dd3b7230bdcc2da"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-record.schema.json",
+          "bytes": 2417,
+          "sha256": "7531fe0f32247a87991e42fa8eb6f8d93efe70dda3e4d299b6c339d4dc698a81"
+        },
+        {
+          "path": "ToS/contracts/scholarly-composite-witness.schema.json",
+          "bytes": 9755,
+          "sha256": "d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+        },
+        {
+          "path": "ToS/contracts/scoped-member-structure.schema.json",
+          "bytes": 3509,
+          "sha256": "e6ffd025d1905de1f19acbda575aa82b60050e6754b0433cd0148f1ec81ef2b3"
+        },
+        {
+          "path": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+          "bytes": 26114,
+          "sha256": "1a3e8bf71f47c8c655c00cc9b7401cb621b5136ee52567ab3c34c2022c2b65d8"
+        },
+        {
+          "path": "ToS/contracts/semantic-description-record.schema.json",
+          "bytes": 4643,
+          "sha256": "4fa3fda61509be3740911e7c8422ba2b68117a81d7c5abc61b5f02d1e18b271b"
+        },
+        {
+          "path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+          "bytes": 16948,
+          "sha256": "a15caf1b79abbe840cb951e80f7ddcdd1021291ceb28c52d162e47949bedac29"
+        },
+        {
+          "path": "ToS/contracts/semantic-ladder-packet.schema.json",
+          "bytes": 54667,
+          "sha256": "b4e06f0599ae52c0df4dbf4b13d6a3b3b68d17064957553fce392f626e3ed8b7"
+        },
+        {
+          "path": "ToS/contracts/semantic-relation-claim.schema.json",
+          "bytes": 1997,
+          "sha256": "8c0f0c80c58c6196d197e36fab79259d09d36ff41b529dfa983af5c35a25856f"
+        },
+        {
+          "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
+          "bytes": 19804,
+          "sha256": "6b977aa01ac54172ee7d50618867edc75cefa395f22767cd4450211ca2c39894"
+        },
+        {
+          "path": "ToS/contracts/server-import-contract.schema.json",
+          "bytes": 11091,
+          "sha256": "817e7f1c163f250d37a30f531c1f2de1a52d23cb8f0a6b1e23f91cd39885afe1"
+        },
+        {
+          "path": "ToS/contracts/server-import-receipt.schema.json",
+          "bytes": 4296,
+          "sha256": "efd8946b0eba1a76503e232ed27e3fcec43e1b429e39304d9d02d4251ecadd70"
+        },
+        {
+          "path": "ToS/contracts/sign-annotation.schema.json",
+          "bytes": 3924,
+          "sha256": "823cd06541a8ac4dd79f21428d0351fdff3b4802b93d6621254b39f93efa4427"
+        },
+        {
+          "path": "ToS/contracts/sign-description-record.schema.json",
+          "bytes": 4844,
+          "sha256": "04646f22a48ff306d47513505080e5fe4c03cd52a07d968ac8bf7991af274dfe"
+        },
+        {
+          "path": "ToS/contracts/social-body-record.schema.json",
+          "bytes": 4722,
+          "sha256": "e95527b594aad14214b6a7b73feef54bf7fbb848e83e7d6a1925c4e79642fb9f"
+        },
+        {
+          "path": "ToS/contracts/social-relation-claim.schema.json",
+          "bytes": 2528,
+          "sha256": "befabc307e1591c3ed0f7cbe381900fb3b849ca1628b051b8705139df982e500"
+        },
+        {
+          "path": "ToS/contracts/source-anchor-v2.schema.json",
+          "bytes": 14126,
+          "sha256": "99e60f433a8545495706216bb66dfbae241cadf44086b59100af87464f5d8235"
+        },
+        {
+          "path": "ToS/contracts/source-anchor.schema.json",
+          "bytes": 4864,
+          "sha256": "6b493f99d06aa76e3254eb2cd3f46907969a3ad43416e100333ead20f6244e8c"
+        },
+        {
+          "path": "ToS/contracts/source-catalog-projection-v2.schema.json",
+          "bytes": 12417,
+          "sha256": "56831635e4a21ad6e97bfe96855d5b32257b462627b0d6ae18f9c17bbf7d2db8"
+        },
+        {
+          "path": "ToS/contracts/source-claim-record.schema.json",
+          "bytes": 4297,
+          "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+        },
+        {
+          "path": "ToS/contracts/source-classification-claim.schema.json",
+          "bytes": 3136,
+          "sha256": "8dccdd325290c0ef8b98ad2acb9d3c7d59b3d0e0fe4e9886472417bb716c14ba"
+        },
+        {
+          "path": "ToS/contracts/source-gated-evaluation-plan.schema.json",
+          "bytes": 13172,
+          "sha256": "10874bb36b6cdb91366f298373d80872fd782ca727fa829a2c52c396675dc0c9"
+        },
+        {
+          "path": "ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+          "bytes": 20735,
+          "sha256": "6ffd85230ac3d9e49642d61ae82d59e300ba6c9c5429cd75459d0b41fb6fad83"
+        },
+        {
+          "path": "ToS/contracts/source-gated-semantic-evaluation-plan.schema.json",
+          "bytes": 26657,
+          "sha256": "a59831e51ddf2a19d79000d81ce276a9bb09734e6470a420283181403a911288"
+        },
+        {
+          "path": "ToS/contracts/source-identity-transition-claim.schema.json",
+          "bytes": 3670,
+          "sha256": "4fda26cff3b9373647c090ffed3ee48b8ca81b9a25851fbc2a73647be75c7b94"
+        },
+        {
+          "path": "ToS/contracts/source-item-manifest.schema.json",
+          "bytes": 3431,
+          "sha256": "fc768e6245bbfcc16bc004abffc28bb7dca25239b3eb1b68ed7260fa9e0af18b"
+        },
+        {
+          "path": "ToS/contracts/source-lexical-translatability-claim.schema.json",
+          "bytes": 6265,
+          "sha256": "bb71e78d2b0a5cd8b6baec105d04fe6ab681daa086c99772ddf66a6316e50feb"
+        },
+        {
+          "path": "ToS/contracts/source-link.schema.json",
+          "bytes": 2618,
+          "sha256": "0c2ca8b65823e69bf80417b029149f392e934b41c02dcbcfae0a198a4f2867b3"
+        },
+        {
+          "path": "ToS/contracts/source-member-structure-claim.schema.json",
+          "bytes": 2070,
+          "sha256": "a24a423ffbdb36ea18474edd38ba267e91e98f868e72b031b334b996639ef123"
+        },
+        {
+          "path": "ToS/contracts/source-metadata-record.schema.json",
+          "bytes": 2779,
+          "sha256": "cd63f93ec325d06f53329adf7475731d819a1d98c33db458c5f28274bf1e3ea4"
+        },
+        {
+          "path": "ToS/contracts/source-occurrence-motif-claim.schema.json",
+          "bytes": 4004,
+          "sha256": "eb79f3b3c9467a21bab13bb9981c8b45782bd75ed2e67d1cb48326a387631ec3"
+        },
+        {
+          "path": "ToS/contracts/source-payload-rights-review.schema.json",
+          "bytes": 4543,
+          "sha256": "fbc75f9adbf508e0c90770eabd4be58f54ef1b1447576f62c91d42bc772b6e06"
+        },
+        {
+          "path": "ToS/contracts/source-record-closure-selection.schema.json",
+          "bytes": 2096,
+          "sha256": "26ef7d0fc255018a002905922c09d845b5933d1626d796e3a84aae394ddd6867"
+        },
+        {
+          "path": "ToS/contracts/source-registry-normalization.schema.json",
+          "bytes": 4156,
+          "sha256": "22778baf9bec309709ecd59c9c50e68b44a0edf52b6cddccad4d7b42e7021eaf"
+        },
+        {
+          "path": "ToS/contracts/source-relation-claim.schema.json",
+          "bytes": 604,
+          "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe"
+        },
+        {
+          "path": "ToS/contracts/source-resource-inventory.schema.json",
+          "bytes": 13926,
+          "sha256": "71b5ae06f827a0bfcbe2063cae808e59a6803265af0a8e5943f1afaa6d137910"
+        },
+        {
+          "path": "ToS/contracts/source-structured-value.schema.json",
+          "bytes": 1289,
+          "sha256": "d0392d43c8e45671894174fc09bc930fa696766d1a803494096ad04cd6f2fcf8"
+        },
+        {
+          "path": "ToS/contracts/source-temporal-claim.schema.json",
+          "bytes": 1820,
+          "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4"
+        },
+        {
+          "path": "ToS/contracts/source-text-layer.schema.json",
+          "bytes": 23349,
+          "sha256": "019b223d7f2449979d0671f3e4e46dc443a4c9f71097874db5fca904e05b4b95"
+        },
+        {
+          "path": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+          "bytes": 28409,
+          "sha256": "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab"
+        },
+        {
+          "path": "ToS/contracts/source-textual-survival-claim.schema.json",
+          "bytes": 2653,
+          "sha256": "4422d5f94055523a34029b26360adcccec320e6ebee1e486db6e595ea2242f38"
+        },
+        {
+          "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+          "bytes": 18615,
+          "sha256": "e1b3237b9ff29c30504b28ed662959848a1724bc0eb169015324618ccd063b1f"
+        },
+        {
+          "path": "ToS/contracts/source-witness-catalog.schema.json",
+          "bytes": 16261,
+          "sha256": "678c1f2f0ab01085d5e90d3d85fcea307023e3a44ada064a3eaae70fd6a32d40"
+        },
+        {
+          "path": "ToS/contracts/subject-identity-transition-claim.schema.json",
+          "bytes": 3736,
+          "sha256": "024bb9459f2ecba2986552dfba2cd2fdef6a3a95a20e63c6e16a2174b7fbcc33"
+        },
+        {
+          "path": "ToS/contracts/target-numbered-unit-page-map.schema.json",
+          "bytes": 11540,
+          "sha256": "531cc5674180a864d25ba3246110e560503417880731aa8ebd923719a6ea1d7a"
+        },
+        {
+          "path": "ToS/contracts/textual-passage-claim.schema.json",
+          "bytes": 1834,
+          "sha256": "d56a151d3c76ae01200945b3755ae243506213e705be18444ce6ed0f34c8375e"
+        },
+        {
+          "path": "ToS/contracts/textual-passage-record.schema.json",
+          "bytes": 3643,
+          "sha256": "fee443fc946283732e937ba60c603066aa52e65fe5b66eccdd9d7012e8fc5cc8"
+        },
+        {
+          "path": "ToS/contracts/thought-description-record.schema.json",
+          "bytes": 5888,
+          "sha256": "c1071eea9c5a58fb3dc2339094d76d74fb49a22e9c5d48569d16b48ba3f91edd"
+        },
+        {
+          "path": "ToS/contracts/thought-practice-record.schema.json",
+          "bytes": 14518,
+          "sha256": "2d42c171b2f01d9ae4963860d1473724d7958f7c6e67b29012c269716826b702"
+        },
+        {
+          "path": "ToS/contracts/thought-relation-claim.schema.json",
+          "bytes": 1046,
+          "sha256": "fbe86b15696550317f20cf5526ae96af1d514b0cc7c48ebd9ba04b1e3a975016"
+        },
+        {
+          "path": "ToS/contracts/thought-topic-record.schema.json",
+          "bytes": 9117,
+          "sha256": "41291684c19b66e6ab2041e2cd48adb5c42cb02f841d8b5c333754feeb2c2cf4"
+        },
+        {
+          "path": "ToS/contracts/tos-corpus-index.schema.json",
+          "bytes": 21026,
+          "sha256": "2dfd8d0a8076e8c7d7a93c1c23dc727bcbbf599e53641e95c888e3cde492d411"
+        },
+        {
+          "path": "ToS/contracts/tos-node-contract.schema.json",
+          "bytes": 11754,
+          "sha256": "738dac1048745056ac1710d30ad38fa3b636dc8307f0f4c8ce7775c814861daa"
+        },
+        {
+          "path": "ToS/contracts/tos-source-home.schema.json",
+          "bytes": 2549,
+          "sha256": "1d0676db1088240200f4d98323af04197d05153587724971be12502cd6f67dfa"
+        },
+        {
+          "path": "ToS/contracts/tos-tiny-entry-route.schema.json",
+          "bytes": 2207,
+          "sha256": "aafb6f5c79981ee87f4b6dfd2c7866ba51146d5eb8f264bc9b66438b64551507"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+          "bytes": 6087,
+          "sha256": "977998fc42f869a28cbc7dc7011e62c820a8146a88df1720055c46c9de4c8a84"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-structural-crosswalk.schema.json",
+          "bytes": 8229,
+          "sha256": "adbcfd47146cf1149e5fe5a20ecfa408983083d10c406130ac0344f237cdd922"
+        },
+        {
+          "path": "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+          "bytes": 8366,
+          "sha256": "d42c611b518390b133efd0bea877791e1c4425a0eb50c09ad17546d416fe4850"
+        },
+        {
+          "path": "ToS/contracts/transfer-route-readiness-projection-v2.schema.json",
+          "bytes": 9723,
+          "sha256": "7de355ab3338f84d8380d30f76cafd2aa4d59f0efba2566695a37996d7cd5b18"
+        },
+        {
+          "path": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+          "bytes": 7936,
+          "sha256": "6e5ab096f2f901805b93bfc15d5903f9644891a32b6020270450e624377c4a2d"
+        },
+        {
+          "path": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+          "bytes": 18121,
+          "sha256": "23c616725cd98f7e4477b26fd07703531f7fe86df480af428870ddf6cafbde41"
+        },
+        {
+          "path": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+          "bytes": 12467,
+          "sha256": "af388db349c40dfc8e5ac5604dfa1db90c3e77839c4332ec9df9e0f48b869f65"
+        },
+        {
+          "path": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+          "bytes": 10528,
+          "sha256": "91365cd5f4f75cc7340ff17b5cceb74657d7e3f13e6d6dfeee06cb33d81c7345"
+        },
+        {
+          "path": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+          "bytes": 23228,
+          "sha256": "69be2c70d9eac1cd1ccef165d99b5c7709cd2e52f8ec8022548ce33eb7cca130"
+        },
+        {
+          "path": "ToS/contracts/translation-exposure-aware-plan.schema.json",
+          "bytes": 20024,
+          "sha256": "fc5bbf611f88034d0222d44abea827b566d43b362c7bca8b34b66295f6db1539"
+        },
+        {
+          "path": "ToS/contracts/translation-laboratory-plan.schema.json",
+          "bytes": 17079,
+          "sha256": "930f3282ebb53a340d0432f8c8020f900cdc2788084b0fa975d06091fdc10649"
+        },
+        {
+          "path": "ToS/contracts/translation-packet.schema.json",
+          "bytes": 38562,
+          "sha256": "5ba678a45af75398b64a2411a545d054213848b251c413f84e6f5176f9db1517"
+        },
+        {
+          "path": "ToS/contracts/translation-pre-draft-analysis.schema.json",
+          "bytes": 17377,
+          "sha256": "f3f5d8fd72c74bb8e0d7f132651823f20d02efe97edcac3d058a3616df087d5c"
+        },
+        {
+          "path": "ToS/contracts/translation-reference-register.schema.json",
+          "bytes": 13720,
+          "sha256": "f0cec14021dbb5f84639cabc2bba5ab118c8a150a1ca238aeeb25337aa2f6dbf"
+        },
+        {
+          "path": "ToS/contracts/translation-sample-plan.schema.json",
+          "bytes": 5566,
+          "sha256": "a4f98c74e0c33dd89c0151679608fd1b9f19f3f1fce5843a2676400bb888a157"
+        },
+        {
+          "path": "ToS/contracts/translation-source-review-plan.schema.json",
+          "bytes": 8342,
+          "sha256": "fd79297ab1c4ff0ac60e17206e046d97362af14a8ab93d5c100194dabe500341"
+        },
+        {
+          "path": "ToS/contracts/visual-retrieval-plan.schema.json",
+          "bytes": 13550,
+          "sha256": "24194109f9d6003268fd5ab9542cea56d7765edc9a6a286032ffeb037b07026b"
+        },
+        {
+          "path": "ToS/contracts/visual-retrieval-result-receipt.schema.json",
+          "bytes": 18851,
+          "sha256": "932254b4a85327cee032b77b613678fa5c0c138591d5192752e682e323ca3028"
+        },
+        {
+          "path": "ToS/contracts/witness-structure-anchor-set.schema.json",
+          "bytes": 5179,
+          "sha256": "f44e4830dd5f1ed55aac798846f783da4f189eb94f13fb7e9a2a7c5280c7e98b"
+        },
+        {
+          "path": "ToS/contracts/witness-structure-correspondence.schema.json",
+          "bytes": 12697,
+          "sha256": "c34c26c11b45eaa1310f0be3b9044d805a318a340c6032df99ca99485142c2e2"
+        },
+        {
+          "path": "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+          "bytes": 20584,
+          "sha256": "492e0976d2f93d266b84a2916f8269e1e7f5c8dafda2f1921cc0ac9a023687cf"
+        },
+        {
+          "path": "ToS/derived-exports/AGENTS.md",
+          "bytes": 3692,
+          "sha256": "f4474c63196080a8a62cedcd92263717fe6d7cb3edd4e901bbf904da2e28439f"
+        },
+        {
+          "path": "ToS/doctrine/AGENTS.md",
+          "bytes": 1765,
+          "sha256": "86bb0407c807b8f750d6e459068ea006073b98c4272a6c162be39f655ee82449"
+        },
+        {
+          "path": "ToS/philosophy/AGENTS.md",
+          "bytes": 2859,
+          "sha256": "76fa170ee5fecd2f2aa987eaa8a05399690ad6fc4b978aebd21485d4a39593c4"
+        },
+        {
+          "path": "ToS/philosophy/philosophy.manifest.json",
+          "bytes": 121104,
+          "sha256": "6a1a4c852966c46a60405c8089623bbc22cd273ebe2ccf178223ba0bad453197"
+        },
+        {
+          "path": "ToS/public-compatibility/AGENTS.md",
+          "bytes": 1669,
+          "sha256": "e5ca6cf4cc02f52f20d7cc30b6694b76e78ff1f03a50d508fe791ecd851e2df4"
+        },
+        {
+          "path": "ToS/public-compatibility/source_node.example.json",
+          "bytes": 14135,
+          "sha256": "951067db45d8cad8fad485adbbc3294dda7c824647dc820dd2529716b8317ed8"
+        },
+        {
+          "path": "ToS/research-packets/AGENTS.md",
+          "bytes": 1640,
+          "sha256": "4dcc276b93136e5bab8b18565716e7694487d21bdecd8aee8e83adac26a53883"
+        },
+        {
+          "path": "ToS/review-ledger/AGENTS.md",
+          "bytes": 1323,
+          "sha256": "9bc72ad16d89ebd1942bfa330f58501ae961b08fb25f06ac6de69a4f7fbf165e"
+        },
+        {
+          "path": "ToS/source-witnesses/AGENTS.md",
+          "bytes": 7760,
+          "sha256": "d3f2e4d7de8bb7e03794abd559225f07167c54cf660150e6efd9658ed30a3509"
+        },
+        {
+          "path": "ToS/source_home.manifest.json",
+          "bytes": 5683,
+          "sha256": "89d243df361586d2435748ec5d32b5929ddfa2a0742d6776f1e661319635126c"
+        },
+        {
+          "path": "ToS/zarathustra/AGENTS.md",
+          "bytes": 3896,
+          "sha256": "9ef6b57edd3ebdb632a3d0537d421be71211b6052457000721a4ad7b52910acb"
+        },
+        {
+          "path": "scripts/corpus_archive.py",
+          "bytes": 46387,
+          "sha256": "58503c14ba1da445ae2547485ce5e559053e397d8967bf81fc029eb1b7c2c619"
+        }
+      ]
+    },
+    "fixture_git_commit": "f4020585241f120de752016a18d8c5200a5ba1ff"
+  },
+  "output_bytes": 54275,
+  "output_sha256": "575933fc9c86f2efea56ab8d139cd482e93f16f1720d2df677e3c2b901f38662"
+}

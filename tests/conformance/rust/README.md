@@ -18,8 +18,8 @@ boundaries, negative zero, subnormal and maximum finite values, integers above
 CPython's default 4,300-digit limit. A companion source-parse vector checks
 4,301 digits fail with the declared budget code. Each oracle row records
 exact bytes and SHA-256 for two distinct existing owner algorithms:
-`scripts/corpus_store.py::canonical` appends one LF, while
-`scripts/source_record_profiles.py::catalog_entry` hashes the compact sorted
+the former Python corpus-store canonical serializer appended one LF, while
+[historical catalog-entry writer](https://github.com/8Dionysus/Tree-of-Sophia/blob/1b10f928da0a1d94f516f092de1cff9b45b6f5a1/scripts/source_record_profiles.py) hashes the compact sorted
 UTF-8 JSON body without that LF. The expected values came from Python
 `json.loads`/`json.dumps`, not Rust. The runner compares both snapshot and
 source-record outputs and their digests when the new FND API is integrated.
@@ -27,6 +27,13 @@ The foundation cases retain overflow, non-JSON `NaN`, and lone-surrogate
 negatives. `SourceCommandInputV1` is checked only as a separate strict-input
 byte profile; command identity/receipts require CMD owner acceptance and
 whole-history vectors before any authority claim.
+
+`history-v1/` adds 12 CPython oracle rows for the separate unsorted,
+two-space-indented, UTF-8-plus-LF whole HumanForm-set/history serializer used
+by `public-source-forms apply`, including one pinned existing public Work
+form set, a fixed synthetic receipt shape and the exact 2 MiB boundary.
+It does not grant source-writing authority or replace an isolated whole-command
+differential run.
 
 `corpus-v1/` is a tiny independent immutable store, with two exact revisions
 and three synthetic objects. Its `fixture.json` names revisions, selected
@@ -64,8 +71,9 @@ fails within ten seconds instead of hanging the suite.
 `tos_segment_v1` binary layout. Its 144-byte file contains two raw frames,
 fixed header offsets, content digests and a segment digest independently
 calculated from the written format contract. The v1 corpus runner does not
-consume it. It becomes a durable parser/seal conformance fixture only after
-STO/root freeze that format and OPS register the narrow new test. The
+consume it. OPS registered a narrow Linux `segment-conformance` runner and
+executed four independent tests on the local candidate; source/root format
+acceptance remains separate. The
 co-located mutation matrix distinguishes selected-frame verification from
 whole-segment scrub and names process-crash/receipt gates that static bytes
 cannot prove.

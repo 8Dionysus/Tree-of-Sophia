@@ -1,0 +1,374 @@
+//! Source carrier coverage over the existing independent two-revision fixture.
+//! No source admission, current rights, or billion-record profile is asserted.
+use super::*;
+use std::sync::atomic::AtomicBool;
+use std::time::{Duration, Instant};
+use tos_source_store::{CutReadLimits, SourcePresenceV1};
+
+fn source_fixture() -> (TempDir, PathBuf, SourceRevision, SourceRevision) {
+    let (temporary, root) = working_store();
+    let old = "21e26ca0a4ccca2e99eb67a561a061894c852c6cd5b02006e4592673773419e1";
+    let current = "dd5782f4226f3a0000deae0040fae06c3d12cd609769da8564a8e035fc18c971";
+    let mut previous = None;
+    let mut revisions = Vec::new();
+    for original in [old, current] {
+        let mut manifest: Value = serde_json::from_slice(
+            &fs::read(root.join("revisions").join(original).join("snapshot.json")).unwrap(),
+        )
+        .unwrap();
+        let rename = |path: &str| format!("ToS/source-witnesses/fixture/{path}");
+        for entry in manifest["files"].as_array_mut().unwrap() {
+            entry["path"] = Value::String(rename(entry["path"].as_str().unwrap()));
+        }
+        for path in manifest["identities"].as_object_mut().unwrap().values_mut() {
+            *path = Value::String(rename(path.as_str().unwrap()));
+        }
+        let dependencies = manifest["dependencies"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, refs)| (rename(path), refs.clone()))
+            .collect();
+        manifest["dependencies"] = Value::Object(dependencies);
+        manifest["base_revision"] = previous.map(Value::String).unwrap_or(Value::Null);
+        manifest.as_object_mut().unwrap().remove("revision");
+        let digest = Digest256::of_bytes(&canonical_json(&manifest));
+        manifest["revision"] = Value::String(digest.to_hex());
+        let dir = root.join("revisions").join(digest.to_hex());
+        fs::create_dir(&dir).unwrap();
+        fs::write(dir.join("snapshot.json"), canonical_json(&manifest)).unwrap();
+        previous = Some(digest.to_hex());
+        revisions.push(SourceRevision(digest));
+    }
+    (temporary, root, revisions[1], revisions[0])
+}
+
+#[test]
+fn source_cut_preserves_current_retained_and_complete_eof() {
+    let (_temporary, root, current, retained) = source_fixture();
+    let reader = CorpusReader::open_existing(&root, read_limits()).unwrap();
+    let budget = CutReadLimits {
+        max_revisions: 2,
+        max_members: 3,
+        max_total_bytes: 33,
+        max_member_bytes: 20,
+    };
+    let cancel = AtomicBool::new(false);
+    let deadline = || Instant::now() + Duration::from_secs(10);
+    let cut = reader
+        .open_source_cut(current, budget, deadline(), &cancel)
+        .unwrap();
+    assert_eq!(
+        cut.revisions()
+            .map(SnapshotRevision::from)
+            .collect::<Vec<_>>(),
+        vec![SnapshotRevision(current), SnapshotRevision(retained)]
+    );
+    let alpha = RelativePath::parse("ToS/source-witnesses/fixture/records/alpha.txt").unwrap();
+    let directory = RelativePath::parse("ToS/source-witnesses/fixture/records").unwrap();
+    assert_eq!(cut.presence(current, &alpha), Some(SourcePresenceV1::File));
+    assert_eq!(
+        cut.presence(current, &directory),
+        Some(SourcePresenceV1::MaterializedDirectory)
+    );
+    assert_eq!(
+        cut.presence(
+            retained,
+            &RelativePath::parse("ToS/source-witnesses/fixture/records/beta.txt").unwrap()
+        ),
+        None
+    );
+    for (revision, expected_count) in [(current, 2), (retained, 1)] {
+        let mut stream = cut.stream(revision).unwrap();
+        let expected = stream.expectation();
+        assert_eq!(expected.count, expected_count);
+        assert_eq!(stream.coverage(), None);
+        let first = stream.next_member(deadline(), &cancel).unwrap().unwrap();
+        assert_eq!(first.path, alpha);
+        assert_eq!(first.revision, revision);
+        assert_eq!(first.stable_ids, vec!["tos.work.synthetic.alpha"]);
+        let metadata = cut
+            .revisions()
+            .find(|s| s.revision() == revision)
+            .unwrap()
+            .member(&alpha)
+            .unwrap();
+        assert_eq!(Digest256::of_bytes(&first.raw), metadata.sha256);
+        assert_eq!(first.raw.len() as u64, metadata.size_bytes);
+        assert_eq!(stream.coverage(), None);
+        if expected_count == 2 {
+            assert!(stream.next_member(deadline(), &cancel).unwrap().is_some());
+        }
+        assert_eq!(stream.coverage(), None, "last row is not EOF");
+        assert!(stream.next_member(deadline(), &cancel).unwrap().is_none());
+        assert_eq!(stream.coverage(), Some(expected));
+    }
+    let mut too_short = budget;
+    too_short.max_revisions = 1;
+    assert_eq!(
+        reader
+            .open_source_cut(current, too_short, deadline(), &cancel)
+            .unwrap_err()
+            .code,
+        StoreErrorCode::BudgetExceeded
+    );
+    let mut expired = cut.stream(current).unwrap();
+    assert!(expired.next_member(Instant::now(), &cancel).is_err());
+    assert!(
+        expired.next_member(deadline(), &cancel).is_err(),
+        "failure must remain terminal"
+    );
+    assert!(expired.coverage().is_none());
+    let old_digest = cut
+        .revisions()
+        .last()
+        .unwrap()
+        .member(&alpha)
+        .unwrap()
+        .sha256;
+    // The owning v1 retirement ledger separately retains a source CAS object
+    // and an event CAS object; neither need remain a current file member.
+    let beta = RelativePath::parse("ToS/source-witnesses/fixture/records/beta.txt").unwrap();
+    let event = cut.current().member(&beta).unwrap();
+    let mut manifest: Value = serde_json::from_slice(
+        &fs::read(
+            root.join("revisions")
+                .join(current.0.to_hex())
+                .join("snapshot.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    manifest["retirements"] = serde_json::json!([{
+        "path": "ToS/source-witnesses/fixture/retired-alpha.txt",
+        "sha256": old_digest.to_hex(),
+        "event_ref": "ToS/source-witnesses/fixture/retirement-event.json",
+        "event_sha256": event.sha256.to_hex(), "event_size_bytes": event.size_bytes
+    }]);
+    manifest.as_object_mut().unwrap().remove("revision");
+    let retired_revision = SourceRevision(Digest256::of_bytes(&canonical_json(&manifest)));
+    manifest["revision"] = Value::String(retired_revision.0.to_hex());
+    let retirement_dir = root.join("revisions").join(retired_revision.0.to_hex());
+    fs::create_dir(&retirement_dir).unwrap();
+    fs::write(
+        retirement_dir.join("snapshot.json"),
+        canonical_json(&manifest),
+    )
+    .unwrap();
+    let mut retired_budget = budget;
+    retired_budget.max_members = 5;
+    retired_budget.max_total_bytes = 73;
+    let retired_cut = reader
+        .open_source_cut(retired_revision, retired_budget, deadline(), &cancel)
+        .unwrap();
+    let retired_bytes = retired_cut
+        .read_retirement(retired_revision, 0, 20, deadline(), &cancel)
+        .unwrap();
+    assert_eq!(retired_bytes.metadata.sha256, old_digest);
+    assert_eq!(Digest256::of_bytes(&retired_bytes.raw), old_digest);
+    assert_eq!(Digest256::of_bytes(&retired_bytes.event_raw), event.sha256);
+    assert_eq!(retired_bytes.raw.len(), 5);
+    assert_eq!(retired_bytes.event_raw.len(), 20);
+    assert!(
+        retired_cut
+            .read_retirement(retired_revision, 0, 4, deadline(), &cancel)
+            .is_err()
+    );
+    assert!(
+        retired_cut
+            .read_retirement(retired_revision, 1, 20, deadline(), &cancel)
+            .is_err()
+    );
+    fs::write(root.join("objects").join(old_digest.to_hex()), b"wrong").unwrap();
+    let mut old_stream = cut.stream(retained).unwrap();
+    assert!(old_stream.next_member(deadline(), &cancel).is_err());
+    assert!(
+        retired_cut
+            .read_retirement(retired_revision, 0, 20, deadline(), &cancel)
+            .is_err()
+    );
+    assert!(old_stream.coverage().is_none());
+    assert!(old_stream.next_member(deadline(), &cancel).is_err());
+    assert!(
+        cut.read_member(current, &alpha, 20, deadline(), &cancel)
+            .is_ok(),
+        "a retained failure must never fall through to current bytes"
+    );
+    fs::remove_file(
+        root.join("revisions")
+            .join(retained.0.to_hex())
+            .join("snapshot.json"),
+    )
+    .unwrap();
+    assert_eq!(
+        reader
+            .open_source_cut(current, budget, deadline(), &cancel)
+            .unwrap_err()
+            .code,
+        StoreErrorCode::MissingRevision
+    );
+    // The original generic carrier fixture remains valid, but cannot pretend
+    // to be a source-owner ToS namespace through its synthetic stable IDs.
+    let generic = CorpusReader::open_existing(&fixture_store(), read_limits()).unwrap();
+    assert_eq!(
+        generic
+            .open_source_cut(
+                revision("dd5782f4226f3a0000deae0040fae06c3d12cd609769da8564a8e035fc18c971"),
+                budget,
+                deadline(),
+                &cancel
+            )
+            .unwrap_err()
+            .code,
+        StoreErrorCode::InvalidMemberIndex
+    );
+}
+
+#[derive(Debug, PartialEq)]
+struct SnapshotRevision(SourceRevision);
+impl From<&tos_source_store::Snapshot> for SnapshotRevision {
+    fn from(snapshot: &tos_source_store::Snapshot) -> Self {
+        Self(snapshot.revision())
+    }
+}
+
+/// Explicit finite profile for exact Git capture/restore fixtures.
+fn software_capture_restore_limits() -> tos_source_store::CaptureRestoreLimits {
+    tos_source_store::CaptureRestoreLimits {
+        metadata: ReadLimits {
+            max_manifest_bytes: 67_108_864,
+            max_manifest_entries: 16_384,
+            max_selected_object_bytes: 33_554_432,
+            json: JsonLimits {
+                max_bytes: 67_108_864,
+                ..JsonLimits::default()
+            },
+        },
+        max_archive_bytes: 536_870_912,
+        max_decoded_bytes: 536_870_912,
+        max_source_bytes: 536_870_912,
+    }
+}
+
+/// Capture from an exact caller-named Git commit through the existing native
+/// source-store owner. Worktree files never enter this fixture.
+fn software_capture_limits() -> tos_source_store::GitCaptureLimits {
+    tos_source_store::GitCaptureLimits {
+        max_members: 16_384,
+        max_member_bytes: 33_554_432,
+        max_source_bytes: 536_870_912,
+        max_metadata_bytes: 67_108_864,
+        max_tree_bytes: 67_108_864,
+        max_archive_bytes: 536_870_912,
+    }
+}
+
+pub(crate) fn capture_software_archive(
+    source_repo: &Path,
+    source_commit: &str,
+    prefixes: &[&str],
+    capture: &Path,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> tos_source_store::SoftwareCaptureSelectionV1 {
+    use tos_source_store::CaptureGitRequest;
+    assert!(source_repo.is_absolute());
+    assert_eq!(source_commit.len(), 40);
+    assert!(
+        source_commit
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    );
+    assert!(!prefixes.is_empty());
+    let include_prefixes = prefixes
+        .iter()
+        .map(|prefix| (*prefix).to_owned())
+        .collect::<Vec<_>>();
+    let exclude_prefixes = Vec::new();
+    let exclude_path_parts = Vec::new();
+    let result = tos_source_store::capture_git(
+        CaptureGitRequest {
+            repository: source_repo,
+            commit: source_commit,
+            include_prefixes: &include_prefixes,
+            exclude_prefixes: &exclude_prefixes,
+            exclude_path_parts: &exclude_path_parts,
+            output: capture,
+        },
+        software_capture_limits(),
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let manifest_raw = fs::read(capture.join("capture.json")).unwrap();
+    let manifest: Value = serde_json::from_slice(&manifest_raw).unwrap();
+    assert_eq!(
+        manifest["source_git_commit"].as_str().unwrap(),
+        source_commit
+    );
+    assert_eq!(
+        Digest256::of_bytes(&manifest_raw),
+        result.manifest_sha256,
+        "native capture result binds the exact persisted manifest"
+    );
+    tos_source_store::SoftwareCaptureSelectionV1 {
+        source_git_commit: source_commit.to_owned(),
+        source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
+        capture_manifest_sha256: result.manifest_sha256,
+    }
+}
+
+pub(crate) fn restore_software_archive(
+    capture: &Path,
+    restored: &Path,
+    selection: &tos_source_store::SoftwareCaptureSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) {
+    tos_source_store::restore_capture(
+        capture,
+        restored,
+        selection,
+        software_capture_restore_limits(),
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+}
+
+/// Existing owner capture/restore used by the provenance consumer fixture.
+/// All program and selected builder bytes come from an exact caller-named Git
+/// commit, never a worktree file. The fixture owns its unpublished tiny output.
+pub(crate) struct SoftwareCaptureFixture {
+    pub(crate) temporary: TempDir,
+    pub(crate) capture: PathBuf,
+    pub(crate) restored: PathBuf,
+    pub(crate) selection: tos_source_store::SoftwareCaptureSelectionV1,
+}
+
+pub(crate) fn captured_software_fixture(
+    source_repo: &Path,
+    source_commit: &str,
+    prefixes: &[&str],
+) -> SoftwareCaptureFixture {
+    let temporary = tempfile::tempdir().unwrap();
+    let capture = temporary.path().join("software-capture");
+    let restored = temporary.path().join("software-restored");
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let cancelled = AtomicBool::new(false);
+    let selection = capture_software_archive(
+        source_repo,
+        source_commit,
+        prefixes,
+        &capture,
+        deadline,
+        &cancelled,
+    );
+    restore_software_archive(&capture, &restored, &selection, deadline, &cancelled);
+    SoftwareCaptureFixture {
+        temporary,
+        capture,
+        restored,
+        selection,
+    }
+}

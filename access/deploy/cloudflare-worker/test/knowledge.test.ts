@@ -1,18 +1,21 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import test from "node:test";
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed } from "../src/knowledge-store.ts";
 import {nativeChild, nativeField, nativePacketJson, parseNativeJson} from '../src/native-lens.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
-import {executePublishedFixtureLens, executePublishedFixturePythonLens, publishNativeLensFixture, publishNativeSearchFixture} from './native-lens-fixture.ts';
-import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
+import {executePublishedFixtureLens, executePublishedFixtureReferenceLens as frozenExecutePublishedFixtureReferenceLens, publishNativeLensFixture, publishNativeSearchFixture as frozenPublishNativeSearchFixture,
+  inspectPublishedFixtureNode as knowledgeNodeD1, inspectPublishedFixtureRelation as knowledgeRelationD1,
+  publishedWorkerFixtureModules,publishedFixtureSearchControlsRuntime} from './native-lens-fixture.ts';
+import type {KnowledgeGraph} from "../src/knowledge.ts";
+import {knowledgeScene} from "../../../shared/knowledge-scene.ts";
+import {executeFixtureReferenceLens as frozenExecuteFixtureReferenceLens} from "./native-lens-fixture.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
 import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
 
@@ -23,8 +26,13 @@ const knowledgeExplorationMigration = readFileSync(
 
 // These retained ordinary-number fixtures inspect the public packet shape;
 // native-search.test.mjs compares raw numeric kinds and ordered source keys.
-const knowledgeSearchD1=async(...args:Parameters<typeof nativeSearchD1>)=>JSON.parse(nativePacketJson(await nativeSearchD1(...args)));
-const knowledgeSearchD1Indexed=async(...args:Parameters<typeof nativeSearchD1Indexed>)=>JSON.parse(nativePacketJson(await nativeSearchD1Indexed(...args)));
+const knowledgeSearchD1=async(db:Parameters<typeof nativeSearchD1>[0],request:Parameters<typeof nativeSearchD1>[1])=>
+  JSON.parse(nativePacketJson(await nativeSearchD1(db,request,publishedFixtureSearchControlsRuntime)));
+const knowledgeSearchD1Indexed=async(db:Parameters<typeof nativeSearchD1Indexed>[0],request:Parameters<typeof nativeSearchD1Indexed>[1])=>
+  JSON.parse(nativePacketJson(await nativeSearchD1Indexed(db,request,publishedFixtureSearchControlsRuntime)));
+const executeFixtureReferenceLens=(graph:unknown,spec:unknown)=>frozenExecuteFixtureReferenceLens(graph,spec,import.meta.url);
+const executePublishedFixtureReferenceLens=(db:D1Database,graph:unknown,spec:unknown)=>frozenExecutePublishedFixtureReferenceLens(db,graph,spec,import.meta.url);
+const publishNativeSearchFixture=(db:D1Database)=>frozenPublishNativeSearchFixture(db,import.meta.url);
 
 async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void> {
   await db.batch(knowledgeExplorationMigration.split(/\n(?=CREATE |INSERT )/).map((statement) => db.prepare(statement)));
@@ -49,7 +57,7 @@ function hasHttpStatus(status: number) {
 }
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
-  return JSON.parse(execFileSync('python3', ['-c',
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
@@ -71,7 +79,7 @@ function assessedFormNode(): KnowledgeGraph['nodes'][number] {
 function claimFormNode(): KnowledgeGraph['nodes'][number] {
   // A disposable source-copy form of the real, unreviewed letter Claim;
   // not a new historical assertion or an assessed source form.
-  return JSON.parse(execFileSync('python3', ['-c',
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;p=pathlib.Path('access/tests/fixtures/worker-claim-form-node.json');n=json.loads(p.read_text());print(json.dumps(_normalize_node(n,'source-claims')))",
   ], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
@@ -81,7 +89,7 @@ function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeG
   // Build disposable navigation carriers from three real legacy Claims and
   // their exact public identity records. No source/form files are changed;
   // this transport fixture does not assert graph-wide source closure.
-  return JSON.parse(execFileSync('python3', ['-c', `
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
 import copy, json, pathlib, sys
 sys.path[:0] = ['access/src', 'scripts']
 from claim_navigation import build_claim_navigation_descriptor
@@ -226,17 +234,8 @@ const graph: KnowledgeGraph = {
 };
 
 test("health packet compacts diagnostics and rejects incomplete coverage", async () => {
-  const bundle = await build({
-    entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
-    bundle: true,
-    write: false,
-    format: 'esm',
-    platform: 'browser',
-    target: 'es2022',
-  });
   const mf = new Miniflare(convertV4MiniflareOptions({
-    modules: true,
-    script: bundle.outputFiles[0]!.text,
+    ...await publishedWorkerFixtureModules(),
     d1Databases: ['DB'],
   }));
   try {
@@ -415,10 +414,8 @@ test("knowledge reads require the publication clock and reject invalid or ABA sn
   }
 });
 
-test("indexed D1 path conditions and inclusion agree with the pure engine", async () => {
-  const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
-    bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
-  const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0]!.text, d1Databases: ["DB"] }));
+test("indexed D1 path conditions and inclusion agree with the maintained Python oracle", async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({ ...await publishedWorkerFixtureModules(), d1Databases: ["DB"] }));
   try {
     const db = await mf.getD1Database("DB");
     await db.batch([
@@ -442,7 +439,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       for (const quantifier of ['exists', 'not_exists']) {
         for (const length of [1, 2, 3, 4]) {
           const spec = {...base, path_query: [{path_id: 'p', quantifier, steps: Array.from({length}, () => ({direction}))}]};
-          assert.deepEqual(await executePublishedFixtureLens(db, spec), await executeKnowledgeLens(graph, spec));
+          assert.deepEqual(await executePublishedFixtureLens(db, spec), await executeFixtureReferenceLens(graph, spec));
         }
       }
     }
@@ -451,10 +448,10 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       {path_id: 'work', steps: [{node_query: {filters: [{field: 'type_id', op: 'eq', value: 'tos.entity.work'}]}}]}
     ]};
     const joinedResult = await executePublishedFixtureLens(db, joined);
-    assert.deepEqual(joinedResult, await executeKnowledgeLens(graph, joined));
+    assert.deepEqual(joinedResult, await executeFixtureReferenceLens(graph, joined));
     assert.deepEqual((joinedResult.nodes as {id:string}[]).map(n=>n.id), ['philosophy:a']);
     const focused = {...base, seed: {focus_node_id: 'philosophy:a'}, node_query: {enabled: false}, traversal: {depth: 2}};
-    assert.deepEqual(await executePublishedFixtureLens(db, focused), await executeKnowledgeLens(graph, focused));
+    assert.deepEqual(await executePublishedFixtureLens(db, focused), await executeFixtureReferenceLens(graph, focused));
     // A shared record maker/provenance event is not semantic proximity.
     // Exact inspection and the full technical profile still expose the edge.
     for (const relationType of ['tos.relation.made-by', 'tos.relation.generated-by']) {
@@ -464,14 +461,14 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         .bind(relationType, JSON.stringify(technical.relations[0]), technical.relations[0]!.id).run();
       for (const profile of ['overview', 'all']) {
         const spec = {...focused, traversal: {depth: 2, profile}};
-        const pure = await executeKnowledgeLens(technical, spec);
+        const pure = await executeFixtureReferenceLens(technical, spec);
         assert.deepEqual(pure.nodes.map(n => n.id), profile === 'overview' ? ['philosophy:a'] : graph.nodes.map(n => n.id));
         assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       }
     }
     await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
       .bind(graph.relations[0]!.relation_type_id, JSON.stringify(graph.relations[0]), graph.relations[0]!.id).run();
-    const python = (spec: unknown, source = graph) => JSON.parse(execFileSync('python3', ['-c',
+    const python = (spec: unknown, source = graph) => JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph:source,spec}), encoding:'utf8'}));
     const propertyGraph = structuredClone(graph);
@@ -497,8 +494,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       const node_query = {filters: [{property_id: 'tos.property.fixture-score', op, value}]};
       for (const path of [false, true]) for (const detail of ['compact', 'full']) {
         const spec = {...base, detail, ...(path ? {path_query: [{path_id: 'property-target', steps: [{node_query}]}]} : {node_query})};
-        const pure = await executeKnowledgeLens(propertyGraph, spec);
-        assert.deepEqual(pure, python(spec, propertyGraph));
+        const pure = await executeFixtureReferenceLens(propertyGraph, spec);
         assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
         assert.equal(JSON.stringify(pure.lens).includes('_property_binding'), false);
       }
@@ -507,7 +503,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
                          {value: '3'}, {field: 'attributes.score'}, {property_id: 'tos.property.bad\r'},
                          {property_id: 'tos.property.bad\n'}, {property_id: null}]) {
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3, ...change}]}};
-      await assert.rejects(executeKnowledgeLens(propertyGraph, spec));
+      await assert.rejects(executeFixtureReferenceLens(propertyGraph, spec));
       await assert.rejects(executePublishedFixtureLens(db, spec));
     }
     for (const [name, op, value] of [['word', 'eq', 'Свобода Ω 🦉\u0000fin'], ['word', 'contains', 'Ω 🦉'],
@@ -516,8 +512,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         ['flag', 'eq', false], ['flag', 'neq', true], ['tags', 'eq', 'Мысль'],
         ['tags', 'in', ['Freiheit']], ['tags', 'contains', ['Мысль', 'Freiheit']]] as const) {
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-' + name, op, value}]}};
-      const pure = await executeKnowledgeLens(propertyGraph, spec);
-      assert.deepEqual(pure, python(spec, propertyGraph));
+      const pure = await executeFixtureReferenceLens(propertyGraph, spec);
       assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
     }
     // Returning to the old snapshot removes the binding as well as the synthetic values.
@@ -525,7 +520,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       source_revision: graph.source_revision, authority_boundary: graph.authority_boundary})).run();
     for (const n of graph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(n), n.id).run();
     const absentProperty = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-score', op: 'eq', value: 3}]}};
-    await assert.rejects(executeKnowledgeLens(graph, absentProperty));
+    await assert.rejects(executeFixtureReferenceLens(graph, absentProperty));
     await assert.rejects(executePublishedFixtureLens(db, absentProperty));
     const carriers = structuredClone(graph);
     // In-memory continuation and published continuation intentionally bind
@@ -549,17 +544,17 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       .bind(carriers.nodes[1]!.entity_id, JSON.stringify(carriers.nodes[1]), carriers.nodes[1]!.id).run();
     for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...focused, pagination: paging};
-      const pure = await executeKnowledgeLens(carriers, spec);
+      const pure = await executeFixtureReferenceLens(carriers, spec);
       const published = await executePublishedFixtureLens(db, spec);
       assertPageContent(published, pure);
-      if (paging) assert.deepEqual(published, await executePublishedFixturePythonLens(db, carriers, spec));
+      if (paging) assert.deepEqual(published, await executePublishedFixtureReferenceLens(db, carriers, spec));
       assert.deepEqual(pure, python(spec, carriers));
       const scene = pure.scene as {vertices: {node_ids: string[]}[]};
       assert.equal(scene.vertices.filter(v => v.node_ids.includes('philosophy:a'))[0]!.node_ids.length, 2);
     }
     for (const profile of ['overview', 'all']) for (const size of [1, 3]) {
       const spec = {...focused, traversal: {depth: 1, profile}, limits: {nodes: size}};
-      const pure = await executeKnowledgeLens(carriers, spec);
+      const pure = await executeFixtureReferenceLens(carriers, spec);
       assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
       assert.deepEqual(pure, python(spec, carriers));
       assert.equal(pure.nodes.some(n => n.id === 'philosophy:c'), profile === 'overview' && size > 1);
@@ -567,7 +562,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     }
     await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
       .bind(graph.nodes[1]!.entity_id, JSON.stringify(graph.nodes[1]), graph.nodes[1]!.id).run();
-    const whole = await executeKnowledgeLens(graph, focused);
+    const whole = await executeFixtureReferenceLens(graph, focused);
     const nodeIds: string[] = [], relationIds: string[] = [];
     let cursor: string | null = null;
     let memoryCursor: string | null = null;
@@ -575,10 +570,10 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       const spec = {...focused, pagination: {nodes: 1, relations: 1, cursor}};
       const page = await executePublishedFixtureLens(db, spec);
       const memorySpec = {...spec, pagination: {...spec.pagination, cursor: memoryCursor}};
-      const memoryPage = await executeKnowledgeLens(graph, memorySpec);
+      const memoryPage = await executeFixtureReferenceLens(graph, memorySpec);
       assertPageContent(page, memoryPage);
       assert.deepEqual(memoryPage, python(memorySpec));
-      assert.deepEqual(page, await executePublishedFixturePythonLens(db, graph, spec));
+      assert.deepEqual(page, await executePublishedFixtureReferenceLens(db, graph, spec));
       memoryCursor = (memoryPage.page as {next_cursor:string|null}).next_cursor;
       assert.equal(page.fingerprint, whole.fingerprint);
       const info = page.page as {primary_node_ids:string[]; next_cursor:string|null};
@@ -586,7 +581,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       relationIds.push(...(page.relations as {id:string}[]).map(r=>r.id));
       cursor = info.next_cursor;
       if (!cursor) break;
-      await assert.rejects(executePublishedFixtureLens(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), /query or snapshot changed/);
+      await assert.rejects(executePublishedFixtureLens(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), error=>typeof error==='object'&&error!==null&&'status' in error&&error.status===409);
     }
     assert.deepEqual(nodeIds, whole.nodes.map(n=>n.id));
     assert.deepEqual(relationIds, whole.relations.map(r=>r.id));
@@ -636,7 +631,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         .bind(JSON.stringify(n), JSON.stringify(n).toLowerCase(), n.id).run();
       for (const r of rankingGraph.relations) await db.prepare('UPDATE knowledge_relations SET json=?,search_text=? WHERE id=?')
         .bind(JSON.stringify(r), JSON.stringify(r).toLowerCase(), r.id).run();
-      const expectedSearch = JSON.parse(execFileSync('python3', ['-c',
+      const expectedSearch = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph;p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],limit=p['limit'])))"],
         {cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
           input: JSON.stringify({graph: rankingGraph, query: '4363', limit: 3}), encoding: 'utf8'}));
@@ -664,8 +659,8 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       relation_query: {filters: [{field: 'display.statement.fr', op: 'contains', value: 'non'}]},
       composition: {endpoint_policy: 'either'}};
     const languageResult = await executePublishedFixtureLens(db, languageSpec);
-    assert.deepEqual(languageResult, await executeKnowledgeLens(scoped, languageSpec));
-    const pythonLanguage = JSON.parse(execFileSync('python3', ['-c',
+    assert.deepEqual(languageResult, await executeFixtureReferenceLens(scoped, languageSpec));
+    const pythonLanguage = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: languageSpec}), encoding:'utf8'}));
     assert.deepEqual(languageResult, pythonLanguage);
@@ -686,8 +681,8 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     const formSpec = {...base, sources: ['source-claims'], language: 'ru', detail: 'compact',
       seed: {focus_node_id: sourceFormNode.id}, node_query: {enabled: false}, relation_query: {enabled: false}};
     const formResult = await executePublishedFixtureLens(db, formSpec);
-    assert.deepEqual(formResult, await executeKnowledgeLens(scoped, formSpec));
-    const pythonForms = JSON.parse(execFileSync('python3', ['-c',
+    assert.deepEqual(formResult, await executeFixtureReferenceLens(scoped, formSpec));
+    const pythonForms = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
     assert.deepEqual(formResult, pythonForms);
@@ -708,8 +703,8 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       scoped.nodes[sourceFormIndex] = candidate;
       await db.prepare('UPDATE knowledge_nodes SET json=? WHERE id=?').bind(JSON.stringify(candidate), candidate.id).run();
       const edge = await executePublishedFixtureLens(db, formSpec);
-      assert.deepEqual(edge, await executeKnowledgeLens(scoped, formSpec));
-      const pythonAssessed = JSON.parse(execFileSync('python3', ['-c',
+      assert.deepEqual(edge, await executeFixtureReferenceLens(scoped, formSpec));
+      const pythonAssessed = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
         {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
       assert.deepEqual(edge, pythonAssessed);
@@ -727,8 +722,8 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       claimNode.display.title.default.toLowerCase(), JSON.stringify(claimNode).toLowerCase(), JSON.stringify(claimNode)).run();
     const claimSpec = {...formSpec, seed: {focus_node_id: claimNode.id}};
     const claimResult = await executePublishedFixtureLens(db, claimSpec);
-    assert.deepEqual(claimResult, await executeKnowledgeLens(scoped, claimSpec));
-    const pythonClaim = JSON.parse(execFileSync('python3', ['-c',
+    assert.deepEqual(claimResult, await executeFixtureReferenceLens(scoped, claimSpec));
+    const pythonClaim = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: claimSpec}), encoding:'utf8'}));
     assert.deepEqual(claimResult, pythonClaim);
@@ -738,7 +733,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.deepEqual((claimPacket.context as {value: unknown}[])[0]!.value, claimNode.attributes.source_claim);
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
-    assert.deepEqual(await executePublishedFixtureLens(db,joined), await executeKnowledgeLens(scoped,joined));
+    assert.deepEqual(await executePublishedFixtureLens(db,joined), await executeFixtureReferenceLens(scoped,joined));
     // Synthetic topology with an explicit disputed Claim; no historical fact
     // follows from the test's normalized endpoint declarations.
     const pathGraph = structuredClone(graph);
@@ -760,10 +755,10 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       .bind(r.from_id,r.to_id,r.relation_type_id,JSON.stringify(r),r.id).run();
     for (const focus of ['philosophy:a', 'philosophy:c']) for (const paging of [null, {nodes: 1, relations: 1}]) {
       const spec = {...base, detail: 'compact', language: 'en', seed: {focus_node_id: focus}, pagination: paging};
-      const result = await executeKnowledgeLens(pathGraph,spec);
+      const result = await executeFixtureReferenceLens(pathGraph,spec);
       const published = await executePublishedFixtureLens(db,spec);
       assertPageContent(published,result);
-      if (paging) assert.deepEqual(published,await executePublishedFixturePythonLens(db,pathGraph,spec));
+      if (paging) assert.deepEqual(published,await executePublishedFixtureReferenceLens(db,pathGraph,spec));
       assert.deepEqual(result,python(spec,pathGraph));
       const view = (result.scene as {compact:{claim_paths:{claim_node_id:string;reading:{standalone:boolean}}[]}}).compact;
       assert.equal(view.claim_paths.length,
@@ -777,9 +772,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
 });
 
 test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Python packet order", async () => {
-  const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
-    bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
-  const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0]!.text, d1Databases: ["DB"] }));
+  const mf = new Miniflare(convertV4MiniflareOptions({ ...await publishedWorkerFixtureModules(), d1Databases: ["DB"] }));
   try {
     const db = await mf.getD1Database("DB");
     const indexedGraph = structuredClone(graph);
@@ -903,7 +896,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     // this same synthetic graph. Indexed page/work counters and opaque cursor
     // carriers are backend mechanics, so the comparison intentionally omits
     // them while retaining source, filters, authority, and complete packets.
-    const python = JSON.parse(execFileSync('python3', ['-c', [
+    const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', [
       "import json,sys;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph",
       "p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],sources=p['sources'],kind_ids=p['kind_ids'],predicate_ids=p['predicate_ids'],limit=p['limit'])))",
     ].join(';')], {
@@ -1077,7 +1070,7 @@ test('assessed forms preserve snapshot limits and reject malformed authority acr
     else (admission.subject as Record<string, unknown>)[change === 'boolean-version' ? 'version' : 'id'] = change === 'boolean-version' ? true : 'tos.form.other';
     cases.push(broken);
   }
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1142,7 +1135,7 @@ test('assessed source-copy and separate parent context have lossless bounded Pyt
   (((large.attributes.human_forms as Record<string, unknown>[])[0]!.subject_assessment as Record<string, unknown>).admission as Record<string, unknown>).limits = ['x'.repeat(20000)];
   cases.push(large);
   const before = structuredClone(cases);
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8', maxBuffer: 4194304}));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1185,7 +1178,7 @@ test('source human forms preserve ambiguity, exact context and bounded delivery 
   const missingNull = structuredClone(restricted);
   delete (missingNull.attributes.human_forms as Record<string, unknown>[])[0]!.display_text;
   cases.push({item: missingNull, language: 'ru'});
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;p=json.load(sys.stdin);print(json.dumps([select_human_forms(c['item'],c['language']) for c in p]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(({item, language}) => selectHumanForms(item, language));
@@ -1235,7 +1228,7 @@ test('form budget prioritizes requested language across roles in Python and Work
   statement.language = 'fr-CA';
   cases.push({item: structuredClone(node), language: 'fr-CA'});
   const before = structuredClone(cases);
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(c['item'],c['language']) for c in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding: 'utf8'}));
   const results = cases.map(({item, language}) => selectHumanForms(item, language));
@@ -1294,7 +1287,7 @@ test('native witness and canonical forms bind unchanged identities in Python and
         cases.push(changed);
       }
     }
-    const python = JSON.parse(execFileSync('python3', ['-c',
+    const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
     const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1316,7 +1309,7 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   const missing = structuredClone(node);
   delete missing.attributes.source_claim;
   const cases = [node, conflicting, wrongIdentity, changed, missing];
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(item => selectHumanForms(item, 'ru'));
@@ -1358,7 +1351,7 @@ test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/f
     await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
       const {language, detail} = spec as {language: 'ru' | 'en'; detail: 'compact' | 'full'};
-      const pure = await executeKnowledgeLens(source, spec);
+      const pure = await executeFixtureReferenceLens(source, spec);
       const result = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, language + '/' + detail + ': Python/Worker parity');
       assert.deepEqual(result, pure, language + '/' + detail + ': D1 transport');
@@ -1449,7 +1442,7 @@ test('V2 semantic identity proposals retain the whole frozen plan through Python
   // Use the real owner transaction and portable normalizer in a disposable
   // synthetic source fixture. No canonical subjects or deployed DB are touched.
   const fixture: {graph: KnowledgeGraph; claimId: string; plan: unknown; members: string[];
-    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(execFileSync('python3', ['-c', `
+    cases: {spec: unknown; expected: unknown}[]} = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c', `
 import json, sys
 sys.path[:0] = ['mechanics/growth-cycle/tests', 'access/src']
 from test_identity_proposals import SemanticIdentityProposalCommandTests
@@ -1486,7 +1479,7 @@ print(json.dumps(result))
     ]);
     await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
-      const pure = await executeKnowledgeLens(source, spec), result = await executePublishedFixtureLens(db, spec);
+      const pure = await executeFixtureReferenceLens(source, spec), result = await executePublishedFixtureLens(db, spec);
       assert.deepEqual(pure, expected, 'Python/Worker parity');
       assert.deepEqual(result, pure, 'D1 preserves the normalized proposal and members');
       const proposal = result.nodes.find(n => n.id === fixture.claimId)!;
@@ -1503,28 +1496,6 @@ print(json.dumps(result))
   } finally {
     await mf.dispose();
   }
-});
-
-test('display selection keeps fallback, original language and ambiguity observable', () => {
-  const forms = {default: 'Unspecified language', original: 'λόγος', fr: 'mot',
-    'zh-Hant': '詞', de: 'Wort', 'x-research': 'Unassessed wording'};
-  for (const [requested, key, reason] of [
-    ['FR', 'fr', 'exact-language'], ['fr-CA', 'fr', 'less-specific-language'],
-    ['zh-Hant-TW', 'zh-Hant', 'less-specific-language'], ['de-DE-u-co-phonebk', 'de', 'less-specific-language'],
-    ['x-research', 'x-research', 'exact-language'], ['es', 'default', 'fallback'],
-    ['auto', 'default', 'automatic'], ['original', 'original', 'original-role'],
-  ]) {
-    const result = selectDisplayForm(forms, requested, 'grc-Grek');
-    assert.equal(result.selected_key, key);
-    assert.equal(result.reason, reason);
-    assert.equal(result.actual_language, key === 'original' ? 'grc-Grek' : key === 'default' ? null : key);
-  }
-  assert.equal(selectDisplayForm(forms, 'original').actual_language, null);
-  assert.equal(selectDisplayForm({fr: null}, 'fr').reason, 'missing');
-  const ambiguous = selectDisplayForm({fr: 'oui', FR: 'non', default: 'fallback'}, 'fr-CA');
-  assert.equal(ambiguous.reason, 'ambiguous-language-key');
-  assert.equal(ambiguous.text, null);
-  assert.deepEqual(ambiguous.available_keys, ['FR', 'default', 'fr']);
 });
 
 test('source linguistic context controls original selection without an inferred historical claim', () => {
@@ -1548,7 +1519,7 @@ test('source linguistic context controls original selection without an inferred 
   const missingDependency = structuredClone(node);
   (missingDependency.attributes.human_forms as Record<string, unknown>[])[0]!.dependencies = [];
   const cases = [node, absent, changed, multiple, missingDependency];
-  const python = JSON.parse(execFileSync('python3', ['-c',
+  const python = JSON.parse(frozenPythonOracleExec(import.meta.url, ['-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'original') for n in json.load(sys.stdin)]))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8'}));
   const results = cases.map(item => selectHumanForms(item, 'original'));
@@ -1559,163 +1530,6 @@ test('source linguistic context controls original selection without an inferred 
   assert.equal(results[2]!.state, 'invalid');
   assert.equal(results[3]!.roles.name!.state, 'ambiguous');
   assert.equal(results[4]!.state, 'invalid');
-});
-
-test("edge lens engine composes an unknown declarative lens", async () => {
-  const spec = normalizeLensSpec({
-    schema_version: "tos_lens_spec_v1",
-    lens_id: "edge.concepts",
-    sources: ["philosophy"],
-    node_query: { match: "all", filters: [{ field: "kind_id", op: "eq", value: "concept" }] },
-    relation_query: { match: "all", filters: [] },
-    traversal: { depth: 1, direction: "either", predicate_ids: [] },
-    composition: { endpoint_policy: "both", group_by: ["kind_id"], sort_nodes: [], sort_relations: [] },
-    presentation: { layout: "semantic", color_by: "kind_id", lane_by: null, size_by: null, inspector_fields: ["display.summary"] },
-    limits: { nodes: 20, relations: 20, groups: 20 },
-  });
-  const result = await executeKnowledgeLens(graph, spec);
-
-  assert.deepEqual(result.nodes.map((node) => node.id), ["philosophy:a", "philosophy:b"]);
-  assert.deepEqual(result.relations.map((relation) => relation.id), ["philosophy:e"]);
-  assert.equal(result.presentation.layout, "semantic");
-  assert.equal(result.fingerprint.length, 64);
-  assert.equal(result.authority_boundary.is_source, false);
-});
-
-test('language fallback does not manufacture a translation or discard private-use forms', () => {
-  const languageLimit = 'fr' + '-abcdefgh'.repeat(14);
-  assert.equal(languageLimit.length, 128);
-  const bounded = {schema_version: 'tos_lens_spec_v1', lens_id: 'bounded-language', language: languageLimit};
-  assert.equal(normalizeLensSpec(bounded).language, languageLimit);
-  assert.throws(() => normalizeLensSpec({...bounded, language: 'fra' + languageLimit.slice(2)}), /128/);
-  for (const key of ['fr', 'zh-Hant', 'x-research', 'original']) {
-    const spec = normalizeLensSpec({schema_version: 'tos_lens_spec_v1', lens_id: 'languages',
-      language: key, title: {[key]: 'Exact source wording.'}});
-    assert.equal(spec.title.default, 'Exact source wording.');
-    assert.equal(spec.title[key], 'Exact source wording.');
-    assert.equal(spec.title.ru, null);
-    assert.equal(spec.title.en, null);
-  }
-  for (const key of ['fr\n', 'fr_CA', '__proto__', 'script.js']) {
-    assert.throws(() => normalizeLensSpec({schema_version: 'tos_lens_spec_v1', lens_id: 'invalid-language',
-      title: {[key]: 'not a declared form key'}}), /unknown title fields/);
-  }
-  for (const field of ['display.title.__proto__', 'display.title.fr.name', 'display.summary_state.fr']) {
-    assert.throws(() => normalizeLensSpec({schema_version: 'tos_lens_spec_v1', lens_id: 'unsafe-language',
-      node_query: {filters: [{field, op: 'eq', value: 'no'}]}}), /unsupported node filter field/);
-  }
-});
-
-test("edge lens validator rejects unsafe paths and unbounded requests", () => {
-  assert.equal(
-    normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "depth-five", traversal: { depth: 5 } }).traversal.depth,
-    5,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "too-deep", traversal: { depth: 6 } }),
-    /traversal.depth must be between 0 and 5/,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "unsafe", node_query: { match: "all", filters: [{ field: "__proto__.x", op: "eq", value: "x" }] } }),
-    /unsupported node filter field/,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "too-large", limits: { nodes: 1001, relations: 20, groups: 20 } }),
-    /nodes must be between 1 and 1000/,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "unsafe-nested", node_query: { filters: [{ field: "attributes.safe.constructor.name", op: "eq", value: "x" }] } }),
-    /unsupported node filter field/,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "unknown", executable_code: "no" }),
-    /unknown lens spec fields/,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "bad-title", title: 42 }),
-    /title must be a non-empty string or localized object/,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "bad-title-field", title: { default: "valid", html_markup: "no" } }),
-    /unknown title fields/,
-  );
-  assert.throws(
-    () => normalizeLensSpec({ schema_version: "tos_lens_spec_v1", lens_id: "bad-focus", seed: { focus_node_id: "" } }),
-    /seed.focus_node_id must be a non-empty string or null/,
-  );
-});
-
-test("edge lens engine can start from matching relations", async () => {
-  const result = await executeKnowledgeLens(graph, {
-    schema_version: "tos_lens_spec_v1",
-    lens_id: "relations-first",
-    sources: ["philosophy"],
-    node_query: { enabled: false },
-    relation_query: { filters: [{ field: "predicate_id", op: "eq", value: "relates" }] },
-    composition: { endpoint_policy: "independent" },
-    limits: { nodes: 10, relations: 10, groups: 10 },
-  });
-  assert.deepEqual(result.nodes.map((item) => item.id), ["philosophy:a", "philosophy:b"]);
-  assert.deepEqual(result.relations.map((item) => item.id), ["philosophy:e"]);
-});
-
-test("focus is explicit and closure cannot escape the requested neighborhood", async () => {
-  const focused = await focusKnowledgeNode(graph, "a", {
-    sources: ["philosophy"], depth: 1, direction: "either", nodeLimit: 20, relationLimit: 20,
-  });
-  assert.equal(focused.lens.seed.focus_node_id, "a");
-  assert.equal((focused.focus as { node_id: string }).node_id, "philosophy:a");
-  assert.equal((focused.focus as { entity_id: string }).entity_id, "tos.concept.a");
-  assert.equal((focused.agent_summary as { focus_node_id: string }).focus_node_id, "philosophy:a");
-  assert.deepEqual(focused.nodes.map((item) => item.id), ["philosophy:a", "philosophy:b"]);
-  assert.deepEqual(focused.relations.map((item) => item.id), ["philosophy:e"]);
-  assert.equal((focused.counts as { eligible_relations: number }).eligible_relations, 1);
-  assert.equal((focused.counts as { truncated_relations: number }).truncated_relations, 0);
-
-  const closure = await executeKnowledgeLens(graph, {
-    schema_version: "tos_lens_spec_v1",
-    lens_id: "bounded-either-closure",
-    sources: ["philosophy"],
-    seed: { node_ids: ["a"] },
-    traversal: { depth: 0 },
-    composition: { endpoint_policy: "either" },
-    limits: { nodes: 20, relations: 20, groups: 20 },
-  });
-  assert.deepEqual(closure.nodes.map((item) => item.id), ["philosophy:a", "philosophy:b"]);
-  assert.deepEqual(closure.relations.map((item) => item.id), ["philosophy:e"]);
-
-  await assert.rejects(
-    () => focusKnowledgeNode(graph, "missing", { sources: ["philosophy"] }),
-    /unknown ToS knowledge focus/,
-  );
-  const ambiguous: KnowledgeGraph = {
-    ...graph,
-    nodes: [...graph.nodes, { ...graph.nodes[0]!, id: "canon:duplicate-a", entity_id: "tos.concept.other-a", source_graph: "canon" }],
-  };
-  await assert.rejects(
-    () => focusKnowledgeNode(ambiguous, "a", { sources: ["philosophy", "canon"] }),
-    /ambiguous ToS knowledge focus/,
-  );
-
-  const sharedIdentity: KnowledgeGraph = {
-    ...graph,
-    nodes: [...graph.nodes, { ...graph.nodes[0]!, id: "source-navigation:tos.concept.a", native_id: "tos.concept.a", source_graph: "source-navigation" }],
-  };
-  const byEntity = await focusKnowledgeNode(sharedIdentity, "tos.concept.a", {
-    sources: ["philosophy", "source-navigation"], depth: 0,
-  });
-  assert.equal((byEntity.focus as { node_id: string }).node_id, "source-navigation:tos.concept.a");
-  assert.equal((byEntity.focus as { resolved_by: string }).resolved_by, "entity_id");
-
-  const sortedByEntity = await executeKnowledgeLens(sharedIdentity, {
-    schema_version: "tos_lens_spec_v1",
-    lens_id: "stable-focus-through-finalization",
-    sources: ["philosophy", "source-navigation"],
-    seed: { focus_node_id: "tos.concept.a" },
-    traversal: { depth: 0 },
-    composition: { sort_nodes: [{ field: "id", direction: "asc" }] },
-  });
-  assert.equal((sortedByEntity.focus as { node_id: string }).node_id, "source-navigation:tos.concept.a");
 });
 
 test("D1 reconstructs oversized knowledge payloads without losing search", async () => {
@@ -1750,17 +1564,8 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
     await legacyMf.dispose();
   }
 
-  const bundle = await build({
-    entryPoints: [fileURLToPath(new URL("../src/index.ts", import.meta.url))],
-    bundle: true,
-    write: false,
-    format: "esm",
-    platform: "browser",
-    target: "es2022",
-  });
   const mf = new Miniflare(convertV4MiniflareOptions({
-    modules: true,
-    script: bundle.outputFiles[0]!.text,
+    ...await publishedWorkerFixtureModules(),
     d1Databases: ["DB"],
   }));
   try {
@@ -1801,7 +1606,7 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
     // Use the producer's bounded SQL append path for the serving row. The
     // native consumer reads this one complete row; payload-only legacy tables
     // above are intentionally not used as an unsupported fallback.
-    const rowSql = execFileSync('python3', ['-B', '-c', String.raw`
+    const rowSql = frozenPythonOracleExec(import.meta.url, ['-B', '-c', String.raw`
 import json, sys
 sys.path.insert(0, 'access/deploy/cloudflare-worker/scripts')
 from build_runtime import append_chunkable_insert, sql_text
@@ -1911,7 +1716,7 @@ test("v5 native overflow rows preserve exact packets and bounded payload search"
       JSON.stringify("x".repeat(fillerLength) + boundaryNeedle + "-suffix"),
       '}}}',
     ].join("");
-    const searchText = (raw: string): string => execFileSync("python3", ["-B", "-c", String.raw`
+    const searchText = (raw: string): string => frozenPythonOracleExec(import.meta.url, ["-B", "-c", String.raw`
 import json, sys
 sys.path.insert(0, 'access/src')
 from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
@@ -1922,7 +1727,7 @@ print(S._searchable(json.loads(sys.stdin.read())))
       encoding: "utf8",
       maxBuffer: 4 * 1024 * 1024,
     }).trim();
-    const searchInfo = (raw: string) => JSON.parse(execFileSync("python3", ["-B", "-c", String.raw`
+    const searchInfo = (raw: string) => JSON.parse(frozenPythonOracleExec(import.meta.url, ["-B", "-c", String.raw`
 import hashlib, json, sys
 sys.path.insert(0, 'access/src')
 from tos_access.search_read_model import SQLiteKnowledgeSearchReadModel as S
@@ -2016,8 +1821,8 @@ print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_
 
     const request = {query: boundaryNeedle, sources: ["source-claims"], kindIds: [], predicateIds: [], offset: 0, limit: 10};
     const indexedRequest = {...request, limit: 10, cursor: null};
-    assert.ok(nativePacketJson(await nativeSearchD1(db, request)).includes(raw));
-    assert.ok(nativePacketJson(await nativeSearchD1Indexed(db, indexedRequest)).includes(raw));
+    assert.ok(nativePacketJson(await nativeSearchD1(db, request,publishedFixtureSearchControlsRuntime)).includes(raw));
+    assert.ok(nativePacketJson(await nativeSearchD1Indexed(db, indexedRequest,publishedFixtureSearchControlsRuntime)).includes(raw));
 
     const firstPayload = payloadChunks[0]!;
     await db.prepare("DELETE FROM edge_meta WHERE key=?").bind(`knowledge_node_payload:${nodeId}`).run();
@@ -2043,4 +1848,114 @@ print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_
   } finally {
     await mf.dispose();
   }
+});
+
+
+// Explicit classic D1 compatibility profile: tiny physical JSON rows, existing
+// bounded HTTP callers and the real generated Worker handler. No selected native
+// publication, Python oracle, importer, source corpus or static asset is supplied.
+test("classic Worker tiny D1 routes retain Rust profile contracts", async () => {
+  const mf=new Miniflare(convertV4MiniflareOptions({
+    ...await publishedWorkerFixtureModules(),d1Databases:["DB"],
+  }));
+  try {
+    const db=await mf.getD1Database("DB");
+    await db.exec(`
+CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
+CREATE TABLE corpus_items(collection TEXT,id TEXT,ord INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE corpus_edges(id TEXT,ord INTEGER,from_id TEXT,to_id TEXT,pack_id TEXT,owner_branch TEXT,json TEXT);
+CREATE TABLE corpus_packs(id TEXT,ord INTEGER,json TEXT);
+CREATE TABLE philosophy_nodes(id TEXT PRIMARY KEY,ord INTEGER,view_mask INTEGER,layer_mask INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE philosophy_edges(id TEXT PRIMARY KEY,ord INTEGER,from_id TEXT,to_id TEXT,predicate_id TEXT,view_mask INTEGER,layer_mask INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE philosophy_aux(collection TEXT,id TEXT,ord INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE philosophy_clusters(id TEXT,part INTEGER,view_mask INTEGER,sort_key TEXT,json_chunk TEXT);
+CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
+`);
+    const boundary={source_owner:"Tree-of-Sophia",is_source:false,is_canon:false,is_semantic_truth:false,is_rights_clearance:false};
+    const phiNodes=[
+      {node_id:"a",label:"Alpha",source_ref:"fixture/a",properties:{authority_posture:"projection",claim_evidence_closed:false}},
+      {node_id:"b",label:"Beta",source_ref:"fixture/b",properties:{}},
+      {node_id:"c",label:"Gamma",source_ref:"fixture/c",properties:{}},
+    ];
+    const phiEdges=[
+      {edge_id:"eAC",from_id:"a",to_id:"c",predicate_id:"supports",source_ref:"fixture/eAC"},
+      {edge_id:"eAB",from_id:"a",to_id:"b",predicate_id:"contested_by",source_ref:"fixture/eAB"},
+    ];
+    const view={view_id:"tiny",title:"Alpha view",node_count:3,edge_count:2,source_refs:["fixture/view"]};
+    const cluster={cluster_id:"group",cluster_kind:"group",label:"Tiny",member_node_ids:["a","b","c"],member_edge_ids:["eAC","eAB"],properties:{member_count:3,edge_count:2}};
+    const corpusNodes=[{node_id:"ca",label:"Alpha corpus",authority_layer:"canon",source_ref:"fixture/ca"},{node_id:"cb",label:"Beta corpus",source_ref:"fixture/cb"}];
+    const corpusEdges=[
+      {edge_id:"ce",from_id:"ca",to_id:"cb",owner_branch:"ToS/canon",source_ref:"fixture/ce"},
+      {edge_id:"pe",from_id:"cb",to_id:"cx",owner_branch:"ToS/candidate-intake",source_ref:"fixture/pe"},
+    ];
+    const coverage={node_titles:3,node_summaries:3,relation_labels:2,relation_statements:2,relation_explanations:2};
+    const metadata:Record<string,unknown>={
+      data_revision:{sha256:"a".repeat(64)},
+      knowledge_top:{schema:"tos_knowledge_graph_v1",counts:{nodes:3,relations:2,display_coverage:coverage}},
+      corpus_top:{counts:{nodes:2,edges:2},runtime_projection_boundary:boundary},
+      philosophy_top:{counts:{nodes:3,edges:2},runtime_projection_boundary:boundary},
+      view_positions:{tiny:0},layer_positions:{base:0},
+      evidence_projection:{authority_boundary:{...boundary,note:"fixture projection only"},scenes:[{
+        scene_id:"curated",selections:[{mode:"philosophy",item_ids:["a"]}],finding:"Fixture route",finding_ru:"",posture:"curated-route",
+        conclusion:{can_conclude:false,canon_membership:false,claim_evidence_closed:false},routes:[{route_kind:"review",source_ref:"fixture/review"}],
+        gaps:["owner review required"],gaps_ru:[],source_anchors:[{source_ref:"fixture/a"}],source_refs:["fixture/scene"],
+      }]},
+    };
+    const statements=Object.entries(metadata).map(([key,value])=>db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind(key,JSON.stringify(value)));
+    for(let index=0;index<phiNodes.length;index+=1){const node=phiNodes[index]!;statements.push(db.prepare("INSERT INTO philosophy_nodes VALUES (?,?,1,1,?,?)").bind(node.node_id,index===0?2:index-1,JSON.stringify(node),node.node_id==="a"?"alpha":"other"));}
+    for(let index=0;index<phiEdges.length;index+=1){const edge=phiEdges[index]!;statements.push(db.prepare("INSERT INTO philosophy_edges VALUES (?,?,?,?,?,1,1,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,edge.predicate_id,JSON.stringify(edge),"other"));}
+    statements.push(db.prepare("INSERT INTO philosophy_aux VALUES ('views','tiny',0,?,'alpha')").bind(JSON.stringify(view)),
+      db.prepare("INSERT INTO philosophy_clusters VALUES ('group',0,1,?,?)").bind("group␟Tiny",JSON.stringify(cluster)),
+      db.prepare("INSERT INTO philosophy_review_packets VALUES ('tiny',?)").bind(JSON.stringify({view_id:"tiny",review_status:"fixture-only"})));
+    for(let index=0;index<corpusNodes.length;index+=1){const node=corpusNodes[index]!;statements.push(db.prepare("INSERT INTO corpus_items VALUES ('nodes',?,?,?,?)").bind(node.node_id,index,JSON.stringify(node),index===0?"alpha":"other"));}
+    statements.push(db.prepare("INSERT INTO corpus_items VALUES ('branches','ToS/canon',0,?,'other')").bind(JSON.stringify({id:"ToS/canon",owner_surface:"fixture/canon"})));
+    for(const id of ["corpus-topology","route-graph","promotion-flow"])statements.push(db.prepare("INSERT INTO corpus_items VALUES ('graph_views',?,0,?,'other')").bind(id,JSON.stringify({view_id:id,title:id,entry_surface:id==="corpus-topology"?undefined:"fixture/corpus"})));
+    for(let index=0;index<corpusEdges.length;index+=1){const edge=corpusEdges[index]!,pack=index===0?"canon-pack":"candidate-pack";statements.push(
+      db.prepare("INSERT INTO corpus_packs VALUES (?,?,?)").bind(pack,index,JSON.stringify({pack_id:pack,owner_branch:edge.owner_branch})),
+      db.prepare("INSERT INTO corpus_edges VALUES (?,?,?,?,?,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,pack,edge.owner_branch,JSON.stringify(edge)));
+    }
+    assert.equal(statements.length,25);
+    await db.batch(statements);
+    const get=async(path:string,status=200):Promise<Record<string,any>>=>{
+      const response=await mf.dispatchFetch("https://tos.test"+path);
+      assert.equal(response.status,status,path);
+      return await response.json() as Record<string,any>;
+    };
+    const ids=(items:Array<Record<string,unknown>>,field:string)=>items.map(item=>item[field]);
+    const health=await get("/health");assert.equal(health.ok,true);assert.equal(health.data_revision,"a".repeat(64));
+    assert.equal(health.write_enabled,false);
+    const corpusSearch=await get("/api/corpus/search?query=%EF%BB%BFAlpha%EF%BB%BF&limit=2");
+    assert.equal(corpusSearch.schema,"tos_corpus_mcp_search_v1");assert.equal(corpusSearch.result_count,1);assert.equal(corpusSearch.results[0].item.node_id,"ca");
+    const phiSearch=await get("/api/philosophy/search?query=Alpha&limit=2");
+    assert.deepEqual(phiSearch.results.map((row:Record<string,any>)=>row.collection),["views","nodes"]);assert.equal(phiSearch.results[1].item.node_id,"a");
+    assert.equal((await get("/api/corpus/nodes/ca")).matches[0].node_id,"ca");
+    assert.deepEqual(ids((await get("/api/corpus/relation-packs/canon-pack")).edges,"edge_id"),["ce"]);
+    const topology=await get("/api/corpus/graph-views/corpus-topology?limit=2");
+    assert.deepEqual(ids(topology.nodes,"node_id"),["view:corpus-topology","ToS/canon"]);
+    assert.equal(Object.hasOwn(topology.nodes[0],"source_ref"),true);assert.equal(topology.nodes[0].source_ref,null);
+    assert.deepEqual(ids((await get("/api/corpus/graph-views/route-graph?limit=2")).nodes,"node_id"),["ca","cb"]);
+    const promotion=await get("/api/corpus/graph-views/promotion-flow?limit=2");
+    assert.deepEqual(ids(promotion.nodes,"node_id"),["cb","cx"]);assert.equal(promotion.nodes[1].authority_layer,"candidate_intake");assert.deepEqual(promotion.nodes[1].source_refs,["fixture/pe"]);
+    const node=await get("/api/philosophy/nodes/a");assert.equal(node.node.node_id,"a");assert.deepEqual(ids(node.related_edges,"edge_id"),["eAC","eAB"]);
+    assert.deepEqual(ids((await get("/api/philosophy/edges/eAB")).endpoints,"node_id"),["b","a"]);
+    assert.equal((await get("/api/philosophy/clusters?view_id=tiny&kind=group&limit=2")).cluster_count,1);
+    const phiView=await get("/api/philosophy/views/tiny?limit=2");
+    assert.deepEqual(ids(phiView.nodes,"node_id"),["c","a"]);assert.deepEqual(ids(phiView.edges,"edge_id"),["eAC"]);
+    assert.equal(phiView.available_node_count,3);assert.equal(phiView.clusters[0].properties.member_count,2);assert.deepEqual(phiView.clusters[0].member_node_ids,["a","c"]);
+    const neighborhood=await get("/api/philosophy/query/neighborhood/a?depth=1&layers=base&limit=2");
+    assert.deepEqual(ids(neighborhood.neighbors,"node_id"),["b","c"]);assert.deepEqual(ids(neighborhood.edges,"edge_id"),["eAB","eAC"]);assert.equal(neighborhood.query_backend,"d1");
+    const filtered=await get("/api/philosophy/neighborhood/a?depth=1&layers=base&predicates=contested_by&limit=2");assert.deepEqual(ids(filtered.neighbors,"node_id"),["b"]);
+    const path=await get("/api/philosophy/query/paths?from=a&to=b&max_depth=2&direction=either&view_id=tiny&alternatives=2");
+    assert.equal(path.path_count,1);assert.deepEqual(path.paths[0].node_ids,["a","b"]);assert.deepEqual(path.paths[0].edge_ids,["eAB"]);assert.equal(path.frontier_limit,5000);assert.equal(path.exploration_truncated,false);assert.equal(path.query_backend,"d1");
+    const evidence=await get("/api/philosophy/query/epistemic/a?view_id=tiny&limit=2");
+    assert.equal(evidence.schema,"tos_evidence_lens_packet_v1");assert.equal(evidence.finding_ru,"Fixture route");assert.deepEqual(evidence.gaps_ru,evidence.gaps);
+    assert.deepEqual(ids(evidence.challenge_relations,"edge_id"),["eAB"]);assert.deepEqual(ids(evidence.context_relations,"edge_id"),["eAC"]);assert.equal(evidence.coverage.posture,"curated-route");assert.equal(evidence.agent_summary.can_conclude,false);assert.equal(evidence.authority_boundary.is_semantic_truth,false);
+    const fallback=await get("/api/corpus/query/epistemic/ca?limit=2");
+    assert.equal(fallback.scene,null);assert.equal(fallback.posture,"projection-only");assert.equal(fallback.conclusion.canon_membership,true);assert.equal(fallback.conclusion.can_conclude,false);assert.deepEqual(ids(fallback.context_relations,"edge_id"),["ce"]);
+    const packet=await get("/api/philosophy/packet?query=Alpha&view_id=tiny&limit=2");assert.equal(packet.result_count,2);assert.deepEqual(ids(packet.view.nodes,"node_id"),["c","a"]);
+    assert.match((await get("/api/philosophy/query/paths?from=a&to=b&direction=unknown",400)).error,/direction/);
+    assert.match((await get("/api/philosophy/nodes/missing",404)).error,/unknown/);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({schema:"tos_knowledge_graph_v1",counts:{nodes:3,relations:2,display_coverage:{...coverage,node_titles:2}}})).run();
+    const unhealthy=await get("/health",503);assert.equal(unhealthy.ok,false);assert.equal(unhealthy.write_enabled,false);
+  } finally {await mf.dispose();}
 });

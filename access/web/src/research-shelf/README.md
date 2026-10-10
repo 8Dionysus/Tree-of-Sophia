@@ -78,6 +78,33 @@ still carry the current preparation time in `exportedAt`, which does not take
 part in record equality. An explicit `now` remains the timestamp override, and
 `workspace-copy.exportedAt` is never used as a record timestamp.
 
+## Browser rule boundary
+
+The browser entry installs the generated `tos-web-rules` binding. Rust builds
+and validates shelf record/collection transitions, supplies CAS generations,
+collection detach, import capacity, cursor/filter checks, equality, deterministic
+migration identity, migrated records and bounded skipped-section reports.
+The JS adapter retains exact owner decoders for reading/Claim, text and lens
+contracts, the host clock/ID generation, asynchronous exclusivity, IndexedDB
+transactions, physical list traversal/order and import/export I/O. The direct
+JS oracle remains available when no binding is installed; its existence does
+not prove the active browser binding.
+
+A rule request is at most 1 MiB; its host preflight mirrors the existing Rust
+64-depth/300,000-visit parser bounds before whole JSON/UTF-8 encoding. Migration
+passes one validated material or lens target at a time and skipped sections by
+count, rather than sending the full workspace copy. Export identity checks pass
+sorted IDs in 256-ID chunks, retaining only the final ID in Rust. Export record
+bodies and all migrated result arrays remain in JS.
+
+Memory operations run through the shared promise queue. Each mutation copies Map membership before commit, borrows unchanged packet
+values read-only and copies only inserted/replaced packets. Failed operations
+never publish that draft; public input and result packets remain detached. Additive import reuses this one draft, checks all collisions and
+capacity before copying additions, and increments generation only when changed.
+Export validation creates detached canonical records once; it does not clone
+those finished records a second time. These are source-level cost boundaries,
+not measured memory or performance results.
+
 ## Contextual mount
 
 ```js

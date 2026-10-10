@@ -6,8 +6,8 @@ interpretations, contexts, and intellectual lineages into an authored,
 reviewable tree. Systems reproduce this tree as graphs, search indexes, and
 public routes.
 
-Source-backed branches cite their source. Scaffold branches remain explicit
-about their provisional role until that evidence exists. Nodes and relations
+Source-backed branches cite evidence. Scaffolds retain their provisional role
+until evidence exists. Nodes and relations
 record provenance, exact source routes, interpretation history, and review
 status. ToS traces how ideas
 descend, diverge, inherit, and return across languages, traditions, places,
@@ -19,23 +19,25 @@ https://github.com/user-attachments/assets/9a75a3a2-7033-4d86-822c-805efb07ef7a
 
 ## Quick start
 
-Install the validated standalone software archive with Python 3.11+ and select
-a compatible data snapshot separately. The software archive includes built
-browser assets; neither it nor a Git clone includes the production corpus.
-After extracting the archive, replace the example paths below with its location
-and the selected snapshot's `data` directory:
+Install the verified native Linux x86_64 software archive into a fresh user
+prefix. It includes built browser assets and needs no Python runtime. Software
+installation does not include or select a corpus.
 
 ```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install '/path/to/extracted/access[mcp]'
-export TOS_DATA_ROOT=/path/to/snapshot/data
-.venv/bin/tos serve
+/path/to/verified/tos-access software install --archive /absolute/tos-software.zip \
+  --prefix /absolute/fresh-prefix \
+  --max-total-bytes ADMITTED_EXPANDED_BYTES --max-archive-bytes ADMITTED_ZIP_BYTES \
+  --max-members ADMITTED_MEMBER_COUNT --max-metadata-bytes ADMITTED_METADATA_BYTES
+/absolute/fresh-prefix/bin/tos serve 127.0.0.1:8080
 ```
 
-Open [http://127.0.0.1:8080](http://127.0.0.1:8080), or use `.venv/bin/tos mcp`
-for native MCP. The first opening verifies the selected snapshot; the server
-then reuses its reader. Installation and data selection are documented in
-[`access/README.md`](access/README.md#software-only-archive).
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080), or use
+`/absolute/fresh-prefix/bin/tos mcp`. Without a selected owner, data capabilities
+report unavailable. Select admitted managed data explicitly with `--release-root`;
+software installation does not grant data access. Exact archive budgets, native
+receipt verification, rollback and the retained `tos-legacy` Python reference
+route are documented in
+[`access/README.md`](access/README.md#native-fresh-prefix-installation).
 
 For source development, use the [release and validation route](docs/RELEASING.md).
 CI selects checks for the changed surface: human documentation does not rebuild
@@ -45,8 +47,7 @@ or prove that a new installable package was built.
 
 ## How ToS works
 
-ToS uses inspectable source-to-review paths. For bibliographic works, the
-primary identity path is:
+For bibliographic works, the primary source-to-review path is:
 
 `work -> expression -> edition -> item -> immutable file -> passage or region -> observation -> claim or interpretation -> review -> scoped admission, canon or explicit deferral -> derived view`
 
@@ -102,7 +103,7 @@ authority, and canon require matching source evidence and owner review.
 | Enter the philosophical tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
 | Inspect the evidence foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
 | Follow the golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
-| Read generated views | [root map](ToS/derived-exports/root_entry_map.min.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
+| Follow derived routes | [root-map source](scripts/root_entry_map.source.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |
 | Contribute and validate | [validation](VALIDATION.md) · [agent routes](AGENTS.md) · [mechanics](mechanics/README.md) · [cross-corpus map](docs/validation/README.md#cross-corpus-documentation) |
 | Track direction and decisions | [ROADMAP](ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [records](docs/decisions/README.md) |
 

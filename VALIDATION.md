@@ -8,7 +8,10 @@ sources.
 
 `docs/validation/validation_lanes.json` is the sole machine authority for
 internal lane membership and command order. This file explains selection;
-`scripts/validation_lanes.py` loads and executes the selected sequence.
+`tos-validation-lanes` loads and executes the selected sequence.
+The literal `{repo_root}` in command arguments expands to the explicitly
+selected canonical repository root. Native sequences need no interpreter;
+a retained Python step currently requires `--python EXACT_INTERPRETER`.
 
 ## Select a route
 
@@ -26,7 +29,7 @@ internal lane membership and command order. This file explains selection;
 | public entry or local KAG provider | `public_entry` or `local_kag_provider` |
 | owner-local statistics | `local_stats_port` |
 | cross-family documentation | `cross_corpus_documentation` |
-| standalone software | `release` through `scripts/release_check.py`; `software_browser` for browser behavior after the software build |
+| standalone software | `release` through `tos-release-check`; `software_browser` for browser behavior after the software build |
 | Rust workspace and crates | `rust_workspace` with the pinned toolchain, WASM target and matching wasm-bindgen CLI; it verifies only implemented Rust packages and generated WEB.1 Node host bindings |
 | data or historical integration | select the affected owner operation in `docs/RELEASING.md`; no combined integration gate |
 
@@ -38,20 +41,20 @@ owner, mutation-bearing builder, or package-specific procedure.
 Inspect an exact current sequence without executing it:
 
 ```bash
-python scripts/validation_lanes.py --sequence route_docs
+tos-validation-lanes --repo-root "$PWD" --sequence route_docs
 ```
 
 Execute one selected internal sequence:
 
 ```bash
-python scripts/validation_lanes.py --run route_docs
+tos-validation-lanes --repo-root "$PWD" --run route_docs
 ```
 
 Execute the full software contracts and fixture-based behavior route locally
 (CI selects affected checks as described in `docs/RELEASING.md`):
 
 ```bash
-python scripts/release_check.py
+tos-release-check --repo-root "$PWD"
 ```
 
 Run the narrowest relevant route first. A green command proves only its named

@@ -64,16 +64,35 @@ of those technical spines.
 
 ## Build and check
 
-Initial identity issuance is an explicit one-time action:
+The installed Rust entry takes explicit absolute roots. Full historical parity
+reads the exact private TEI inputs and existing extracted layers without writing:
 
-- `python scripts/build_zarathustra_technical_markup.py --build --issue-identities`
+```sh
+tos dta-technical-markup --source-root /absolute/source \
+  --local-input-root /absolute/private-input \
+  --local-output-root /absolute/private-output --check
+tos dta-technical-markup --source-root /absolute/source --validate-tracked
+```
 
-Normal rebuild and parity check:
+For a new segmentation event, provide a reviewed plan selecting fresh output
+and issuance paths, a new event ID, and the admitted output quota:
 
-- rebuild: `python scripts/build_zarathustra_technical_markup.py --build`
-- full local parity: `python scripts/build_zarathustra_technical_markup.py --check`
-- tracked-only validation: `python scripts/build_zarathustra_technical_markup.py --validate-tracked`
-- focused tests: `python -m unittest tests.test_zarathustra_technical_markup`
+```sh
+tos dta-technical-markup --source-root /absolute/source \
+  --local-input-root /absolute/private-input \
+  --local-output-root /absolute/private-output \
+  --plan ToS/source-witnesses/path/to/new-plan.json \
+  --event-id tos.event.native-segmentation.example.2026-10-08 \
+  --build --issue-identities --scratch-bytes 50331648
+```
+
+`--issue-identities` is the explicit initial issuance action. Replay uses the
+same plan and event without this flag. Existing identical outputs are retained;
+different outputs are refused before writing. Private layers require the
+source-owned ignore boundary and mode 0600. Historical provenance continues
+to name its original producer; fresh provenance names the Rust executor.
+
+Focused software tests: `cargo test -p tos-compiler --lib dta_technical_markup`.
 
 Any source-locator set change fails closed. Extending or superseding the
 identity map requires a reviewed successor operation; the builder does not

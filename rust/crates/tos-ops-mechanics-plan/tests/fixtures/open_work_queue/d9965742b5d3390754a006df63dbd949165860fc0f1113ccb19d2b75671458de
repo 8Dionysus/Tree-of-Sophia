@@ -1,0 +1,121 @@
+{
+  "schema_version": "tos_open_work_readiness_plan_v1",
+  "reviewed_at": "2026-09-08T12:00:00Z",
+  "reviewer_ref": "codex:test",
+  "targets": [
+    {
+      "target_id": "planting-target.new-corpus-record",
+      "preferred_label": "New work from independently named corpus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/synthetic/records.json",
+          "sha256": "266d35a91be871a61f458099e1b69e97c7f9eef6847087887534d00553fe0502",
+          "corpus_id": "third",
+          "document_id": "A01",
+          "record_id": "R001"
+        }
+      ],
+      "target": {
+        "target_kind": "work",
+        "description": "Exact selected version",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/synthetic"
+        ],
+        "planned_ids": {
+          "work": "tos.work.synthetic"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/synthetic/work.json"
+        }
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/version.json",
+              "sha256": "fefa9f40e29444517592d3f6332be1e1a850157eaa4cda4e0b89613b62bfa894"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/version.json",
+              "sha256": "fefa9f40e29444517592d3f6332be1e1a850157eaa4cda4e0b89613b62bfa894"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/version.json",
+              "sha256": "fefa9f40e29444517592d3f6332be1e1a850157eaa4cda4e0b89613b62bfa894"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/synthetic/items/one/payload/source.xml",
+              "sha256": "551f267adddc9e947fe5a5589a6c4dbe8a044a719215eb93c3bcca19ddbae300"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/synthetic/branch.manifest.json",
+              "sha256": "4e6e5bd6f6c481213683608e71b15d670285e802d78a9f533a42df39b7a6d6f6"
+            }
+          ],
+          "rationale": "Synthetic owner judgment scoped to the planned source."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://example.org/exact-version.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/synthetic/items/one/payload/source.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/source-witnesses/works/synthetic/work.json",
+            "sha256": "8d795b2d9e15a23193841704c9469bf46abcc584c5a5ca26e0ef93c8658467a5"
+          },
+          {
+            "path": "ToS/philosophy/eras/synthetic/sources/plantings/synthetic/source-planting.json",
+            "sha256": "4731cd267cf209e1f879ca8f0eb819cd30dc33608516dfdd416c568d7dab6ad8"
+          }
+        ],
+        "rationale": "The planned Work is locally available and planted in its exact branch; no semantic admission."
+      }
+    }
+  ]
+}

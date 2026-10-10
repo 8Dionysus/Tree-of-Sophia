@@ -1,19 +1,20 @@
+import {compareLosslessJson} from './lossless-json-compare.mjs';
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
-import {build} from 'esbuild';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {knowledgeSearchD1,knowledgeSearchD1Indexed} from '../src/knowledge-store.ts';
 import {nativePacketJson} from '../src/native-lens.ts';
+import {publishedNodeFixtureWorker,publishedWorkerFixtureModules,publishedFixtureSearchControlsRuntime} from './native-lens-fixture.ts';
 
 const repo=fileURLToPath(new URL('../../../../',import.meta.url));
-const python=(code,input)=>JSON.parse(execFileSync('python3',['-B','-c',
+const python=(code,input)=>JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B','-c',
   "import sys,json;sys.path[:0]=['access/src','access/deploy/cloudflare-worker/scripts'];"+code],
   {cwd:repo,input:input===undefined?undefined:JSON.stringify(input),encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024}));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
@@ -82,14 +83,13 @@ function database(version=9){
  const db={prepare(sql){let args=[];return {bind(...values){args=values;return this;},async all(){const results=sqlite.prepare(sql).all(...args);statements.push({sql,args,results});hook.after?.(sql,args);return {results,meta:{rows_read:0}};},async first(){const result=sqlite.prepare(sql).get(...args)??null;statements.push({sql,args,results:result?[result]:[]});hook.after?.(sql,args);return result;}};}};
  return {db,sqlite,statements,hook,close(){sqlite.close();}};
 }
-let workerPromise;
-async function worker(){workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'}).then(async result=>(await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'))).default);return workerPromise;}
+const worker=publishedNodeFixtureWorker;
 async function response(database,mode='legacy',query='',extra={},method='GET'){
  const params=new URLSearchParams({mode,query,...extra});
  return (await worker()).fetch(new Request('https://tos.test/api/knowledge/search?'+params,{method}),{DB:database.db,ASSETS:{fetch(){throw new Error('search must not fetch static or full-graph fallback');}}},{});
 }
 const options=(query='',extra={})=>({query,sources:null,kindIds:[],predicateIds:[],offset:0,limit:100,...extra});
-async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra)));}
+async function direct(database,mode,query='',extra={}){return nativePacketJson(await (mode==='indexed'?knowledgeSearchD1Indexed:knowledgeSearchD1)(database.db,options(query,extra),publishedFixtureSearchControlsRuntime));}
 function oracle(mode,query,extra={},graph=fixture.graph){return python(String.raw`
 import tempfile
 from pathlib import Path
@@ -111,22 +111,10 @@ else:
   finally:model.close()
 print(json.dumps([json.dumps(packet,ensure_ascii=False,separators=(',',':'),allow_nan=False) for packet in out]))
 `,{graph,mode,query,extra});}
-function assertPackets(actual,expected,indexed=false){const differences=python(String.raw`
-def diff(a,b,path='$'):
- if type(a)!=type(b):return [path+': type differs']
- if isinstance(a,dict):
-  if list(a)!=list(b):return [path+': ordered keys differ']
-  return [d for k in a for d in diff(a[k],b[k],path+'.'+k)]
- if isinstance(a,list):
-  if len(a)!=len(b):return [path+': lengths differ']
-  return [d for i,(x,y) in enumerate(zip(a,b)) for d in diff(x,y,path+'['+str(i)+']')]
- if isinstance(a,float):return [] if repr(a)==repr(b) else [path+': float repr differs']
- return [] if a==b else [path+': value differs']
-p=json.load(sys.stdin);a=json.loads(p['actual']);b=json.loads(p['expected'])
-if p['indexed']:
- for packet in (a,b):
-  packet.pop('work');packet['page']['cursor']=packet['page']['cursor'] is not None;packet['page']['next_cursor']=packet['page']['next_cursor'] is not None
-print(json.dumps(diff(a,b)))`,{actual,expected,indexed});assert.deepEqual(differences,[]);}
+function assertPackets(actual, expected, indexed = false) {
+  assert.deepEqual(compareLosslessJson(actual, expected, {indexed}), []);
+}
+
 
 function intersectionGrams(query){
  const needle=query.toLowerCase(),grams=[];
@@ -419,7 +407,7 @@ test('search HTTP blank/repeated parameters follow Python parse_qs before first-
 test('private native cursor migration, integer kinds, filters and epochs never silently coerce or restart',async()=>{
  const d=database();try{
   const first=JSON.parse(await direct(d,'indexed','alpha',{limit:1})),cursor=first.page.next_cursor;
-  await assert.rejects(()=>knowledgeSearchD1Indexed(d.db,options('alpha',{cursor:''})),error=>error.status===400);
+  await assert.rejects(()=>knowledgeSearchD1Indexed(d.db,options('alpha',{cursor:''}),publishedFixtureSearchControlsRuntime),error=>error.status===400);
   const decode=value=>JSON.parse(Buffer.from(value,'base64url').toString('utf8')),encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
   const outer=decode(cursor);
   const reordered={...outer,filters:{predicate_ids:outer.filters.predicate_ids,kind_ids:outer.filters.kind_ids,sources:outer.filters.sources}};
@@ -523,11 +511,11 @@ test('selection plans retain linear legacy carrier scan plus primary-key lookup 
  }finally{d.close();}
 });
 test('real D1 Worker first/continuation native bytes survive isolate restart without cache or schema writes',async()=>{
- const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+ const workerModules=await publishedWorkerFixtureModules();
  const directory=mkdtempSync(join(tmpdir(),'tos-native-search-d1-'));let firstRaw,cursor;
  const expected=oracle('indexed','αβγ',{limit:1});
  try{for(let launch=0;launch<2;launch++){
-  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,d1Databases:['DB'],resourcePersistencePath:directory}));
+  const mf=new Miniflare(convertV4MiniflareOptions({...workerModules,d1Databases:['DB'],resourcePersistencePath:directory}));
   try{const db=await mf.getD1Database('DB');
    if(launch===0){const statements=[...schema.split(';').filter(value=>value.trim()).map(sql=>db.prepare(sql)),
     ...migration.replace(/^--.*$/gm,'').trim().split(/\n(?=CREATE |INSERT )/).map(sql=>db.prepare(sql)),

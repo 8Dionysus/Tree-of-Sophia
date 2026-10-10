@@ -1,0 +1,101 @@
+{
+   "schema_version": "tos_human_form_set_v1",
+   "subject": {
+      "id": "tos.letter.revision-fixture",
+      "version": 1,
+      "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+   },
+   "forms": [
+      {
+         "schema_version": "tos_human_form_v1",
+         "form_id": "tos.form.revision-name",
+         "form_version": 1,
+         "subject": {
+            "id": "tos.letter.revision-fixture",
+            "version": 1,
+            "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+         },
+         "role": "name",
+         "language": null,
+         "script": null,
+         "creator_id": "test:author",
+         "revises": null,
+         "bindings": {
+            "wording": {
+               "record": {
+                  "id": "tos.letter.revision-fixture",
+                  "version": 1,
+                  "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+               },
+               "pointer": "/preferred_label"
+            },
+            "context-0": {
+               "record": {
+                  "id": "tos.letter.revision-fixture",
+                  "version": 1,
+                  "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+               },
+               "pointer": "/identity_status"
+            },
+            "context-1": {
+               "record": {
+                  "id": "tos.letter.revision-fixture",
+                  "version": 1,
+                  "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+               },
+               "pointer": "/same_as_posture"
+            }
+         },
+         "content": {
+            "kind": "source-copy",
+            "slot": "wording"
+         }
+      },
+      {
+         "schema_version": "tos_human_form_v1",
+         "form_id": "tos.form.revision-note",
+         "form_version": 1,
+         "subject": {
+            "id": "tos.letter.revision-fixture",
+            "version": 1,
+            "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+         },
+         "role": "hover",
+         "language": null,
+         "script": null,
+         "creator_id": "test:author",
+         "revises": null,
+         "bindings": {
+            "wording": {
+               "record": {
+                  "id": "tos.letter.revision-fixture",
+                  "version": 1,
+                  "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+               },
+               "pointer": "/notes"
+            },
+            "context-0": {
+               "record": {
+                  "id": "tos.letter.revision-fixture",
+                  "version": 1,
+                  "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+               },
+               "pointer": "/identity_status"
+            },
+            "context-1": {
+               "record": {
+                  "id": "tos.letter.revision-fixture",
+                  "version": 1,
+                  "digest": "sha256:0276eaf561bab9e277d5e91b0ad8f76a9205e9b9ce5ee9c247db9ca3c528cefa"
+               },
+               "pointer": "/same_as_posture"
+            }
+         },
+         "content": {
+            "kind": "source-copy",
+            "slot": "wording"
+         }
+      }
+   ],
+   "prior_forms": []
+}

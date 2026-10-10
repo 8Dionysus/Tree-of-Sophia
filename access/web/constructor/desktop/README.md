@@ -7,10 +7,9 @@
 
 ## Подготовка
 
-Нужны Linux, пользовательский systemd, Python 3.11+, Chromium и установленный
+Нужны Linux, пользовательский systemd, установленный `tos-constructor-desktop`, Chromium и установленный
 владелец ресурсов `abyss-machine`. Для установки требуется `desktop-file-validate`.
-При ошибке запуска показывается диалог Zenity, если он установлен; иначе причина
-остаётся в журнале и stderr. Зависимости установщик не устанавливает.
+Причина отказа запуска остаётся в журнале и stderr. Зависимости установщик не устанавливает.
 
 Сначала соберите и проверьте **неизменяемый** релиз в
 `/srv/abyss-machine/storage/artifacts/tos-sophia-demo/releases/meaning-v2`.
@@ -19,9 +18,9 @@
 Символические ссылки для переключения релиза не используются.
 
 ```sh
-python3 access/web/constructor/desktop/install.py
+tos-constructor-desktop install
 # Проверив показанные пути:
-python3 access/web/constructor/desktop/install.py --install
+tos-constructor-desktop install --install
 ```
 
 Установка добавляет запись «Древо Софии — демо» в меню приложений, компактную
@@ -74,19 +73,22 @@ systemctl --user stop tos-sophia-demo.service
 пространство, затем явно остановите эту службу. Укажите новый проверенный каталог:
 
 ```sh
-python3 access/web/constructor/desktop/install.py --release /absolute/path/to/release
-python3 access/web/constructor/desktop/install.py --release /absolute/path/to/release --install --replace
+tos-constructor-desktop install --release /absolute/path/to/release
+tos-constructor-desktop install --release /absolute/path/to/release --install --replace
 ```
 
 Изменение файлов уже запущенного релиза не является обновлением: launcher
 обнаружит несовпадение digest. Установщик откажется менять активную установку.
 Профиль и кэш при обновлении не удаляются. Для другого Linux-хоста доступны
 параметры путей установщика; маршрут resource admission должен существовать и
-при переносе. `server.py` использует только стандартную библиотеку Python.
+при переносе. HTTP-сервер и launcher входят в один Rust-бинарник.
+Конфигурация имеет версию `tos_sophia_demo_desktop_native_v1`; старую Python-
+установку заменяют явной повторной установкой при остановленной службе.
 
 ## Проверка исходников
 
-`test_desktop.py` проверяет реальный HTTP allowlist и идентичность, отказ при
-изменившемся релизе, непринятие чужой службы, отсутствие запуска при dry-run,
-разделение профиля/кэша и синтаксис сгенерированной desktop-записи.
-Эти проверки не открывают браузер и не устанавливают службы.
+Тесты Rust-бинарника проверяют HTTP allowlist, Host и идентичность,
+чувствительность digest к изменению доступных файлов, отказ от symlink,
+отсутствие создания профиля при dry-run и разделение профиля/кэша.
+Установщик проверяет desktop-запись через `desktop-file-validate` перед записью.
+Эти тесты не открывают браузер и не устанавливают службы.

@@ -1,0 +1,26 @@
+{
+  "schema_version": "tos_local_native_metadata_revision_owner_v1",
+  "uid": 1000,
+  "source_root": "$TOS_FIXTURE_ROOT",
+  "source_path": "ToS/source-witnesses/artifacts/synthetic/fixture/artifact-witness.json",
+  "record_id": "tos.artifact.native-synthetic",
+  "record_type": "artifact",
+  "record_schema_version": "tos_artifact_source_witness_v1",
+  "principal_id": "test:synthetic-reviser",
+  "authority_ref": "test:independent-native-descriptive-grant",
+  "expires_at": "2099-01-01T00:00:00Z",
+  "allowed_operations": [
+    "record.revise",
+    "record.recover"
+  ],
+  "allowed_form_ids": [
+    "tos.form.native-name",
+    "tos.form.native-note"
+  ],
+  "allowed_fields": [
+    "bibliography",
+    "find_context",
+    "path_identity",
+    "physical_description"
+  ]
+}

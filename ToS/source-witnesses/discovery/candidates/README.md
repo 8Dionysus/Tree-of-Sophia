@@ -39,7 +39,7 @@ but are not silently treated as reviewed candidates.
 3. Preserve all queries, zero results, result order, useful URLs, decisions,
    identity conflicts, and layered rights evidence in that discovery run.
 4. Measure every channel with
-   `scripts/measure_open_work_discovery_channels.py`; keep its external timing
+   `tos-open-work-queue measure --source-root ROOT --discovery REPO_PATH`; keep its external timing
    receipt under `../timings/` and bind it from the terminal receipt.
 5. Acquire bytes only after exact identity, owner authorization, storage
    boundary review, and rights evidence permit the intended scope.
@@ -91,8 +91,32 @@ claim-bearing; semantic and canon relations require their own review routes.
 
 ## Validation
 
-Run `python scripts/build_open_work_candidate_queue.py --check`, then
-`python scripts/validate_open_work_candidate_queue.py`.
+Use an explicitly selected source root with the installed Rust command:
+
+```sh
+tos-open-work-queue build --source-root ROOT
+tos-open-work-queue check --source-root ROOT
+tos-open-work-queue validate --source-root ROOT
+tos-open-work-queue readiness --source-root ROOT --readiness-plan ToS/source-witnesses/discovery/readiness/plan.json
+```
+
+`build --dry-run` prints the chronological queue. `readiness` checks the
+owner plan and prints its projection without replacing `queue.current.json`.
+New queues identify `tos-open-work-queue`; exact historical receipt replay
+also understands the earlier producer identity.
+
+`measure` uses Rust monotonic time and the system `/usr/bin/curl` HTTP/TLS
+bridge, observing at most the first 16 KiB of response data. Its
+`--timeout-seconds` defaults to 20. `--output` saves the timing receipt;
+`--instrumented-output` saves a measured discovery copy, or
+`--superseding-output` creates a copy bound to `--new-discovery-id`,
+`--supersedes-ref` and `--provenance-event-ref`. Paths are relative to the
+selected root. Outputs cannot alias the input or one another. New receipts
+name `rust.std.time.Instant`; historical Python-clock receipts retain their
+original identity and remain readable.
+
+The Rust tests preserve frozen source/receipt cases and exercise transport,
+supersession and the real CLI without invoking a legacy queue engine.
 
 Green output proves queue mechanics, snapshot coverage, selector closure,
 receipt binding, and generated parity only. It does not prove chronology,

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-record-closure-selection.schema.json",
+  "title": "Explicit source record and exact-row closure selection",
+  "description": "Roots and selected semantic records/rows over unchanged authenticated source members. This address declaration grants no rights or semantic acceptance; consumers must recheck exact bytes and required dependencies.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "roots",
+    "required_members",
+    "records",
+    "source_slots"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_source_record_closure_selection_v1"
+    },
+    "roots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "https://tree-of-sophia.local/ToS/contracts/source-catalog-projection-v2.schema.json#/$defs/recordRef"
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "https://tree-of-sophia.local/ToS/contracts/source-catalog-projection-v2.schema.json#/$defs/row"
+      }
+    },
+    "source_slots": {
+      "type": "array",
+      "items": {
+        "$ref": "https://tree-of-sophia.local/ToS/contracts/source-catalog-projection-v2.schema.json#/$defs/slotRow"
+      }
+    },
+    "required_members": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_ref",
+          "raw_sha256",
+          "raw_bytes"
+        ],
+        "properties": {
+          "source_ref": {
+            "type": "string",
+            "maxLength": 4096,
+            "pattern": "^ToS/[^\\\\\\u0000]+$"
+          },
+          "raw_sha256": {
+            "$ref": "https://tree-of-sophia.local/ToS/contracts/source-catalog-projection-v2.schema.json#/$defs/sha256"
+          },
+          "raw_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    }
+  }
+}

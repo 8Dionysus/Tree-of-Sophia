@@ -7,6 +7,12 @@ use crate::error::{FoundationError, FoundationErrorCode, Result};
 pub struct Digest256([u8; 32]);
 
 impl Digest256 {
+    /// Construct an exact digest value from an already decoded 32-byte field.
+    /// The caller is responsible for verifying the bytes that the digest names.
+    pub const fn from_bytes(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
     pub fn of_bytes(bytes: &[u8]) -> Self {
         let mut hasher = Digest256Hasher::new();
         hasher.update(bytes);

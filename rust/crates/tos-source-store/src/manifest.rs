@@ -18,6 +18,25 @@ use crate::secure_open::StoreRoot;
 
 const SNAPSHOT_SCHEMA: &str = "tos_corpus_snapshot_v1";
 const POINTER_SCHEMA: &str = "tos_corpus_pointer_v1";
+const POINTER_SCHEMA_V2: &str = "tos_corpus_pointer_v2";
+
+/// Current pointer wire format. The format is an on-disk compatibility fence;
+/// it is not source admission or a publication capability.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CorpusPointerFormat {
+    V1,
+    V2,
+}
+
+/// Exact current pointer selection, including the V2 CMD rootset binding when
+/// present. `load_exact` remains an explicit immutable V1 manifest read.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CorpusCurrentSelection {
+    pub revision: SourceRevision,
+    pub previous: Option<SourceRevision>,
+    pub format: CorpusPointerFormat,
+    pub rootset_sha256: Option<Digest256>,
+}
 
 /// A read-only corpus root. Opening does not create directories or select current.
 #[derive(Clone, Debug)]
@@ -54,6 +73,7 @@ pub struct Snapshot {
     validator_sha256: Digest256,
     files: BTreeMap<RelativePath, MemberMetadata>,
     identities: BTreeMap<String, RelativePath>,
+    identities_by_path: BTreeMap<RelativePath, Vec<String>>,
     dependencies: BTreeMap<RelativePath, Vec<RelativePath>>,
     retirements: Vec<RetirementMetadata>,
 }
@@ -75,6 +95,45 @@ pub struct CorpusDescriptor {
 }
 
 impl Snapshot {
+    /// Path-ordered exact manifest descriptors, without reading unrelated
+    /// bytes. This is carrier membership, not source or rights acceptance.
+    pub fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
+        self.files.values()
+    }
+    /// Exact stored identity-index claims. Their source meaning and current
+    /// owner uniqueness must be independently checked by the source rules.
+    pub fn indexed_identities(&self) -> impl Iterator<Item = (&str, &RelativePath)> {
+        self.identities.iter().map(|(id, path)| (id.as_str(), path))
+    }
+    pub(crate) fn member_after(&self, path: Option<&RelativePath>) -> Option<&MemberMetadata> {
+        use std::ops::Bound::{Excluded, Unbounded};
+        match path {
+            Some(path) => self
+                .files
+                .range((Excluded(path), Unbounded))
+                .next()
+                .map(|(_, m)| m),
+            None => self.files.values().next(),
+        }
+    }
+    pub(crate) fn ids_for_path<'a>(
+        &'a self,
+        path: &'a RelativePath,
+    ) -> impl Iterator<Item = &'a str> {
+        self.identities_by_path
+            .get(path)
+            .into_iter()
+            .flatten()
+            .map(String::as_str)
+    }
+    /// Manifest-index claims for one exact path, without reading member
+    /// content or establishing source identity validity or admission.
+    pub fn indexed_ids_for_path<'a>(
+        &'a self,
+        path: &'a RelativePath,
+    ) -> impl Iterator<Item = &'a str> {
+        self.ids_for_path(path)
+    }
     pub fn revision(&self) -> SourceRevision {
         self.revision
     }
@@ -109,6 +168,30 @@ impl Snapshot {
 }
 
 impl CorpusReader {
+    /// Crate-private access for the bounded source-cut decoder. The returned
+    /// root is the same securely held directory capability used by the full
+    /// reader; this does not expose filesystem paths or choose a revision.
+    pub(crate) fn streamed_cut_root_and_limits(&self) -> (&Arc<StoreRoot>, ReadLimits) {
+        (&self.root, self.limits)
+    }
+
+    pub(crate) fn read_retirement_object(
+        &self,
+        snapshot: &Snapshot,
+        sha256: Digest256,
+        expected_size: Option<u64>,
+        max_bytes: u64,
+        sink: &mut impl Write,
+    ) -> Result<u64> {
+        self.check_snapshot(snapshot)?;
+        crate::object::verify_digest_object(
+            &self.root,
+            sha256,
+            expected_size,
+            max_bytes.min(self.limits.max_selected_object_bytes),
+            sink,
+        )
+    }
     pub fn open_existing(root: &Path, limits: ReadLimits) -> Result<Self> {
         let limits = limits.validate()?;
         Ok(Self {
@@ -117,27 +200,156 @@ impl CorpusReader {
         })
     }
 
+    /// Read only from the supplied existing directory descriptor. The caller
+    /// owns its path/layout fence; no ambient pathname is reopened here.
+    pub fn open_from_held_namespaces(
+        root: &std::fs::File,
+        objects: &std::fs::File,
+        revisions: &std::fs::File,
+        limits: ReadLimits,
+    ) -> Result<Self> {
+        let limits = limits.validate()?;
+        Ok(Self {
+            root: Arc::new(StoreRoot::from_held(root, objects, revisions)?),
+            limits,
+        })
+    }
+
+    /// Open from an exact caller-held root descriptor. This prevents a
+    /// current-pointer read from reopening a mutable path after the caller has
+    /// already fenced that path against the retained root.
+    pub fn open_existing_at(held_root: &File, limits: ReadLimits) -> Result<Self> {
+        let limits = limits.validate()?;
+        Ok(Self {
+            root: Arc::new(StoreRoot::open_existing_at(held_root)?),
+            limits,
+        })
+    }
+
     /// Explicitly inspect the mutable pointer. It is never consulted by `load_exact`.
     pub fn select_current(&self) -> Result<Option<SourceRevision>> {
+        self.select_current_inner(None)
+    }
+
+    /// Inspect the typed V1/V2 selector while preserving the historical
+    /// `select_current` return surface for callers that need only a revision.
+    pub fn select_current_selection(&self) -> Result<Option<CorpusCurrentSelection>> {
+        self.select_current_selection_inner(None)
+    }
+
+    /// Preserve the same pointer parser/CAS selection law while charging each
+    /// actual requested and returned read to the caller's shared ledger.
+    pub fn select_current_budgeted(
+        &self,
+        io_budget: &crate::PinnedSqliteIoBudget,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<Option<SourceRevision>> {
+        self.select_current_inner(Some((io_budget, deadline, cancelled)))
+    }
+
+    /// Budgeted typed selector read for publishers and recovery paths that
+    /// must preserve the selected V2 rootset binding.
+    pub fn select_current_selection_budgeted(
+        &self,
+        io_budget: &crate::PinnedSqliteIoBudget,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<Option<CorpusCurrentSelection>> {
+        crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        let result = self.select_current_selection_inner(Some((io_budget, deadline, cancelled)))?;
+        crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        Ok(result)
+    }
+
+    fn select_current_inner(
+        &self,
+        budget: Option<(
+            &crate::PinnedSqliteIoBudget,
+            std::time::Instant,
+            &std::sync::atomic::AtomicBool,
+        )>,
+    ) -> Result<Option<SourceRevision>> {
+        if let Some((io_budget, deadline, cancelled)) = budget {
+            crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        }
+        let selected = self.select_current_selection_inner(budget)?;
+        if let Some((io_budget, deadline, cancelled)) = budget {
+            crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        }
+        match selected {
+            Some(selection) if selection.format == CorpusPointerFormat::V1 => {
+                Ok(Some(selection.revision))
+            }
+            Some(_) => Err(StoreError::new(
+                Code::UnsupportedFormat,
+                "V1 current selector does not accept a V2 pointer",
+            )),
+            None => Ok(None),
+        }
+    }
+
+    fn select_current_selection_inner(
+        &self,
+        budget: Option<(
+            &crate::PinnedSqliteIoBudget,
+            std::time::Instant,
+            &std::sync::atomic::AtomicBool,
+        )>,
+    ) -> Result<Option<CorpusCurrentSelection>> {
         let file = match self.root.open_pointer() {
             Err(error) if is_not_found(&error) => return Ok(None),
             other => other?,
         };
-        let value = self.read_canonical(file)?;
-        exact_keys(
-            &value,
-            &["schema_version", "current", "previous"],
-            Code::UnsupportedFormat,
-        )?;
-        if string_field(&value, "schema_version", Code::UnsupportedFormat)? != POINTER_SCHEMA {
-            return Err(StoreError::new(
+        let value = if let Some((io_budget, deadline, cancelled)) = budget {
+            self.read_canonical(crate::streamed_cut::ManifestRead::new(
+                file,
+                Some(io_budget),
+                deadline,
+                cancelled,
+            ))?
+        } else {
+            self.read_canonical(file)?
+        };
+        let schema = string_field(&value, "schema_version", Code::UnsupportedFormat)?;
+        match schema {
+            POINTER_SCHEMA => {
+                exact_keys(
+                    &value,
+                    &["schema_version", "current", "previous"],
+                    Code::UnsupportedFormat,
+                )?;
+                let current = digest_field(&value, "current", Code::UnsupportedFormat)?;
+                let previous = optional_revision(&value, "previous", Code::UnsupportedFormat)?;
+                Ok(Some(CorpusCurrentSelection {
+                    revision: SourceRevision(current),
+                    previous,
+                    format: CorpusPointerFormat::V1,
+                    rootset_sha256: None,
+                }))
+            }
+            POINTER_SCHEMA_V2 => {
+                exact_keys(
+                    &value,
+                    &["schema_version", "current", "previous", "rootset_sha256"],
+                    Code::UnsupportedFormat,
+                )?;
+                let current = digest_field(&value, "current", Code::UnsupportedFormat)?;
+                let previous = optional_revision(&value, "previous", Code::UnsupportedFormat)?;
+                let rootset_sha256 =
+                    digest_field(&value, "rootset_sha256", Code::UnsupportedFormat)?;
+                Ok(Some(CorpusCurrentSelection {
+                    revision: SourceRevision(current),
+                    previous,
+                    format: CorpusPointerFormat::V2,
+                    rootset_sha256: Some(rootset_sha256),
+                }))
+            }
+            _ => Err(StoreError::new(
                 Code::UnsupportedFormat,
                 "unsupported corpus pointer",
-            ));
+            )),
         }
-        let current = digest_field(&value, "current", Code::UnsupportedFormat)?;
-        optional_revision(&value, "previous", Code::UnsupportedFormat)?;
-        Ok(Some(SourceRevision(current)))
     }
 
     /// Validate exactly one canonical manifest, without hashing unrelated objects.
@@ -218,12 +430,19 @@ impl CorpusReader {
                 path: path.clone(),
                 sha256: digest_field(item, "sha256", Code::InvalidMemberIndex)?,
                 size_bytes: uint_field(item, "size_bytes", Code::InvalidMemberIndex)?,
-                mode: mode_field(item, "mode", Code::InvalidMemberIndex)?,
+                mode: source_mode_field(item, "mode", Code::InvalidMemberIndex)?,
             };
             files.insert(path.clone(), member);
             previous = Some(path);
         }
         let identities = parse_identities(&value, &files, &mut remaining_entries)?;
+        let mut identities_by_path = BTreeMap::<RelativePath, Vec<String>>::new();
+        for (id, path) in &identities {
+            identities_by_path
+                .entry(path.clone())
+                .or_default()
+                .push(id.clone());
+        }
         let dependencies = parse_dependencies(&value, &files, &mut remaining_entries)?;
         let retirements = validate_retirements(&value, &mut remaining_entries)?;
         Ok(Snapshot {
@@ -233,6 +452,7 @@ impl CorpusReader {
             validator_sha256,
             files,
             identities,
+            identities_by_path,
             dependencies,
             retirements,
         })
@@ -314,7 +534,7 @@ impl CorpusReader {
         Ok(())
     }
 
-    fn read_canonical(&self, mut file: File) -> Result<JsonValue> {
+    fn read_canonical<R: Read>(&self, mut file: R) -> Result<JsonValue> {
         let cap = self
             .limits
             .max_manifest_bytes
@@ -365,7 +585,7 @@ fn canonical_error(error: FoundationError) -> StoreError {
     StoreError::new(code, "invalid canonical corpus JSON")
 }
 
-fn exact_keys(value: &JsonValue, expected: &[&str], code: Code) -> Result<()> {
+pub(crate) fn exact_keys(value: &JsonValue, expected: &[&str], code: Code) -> Result<()> {
     let entries = value
         .as_object()
         .ok_or_else(|| StoreError::new(code, "expected corpus JSON object"))?;
@@ -382,14 +602,14 @@ fn exact_keys(value: &JsonValue, expected: &[&str], code: Code) -> Result<()> {
     Ok(())
 }
 
-fn string_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a str> {
+pub(crate) fn string_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a str> {
     value
         .object_get(field)
         .and_then(JsonValue::as_str)
         .ok_or_else(|| StoreError::new(code, "corpus string field is missing or invalid"))
 }
 
-fn digest_field(value: &JsonValue, field: &str, code: Code) -> Result<Digest256> {
+pub(crate) fn digest_field(value: &JsonValue, field: &str, code: Code) -> Result<Digest256> {
     Digest256::from_hex(string_field(value, field, code)?)
         .map_err(|_| StoreError::new(code, "corpus digest field is invalid"))
 }
@@ -405,21 +625,35 @@ fn optional_revision(value: &JsonValue, field: &str, code: Code) -> Result<Optio
     }
 }
 
-fn array_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a [JsonValue]> {
+pub(crate) fn array_field<'a>(
+    value: &'a JsonValue,
+    field: &str,
+    code: Code,
+) -> Result<&'a [JsonValue]> {
     value
         .object_get(field)
         .and_then(JsonValue::as_array)
         .ok_or_else(|| StoreError::new(code, "corpus array field is missing or invalid"))
 }
 
-fn uint_field(value: &JsonValue, field: &str, code: Code) -> Result<u64> {
+pub(crate) fn uint_field(value: &JsonValue, field: &str, code: Code) -> Result<u64> {
     value
         .object_get(field)
         .and_then(JsonValue::as_u64)
         .ok_or_else(|| StoreError::new(code, "corpus unsigned integer field is missing or invalid"))
 }
 
-fn mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
+// Authored source snapshots also preserve private regular-file permissions.
+// Git software captures retain their separate 0644/0755 mode law below.
+pub(crate) fn source_mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
+    if uint_field(value, field, code)? == 0o600 {
+        Ok(0o600)
+    } else {
+        mode_field(value, field, code)
+    }
+}
+
+pub(crate) fn mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
     match uint_field(value, field, code)? {
         0o644 => Ok(0o644),
         0o755 => Ok(0o755),
@@ -427,7 +661,7 @@ fn mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
     }
 }
 
-fn path_field(value: &JsonValue, field: &str, code: Code) -> Result<RelativePath> {
+pub(crate) fn path_field(value: &JsonValue, field: &str, code: Code) -> Result<RelativePath> {
     RelativePath::parse(string_field(value, field, code)?)
         .map_err(|_| StoreError::new(code, "corpus member path is invalid"))
 }

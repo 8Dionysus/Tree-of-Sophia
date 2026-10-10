@@ -20,15 +20,15 @@ descriptive: a selected entry names its owner, inputs, side effects and test
 route. Executable checks evaluate software correctness; the release procedure governs
 landing.
 
-The cross-corpus pair is intentionally split. `build_documentation_family_currentness.py`
+The cross-corpus pair is intentionally split. `tos-ops-mechanics-plan --documentation-family-build`
 projects the authored `documentation_family_map.json` and the tracked Git
-surface into an exact hash/family carrier. `validate_documentation_cross_corpus.py`
+surface into an exact hash/family carrier. `tos-ops-mechanics-plan --documentation-cross-corpus-validate`
 coordinates that projection with the existing link, mechanics, decision,
 AGENTS-route, agent-surface, KAG, and public-entry contracts. Philosophical meaning, runtime status and receipt acceptance retain their
 source and decision owners.
 
-Inventories describe script surfaces. They do not store release command order
-and do not promote advisory helpers into hard gates.
+Inventories describe selected script and native owner surfaces. They do not store
+release command order and do not promote advisory helpers into hard gates.
 
 ## AGENTS route-card topology
 
@@ -38,11 +38,13 @@ exact tracked-card set, root-plus-nearest-ancestor inheritance from each task
 target, explicit owner handoffs when an owner is outside that target stack,
 preserved non-card references, influencing surfaces, representative task
 routes, and context budgets. The generated `.agents/agents-route.current.json` companion
-records hashes and counts; `scripts/build_agents_route_currentness.py` owns its
-deterministic projection, `scripts/validate_nested_agents.py` owns structural
-and currentness admission, and `scripts/agents_route_harness.py` owns the
-route-shape probe. These three surfaces do not claim model behavior, semantic
-acceptance, human time-to-owner, or owner acceptance.
+records hashes and counts. `tos-route-cards --repo-root ABS build` and
+`validate` use the shared native snapshot reader. The equivalent
+`tos-ops-mechanics-plan` actions are `--agents-route-currentness-build` and
+`--nested-agents-validate`. `tos-agents-route-harness --repo-root ABS --check`
+checks the declared route shape. The former three Python entrypoints and
+their APIs are retired. These operations do not claim model behavior,
+semantic acceptance, human time-to-owner, or owner acceptance.
 
 The harness reports inherited target-stack tokens, declared on-demand tokens,
 and owner-handoff tokens separately. A handoff outside the target stack is
@@ -84,18 +86,26 @@ Each entry records:
 | `mechanics_local_runner` | Discovery of mechanic package-local and part-local tests, builders, and validators. | Runs the checks declared by discovered mechanics homes. |
 | `skill_local_contract_tool` | Deterministic helper contracts shipped with local agent skills. | Provides local advice under its owning skill contract. |
 
+The native documentation regression target
+[`documentation_cross_corpus_native.rs`](../../rust/crates/tos-ops-mechanics-plan/tests/documentation_cross_corpus_native.rs)
+checks the records retained in this navigation inventory, including unique
+paths, existing owners/test routes, declared side effects and advisory helper
+boundaries. It does not require every executable to acquire an inventory row.
+
 ## Root Scripts
 
-Root `scripts/*.py` currently own repo-wide builders, validators, release
-execution, lane loading, mechanics-local discovery, and shared helpers. Root scripts
-may be mechanics-owned by `owner_surface`, but a root location does not make the
-script repository-wide truth.
+The maintained executable owners are the Rust crates under `rust/crates/`.
+`tos-ops-mechanics-plan`, `tos-validation-lanes` and `tos-release-check`
+provide repository validation and release entrypoints; `tos-native-owner-command`
+provides explicitly authorized source operations. `scripts/AGENTS.md` retains
+the source route after retirement of the root Python helpers. Ownership follows
+the named source contract rather than the former script location.
 
-The source-witness pair is deliberately split: `build_source_witness_catalog.py`
-projects tracked corpus identity records into a navigational catalog, while
-`validate_source_witness_foundation.py` checks schemas, reference closure,
-companions, catalog parity, and any locally present payload bytes. Neither tool
-can certify bibliographic truth, OCR quality, rights clearance, translation,
+The source-witness foundation audit and generated catalog parity run through the
+native `source_witness_foundation` lane. Corpus-index and bibliographic-graph
+build/check routes use the native corpus-projection owner and retain separate
+source, snapshot, and publication boundaries. These mechanical checks cannot
+certify bibliographic truth, OCR quality, rights clearance, translation,
 semantics, or human acceptance.
 
 The Antonovsky 2007/1911 collation builder is an explicit-local source
@@ -189,24 +199,22 @@ normalized identity, Edition reference, evidence, and provenance in exact
 closure. This mechanics cannot promote an authority match, equate a publisher
 with a printer or successor, or turn a statement date into public release.
 
-The source-witness bibliographic graph pair materializes and checks the
-downstream claim graph. Its builder and validator read the public-safe
-catalog plus exact claim, evidence, anchor, and provenance records, keep every
-assertion reified as a claim node, and reject any edge that loses source return.
-Every edge retains its reified Claim and source qualification. Graph runtime
-behavior belongs to the selected consumer.
+The native corpus-projection owner materializes and checks the whole-corpus
+index and downstream claim graph from one bounded source cut. The graph keeps
+every assertion reified as a claim node and every edge returns to its claim
+and source qualification. Graph runtime behavior belongs to the selected
+consumer.
 
 Normalized provision participants are emitted only as claim-originating
 `has_normalized_place` or `has_normalized_agent` edges. Querying one of those
 identities remains source-return navigation through the reified claim, not an
 Edition-to-identity fact assertion.
 
-The companion bibliographic graph query script is a deterministic, read-only
-stdout reader. It verifies a complete source-backed rebuild before applying
-explicit AND selectors and returns the exact source claim plus complete trace
-bundle. It rejects selector-free requests and silent truncation; it does not
-write query artifacts or create review, relation, runtime, or service
-authority.
+The native `corpus-projection-query` command is a deterministic, read-only
+stdout reader. It verifies exact source-backed parity before applying explicit
+AND selectors and returns the exact source claim plus complete trace bundle.
+It rejects selector-free requests and silent truncation; it does not write
+query artifacts or create review, relation, runtime, or service authority.
 
 The current mechanics-local homes are:
 
@@ -227,7 +235,7 @@ The current mechanics-local homes are:
   Questbook package owns obligation and dispatch compatibility validation while
   root `QUESTBOOK.md` and `quests/` remain public source records.
 
-`scripts/run_mechanics_local_tests.py` discovers these local homes and runs the
+`tos-ops-mechanics-plan --repo-root ROOT --execute` discovers these local homes and runs the
 related checks.
 
 ## Skill Helper Scripts

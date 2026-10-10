@@ -106,8 +106,8 @@ including duplicate pairs and one-Work-per-Expression.
 ## Verification and limits
 
 The synthetic tests live in
-`mechanics/growth-cycle/tests/test_source_expression_commands.py` and the pure
-closure boundary in `tests/test_source_bibliographic_topology.py`. They exercise
+`tests/conformance/rust/command_work_cases.rs` and the pure
+closure boundary in `rust/crates/tos-compiler/src/source_bibliographic.rs`. They exercise
 the actual command, transaction transport, protected reader, restart and
 recovery on bounded temporary metadata, never historical source mutation.
 

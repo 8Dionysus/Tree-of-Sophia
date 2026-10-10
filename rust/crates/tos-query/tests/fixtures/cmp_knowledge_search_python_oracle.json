@@ -1,0 +1,172 @@
+{
+  "false_positive_id": "eighth:alp-false-positive",
+  "false_positive_query": ":alph",
+  "false_positive_reference": {
+    "authority_boundary": {
+      "is_canon": false,
+      "is_source": false,
+      "writes_to_tree": false
+    },
+    "counts": {
+      "matching_nodes": 1,
+      "matching_relations": 0,
+      "returned_nodes": 1,
+      "returned_relations": 0
+    },
+    "filters": {
+      "kind_ids": [],
+      "predicate_ids": [],
+      "sources": [
+        "eighth",
+        "zero"
+      ]
+    },
+    "nodes": [
+      {
+        "attributes": {},
+        "content_revision": "0000000000000000000000000000000000000000000000000000000000000000",
+        "display": {
+          "kind_label": {
+            "default": "Owner kind"
+          },
+          "provenance": {
+            "source_summary_available": true
+          },
+          "summary_state": "source",
+          "title": {
+            "default": "Alpha"
+          }
+        },
+        "entity_id": "external.subject.alpha",
+        "epistemic": {},
+        "graph_layers": [],
+        "id": "eighth:alpha",
+        "kind_id": "unknown-owner-kind",
+        "native_id": "alpha",
+        "semantics": {},
+        "source_graph": "eighth",
+        "source_refs": [
+          "owner:record-1"
+        ],
+        "type_id": "tos.entity.unmapped",
+        "type_mapping": {
+          "source_kind_id": "unknown-owner-kind",
+          "status": "unmapped"
+        },
+        "view_ids": []
+      }
+    ],
+    "page": {
+      "limit_per_kind": 40,
+      "offset": 0
+    },
+    "query": ":alph",
+    "relations": [],
+    "schema": "tos_knowledge_search_v1",
+    "source_revision": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "input_sha256": "73f5214f2dc18f41d3e0d1cdc42430094e46d7dc8ddf0cf77283a1744bbb560e",
+  "query": "alpha",
+  "reference": {
+    "authority_boundary": {
+      "is_canon": false,
+      "is_source": false,
+      "writes_to_tree": false
+    },
+    "counts": {
+      "matching_nodes": 2,
+      "matching_relations": 0,
+      "returned_nodes": 2,
+      "returned_relations": 0
+    },
+    "filters": {
+      "kind_ids": [],
+      "predicate_ids": [],
+      "sources": [
+        "eighth",
+        "zero"
+      ]
+    },
+    "nodes": [
+      {
+        "attributes": {},
+        "content_revision": "0000000000000000000000000000000000000000000000000000000000000000",
+        "display": {
+          "kind_label": {
+            "default": "Owner kind"
+          },
+          "provenance": {
+            "source_summary_available": true
+          },
+          "summary_state": "source",
+          "title": {
+            "default": "Alpha"
+          }
+        },
+        "entity_id": "external.subject.alpha",
+        "epistemic": {},
+        "graph_layers": [],
+        "id": "eighth:alpha",
+        "kind_id": "unknown-owner-kind",
+        "native_id": "alpha",
+        "semantics": {},
+        "source_graph": "eighth",
+        "source_refs": [
+          "owner:record-1"
+        ],
+        "type_id": "tos.entity.unmapped",
+        "type_mapping": {
+          "source_kind_id": "unknown-owner-kind",
+          "status": "unmapped"
+        },
+        "view_ids": []
+      },
+      {
+        "attributes": {},
+        "content_revision": "0000000000000000000000000000000000000000000000000000000000000000",
+        "display": {
+          "kind_label": {
+            "default": "Owner kind"
+          },
+          "provenance": {
+            "source_summary_available": true
+          },
+          "summary_state": "source",
+          "title": {
+            "default": "Alpha Beta"
+          }
+        },
+        "entity_id": "external.subject.visible",
+        "epistemic": {},
+        "graph_layers": [],
+        "id": "eighth:visible",
+        "kind_id": "unknown-owner-kind",
+        "native_id": "visible",
+        "semantics": {},
+        "source_graph": "eighth",
+        "source_refs": [
+          "owner:record-1"
+        ],
+        "type_id": "tos.entity.unmapped",
+        "type_mapping": {
+          "source_kind_id": "unknown-owner-kind",
+          "status": "unmapped"
+        },
+        "view_ids": []
+      }
+    ],
+    "page": {
+      "limit_per_kind": 40,
+      "offset": 0
+    },
+    "query": "alpha",
+    "relations": [],
+    "schema": "tos_knowledge_search_v1",
+    "source_revision": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "schema": "tos_cmp_selected_python_search_oracle_v1",
+  "sources": [
+    "eighth",
+    "zero"
+  ]
+}

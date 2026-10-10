@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-link.schema.json",
+  "title": "Tree of Sophia first-class source Link",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "record_type", "record_id", "preferred_label", "variant_labels", "identity_status", "source_refs", "external_identifiers", "same_as_posture", "link_kind", "uri", "provider_label", "interface_type", "access_status", "observed_at", "observation_ref", "mutable", "association_claim_refs", "provenance_event_ref", "record_version", "supersedes_ref"],
+  "properties": {
+    "schema_version": {"const": "tos_source_link_v1"},
+    "record_type": {"const": "link"},
+    "record_id": {"$ref": "#/$defs/linkId"},
+    "preferred_label": {"type": "string", "minLength": 1},
+    "variant_labels": {"type": "array", "items": {"type": "object"}},
+    "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded"]},
+    "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "external_identifiers": {"type": "array", "items": {"type": "object"}},
+    "same_as_posture": {"enum": ["not_assessed", "no_equivalence_claim", "candidate_equivalence", "reviewed_equivalence", "reviewed_distinct"]},
+    "link_kind": {"enum": ["authority_record", "catalog_record", "landing_page", "download", "metadata_api", "rights_statement", "terms", "other"]},
+    "uri": {"type": "string", "format": "uri"},
+    "provider_label": {"type": "string", "minLength": 1},
+    "interface_type": {"enum": ["web", "api", "file", "resolver", "other"]},
+    "access_status": {"enum": ["open_view", "open_download", "metadata_only", "login_required", "restricted", "unavailable", "unknown"]},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "observation_ref": {"type": "string", "minLength": 1},
+    "mutable": {"type": "boolean"},
+    "association_claim_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/claimId"}},
+    "provenance_event_ref": {"$ref": "#/$defs/eventId"},
+    "notes": {"type": "string"},
+    "record_version": {"type": "integer", "minimum": 1},
+    "supersedes_ref": {"oneOf": [{"$ref": "#/$defs/linkId"}, {"type": "null"}]}
+  },
+  "$defs": {
+    "linkId": {"type": "string", "pattern": "^tos\\.link\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "claimId": {"type": "string", "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "eventId": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+  }
+}

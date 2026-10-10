@@ -1,3 +1,4 @@
+import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {expect,test,vi} from 'vitest';
 import {createReference} from '../corpus-reader/model.mjs';
 import {NATIVE_REFERENCE_SCHEMA} from '../corpus-reader/native-reference.mjs';

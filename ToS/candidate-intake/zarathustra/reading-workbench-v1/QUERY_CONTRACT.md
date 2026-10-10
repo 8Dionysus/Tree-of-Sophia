@@ -1,10 +1,11 @@
 # Reading query contract
 
-`scripts/query_zarathustra_reading_workbench_v1.py` is the source-owned query
-provider. `ToSAccessCore.zarathustra_reading_search` exposes the same result to
-local CLI, HTTP and native MCP. All three adapters delegate search to this provider.
+`rust/crates/tos-query/src/reading_search.rs` owns the maintained query.
+Installed `tos reading-search`, local HTTP and native MCP invoke this Rust
+provider. The former Python provider and entry wrappers are retired; five
+complete original synthetic results remain static regression fixtures.
 
-The provider invokes the concept query from the same software installation.
+The provider uses the concept query from the same native software image.
 It validates the supported v1 data manifest, schema binding and input/private
 artifact digests. Build-time implementation hashes remain provenance;
 compatible software upgrades do not require rewriting the immutable dataset.

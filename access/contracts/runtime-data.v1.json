@@ -198,7 +198,7 @@
     {
       "subject_id": "tos-compiled-query-store",
       "output_path": "ToS/derived-exports/runtime/knowledge.sqlite3",
-      "builder_module": "tos_access.knowledge_compile",
+      "builder_module": "tos_compiler::knowledge_full::compile_full_knowledge_components",
       "required_when": "partitioned_projection_inputs",
       "input_subject_ids": [
         "tos-corpus-index",

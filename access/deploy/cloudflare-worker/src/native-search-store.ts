@@ -1,41 +1,9 @@
 /** Search selection is ID-only; source-valued packets keep native JSON. */
 import {HttpError, type Item} from './common.ts';
-import {NativeBudgetExceeded, nativeLower, codePointCompare, pythonStr} from '../../../shared/native-semantics.ts';
+import {NativeBudgetExceeded, nativeLower, nativeSearchableText, nativeSearchRankValues} from '../../../shared/native-semantics.ts';
 import {NativeD1Read, NativeD1Rows, nativeD1Limits, nativeUnavailable, nativeSha256} from './native-d1-read.ts';
 import {readNativeInspectionPublication} from './native-inspection-store.ts';
-import {derived, nativeField, nativeKeys, nativeChild, nativePacketArray, nativePacketObject, type NativePacket, type NativeRef} from './native-lens.ts';
-
-function sourceString(value:string):string {
-  if(!value.isWellFormed())nativeUnavailable('search source contains an invalid Unicode string');
-  return value;
-}
-
-/** Python's existing ensure_ascii=False, sort_keys=True default JSON/lower. */
-function searchable(ref:NativeRef):string {
-  let remaining=4*1024*1024;
-  const emit=(text:string)=>{remaining-=text.length;if(remaining<0)throw new NativeBudgetExceeded('selected search document byte budget');return text;};
-  const walk=(item:NativeRef):string=>{
-    const value=item.value;
-    if(value===null)return emit('null');
-    if(typeof value==='boolean')return emit(String(value));
-    if(typeof value==='string')return emit(JSON.stringify(sourceString(value)));
-    if(typeof value==='number')return emit(pythonStr(item));
-    const array=Array.isArray(value),keys=array?nativeKeys(item):[...nativeKeys(item)].sort(codePointCompare);
-    return emit(array?'[':'{')+keys.map((key,index)=>(index?emit(', '):'')+(array?'':emit(JSON.stringify(sourceString(key))+': '))+walk(nativeChild(item,key))).join('')+emit(array?']':'}');
-  };
-  return nativeLower(walk(ref));
-}
-
-function rankValues(ref:NativeRef,fields:string[]):string[] {
-  const result:string[]=[];
-  for(const field of fields){const item=nativeField(ref,'display.'+field),value=item.value;
-    if(typeof value==='string')result.push(nativeLower(value));
-    else if(value&&typeof value==='object'&&!Array.isArray(value))for(const key of nativeKeys(item)){
-      const candidate=nativeChild(item,key).value;if(typeof candidate==='string')result.push(nativeLower(candidate));
-    }
-  }
-  return result;
-}
+import {derived, nativeField, nativePacketArray, nativePacketObject, type NativePacket, type NativeRef} from './native-lens.ts';
 
 export class NativeSearchDelivery {
   readonly read: NativeD1Read;
@@ -93,13 +61,13 @@ export class NativeSearchDelivery {
        WHERE s.id=json_extract(wanted.value,'$.id') ORDER BY s.id LIMIT ?`,JSON.stringify(selected),kind,ids.length+1);
     if(carriers.length!==ids.length||new Set(carriers.map(row=>row.id)).size!==ids.length)nativeUnavailable('selected search carrier closure is incomplete');
     for(const carrier of carriers){const ref=rows.get(carrier.id);if(!ref)nativeUnavailable('selected search carrier identity differs');
-      const text=searchable(ref);this.verifiedChars+=[...text].length;
+      const text=nativeSearchableText(ref);this.verifiedChars+=[...text].length;
       if(this.verifiedChars>16_000_000)throw new NativeBudgetExceeded('selected search verification character budget');
       const relation=kind==='relations',primary=relation?'label':'title',visible=relation?['label','inverse_label','statement','explanation']:['title','kind_label','summary'];
       if(carrier.id_lower!==nativeLower(carrier.id)||carrier.native_id_lower!==nativeLower(nativeField(ref,'native_id').value as string)
         ||carrier.source_graph!==nativeField(ref,'source_graph').value||carrier.kind_id!==(nativeField(ref,'kind_id').value??'')
-        ||carrier.predicate_id!==(nativeField(ref,'predicate_id').value??'')||carrier.identity_values!==JSON.stringify(rankValues(ref,[primary]))
-        ||carrier.visible_values!==JSON.stringify(rankValues(ref,visible))||carrier.document_chars!==String([...text].length)
+        ||carrier.predicate_id!==(nativeField(ref,'predicate_id').value??'')||carrier.identity_values!==JSON.stringify(nativeSearchRankValues(ref,[primary]))
+        ||carrier.visible_values!==JSON.stringify(nativeSearchRankValues(ref,visible))||carrier.document_chars!==String([...text].length)
         ||carrier.document_digest!==await nativeSha256(text))nativeUnavailable('selected search carrier differs from source payload');
     }
     return ids.map(id=>rows.get(id)!);

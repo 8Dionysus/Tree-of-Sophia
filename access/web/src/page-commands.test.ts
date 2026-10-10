@@ -1,3 +1,6 @@
+import {buildInterpretationComparison} from './interpretation-comparison.mjs';
+import {pageCommandInteger, pageCommandOpaqueString, pageCommandDirection} from "./page-input";
+import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it, vi } from "vitest";
 import {
   createPageCommandRegistry,
@@ -51,6 +54,19 @@ function snapshot(): PageContextSnapshot {
 }
 
 describe("page command registry", () => {
+  it("preserves iterable-before-getter focus order and skips falsey view iteration", () => {
+    const events:string[]=[];
+    const ids={*[Symbol.iterator](){events.push('iterate');yield 'node\ud800';}};
+    expect(()=>requireKnownViewId('',ids)).toThrow('(empty)');expect(events).toEqual([]);
+    const selected={kind:'node',get id(){events.push('selected');return 'node\ud800';}} as const;
+    expect(reloadableFocusId(selected,'graph',ids)).toBe('node\ud800');
+    expect(events).toEqual(['iterate','selected']);
+    events.length=0;
+    const missing={kind:'node',get id(){events.push('selected');return '';}} as const;
+    expect(reloadableFocusId(missing,'node\ud800',ids)).toBe('node\ud800');
+    expect(events).toEqual(['iterate','selected']);
+  });
+
   it("reads and exports local research state without advancing the deictic revision", async () => {
     const current = snapshot();
     const noop = vi.fn();
@@ -214,5 +230,104 @@ describe("page command registry", () => {
     await expect(invocation).rejects.toMatchObject({ name: "AbortError" });
     expect(registry.context().pending_command_ids).toEqual([]);
     expect(registry.context().revision).toBe(0);
+  });
+});
+
+
+describe("page input guards used by maintained command handlers", () => {
+  it("preserves page input numeric profiles and native coercion", () => {
+    expect(pageCommandInteger({limit: 99.9}, "limit", "page-knowledge-limit")).toBe(40);
+    expect(pageCommandInteger({}, "limit", "gaps-limit")).toBe(20);
+    expect(pageCommandInteger({}, "rank", "page-word-rank")).toBe(1);
+    expect(pageCommandInteger({}, "depth", "neighborhood-depth")).toBe(1);
+    expect(pageCommandInteger({}, "max_depth", "page-path-depth")).toBe(6);
+    expect(pageCommandInteger({}, "alternative_limit", "page-path-alternatives")).toBe(1);
+    expect(pageCommandInteger({}, "alternative_limit", "page-reroute-alternatives")).toBe(3);
+    expect(pageCommandInteger({}, "limit", "epistemic-limit")).toBe(80);
+    expect(pageCommandInteger({}, "limit", "page-compare-limit")).toBe(60);
+    const valueOf = vi.fn(() => -1.9);
+    const getter = vi.fn(() => ({valueOf}));
+    expect(pageCommandInteger({get rank() { return getter(); }}, "rank", "page-word-rank")).toBe(1);
+    expect(getter).toHaveBeenCalledTimes(1);
+    expect(valueOf).toHaveBeenCalledTimes(1);
+    expect(() => pageCommandInteger({rank: Symbol("rank")}, "rank", "page-word-rank")).toThrow(TypeError);
+  });
+  it("preserves page input opaque cursor identity and empty omission", () => {
+    for (const cursor of [undefined, null, ""]) expect(pageCommandOpaqueString({cursor}, "cursor")).toBeUndefined();
+    const cursor = "  \ud800opaque  ";
+    expect(pageCommandOpaqueString({cursor}, "cursor")).toBe(cursor);
+    expect(() => pageCommandOpaqueString({cursor: 1}, "cursor")).toThrow("cursor must be a string");
+  });
+  it("preserves page input case-sensitive direction and host exceptions", () => {
+    expect(pageCommandDirection({})).toBe("outgoing");
+    expect(pageCommandDirection({direction: " incoming "})).toBe("incoming");
+    expect(() => pageCommandDirection({direction: "Outgoing"})).toThrow("direction must be outgoing, incoming, or either");
+    const failure = {host: true};
+    try { pageCommandDirection({get direction() { throw failure; }}); throw new Error("getter did not throw"); }
+    catch (error) { expect(error).toBe(failure); }
+  });
+});
+
+
+describe("maintained interpretation comparison projection", () => {
+  it("keeps source reading identities and existing bounded contested review posture", () => {
+    const challenges = Array.from({length: 10}, (_, index) => ({id: `reading:${index}`}));
+    const context = Array.from({length: 11}, (_, index) => ({id: `context:${index}`}));
+    const gaps = Array.from({length: 14}, (_, index) => `gap:${index}`);
+    const selection = {id: "selected", kind: "node"};
+    const result = buildInterpretationComparison({challenge_relations: challenges, context_relations: context,
+      gaps, conclusion: {can_conclude: true}}, selection, () => "en", (value: unknown) => value);
+    expect(result.selection).toBe(selection);
+    expect(result.schema).toBe("tos_interpretation_comparison_v1");
+    expect(result.posture).toBe("contested_review_required");
+    expect(result.can_conclude).toBe(true);
+    expect(result.competing_reading_count).toBe(10);
+    expect(result.competing_readings).toEqual(challenges.slice(0, 8));
+    expect(result.competing_readings[0]).toBe(challenges[0]);
+    expect(result.contextual_readings).toEqual(context.slice(0, 8));
+    expect(result.gaps).toEqual(gaps.slice(0, 12));
+    expect(result.authority_note).toBe("Projected challenge relations are review leads, not adjudicated counterevidence or canon decisions.");
+  });
+  it("preserves lazy posture and localized gap observations and native host exceptions", () => {
+    const reads: string[] = [], ruGaps: string[] = [], authority = {opaque: true};
+    const packet = {
+      get challenge_relations() {reads.push("challenge"); return [];},
+      get context_relations() {reads.push("context"); return [];},
+      get posture() {reads.push("posture"); return "";},
+      get selection_posture() {reads.push("selection"); return {review_posture: "source-review"};},
+      get gaps_ru() {reads.push("gaps_ru"); return ruGaps;},
+      get gaps() {throw new Error("truthy empty localized array must not fall back");},
+      get conclusion() {reads.push("conclusion"); return {can_conclude: 1};},
+      get authority_note() {reads.push("authority"); return authority;},
+    };
+    const result = buildInterpretationComparison(packet, {}, () => {reads.push("language"); return "ru";}, (value: unknown) => value);
+    expect(reads).toEqual(["challenge", "context", "posture", "selection", "language", "gaps_ru", "conclusion", "authority"]);
+    expect(result.posture).toBe("source-review");
+    expect(result.can_conclude).toBe(false);
+    expect(result.gaps).toEqual([]);
+    expect(result.authority_note).toBe(authority);
+    const refusal = {host: "original"};
+    let observed;
+    try {buildInterpretationComparison({get challenge_relations() {throw refusal;}}, {}, () => "en", () => null);}
+    catch (error) {observed = error;}
+    expect(observed).toBe(refusal);
+  });
+  it("keeps retained native map callbacks independent of the freed rule session", () => {
+    let retained: ((value: unknown) => unknown) | undefined;
+    const observations: string[] = [], sliceResult = {opaque: "mapped result"};
+    let lengthReads = 0;
+    const mapped = {
+      get length() {observations.push("length"); return lengthReads++ === 0 ? 0 : 7;},
+      slice(start: number, end: number) {observations.push(`slice:${start}:${end}`); return sliceResult;},
+    };
+    const source = {map(callback: (value: unknown) => unknown) {retained = callback; return mapped;}};
+    const summarize = (value: unknown) => value;
+    const result = buildInterpretationComparison({challenge_relations: source, context_relations: [], gaps: []}, {}, () => "en", summarize);
+    expect(result.posture).toBe("review_status_unresolved");
+    expect(result.competing_reading_count).toBe(7);
+    expect(result.competing_readings).toBe(sliceResult);
+    expect(observations).toEqual(["length", "length", "slice:0:8"]);
+    const original = {id: "later"};
+    expect(retained?.(original)).toBe(original);
   });
 });

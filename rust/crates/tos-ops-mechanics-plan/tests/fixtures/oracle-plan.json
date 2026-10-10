@@ -1,0 +1,12 @@
+{
+  "schema_version": "tos_mechanics_local_plan_v1",
+  "test_file_count": 2,
+  "commands": [
+    {"kind": "unittest", "home": "mechanics/agon/parts/threshold", "argv": ["/chosen/python", "-m", "unittest", "discover", "-s", "mechanics/agon/parts/threshold/tests", "-p", "test*.py"]},
+    {"kind": "unittest", "home": "mechanics/example", "argv": ["/chosen/python", "-m", "unittest", "discover", "-s", "mechanics/example/tests", "-p", "test*.py"]},
+    {"kind": "builder_check", "home": "mechanics/agon/parts/threshold", "argv": ["/chosen/python", "mechanics/agon/parts/threshold/scripts/build_registry.py", "--check"]},
+    {"kind": "builder_check", "home": "mechanics/example", "argv": ["/chosen/python", "mechanics/example/scripts/build_experience.py", "--check"]},
+    {"kind": "validator", "home": "mechanics/agon/parts/threshold", "argv": ["/chosen/python", "mechanics/agon/parts/threshold/scripts/validate_registry.py"]},
+    {"kind": "validator", "home": "mechanics/example", "argv": ["/chosen/python", "mechanics/example/scripts/validate_experience.py"]}
+  ]
+}

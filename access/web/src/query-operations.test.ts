@@ -1,4 +1,6 @@
+import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it } from "vitest";
+import {chooseKnowledgeSearchMode} from "./knowledge-search";
 import { createToSQueryOperations } from "./query-operations";
 
 const searchCapabilities = (indexed: boolean, compressed: boolean, indexedMinimum = 1, compressedMinimum = 1) => ({
@@ -53,6 +55,14 @@ describe("ToS query operations", () => {
       alternatives: "3",
       max_depth: "7",
     });
+    await expect(operations.invoke("tos.path.find", {
+      from_id: "  ", get to_id() { throw new Error("to must remain unread"); },
+    })).rejects.toThrow("from_id is required");
+    await expect(operations.invoke("tos.path.find", {
+      from_id: "a", to_id: "b", direction: " sideways ",
+      get view_id() { throw new Error("view must remain unread"); },
+    })).rejects.toThrow("unsupported value: sideways");
+    expect(calls).toHaveLength(1);
   });
 
   it("preserves explicit empty filters as a no-match request", async () => {
@@ -135,6 +145,20 @@ describe("ToS query operations", () => {
       rank: "2",
       include_semantic_neighbors: "true",
     });
+    const reads: string[] = [];
+    await expect(operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      get query() { reads.push("query"); return "  "; },
+      get language() { throw new Error("language must remain unread"); },
+    })).rejects.toThrow("query is required");
+    expect(reads).toEqual(["query"]);
+    await expect(operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query: "x", language: " FR ",
+      get rank() { throw new Error("rank must remain unread"); },
+    })).rejects.toThrow("unsupported value: fr");
+    await operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query: " x ", language: " RU ", rank: {valueOf: () => 101.9},
+    }, {signal: controller.signal});
+    expect(new URL(requestedUrl, "http://tos.local").searchParams.get("rank")).toBe("100");
   });
 
   it("routes source descent and dossiers through their backend surfaces", async () => {
@@ -354,4 +378,24 @@ describe("ToS query operations", () => {
     await expect(operations.invoke("tos.knowledge.search", { query: "fate" })).rejects.toBe(backendError);
     expect(requested).toEqual(["/api/knowledge/search/capabilities", "/api/knowledge/search?mode=indexed&query=fate&limit=40"]);
   });
+});
+
+// The public selector observes inherited descriptors and accessors lazily;
+// transport must not snapshot them or reinterpret opaque UTF-16 query units.
+it("preserves demand-driven capability reads and opaque UTF16 query counting", () => {
+  const reads: string[] = [];
+  let indexReads = 0;
+  const capabilities = { get modes() {
+    reads.push("modes");
+    return {get indexed() {
+      reads.push("indexed"); indexReads++;
+      return Object.create({available:true,min_normalized_query_code_points:indexReads===3?4:3});
+    },get compressed() { throw new Error("compressed must remain unread"); }};
+  }};
+  expect(() => chooseKnowledgeSearchMode(capabilities,"indexed","a")).toThrow("requires at least 4 normalized query characters");
+  expect(reads).toEqual(["modes","indexed","indexed","indexed"]);
+  const scalarCaps = {modes:{indexed:{available:true,min_normalized_query_code_points:3}}};
+  expect(chooseKnowledgeSearchMode(scalarCaps,undefined,"\ud800İ")).toBe("indexed");
+  expect(() => chooseKnowledgeSearchMode(scalarCaps,undefined,"\ud800😀")).toThrow("shorter than the minimum");
+  expect(() => chooseKnowledgeSearchMode({get modes(){throw new Error("not read");}},"invalid","a")).toThrow("must be indexed or compressed");
 });

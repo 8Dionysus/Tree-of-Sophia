@@ -58,7 +58,7 @@ This entrypoint routes; the strongest carrier below owns the current detail.
 | --- | --- | --- |
 | Understand a repeated operation | Authored part contract and its payload docs | Package `PARTS.md` -> active part `README.md` -> named docs/schema/config |
 | Choose a package or part | Human map here plus machine map in [`topology.json`](topology.json) | Package `PARTS.md`; do not infer ownership from a directory tour |
-| Run a builder or validator | Executable script/CLI; blocking order in [`validation_lanes.json`](../docs/validation/validation_lanes.json) | Part `README.md` `tools`/`check` -> owning lane; mechanics-local discovery remains [`run_mechanics_local_tests.py`](../scripts/run_mechanics_local_tests.py) |
+| Run a builder or validator | Executable script/CLI; blocking order in [`validation_lanes.json`](../docs/validation/validation_lanes.json) | Part `README.md` `tools`/`check` -> owning lane; mechanics-local discovery remains [`tos-ops-mechanics-plan`](../rust/crates/tos-ops-mechanics-plan/README.md) |
 | Change a schema, config, or manifest | Part-local schema/config/manifest | Source contract -> builder -> generated companion -> validator; generated output is never authoring truth |
 | Check release or validation state | Validation lane manifest and release entrypoint | [`mechanics/release-support`](release-support/README.md) -> [`docs/RELEASING.md`](../docs/RELEASING.md) -> named lane |
 | Find durable rationale | Authored decision record; generated indexes are lookup only | [`docs/decisions/README.md`](../docs/decisions/README.md) -> `TOS-D-*`; current source or mechanic contract remains stronger |

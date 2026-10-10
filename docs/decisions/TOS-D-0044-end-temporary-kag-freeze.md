@@ -59,7 +59,7 @@ Historical snapshots remain recoverable in Git without active freeze rules.
 ## Source Surfaces
 
 - `kag/AGENTS.md` and `kag/VALIDATION.md`
-- `scripts/validate_local_kag_provider.py`
+- `rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs`
 - `scripts/validate_agent_surface.py`
 - `scripts/validate_documentation_cross_corpus.py`
 - `docs/validation/validation_lanes.json`

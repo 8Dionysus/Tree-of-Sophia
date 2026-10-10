@@ -10,7 +10,7 @@
 | owner | `mechanics/questbook/parts/dispatch-contracts/` |
 | next route | root `quests/` and `QUESTBOOK.md` |
 | tools | schemas and examples |
-| check | `python mechanics/questbook/scripts/validate_questbook_surface.py`; `python scripts/validate_mechanics_topology.py` |
+| check | `tos-ops-mechanics-plan --repo-root . --questbook-validate`; `tos-ops-mechanics-plan --repo-root . --mechanics-topology-validate` |
 
 ## Payload
 

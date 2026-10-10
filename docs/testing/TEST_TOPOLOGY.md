@@ -11,6 +11,25 @@ normal test discovery and executable behavior own software validation. Update a
 navigation entry when it helps a real consumer; no inventory row or regenerated
 coverage carrier is required merely because a test file changed.
 
+The completed GenericXML/UXLC laboratory's maintained regression consumer is
+[`rust/crates/tos-compiler/tests/generic_xml_uxlc_lab.rs`](../../rust/crates/tos-compiler/tests/generic_xml_uxlc_lab.rs).
+Cargo's existing workspace test route discovers this integration target. Its ten
+groups retain selection/source-return, disclosure, nested authority and method
+freeze boundaries formerly exercised by 37 Python cases; they consume public
+synthetic observations and historical method data, without private source reads
+or a new generic XML/public contract.
+
+The original Python oracle is preserved byte-for-byte as
+[`tests/historical/test_generic_xml_uxlc_lab.py.txt`](../../tests/historical/test_generic_xml_uxlc_lab.py.txt),
+SHA256 `67d36f428aa295386b3d2063d6d3a5a2a5e2855608c7577edbff362fc94d47be`,
+outside default Python discovery. The four frozen experiment programs and their
+receipts/verdict remain unchanged at their original lab paths. They are
+historical method evidence, and the maintained suite no longer imports them.
+Historical G21 independence applies only to the exact frozen consumer bytes;
+changed methods refuse the inherited finding and need fresh owner assessment.
+The native successor does not claim arbitrary Python AST analysis equivalence,
+rerun the completed experiment, or grant rights/publication/semantic authority.
+
 ## Route Shape
 
 Use this compact route shape:
@@ -26,12 +45,39 @@ Current active test homes are root `tests/`, the standalone product-local
 `tests/AGENTS.md`; product-local and mechanics-local tests are covered by their
 nearest route cards and named validation lanes.
 
+The shared native documentation regression target is
+[`documentation_cross_corpus_native.rs`](../../rust/crates/tos-ops-mechanics-plan/tests/documentation_cross_corpus_native.rs).
+It also checks the retained script/test navigation records, scoped owners,
+side effects and advisory boundaries. The former topology Python tests and
+Python-only discovery/import helpers are retired. Cargo discovers Rust
+library and integration tests in their crate homes; navigation coverage is
+optional under TOS-D-0062.
+
+The remaining root Python assertions, acquisition references and HTTP bootstrap
+are retained byte-for-byte as `.py.snapshot` history under `tests/historical/`.
+Their maintained successors are the existing native owners:
+
+- Root entry and release routes: `tos-ops-mechanics-plan` documentation checks.
+- Node contracts: `tree_nodes` and `source_routes_native`.
+- Antonovsky v1/v2: `tos-compiler::antonovsky_structural`, including its
+  `technical_markup` module, tracked validators and explicit data rebuild tests.
+- Acquisition: `tos-command` registry, batch, handoff and custody tests. These
+  check exact payloads, source profiles, identity conflicts, Work extension,
+  topology history, preparation receipts and candidate-only handoff adaptation.
+- Mutable HTTP and browser forms: the native private-profile conformance case
+  and `native_source_form_http_host.mjs`; the installed load harness covers
+  independent sessions, conflicts, lost replies, retry and reconnect.
+
+The historical files are not executable test entrypoints or runtime fallbacks.
+The optional Python SDK remains an external consumer of the native product;
+its adapter tests stay under `access/tests/`.
+
 ## Home Scopes
 
 | Home Scope | Current Homes | Protects | Coverage Authority | Failure Route |
 | --- | --- | --- | --- | --- |
 | `root` | `tests/` | Repo-wide route docs, source-home schema, generated parity, validator behavior, validation authority, and release contour. | `tests/AGENTS.md` root test collection (including unittest cases) | Fix the named owner surface before editing test expectations. |
-| `product-local` | `access/tests/`; Python tests colocated under `access/web/constructor/` | Portable root discovery, shared query adapters, native MCP construction, browser action ABI, private fragment assembly, and standalone installation posture. | `access/AGENTS.md`, the `standalone_access` lane, and constructor-local validation named by the inventory | Fix the access core, adapter, contract, profile, or bundle boundary first. |
+| `product-local` | Rust crate library/integration tests under `rust/crates/<crate>/`; retained product tests under `access/` | Portable root discovery, shared query adapters, native MCP construction, browser action ABI, private fragment assembly, and standalone installation posture. | `access/AGENTS.md`, the `standalone_access` lane, and constructor-local validation named by the inventory | Fix the access core, adapter, contract, profile, or bundle boundary first. |
 | `mechanic-level` | `mechanics/experience/tests/`; `mechanics/questbook/tests/`; future `mechanics/<slug>/tests/` | One mechanic package's active topology or package-wide contracts. | package lane plus `mechanics_local` discovery | Fix the owning mechanic package, `PARTS.md`, schemas, examples, or local validator first. |
 | `part-local` | `mechanics/agon/parts/threshold-registry/tests/`; future `mechanics/<slug>/parts/<part>/tests/` | One mechanic part, its generated companion, registry, or handoff packet. | `mechanics_local` lane discovery | Fix the part-local source, builder, validator, and schema before widening to release. |
 | `agent-lane` | future `.agents/*/tests/` | Agent-surface operating guidance and local scenario contracts. | release or advisory lane, depending on owner decision | Fix the owning agent surface before treating the repo gate as clean. |
@@ -45,7 +91,7 @@ mechanic package or part should carry the regression with its own source.
 | Family | Protects | Owner Surface |
 | --- | --- | --- |
 | `root_front_door` | Root entrypoint routing and command-light public docs. | `README.md`, `ROADMAP.md`. |
-| `documentation_cross_corpus` | Cross-family documentation routes, exact currentness, authority declarations, public-safety markers, and context probes. | `docs/validation/documentation_family_map.json` and `scripts/validate_documentation_cross_corpus.py`. |
+| `documentation_cross_corpus` | Cross-family documentation routes, exact currentness, authority declarations, public-safety markers, and context probes. | `docs/validation/documentation_family_map.json` and `rust/crates/tos-ops-mechanics-plan/src/documentation_cross_corpus.rs`. |
 | `release_contour` | Current release-facing route and root-entry expectations. | `ROADMAP.md` and release lane manifest. |
 | `generated_parity` | Derived read models and generated indexes remain rebuildable from source. | Builder scripts, schemas, generated companions. |
 | `mechanics_generated_parity` | Mechanics-owned generated companions remain tied to their part source. | Owning mechanic part. |

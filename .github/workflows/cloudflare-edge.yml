@@ -2,6 +2,11 @@ name: Historical Source-to-edge Audit
 
 on:
   workflow_dispatch:
+    inputs:
+      build_seconds:
+        description: "Maximum seconds for the bounded native public D1 build (1-7200)."
+        required: true
+        type: number
 
 permissions:
   contents: read
@@ -31,16 +36,57 @@ jobs:
           cache-dependency-path: |
             access/web/package-lock.json
             access/deploy/cloudflare-worker/package-lock.json
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
+      - name: Prepare pinned native access product
+        env:
+          CARGO_HOME: ${{ runner.temp }}/edge-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/edge-cargo-target
+          CARGO_BUILD_JOBS: "2"
+          TOS_BUILD_MAX_SECONDS: ${{ inputs.build_seconds }}
+        run: |
+          value="$TOS_BUILD_MAX_SECONDS"
+          if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+            echo "build_seconds must be an integer" >&2
+            exit 1
+          fi
+          normalized="${value#"${value%%[!0]*}"}"
+          normalized="${normalized:-0}"
+          if (( ${#normalized} > 4 )); then
+            echo "build_seconds must be between 1 and 7200" >&2
+            exit 1
+          fi
+          seconds=$((10#$normalized))
+          if (( seconds < 1 || seconds > 7200 )); then
+            echo "build_seconds must be between 1 and 7200" >&2
+            exit 1
+          fi
+          rustup toolchain install 1.98.1 --profile minimal
+          cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
+          binary="$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-access"
+          test -x "$binary"
+          printf 'TOS_ACCESS_BIN=%s\n' "$binary" >> "$GITHUB_ENV"
+          printf 'TOS_BUILD_MAX_SECONDS=%s\n' "$TOS_BUILD_MAX_SECONDS" >> "$GITHUB_ENV"
+      - name: Prepare pinned Worker rules WASM
+        env:
+          CARGO_HOME: ${{ runner.temp }}/edge-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/edge-cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+          cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+          archive="$RUNNER_TEMP/edge-wasm-bindgen.tar.gz"
+          curl --fail --location --silent --show-error \
+            'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+            --output "$archive"
+          printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
+            --target web --out-name tos_web_rules --out-dir generated \
+            "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
       - name: Install dependencies
-        run: npm ci && npm run ci:python && npm run ci:web
+        run: npm ci && npm run ci:web
       - name: Build and check Worker
         run: npm run check
       - name: Import local D1 read model
         run: npm run load:local > "$RUNNER_TEMP/tos-d1-import.log"
-      - name: Verify Python-to-Worker contract
-        run: npm run verify:local
       - name: Validate deployment bundle
         run: npx wrangler deploy --dry-run --outdir="$RUNNER_TEMP/tos-worker-dry-run"

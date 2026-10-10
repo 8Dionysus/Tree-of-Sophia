@@ -10,30 +10,129 @@ KAG indexes, stats projections or documentation currentness carriers.
 
 1. Use a clean branch/worktree from the current remote `main`. Preserve other sessions' dirty work and coordinate through the exact changed
 owner surfaces.
-2. Install Python test dependencies from `requirements-dev.txt`, the MCP extra,
-   and locked browser dependencies with `npm ci --prefix access/web`. Review the
-   changed behavior and source contracts. Run `python scripts/release_check.py`
-   to check contracts, build browser assets and run program fixture tests.
-   This command uses program fixtures and repository-owned dependencies.
-3. For browser changes, install the locked dependencies with
-   `npm ci --prefix access/web`, then run the software check above and
-   `python scripts/validation_lanes.py --run software_browser`.
-   Browser tests require Playwright and Chromium. They create their own small
-   dataset. `access/web/dist` remains an ignored build output.
-4. For Worker code, run its locked dependency install, `npm run typecheck
-   --prefix access/deploy/cloudflare-worker` and `npm test --prefix
-   access/deploy/cloudflare-worker`. These checks run against local fixtures.
-5. Build and verify an installable candidate from the reviewed commit:
+2. Install locked browser dependencies with `npm ci --prefix access/web` and
+   review the changed behavior and source contracts. Build the native release
+   executors from this exact checkout and bind absolute paths:
 
    ```sh
-   python access/packaging/build_software_bundle.py --source-ref HEAD_SHA --output dist/tree-of-sophia-software.zip
-   python access/packaging/validate_software_bundle.py --bundle dist/tree-of-sophia-software.zip
+   cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
+     --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci
+   executor_dir="$(pwd)/target/debug"
+   export TOS_RELEASE_CHECK_EXECUTOR="$executor_dir/tos-release-check"
+   export TOS_VALIDATION_LANES_EXECUTOR="$executor_dir/tos-validation-lanes"
+   export TOS_SOFTWARE_CI_EXECUTOR="$executor_dir/tos-software-ci"
    ```
 
-   Replace `HEAD_SHA` with the exact Git commit; build the browser first.
-   Dirty development builds require `--allow-dirty` and record that posture.
-   The validator checks exact file digests and installs a wheel in an isolated
-   environment outside the checkout, without a corpus or AoA installation.
+   If `CARGO_TARGET_DIR` is set, use its absolute `debug` directory instead.
+   Run `tos-software-ci plan --repo-root /absolute/checkout --base BASE_REF`
+   for source selection and changed-document checks, or `tos-software-ci gate`
+   with the exact `CI_NEEDS` job results. CI authenticates and invokes the
+   same-run native executor directly. Native source-history tests cover
+   selection, Unicode links, failure propagation and required-job outcomes.
+   Workflow topology assertions remain separate checks.
+   Run `tos-release-check --repo-root "$PWD"`
+   to check contracts, build browser assets and run program fixture tests.
+   This command uses program fixtures and repository-owned dependencies.
+   Native immutable-file integration tests require fs-verity on the selected
+   temporary filesystem. CI supplies a job-owned ext4 image formatted with
+   `-O verity`, points `TMPDIR` at it and unmounts it after the tests; local
+   execution must likewise select a filesystem with fs-verity enabled.
+   The wrapper forwards explicit `--command-timeout-ms`, `--lane-timeout-ms`,
+   `--cleanup-grace-ms` and `--max-output-bytes` to the native executor.
+   Omitted limits retain its defaults. Select a phase with `--phase checks`
+   or `--phase tests` when the preceding phase already succeeded on the same
+   candidate. The tests phase executes the final authored `run tests` suffix;
+   that suffix may contain several named test-group commands, all of which run
+   in order and retain the same bounded command and lane deadlines. The public
+   assessment lifecycle and assessed-form batch fixtures likewise run as exact
+   individual commands; the source-derived Growth group excludes them, so each
+   assertion runs once. Their separate fifteen-minute bounds avoid charging
+   all seven owner-text scenarios to one command; the lane deadline is unchanged.
+   Set a longer command deadline only from the selected workload
+   cost; a timeout is incomplete validation, not a passing test result. These
+   flags do not change host resource admission or skip checks in that phase.
+   The Rust workspace lane and software release tests run the native
+   software/data release actions fixture as a separate command from their
+   remaining package tests. Its real captured corpus,
+   pair switching and revocation checks take about ten minutes in CI; each
+   command retains its own fifteen-minute bound within the same lane deadline.
+   The sequential Rust workspace lane has a three-hour aggregate CI budget
+   on the two-worker host. This includes the remaining cold recovery, install
+   and WASM checks after the source and package test groups; each command
+   keeps its separate limit from the validation manifest.
+   Conformance and Growth consume the pinned workspace images before package
+   tests can relink the shared Cargo binary paths with different feature sets.
+   The image digest checks remain active throughout those consumer steps.
+   The retained source-cut fixture also needs the exact commit named in
+   `tests/conformance/rust/retained-opening-source.txt` and its fourteen selected
+   metadata blobs. CI fetches that shallow commit and those blobs before the
+   native capture, which continues to disable lazy fetching and verify bytes.
+3. For browser changes, install the locked dependencies with
+   `npm ci --prefix access/web`, then run the software check above and
+   `tos-validation-lanes --repo-root "$PWD" --run software_browser`.
+   Browser tests require Playwright and Chromium. They create their own small
+   dataset. `access/web/dist` remains an ignored build output.
+4. For Worker code, first prepare the matching rules from this exact checkout:
+
+   ```sh
+   rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+   cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+   rules_target_dir="${CARGO_TARGET_DIR:-target}"
+   bindgen_dir="$(mktemp -d)"
+   curl --fail --location --silent --show-error \
+     'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+     --output "$bindgen_dir/wasm-bindgen.tar.gz"
+   printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$bindgen_dir/wasm-bindgen.tar.gz" | sha256sum --check --status
+   tar -xzf "$bindgen_dir/wasm-bindgen.tar.gz" -C "$bindgen_dir"
+   "$bindgen_dir/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
+     --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
+     "$rules_target_dir/wasm32-unknown-unknown/release/tos_web_rules.wasm"
+   rm -rf "$bindgen_dir"
+   ```
+
+   This verified Linux x86_64 recipe produces the matching JavaScript, WASM and
+   two declaration files required by the Worker bootstrap and Node preloader.
+   Then run `npm ci --prefix access/deploy/cloudflare-worker`, `npm run typecheck
+   --prefix access/deploy/cloudflare-worker` and `npm test --prefix
+   access/deploy/cloudflare-worker`. These checks run against local fixtures;
+   the Worker CI job prepares its own rules independently of the software job.
+5. Build and verify the native installable candidate from a clean reviewed
+   commit. Prepare the locked `tos-access` binary with the pinned toolchain and
+   its exact nine-field `tos_native_access_build_v1` build receipt. Prepare the
+   genuine frontend through locked Vite and the matching verified
+   `wasm-bindgen`/`tos-web-rules` product, then use that explicit dist handoff:
+
+   ```sh
+   /path/to/tos-access software build --root /absolute/clean-source --source-ref HEAD_SHA \
+     --web-dist /absolute/current-web-dist --output /absolute/tos-software.zip \
+     --native-access-binary /path/to/tos-access --native-access-receipt /absolute/native-build.json \
+     --max-total-bytes EXPANDED_CAP --max-archive-bytes ZIP_CAP --max-members MEMBER_CAP --max-metadata-bytes METADATA_CAP
+   /path/to/tos-access software verify --archive /absolute/tos-software.zip \
+     --max-total-bytes EXPANDED_CAP --max-archive-bytes ZIP_CAP --max-members MEMBER_CAP --max-metadata-bytes METADATA_CAP
+   /path/to/tos-access software install --archive /absolute/tos-software.zip --prefix /absolute/fresh-prefix \
+     --max-total-bytes EXPANDED_CAP --max-archive-bytes ZIP_CAP --max-members MEMBER_CAP --max-metadata-bytes METADATA_CAP
+   /absolute/fresh-prefix/bin/tos --version
+   ```
+
+   Replace `HEAD_SHA` with the exact clean commit and caps with explicitly
+   admitted finite package budgets. The native receipt binds source commit/tree,
+   lock, target, toolchain, profile and actual image size/hash; dirty source is
+   refused. Archive validation and fresh-prefix install check the exact native,
+   JSON and web closure without a Python runtime or corpus. Preserve the
+   previous prefix and its matching verifier for rollback. This new verifier
+   intentionally refuses older mixed Python/native archives.
+   CI uses this native route with the eighteen native command roles for its software
+   candidate. It builds receipts for the exact feature sets in the shared native command
+   descriptor, and derives package byte limits from the actual nineteen
+   executables, web assets and bounded software inputs; it does not reuse an
+   access-only byte cap. The job builds the same native archive and sidecar
+   twice and compares their bytes before verify/install, retaining the legacy
+   builder's determinism assertion on the maintained artifact. There is no
+   Python wheel reference package in the release candidate path. Historical
+   Python oracle tools remain optional comparison tools outside the native prefix.
+   Native prepare fixture calls in CI use a 45-second allowance and a 55-second
+   child wait, matching the measured joined maintenance fixture; the native
+   product default remains 20 seconds. This allowance is not a production SLO.
 6. Complete the ordinary checkpoint review for the exact repo, commit and
    session; open a PR. Required **Repo Validation** selects checks from the
    exact changed paths using the table below. Failed, cancelled or unexpectedly
@@ -57,8 +156,16 @@ use the full suite; a missing or failed selector fails the required gate.
 | `access/web/` or `access/e2e/` code/configuration | Software contracts, browser build/unit/types/behavior, isolated software package install |
 | `access/src/` or `access/tests/` | The browser/package checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
-| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install, and generated WEB.1 codec checks in Node WebAssembly |
+| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install, and generated WEB.1 codec checks in Node WebAssembly |
 | Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
+
+Every run first prepares the three native CI executors with the pinned Rust
+compiler. The plan job records their source commit/tree, lock digest, toolchain
+and binary sizes/digests; software, Rust and the required gate reuse that same
+run's artifact and verify its identity before placing the native executors on PATH.
+Missing products or a failed plan fail closed. Documentation-only changes skip
+the software package and browser/Worker jobs, but still need this native selector
+prerequisite. Cargo cache reuse is an optimization, not evidence of identity.
 
 A combined change takes all needed checks. Human Markdown is identified before
 its surrounding implementation directory; `ToS/` source Markdown does not use
@@ -72,7 +179,7 @@ Browser/Worker bundle installation, public access and larger runtime profiles
 remain subject to later gates.
 
 PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
-full release suite, as does the local `python scripts/release_check.py` command
+full release suite, as does the local `tos-release-check --repo-root "$PWD"` command
 plus the browser and Worker routes above. A documentation-only green check is
 not an installable release artifact: run the full release route when publishing
 software, even when the last change was documentation.
@@ -84,11 +191,82 @@ It contains program code, API contracts, static schemas and browser assets;
 and authorization. Standalone ToS software follows this repository's release
 route independently of AbyssOS helpers.
 
+## Local native owner-command delivery
+
+Source mutations retain an owner-scoped invocation route. The existing software
+archive can deliver their executables together with access, the schema worker and
+the three compiler-free ops entries using the optional fixed command cohort
+documented in access/README.md. Access-only archives remain supported. Archive
+installation grants no write authority and installs no invocation/config files.
+For separately prepared local products, the existing Cargo installation route
+also remains available from an exact reviewed checkout:
+
+```sh
+owner_prefix=/absolute/fresh-owner-prefix
+cargo +1.98.1 install --debug --locked --offline --path rust/crates/tos-command \
+  --bin tos-native-owner-command --root "$owner_prefix"
+cargo +1.98.1 install --debug --locked --offline --path rust/crates/tos-validation \
+  --bin tos-schema-worker --root "$owner_prefix"
+sha256sum "$owner_prefix/bin/tos-native-owner-command" "$owner_prefix/bin/tos-schema-worker"
+```
+
+Preparation needs its own admitted storage/process budget. Keep the exact source,
+lock, toolchain and both resulting product identities with the owner receipt;
+an executable found on PATH is not an authorization or a matching worker proof.
+The owner supplies a protected, user-owned `0600` invocation file and protected
+owner config, with absolute `native_executable` and `schema_worker.absolute_path`
+from this prefix and their exact SHA digests. The existing invocation also binds
+owned corpus store/source revision, software capture/restored root and selection,
+software components and finite budgets. Claim/Item profiles retain explicit
+`original_source_revision`; Alignment retains `owner_context`. These existing
+profiles remain supported. The prepared common dispatcher profile
+`tos_local_native_source_invocation_v1` binds both `original_source_revision` and
+`owner_context` (null only for an unused field), plus `assessment_schema_worker`
+(null unless the selected signing operation requires that worker). Required
+worker bindings retain exact executable custody; request content cannot select
+a worker, owner config or invocation path. Family-specific profiles and
+authorized operations belong to the command owner.
+
+The portable installed Rust client consumes the selected owner request on
+stdin without requiring this checkout or a Python runtime:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/protected-native-invocation.json < /absolute/request.json
+```
+
+Discover the packaged implementation grammar without source or owner access:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-commands --discover
+/absolute/prefix/bin/tos-native-owner-command source-commands --discover --handler native-work-expression
+```
+
+CLI discovery and HTTP `GET /commands/catalog` use the same packaged descriptor.
+Discovery grants no authority; the HTTP route retains its existing authentication.
+
+The optional Owner software role delivers this entry and the packaged
+`access/contracts/source-commands.v1.json` input/issuer contract. The local
+account that owns the selected source supplies its protected policy files;
+request transport does not manufacture their principal, authority, allowed
+operations or expiry. Existing native family `describe`, `prepare` and mutation
+requests use their unchanged typed grammar and independent current-use checks.
+A Host Rust private-stage issuer is a separate explicit resource boundary when
+needed by the selected receiver, not a source-field authority.
+
+The installed executable also accepts `--invocation ABSOLUTE_FILE` directly.
+Both routes must retain the same selected owner/source/rights/recovery and worker
+custody checks. Installing products does not construct an invocation, authorize a
+mutation, select a production corpus or switch a running cohort. The normal
+mutation dispatcher uses the protected native invocation and fails closed when
+it is missing. Source preparation is distinct from composition, installed
+default availability and the final cohort switch.
+
 ## Registry source-contract changes
 
 An authored semantic-registry change uses the independent
 `semantic_registry_transition` source lane. Select the full pre-change commit
-and run `python scripts/validate_semantic_registry_transition.py
+and run `tos-ops-mechanics-plan --repo-root ABS --semantic-registry-transition
 --baseline-commit FULL_COMMIT_OID --json`, or supply
 `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT` to the named validation lane. Retain
 that baseline and the comparison result with the source review. The owning
@@ -120,18 +298,27 @@ The source-to-reader operation is explicit:
 
 1. Prepare a `tos_corpus_batch_v1` manifest naming the exact base revision,
    validator identity, source bytes/modes and any explicit retirements.
-2. Run `scripts/corpus_admit.py` with `--store`, `--batch`, `--input-root`
-   and `--grammar-root`. Historical evidence and payload custody use their
-   explicit options. A rejected batch leaves the accepted pointer unchanged.
+2. Run `tos-native-owner-command corpus-admit` with explicit `--store`,
+   `--batch`, `--input-root`, `--grammar-root` and protected `--invocation`
+   paths. Historical capture and payload custody use their explicit options
+   when selected. A rejected batch leaves the accepted pointer unchanged.
    General record/claim batches currently run a conservative full source audit;
    only the verified retirement transition has a scoped fast path.
-3. Run `scripts/corpus_build_worker.py --store STORE --revision REVISION
-   --output NEW_SNAPSHOT`. The output directory must be new. Its `manifest.json`
-   binds the corpus and completed compiled data; source files cannot select
-   executable producers.
-4. Select `NEW_SNAPSHOT/data` with `TOS_DATA_ROOT` or `--root`. The reader checks
-   artifact integrity and compatibility before serving it. A failed build or
-   corrupt new artifact does not replace an existing readable snapshot.
+3. Produce a managed native Original candidate with
+   `tos-native-owner-command corpus-build < REQUEST_JSON` and the
+   `tos_native_corpus_build_request_v1` schema. The request names the exact
+   immutable corpus store and revision, a separately selected, digest-bound
+   software capture and restored root, its Git commit/tree and component
+   selection, and the exact schema-worker path and digest. `mode: build`
+   composes the six fixed source runtime products and invokes the native data
+   writer; it writes fresh `data_directory` and private release-candidate
+   directories under the selected persistent store and does not move a release
+   pointer.
+4. For parity, send the same source, software and worker selection in `mode:
+   check` with an absolute `comparison_root`. This recomposes and compares the
+   exact six products without a persistent write. Submit a successful build's
+   private pair to the ManagedRelease owner for full pair compatibility and
+   selection. A producer candidate is not an installed or published release.
 
 Bulk source revisions and their historical evidence use permanent local
 storage and permitted private Cloudflare R2 backups with verified restore.
@@ -151,7 +338,7 @@ integration follows the latest source. See `kag/VALIDATION.md` for KAG checks.
 
 The former full repository aggregate is retired. Select the affected source,
 data or external integration operation directly; individual owner procedures
-remain available through `scripts/validation_lanes.py`. No combined audit of
+remain available through `tos-validation-lanes`. No combined audit of
 corpus, KAG, statistics and documentation currentness owns release permission.
 
 Historical v0.5.0 provider release identities remain in `CHANGELOG.md`:

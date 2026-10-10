@@ -10,7 +10,7 @@
 | owner | `mechanics/experience/parts/adoption-boundary/` |
 | next route | runtime or owner repo only after explicit owner acceptance |
 | tools | docs, schemas, examples |
-| check | `python scripts/validate_mechanics_topology.py` |
+| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
 
 ## Payload
 

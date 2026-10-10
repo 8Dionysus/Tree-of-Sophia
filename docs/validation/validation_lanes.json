@@ -5,7 +5,7 @@
   "command_authority": "docs/validation/validation_lanes.json",
   "notes": [
     "This manifest is the executable command-authority surface for ToS validation lanes.",
-    "scripts/validation_lanes.py is a loader and checker only.",
+    "tos-validation-lanes loads, checks and executes this manifest.",
     "Inventories describe coverage and do not own command execution.",
     "TOS-D-0062: release_check validates software only. The former full repository aggregate is retired. Blocking mode applies only inside the selected source, data or integration operation."
   ],
@@ -130,7 +130,7 @@
       "label": "active naming",
       "layer": "active-topology",
       "mode": "blocking",
-      "owner_surface": "scripts/validate_active_naming.py",
+      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/active_naming.rs",
       "purpose": "Keep retired active path and id names out of current surfaces while allowing archive provenance.",
       "command_sequence": "active_naming",
       "failure_route": "AGENTS.md",
@@ -186,7 +186,7 @@
       "label": "route docs",
       "layer": "agent-route-card",
       "mode": "blocking",
-      "owner_surface": "scripts/validate_nested_agents.py",
+      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
       "purpose": "Verify route-card inventory, inheritance, generated currentness, executable references, and deterministic context budgets without freezing ordinary prose as doctrine.",
       "command_sequence": "route_docs",
       "failure_route": "DESIGN.AGENTS.md",
@@ -342,7 +342,7 @@
       "layer": "software-foundation",
       "mode": "blocking",
       "owner_surface": "rust/README.md",
-      "purpose": "Check pinned native and WASM builds, formatting, independent fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
+      "purpose": "Check pinned native and WASM builds, formatting, exact conformance product provenance, complete fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
       "command_sequence": "rust_workspace",
       "failure_route": "rust/README.md",
       "does_not_own": [
@@ -358,7 +358,7 @@
       "owner_surface": "docs/RELEASING.md",
       "purpose": "Validate standalone software contracts and fixture-based program behavior. Full corpus and integration audits are separate explicit operations.",
       "command_sequence": "release_check",
-      "entrypoint": "scripts/release_check.py",
+      "entrypoint": "tos-release-check",
       "covers_lanes": [
         "validation_authority",
         "standalone_access"
@@ -377,35 +377,329 @@
     "rust_workspace": [
       {
         "label": "check Rust formatting",
-        "command": ["cargo", "fmt", "--all", "--check"]
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ]
       },
       {
-        "label": "test Rust workspace",
-        "command": ["cargo", "test", "--workspace", "--locked"]
+        "label": "build exact native schema worker for source-cut fixtures",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "tos-validation",
+          "--bin",
+          "tos-schema-worker"
+        ]
+      },
+      {
+        "label": "build exact native owner CLI for process-cold fixtures",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--bin",
+          "tos-native-owner-command"
+        ]
+      },
+      {
+        "label": "build exact native prepared consumer for conformance fixtures",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "tos-access",
+          "--bin",
+          "tos-access"
+        ]
+      },
+      {
+        "label": "compile exact Rust conformance test image",
+        "command": [
+          "cargo",
+          "test",
+          "--no-run",
+          "--workspace",
+          "--locked",
+          "--message-format=json"
+        ]
+      },
+      {
+        "label": "test Rust conformance root and source families",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "--",
+          "--nocapture",
+          "@tos-native-growth-exclusions"
+        ]
+      },
+      {
+        "label": "test source-owned native Growth assertion classes",
+        "command_timeout_ms": 900000,
+        "command": [
+          "@tos-native-growth-classes"
+        ]
+      },
+      {
+        "label": "test Rust segment conformance target",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "segment-conformance",
+          "--",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance Artifact fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance Claim successor fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance initial Claim fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance Collection order fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance public assessment lifecycle fixture",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_owner_text_cases::native_public_assessment_v1_v2_v3_append_replay_and_revocation_preserve_source",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance assessed form batch fixture",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--test",
+          "conformance",
+          "command_owner_text_cases::native_public_v2_assessed_form_batch_matches_builder_and_rechecks_drift",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--no-fail-fast",
+          "--exclude",
+          "tos-conformance",
+          "--",
+          "--nocapture",
+          "@tos-native-growth-exclusions",
+          "--skip",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
+        ]
+      },
+      {
+        "label": "test native software/data release actions fixture",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-access",
+          "--test",
+          "native_release_actions",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated process-cold source revision fixture",
+        "command_timeout_ms": 1020000,
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
+          "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work37 fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
+          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+          "--",
+          "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work recovery fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--lib",
+          "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
+          "--",
+          "--exact"
+        ]
       },
       {
         "label": "check WASM foundation target",
-        "command": ["cargo", "check", "--locked", "-p", "tos-foundation", "--target", "wasm32-unknown-unknown", "--features", "wasm"]
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "-p",
+          "tos-foundation",
+          "--target",
+          "wasm32-unknown-unknown",
+          "--features",
+          "wasm"
+        ]
       },
       {
         "label": "check WASM validation backend target",
-        "command": ["cargo", "check", "--locked", "-p", "tos-validation", "--target", "wasm32-unknown-unknown"]
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "-p",
+          "tos-validation",
+          "--no-default-features",
+          "--features",
+          "wasm",
+          "--target",
+          "wasm32-unknown-unknown"
+        ]
       },
       {
         "label": "install native exact reader outside checkout",
-        "command": ["python", "scripts/verify_rust_reader_install.py"]
+        "command": [
+          "tos-software-ci",
+          "verify-reader-install",
+          "--repo-root",
+          "{repo_root}"
+        ]
+      },
+      {
+        "label": "install native mechanics executor and verify process custody",
+        "command": [
+          "tos-software-ci",
+          "verify-mechanics-install",
+          "--repo-root",
+          "{repo_root}"
+        ]
       },
       {
         "label": "verify generated WEB.1 binding in Node WebAssembly host",
-        "command": ["python", "scripts/verify_rust_web_host.py"]
+        "command": [
+          "tos-software-ci",
+          "verify-web-host",
+          "--repo-root",
+          "{repo_root}"
+        ]
       }
     ],
     "validation_authority": [
       {
         "label": "validate validation lane manifest",
         "command": [
-          "python",
-          "scripts/validation_lanes.py",
+          "tos-validation-lanes",
+          "--repo-root",
+          "{repo_root}",
           "--check"
         ]
       }
@@ -414,8 +708,10 @@
       {
         "label": "validate semantic registry transition against explicit baseline",
         "command": [
-          "python",
-          "scripts/validate_semantic_registry_transition.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--semantic-registry-transition"
         ]
       }
     ],
@@ -423,15 +719,19 @@
       {
         "label": "validate ToS source home",
         "command": [
-          "python",
-          "scripts/validate_tos_source_home.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--source-home"
         ]
       },
       {
         "label": "validate lived-witness private route",
         "command": [
-          "python",
-          "scripts/validate_lived_witness_route.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--lived-witness-validate"
         ]
       }
     ],
@@ -439,95 +739,111 @@
       {
         "label": "validate complete research registry normalization",
         "command": [
-          "python",
-          "scripts/validate_source_registry_normalization.py"
+          "tos-source-registry",
+          "validate",
+          "--source-root",
+          ".",
+          "--packet-root",
+          "ToS/research-packets/source-registries"
         ]
       },
       {
         "label": "check reviewed open-work candidate queue parity",
         "command": [
-          "python",
-          "scripts/build_open_work_candidate_queue.py",
-          "--check"
+          "tos-open-work-queue",
+          "check",
+          "--source-root",
+          "."
         ]
       },
       {
         "label": "validate reviewed open-work candidate queue",
         "command": [
-          "python",
-          "scripts/validate_open_work_candidate_queue.py"
+          "tos-open-work-queue",
+          "validate",
+          "--source-root",
+          "."
         ]
       },
       {
-        "label": "check source-witness catalog parity",
+        "label": "validate the complete source-witness foundation and generated catalog through its Rust owner",
         "command": [
-          "python",
-          "scripts/build_source_witness_catalog.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate source-witness evidence spine",
-        "command": [
-          "python",
-          "scripts/validate_source_witness_foundation.py"
+          "tos-native-owner-command",
+          "foundation",
+          "--repo-root",
+          "{repo_root}",
+          "--invocation",
+          "{foundation_invocation}"
         ]
       },
       {
         "label": "validate witness-structure correspondence",
         "command": [
-          "python",
-          "scripts/validate_witness_structure_correspondence.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--witness-structure-validate"
         ]
       },
       {
         "label": "validate Nietzsche transfer source routes",
         "command": [
-          "python",
-          "scripts/validate_nietzsche_transfer_source_routes.py"
+          "tos",
+          "nietzsche-transfer-source-routes",
+          "--source-root",
+          "{repo_root}",
+          "--validate-tracked"
         ]
       },
       {
         "label": "validate golden-kernel transfer target passages",
         "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_target_passages.py"
+          "tos",
+          "transfer-target-passages",
+          "--source-root",
+          "{repo_root}",
+          "--validate-tracked"
         ]
       },
       {
         "label": "validate golden-kernel transfer source passages",
         "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_source_passages.py"
+          "tos",
+          "transfer-source-passages",
+          "--source-root",
+          "{repo_root}",
+          "--validate-tracked"
         ]
       },
       {
         "label": "check golden-kernel transfer route readiness",
         "command": [
-          "python",
-          "scripts/build_golden_kernel_transfer_route_readiness.py",
+          "tos",
+          "transfer-route-readiness",
+          "--source-root",
+          "{repo_root}",
           "--check"
-        ]
-      },
-      {
-        "label": "validate golden-kernel transfer route readiness",
-        "command": [
-          "python",
-          "scripts/validate_golden_kernel_transfer_route_readiness.py"
         ]
       },
       {
         "label": "validate Zarathustra lexical projection",
         "command": [
-          "python",
-          "scripts/validate_zarathustra_lexical_index.py"
+          "tos",
+          "lexical-index",
+          "validate-tracked",
+          "--source-root",
+          "{repo_root}"
         ]
       },
       {
         "label": "check Zarathustra exact-form recurrence projection",
         "command": [
-          "python",
-          "scripts/build_zarathustra_recurrence_projection.py",
+          "tos",
+          "zarathustra-recurrence-projection",
+          "--source-root",
+          "{repo_root}",
+          "--local-output-root",
+          "{repo_root}",
           "--check"
         ]
       }
@@ -536,8 +852,10 @@
       {
         "label": "validate philosophy topology",
         "command": [
-          "python",
-          "scripts/validate_philosophy_topology.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--philosophy-topology"
         ]
       }
     ],
@@ -545,8 +863,10 @@
       {
         "label": "validate mechanics topology",
         "command": [
-          "python",
-          "scripts/validate_mechanics_topology.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--mechanics-topology-validate"
         ]
       }
     ],
@@ -554,14 +874,11 @@
       {
         "label": "validate Experience contracts",
         "command": [
-          "python",
-          "-m",
-          "unittest",
-          "discover",
-          "-s",
-          "mechanics/experience/tests",
-          "-p",
-          "test*.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--local-contracts",
+          "mechanics/experience"
         ]
       }
     ],
@@ -569,8 +886,10 @@
       {
         "label": "validate active naming",
         "command": [
-          "python",
-          "scripts/validate_active_naming.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--active-naming-validate"
         ]
       }
     ],
@@ -578,120 +897,176 @@
       {
         "label": "check root entry map",
         "command": [
-          "python",
-          "scripts/build_root_entry_map.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--root-entry-map-build",
           "--check"
         ]
       },
       {
         "label": "validate root entry map",
         "command": [
-          "python",
-          "scripts/validate_root_entry_map.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--root-entry-map-validate"
         ]
       },
       {
-        "label": "validate ToS corpus index",
+        "label": "validate native corpus and bibliographic projection parity",
         "command": [
-          "python",
-          "scripts/validate_tos_corpus_index.py"
-        ]
-      },
-      {
-        "label": "check source-witness bibliographic graph",
-        "command": [
-          "python",
-          "scripts/build_source_witness_bibliographic_graph.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate source-witness bibliographic graph",
-        "command": [
-          "python",
-          "scripts/validate_source_witness_bibliographic_graph.py"
+          "tos-native-owner-command",
+          "corpus-projection-check",
+          "--repo-root",
+          "{repo_root}",
+          "--software-commit",
+          "HEAD",
+          "--schema-worker-env",
+          "TOS_SCHEMA_WORKER_PATH",
+          "--limits-profile",
+          "repo-validation-v1"
         ]
       },
       {
         "label": "check philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/build_philosophy_atlas_projection.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_atlas_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "check philosophy graph views",
         "command": [
-          "python",
-          "scripts/build_philosophy_graph_views.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy graph views",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_views.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "validate philosophy graph projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "graph",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "check epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/build_epistemic_evidence_projection.py",
-          "--check"
+          "tos",
+          "evidence-projection",
+          "check",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {
         "label": "validate epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/validate_epistemic_evidence_projection.py"
+          "tos",
+          "evidence-projection",
+          "validate",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {
         "label": "check philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/build_philosophy_post_planting_audit.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/validate_philosophy_post_planting_audit.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "check decision indexes",
         "command": [
-          "python",
-          "scripts/generate_decision_indexes.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--decision-index-build",
           "--check"
         ]
       },
       {
         "label": "validate decision records",
         "command": [
-          "python",
-          "scripts/validate_decision_records.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--decision-records-validate"
         ]
       }
     ],
@@ -699,22 +1074,28 @@
       {
         "label": "validate tree node contracts",
         "command": [
-          "python",
-          "scripts/validate_tree_node_contracts.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--tree-node-validate"
         ]
       },
       {
         "label": "validate tree relation packs",
         "command": [
-          "python",
-          "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--relation-pack-validate"
         ]
       },
       {
         "label": "validate public example sync",
         "command": [
-          "python",
-          "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--public-mirror-validate"
         ]
       }
     ],
@@ -722,8 +1103,10 @@
       {
         "label": "validate intake pack",
         "command": [
-          "python",
-          "scripts/validate_intake_pack.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--intake-pack-validate"
         ]
       }
     ],
@@ -731,24 +1114,29 @@
       {
         "label": "check AGENTS route-card currentness",
         "command": [
-          "python",
-          "scripts/build_agents_route_currentness.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--agents-route-currentness-build",
           "--check"
         ]
       },
       {
         "label": "validate route-card structure",
         "command": [
-          "python",
-          "scripts/validate_nested_agents.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--nested-agents-validate"
         ]
       },
       {
         "label": "run deterministic AGENTS task route harness",
         "command": [
-          "python",
-          "scripts/agents_route_harness.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--agents-route-harness-check"
         ]
       }
     ],
@@ -756,17 +1144,20 @@
       {
         "label": "check agent-surface currentness",
         "command": [
-          "python",
-          "scripts/build_agent_surface_currentness.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--agent-surface-build",
           "--check"
         ]
       },
       {
         "label": "validate agent-surface routes",
         "command": [
-          "python",
-          "scripts/validate_agent_surface.py",
-          "--check",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--agent-surface-validate",
           "--fetch-budget-bases"
         ]
       }
@@ -775,16 +1166,20 @@
       {
         "label": "check documentation family currentness",
         "command": [
-          "python",
-          "scripts/build_documentation_family_currentness.py",
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--documentation-family-build",
           "--check"
         ]
       },
       {
         "label": "validate cross-corpus documentation guards",
         "command": [
-          "python",
-          "scripts/validate_documentation_cross_corpus.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--documentation-cross-corpus-validate"
         ]
       }
     ],
@@ -792,8 +1187,10 @@
       {
         "label": "validate tiny entry route",
         "command": [
-          "python",
-          "scripts/validate_tiny_entry_route.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--tiny-entry-validate"
         ]
       }
     ],
@@ -801,141 +1198,182 @@
       {
         "label": "validate questbook surface",
         "command": [
-          "python",
-          "mechanics/questbook/scripts/validate_questbook_surface.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          ".",
+          "--questbook-validate"
         ]
       }
     ],
     "graph_exports": [
       {
-        "label": "validate ToS corpus index",
+        "label": "validate native corpus and bibliographic projection parity",
         "command": [
-          "python",
-          "scripts/validate_tos_corpus_index.py"
-        ]
-      },
-      {
-        "label": "check source-witness bibliographic graph",
-        "command": [
-          "python",
-          "scripts/build_source_witness_bibliographic_graph.py",
-          "--check"
-        ]
-      },
-      {
-        "label": "validate source-witness bibliographic graph",
-        "command": [
-          "python",
-          "scripts/validate_source_witness_bibliographic_graph.py"
+          "tos-native-owner-command",
+          "corpus-projection-check",
+          "--repo-root",
+          "{repo_root}",
+          "--software-commit",
+          "HEAD",
+          "--schema-worker-env",
+          "TOS_SCHEMA_WORKER_PATH",
+          "--limits-profile",
+          "repo-validation-v1"
         ]
       },
       {
         "label": "check philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/build_philosophy_atlas_projection.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy atlas projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_atlas_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "atlas",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "check philosophy graph views",
         "command": [
-          "python",
-          "scripts/build_philosophy_graph_views.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy graph views",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_views.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "views",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "validate philosophy graph projection",
         "command": [
-          "python",
-          "scripts/validate_philosophy_graph_projection.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "graph",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       },
       {
         "label": "check epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/build_epistemic_evidence_projection.py",
-          "--check"
+          "tos",
+          "evidence-projection",
+          "check",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {
         "label": "validate epistemic evidence projection",
         "command": [
-          "python",
-          "scripts/validate_epistemic_evidence_projection.py"
+          "tos",
+          "evidence-projection",
+          "validate",
+          "--source-root",
+          "{repo_root}",
+          "--max-seconds",
+          "180"
         ]
       },
       {
         "label": "check philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/build_philosophy_post_planting_audit.py",
-          "--check"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "check"
         ]
       },
       {
         "label": "validate philosophy post-planting audit",
         "command": [
-          "python",
-          "scripts/validate_philosophy_post_planting_audit.py"
+          "tos-ops-mechanics-plan",
+          "--philosophy-product",
+          "audit",
+          "--source-root",
+          "{repo_root}",
+          "--output-root",
+          "{repo_root}",
+          "--mode",
+          "validate"
         ]
       }
     ],
     "standalone_access": [
       {
-        "label": "compile standalone query snapshot",
+        "label": "run native access package tests",
         "command": [
-          "python",
-          "access/src/tos_access/knowledge_compile.py",
-          "--root",
-          "."
-        ]
-      },
-      {
-        "label": "run standalone access contract tests",
-        "command": [
-          "python",
-          "-m",
-          "unittest",
-          "discover",
-          "-s",
-          "access/tests"
-        ]
-      },
-      {
-        "label": "run exact source-read pytest contracts",
-        "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "access/tests/test_source_read.py",
-          "access/tests/test_source_read_owner.py"
+          "tos-access"
         ]
       },
       {
-        "label": "validate standalone access source profile",
+        "label": "run native query package tests",
         "command": [
-          "python",
-          "access/packaging/validate_standalone.py"
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-query"
+        ]
+      },
+      {
+        "label": "validate standalone software profile through installed native CLI",
+        "command": [
+          "tos",
+          "validate-standalone",
+          "--root",
+          ".",
+          "--software",
+          "--json"
         ]
       }
     ],
@@ -943,8 +1381,10 @@
       {
         "label": "validate OS Abyss generated readmodel artifact bundle",
         "command": [
-          "python",
-          "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py"
+          "tos-ops-mechanics-plan",
+          "--artifact-bundle",
+          "--repo-root",
+          "{repo_root}"
         ]
       }
     ],
@@ -952,9 +1392,12 @@
       {
         "label": "software contracts",
         "command": [
-          "python",
-          "access/packaging/validate_standalone.py",
-          "--software"
+          "tos",
+          "validate-standalone",
+          "--root",
+          "{repo_root}",
+          "--software",
+          "--json"
         ]
       },
       {
@@ -968,36 +1411,54 @@
         ]
       },
       {
-        "label": "run tests",
+        "label": "run tests: native access package",
         "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "--strict-markers",
-          "-m",
-          "not data_release",
-          "access/tests",
-          "tests/test_validation_lanes.py",
-          "tests/test_acquisition_batch.py",
-          "tests/test_acquisition_handoff_adapter.py",
-          "tests/test_file_membership.py",
-          "tests/test_corpus_archive.py",
-          "tests/test_corpus_store.py",
-          "tests/test_corpus_r2.py",
-          "tests/test_corpus_locator.py",
-          "tests/test_corpus_admit.py",
-          "tests/test_corpus_source_validation.py",
-          "tests/test_corpus_source_retirement.py",
-          "tests/test_corpus_build_worker.py",
-          "tests/test_local_stats_port.py",
-          "tests/test_build_kag_export.py",
-          "tests/test_downstream_status.py",
-          "tests/test_publish_kag_release.py",
-          "tests/test_publish_stats_release.py",
-          "tests/test_software_ci.py"
+          "tos-access",
+          "--",
+          "--skip",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
+        ]
+      },
+      {
+        "label": "run tests: native software/data release actions fixture",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-access",
+          "--test",
+          "native_release_actions",
+          "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates",
+          "--",
+          "--exact",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "run tests: native query package",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-query"
+        ]
+      },
+      {
+        "label": "run tests: native source and command packages",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "-p",
+          "tos-source-store"
         ]
       }
     ],
@@ -1005,8 +1466,10 @@
       {
         "label": "run mechanics-local checks",
         "command": [
-          "python",
-          "scripts/run_mechanics_local_tests.py"
+          "tos-ops-mechanics-plan",
+          "--repo-root",
+          "{repo_root}",
+          "--execute"
         ]
       }
     ],
@@ -1032,30 +1495,41 @@
         ]
       },
       {
-        "label": "browser behavior",
+        "label": "browser behavior: native Rust fixture and Node Playwright cases",
         "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
-          "access/e2e/test_webmcp.py"
+          "node",
+          "--test",
+          "--test-reporter=tap",
+          "access/e2e/test_webmcp.mjs"
         ]
       }
     ],
     "software_reader": [
       {
-        "label": "reader and API fixture tests",
+        "label": "native selected access wires",
         "command": [
-          "python",
-          "-m",
-          "pytest",
-          "-q",
+          "cargo",
+          "test",
+          "--locked",
           "-p",
-          "no:cacheprovider",
-          "--strict-markers",
-          "-m",
-          "not data_release",
-          "access/tests"
+          "tos-access",
+          "--test",
+          "selected_wires"
+        ]
+      }
+    ],
+    "local_stats_port": [
+      {
+        "label": "native stats transport and immutable local publication",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-ops-mechanics-plan",
+          "--no-default-features",
+          "--test",
+          "stats_release_native"
         ]
       }
     ]

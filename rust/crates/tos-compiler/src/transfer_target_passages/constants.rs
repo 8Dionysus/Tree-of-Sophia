@@ -1,0 +1,27 @@
+pub(super) const GOLD_ROOT: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1";
+pub(super) const PLAN_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json";
+pub(super) const OUTPUT_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json";
+pub(super) const ANCHOR_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-anchors.v1.jsonl";
+pub(super) const PROVENANCE_PATH: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl";
+pub(super) const LOCAL_CONTENT_ROOT: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-target-passages/v1";
+pub(super) const SCHEMA_PATH: &str =
+    "ToS/contracts/transfer-target-passage-candidate-set.schema.json";
+pub(super) const SOURCE_ANCHOR_SCHEMA_PATH: &str = "ToS/contracts/source-anchor.schema.json";
+pub(super) const ITEM_DIR: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf";
+pub(super) const MANIFEST_PATH: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json";
+pub(super) const INVENTORY_PATH: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json";
+pub(super) const RIGHTS_PATH: &str = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json";
+pub(super) const JENSEITS_MAP: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json";
+pub(super) const JENSEITS_CROSSWALK: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/transfer-candidate-page-crosswalk.v1.json";
+pub(super) const JENSEITS_PAIRINGS: &str = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json";
+pub(super) const GENE_MAP: &str = "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json";
+pub(super) const GENE_ROUTES: &str = "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/transfer-candidate-source-structural-route.v1.json";
+pub(super) const ANTI_MAP: &str = "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json";
+pub(super) const ANTI_ROUTES: &str = "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/transfer-candidate-source-structural-route.v1.json";
+pub(super) const PDFTOTEXT_VERSION: &str = "26.01.0";
+pub(super) const EVENT_ID: &str =
+    "tos.event.segmentation.golden-kernel-transfer-target-passages-v1.2026-08-08";
+pub(super) const SET_ID: &str =
+    "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-v1";
+pub(super) const SCHEMA_REF: &str =
+    "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json";

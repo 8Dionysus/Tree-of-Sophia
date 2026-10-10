@@ -1,12 +1,12 @@
+import {frozenPythonOracleExec} from './frozen-python-oracle.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {parseNativeJson, nativeChild, nativeField, nativeJson, nativeNumberInfo, isNativeRef,
   nativePacketArray, nativePacketObject, nativePacketJson, nativeInteger, nativeFloat,
   NativeContextLost, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
 function python(code, input) {
-  return JSON.parse(execFileSync('python3', ['-B', '-c', code], {
+  return JSON.parse(frozenPythonOracleExec(import.meta.url, ['-B', '-c', code], {
     input, encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024,
   }));
 }
@@ -18,7 +18,7 @@ def shape(value):
     return {'type':type(value).__name__,'repr':repr(value)}
 `;
 
-test('mixed packet round-trips actual Python source values, numeric kinds and ordered keys', () => {
+test('mixed packet matches captured Python source values, numeric kinds and ordered keys', () => {
   const fixture = python(String.raw`
 import json
 ` + shapeCode + String.raw`

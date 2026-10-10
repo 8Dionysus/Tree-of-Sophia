@@ -13,8 +13,8 @@
   },
   "authority_posture": "public_synthetic_contract_mechanics_only",
   "builder": {
-    "ref": "scripts/build_source_text_unit_v1_lab.py",
-    "sha256": "4da34c86754934fe44b0e24188cd1016df2a296101c63d163d7587108cf9c930"
+    "ref": "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs",
+    "sha256": "bd9f4f3ef4af30e1c2b1eb5b3a0106863d40be3ff2cfe8b199c2d7f876502928"
   },
   "contract": {
     "ref": "ToS/contracts/source-text-unit-packet-v1.schema.json",
@@ -38,21 +38,21 @@
       "expected_schema_valid": true,
       "expected_semantic_valid": true,
       "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json",
-      "packet_sha256": "c7065c753a9b7b1df46c579041d39cdaa89db007408bf3d597f8539d1c586de4",
+      "packet_sha256": "a606e6470ea8addf2c9362cddefb964723da61c15b3fb5f9c13d2eb631ce94e5",
       "variant_id": "A"
     },
     {
       "expected_schema_valid": true,
       "expected_semantic_valid": true,
       "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-b-competing-segmentations.json",
-      "packet_sha256": "653f3663aa1fc04f20a8f5d2e412dc5b19e121fada1f584837f36d9a06142e3b",
+      "packet_sha256": "ba70bc3ff22f3f0ccc6d0a4d5b7a981566d9dec4f0c9b1d02aaec3f6bce8cbfc",
       "variant_id": "B"
     },
     {
       "expected_schema_valid": false,
       "expected_semantic_valid": false,
       "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-c-invalid-acceptance.json",
-      "packet_sha256": "5edca499ad3d1775b043ed51c33179ebfab503496a16205e4b90166326b0ae53",
+      "packet_sha256": "c0baef216e701050dcf3a5e270febef97053a6416c3c540a84c35eecc15f7262",
       "variant_id": "C"
     }
   ]

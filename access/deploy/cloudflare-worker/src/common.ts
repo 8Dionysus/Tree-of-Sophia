@@ -68,20 +68,6 @@ export function parseItem(value: string): Item {
   return parsed as Item;
 }
 
-export function sourceRefs(items: Item[]): string[] {
-  const refs = new Set<string>();
-  for (const item of items) {
-    const sourceRef = stringValue(item.source_ref);
-    if (sourceRef) refs.add(sourceRef);
-    for (const ref of stringArray(item.source_refs)) refs.add(ref);
-  }
-  return [...refs].sort();
-}
-
-export function uniqueValues(items: Item[], key: string): string[] {
-  return [...new Set(items.map((item) => stringValue(item[key])).filter(Boolean))].sort();
-}
-
 export function withSecurity(response: Response): Response {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) headers.set(name, value);
@@ -101,57 +87,4 @@ export function matchesMask(rowMask: number, filterMask: number | null): boolean
 
 export function allowedPredicate(predicate: string, filters: string[]): boolean {
   return filters.length === 0 || filters.includes(predicate);
-}
-
-export function boundedGraph(nodes: Item[], edges: Item[], limit: number): { nodes: Item[]; edges: Item[] } {
-  const nodesById = new Map(nodes.map((node) => [stringValue(node.node_id), node]));
-  const selectedNodeIds = new Set<string>();
-  const selectedEdges: Item[] = [];
-  for (const edge of edges) {
-    const left = stringValue(edge.from_id);
-    const right = stringValue(edge.to_id);
-    if (!nodesById.has(left) || !nodesById.has(right)) continue;
-    const additions = new Set([left, right].filter((id) => !selectedNodeIds.has(id)));
-    if (selectedNodeIds.size + additions.size > limit) continue;
-    additions.forEach((id) => selectedNodeIds.add(id));
-    selectedEdges.push(edge);
-    if (selectedEdges.length >= limit) break;
-  }
-  for (const node of nodes) {
-    if (selectedNodeIds.size >= limit) break;
-    const id = stringValue(node.node_id);
-    if (id) selectedNodeIds.add(id);
-  }
-  return {
-    nodes: nodes.filter((node) => selectedNodeIds.has(stringValue(node.node_id))),
-    edges: selectedEdges,
-  };
-}
-
-export function boundedClusters(clusters: Item[], nodes: Item[], edges: Item[]): Item[] {
-  const nodeIds = new Set(nodes.map((node) => stringValue(node.node_id)));
-  const edgeIds = new Set(edges.map((edge) => stringValue(edge.edge_id)));
-  const result: Item[] = [];
-  for (const cluster of clusters) {
-    const originalNodeIds = stringArray(cluster.member_node_ids);
-    const originalEdgeIds = stringArray(cluster.member_edge_ids);
-    const memberNodeIds = originalNodeIds.filter((id) => nodeIds.has(id));
-    const memberEdgeIds = originalEdgeIds.filter((id) => edgeIds.has(id));
-    if (memberNodeIds.length === 0 && memberEdgeIds.length === 0) continue;
-    const properties =
-      cluster.properties && typeof cluster.properties === "object" && !Array.isArray(cluster.properties)
-        ? { ...(cluster.properties as Item) }
-        : {};
-    if ("member_count" in properties) properties.member_count = memberNodeIds.length;
-    if ("edge_count" in properties) properties.edge_count = memberEdgeIds.length;
-    result.push({
-      ...cluster,
-      member_node_ids: memberNodeIds,
-      member_edge_ids: memberEdgeIds,
-      available_member_node_count: originalNodeIds.length,
-      available_member_edge_count: originalEdgeIds.length,
-      properties,
-    });
-  }
-  return result;
 }

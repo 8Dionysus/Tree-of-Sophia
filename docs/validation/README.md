@@ -16,7 +16,7 @@ own owner surfaces.
 | --- | --- |
 | `../../VALIDATION.md` | on-demand human selector for named internal lanes and district validation routes |
 | `validation_lanes.json` | executable command authority for named validation lanes |
-| `script_inventory.json` | descriptive map of active `*/scripts/*` surfaces to owners, lanes, and side effects |
+| `script_inventory.json` | descriptive map of selected script and native owner surfaces to owners, lanes, and side effects |
 | `SCRIPT_TOPOLOGY.md` | descriptive map of script homes, families, side effects, and lane posture |
 | `agents_route_inventory.json` | source map for tracked route cards, inheritance, task routes, context budgets, and influencing surfaces |
 | `../../.agents/agents-route.current.json` | generated route-card currentness read model; never stronger than the cards or owner docs |
@@ -26,6 +26,19 @@ own owner surfaces.
 | `../testing/TEST_TOPOLOGY.md` | descriptive map of test homes, families, and failure routes |
 
 Inventories describe coverage. They are not command authority.
+
+The `source_witness_foundation` lane runs the native full audit and catalog
+parity through `tos-native-owner-command foundation`. Run it inside the
+abyss-machine private-tmpfs owner launcher, which supplies the sealed
+`ABYSS_STAGE_TICKET_FD` and matching `ABYSS_STAGE_ROOT`. Select the owner-issued
+protected invocation explicitly as
+`TOS_NATIVE_FOUNDATION_INVOCATION=/absolute/path/to/invocation.json`; it binds
+the installed command and schema-worker digests plus the finite source, CPU,
+stage, state and output budgets. The lane forwards that sealed FD only to the
+native foundation command, preserving the launcher's existing ticket checks.
+Without both the invocation selection and issuer ticket, `--run
+source_witness_foundation` refuses before the audit starts. `--check` only
+validates the authored lane manifest and does not need either input.
 
 Root and district `VALIDATION.md` files are human maps, not inherited prompt
 cards or second machine manifests. They may select a lane or preserve an
@@ -50,7 +63,7 @@ here in `validation_lanes.json`.
   registry only becomes useful after ToS grows a distinct validator-module
   surface.
 - AGENTS route topology routes to `agents_route_inventory.json`, its generated
-  currentness companion, and `scripts/agents_route_harness.py`; the harness checks deterministic route shape. Behavioral and semantic
+  currentness companion, and `rust/crates/tos-ops-mechanics-plan/src/route_harness.rs`; the harness checks deterministic route shape. Behavioral and semantic
 evaluation follow their respective eval routes.
 - Test topology routes to `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`,
   `tests/VALIDATION.md`, and `tests/test_inventory.json`.
@@ -85,8 +98,8 @@ coverage, authority, public-safety, and context probes.
 
 Use root `VALIDATION.md` to inspect or run a named lane. The
 `validation_authority` sequence owns manifest self-check; the `release_check`
-sequence owns standalone software checks and `scripts/release_check.py` remains
-its entrypoint. `software_browser` checks browser behavior on fixtures after `release_check.py` builds the assets.
+sequence owns standalone software checks and `tos-release-check` remains
+its entrypoint. `software_browser` checks browser behavior on fixtures after `tos-release-check` builds the assets.
 The former full aggregate is available through an explicit
 `integration_snapshot_audit` selection, independently of software merge. Blocking lane posture applies inside
 the selected owner operation, under TOS-D-0062.

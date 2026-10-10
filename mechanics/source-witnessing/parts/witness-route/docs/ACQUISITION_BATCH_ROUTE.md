@@ -1,7 +1,15 @@
 # Versioned acquisition batch route
 
-`scripts/acquisition_batch.py` owns the repeatable preparation and local
-transfer boundary for a new provider batch. The route is deliberately
+The native `tos-command` acquisition owner implements the repeatable
+preparation and local transfer boundary for a new provider batch. Invoke
+`tos-native-owner-command acquisition` with a bounded JSONL request whose
+`family` is `batch` and whose operation is `prepare`, `acquire`, `verify_local`,
+or `measure_storage`. Select the installed owner binary through `PATH` or the
+explicit `TOS_NATIVE_OWNER_COMMAND_BIN`; the native route has no Python
+fallback. The native HTTP transport uses `/usr/bin/curl` with curlrc disabled,
+restricted HTTP/HTTPS protocols, a finite provider deadline and byte cap.
+Tests may supply fixture bytes through the native callback frame only when
+requested by the native attempt loop. The route is deliberately
 selection-driven: the caller supplies one immutable manifest matching
 `ToS/contracts/acquisition-batch.schema.json`, an explicit metadata root, and
 an empty output root. The route never discovers records by walking the
@@ -48,7 +56,7 @@ whose payload and receipt trees are empty. Existing payload, receipt, or
 foreign source evidence is retained and causes a fail-closed error.
 
 `acquire` uses provider fields to fetch each payload independently and publishes
-it through `source_payload_custody.publish_bytes_no_clobber`. It verifies
+it through descriptor-anchored native no-clobber custody. It verifies
 destination readback and appends a durable per-Item/File/destination journal
 row. A failed provider is recorded and does not prevent other files from
 completing. A later invocation
@@ -81,16 +89,15 @@ accepted revision, R2 transfer, publication decision, semantic review, canon
 change, or deployment receipt. Intake should select one or more explicit
 handoff paths and bind each selected handoff's manifest and fixity digests;
 the acquisition route intentionally provides no hardcoded historical batch
-list. The route-owned `scripts/acquisition_handoff_adapter.py` is the small
-consumer fixture for one selected handoff: it verifies those bindings and
-emits a private `tos_corpus_batch_v1` input root with explicit `source/` and
-`payload/` roots. It checks the selected revision against an explicit accepted
-store pointer and loads that pointer's cryptographically bound immutable
+list. The native `handoff` family is the consumer for one selected handoff: it
+verifies those bindings and emits a private `tos_corpus_batch_v1` input root
+with explicit `source/` and `payload/` roots. It checks the selected revision
+against an explicit accepted store pointer and loads that pointer's cryptographically bound immutable
 `revisions/<base_revision>/snapshot.json`. For every selected source path, the
 accepted-source view must contain the exact snapshot member and bytes; a path
 absent from the snapshot must also be absent from the view. An arbitrary empty
 or mismatched view therefore fails closed before candidate output. The adapter
-then calls the existing `corpus_admit.read_batch` contract and does not call
+then calls the existing native `AdmissionBatch::read` contract and does not call
 admission. The caller must provide the exact validation context that produced
 the selected `validator_sha256`: grammar root plus every paired historical
 capture/restored root. The adapter verifies retained capture and restore
@@ -130,3 +137,36 @@ against the handoff's declared selection and the actual `manifest.json` bytes.
 The hash inside the handoff cannot authenticate the handoff by itself. This
 also permits an older sealed handoff to be consumed when its exact manifest
 digest is independently retained.
+
+The registry and handoff families share the native owner-command entrypoint;
+no Python command or import facade is maintained for these routes.
+Historical Python implementations and assertions remain as nonexecutable
+`.py.snapshot` files under `tests/historical/`. Native fixture acceptance uses real filesystem descriptors and an
+isolated local HTTP provider. Product build, installed consumer verification
+and source/CI landing are separate evidence stages; neither local fixture
+acquisition nor transport establishes corpus admission or publication.
+
+## Standalone retained-payload custody
+
+The native custody entry is `tos-native-owner-command acquisition` with the
+`custody` family, `cli` operation and `verify` or `copy` command. Callers select Item manifests, frozen
+inventories or registry manifests and provide explicit metadata, source and
+destination roots. The owner checks source size and available SHA-256/Git blob
+identity, plans one destination per Item/File, and publishes copies with
+no-clobber semantics. Payloads must retain mode `0444`; matching writable
+files and different bytes are conflicts. New receipts are immutable mode
+`0600` JSON containing rows, fixity, counts and refs, never copied payload
+bytes or absolute host paths. The operation does not alter metadata, rights,
+Item admission, semantic review or publication state. The prior Python
+implementation is retained only as
+`tests/historical/oracles/acquisition/source_payload_custody.py.snapshot`.
+Maintained custody regressions live with the native owner.
+
+The historical September 8 registry-preparation producer is
+retired from the runtime scripts surface in this source cutover. Its complete
+implementation and repository-relative historical inputs remain in
+`tests/historical/oracles/acquisition/prepare_registry_sources.py.snapshot`. This preserves
+the one-off producer for retrospective comparison and does not establish
+parity with its historical metadata capture. Maintained preparation uses the
+versioned selection-driven native batch route described above; fixture and
+product acceptance of that route remain distinct from this oracle move.

@@ -94,8 +94,8 @@ validation or claiming an absent consumer result.
 ## Executable consumer and verification
 
 The owning implementation is in
-[the assessment command](../../mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py),
-[human-form materialization](../../mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py)
+[the assessment command](https://github.com/8Dionysus/Tree-of-Sophia/blob/60e96eceb0903d74e287217fe5e8c1a891f4ab74/mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py),
+[human-form materialization](https://github.com/8Dionysus/Tree-of-Sophia/blob/60e96eceb0903d74e287217fe5e8c1a891f4ab74/mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py)
 and the source-owned field catalog. Its contract is
 [Human forms](../doctrine/HUMAN_FORMS.md) and
 [the native quality route](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_ASSESSMENT.md).

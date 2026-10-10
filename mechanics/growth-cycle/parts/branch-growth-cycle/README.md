@@ -2,7 +2,7 @@
 
 ## Find a source-owner command
 
-Start with `python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py --discover`.
+Start with `tos-native-owner-command source-commands --discover`.
 It returns handler-owned JSON operation and request shapes without a private
 grant or source target. Use `--discover --handler HANDLER_ID` for one exact
 family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the compact API, typed owner handles and limits. Discovery reports
@@ -118,26 +118,26 @@ their owner route.
 | output | growth route or return-to-review |
 | owner | `mechanics/growth-cycle/parts/branch-growth-cycle/` |
 | next route | `ToS/philosophy/` or `ToS/canon/` after review |
-| tools | `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`, `ToS/philosophy/philosophy.manifest.json`, `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py` |
-| check | `python scripts/validate_philosophy_topology.py` |
+| tools | `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`, `ToS/philosophy/philosophy.manifest.json`, `rust/crates/tos-command/src/source_assessment_journal.rs` |
+| check | `tos-ops-mechanics-plan --repo-root ROOT --philosophy-topology` |
 
 ## Assessment policy application
 
-`scripts/knowledge_assessment.py` applies the source-owned
+`rust/crates/tos-validation/src/assessment.rs` applies the source-owned
 `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md` law to authenticated owner inputs without
 network, model calls or source writes. It distinguishes substantive assessment
 from current admission. The caller supplies trusted policy, grants, competence,
 current exact records and complete bounded subject history; submitted prose
 cannot provide its own authority. The pure engine evaluates the supplied authenticated inputs; command adapters
 bind them to actual source and authority records. Local invariant checks belong to
-`mechanics/growth-cycle/tests/test_knowledge_assessment.py` and the existing
+`tests/conformance/rust/command_owner_text_cases.rs` and the existing
 `mechanics_local` discovery lane.
 
 ## Source-owner journal
 
 ### Sign issuance through the shared source command
 
-The existing `source_commands.py --owner-config /absolute/owner.json` entry
+The existing `tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` entry
 accepts the separately delegated `tos_local_sign_promote_owner_v1` configuration.
 It has the public profile-creation fields (`uid`, `principal_id`, `source_root`,
 `source_path`, `authority_ref`, `allowed_form_ids`, `allowed_operations`,
@@ -236,7 +236,7 @@ declared metadata profiles and schema routes. Pass the locator to `supports`
 when one catalog contains more than one native/declared representation.
 
 An explicit `MetadataVersionReader(root, catalog_snapshot=SourceCatalogSnapshot(...))`
-uses the [addressed catalog v2](../../../../ToS/source-witnesses/README.md#explicit-addressed-record-catalog)
+uses the [addressed catalog v2](../../../../ToS/source-witnesses/README.md#native-catalog-and-projection-routes)
 for keyed record lookup. It verifies the catalog header's publication token and
 generation against the same coherent live source snapshot, and checks exact
 source raw bytes, length and record ref before opening retained history. There
@@ -338,14 +338,14 @@ Missing language is null, never inferred from prose. Compact metadata versions
 retain the entire exact record context with the quotation. Historical freeform HumanForms, current assessments, grants and publication
 decisions retain their own source records and readers.
 
-`scripts/assessment_journal.py` implements immutable source-owned assessment
+`rust/crates/tos-command/src/source_assessment_journal.rs` implements immutable source-owned assessment
 batches and an atomic per-subject head pointer under an explicitly configured
 owner directory. `ToS/contracts/knowledge-assessment-batch.schema.json` owns
 their shape. The parent directory must already exist. A hash partitions assessment storage while the subject retains its ToS ID.
 Corpus assertions remain in their source-owned records. Original assessment rationale and refs remain in the owned
 batches; derived current admission can be rebuilt.
 
-`append(engine, context, reviews, command_id=..., expected_revision=..., now=...)`
+The native journal append operation
 requires authenticated bindings and an agreed source snapshot from the command
 owner. It records a valid assessment even when the judgment rejects, disputes
 or defers use. It rejects the entire new batch on qualification failure or a
@@ -370,12 +370,20 @@ remain foundation work; the journal provides the assessment-history component of
 
 ### Local account command contract
 
-The journal also offers `run_local_command(owner_config, request)` and a CLI:
+Owned Journal commands use the protected native invocation selected by the
+command issuer. Public owner versions v1–v3 retain their inline, source-bound
+and native TextUnit inputs respectively; confidential versions retain their
+separate owner-local selection. Installing a product does not select or
+authorize this invocation. See the [local invocation release route](../../../../docs/RELEASING.md).
 
 ```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py \
-  --owner-config /absolute/operator-selected/owner.json < request.json
+/absolute/installed-prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/operator-selected/native-invocation.json < request.json
 ```
+
+The installed command uses the protected invocation to bind the selected owner
+configuration, native image, source and worker. The former Python journal
+entrypoint is retired. Historical comparison outputs remain test data.
 
 This is an explicit local owner operation, never part of read-only `access`.
 The operator/command issuer selects the configuration independently of incoming
@@ -540,96 +548,59 @@ graph route below carries the result into the common reader; public snapshot
 publication and runtime connection remain separate integration work. Synthetic admitted cases test the contract’s behavior. Actual corpus admission
 depends on a real source-visible review and its competence evidence.
 
-### Local assessed graph builds
+### Local assessed graph candidates
 
-The existing bibliographic and corpus-index builders accept an explicit
-protected source-bound assessment configuration and a bounded selection of
-form IDs present on that builder's carriers. Without these flags they keep the ordinary metadata-only public
-build and its source-parity check. With them, a separate new local JSON target
-is mandatory; no standard export or other repository source can be overwritten.
+The native owner command composes the maintained corpus index, bibliographic
+claims graph, or both from one bounded repository capture. The explicit request
+pins the current native assessment-read invocation by absolute path and SHA-256,
+selects a bounded set of existing form IDs, and names a separate private JSON
+candidate target. It never writes a standard export or admits source.
 
 ```bash
-python scripts/build_source_witness_bibliographic_graph.py \
-  --assessment-owner-config /absolute/private/assessment-owner.json \
-  --assessed-form-id tos.form.example.research-hover-ru \
-  --output /absolute/private/claims-candidate.json
-python scripts/build_tos_corpus_index.py \
-  --assessment-owner-config /absolute/private/assessment-owner.json \
-  --assessed-form-id tos.form.example.research-hover-ru \
-  --output /absolute/private/corpus-candidate.json
+tos-native-owner-command corpus-assessed-candidate --request \
+  /absolute/private/assessed-candidate-request.json
 ```
 
-The paths and ID above are placeholders to replace with the actual
-owner-selected inputs. Reserve storage through the host owner before a large artifact write.
-Each output is atomically created with mode `0600` and no replacement; adding
-`--check` compares an existing candidate to current source/journal inputs and
-writes nothing. These local research candidates retain their selected owner context. Public
-export and publication require the corresponding review and owner decision. The ordinary
-source-parity query reader intentionally does not load them as standard exports.
+The request schema is `tos_native_assessed_candidate_request_v1`. Its
+`projection` field is the same exact
+`tos_native_corpus_projection_check_request_v1.projection` used by
+`corpus-projection-check`; `native_invocation` contains `{path, sha256}` for a
+protected `tos_local_native_assessment_read_invocation_v1` file;
+`assessed_form_ids` contains at most 256 distinct IDs; `output` is an absolute
+JSON path outside authored repository sources (or under `.git`). Choose
+`product` as `bibliographic`, `corpus`, or `paired`, and `operation` as
+`publish` or `check`.
 
-For overlapping metadata forms in coherent in-process assembly, create one
-`source_witness_human_forms.AssessedFormSnapshot(owner_config, form_ids)` and
-pass that same instance as `assessed_forms` to both existing `build_payload`
-functions (`source_witness_bibliographic_graph_common` and
-`tos_corpus_index_common`). Pass both resulting projections to the common
-`tos_access.knowledge.build_knowledge_graph`, then call `verify_current()`
-before returning or persisting the result. Separate CLI invocations are not a
-transaction across both files; common-reader carrier parity rejects a mixed
-pair. Double collection detects changes in source/configuration and committed
-per-form journals between observations; subjects retain their individual
-locks.
+`publish` stages a mode-0600 file and creates the target atomically without
+replacement. After syncing the staged bytes and immediately before linking,
+the command repeats the full native assessment batch and requires an identical
+owner snapshot and reply set, rechecks the pinned invocation and captured
+source, and then waits for the enclosing source-capture fence before committing
+the target. A refusal removes its own staging file and any just-linked target.
+`check` rebuilds the same candidate, compares the existing private file byte for
+byte, and repeats the same currentness checks without creating directories,
+temporary candidate files, or journal locks.
 
-Claim forms belong to the bibliographic projection's reified Claim nodes;
-the corpus’s source-navigation projection carries metadata forms. For a Claim-only selection, build the assessed bibliographic input
-and the ordinary corpus input, join them through the same common reader, and
-verify the assessment snapshot before returning the joint result. A selection
-not present on a builder's own carriers fails closed. This route distinction
-does not relax equality for an assessed form that actually occurs in both
-inputs, and does not authorize reading a local candidate as a public export.
+Use `paired` when one coherent candidate must carry overlapping metadata forms
+in both products. It performs one assessment batch against one source capture;
+forms present in both carriers must have identical form, subject, and source
+bindings. Claim-only forms may appear in the bibliographic graph while the
+paired corpus index remains ordinary for that selection. A form absent from the
+selected product's own source carriers fails closed. Separate single-product
+invocations remain separate transactions and can observe different snapshots.
 
-For public owner v2, this same snapshot now uses an invocation-local
-`assessment_journal.PublicSourceReadSession(owner_config, subject_ids)`.
-Its `read_batch(requests)` accepts only ordinary `describe`, `inspect` and
-`materialize-form` requests, at most 256 distinct explicitly selected subjects
-and 1 MiB of request JSON per batch. The complete reply has a 16 MiB bound;
-larger selections must be narrowed, never silently truncated. Preparation
-retains one exact source selection, while every batch fully recollects source,
-configuration, declared identity/Claim dependencies and publication state at
-its boundaries. Both subject journal reads use fresh current-time evaluation,
-and all observed heads are checked again before any result escapes. There is
-no streaming callback, caller-supplied prepared state or cached admission.
-
-Engine, journal, form and field-language validators are freshly built from a
-separately pinned bounded grammar (8 MiB total, 1 MiB per file), including an
-explicit `contract_root` when supplied. These internal grammar byte guards do
-not change the public owner snapshot hash or turn process-wide validator LRU
-entries into currentness evidence. A source, configuration, grammar, epoch or
-observed history change fails the whole read; a failed or closed session never
-refreshes itself into another snapshot. Public v1/v3 keep their existing
-single-command route, and confidential v4-v6 gain no public reader. Append
-continues through the unchanged journal lock/replay/commit-edge checks.
-
-Both existing Python builders reuse this same instance when the caller passes
-it explicitly; separate CLI processes do not share a cache. Candidate writing
-rechecks the assembly after staging-file fsync immediately before the atomic
-no-replace link, as well as before staging. These checks establish observed currentness at the read and publication edges.
-Journals, sources and output files retain their separate transactions.
-Focused synthetic regression belongs to
-`mechanics/growth-cycle/tests/test_assessment_read_batch.py`; preparation-count
-bounds protect the reuse mechanism without treating timing as authority.
-
-Selected forms must resolve exactly once on each projection's existing source
-carrier, with matching source/form refs and owner-selected paths. Current
-policy admission governs wording; pending, withdrawn or restricted forms stay
-nonready without blocking unrelated source copies. The full source context and
-assessment observation travel together under the existing output limits. See
-the [source contract](../../../../ToS/doctrine/HUMAN_FORMS.md#local-assessed-research-snapshots)
-for budgets and consumer compatibility.
+These local research candidates retain their selected owner context. Public
+export and publication require the corresponding review and owner decision. The
+ordinary source-parity query reader intentionally does not load candidates as
+standard exports. The route preserves the existing 64 KiB per-form materialized
+packet ceiling, 256 KiB complete form-set limit, 1 MiB request limit, and 16 MiB
+native assessment reply limit; narrow larger selections rather than truncating
+them. `check` does not turn a local candidate into an authority source.
 
 ### Source-bound configuration v2
 
 The protected source/journal input may also be used by the
-[local assessed graph builders](#local-assessed-graph-builds). This remains
+[local assessed graph builders](#local-assessed-graph-candidates). This remains
 separate from source modification and from public export or runtime admission.
 
 `tos_local_assessment_owner_v2` retains the v1 fields and adds `source_root`
@@ -768,9 +739,10 @@ being used for another subject. Supporting layers supply evidence; selecting a l
 requires its own subject scope. Existing ordinary source-form materialization
 remains separate; a native unit requires its own explicit form adapter.
 
-The read-only `scripts/native_text_binding.py` library provides
-`NativeTextBindingResolver(root).resolve(binding, verify_content=False,
-allow_private_content=False)` and `snapshot()`. It checks exact native schemas,
+The read-only native resolver in
+`rust/crates/tos-command/src/source_sign_native.rs` supplies separate metadata
+and explicitly scoped exact-content reads to the native owner commands. Its
+retained input snapshot binds the exact observed dependencies. It checks exact native schemas,
 selected unit/segmentation membership and anchor order, text-layer ancestry,
 editorial policy and declared maker configuration bytes, source-anchor/file
 identity, Item manifest topology and recorded rights/publication dependencies.
@@ -782,9 +754,10 @@ span hashes, declared scope, coverage and gaps. Successful return verifies the s
 bytes. Original-payload fidelity, OCR/transcription quality and linguistic
 correctness require their corresponding source-visible assessment.
 
-The separate `scripts/native_text_return.py` delivery helper exposes
-`read_public_unit(resolver, binding, max_return_bytes=65536)` as a
-read-only public-text route; `resolve()` remains text-free. It first verifies
+The delivery owner in
+`rust/crates/tos-command/src/source_native_text_read.rs` exposes
+`read_native_unit` to the native access source reader; metadata resolution
+remains text-free. It first verifies
 metadata and public packet/layer/transport gates, then requires applicable
 recorded redistribution `authorized` and derivative `allowed` postures before
 opening content. Conditional rights are refused on this public route.
@@ -802,11 +775,10 @@ The complete compact UTF-8 JSON result must fit the requested limit (at most
 with their respective owner records. The optional access owner adapter consumes it
 through an exact metadata handle and a separate `native_public_unit`
 representation; generic metadata access cannot grant text permission.
-Keeping delivery outside `native_text_binding.py` leaves the catalog's
+Keeping delivery separate from the native binding resolver leaves the catalog's
 verification processor unchanged when only the transport is extended.
 
-The same delivery helper's `read_local_unit(resolver, binding, selection)`
-consumes a separately selected `LocalTextReadSelection`, whose protected-file
+The same native reader accepts a separately selected `LocalTextReadSelection`, whose protected-file
 contract is `ToS/contracts/native-local-text-read.schema.json`. It is a current
 owner configuration of existing local reading conditions, never a permission
 inferred from a source text, expired construction delegation, or assessment.
@@ -815,13 +787,12 @@ reviewed conditions, license and attribution notices; issuer, account, source
 root, mandate and at-most-one-day validity remain separately auditable.
 No private representation is allowed. The local result retains all notices
 within its bounded output; config/mandate/notice changes and expiry refuse the
-read before return. This explicit route neither widens `read_public_unit` nor
+read before return. This explicit route neither widens unconditional public reading nor
 changes source rights, normalization, linguistic admission or publication.
 
-For protected configuration preparation, the same resolver's
-`assessment_records(binding, origin_id=..., verify_content=...,
-allow_private_content=...)` returns `records` and a text-free `summary`.
-Construct `Record.from_payload(**records[0]).ref` for the pinned unit scope;
+For protected configuration preparation, the native `resolve_assessment`
+and separately scoped owner-local route return two `records` and a text-free
+`summary`. The canonical reference of `records[0]` pins the unit scope;
 `records[1]` is its distinct native layer evidence. Do not inline either into
 the v3 configuration: `native_text_units` selects them freshly on every call.
 Both carry the issuer's same `origin_id`, not two independent sources.
@@ -862,15 +833,16 @@ head. The issuer must still keep the selected files stable: these checks do
 not create a filesystem transaction or isolate hostile same-UID writers.
 V1/v2 commands preserve their existing snapshot and replay contracts.
 
-Tests in `tests/test_native_text_binding.py` and
-`mechanics/growth-cycle/tests/test_native_text_assessment.py` separate synthetic
+Native conformance cases in `tests/conformance/rust/command_text_cases.rs`,
+`command_owner_text_cases.rs` and the access `source_read_native` integration
+test separate synthetic
 closure/admission checks from real source-visible review. No private native
 packet is made public by this adapter, and no human-only historical record is
 relabeled as an agent act.
 
 ### Explicit owner-local source transport
 
-`OwnerLocalSourceContext.load(context_path)` reads the protected
+The native `source_text_owner::OwnerTextContext` reads the protected
 `tos_owner_local_source_context_v1` configuration from an independently chosen
 mode-0600 file. Its fields are `store_id` (`sid-` plus 32 lowercase hex digits),
 `public_root`, `private_root` and `private_prefix`, in addition to
@@ -880,25 +852,14 @@ disjoint; the prefix is exactly
 exist with mode 0700. The resolver does not create directories or select a
 store on behalf of the caller.
 
-Use the existing native binding without changing its source IDs or schema:
+The native owner commands select this context through the explicit invocation
+and an independently protected owner configuration. The same native binding
+keeps its source IDs and schemas. Metadata selection confers no exact-content
+permission; the private reader requires a separately selected current grant.
 
-```python
-from pathlib import Path
-from source_owner_context import OwnerLocalSourceContext
-from native_text_binding import NativeTextBindingResolver
-
-context = OwnerLocalSourceContext.load(Path(context_path))
-resolver = NativeTextBindingResolver(context.public_root, owner_context=context)
-metadata = resolver.resolve(binding)
-# Only after independently confirming the caller's exact owner-local read scope:
-exact = resolver.resolve(binding, verify_content=True, allow_private_content=True)
-fixed_inputs = resolver.snapshot()
-```
-
-`context.path(ref)` selects exactly one physical root, preserving the complete
-logical path. `context.read_bytes(path, limit, read_bytes=protected_reader)`
-can retain caller byte-budget accounting while checking confidentiality before
-and after the read. Private files require 0600 and private directories 0700;
+The native transport selects exactly one physical root for each complete logical
+reference. It retains file and directory identities and checks confidentiality
+before and after each bounded read. Private files require 0600 and private directories 0700;
 the root's ancestors also retain no-follow/account/write protections. A private
 schema copy is never selected instead of its source-owned public contract.
 There is no fallback, other-store discovery or permitted alias in the checkout.
@@ -958,9 +919,9 @@ separate downstream source creation. Private originals remain private.
 
 ### Confidential native TextUnit creation
 
-`source_commands.py` dispatches the separately selected
+`tos-native-owner-command source-commands` dispatches the separately selected
 `tos_local_text_unit_create_owner_v1` configuration to
-`source_text_unit_commands.py`. Its operation is `text-unit.create`, producing one native proposed TextUnit
+`rust/crates/tos-command/src/source_text_unit_entry.rs`. Its operation is `text-unit.create`, producing one native proposed TextUnit
 packet. Semantic descriptions, Occurrences, Lexemes, forms and segmentation
 assessment use their own source routes. The output uses the existing
 [`source-text-unit-packet-v1` schema](../../../../ToS/contracts/source-text-unit-packet-v1.schema.json).
@@ -990,26 +951,15 @@ The protected mode-0600 owner configuration contains:
   a real `source_bound` method. The writer is a software executor; it does not
   impersonate the declared author of the segmentation method.
 
-Use the existing source command envelope and CLI, or `run_local_command`:
-
-```python
-description = run_local_command(owner_config, {
-    "schema_version": "tos_local_source_command_v1", "operation": "describe"})
-# description exposes the delegated unit slots, scope, gap IDs and request fields.
-proposal = {
-    "schema_version": "tos_local_source_command_v1",
-    "operation": "prepare-create",
-    "spans": spans,  # each: unit_id, start, end, certainty, status_reason
-    "excluded_gaps": gaps,  # each: anchor_ref, start, end
-}
-prepared = run_local_command(owner_config, proposal)
-created = run_local_command(owner_config, {
-    **proposal, "operation": "text-unit.create", "command_id": command_id,
-    "expected_configuration": prepared["owner_configuration"],
-    "expected_dependencies": prepared["expected_dependencies"],
-    "expected_source": None, "expected_revision": None,
-})
-```
+Use the same installed source-command entrypoint with the protected native
+invocation. First submit `describe` in the `tos_local_source_command_v1`
+envelope to discover delegated slots, scopes and request fields. Submit
+`prepare-create` with the selected `spans` and `excluded_gaps`, then submit
+`text-unit.create` with those same inputs, a command ID and the returned
+`owner_configuration` and `expected_dependencies`. The initial
+`expected_source` and `expected_revision` are null. Each span names its
+`unit_id`, `start`, `end`, `certainty` and `status_reason`; each excluded gap
+names its `anchor_ref`, `start` and `end`.
 
 `describe` reads no source text. Preparation and application resolve the exact
 metadata closure, check the recorded local-derivation rights gate **before**
@@ -1071,9 +1021,20 @@ supplied mappings between two exact native source closures. It owns immutable
 descriptive and Claim succession without rekeying the Alignment subject,
 leaves legacy translation packet-v1 unchanged, and cannot assess translation.
 
+For an explicitly selected local native Alignment invocation, the same CLI
+accepts `--owner-config /absolute/owner.json --native-invocation /absolute/private/invocation.json`.
+The mode-0600 invocation names the exact corpus revision/store, software
+capture/restored components, schema worker image and native executable digest
+under finite budgets. It is selected separately from the request and from the
+owner's grant; Rust repeats current source, rights and publication checks.
+This opt-in covers the exact delegated `describe`, prepare, create/revise,
+inspect, inspect-version and inspect-recovery operations. The default CLI
+remains on the maintained Python route. Neither route admits a proposal or
+exposes confidential bytes through HTTP.
+
 ### Confidential owner-local source profiles
 
-`source_commands.py` selects `source_owner_profile_commands.py` only for the
+`tos-native-owner-command source-commands` selects `rust/crates/tos-command/src/source_private_profile.rs` only for the
 independently protected `tos_local_owner_profile_command_v1` configuration.
 It does not relax the public source writer or catalog. The selected record is
 `local_only`, uses its existing `semantic-metadata-v1` profile/schema, and lives
@@ -1106,8 +1067,8 @@ Identity transitions and publication need their actual owner routes.
 Use the same `tos_local_source_command_v1` envelope on stdin:
 
 ```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
-  --owner-config /absolute/private/source-owner.json < /absolute/private/request.json
+/absolute/installed-prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/private/native-invocation.json < /absolute/private/request.json
 ```
 
 The discoverable operations are:
@@ -1162,8 +1123,8 @@ below and v4 assessment keep their own delegation. No public projection is creat
 
 ### Confidential source Claim growth
 
-`tos_local_owner_claim_command_v1` selects `source_owner_claim_commands.py`
-through the same `source_commands.py` CLI and `tos_local_source_command_v1`
+`tos_local_owner_claim_command_v1` selects `rust/crates/tos-command/src/source_private_claim.rs`
+through the same `tos-native-owner-command source-commands` CLI and `tos_local_source_command_v1`
 request envelope. It creates or corrects the explicitly selected private Claim package. The source context must independently
 select the existing mode-0700 parent
 `<private_prefix>/claims/`; the target is one new named child ending with
@@ -1453,10 +1414,9 @@ source context, private records, native content or journal. The ordinary
 before file reading. Public reading and publication retain their separate adapters and grants.
 
 Reproduce with the synthetic checks in
-`mechanics/growth-cycle/tests/test_owner_local_assessment.py`, plus the existing
+`tests/conformance/rust/command_owner_text_cases.rs`, plus the existing
 native and common assessment tests. Private Claim reader and journal integration
-checks live in `tests/test_source_owner_claim_profiles.py` and
-`mechanics/growth-cycle/tests/test_owner_local_claim_assessment.py`.
+checks live in `tests/conformance/rust/command_private_claim_cases.rs`.
 Successful synthetic qualification verifies the mechanics. Real-language
 competence, source quality and rights depend on their actual owner evidence.
 
@@ -1508,10 +1468,11 @@ operation.
 
 ## Human-form materialization
 
-`scripts/human_forms.py` renders the source-owned
-`ToS/doctrine/HUMAN_FORMS.md` contract. `materialize_form` takes an immutable
-form record, trusted `FormScope`, exact access-filtered source records and an
-owner-admitted template set. `SourceBinding` identifies a whole JSON field. The source owner declares its
+`rust/crates/tos-web-rules/src/human_forms.rs` provides the shared native/WASM
+materialization rules for the source-owned `ToS/doctrine/HUMAN_FORMS.md` contract.
+The native source owner binds each immutable form to its trusted scope, exact
+access-filtered source records and owner-admitted template set. A source binding
+identifies a whole JSON field. The source owner declares its
 required context. Freeform rendering requires the existing assessment
 engine and authenticated reviews/history against the current form and source
 snapshot; it cannot use a submitted positive status as permission.
@@ -1523,7 +1484,7 @@ budget is 64 KiB with explicit refusal, not semantic truncation. Missing,
 restricted, stale and assessment-required states have no emitted wording.
 Adapter authentication, template quality, reviewer language competence and
 consumer behavior each require their corresponding validation or review.
-`mechanics/growth-cycle/tests/test_human_forms.py` protects these boundaries.
+`tests/conformance/rust/command_form_cases.rs` protects these boundaries.
 
 Optional `FormScope.language_context` names exact source-owned language and
 linguistic-derivation metadata. The form must bind the same object and any
@@ -1533,7 +1494,7 @@ performing linguistic assessment or granting a submission its own scope.
 
 ## Local source growth commands
 
-`scripts/source_commands.py` is the explicit source-write entrypoint. Its first
+`tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` is the explicit source-write entrypoint. Its first
 adapter creates and revises forms adjacent to one bibliographic or historical source record;
 that adapter does not mutate the subject. The separately delegated historical
 creation adapter below publishes a new subject with its initial claims and
@@ -1550,8 +1511,8 @@ The normative identity/admission boundary remains in
 `ToS/doctrine/HUMAN_FORMS.md`. The same CLI serves a human or an agent:
 
 ```bash
-python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
-  --owner-config /absolute/operator-selected/source-owner.json < request.json
+/absolute/installed-prefix/bin/tos-native-owner-command source-commands \
+  --invocation /absolute/operator-selected/native-invocation.json < request.json
 ```
 
 The independently selected protected configuration has exactly these fields:
@@ -1634,7 +1595,7 @@ semantic rollback; reverting a derived reader does not erase these sources.
 Do not remove committed receipts to reuse a command ID. Graph/catalog rebuild,
 publication, model execution and assessment are separate owner operations.
 
-`mechanics/growth-cycle/tests/test_source_commands.py` tests the actual CLI,
+`tests/conformance/rust/command_form_cases.rs` tests the actual CLI,
 creation/revision batches, restart/replay, concurrent writers, loss before/after
 publication, revocation, protected paths, inert input, preparation and partial
 source rebinding. Its catalog-wide test prepares existing public bibliographic
@@ -1894,7 +1855,7 @@ assessment; subject revisions use the separate route below.
 ### Versioned source correction
 
 `tos_local_source_revision_owner_v1` independently delegates `record.revise`
-through the same `source_commands.py` CLI. Its fields match the form-owner
+through the same `tos-native-owner-command source-commands` CLI. Its fields match the form-owner
 configuration, plus exact `record_id` and `allowed_fields`. This historical
 configuration keeps its existing schema and ID scope. A separate
 `tos_local_profile_revision_owner_v1` adds `profile_type_id` and selects the
@@ -2106,7 +2067,7 @@ pending evidence intact. Rollback restores exact selected bytes but advances the
 publication token, so a reader spanning the interrupted interval must restart.
 
 The focused command checks live in
-`mechanics/growth-cycle/tests/test_source_selected_revisions.py`; transport and
+`tests/conformance/rust/command_metadata_publication_cases.rs`; transport and
 reader-boundary checks are separate. Existing 8 MiB selected-package, 128-history
 and source/form byte limits refuse rather than truncate. Semantic assessment, current use, rights, canon, release and deployment retain
 their owner decisions.
@@ -2115,7 +2076,7 @@ their owner decisions.
 
 The separate `tos_local_work_expression_owner_v1` delegates one exact existing
 Work, one new Expression and one distinct `has_expression` Claim, together with
-their selected form identities. `source_commands.py` dispatches
+their selected form identities. `tos-native-owner-command source-commands` dispatches
 `work.expression.create` and explicit pending recovery through the
 [native compound owner contract](docs/NATIVE_WORK_EXPRESSION_GROWTH.md).
 The parent gains only a version increment and the appended Claim reference;
@@ -2146,8 +2107,8 @@ edits the Agent or the Expression's earlier immutable topology Claim stream.
 
 ### Declared source Claim creation
 
-The same `source_commands.py --owner-config /absolute/owner.json` entrypoint
-dispatches separately delegated `claims.create` to `scripts/source_claim_commands.py`.
+The same `tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` entrypoint
+dispatches separately delegated `claims.create` to `rust/crates/tos-command/src/source_claims.rs`.
 It creates one atomic package of up to 32 declared source Claims
 over existing subjects and identity or explicitly delegated typed values,
 including different subjects and profiles in the same batch.
@@ -2281,7 +2242,7 @@ quality. Declared Claim corrections use the separate operation below.
 
 ### Correction of a declared source Claim
 
-`scripts/claim_revisions.py` implements `claim.revise` through the same explicit
+`rust/crates/tos-command/src/source_claims.rs` implements `claim.revise` through the same explicit
 source command entrypoint. The selected Claim keeps its ID, predicate,
 identity endpoints, original maker/provenance and initial review flag. Ordinary
 v1/v2/v3/v4 corrections also preserve its assertion layer; only the separate exact

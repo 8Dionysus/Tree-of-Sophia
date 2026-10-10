@@ -6,10 +6,50 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[features]
+postgres-lab = []
+conformance-owner-local-source-resolver = []
+
 [dependencies]
+hmac = "=0.13.0"
+sha2 = "=0.11.0"
+sha1 = "=0.10.6"
+tos-ops-mechanics-plan = { path = "../tos-ops-mechanics-plan", default-features = false, features = ["compiler-backed-validators"] }
+rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
+base64 = "=0.22.1"
+crc32fast = "=1.5.2"
+flate2 = "=1.1.10"
 tos-foundation = { path = "../tos-foundation" }
+tos-segment-store = { path = "../tos-segment-store" }
+tos-source-store = { path = "../tos-source-store" }
+tos-validation = { path = "../tos-validation" }
+jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
+tos-compiler = { path = "../tos-compiler", features = ["preserve-order-workspace"] }
+tos-query = { path = "../tos-query" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
 postgres = "0.19"
+tos-fd-open = { path = "../tos-fd-open" }
+rustix = { version = "=1.1.5", features = ["fs", "process"] }
+unicode-normalization = "=0.1.24"
+xml = "=1.4.0"
+tempfile = "3"
+
+[dev-dependencies]
+tos-access = { path = "../tos-access" }
+tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
 
 [lib]
 name = "tos_command"
 path = "src/lib.rs"
+
+[[bin]]
+name = "tos-native-owner-command"
+path = "src/bin/tos-native-owner-command.rs"
+
+[[test]]
+name = "postgres_durable_lab"
+required-features = ["postgres-lab"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"

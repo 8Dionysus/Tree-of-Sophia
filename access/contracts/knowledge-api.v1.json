@@ -5,6 +5,7 @@
   "purpose": "transport-neutral backend contract for human and agent construction of bounded read-only knowledge lenses",
   "data_contracts": {
     "knowledge_graph": "knowledge-graph.v1.schema.json",
+    "knowledge_search_indexed": "knowledge-search-indexed.v2.schema.json",
     "lens_spec": "lens-spec.v1.schema.json",
     "lens_result": "lens-result.v1.schema.json",
     "temporal_comparison_request": "temporal-comparison-request.v1.schema.json",
@@ -36,7 +37,7 @@
       "mcp_tool": "tos_source_read_capabilities",
       "cli": "tos source capabilities",
       "result": "selected exact-source owner epoch, supported metadata families and limits, or explicit unavailability",
-      "available_on": "Python local HTTP, CLI and native MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability"
+      "available_on": "native local HTTP, CLI and MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability"
     },
     {
       "operation_id": "tos.source.read.contracts",
@@ -44,7 +45,7 @@
       "mcp_tool": "tos_source_read_contract",
       "cli": "tos source contracts",
       "result": "exact source target, handle, discovery and read response schemas without selecting a source owner",
-      "available_on": "Python local HTTP, CLI and native MCP"
+      "available_on": "native local HTTP, CLI and MCP"
     },
     {
       "operation_id": "tos.source.handle.discover",
@@ -52,7 +53,7 @@
       "mcp_tool": "tos_source_handle_discover",
       "cli": "tos source discover REQUEST.json",
       "result": "one version-bound public source handle or bounded nonavailability; target or typed selector only, no paths or latest fallback",
-      "available_on": "explicitly selected Python source-owner service; no source mutation or rights grant"
+      "available_on": "explicitly selected native source-owner route; no source mutation or rights grant"
     },
     {
       "operation_id": "tos.source.record.read",
@@ -60,7 +61,7 @@
       "mcp_tool": "tos_source_read",
       "cli": "tos source read REQUEST.json",
       "result": "exact public metadata or Claim for representation=record; native_public_unit requires verified unconditional public rights; separately configured native_local_unit preserves exact local conditions, license and attribution notices with spans; a handle grants neither text access, publication nor semantic admission",
-      "available_on": "explicitly selected Python source-owner service; no source mutation or rights grant"
+      "available_on": "explicitly selected native source-owner route; no source mutation or rights grant"
     },
     {
       "operation_id": "tos.knowledge.search",
@@ -70,8 +71,8 @@
       "result": "paginated display-complete node and relation matches",
       "modes": {
         "legacy": {"schema": "tos_knowledge_search_v1", "pagination": "offset", "counts": "exact", "default": true},
-        "indexed": {"schema": "tos_knowledge_search_indexed_v2", "query_parameter": "mode=indexed", "pagination": "source-revision-bound cursor", "counts": "exact only for a kind exhausted on the first page; null on continuation pages or while that kind has more results", "short_query": "fails closed at the indexed boundary; use legacy mode explicitly"},
-        "compressed": {"schema": "tos_knowledge_search_compressed_v3", "query_parameter": "mode=compressed", "available_on": "explicitly selected tos_local_prepared_read_model_v1 in Python", "pagination": "authenticated publication-bound stateless cursor with absolute 15-minute expiry; no offset", "counts": "exact only for an initial exhausted kind with no pending carrier bodies; otherwise null", "short_query": "supported with bounded work and possibly empty continuation pages", "same_snapshot": "search header, matched addresses and full selected carriers", "default": false, "errors": {"400": "invalid request or unauthenticated/query-incompatible cursor", "409": "selected snapshot or known outer binding changed", "410": "authenticated cursor expired", "413": "declared reader/search budget cannot admit the request", "503": "local publication unavailable, corrupt or unsupported"}}
+        "indexed": {"schema": "tos_knowledge_search_indexed_v2", "result_schema": "knowledge-search-indexed.v2.schema.json", "query_parameter": "mode=indexed", "pagination": "source-revision-bound cursor", "counts": "exact only for a kind exhausted on the first page; null on continuation pages or while that kind has more results", "short_query": "fails closed at the indexed boundary; use legacy mode explicitly", "source_graph_admission": "every carrier and filter source_graph must be registered in the one selected source-owned QueryVocabulary at compile and open; structural schema alone does not admit a source"},
+        "compressed": {"schema": "tos_knowledge_search_compressed_v3", "query_parameter": "mode=compressed", "available_on": "explicitly selected tos_local_prepared_read_model_v1 in the native Rust owner", "pagination": "authenticated publication-bound stateless cursor with absolute 15-minute expiry; no offset", "counts": "exact only for an initial exhausted kind with no pending carrier bodies; otherwise null", "short_query": "supported with bounded work and possibly empty continuation pages", "same_snapshot": "search header, matched addresses and full selected carriers", "default": false, "errors": {"400": "invalid request or unauthenticated/query-incompatible cursor", "409": "selected snapshot or known outer binding changed", "410": "authenticated cursor expired", "413": "declared reader/search budget cannot admit the request", "503": "local publication unavailable, corrupt or unsupported"}}
       }
     },
     {
@@ -80,7 +81,7 @@
       "mcp_tool": "tos_knowledge_search_capabilities",
       "cli": "tos knowledge search-capabilities",
       "result": "selected engine modes; compressed readiness checks only the selected local header and search objects, never a full corpus or catalog",
-      "available_on": "Python local HTTP, CLI and native MCP; Cloudflare/D1 HTTP advertises its validated indexed-search engine"
+      "available_on": "native local HTTP, CLI and MCP; Cloudflare/D1 HTTP advertises its validated indexed-search engine"
     },
     {
       "operation_id": "tos.knowledge.node.inspect",
@@ -95,7 +96,7 @@
           "source_revision": "the packet source_revision",
           "target": "source-read.v1.schema.json#/$defs/target"
         },
-        "availability": "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle"
+        "availability": "target projection only; the native owner-bound source-read route must revalidate it before issuing a handle"
       }
     },
     {
@@ -111,7 +112,7 @@
           "source_revision": "the packet source_revision",
           "target": "source-read.v1.schema.json#/$defs/target"
         },
-        "availability": "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle"
+        "availability": "target projection only; the native owner-bound source-read route must revalidate it before issuing a handle"
       }
     },
     {

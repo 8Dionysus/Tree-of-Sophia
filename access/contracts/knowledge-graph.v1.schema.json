@@ -23,7 +23,7 @@
     }},
     "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
     "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
-    "counts": {"type": "object"},
+    "counts": {"type": "object", "properties": {"semantic_validation": {"$ref": "#/$defs/semanticValidationReport"}}},
     "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
   },
   "$defs": {
@@ -966,6 +966,7 @@
         "relation_registry_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "configuration_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
-    }
+    },
+    "semanticValidationReport": {"type": "object", "description": "Optional mechanical report emitted when semantic registry validation is selected. It retains the owner result and diagnostic/count companions; it does not assert source meaning, canon or rights authority.", "required": ["valid", "violations"], "properties": {"valid": {"type": "boolean"}, "violations": {"type": "array", "items": {"type": "string"}}}, "additionalProperties": true}
   }
 }

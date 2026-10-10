@@ -4,8 +4,9 @@ Use this checklist for source, interpretation, structural and boundary judgments
 that require review alongside mechanical validation. The review records what
 changed, its evidence and the scope of the conclusion.
 
-Choose the mechanical checks from the nearest `VALIDATION.md` and the release
-lane. The tiny-entry validator covers the `tos-root` handoff and source-first
+Choose the mechanical checks from the nearest `VALIDATION.md`, the
+[command authority](../../../../../docs/validation/validation_lanes.json) and
+the release lane. The tiny-entry validator covers the `tos-root` handoff and source-first
 return; the KAG export validator covers export structure. Intake, canon,
 public-example synchronization, route cards and questbook surfaces each retain
 their owner validation routes.

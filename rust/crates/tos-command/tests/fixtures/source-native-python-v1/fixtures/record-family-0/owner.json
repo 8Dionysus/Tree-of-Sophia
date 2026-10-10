@@ -1,0 +1,21 @@
+{
+  "schema_version": "tos_local_source_revision_owner_v1",
+  "uid": 1000,
+  "principal_id": "test:reviser",
+  "source_root": "$TOS_FIXTURE_ROOT",
+  "source_path": "ToS/source-witnesses/history/synthetic/episode/historical-event.json",
+  "record_id": "tos.historical-event.revision-fixture",
+  "authority_ref": "test:explicit-source-correction",
+  "allowed_form_ids": [
+    "tos.form.revision-name",
+    "tos.form.revision-note"
+  ],
+  "allowed_fields": [
+    "notes",
+    "field_languages"
+  ],
+  "allowed_operations": [
+    "record.revise"
+  ],
+  "expires_at": "2099-01-01T00:00:00Z"
+}

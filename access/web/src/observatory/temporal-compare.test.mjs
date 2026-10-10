@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {afterEach,test} from 'vitest';
 import assert from 'node:assert/strict';
 import {temporalComparisonRequest,compareExactDates,temporalComparisonRelationLabel,dateComparisonCandidate} from './temporal-compare.mjs';

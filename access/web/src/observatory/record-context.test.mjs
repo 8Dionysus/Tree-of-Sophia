@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {essentialContext} from './record-context.mjs';
@@ -75,4 +76,18 @@ test('material fields use only the same response revision and preserve declared 
     record.display_selection.fields.summary=invalid;assert.equal(materialDisplayForm(record,'summary','en'),null);
   }
   delete record.display_selection;assert.equal(materialDisplayForm(record,'summary','en').lang,null);
+});
+
+
+test('context pointer transport preserves UTF16 keys, sparse declarations and array index grammar',()=>{
+  const record=raw(),key='opaque\ud800';record.attributes[key]={unknown:null};
+  const pointers=new Array(5);pointers[1]='/attributes/'+key;pointers[2]='/attributes/a~1b/~0context/0';pointers[3]='/attributes/a~1b/~0context/01';pointers[4]='';
+  record.display_selection.essential_context_pointers=pointers;
+  const result=essentialContext(record);
+  assert.equal(result.state,'incomplete');assert.equal(0 in result.items,false);
+  assert.deepEqual(result.items[1],{pointer:pointers[1],state:'available',value:{unknown:null}});
+  assert.equal(result.items[2].state,'available');assert.equal(result.items[3].state,'unavailable');
+  assert.deepEqual(result.items[4].value,record);assert.notEqual(result.items[4].value,record);
+  record.display_selection.essential_context_pointers=new Array(2);
+  const sparse=essentialContext(record);assert.equal(sparse.state,'available');assert.equal(sparse.items.length,2);assert.equal(0 in sparse.items,false);
 });

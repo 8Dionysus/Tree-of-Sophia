@@ -147,12 +147,16 @@
       },
       "validation_routes": [
         {
-          "route": "Tree-of-Sophia:scripts/publish_kag_release.py",
+          "route": "Tree-of-Sophia:tos-kag-release build",
           "lane": "owner-local"
         },
         {
           "route": "aoa-kag:explicit provider-home and repository-family consumer",
           "lane": "local-kag"
+        },
+        {
+          "route": "Tree-of-Sophia:rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
+          "lane": "owner-local"
         }
       ],
       "consumer_routes": [

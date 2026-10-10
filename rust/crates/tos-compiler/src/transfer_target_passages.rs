@@ -1,0 +1,1499 @@
+//! Frozen transfer frame -> exact private Poppler passages and text-free anchors.
+//! Automatic layer boundaries preserve their proposed/rejected status.
+use crate::{
+    research_execution::ResearchExecution,
+    source_text_foundation::{
+        Node, Part, ensure, fresh_or_matching_limit, load, private_boundary, s, schema, sha,
+        utc_now, xml_with_doctype,
+    },
+};
+use serde_json::{Value, json};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs::File,
+    os::{fd::AsRawFd, unix::fs::PermissionsExt},
+    path::Path,
+};
+use tos_foundation::{JsonLimits, JsonMode};
+#[path = "transfer_target_passages/constants.rs"]
+mod constants;
+#[path = "transfer_target_passages/records.rs"]
+mod records;
+use constants::*;
+type Result<T> = std::result::Result<T, String>;
+const CAP: usize = 4 * 1024 * 1024;
+const BUILDER: &str = "rust/crates/tos-compiler/src/transfer_target_passages.rs";
+const LEGACY_EVENT_SHA: &str = "13fd906ae6a3124ff71c58cb9e36c276c117e7de0a675c734eae2551ea96b5e4";
+const LEGACY_BUILDER_SHA: &str = "045f98b86c49851bb3183bf5f0d054295993a9e27f72c7a5d2d8d2c29483577e";
+fn array(v: &Value) -> Result<&Vec<Value>> {
+    v.as_array().ok_or("required array".into())
+}
+pub(super) fn n(v: &Value) -> Result<usize> {
+    v.as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or("required nonnegative integer".into())
+}
+pub(super) fn f(v: &Value) -> Result<f64> {
+    v.as_f64()
+        .filter(|f| f.is_finite())
+        .ok_or("required finite coordinate".into())
+}
+pub(super) fn key(v: &Value) -> Result<String> {
+    match v {
+        Value::String(s) => Ok(s.clone()),
+        Value::Number(_) => Ok(n(v)?.to_string()),
+        _ => Err("numbered-unit key type".into()),
+    }
+}
+pub(super) fn round(v: f64, digits: usize) -> f64 {
+    format!("{v:.digits$}").parse().unwrap()
+}
+// Preserve insertion order and Python float spelling for the historical recipe.
+pub(super) fn encode(
+    ctx: &ResearchExecution,
+    v: &impl serde::Serialize,
+    pretty: bool,
+) -> Result<Vec<u8>> {
+    let raw = serde_json::to_vec(v).map_err(|e| e.to_string())?;
+    ctx.tick(raw.len() as u64)?;
+    let limits = JsonLimits::new(CAP, 128, 200000, 4300).map_err(|e| e.to_string())?;
+    let doc = tos_foundation::parse_json(&raw, JsonMode::PublishedStrict, limits)
+        .map_err(|e| e.to_string())?;
+    let compact =
+        tos_foundation::emit_python_compact_json(doc.root(), limits).map_err(|e| e.to_string())?;
+    if !pretty {
+        return Ok(compact);
+    }
+    let mut out = Vec::new();
+    let mut depth = 0usize;
+    let mut string = false;
+    let mut escape = false;
+    for (i, &b) in compact.iter().enumerate() {
+        if i % 8192 == 0 {
+            ctx.check()?
+        }
+        if string {
+            out.push(b);
+            if escape {
+                escape = false
+            } else if b == b'\\' {
+                escape = true
+            } else if b == b'"' {
+                string = false
+            }
+            continue;
+        }
+        match b {
+            b'"' => {
+                string = true;
+                out.push(b)
+            }
+            b'{' | b'[' => {
+                out.push(b);
+                depth += 1;
+                if compact.get(i + 1) != Some(&(if b == b'{' { b'}' } else { b']' })) {
+                    out.push(b'\n');
+                    out.resize(out.len() + depth * 2, b' ')
+                }
+            }
+            b'}' | b']' => {
+                depth -= 1;
+                if compact.get(i.wrapping_sub(1)) != Some(&(if b == b'}' { b'{' } else { b'[' })) {
+                    out.push(b'\n');
+                    out.resize(out.len() + depth * 2, b' ')
+                }
+                out.push(b)
+            }
+            b',' => {
+                out.extend(b",\n");
+                out.resize(out.len() + depth * 2, b' ')
+            }
+            b':' => out.extend(b": "),
+            _ => out.push(b),
+        }
+        ensure(out.len() <= CAP, "serialized packet bound")?;
+    }
+    out.push(b'\n');
+    Ok(out)
+}
+pub(super) fn jsonl(ctx: &ResearchExecution, rows: &[Value]) -> Result<Vec<u8>> {
+    let mut out = vec![];
+    for row in rows {
+        out.extend(encode(ctx, row, false)?);
+        out.push(b'\n');
+        ensure(out.len() <= CAP, "JSONL bound")?;
+    }
+    Ok(out)
+}
+pub(super) fn read_optional(ctx: &ResearchExecution, reference: &str) -> Result<Option<Vec<u8>>> {
+    match std::fs::symlink_metadata(ctx.root().join(reference)) {
+        Ok(_) => Ok(Some(ctx.read(reference)?)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+pub(super) fn json_lines(ctx: &ResearchExecution, raw: &[u8]) -> Result<Vec<(Vec<u8>, Value)>> {
+    let mut rows = vec![];
+    for line in raw.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
+        ctx.tick(1)?;
+        tos_foundation::parse_json(line, JsonMode::PublishedStrict, JsonLimits::default())
+            .map_err(|e| e.to_string())?;
+        rows.push((
+            line.to_vec(),
+            serde_json::from_slice(line).map_err(|e| e.to_string())?,
+        ));
+        ensure(rows.len() <= 10000, "journal count bound")?;
+    }
+    Ok(rows)
+}
+pub(super) fn descendants<'a>(node: &'a Node, name: &str, out: &mut Vec<&'a Node>) {
+    if node.name == name {
+        out.push(node)
+    }
+    for part in &node.content {
+        if let Part::Child(n) = part {
+            descendants(n, name, out)
+        }
+    }
+}
+pub(super) fn node_text(node: &Node) -> String {
+    let mut out = String::new();
+    for part in &node.content {
+        match part {
+            Part::Text(t) => out.push_str(t),
+            Part::Child(n) => out.push_str(&node_text(n)),
+        }
+    }
+    out
+}
+fn coord(node: &Node, name: &str) -> Result<f64> {
+    let x = node
+        .attrs
+        .get(name)
+        .ok_or("bbox coordinate absent")?
+        .parse::<f64>()
+        .map_err(|_| "invalid bbox coordinate")?;
+    ensure(x.is_finite(), "bbox finite coordinate")?;
+    Ok(x)
+}
+fn line_order(a: &Value, b: &Value) -> std::cmp::Ordering {
+    a["y_min"]
+        .as_f64()
+        .unwrap()
+        .total_cmp(&b["y_min"].as_f64().unwrap())
+        .then(
+            a["x_min"]
+                .as_f64()
+                .unwrap()
+                .total_cmp(&b["x_min"].as_f64().unwrap()),
+        )
+        .then(
+            a["source_order"]
+                .as_u64()
+                .unwrap()
+                .cmp(&b["source_order"].as_u64().unwrap()),
+        )
+}
+fn bbox(
+    ctx: &ResearchExecution,
+    raw: &[u8],
+    start: usize,
+    end: usize,
+) -> Result<BTreeMap<usize, Value>> {
+    let root = xml_with_doctype(ctx, raw, true)?;
+    ensure(
+        root.name == "html"
+            && root
+                .attrs
+                .get("xmlns")
+                .is_some_and(|x| x == "http://www.w3.org/1999/xhtml"),
+        "bbox XHTML namespace",
+    )?;
+    let mut ps = vec![];
+    descendants(&root, "page", &mut ps);
+    ensure(ps.len() == end - start + 1, "bbox page count drift")?;
+    let mut pages = BTreeMap::new();
+    for (idx, p) in ps.iter().enumerate() {
+        ctx.tick(1)?;
+        let width = coord(p, "width")?;
+        let height = coord(p, "height")?;
+        ensure(width > 0.0 && height > 0.0, "bbox page size")?;
+        let mut nodes = vec![];
+        descendants(p, "line", &mut nodes);
+        let mut lines = vec![];
+        for (order, line) in nodes.into_iter().enumerate() {
+            let words = line
+                .children("word")
+                .into_iter()
+                .map(node_text)
+                .collect::<Vec<_>>();
+            if words.is_empty() {
+                continue;
+            }
+            let x_min = coord(line, "xMin")?;
+            let y_min = coord(line, "yMin")?;
+            let x_max = coord(line, "xMax")?;
+            let y_max = coord(line, "yMax")?;
+            ensure(x_min <= x_max && y_min <= y_max, "bbox line ordering")?;
+            lines.push(json!({"source_order":order,"x_min":x_min,"y_min":y_min,"x_max":x_max,"y_max":y_max,"words":words,"text":words.join(" ")}));
+        }
+        lines.sort_by(line_order);
+        pages.insert(
+            start + idx,
+            json!({"page":start+idx,"width":width,"height":height,"lines":lines}),
+        );
+    }
+    Ok(pages)
+}
+pub(super) struct Poppler {
+    root: ResearchExecution,
+    held: File,
+    digest: String,
+    command: String,
+}
+impl Poppler {
+    pub(super) fn open(ctx: &ResearchExecution) -> Result<Self> {
+        use crate::owned_native_child::{CaptureLimits, capture_with_cancel};
+        let binary = std::fs::canonicalize("/usr/bin/pdftotext").map_err(|e| e.to_string())?;
+        let root = ctx.select_directory(binary.parent().ok_or("Poppler parent")?)?;
+        let mut held = root.source_file(
+            binary
+                .file_name()
+                .and_then(|n| n.to_str())
+                .ok_or("Poppler filename")?,
+            32 * 1024 * 1024,
+        )?;
+        let digest = root.hash_file(&mut held, 32 * 1024 * 1024)?;
+        let command = format!("/proc/{}/fd/{}", std::process::id(), held.as_raw_fd());
+        let r = capture_with_cancel(
+            std::process::Command::new(&command).arg("-v"),
+            None,
+            CaptureLimits {
+                max_stdin_bytes: 0,
+                max_stdout_bytes: 16384,
+                max_stderr_bytes: 16384,
+            },
+            ctx.deadline(),
+            ctx.cancellation_flag(),
+        )?;
+        let mut b = r.stdout;
+        b.extend(r.stderr);
+        let text = String::from_utf8(b).map_err(|e| e.to_string())?;
+        ensure(
+            r.status.success()
+                && text.lines().next()
+                    == Some(format!("pdftotext version {PDFTOTEXT_VERSION}").as_str()),
+            "Poppler exact version drift",
+        )?;
+        Ok(Self {
+            root,
+            held,
+            digest,
+            command,
+        })
+    }
+    pub(super) fn pages(
+        &self,
+        ctx: &ResearchExecution,
+        pdf: &File,
+        start: usize,
+        end: usize,
+    ) -> Result<BTreeMap<usize, Value>> {
+        use crate::owned_native_child::{CaptureLimits, capture_with_cancel};
+        ensure(
+            start > 0 && end >= start && end - start < 8 && end <= 100000,
+            "bbox page chunk bound",
+        )?;
+        let pdf = format!("/proc/{}/fd/{}", std::process::id(), pdf.as_raw_fd());
+        let r = capture_with_cancel(
+            std::process::Command::new(&self.command).args([
+                "-f",
+                &start.to_string(),
+                "-l",
+                &end.to_string(),
+                "-bbox-layout",
+                &pdf,
+                "-",
+            ]),
+            None,
+            CaptureLimits {
+                max_stdin_bytes: 0,
+                max_stdout_bytes: CAP,
+                max_stderr_bytes: 16384,
+            },
+            ctx.deadline(),
+            ctx.cancellation_flag(),
+        )?;
+        ensure(r.status.success(), "Poppler bbox extraction failed")?;
+        ctx.tick(r.stdout.len() as u64)?;
+        bbox(ctx, &r.stdout, start, end)
+    }
+    pub(super) fn layout_pages(
+        &self,
+        ctx: &ResearchExecution,
+        pdf: &File,
+        start: usize,
+        end: usize,
+    ) -> Result<BTreeMap<usize, Vec<u8>>> {
+        use crate::owned_native_child::{CaptureLimits, capture_with_cancel};
+        ensure(
+            start > 0 && end >= start && end - start < 8 && end <= 100000,
+            "layout page chunk bound",
+        )?;
+        let pdf = format!("/proc/{}/fd/{}", std::process::id(), pdf.as_raw_fd());
+        let r = capture_with_cancel(
+            std::process::Command::new(&self.command).args([
+                "-f",
+                &start.to_string(),
+                "-l",
+                &end.to_string(),
+                "-layout",
+                "-enc",
+                "UTF-8",
+                &pdf,
+                "-",
+            ]),
+            None,
+            CaptureLimits {
+                max_stdin_bytes: 0,
+                max_stdout_bytes: CAP,
+                max_stderr_bytes: 16384,
+            },
+            ctx.deadline(),
+            ctx.cancellation_flag(),
+        )?;
+        ensure(r.status.success(), "Poppler layout extraction failed")?;
+        ctx.tick(r.stdout.len() as u64)?;
+        let mut parts = r.stdout.split(|b| *b == 12).collect::<Vec<_>>();
+        if parts.last() == Some(&b"".as_slice()) {
+            parts.pop();
+        }
+        ensure(parts.len() == end - start + 1, "layout page count drift")?;
+        let mut out = BTreeMap::new();
+        for (i, raw) in parts.into_iter().enumerate() {
+            std::str::from_utf8(raw).map_err(|_| "layout UTF-8")?;
+            out.insert(start + i, raw.to_vec());
+        }
+        Ok(out)
+    }
+    pub(super) fn verify(&mut self) -> Result<()> {
+        ensure(
+            self.root.hash_file(&mut self.held, 32 * 1024 * 1024)? == self.digest,
+            "Poppler executable changed",
+        )
+    }
+}
+fn normalized_marker(text: &str) -> String {
+    text.trim()
+        .trim_end_matches('.')
+        .trim()
+        .chars()
+        .map(|c| match c {
+            'а' | 'А' => 'a',
+            'б' => '6',
+            _ => c,
+        })
+        .collect()
+}
+fn marker(pages: &BTreeMap<usize, Value>, page: usize, unit: &str) -> Result<Value> {
+    let override_token = match (page, unit) {
+        (268, "33") | (278, "46") | (279, "47") => Some("171"),
+        (322, "203") => Some("195"),
+        (399, "285") => Some("263"),
+        (662, "38") | (670, "45") => Some("36"),
+        _ => None,
+    };
+    let expected = override_token.unwrap_or(unit);
+    let p = pages.get(&page).ok_or("bbox boundary page absent")?;
+    let mut found = vec![];
+    for line in array(&p["lines"])? {
+        if array(&line["words"])?.len() == 1
+            && (140.0..=180.0).contains(&f(&line["x_min"])?)
+            && f(&line["y_min"])? < 500.0
+            && normalized_marker(s(&line["text"])?) == expected
+        {
+            found.push(line.clone())
+        }
+    }
+    ensure(
+        found.len() == 1,
+        "numbered-unit boundary marker is absent or ambiguous",
+    )?;
+    let mut v = found.remove(0);
+    v["marker_basis"] = json!(if override_token.is_some() {
+        "source-visible-exact-label-over-ocr-token"
+    } else {
+        "exact-expected-single-line-number-label-in-pdf-bbox-layer"
+    });
+    Ok(v)
+}
+fn point(page: usize, line: &Value) -> Result<Value> {
+    Ok(
+        json!({"page":page,"x_min_points":round(f(&line["x_min"])?,6),"y_min_points":round(f(&line["y_min"])?,6),"x_max_points":round(f(&line["x_max"])?,6),"y_max_points":round(f(&line["y_max"])?,6),"marker_basis":line["marker_basis"]}),
+    )
+}
+fn extract(
+    ctx: &ResearchExecution,
+    pages: &BTreeMap<usize, Value>,
+    start: usize,
+    a: &Value,
+    end: usize,
+    b: &Value,
+) -> Result<(Vec<Value>, String, Vec<Value>)> {
+    ensure(start <= end && end - start <= 50, "passage range bound")?;
+    ensure(
+        start != end || line_order(a, b).is_lt(),
+        "inverted same-page boundaries",
+    )?;
+    let mut selected = vec![];
+    let mut regions = vec![];
+    for number in start..=end {
+        ctx.tick(1)?;
+        let p = pages.get(&number).ok_or("passage page absent")?;
+        let mut rows = vec![];
+        for line in array(&p["lines"])? {
+            ctx.tick(1)?;
+            if f(&line["y_min"])? >= 500.0
+                || (number == start && line_order(line, a).is_lt())
+                || (number == end && !line_order(line, b).is_lt())
+            {
+                continue;
+            }
+            rows.push(line);
+            let mut v = json!({"page":number});
+            for (k, x) in line.as_object().ok_or("bbox line object")? {
+                v[k] = x.clone()
+            }
+            selected.push(v);
+        }
+        if !rows.is_empty() {
+            let min = |key: &str| -> Result<f64> {
+                rows.iter()
+                    .map(|v| f(&v[key]))
+                    .collect::<Result<Vec<_>>>()
+                    .map(|v| v.into_iter().fold(f64::INFINITY, f64::min))
+            };
+            let max = |key: &str| -> Result<f64> {
+                rows.iter()
+                    .map(|v| f(&v[key]))
+                    .collect::<Result<Vec<_>>>()
+                    .map(|v| v.into_iter().fold(f64::NEG_INFINITY, f64::max))
+            };
+            let x = min("x_min")?;
+            let y = min("y_min")?;
+            let width = f(&p["width"])?;
+            let height = f(&p["height"])?;
+            ensure(width > 0.0 && height > 0.0, "invalid page dimensions")?;
+            regions.push(json!({"type":"page_region","page":number,"x":round(x/width,8),"y":round(y/height,8),"width":round((max("x_max")?-x)/width,8),"height":round((max("y_max")?-y)/height,8),"coordinate_space":"normalized_0_1"}));
+        }
+    }
+    ensure(
+        !selected.is_empty()
+            && s(&selected[0]["text"])?.trim().trim_end_matches('.')
+                == s(&a["text"])?.trim().trim_end_matches('.'),
+        "passage must begin with exact selected label",
+    )?;
+    let mut text = String::new();
+    for line in &selected {
+        text.push_str(s(&line["text"])?);
+        text.push('\n');
+    }
+    ensure(text.len() <= CAP, "passage text bound")?;
+    Ok((selected, text, regions))
+}
+fn private_lines(lines: &[Value]) -> Result<Vec<Value>> {
+    lines.iter().map(|v|Ok(json!({"page":v["page"],"x_min_points":round(f(&v["x_min"])?,6),"y_min_points":round(f(&v["y_min"])?,6),"x_max_points":round(f(&v["x_max"])?,6),"y_max_points":round(f(&v["y_max"])?,6),"words":v["words"],"text":v["text"]}))).collect()
+}
+pub(super) fn flat_map(v: &Value) -> Result<BTreeMap<String, Value>> {
+    let mut out = BTreeMap::new();
+    let series = if v["unit_starts"].is_array() {
+        vec![(None, &v["unit_starts"])]
+    } else {
+        array(&v["series"])?
+            .iter()
+            .map(|v| Ok((Some(key(&v["series_key"])?), &v["unit_starts"])))
+            .collect::<Result<Vec<_>>>()?
+    };
+    for (series, units) in series {
+        for pair in array(units)?.windows(2) {
+            let unit_key = key(&pair[0]["unit_key"])?;
+            let qualified = series
+                .as_ref()
+                .map_or_else(|| unit_key.clone(), |s| format!("{s}:{unit_key}"));
+            let passage = s(&pair[0]["anchor_ref"])?
+                .replace("tos.anchor.", "tos.passage.")
+                .replace(".pdf-start-page", "");
+            ensure(out.insert(qualified.clone(),json!({"qualified_unit_key":qualified,"series_key":series,"unit_key":unit_key,"start":pair[0],"next":pair[1],"passage_ref":passage})).is_none(),"duplicate numbered-unit mapping")?;
+        }
+    }
+    Ok(out)
+}
+fn work_slug(id: &str) -> Result<&'static str> {
+    let re = regex::Regex::new(r"^tos-target-candidate-([a-z0-9-]+)-p[0-9]{4}-(?:random|hard)$")
+        .unwrap();
+    let m = re.captures(id).ok_or("frozen candidate identity syntax")?;
+    match &m[1] {
+        "jenseits" => Ok("jenseits-von-gut-und-boese"),
+        "genealogie" => Ok("zur-genealogie-der-moral"),
+        "antichrist" => Ok("der-antichrist"),
+        _ => Err("unknown frozen candidate work".into()),
+    }
+}
+const INPUTS: [(&str, &str); 13] = [
+    (
+        PLAN_PATH,
+        "frozen-golden-kernel-transfer-page-candidate-plan",
+    ),
+    (MANIFEST_PATH, "exact-local-target-item-manifest"),
+    (INVENTORY_PATH, "tracked-target-resource-inventory"),
+    (RIGHTS_PATH, "target-rights-posture"),
+    (JENSEITS_MAP, "tracked-Jenseits-target-numbered-unit-map"),
+    (
+        JENSEITS_CROSSWALK,
+        "tracked-Jenseits-conservative-page-crosswalk",
+    ),
+    (JENSEITS_PAIRINGS, "tracked-Jenseits-source-route-pairings"),
+    (GENE_MAP, "tracked-Genealogie-target-numbered-unit-map"),
+    (GENE_ROUTES, "tracked-Genealogie-source-structural-routes"),
+    (ANTI_MAP, "tracked-Antichrist-target-numbered-unit-map"),
+    (ANTI_ROUTES, "tracked-Antichrist-source-structural-routes"),
+    (SCHEMA_PATH, "target-passage-candidate-set-contract"),
+    (SOURCE_ANCHOR_SCHEMA_PATH, "source-anchor-contract"),
+];
+struct Inputs {
+    raw: BTreeMap<String, Vec<u8>>,
+    values: BTreeMap<String, Value>,
+    bindings: Vec<Value>,
+}
+impl Inputs {
+    fn read(ctx: &ResearchExecution) -> Result<Self> {
+        let mut raw = BTreeMap::new();
+        let mut values = BTreeMap::new();
+        let mut bindings = vec![];
+        for (reference, role) in INPUTS {
+            let (bytes, v) = load(ctx, reference)?;
+            bindings.push(json!({"ref":reference,"role":role,"sha256":sha(&bytes)}));
+            raw.insert(reference.into(), bytes);
+            values.insert(reference.into(), v);
+        }
+        Ok(Self {
+            raw,
+            values,
+            bindings,
+        })
+    }
+    fn verify(&self, ctx: &ResearchExecution) -> Result<()> {
+        for (reference, raw) in &self.raw {
+            ensure(
+                ctx.read(reference)? == *raw,
+                "metadata input changed before output",
+            )?;
+        }
+        Ok(())
+    }
+    fn get(&self, p: &str) -> &Value {
+        &self.values[p]
+    }
+    fn digest(&self, p: &str) -> String {
+        sha(&self.raw[p])
+    }
+}
+fn routes(input: &Inputs) -> Result<Vec<Value>> {
+    let mut frozen = BTreeMap::new();
+    for v in array(&input.get(PLAN_PATH)["candidate_target_units"])? {
+        ensure(
+            frozen.insert(s(&v["unit_id"])?, v).is_none(),
+            "duplicate frozen page",
+        )?;
+    }
+    ensure(frozen.len() == 20, "frozen frame must retain20pages")?;
+    let mut pairings = BTreeMap::new();
+    for p in array(&input.get(JENSEITS_PAIRINGS)["pairings"])? {
+        ensure(
+            pairings.insert(key(&p["unit_key"])?, p).is_none(),
+            "duplicate Jenseits pairing",
+        )?;
+    }
+    let mut out = vec![];
+    for (route, map) in [
+        (JENSEITS_CROSSWALK, JENSEITS_MAP),
+        (GENE_ROUTES, GENE_MAP),
+        (ANTI_ROUTES, ANTI_MAP),
+    ] {
+        for candidate in array(&input.get(route)["candidates"])? {
+            let fixed = frozen
+                .get(s(&candidate["candidate_unit_id"])?)
+                .ok_or("route leaves frozen frame")?;
+            ensure(
+                fixed["page"] == candidate["target_pdf_page"],
+                "frozen page differs from route",
+            )?;
+            if route == JENSEITS_CROSSWALK {
+                for unit in array(&candidate["possible_unit_keys"])? {
+                    let p = pairings.get(&key(unit)?).ok_or("source pairing absent")?;
+                    out.push(json!({"frozen":fixed,"qualified_unit_key":unit,"source_anchor_ref":p["source_anchor_ref"],"source_start_page":p["source_pdf_page"],"route_basis_ref":route,"map_ref":map}));
+                }
+            } else {
+                for p in array(&candidate["possible_source_structural_routes"])? {
+                    out.push(json!({"frozen":fixed,"qualified_unit_key":p["qualified_unit_key"],"source_anchor_ref":p["source_anchor_ref"],"source_start_page":p["source_page"],"route_basis_ref":route,"map_ref":map}));
+                }
+            }
+        }
+    }
+    ensure(out.len() == 35, "expected35conservative routes")?;
+    let mut ids = BTreeSet::new();
+    for row in &out {
+        ensure(
+            ids.insert((
+                s(&row["frozen"]["unit_id"])?,
+                s(&row["qualified_unit_key"])?,
+            )),
+            "duplicate route identity",
+        )?;
+    }
+    Ok(out)
+}
+#[derive(Clone, Copy)]
+pub enum Action {
+    Build,
+    Check,
+    ValidateTracked,
+}
+pub struct Options<'a> {
+    pub action: Action,
+    pub input_root: Option<&'a Path>,
+    pub output_root: Option<&'a Path>,
+    pub generation: Option<&'a str>,
+    pub event_id: Option<&'a str>,
+}
+struct Paths {
+    output: String,
+    anchors: String,
+    private: String,
+    event: String,
+    set_id: String,
+    generation: String,
+    historical: bool,
+}
+impl Paths {
+    fn selected(generation: Option<&str>, event_id: Option<&str>) -> Result<Self> {
+        let generation = generation.unwrap_or("v1");
+        ensure(
+            generation.len() <= 64
+                && !generation.is_empty()
+                && generation.as_bytes()[0].is_ascii_alphanumeric()
+                && generation
+                    .as_bytes()
+                    .last()
+                    .unwrap()
+                    .is_ascii_alphanumeric()
+                && generation
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'),
+            "generation must be a lowercase path/identity component",
+        )?;
+        let historical = generation == "v1";
+        let event = event_id.unwrap_or(EVENT_ID);
+        ensure(
+            (event == EVENT_ID) == historical,
+            "fresh generation requires its own event ID",
+        )?;
+        ensure(
+            regex::Regex::new(r"^tos\.event\.[a-z0-9]+(?:[.-][a-z0-9]+)*$")
+                .unwrap()
+                .is_match(event)
+                && event.len() < 512,
+            "event ID syntax",
+        )?;
+        Ok(Self {
+            output: if historical {
+                OUTPUT_PATH.into()
+            } else {
+                format!("{GOLD_ROOT}/transfer-target-passage-candidates.{generation}.json")
+            },
+            anchors: if historical {
+                ANCHOR_PATH.into()
+            } else {
+                format!("{GOLD_ROOT}/transfer-target-passage-anchors.{generation}.jsonl")
+            },
+            private: if historical {
+                LOCAL_CONTENT_ROOT.into()
+            } else {
+                format!("{GOLD_ROOT}/local-content/transfer-target-passages/{generation}")
+            },
+            event: event.into(),
+            set_id: if historical {
+                SET_ID.into()
+            } else {
+                format!(
+                    "tos.transfer-candidate-set.golden-kernel-transfer-target-passages-{generation}"
+                )
+            },
+            generation: generation.into(),
+            historical,
+        })
+    }
+    fn candidate_id(&self, frozen: &str, unit: &str) -> String {
+        let id = format!(
+            "{}-unit-{}",
+            frozen.replace("tos-target-candidate-", "tos-target-passage-candidate-"),
+            unit.replace(':', "-")
+        );
+        if self.historical {
+            id
+        } else {
+            format!("{id}-{}", self.generation)
+        }
+    }
+    fn anchor_id(&self, frozen: &Value, unit: &str) -> Result<String> {
+        let work = work_slug(s(&frozen["unit_id"])?)?;
+        let expression = s(&frozen["expression_ref"])?.rsplit('.').next().unwrap();
+        Ok(format!(
+            "tos.anchor.friedrich-nietzsche.{work}.{expression}.unit-{}.target-passage-candidate-{}",
+            unit.replace(':', "."),
+            self.generation
+        ))
+    }
+}
+fn rights(input: &Inputs) -> Result<()> {
+    let manifest = input.get(MANIFEST_PATH);
+    let entries = array(&manifest["payload_files"])?;
+    ensure(
+        entries.len() == 1
+            && entries[0]["media_type"] == "application/pdf"
+            && entries[0]["relative_path"] == "payload/Ницше собрание сочинений.pdf",
+        "target must bind exact single PDF",
+    )?;
+    let target = &input.get(PLAN_PATH)["target_source"];
+    ensure(
+        target["file_sha256"] == entries[0]["sha256"] && target["rights_record_ref"] == RIGHTS_PATH,
+        "frozen target source or rights drift",
+    )?;
+    let rights = input.get(RIGHTS_PATH);
+    ensure(
+        array(&rights["scope_refs"])?.contains(&manifest["item_id"])
+            && array(&rights["scope_refs"])?.contains(&entries[0]["file_id"]),
+        "rights scope omits target",
+    )?;
+    ensure(
+        rights["visibility"] == "local_only"
+            && rights["derivative_posture"] == "local_research_only"
+            && rights["redistribution_posture"] == "not_authorized",
+        "private target rights posture drift",
+    )?;
+    Ok(())
+}
+fn validate(
+    ctx: &ResearchExecution,
+    input: &Inputs,
+    paths: &Paths,
+    payload: &Value,
+    anchors: &[Value],
+) -> Result<()> {
+    schema(ctx, SCHEMA_PATH, payload)?;
+    rights(input)?;
+    ensure(
+        payload["candidate_set_id"] == paths.set_id
+            && payload["provenance_event_ref"] == paths.event
+            && payload["transfer_plan_ref"] == PLAN_PATH
+            && payload["transfer_plan_sha256"] == input.digest(PLAN_PATH)
+            && payload["inputs"] == json!(input.bindings),
+        "target input or selected output identity drift",
+    )?;
+    let manifest = input.get(MANIFEST_PATH);
+    let entry = &manifest["payload_files"][0];
+    let witness = json!({"item_ref":manifest["item_id"],"file_ref":entry["file_id"],"file_sha256":entry["sha256"],"rights_ref":RIGHTS_PATH,"rights_sha256":input.digest(RIGHTS_PATH)});
+    ensure(
+        payload["target_witness"] == witness,
+        "target manifest/rights witness drift",
+    )?;
+    let routes = routes(input)?;
+    let mut expected = BTreeMap::new();
+    for row in &routes {
+        expected.insert(
+            (
+                s(&row["frozen"]["unit_id"])?,
+                s(&row["qualified_unit_key"])?,
+            ),
+            row,
+        );
+    }
+    let candidates = array(&payload["passage_candidates"])?;
+    ensure(
+        candidates.len() == 35 && anchors.len() == 35,
+        "target candidate/anchor count drift",
+    )?;
+    let mut anchor_by_id = BTreeMap::new();
+    for a in anchors {
+        schema(ctx, SOURCE_ANCHOR_SCHEMA_PATH, a)?;
+        ensure(
+            anchor_by_id.insert(s(&a["anchor_id"])?, a).is_none(),
+            "duplicate passage anchor",
+        )?;
+    }
+    let mut keys = BTreeSet::new();
+    let mut nonintersecting = BTreeSet::new();
+    let mut private_refs = BTreeSet::new();
+    for c in candidates {
+        ctx.tick(1)?;
+        let pair = (
+            s(&c["frozen_page_candidate_id"])?,
+            s(&c["qualified_unit_key"])?,
+        );
+        ensure(keys.insert(pair), "duplicate candidate route")?;
+        let row = expected
+            .get(&pair)
+            .ok_or("candidate leaves declared routes")?;
+        let fixed = &row["frozen"];
+        let map = flat_map(input.get(s(&row["map_ref"])?))?;
+        let unit = map.get(pair.1).ok_or("candidate unit absent")?;
+        for (a, b) in [
+            ("frozen_candidate_page", "page"),
+            ("stratum", "stratum"),
+            ("work_ref", "work_ref"),
+            ("expression_ref", "expression_ref"),
+        ] {
+            ensure(c[a] == fixed[b], "candidate frozen binding drift")?;
+        }
+        ensure(
+            c["passage_candidate_id"] == paths.candidate_id(pair.0, pair.1)
+                && c["passage_anchor_ref"] == paths.anchor_id(fixed, pair.1)?
+                && c["passage_ref"] == unit["passage_ref"]
+                && c["prior_start_anchor_ref"] == unit["start"]["anchor_ref"]
+                && c["source_structural_anchor_ref"] == row["source_anchor_ref"]
+                && c["source_structural_start_page"] == row["source_start_page"]
+                && c["route_basis_ref"] == row["route_basis_ref"]
+                && c["start"]["page"] == unit["start"]["pdf_page"]
+                && c["end_exclusive"]["page"] == unit["next"]["pdf_page"],
+            "candidate address closure drift",
+        )?;
+        let private = format!("{}/{}.json", paths.private, s(&c["passage_candidate_id"])?);
+        ensure(
+            c["private_content_ref"] == private && private_refs.insert(private.clone()),
+            "private output reference drift/duplicate",
+        )?;
+        private_boundary(ctx, &private)?;
+        let span = array(&c["page_span"])?;
+        ensure(!span.is_empty(), "empty passage span")?;
+        let first = n(&span[0])?;
+        let last = n(span.last().unwrap())?;
+        ensure(
+            first <= last
+                && last - first < 50
+                && span == &(first..=last).map(|n| json!(n)).collect::<Vec<_>>()
+                && first >= n(&c["start"]["page"])?
+                && last <= n(&c["end_exclusive"]["page"])?,
+            "passage page span drift",
+        )?;
+        let intersects = c["candidate_page_intersects_passage"]
+            .as_bool()
+            .ok_or("intersection bool")?;
+        ensure(
+            intersects == (n(&c["candidate_page_line_count"])? > 0)
+                && intersects == span.contains(&fixed["page"])
+                && n(&c["candidate_page_line_count"])? <= n(&c["line_count"])?,
+            "intersection/line count drift",
+        )?;
+        ensure(
+            c["status"]
+                == if intersects {
+                    "proposed-intersecting-layer-exact"
+                } else {
+                    "rejected-nonintersecting-layer-exact"
+                },
+            "candidate status differs from intersection",
+        )?;
+        if !intersects {
+            nonintersecting.insert(pair);
+        }
+        let a = anchor_by_id
+            .get(s(&c["passage_anchor_ref"])?)
+            .ok_or("candidate anchor absent")?;
+        ensure(
+            a["item_id"] == witness["item_ref"]
+                && a["file_id"] == witness["file_ref"]
+                && a["file_sha256"] == witness["file_sha256"]
+                && a["passage_id"] == c["passage_ref"]
+                && a["provenance_event_ref"] == paths.event
+                && a["selector_method"]["configuration_ref"] == paths.output
+                && a["status"] == if intersects { "proposed" } else { "rejected" },
+            "anchor source/event/status closure drift",
+        )?;
+        let selectors = array(&a["selectors"])?;
+        let structural = selectors
+            .iter()
+            .filter(|v| v["type"] == "structural")
+            .collect::<Vec<_>>();
+        let regions = selectors
+            .iter()
+            .filter(|v| v["type"] == "page_region")
+            .collect::<Vec<_>>();
+        let positions = selectors
+            .iter()
+            .filter(|v| v["type"] == "text_position")
+            .collect::<Vec<_>>();
+        ensure(
+            structural.len() == 1
+                && positions.len() == 1
+                && !regions.is_empty()
+                && selectors.len() == regions.len() + 2
+                && regions
+                    .iter()
+                    .map(|r| r["page"].clone())
+                    .collect::<Vec<_>>()
+                    == *span
+                && positions[0]["start"] == 0
+                && positions[0]["end"] == c["text_character_count"]
+                && positions[0]["text_layer_ref"] == private,
+            "anchor selector closure drift",
+        )?;
+        let mut structural_path = vec![
+            format!("work:{}", work_slug(pair.0)?),
+            format!(
+                "expression:{}",
+                s(&fixed["expression_ref"])?.rsplit('.').next().unwrap()
+            ),
+        ];
+        if !unit["series_key"].is_null() {
+            structural_path.push(format!("series:{}", s(&unit["series_key"])?));
+        }
+        structural_path.push(format!("numbered-unit:{}", s(&unit["unit_key"])?));
+        ensure(
+            structural[0]["path"] == json!(structural_path)
+                && structural[0]["scheme"] == "transfer-target-layer-exact-numbered-unit-v1",
+            "structural anchor selector drift",
+        )?;
+    }
+    ensure(
+        nonintersecting
+            == BTreeSet::from([
+                ("tos-target-candidate-jenseits-p0399-random", "284"),
+                ("tos-target-candidate-jenseits-p0279-hard", "46"),
+                ("tos-target-candidate-antichrist-p0661-hard", "main:35"),
+            ]),
+        "nonintersecting route set drift",
+    )?;
+    ensure(
+        payload["summary"]
+            == json!({"frozen_page_candidate_count":20,"conservative_structural_route_count":35,"layer_exact_passage_candidate_count":35,"candidate_page_intersection_count":32,"nonintersecting_route_count":3,"accepted_target_passage_count":0,"eligible_target_unit_count":0,"target_gold_count":0,"human_review_count":0}),
+        "target summary drift",
+    )?;
+    Ok(())
+}
+fn selected_event(ctx: &ResearchExecution, paths: &Paths, journal: &[u8]) -> Result<Option<Value>> {
+    let mut found = None;
+    for (raw, v) in json_lines(ctx, journal)? {
+        if v["event_id"] == paths.event {
+            ensure(found.is_none(), "duplicate selected provenance event")?;
+            if paths.historical {
+                ensure(
+                    sha(&raw) == LEGACY_EVENT_SHA,
+                    "historical provenance bytes changed",
+                )?;
+            }
+            found = Some(v)
+        }
+    }
+    if paths.historical {
+        ensure(found.is_some(), "historical event absent")?;
+    }
+    Ok(found)
+}
+fn outputs(
+    ctx: &ResearchExecution,
+    paths: &Paths,
+    payload: &Value,
+    output_raw: &[u8],
+    anchor_raw: &[u8],
+) -> Result<Vec<Value>> {
+    let mut out = vec![
+        json!({"ref":paths.output,"role":"tracked-text-free-layer-exact-target-passage-candidate-set","sha256":sha(output_raw)}),
+        json!({"ref":paths.anchors,"role":"tracked-proposed-or-rejected-layer-exact-target-passage-anchors","sha256":sha(anchor_raw)}),
+    ];
+    let mut private = BTreeMap::new();
+    for c in array(&payload["passage_candidates"])? {
+        ctx.tick(1)?;
+        private.insert(
+            s(&c["private_content_ref"])?,
+            c["private_content_sha256"].clone(),
+        );
+    }
+    for (reference, digest) in private {
+        out.push(json!({"ref":reference,"role":"gitignored-private-automatic-target-passage-candidate","sha256":digest}));
+    }
+    Ok(out)
+}
+fn validate_event(
+    ctx: &ResearchExecution,
+    input: &Inputs,
+    paths: &Paths,
+    payload: &Value,
+    event: &Value,
+    output_entities: &[Value],
+) -> Result<()> {
+    schema(ctx, "ToS/contracts/provenance-event.schema.json", event)?;
+    let mut expected = records::event(
+        &paths.event,
+        s(&event["started_at"])?,
+        PDFTOTEXT_VERSION,
+        &input.bindings,
+        output_entities,
+        s(&event["method"]["artifact_digest"])?,
+        array(&payload["passage_candidates"])?,
+        32,
+        35,
+        &paths.output,
+    );
+    if !paths.historical {
+        expected["method"]["configuration"]["native_builder_ref"] = json!(BUILDER);
+    }
+    ensure(
+        event["event_type"] == "segmentation"
+            && event["status"] == "completed_with_warnings"
+            && event["rights_basis_ref"] == RIGHTS_PATH
+            && event["inputs"] == json!(input.bindings)
+            && event["outputs"] == json!(output_entities)
+            && event["receipt_refs"] == json!([paths.output])
+            && event["method"]["configuration"] == expected["method"]["configuration"],
+        "target provenance closure drift",
+    )?;
+    if paths.historical {
+        ensure(
+            event["method"]["artifact_digest"] == LEGACY_BUILDER_SHA,
+            "historical builder digest drift",
+        )?;
+    } else {
+        ensure(
+            event["agent_refs"]
+                == json!([
+                    "software:tos-native",
+                    format!("software:poppler-{PDFTOTEXT_VERSION}")
+                ])
+                && event["method"]["maker_type"] == "software"
+                && event["method"]["runtime"] == "Rust plus Poppler 26.01.0"
+                && event["method"]["configuration"]["native_builder_ref"] == BUILDER,
+            "native provenance producer drift",
+        )?;
+    }
+    Ok(())
+}
+fn validate_private(ctx: &ResearchExecution, payload: &Value) -> Result<()> {
+    for c in array(&payload["passage_candidates"])? {
+        let reference = s(&c["private_content_ref"])?;
+        let mut f = ctx.source_file(reference, CAP as u64)?;
+        let metadata = f.metadata().map_err(|e| e.to_string())?;
+        ensure(
+            metadata.len() == n(&c["private_content_bytes"])? as u64
+                && metadata.permissions().mode() & 0o777 == 0o600,
+            "private target size/mode drift",
+        )?;
+        ensure(
+            ctx.hash_file(&mut f, CAP as u64)? == s(&c["private_content_sha256"])?,
+            "private target content drift",
+        )?;
+    }
+    Ok(())
+}
+pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
+    let paths = Paths::selected(opts.generation, opts.event_id)?;
+    let input = Inputs::read(ctx)?;
+    rights(&input)?;
+    let journal = read_optional(ctx, PROVENANCE_PATH)?.unwrap_or_default();
+    let found = selected_event(ctx, &paths, &journal)?;
+    let build = matches!(opts.action, Action::Build);
+    if matches!(opts.action, Action::ValidateTracked) {
+        ensure(
+            opts.input_root.is_none(),
+            "tracked validation does not read a private PDF",
+        )?;
+        let (output_raw, payload) = load(ctx, &paths.output)?;
+        let anchor_raw = ctx.read(&paths.anchors)?;
+        let anchors = json_lines(ctx, &anchor_raw)?
+            .into_iter()
+            .map(|(_, v)| v)
+            .collect::<Vec<_>>();
+        validate(ctx, &input, &paths, &payload, &anchors)?;
+        let entities = outputs(ctx, &paths, &payload, &output_raw, &anchor_raw)?;
+        validate_event(
+            ctx,
+            &input,
+            &paths,
+            &payload,
+            found.as_ref().ok_or("provenance absent")?,
+            &entities,
+        )?;
+        if let Some(root) = opts.output_root {
+            validate_private(&ctx.select_directory(root)?, &payload)?;
+        }
+        return Ok(
+            json!({"status":"passed","mode":"validate-tracked","summary":payload["summary"],"private_pdf_read":false,"private_content_checked":opts.output_root.is_some(),"publication_authorized":false}),
+        );
+    }
+    let source = ctx.select_directory(
+        opts.input_root
+            .ok_or("explicit local input root required")?,
+    )?;
+    let destination = ctx.select_directory(
+        opts.output_root
+            .ok_or("explicit local output root required")?,
+    )?;
+    let manifest = input.get(MANIFEST_PATH);
+    let entry = &manifest["payload_files"][0];
+    let payload_ref = format!("{ITEM_DIR}/{}", s(&entry["relative_path"])?);
+    let mut pdf = source.source_file(&payload_ref, 64 * 1024 * 1024)?;
+    ensure(
+        pdf.metadata().map_err(|e| e.to_string())?.len() == n(&entry["byte_size"])? as u64
+            && source.hash_file(&mut pdf, 64 * 1024 * 1024)? == s(&entry["sha256"])?,
+        "target PDF fixity drift",
+    )?;
+    let rows = routes(&input)?;
+    let mut maps = BTreeMap::new();
+    for p in [JENSEITS_MAP, GENE_MAP, ANTI_MAP] {
+        maps.insert(p, flat_map(input.get(p))?);
+    }
+    let mut required = BTreeSet::new();
+    for row in &rows {
+        let unit = maps[s(&row["map_ref"])?]
+            .get(s(&row["qualified_unit_key"])?)
+            .ok_or("map misses conservative route")?;
+        let start = n(&unit["start"]["pdf_page"])?;
+        let end = n(&unit["next"]["pdf_page"])?;
+        ensure(
+            start > 0 && start <= end && end - start <= 50 && end <= 100000,
+            "target page span bound",
+        )?;
+        required.extend(start..=end);
+    }
+    ensure(required.len() <= 512, "target extraction page bound")?;
+    let mut poppler = Poppler::open(ctx)?;
+    let mut pages = BTreeMap::new();
+    while let Some(start) = required.first().copied() {
+        let mut end = start;
+        while end - start < 7 && required.contains(&(end + 1)) {
+            end += 1;
+        }
+        pages.extend(poppler.pages(ctx, &pdf, start, end)?);
+        for p in start..=end {
+            required.remove(&p);
+        }
+    }
+    let mut candidates = vec![];
+    let mut anchors = vec![];
+    let mut private = BTreeMap::<String, Vec<u8>>::new();
+    for row in &rows {
+        ctx.tick(1)?;
+        let frozen = &row["frozen"];
+        let qualified = s(&row["qualified_unit_key"])?;
+        let unit = &maps[s(&row["map_ref"])?][qualified];
+        let start_page = n(&unit["start"]["pdf_page"])?;
+        let end_page = n(&unit["next"]["pdf_page"])?;
+        let start_marker = marker(&pages, start_page, s(&unit["unit_key"])?)?;
+        let end_marker = marker(&pages, end_page, &key(&unit["next"]["unit_key"])?)?;
+        let (lines, text, regions) = extract(
+            ctx,
+            &pages,
+            start_page,
+            &start_marker,
+            end_page,
+            &end_marker,
+        )?;
+        let candidate_id = paths.candidate_id(s(&frozen["unit_id"])?, qualified);
+        let anchor_id = paths.anchor_id(frozen, qualified)?;
+        let private_ref = format!("{}/{candidate_id}.json", paths.private);
+        private_boundary(ctx, &private_ref)?;
+        let start = point(start_page, &start_marker)?;
+        let end = point(end_page, &end_marker)?;
+        let mut value = records::private(
+            &candidate_id,
+            frozen,
+            &row["qualified_unit_key"],
+            &start,
+            &end,
+            &private_lines(&lines)?,
+            &text,
+        )?;
+        if paths.historical {
+            value["authority_boundary"] = json!(
+                "private automatic bbox-layer slice only; not a diplomatic transcription, accepted Russian, target gold, alignment, or publication object"
+            );
+        }
+        let bytes = encode(ctx, &value, true)?;
+        let count = lines.iter().filter(|v| v["page"] == frozen["page"]).count();
+        let span = lines
+            .iter()
+            .map(|v| n(&v["page"]))
+            .collect::<Result<BTreeSet<_>>>()?
+            .into_iter()
+            .collect::<Vec<_>>();
+        let words = lines
+            .iter()
+            .map(|v| array(&v["words"]).map(Vec::len))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .sum();
+        let mut c = records::candidate(
+            &candidate_id,
+            frozen,
+            row,
+            unit,
+            &anchor_id,
+            &start,
+            &end,
+            &span,
+            count,
+            count > 0,
+            &private_ref,
+            &bytes,
+            &text,
+            lines.len(),
+            words,
+        );
+        if paths.historical {
+            c["limitations"] = json!([
+                "the boundary is exact only inside the automatic embedded-PDF bbox layer",
+                "the private slice is not a diplomatic transcription or accepted Russian text",
+                "shared numbering and a source structural route do not establish passage or translation alignment",
+                "the candidate remains ineligible and has no target gold or human review",
+                "private target text is local-only and not authorized for publication"
+            ]);
+        }
+        candidates.push(c);
+        let mut structure = vec![
+            format!("work:{}", work_slug(s(&frozen["unit_id"])?)?),
+            format!(
+                "expression:{}",
+                s(&frozen["expression_ref"])?.rsplit('.').next().unwrap()
+            ),
+        ];
+        if !unit["series_key"].is_null() {
+            structure.push(format!("series:{}", s(&unit["series_key"])?));
+        }
+        structure.push(format!("numbered-unit:{}", s(&unit["unit_key"])?));
+        let mut selectors = vec![
+            json!({"type":"structural","path":structure,"scheme":"transfer-target-layer-exact-numbered-unit-v1"}),
+        ];
+        selectors.extend(regions);
+        selectors.push(json!({"type":"text_position","start":0,"end":text.chars().count(),"text_layer_ref":private_ref}));
+        anchors.push(records::anchor(
+            &anchor_id,
+            manifest,
+            entry,
+            unit,
+            &selectors,
+            &paths.output,
+            count > 0,
+            &paths.event,
+        ));
+        ensure(
+            private.insert(private_ref, bytes).is_none(),
+            "private output collision",
+        )?;
+    }
+    let intersections = candidates
+        .iter()
+        .filter(|v| v["candidate_page_intersects_passage"] == true)
+        .count();
+    let mut payload = records::output(
+        &paths.set_id,
+        &input.digest(PLAN_PATH),
+        manifest,
+        entry,
+        &input.digest(RIGHTS_PATH),
+        &input.bindings,
+        PDFTOTEXT_VERSION,
+        &candidates,
+        intersections,
+        &paths.event,
+    );
+    if paths.historical {
+        payload["authority_boundary"] = json!(
+            "private target passage materialization exact only within one fixity-bound automatic embedded-PDF bbox layer; tracked data is text-free, boundaries remain proposed or rejected, and no accepted Russian, source passage, passage or translation alignment, eligibility, gold, human, semantic, publication, or canon authority follows"
+        );
+    }
+    validate(ctx, &input, &paths, &payload, &anchors)?;
+    let rendered = encode(ctx, &payload, true)?;
+    let rendered_anchors = jsonl(ctx, &anchors)?;
+    let entities = outputs(ctx, &paths, &payload, &rendered, &rendered_anchors)?;
+    let event = if let Some(event) = found.as_ref() {
+        event.clone()
+    } else {
+        ensure(!paths.historical && build, "selected event absent")?;
+        let mut bytes = include_bytes!("transfer_target_passages.rs").to_vec();
+        bytes.extend(include_bytes!("transfer_target_passages/records.rs"));
+        bytes.extend(include_bytes!("transfer_target_passages/constants.rs"));
+        let mut v = records::event(
+            &paths.event,
+            &utc_now()?,
+            PDFTOTEXT_VERSION,
+            &input.bindings,
+            &entities,
+            &sha(&bytes),
+            &candidates,
+            intersections,
+            private.len(),
+            &paths.output,
+        );
+        v["agent_refs"] = json!([
+            "software:tos-native",
+            format!("software:poppler-{PDFTOTEXT_VERSION}")
+        ]);
+        v["method"]["maker_type"] = json!("software");
+        v["method"]["runtime"] = json!("Rust plus Poppler 26.01.0");
+        v["method"]["configuration"]["native_builder_ref"] = json!(BUILDER);
+        v
+    };
+    validate_event(ctx, &input, &paths, &payload, &event, &entities)?;
+    let tracked = BTreeMap::from([
+        (paths.output.clone(), rendered),
+        (paths.anchors.clone(), rendered_anchors),
+    ]);
+    let mut missing_tracked = vec![];
+    let mut missing_private = vec![];
+    for (reference, bytes) in &tracked {
+        let missing = fresh_or_matching_limit(ctx, reference, bytes, CAP)?;
+        ensure(build || !missing, "tracked output absent")?;
+        if missing {
+            missing_tracked.push(reference)
+        }
+    }
+    for (reference, bytes) in &private {
+        let missing = fresh_or_matching_limit(&destination, reference, bytes, CAP)?;
+        ensure(build || !missing, "private output absent")?;
+        if missing {
+            missing_private.push(reference)
+        } else {
+            let file = destination.source_file(reference, CAP as u64)?;
+            ensure(
+                file.metadata()
+                    .map_err(|e| e.to_string())?
+                    .permissions()
+                    .mode()
+                    & 0o777
+                    == 0o600,
+                "private output mode differs",
+            )?;
+        }
+    }
+    input.verify(ctx)?;
+    ensure(
+        source.hash_file(&mut pdf, 64 * 1024 * 1024)? == s(&entry["sha256"])?,
+        "PDF changed during extraction",
+    )?;
+    poppler.verify()?;
+    ensure(
+        read_optional(ctx, PROVENANCE_PATH)?.unwrap_or_default() == journal,
+        "journal changed before output",
+    )?;
+    if build {
+        for r in missing_private {
+            destination.write(r, &private[r], 0o600, true)?;
+        }
+        for r in missing_tracked {
+            ctx.write(r, &tracked[r], 0o644, true)?;
+        }
+        if found.is_none() {
+            let mut updated = journal.clone();
+            if !updated.is_empty() && !updated.ends_with(b"\n") {
+                updated.push(b'\n')
+            }
+            updated.extend(encode(ctx, &event, false)?);
+            updated.push(b'\n');
+            ensure(updated.len() <= CAP, "journal byte bound")?;
+            if journal.is_empty() {
+                ctx.write(PROVENANCE_PATH, &updated, 0o644, true)?;
+            } else {
+                ctx.write_replacing_exact(PROVENANCE_PATH, &updated, 0o644, &journal)?;
+            }
+        }
+    }
+    ctx.check()?;
+    Ok(
+        json!({"status":"passed","native_executor":"tos transfer-target-passages","mode":if build{"build"}else{"check"},"summary":payload["summary"],"output_ref":paths.output,"anchor_ref":paths.anchors,"event_id":paths.event,"historical_provenance_preserved":paths.historical,"private_content_files":private.len(),"publication_authorized":false,"canon_effect":false}),
+    )
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn fixture() -> Value {
+        serde_json::from_str(include_str!(
+            "transfer_target_passages/synthetic-parity.json"
+        ))
+        .unwrap()
+    }
+    #[test]
+    fn exact_geometry_unicode_and_private_json_match_legacy_recipe() {
+        let t = tempfile::tempdir().unwrap();
+        let ctx = ResearchExecution::new(t.path(), 30).unwrap();
+        let f = fixture();
+        let pages = array(&f["pages"])
+            .unwrap()
+            .iter()
+            .map(|p| (n(&p["page"]).unwrap(), p.clone()))
+            .collect();
+        let a = marker(&pages, 1, "7").unwrap();
+        let b = marker(&pages, 2, "8").unwrap();
+        let (lines, text, regions) = extract(&ctx, &pages, 1, &a, 2, &b).unwrap();
+        assert_eq!(text, "7.\nA😀 ß\ntail\n");
+        assert_eq!(json!(regions), f["regions"]);
+        let p = records::private(
+            "fixture",
+            &f["frozen"],
+            &json!("7"),
+            &point(1, &a).unwrap(),
+            &point(2, &b).unwrap(),
+            &private_lines(&lines).unwrap(),
+            &text,
+        )
+        .unwrap();
+        assert_eq!(p, f["private"]);
+        assert_eq!(sha(&encode(&ctx, &p, true).unwrap()), f["private_sha256"]);
+    }
+    #[test]
+    fn markers_refuse_ambiguity_and_fresh_generations_cannot_claim_legacy_event() {
+        let f = fixture();
+        let mut pages: BTreeMap<_, _> = array(&f["pages"])
+            .unwrap()
+            .iter()
+            .map(|p| (n(&p["page"]).unwrap(), p.clone()))
+            .collect();
+        assert!(marker(&pages, 1, "8").is_err());
+        let line = pages[&1]["lines"][0].clone();
+        pages.get_mut(&1).unwrap()["lines"]
+            .as_array_mut()
+            .unwrap()
+            .push(line);
+        assert!(marker(&pages, 1, "7").is_err());
+        assert!(Paths::selected(Some("fresh"), None).is_err());
+        assert!(Paths::selected(None, Some("tos.event.native.test")).is_err());
+        assert!(Paths::selected(Some("../escape"), Some("tos.event.native.test")).is_err());
+        let paths = Paths::selected(Some("fresh"), Some("tos.event.native.test")).unwrap();
+        assert!(paths.output.ends_with(".fresh.json"));
+        assert!(!paths.historical);
+    }
+    #[test]
+    fn bbox_reorders_geometry_preserves_words_and_refuses_namespace_and_page_drift() {
+        let t = tempfile::tempdir().unwrap();
+        let ctx = ResearchExecution::new(t.path(), 30).unwrap();
+        let xml = r#"<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><body><doc><page width="300" height="600"><flow><block><line xMin="20" yMin="20" xMax="200" yMax="30"><word>A&amp;😀</word><word>ß</word></line><line xMin="150" yMin="10" xMax="153" yMax="15"><word>7.</word></line></block></flow></page></doc></body></html>"#;
+        let p = bbox(&ctx, xml.as_bytes(), 1, 1).unwrap();
+        assert_eq!(p[&1]["lines"][0]["text"], "7.");
+        assert_eq!(p[&1]["lines"][1]["text"], "A&😀 ß");
+        assert_eq!(p[&1]["lines"][0]["source_order"], 1);
+        // Poppler may report peripheral OCR outside the physical page. Preserve it
+        // at extraction; the passage selector excludes footers before anchor checks.
+        let peripheral=xml.replace("</block>","<line xMin=\"-1\" yMin=\"601\" xMax=\"301\" yMax=\"610\"><word>footer</word></line></block>");
+        let peripheral = bbox(&ctx, peripheral.as_bytes(), 1, 1).unwrap();
+        assert_eq!(peripheral[&1]["lines"].as_array().unwrap().len(), 3);
+        assert!(bbox(&ctx, xml.as_bytes(), 1, 2).is_err());
+        assert!(
+            bbox(
+                &ctx,
+                xml.replace("http://www.w3.org/1999/xhtml", "wrong")
+                    .as_bytes(),
+                1,
+                1
+            )
+            .is_err()
+        );
+    }
+}

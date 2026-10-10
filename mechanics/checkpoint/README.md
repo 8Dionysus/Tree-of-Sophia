@@ -12,7 +12,7 @@
 | owner | `mechanics/checkpoint/` |
 | stronger route | `ToS/` owns source state; memo repos own memory |
 | next route | [Review Return](parts/review-return/README.md) |
-| validation | `python scripts/validate_mechanics_topology.py` |
+| validation | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
 
 ## Active Route
 

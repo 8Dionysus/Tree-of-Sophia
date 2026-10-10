@@ -1,0 +1,141 @@
+from __future__ import annotations
+
+import re
+import tempfile
+import unittest
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+README_PATH = REPO_ROOT / "README.md"
+AGENTS_PATH = REPO_ROOT / "AGENTS.md"
+CONTRIBUTING_PATH = REPO_ROOT / "CONTRIBUTING.md"
+KAG_EXPORT_DOC_PATH = (
+    REPO_ROOT / "mechanics" / "boundary-bridge" / "parts" / "derived-kag-seam" / "docs" / "KAG_EXPORT.md"
+)
+TINY_ENTRY_ROUTE = "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
+TRILINGUAL_ENTRY = "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md"
+KAG_EXPORT_DOC = "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"
+KAG_EXPORT_BUILDER = "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs"
+KAG_EXPORT_PUBLISHER = "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs"
+ROOT_ENTRY_MAP = "ToS/derived-exports/root_entry_map.min.json"
+ROOT_ENTRY_BUILDER = "rust/crates/tos-ops-mechanics-plan/src/root_entry_map.rs"
+ROOT_ENTRY_VALIDATOR = "scripts/root_entry_map.source.json"
+REVIEW_CHECKLIST = "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md"
+FENCED_BLOCK_RE = re.compile(r"^```([^\n]*)\n(.*?)^```\s*$", re.MULTILINE | re.DOTALL)
+SHELL_FENCE_LANGUAGES = {"bash", "console", "sh", "shell", "zsh"}
+COMMAND_LINE_RE = re.compile(
+    r"^\s*(?:\$\s+)?(?:python(?:3)?|pytest|bash|sh|zsh|git|make|uv|pip(?:3)?|npm|npx|node|cargo|go|docker|podman|systemctl|journalctl|curl|wget)(?=\s|$)"
+    r"|^\s*(?:\./|\.\./)[\w./-]+",
+    re.MULTILINE,
+)
+# TOS-D-0008 owns the public root-entry boundary. DESIGN.AGENTS.md keeps
+# specialized usage/procedure with its on-demand source or operation owner;
+# ToS review notes and source content are not current execution instructions.
+# Command-free inherited cards have their own validate_nested_agents guard.
+PUBLIC_ROUTE_NAMES = ("README.md", "ROADMAP.md", "CONTRIBUTING.md")
+
+
+def read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def public_route_command_blocks(repo_root: Path) -> list[str]:
+    offenders: list[str] = []
+    for name in PUBLIC_ROUTE_NAMES:
+        text = read_text(repo_root / name)
+        for match in FENCED_BLOCK_RE.finditer(text):
+            language = match.group(1).strip().lower().split(maxsplit=1)
+            language_id = language[0] if language else ""
+            if language_id in SHELL_FENCE_LANGUAGES or COMMAND_LINE_RE.search(match.group(2)):
+                line = text.count("\n", 0, match.start()) + 1
+                offenders.append(f"{name}:{line}")
+    return offenders
+
+
+def assert_route_refs(testcase: unittest.TestCase, text: str, *refs: str) -> None:
+    for ref in refs:
+        with testcase.subTest(ref=ref):
+            testcase.assertIn(ref, text)
+            testcase.assertTrue((REPO_ROOT / ref).exists(), ref)
+
+
+class DocsVerifyRoutesTestCase(unittest.TestCase):
+    def test_public_root_routes_have_no_command_blocks(self) -> None:
+        self.assertEqual([], public_route_command_blocks(REPO_ROOT))
+
+    def test_command_guard_preserves_root_boundary_without_treating_source_as_instructions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in PUBLIC_ROUTE_NAMES:
+                (root / name).write_text("# Public route\n", encoding="utf-8")
+            # Historical/reproduction evidence and an explicit owner-local
+            # usage contract are outside the public front-door constraint.
+            for name in (
+                "ToS/review-ledger/2026-09-08-observation.md",
+                "ToS/source-witnesses/example/reading.md",
+                "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+            ):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("```bash\npython source-owned-example.py\n```\n", encoding="utf-8")
+            self.assertEqual([], public_route_command_blocks(root))
+            for name in PUBLIC_ROUTE_NAMES:
+                for fence in ("bash\necho test", "text\npython scripts/check.py", "\n./check.py"):
+                    with self.subTest(name=name, fence=fence):
+                        (root / name).write_text(f"# Public route\n```{fence}\n```\n", encoding="utf-8")
+                        self.assertEqual([f"{name}:2"], public_route_command_blocks(root))
+                        (root / name).write_text("# Public route\n", encoding="utf-8")
+
+    def test_readme_keeps_source_first_route_links_ahead_of_export_seam(self) -> None:
+        readme = read_text(README_PATH)
+
+        assert_route_refs(self, readme, TINY_ENTRY_ROUTE, TRILINGUAL_ENTRY, KAG_EXPORT_DOC)
+        self.assertLess(readme.index(TINY_ENTRY_ROUTE), readme.index(KAG_EXPORT_DOC))
+
+    def test_readme_routes_validation_instead_of_carrying_commands(self) -> None:
+        readme = read_text(README_PATH)
+
+        self.assertIn("[validation](VALIDATION.md)", readme)
+        self.assertIn("[agent routes](AGENTS.md)", readme)
+        self.assertNotIn("python scripts/", readme)
+        self.assertNotIn("python -m unittest", readme)
+
+    def test_agents_routes_to_on_demand_validation_and_manual_review(self) -> None:
+        agents = read_text(AGENTS_PATH)
+
+        assert_route_refs(
+            self,
+            agents,
+            "VALIDATION.md",
+            "docs/validation/validation_lanes.json",
+            REVIEW_CHECKLIST,
+        )
+
+    def test_contributing_routes_to_validation_owners(self) -> None:
+        contributing = read_text(CONTRIBUTING_PATH)
+
+        self.assertIn("VALIDATION.md", contributing)
+        assert_route_refs(self, contributing, "AGENTS.md", REVIEW_CHECKLIST)
+
+    def test_kag_export_doc_separates_verification_from_regeneration(self) -> None:
+        kag_export_doc = read_text(KAG_EXPORT_DOC_PATH)
+
+        self.assertIn("## Current verification", kag_export_doc)
+        self.assertIn("## Regeneration", kag_export_doc)
+        self.assertLess(
+            kag_export_doc.index("## Current verification"),
+            kag_export_doc.index("## Regeneration"),
+        )
+        assert_route_refs(self, kag_export_doc, KAG_EXPORT_BUILDER, KAG_EXPORT_PUBLISHER)
+
+    def test_readme_and_tiny_entry_doc_expose_root_entry_capsule(self) -> None:
+        readme = read_text(README_PATH)
+        tiny_entry_doc = read_text(REPO_ROOT / "ToS" / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md")
+
+        assert_route_refs(self, readme, ROOT_ENTRY_MAP)
+        assert_route_refs(self, tiny_entry_doc, ROOT_ENTRY_MAP, ROOT_ENTRY_BUILDER, ROOT_ENTRY_VALIDATOR)
+
+
+if __name__ == "__main__":
+    unittest.main()

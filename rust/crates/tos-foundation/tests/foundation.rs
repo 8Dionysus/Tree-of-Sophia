@@ -1,9 +1,71 @@
 use tos_foundation::{
-    CanonicalProfile, CodePointSpan, ContractDescriptor, ContractKey, DescriptorRegistry,
-    Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonNumber,
-    JsonNumberKind, JsonString, JsonValue, OperationDescriptor, OperationEffect, RelativePath,
-    StableId, canonical_bytes_v1, emit_preserved_json, parse_json,
+    CanonicalProfile, CodePointSpan, Digest256, Digest256Hasher, FoundationErrorCode,
+    JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
+    LogicalRecordRefV1, RelativePath, StableId, UnicodeProfile, canonical_bytes_v1,
+    canonical_count_v1, emit_json_profile, emit_preserved_json, parse_json,
+    python_casefold_unicode16_v1, python_lower_unicode16_v1, python_strip_unicode16_v1,
 };
+
+#[test]
+fn canonical_work_admission_counts_prefixes_without_spending_the_output_ceiling() {
+    use tos_foundation::{
+        FoundationError, canonical_bytes_v1_with_state_budget_and_visits_and_admission,
+    };
+    let limits = JsonLimits::default();
+    let value = parse_json(
+        br#"{"z":[1,"text"],"a":true}"#,
+        JsonMode::PublishedStrict,
+        limits,
+    )
+    .unwrap()
+    .into_root();
+    for profile in [
+        CanonicalProfile::SourceRecordDigestV1,
+        CanonicalProfile::CorpusSnapshotV1,
+    ] {
+        let mut work = 0usize;
+        let mut visits = 0usize;
+        let (actual, reported) = canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+            &value,
+            profile,
+            limits,
+            65536,
+            &mut || Ok(()),
+            &mut |bytes, count| {
+                work += bytes + count;
+                visits += count;
+                assert!(work <= 256);
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(actual, canonical_bytes_v1(&value, profile, limits).unwrap());
+        assert_eq!(reported, visits);
+        assert!(work > actual.len() && work < limits.max_bytes);
+    }
+    let mut charged = 0usize;
+    let failure = canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+        &value,
+        CanonicalProfile::SourceRecordDigestV1,
+        limits,
+        65536,
+        &mut || Ok(()),
+        &mut |bytes, visits| {
+            let next = charged + bytes + visits;
+            if next > 4 {
+                return Err(FoundationError::new(
+                    FoundationErrorCode::BudgetExceeded,
+                    "test work cap",
+                ));
+            }
+            charged = next;
+            Ok(())
+        },
+    )
+    .unwrap_err();
+    assert_eq!(failure.code, FoundationErrorCode::BudgetExceeded);
+    assert!(charged > 0 && charged <= 4);
+}
 
 #[test]
 fn exact_hash_stream_and_lexical_types() {
@@ -91,6 +153,15 @@ fn canonical_profile_sorts_and_distinguishes_surrogate_boundary() {
         .unwrap(),
         "{\"a\":\"é\",\"b\":2}\n".as_bytes()
     );
+    assert_eq!(
+        canonical_count_v1(
+            doc.root(),
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default()
+        )
+        .unwrap(),
+        "{\"a\":\"é\",\"b\":2}\n".as_bytes().len()
+    );
     let surrogate = parse_json(
         br#""\ud800""#,
         JsonMode::PublishedStrict,
@@ -103,6 +174,16 @@ fn canonical_profile_sorts_and_distinguishes_surrogate_boundary() {
     );
     assert_eq!(
         canonical_bytes_v1(
+            surrogate.root(),
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default()
+        )
+        .unwrap_err()
+        .code,
+        FoundationErrorCode::InvalidUnicodeScalar
+    );
+    assert_eq!(
+        canonical_count_v1(
             surrogate.root(),
             CanonicalProfile::CorpusSnapshotV1,
             JsonLimits::default()
@@ -134,40 +215,6 @@ fn code_point_offsets_bind_exact_utf8_bytes() {
 }
 
 #[test]
-fn descriptors_are_extensible_but_not_authority() {
-    let mut registry = DescriptorRegistry::new();
-    let input = ContractKey::new("tos.source.new-kind", "v1").unwrap();
-    let output = ContractKey::new("tos.access.new-kind-view", "v2").unwrap();
-    for key in [input.clone(), output.clone()] {
-        registry
-            .register_contract(
-                ContractDescriptor::new(
-                    key,
-                    "ToS/contracts/owner.json",
-                    Digest256::of_bytes(b"schema"),
-                    "tos_foundation_json_v1",
-                )
-                .unwrap(),
-            )
-            .unwrap();
-    }
-    registry
-        .register_operation(
-            OperationDescriptor::new(
-                "tos.new-kind.read",
-                "v1",
-                input,
-                output,
-                OperationEffect::Read,
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    assert!(registry.operation("tos.new-kind.read", "v1").is_some());
-    assert!(registry.operation("tos.unknown", "v1").is_none());
-}
-
-#[test]
 fn canonical_output_rejects_unparsed_values_with_invalid_shape() {
     let limits = JsonLimits::default();
     let number = JsonValue::Number(JsonNumber {
@@ -180,12 +227,24 @@ fn canonical_output_rejects_unparsed_values_with_invalid_shape() {
             .code,
         FoundationErrorCode::InvalidNumber
     );
+    assert_eq!(
+        canonical_count_v1(&number, CanonicalProfile::CorpusSnapshotV1, limits)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::InvalidNumber
+    );
     let duplicate = JsonValue::Object(vec![
         (JsonString::from_utf8("a"), JsonValue::Null),
         (JsonString::from_utf8("a"), JsonValue::Bool(true)),
     ]);
     assert_eq!(
         canonical_bytes_v1(&duplicate, CanonicalProfile::CorpusSnapshotV1, limits)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::DuplicateMember
+    );
+    assert_eq!(
+        canonical_count_v1(&duplicate, CanonicalProfile::CorpusSnapshotV1, limits)
             .unwrap_err()
             .code,
         FoundationErrorCode::DuplicateMember
@@ -212,6 +271,26 @@ fn writer_enforces_byte_limit_before_expanding_escapes() {
         FoundationErrorCode::BudgetExceeded
     );
     assert_eq!(
+        canonical_count_v1(document.root(), CanonicalProfile::CorpusSnapshotV1, limits)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    let nested = JsonValue::Array(vec![JsonValue::Array(vec![JsonValue::Null])]);
+    for limit in [
+        JsonLimits::new(100, 1, 100, 100).unwrap(),
+        JsonLimits::new(100, 64, 2, 100).unwrap(),
+    ] {
+        assert_eq!(
+            canonical_count_v1(&nested, CanonicalProfile::SourceCommandInputV1, limit)
+                .unwrap_err()
+                .code,
+            canonical_bytes_v1(&nested, CanonicalProfile::SourceCommandInputV1, limit)
+                .unwrap_err()
+                .code
+        );
+    }
+    assert_eq!(
         JsonLimits::new(100, usize::MAX, 100, 100).unwrap_err().code,
         FoundationErrorCode::BudgetExceeded
     );
@@ -236,12 +315,33 @@ fn named_profiles_keep_their_distinct_exact_bytes() {
             canonical_bytes_v1(parsed.root(), profile, limits).unwrap(),
             no_lf
         );
+        assert_eq!(
+            canonical_count_v1(parsed.root(), profile, limits).unwrap(),
+            no_lf.len()
+        );
     }
     let mut snapshot = no_lf.to_vec();
     snapshot.push(b'\n');
     assert_eq!(
         canonical_bytes_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, limits).unwrap(),
         snapshot
+    );
+    assert_eq!(
+        canonical_count_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, limits).unwrap(),
+        snapshot.len()
+    );
+    let exact = JsonLimits::new(no_lf.len(), 64, 100, 100).unwrap();
+    assert_eq!(
+        canonical_count_v1(parsed.root(), CanonicalProfile::SourceCommandInputV1, exact).unwrap(),
+        no_lf.len()
+    );
+    assert_eq!(
+        canonical_count_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, exact)
+            .unwrap_err()
+            .code,
+        canonical_bytes_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, exact)
+            .unwrap_err()
+            .code
     );
     assert_eq!(
         CanonicalProfile::from_profile("unknown").unwrap_err().code,
@@ -291,6 +391,283 @@ fn python_float_layout_boundaries() {
             .unwrap(),
             expected.as_bytes(),
             "{raw}"
+        );
+        assert_eq!(
+            canonical_count_v1(
+                parsed.root(),
+                CanonicalProfile::SourceRecordDigestV1,
+                limits
+            )
+            .unwrap(),
+            expected.len(),
+            "{raw}"
+        );
+    }
+}
+
+#[test]
+fn whole_form_set_profile_preserves_order_and_python_layout() {
+    let limits = JsonLimits::default();
+    let raw = "{\"z\":{\"empty\":{},\"items\":[1.0,{\"Ω\":\"é\"},[],null]},\"a\":18446744073709551616,\"growth_history\":[{\"command_id\":\"c\",\"request_digest\":\"sha256:x\"}]}";
+    let parsed = parse_json(raw.as_bytes(), JsonMode::PublishedStrict, limits).unwrap();
+    let expected = concat!(
+        "{\n",
+        "  \"z\": {\n",
+        "    \"empty\": {},\n",
+        "    \"items\": [\n",
+        "      1.0,\n",
+        "      {\n",
+        "        \"Ω\": \"é\"\n",
+        "      },\n",
+        "      [],\n",
+        "      null\n",
+        "    ]\n",
+        "  },\n",
+        "  \"a\": 18446744073709551616,\n",
+        "  \"growth_history\": [\n",
+        "    {\n",
+        "      \"command_id\": \"c\",\n",
+        "      \"request_digest\": \"sha256:x\"\n",
+        "    }\n",
+        "  ]\n",
+        "}\n",
+    );
+    let encoded = emit_json_profile(
+        parsed.root(),
+        JsonEmissionProfile::SourceFormSetPublishedV1,
+        limits,
+    )
+    .unwrap();
+    assert_eq!(encoded.bytes, expected.as_bytes());
+    assert_eq!(
+        encoded.sha256.to_hex(),
+        "3fff42c509876255bd080702a4b8b411e3626cbe1cf8cd2474e7d56778f22f00"
+    );
+    let tiny = JsonLimits::new(32, 64, 300_000, 4_300).unwrap();
+    assert_eq!(
+        emit_json_profile(
+            parsed.root(),
+            JsonEmissionProfile::SourceFormSetPublishedV1,
+            tiny
+        )
+        .unwrap_err()
+        .code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    assert_eq!(
+        JsonEmissionProfile::from_profile("unknown")
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::UnsupportedFormat
+    );
+}
+
+#[test]
+fn logical_record_reference_has_exact_bounded_binary_identity() {
+    let content = Digest256::from_bytes(std::array::from_fn(|index| index as u8));
+    let identity =
+        LogicalRecordRefV1::new(b"lab", b"p", b"1", &[0xff, b'A'], &[b'r', 0], content, 5).unwrap();
+    let expected_hex = concat!(
+        "544f534c010003006c616201007001003102000000ff41020000007200",
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "0500000000000000",
+    );
+    let expected = expected_hex
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect::<Vec<_>>();
+    let encoded = identity.encode();
+    assert_eq!(encoded, expected);
+    assert_eq!(
+        identity.digest().to_hex(),
+        "d7ad3667d125d9bb42bf77374db117ed91c597e786f59d6ab2f12555b04d0197"
+    );
+    assert_eq!(LogicalRecordRefV1::decode(&encoded).unwrap(), identity);
+    assert_eq!(identity.subject(), &[0xff, b'A']);
+    for cut in 0..encoded.len() {
+        assert!(
+            LogicalRecordRefV1::decode(&encoded[..cut]).is_err(),
+            "truncation {cut}"
+        );
+    }
+    let mut extra = encoded.clone();
+    extra.push(0);
+    assert_eq!(
+        LogicalRecordRefV1::decode(&extra).unwrap_err().code,
+        FoundationErrorCode::InvalidFrame
+    );
+    let mut unknown = encoded.clone();
+    unknown[4] = 2;
+    assert_eq!(
+        LogicalRecordRefV1::decode(&unknown).unwrap_err().code,
+        FoundationErrorCode::UnsupportedFormat
+    );
+    assert_eq!(
+        LogicalRecordRefV1::new(b"", b"p", b"1", b"s", b"r", content, 5)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::InvalidFrame
+    );
+    assert_eq!(
+        LogicalRecordRefV1::new(&[b'x'; 256], b"p", b"1", b"s", b"r", content, 5)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::InvalidFrame
+    );
+}
+
+#[test]
+fn unicode16_lower_and_strip_are_versioned_and_bounded() {
+    assert_eq!(
+        UnicodeProfile::PythonNativeUnicodeV1.as_str(),
+        "tos-python-native-unicode-v1"
+    );
+    assert_eq!(
+        UnicodeProfile::PythonNativeUnicodeV1.ucd_version(),
+        "16.0.0"
+    );
+    assert_eq!(
+        UnicodeProfile::from_profile("unknown").unwrap_err().code,
+        FoundationErrorCode::UnsupportedFormat
+    );
+    let lower = |input| python_lower_unicode16_v1(input, 256, 256, 1024).unwrap();
+    assert_eq!(lower("ΣΟΣ"), "σος");
+    assert_eq!(lower("İ"), "i\u{307}");
+    assert_eq!(lower("ẞ Straße K 𐐀"), "ß straße k 𐐨");
+    assert_eq!(
+        python_strip_unicode16_v1("\u{85}\u{2003}  ΣΟΣ\u{3000}", 256).unwrap(),
+        "ΣΟΣ"
+    );
+    assert_eq!(
+        python_lower_unicode16_v1("İ", 1, 1, 8).unwrap_err().code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    assert_eq!(
+        python_lower_unicode16_v1("İ", 1, 2, 2).unwrap_err().code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    assert_eq!(
+        python_strip_unicode16_v1("ΣΟΣ", 2).unwrap_err().code,
+        FoundationErrorCode::BudgetExceeded
+    );
+}
+
+#[test]
+fn unicode16_full_casefold_matches_python_default_and_bounds() {
+    let fold = |input| python_casefold_unicode16_v1(input, 256, 768, 3072).unwrap();
+    // Independent default-full mappings from Unicode 16 CaseFolding.txt C + F.
+    assert_eq!(fold("ẞ Straße ﬃ İ I ı"), "ss strasse ffi i\u{307} i ı");
+    assert_eq!(fold("ΣΟΣ Σοσ Σος ς"), "σοσ σοσ σοσ σ");
+    assert_eq!(fold("µ K ſ 𐐀"), "μ k s 𐐨");
+    // Cherokee folds to uppercase; a lowercase shortcut is observably wrong.
+    assert_eq!(fold("Ꭰ ꭰ"), "Ꭰ Ꭰ");
+    // Unicode 16 additions, independent of older host Unicode tables.
+    assert_eq!(
+        fold("\u{1c89}\u{a7cb}\u{10d50}"),
+        "\u{1c8a}\u{264}\u{10d70}"
+    );
+    assert_eq!(fold("é e\u{301} 🙂"), "é e\u{301} 🙂");
+    assert_eq!(fold(&fold("ẞ Σος ﬃ ꭰ")), fold("ẞ Σος ﬃ ꭰ"));
+    assert_eq!(python_casefold_unicode16_v1("", 0, 0, 0).unwrap(), "");
+    assert_eq!(python_casefold_unicode16_v1("ß", 1, 2, 2).unwrap(), "ss");
+    assert_eq!(
+        python_casefold_unicode16_v1("İ", 1, 2, 3).unwrap(),
+        "i\u{307}"
+    );
+    for (text, input, points, bytes) in [
+        ("ß", 0, 2, 2),
+        ("ß", 1, 1, 2),
+        ("ß", 1, 2, 1),
+        ("İ", 1, 2, 2),
+        ("🙂", 1, 1, 3),
+        ("aaß", 3, 3, 4),
+    ] {
+        assert_eq!(
+            python_casefold_unicode16_v1(text, input, points, bytes)
+                .unwrap_err()
+                .code,
+            FoundationErrorCode::BudgetExceeded
+        );
+    }
+}
+
+#[test]
+fn checked_object_writer_preserves_order_duplicates_and_cancellation_at_fast_path_edges() {
+    for (members, key_units, mixed) in [
+        (2usize, 2usize, false),
+        (32, 128, false),
+        (33, 128, false),
+        (32, 129, false),
+        (32, 2, true),
+    ] {
+        let entries: Vec<_> = (0..members)
+            .rev()
+            .map(|index| {
+                let suffix = format!("{index:02}");
+                let units = if mixed && index == members - 1 {
+                    129
+                } else {
+                    key_units
+                };
+                let key = format!("{}{}", "é".repeat(units.saturating_sub(2)), suffix);
+                (JsonString::from_utf8(&key), JsonValue::Bool(index % 2 == 0))
+            })
+            .collect();
+        let value = JsonValue::Object(entries.clone());
+        let expected = canonical_bytes_v1(
+            &value,
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let mut checks = 0;
+        let actual = tos_foundation::canonical_bytes_v1_with_check(
+            &value,
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+            &mut || {
+                checks += 1;
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(actual, expected);
+        assert!(checks > 0);
+        let mut duplicated = entries;
+        let last = duplicated.len() - 1;
+        duplicated[last] = duplicated[0].clone();
+        assert_eq!(
+            tos_foundation::canonical_bytes_v1_with_check(
+                &JsonValue::Object(duplicated),
+                CanonicalProfile::CorpusSnapshotV1,
+                JsonLimits::default(),
+                &mut || Ok(()),
+            )
+            .unwrap_err()
+            .code,
+            FoundationErrorCode::DuplicateMember,
+        );
+        let mut checks = 0;
+        let cancelled = tos_foundation::canonical_bytes_v1_with_check(
+            &value,
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+            &mut || {
+                checks += 1;
+                if checks >= 8 {
+                    Err(tos_foundation::FoundationError::new(
+                        FoundationErrorCode::BudgetExceeded,
+                        "test cancellation",
+                    ))
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert_eq!(
+            cancelled.unwrap_err().code,
+            FoundationErrorCode::BudgetExceeded
         );
     }
 }

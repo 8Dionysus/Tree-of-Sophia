@@ -32,10 +32,24 @@
     "schema_version": {"const": "tos_lexical_usage_context_receipt_v1"},
     "generated_or_authored": {"const": "generated_from_local_lexical_projection"},
     "receipt_id": {
-      "const": "lexical-usage-context-receipt:zarathustra-work-identity-control-v1"
+      "type": "string",
+      "pattern": "^lexical-usage-context-receipt:zarathustra-work-identity-control-v1(?:\\.native-[a-z0-9][a-z0-9-]{0,47})?$"
     },
     "plan": {"$ref": "#/$defs/refDigest"},
-    "generator": {"$ref": "#/$defs/refDigest"},
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {
+          "oneOf": [
+            {"$ref": "#/$defs/repoPath"},
+            {"const": "rust/crates/tos-compiler/src/lexical_derivatives/usage_context.rs"}
+          ]
+        },
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
     "source_database": {
       "type": "object",
       "additionalProperties": false,

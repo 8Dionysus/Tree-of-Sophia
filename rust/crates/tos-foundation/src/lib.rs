@@ -4,27 +4,64 @@
 
 mod capability;
 mod coordinates;
-mod descriptor;
 mod digest;
 mod error;
 mod identity;
 mod json;
+mod knowledge_model_abi;
+mod logical_ref;
+pub mod native_software_roles;
 mod path;
+mod python_value;
+mod unicode;
+pub use unicode::predicates16 as unicode_predicates16;
 
 pub use capability::{FoundationCapabilities, capabilities};
 pub use coordinates::{ByteSpan, CodePointSpan};
-pub use descriptor::{
-    ContractDescriptor, ContractKey, DescriptorRegistry, OperationDescriptor, OperationEffect,
-};
 pub use digest::{Digest256, Digest256Hasher};
 pub use error::{FoundationError, FoundationErrorCode, Result};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
 pub use json::{
-    CanonicalProfile, JsonDocument, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString,
-    JsonValue, canonical_bytes_v1, canonical_digest_v1, canonical_raw_bytes_profile,
-    canonical_raw_bytes_v1, emit_preserved_json, parse_json, parse_json_profile,
+    CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
+    JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1,
+    canonical_bytes_v1_with_check, canonical_bytes_v1_with_state_budget,
+    canonical_bytes_v1_with_state_budget_and_visits,
+    canonical_bytes_v1_with_state_budget_and_visits_and_admission,
+    canonical_bytes_v1_with_state_budget_and_visits_and_check, canonical_bytes_v1_with_visits,
+    canonical_count_v1, canonical_digest_v1, canonical_feed_digest_v1,
+    canonical_feed_digest_v1_with_check, canonical_raw_bytes_profile, canonical_raw_bytes_v1,
+    emit_json_profile, emit_preserved_json, emit_python_compact_json,
+    emit_python_compact_json_with_state_budget_and_visits_and_check,
+    emit_python_pretty_sorted_json_with_state_budget, emit_value_preserved_json,
+    order_json_object_members_with_check, parse_json, parse_json_profile, parse_json_with_check,
+    parse_json_with_state_budget, parse_json_with_state_budget_and_admission,
+    parse_json_with_state_budget_and_check,
 };
+pub use knowledge_model_abi::{
+    KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1, KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1,
+    KNOWLEDGE_MODEL_ABI_V4_POSTINGS_V1, KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1,
+    KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
+    KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
+    KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3,
+    KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V2_CARRIER_ONCE_V4, KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1,
+    KNOWLEDGE_POSTINGS_MODEL_ABIS,
+};
+pub use logical_ref::LogicalRecordRefV1;
 pub use path::RelativePath;
+pub use python_value::{
+    python_equals, python_float_text, python_lower, python_lower_json_string, python_member,
+    python_repr, python_search_rank_values, python_searchable_text, python_string, python_truthy,
+};
+pub use unicode::{
+    UnicodeProfile, python_casefold_unicode16_v1,
+    python_casefold_unicode16_v1_error_state_upper_bound,
+    python_casefold_unicode16_v1_fixed_state_upper_bound,
+    python_casefold_unicode16_v1_with_state_budget_and_check, python_decimal_unicode16_v1,
+    python_decimal_value_unicode16_v1, python_lower_unicode16_v1,
+    python_lower_unicode16_v1_error_state_upper_bound,
+    python_lower_unicode16_v1_with_state_budget_and_check, python_printable_unicode16_v1,
+    python_strip_unicode16_v1, python_strip_unicode16_v1_with_check, python_word_unicode16_v1,
+};
 
 /// Minimal transport-independent observation for a native/WASM executable parity harness.
 /// Full source/runtime compatibility needs the independent owner fixture corpus.
@@ -54,3 +91,6 @@ mod wasm {
         super::parse_preserve_observation(raw, mode)
     }
 }
+
+mod owned_state;
+pub use owned_state::{OwnedState, checked_state_add};

@@ -74,7 +74,7 @@ admission.
 - `kag/provider_pin.json`
 - `kag/indexes/index_family.manifest.json`
 - `scripts/validate_local_segmented_kag_provider.py`
-- `scripts/validate_local_kag_provider.py`
+- `rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs`
 - `.agents/agent-surface.manifest.json`
 - `.github/workflows/repo-validation.yml`
 - `docs/RELEASING.md`
