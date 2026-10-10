@@ -304,7 +304,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     }
     let rust = steps(jobs, "rust");
     let lane = one_step(rust, "--run rust_workspace");
-    assert!(run(lane).contains("--lane-timeout-ms 5400000"));
+    assert!(run(lane).contains("--lane-timeout-ms 10800000"));
     for key in [
         "TOS_NATIVE_OWNER_COMMAND_PATH",
         "TOS_NATIVE_OWNER_COMMAND_BIN",
