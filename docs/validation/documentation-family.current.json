@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 6090,
+    "tracked_surface_count": 6091,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5866,
     "human_scope": {
-      "bytes": 7235352,
-      "count": 1098,
+      "bytes": 7237582,
+      "count": 1099,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -51,9 +51,9 @@
           "lines": 155
         },
         "docs": {
-          "bytes": 699179,
+          "bytes": 699488,
           "count": 88,
-          "lines": 10965
+          "lines": 10969
         },
         "evals": {
           "bytes": 18262,
@@ -61,9 +61,9 @@
           "lines": 315
         },
         "github": {
-          "bytes": 87321,
+          "bytes": 89201,
           "count": 5,
-          "lines": 1158
+          "lines": 1183
         },
         "kag": {
           "bytes": 8834,
@@ -111,9 +111,9 @@
           "lines": 142
         },
         "tests": {
-          "bytes": 58813,
-          "count": 20,
-          "lines": 1183
+          "bytes": 58854,
+          "count": 21,
+          "lines": 1184
         },
         "tos": {
           "bytes": 5002134,
@@ -121,15 +121,15 @@
           "lines": 82509
         }
       },
-      "lines": 119581
+      "lines": 119611
     },
     "surface_kind_counts": {
       "executable": 84,
-      "human": 1098,
+      "human": 1099,
       "structured": 4908
     },
-    "tracked_path_count": 11956,
-    "tracked_surface_count": 6090,
+    "tracked_path_count": 11957,
+    "tracked_surface_count": 6091,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -163,7 +163,7 @@
         "executable": 1,
         "human": 5
       },
-      "tracked_surface_bytes": 92097,
+      "tracked_surface_bytes": 93977,
       "tracked_surface_count": 6
     },
     {
@@ -192,7 +192,7 @@
         "human": 88,
         "structured": 6
       },
-      "tracked_surface_bytes": 926188,
+      "tracked_surface_bytes": 926497,
       "tracked_surface_count": 94
     },
     {
@@ -253,11 +253,11 @@
       "family_id": "tests",
       "surface_kind_counts": {
         "executable": 1,
-        "human": 20,
+        "human": 21,
         "structured": 71
       },
-      "tracked_surface_bytes": 19218207,
-      "tracked_surface_count": 92
+      "tracked_surface_bytes": 19218248,
+      "tracked_surface_count": 93
     },
     {
       "family_id": "manifests",
@@ -291,7 +291,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "e9f81d3e1140738aff9b3d08fb7b7d9f8629f3acd16c9cca58c60e69857ce7aa",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "ab4a275058faf312fcee49bf33efb109e27457d18f8a3c02c8bd25754ad8ebf5",
+  "tracked_surface_digest": "d6bb256088d3ad16d2d7e89fa90e2a5fe96335214876a6e3961758be30a7bb2f",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -338,7 +338,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "1b6200bc93dc9d30b1227492dd0647579417fd4e4da2cb4f86d43cdfb8b3798a",
+      "sha256": "5cf5f4df1c6941bd2cabbbac8395aece4552cd2c89ef4e06e1e61217a6eda6d1",
       "surface_kind": "structured"
     },
     {
@@ -374,11 +374,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 77876,
+      "bytes": 79756,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "4a7d9f94ed590a5fbc6a317f21ef2afbac1a4e8b363413856327fd8dfbf5117e",
+      "sha256": "7108a2a99925db08c5f85c5f9ad2d08fa02dc7fb581000b25422b12d83c57ea2",
       "surface_kind": "human"
     },
     {
@@ -42926,11 +42926,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 21675,
+      "bytes": 21984,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/RELEASING.md",
-      "sha256": "c89c21fcecd06de7cbeff229bb8b5fb4e05194df252791c47eaa0968c547ca7a",
+      "sha256": "226bd9fc419d396ac43f9841d032f6070f041f6807cabb33ad76666e529b117d",
       "surface_kind": "human"
     },
     {
@@ -48836,6 +48836,14 @@
       "path": "tests/conformance/rust/legacy-python-oracles-v1/whole-authored-philosophy-summary.provenance.json",
       "sha256": "4c5bd95656a5d0bef0018843eadaad3444e75135fb048d252988babde2298208",
       "surface_kind": "structured"
+    },
+    {
+      "bytes": 41,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/conformance/rust/retained-opening-source.txt",
+      "sha256": "73546799f041d2cc78872f7a0097b97c4213e8f6b09de8efdbaf649094a7bb67",
+      "surface_kind": "human"
     },
     {
       "bytes": 3965,
