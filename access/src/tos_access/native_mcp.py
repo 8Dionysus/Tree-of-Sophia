@@ -125,20 +125,15 @@ class NativeMCPServer:
             raise TimeoutError("Native caller has no remaining operation budget")
         wall_deadline = (child_deadline if absolute_deadline is not None else
                          wall_start + min(50, child_deadline - start))
-        from .native_io import owned_exchange, _bounded_json
+        from .native_io import owned_exchange, _bounded_json, MAX_NATIVE_MCP_FRAME_BYTES
         from mcp import ClientSession, types
         from mcp.shared.message import SessionMessage
 
         request_cap = 65_536
-        # Fixed native main profile: 1MiB packet, worst-case escaped duplicate
-        # carrier and request-sized RPC id, plus bounded framing punctuation.
-        # The explicit prepared profile declares 4MiB packets; other fixed
-        # native profiles declare 1MiB. This is transport framing capacity,
-        # never a data admission or query-budget grant.
-        prepared = any(arg == "--prepared-read-model" or
-                       arg.startswith("--prepared-read-model=") for arg in self.arguments)
-        packet_cap = 4 * 1_048_576 if prepared else 1_048_576
-        frame_cap = 7 * packet_cap + 6 * request_cap + 1024
+        # Accept every declared native frame, including managed and prepared
+        # catalogs. Rust selects the packet budget from actual arguments/env;
+        # the SDK does not duplicate that routing or grant data access.
+        frame_cap = MAX_NATIVE_MCP_FRAME_BYTES
         if arguments is not None:
             _bounded_json(arguments, request_cap - 256, wall_deadline - 5)
         from threading import Event

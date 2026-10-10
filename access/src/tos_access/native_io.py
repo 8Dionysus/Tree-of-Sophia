@@ -21,6 +21,11 @@ import sys
 import threading
 import time
 
+# Largest native MCP profile: a 16 MiB packet, its worst-case JSON-escaped
+# text copy, a request-sized escaped RPC id and bounded envelope punctuation.
+# This is a transport ceiling; the selected Rust owner still admits the query.
+MAX_NATIVE_MCP_FRAME_BYTES = 7 * (16 * 1024 * 1024) + 6 * 65_536 + 1024
+
 
 class NativeCancelled(InterruptedError):
     pass
@@ -607,7 +612,7 @@ def _caller_deadline(absolute_deadline, operation_seconds=50):
 
 def _contract(arguments, input_cap, frame_cap, valid_returncodes):
     if (type(input_cap) is not int or not 1 <= input_cap <= 16 * 1024 * 1024
-            or type(frame_cap) is not int or not 1 <= frame_cap <= 64 * 1024 * 1024
+            or type(frame_cap) is not int or not 1 <= frame_cap <= MAX_NATIVE_MCP_FRAME_BYTES
             or not isinstance(arguments, (list, tuple)) or len(arguments) > 1024
             or any(type(arg) is not str or '\0' in arg for arg in arguments)
             or sum(len(arg) for arg in arguments) > 1048576

@@ -148,7 +148,7 @@ class SoftwareBoundaryTests(unittest.TestCase):
         from queue import Queue, Empty
         from types import SimpleNamespace
         from tos_access.native_mcp import NativeMCPServer
-        from tos_access.native_io import _bounded_json
+        from tos_access.native_io import _bounded_json, _contract, MAX_NATIVE_MCP_FRAME_BYTES
         calls, closed, respond = [], [], [True]
         @contextmanager
         def exchange(arguments, **options):
@@ -178,7 +178,7 @@ class SoftwareBoundaryTests(unittest.TestCase):
                 yield Channel()
             finally:
                 closed.append(True)
-        with patch.dict(sys.modules, {'tos_access.native_io': SimpleNamespace(owned_exchange=exchange, _bounded_json=_bounded_json)}):
+        with patch.dict(sys.modules, {'tos_access.native_io': SimpleNamespace(owned_exchange=exchange, _bounded_json=_bounded_json, MAX_NATIVE_MCP_FRAME_BYTES=MAX_NATIVE_MCP_FRAME_BYTES)}):
             server = NativeMCPServer('/owned/software', inherit_data_selection=False)
             self.assertEqual(asyncio.run(server.list_tools()), [])
             with self.assertRaisesRegex(ValueError, 'byte budget'):
@@ -194,6 +194,10 @@ class SoftwareBoundaryTests(unittest.TestCase):
             asyncio.run(cancel_call())
         self.assertEqual(closed, [True, True])
         self.assertEqual(calls[0][0], ['mcp'])
+        self.assertEqual(calls[0][1]['frame_cap'], MAX_NATIVE_MCP_FRAME_BYTES)
+        _contract(calls[0][0], calls[0][1]['input_cap'], calls[0][1]['frame_cap'], (0,))
+        with self.assertRaisesRegex(ValueError, 'host frame contract'):
+            _contract(['mcp'], 65536, MAX_NATIVE_MCP_FRAME_BYTES + 1, (0,))
         self.assertNotIn('TOS_DATA_ROOT', calls[0][1]['env'])
         self.assertNotIn('TOS_RELEASE_ROOT', calls[0][1]['env'])
         self.assertTrue(calls[0][1]['cancelled'].is_set())
