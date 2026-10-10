@@ -1158,21 +1158,28 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
     );
     let owner = PathBuf::from(std::env::var_os("TOS_NATIVE_OWNER_COMMAND_BIN").unwrap());
     let consumer = PathBuf::from(std::env::var_os("TOS_NATIVE_MANAGED_CONSUMER_BIN").unwrap());
-    let build_request = &case["request"];
+    let producer_sha256 = hash_file(&owner).to_hex();
+    // One immutable prepared source cut may be exercised by two exact software
+    // images. Give each image its own output and result instead of replacing a
+    // prior completed result or rebuilding the source preparation.
+    let mut build_request = case["request"].clone();
+    build_request["data_directory"] = json!(format!("native-corpus-build-{producer_sha256}"));
+    build_request["private_release_directory"] =
+        json!(format!("native-corpus-unused-{producer_sha256}"));
     let (_, _, _, persistent_store) = stage_resources();
-    let result_path = case_root.join("producer-result.json");
+    let result_path = case_root.join(format!("producer-result-{producer_sha256}.json"));
     let built = if phase == "producer" {
         assert!(
             !result_path.exists(),
             "a completed producer result is immutable"
         );
-        let preflight = run_native_corpus_build(&owner, build_request, true);
+        let preflight = run_native_corpus_build(&owner, &build_request, true);
         assert!(
             preflight.status.success(),
             "native preflight refused: {}",
             String::from_utf8_lossy(&preflight.stderr)
         );
-        let built = run_native_corpus_build(&owner, build_request, false);
+        let built = run_native_corpus_build(&owner, &build_request, false);
         assert!(
             built.status.success(),
             "native corpus build refused: {}",
@@ -1191,7 +1198,7 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
         );
         assert_eq!(
             result["request_sha256"],
-            Digest256::of_bytes(&canonical(build_request)).to_hex()
+            Digest256::of_bytes(&canonical(&build_request)).to_hex()
         );
         result["receipt"].clone()
     };
@@ -1206,7 +1213,7 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
     assert!(data_root.is_absolute() && data_root.is_dir());
     assert!(
         !persistent_store
-            .join("native-corpus-build-unused-release")
+            .join(build_request["private_release_directory"].as_str().unwrap())
             .exists()
     );
 
@@ -1255,7 +1262,7 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
             &result_path,
             &json!({"receipt":built,"inputs":inputs,
             "producer_sha256":hash_file(&owner).to_hex(),
-            "request_sha256":Digest256::of_bytes(&canonical(build_request)).to_hex()}),
+            "request_sha256":Digest256::of_bytes(&canonical(&build_request)).to_hex()}),
         );
         return;
     }
@@ -1265,7 +1272,7 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
         // intact for the reader admission below.
         let check_data_name = "native-corpus-check-unused-data";
         let check_release_name = "native-corpus-check-unused-release";
-        let mut check_request = (*build_request).clone();
+        let mut check_request = build_request.clone();
         check_request["mode"] = json!("check");
         check_request["comparison_root"] = json!(data.display().to_string());
         check_request["data_directory"] = json!(check_data_name);

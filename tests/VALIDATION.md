@@ -62,6 +62,9 @@ older consumer-only checkpoint without repeating that construction, select
 digest and keeps the original checkpoint intact. Select the new checkpoint
 for `producer`, `check` and `producer-read`. This operation adds real authored
 inputs; it does not admit an incomplete candidate or synthesize graph rows.
+Producer outputs and completed result records are keyed by the exact executable
+digest, so two software versions can exercise the same immutable preparation
+without replacing each other. Parity still compares all six exact products.
 Preparation also captures and restores a new exact Git fixture containing the
 expanded source set and the unchanged original software companions. The source
 cut and repository inventory therefore name the same selected files; the old
