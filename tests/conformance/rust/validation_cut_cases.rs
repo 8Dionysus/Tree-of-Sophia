@@ -722,6 +722,14 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
 fn actual_general_operation_keeps_selected_family_coverage_below_source_admission() {
     use tos_validation::record_biblio_cut::BiblioRecordExecutor;
     use tos_validation::source_cut::CutSchemaExecutor;
+    // This composed fixture finishes 191 schema receipts. Its unoptimized CI
+    // worker exceeds the three-second scalar-probe allowance at finalization.
+    // Select one finite fixture CPU envelope; the shared under-budget refusals
+    // below still derive from both selected worker envelopes.
+    let worker_budget = ExecutorBudget {
+        cpu_seconds: 10,
+        ..ExecutorBudget::laboratory()
+    };
     let stage_started = Instant::now();
     let stage = |phase: &'static str| {
         eprintln!(
@@ -929,8 +937,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         )
         .unwrap();
     stage("positive-image-start");
-    let image =
-        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let image = super::command_form_cases::schema_image(worker_budget, deadline, &cancelled);
     stage("positive-image-ready");
     let schema_limits = CutWorkerLimits {
         max_receipts: 256,
@@ -940,7 +947,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
         &image,
-        ExecutorBudget::laboratory(),
+        worker_budget,
         schema_limits,
         deadline,
         &cancelled,
@@ -948,7 +955,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     .unwrap();
     let mut record_executor = BiblioRecordExecutor::new_with_image(
         &image,
-        ExecutorBudget::laboratory(),
+        worker_budget,
         FormatProfile::LegacyPythonObserved20260923,
         256,
         deadline,
@@ -1002,7 +1009,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         },
         max_composed_state_bytes: 134_217_728,
         max_composed_read_bytes: 500_000_000,
-        max_composed_schema_cpu_seconds: 2 * ExecutorBudget::laboratory().cpu_seconds,
+        max_composed_schema_cpu_seconds: 2 * worker_budget.cpu_seconds,
         max_composed_schema_wire_bytes: 2
             * tos_validation::executor::BatchStreamBudget::laboratory().max_total_wire_bytes,
     };
@@ -1412,15 +1419,12 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         // This negative control has its own original operation deadline;
         // admit a fresh image for it rather than renewing the positive handle.
         stage("negative-image-start");
-        let negative_image = super::command_form_cases::schema_image(
-            ExecutorBudget::laboratory(),
-            negative_deadline,
-            &cancelled,
-        );
+        let negative_image =
+            super::command_form_cases::schema_image(worker_budget, negative_deadline, &cancelled);
         stage("negative-image-ready");
         let mut negative_records = BiblioRecordExecutor::new_with_image(
             &negative_image,
-            ExecutorBudget::laboratory(),
+            worker_budget,
             FormatProfile::LegacyPythonObserved20260923,
             256,
             negative_deadline,
@@ -1443,7 +1447,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
             &damaged_cut,
             FormatProfile::LegacyPythonObserved20260923,
             &negative_image,
-            ExecutorBudget::laboratory(),
+            worker_budget,
             CutWorkerLimits {
                 max_receipts: 256,
                 max_receipt_bytes: 262_144,
