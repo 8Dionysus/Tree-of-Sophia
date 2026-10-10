@@ -6,6 +6,37 @@ use crate::error::{FoundationError, FoundationErrorCode as Code, Result};
 
 include!("unicode_generated.rs");
 
+// JSON syntax and field names repeatedly visit this range. Derive the direct
+// lookups from the same pinned tables at compile time: no second Unicode law,
+// runtime allocation or repeated binary search for an ASCII scalar.
+const ASCII_LOWER: [Option<&str>; 128] = ascii_lower();
+const ASCII_CASED: [bool; 128] = ascii_ranges(CASED);
+const ASCII_CASE_IGNORABLE: [bool; 128] = ascii_ranges(CASE_IGNORABLE);
+
+const fn ascii_lower() -> [Option<&'static str>; 128] {
+    let mut result = [None; 128];
+    let mut index = 0;
+    while index < LOWER.len() && LOWER[index].0 < 128 {
+        result[LOWER[index].0 as usize] = Some(LOWER[index].1);
+        index += 1;
+    }
+    result
+}
+
+const fn ascii_ranges(ranges: &[(u32, u32)]) -> [bool; 128] {
+    let mut result = [false; 128];
+    let mut index = 0;
+    while index < ranges.len() && ranges[index].0 < 128 {
+        let mut point = ranges[index].0;
+        while point <= ranges[index].1 && point < 128 {
+            result[point as usize] = true;
+            point += 1;
+        }
+        index += 1;
+    }
+    result
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnicodeProfile {
     PythonNativeUnicodeV1,
@@ -249,6 +280,7 @@ fn lower_fixed_state() -> usize {
         + std::mem::size_of::<u32>()
         + std::mem::size_of::<Result<()>>();
     let ranges = std::mem::size_of::<&[(u32, u32)]>()
+        + std::mem::size_of::<&[bool; 128]>()
         + std::mem::size_of::<&mut dyn FnMut() -> Result<()>>()
         // low/high/middle plus point/start/end and destructuring tuple.
         + std::mem::size_of::<(usize, usize, usize)>()
@@ -284,8 +316,8 @@ fn lower_following(
         check()?;
         let point = chars[index] as u32;
         following[index] = next;
-        if !lower_ranges(point, CASE_IGNORABLE, check)? {
-            next = lower_ranges(point, CASED, check)?;
+        if !lower_ranges(point, CASE_IGNORABLE, &ASCII_CASE_IGNORABLE, check)? {
+            next = lower_ranges(point, CASED, &ASCII_CASED, check)?;
         }
     }
     Ok(())
@@ -293,8 +325,13 @@ fn lower_following(
 fn lower_ranges(
     point: u32,
     ranges: &[(u32, u32)],
+    ascii: &[bool; 128],
     check: &mut dyn FnMut() -> Result<()>,
 ) -> Result<bool> {
+    if point < 128 {
+        check()?;
+        return Ok(ascii[point as usize]);
+    }
     let (mut low, mut high) = (0, ranges.len());
     while low < high {
         check()?;
@@ -322,7 +359,10 @@ fn lower_visit(
     for (index, ch) in chars.iter().copied().enumerate() {
         check()?;
         let point = ch as u32;
-        let mapped = if point == 0x3a3 && previous && !following[index] {
+        let mapped = if point < 128 {
+            check()?;
+            ASCII_LOWER[point as usize]
+        } else if point == 0x3a3 && previous && !following[index] {
             Some("ς")
         } else {
             let (mut low, mut high, mut mapped) = (0, LOWER.len(), None);
@@ -359,8 +399,8 @@ fn lower_visit(
             return Err(budget_error("Unicode output budget exceeded"));
         }
         emit(piece)?;
-        if !lower_ranges(point, CASE_IGNORABLE, check)? {
-            previous = lower_ranges(point, CASED, check)?;
+        if !lower_ranges(point, CASE_IGNORABLE, &ASCII_CASE_IGNORABLE, check)? {
+            previous = lower_ranges(point, CASED, &ASCII_CASED, check)?;
         }
     }
     Ok(())
@@ -579,6 +619,86 @@ fn check_input(input: &str, max_code_points: usize) -> Result<()> {
 
 fn budget_error(detail: &'static str) -> FoundationError {
     FoundationError::new(Code::BudgetExceeded, detail)
+}
+
+#[cfg(test)]
+mod lower_tests {
+    use super::*;
+
+    #[test]
+    fn ascii_lookup_preserves_pinned_lowercase_and_cutoffs() {
+        for point in 0..128u32 {
+            let mapped = LOWER
+                .binary_search_by_key(&point, |(key, _)| *key)
+                .ok()
+                .map(|index| LOWER[index].1);
+            assert_eq!(ASCII_LOWER[point as usize], mapped);
+            assert_eq!(ASCII_CASED[point as usize], in_ranges(point, CASED));
+            assert_eq!(
+                ASCII_CASE_IGNORABLE[point as usize],
+                in_ranges(point, CASE_IGNORABLE)
+            );
+        }
+        let checked = |input: &str, check: &mut dyn FnMut() -> Result<()>| {
+            python_lower_unicode16_v1_with_state_budget_and_check(
+                input, 1_000_000, 1_000_000, 4_000_000, 8_000_000, check,
+            )
+        };
+        // ASCII cased/ignorable characters still carry Final_Sigma context
+        // across Unicode scalars and combining marks in both directions.
+        for (input, expected) in [
+            ("AΣ", "aς"),
+            ("A'Σ", "a'ς"),
+            ("ΣA", "σa"),
+            ("AΣ'A", "aσ'a"),
+            ("AΣ\u{301}", "aς\u{301}"),
+            ("AΣ\u{301}A", "aσ\u{301}a"),
+            ("İAΣ ЯЁ", "i\u{307}aς яё"),
+        ] {
+            assert_eq!(checked(input, &mut || Ok(())).unwrap(), expected);
+        }
+
+        let input = "{\"ID\":\"ABC-123\",\"SOURCE_GRAPH\":\"NAVIGATION\"}\n".repeat(4096);
+        let mut calls = 0usize;
+        let started = std::time::Instant::now();
+        let output = checked(&input, &mut || {
+            calls += 1;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(output, input.to_ascii_lowercase());
+        // Repeated ASCII syntax must use direct lookups, while every input,
+        // lookup and emitted scalar still reaches the caller's work callback.
+        assert!(calls <= input.len() * 18 + 1);
+        eprintln!(
+            "checked ASCII lowercase bytes={} work_callbacks={calls} elapsed_us={}",
+            input.len(),
+            started.elapsed().as_micros()
+        );
+        let mut refused_calls = 0usize;
+        assert!(
+            checked(&input, &mut || {
+                refused_calls += 1;
+                if refused_calls == 7 {
+                    Err(budget_error("test cumulative cutoff"))
+                } else {
+                    Ok(())
+                }
+            })
+            .is_err()
+        );
+        assert_eq!(refused_calls, 7);
+        assert!(
+            python_lower_unicode16_v1_with_state_budget_and_check("A", 1, 1, 1, 1, &mut || Ok(()))
+                .is_err()
+        );
+        assert!(
+            python_lower_unicode16_v1_with_state_budget_and_check("İ", 1, 1, 8, 8192, &mut || Ok(
+                ()
+            ))
+            .is_err()
+        );
+    }
 }
 
 fn in_ranges(point: u32, ranges: &[(u32, u32)]) -> bool {
