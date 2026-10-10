@@ -56,7 +56,7 @@ query oracle. The six-product producer uses a separately identified cut that
 preserves those members and adds the complete authored `ToS/philosophy/`
 branch. Its preparation runs before catalog/index construction. To upgrade an
 older consumer-only checkpoint without repeating that construction, select
-`producer-prepare`: it creates a sibling `producer-prepared.json`, prints its
+`producer-prepare`: it creates a sibling `producer-prepared-<digest>.json`, prints its
 digest and keeps the original checkpoint intact. Select the new checkpoint
 for `producer`, `check` and `producer-read`. This operation adds real authored
 inputs; it does not admit an incomplete candidate or synthesize graph rows.

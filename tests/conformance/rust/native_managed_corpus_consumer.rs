@@ -761,7 +761,8 @@ fn build_request(
         // The complete philosophy producer has its own admitted working set;
         // the small consumer fixture's 1 GiB process cap does not describe it.
         address_space_bytes: working_ram_bytes,
-        file_size_bytes: NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS.file_size_bytes,
+        // Permit the full declared model file, including philosophy products.
+        file_size_bytes: cold.max_file_bytes,
     };
     for (key, value) in [
         ("max_revisions", 1u64),
@@ -1331,11 +1332,6 @@ pub(super) fn resume_selected_phase() -> bool {
     verify_pins(&case["inputs"]);
     if phase == "producer-prepare" {
         let parent = path.parent().unwrap();
-        let output = parent.join("producer-prepared.json");
-        assert!(
-            !output.exists(),
-            "completed producer preparation is immutable"
-        );
         let temporary = tempfile::Builder::new()
             .prefix("producer-inputs-")
             .tempdir_in(parent)
@@ -1349,6 +1345,14 @@ pub(super) fn resume_selected_phase() -> bool {
             &temporary.path().join("source-store"),
         );
         let prepared = prepared_record(case["managed"].clone(), producer);
+        let output = parent.join(format!(
+            "producer-prepared-{}.json",
+            Digest256::of_bytes(&canonical(&prepared)).to_hex()
+        ));
+        assert!(
+            !output.exists(),
+            "completed producer preparation is immutable"
+        );
         write_record(&output, &prepared);
         temporary.keep();
         eprintln!(
