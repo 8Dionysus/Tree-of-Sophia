@@ -908,52 +908,80 @@ pub(super) fn prepare_producer_source(
         .iter()
         .map(|(path, bytes)| (path.clone(), Digest256::of_bytes(bytes)))
         .collect::<BTreeMap<_, _>>();
-    fn add_philosophy(
+    fn add_source_input(
         repository: &Path,
-        root: &Path,
+        path: &Path,
         files: &mut BTreeMap<String, Vec<u8>>,
         deadline: Instant,
         bytes: &mut u64,
     ) {
         assert!(Instant::now() < deadline);
-        let mut children = fs::read_dir(root)
-            .unwrap()
-            .map(|entry| entry.unwrap().path())
-            .collect::<Vec<_>>();
-        children.sort();
-        for path in children {
-            assert!(Instant::now() < deadline);
-            let metadata = fs::symlink_metadata(&path).unwrap();
-            assert!(!metadata.file_type().is_symlink());
-            if metadata.is_dir() {
-                add_philosophy(repository, &path, files, deadline, bytes);
-                continue;
+        let metadata = fs::symlink_metadata(path).unwrap();
+        assert!(!metadata.file_type().is_symlink());
+        if metadata.is_dir() {
+            let mut children = fs::read_dir(path)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect::<Vec<_>>();
+            children.sort();
+            for path in children {
+                add_source_input(repository, &path, files, deadline, bytes);
             }
-            assert!(metadata.is_file() && metadata.len() <= PRODUCER_SOURCE_MEMBER_BYTES);
-            let relative = path.strip_prefix(repository).unwrap().to_str().unwrap();
-            let raw = fs::read(&path).unwrap();
-            assert_eq!(raw.len() as u64, metadata.len());
-            if let Some(existing) = files.get(relative) {
-                assert_eq!(
-                    existing, &raw,
-                    "overlapping source member changed: {relative}"
-                );
-            } else {
-                *bytes = bytes.checked_add(raw.len() as u64).unwrap();
-                assert!(*bytes <= PRODUCER_SOURCE_BYTES);
-                assert!(files.len() < PRODUCER_SOURCE_MEMBERS as usize);
-                files.insert(relative.to_owned(), raw);
-            }
+            return;
+        }
+        assert!(metadata.is_file() && metadata.len() <= PRODUCER_SOURCE_MEMBER_BYTES);
+        let relative = path.strip_prefix(repository).unwrap().to_str().unwrap();
+        let raw = fs::read(path).unwrap();
+        assert_eq!(raw.len() as u64, metadata.len());
+        if let Some(existing) = files.get(relative) {
+            assert_eq!(
+                existing, &raw,
+                "overlapping source member changed: {relative}"
+            );
+        } else {
+            *bytes = bytes.checked_add(raw.len() as u64).unwrap();
+            assert!(*bytes <= PRODUCER_SOURCE_BYTES);
+            assert!(files.len() < PRODUCER_SOURCE_MEMBERS as usize);
+            files.insert(relative.to_owned(), raw);
         }
     }
     let mut bytes = files.values().map(|raw| raw.len() as u64).sum::<u64>();
-    add_philosophy(
+    add_source_input(
         repository,
         &repository.join("ToS/philosophy"),
         &mut files,
         deadline,
         &mut bytes,
     );
+    let evidence_inputs = tos_compiler::epistemic_evidence::required_source_paths(
+        &files[tos_compiler::epistemic_evidence::SOURCE_REF],
+        deadline,
+    )
+    .unwrap();
+    for path in &evidence_inputs {
+        add_source_input(
+            repository,
+            &repository.join(path),
+            &mut files,
+            deadline,
+            &mut bytes,
+        );
+    }
+    // The selected real Evidence Lens Work has two authored_by endpoints.
+    // Preserve their actual metadata with the route's discovery evidence.
+    for path in [
+        "ToS/source-witnesses/agents/logan-born/agent.json",
+        "ToS/source-witnesses/agents/kathryn-erin-kelley/agent.json",
+        "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2021-6-quantitative-sign-use.2026-08-12.v1.json",
+    ] {
+        add_source_input(
+            repository,
+            &repository.join(path),
+            &mut files,
+            deadline,
+            &mut bytes,
+        );
+    }
     // Check the actual owner's entry inputs before capture/index preparation.
     // Further dependency/semantic checks remain with its normal producer.
     for path in [
@@ -1109,7 +1137,8 @@ pub(super) fn prepare_producer_source(
     prepared["consumer_source_revision"] = serde_json::json!(revision.0.to_hex());
     prepared["source_revision"] = serde_json::json!(producer_revision.0.to_hex());
     prepared["source_cohort"] = serde_json::json!({
-        "selection":"retained consumer sources plus complete authored ToS/philosophy branch",
+        "selection":"retained consumer sources plus complete authored philosophy and Evidence Lens inputs",
+        "evidence_inputs":evidence_inputs,
         "original_members":original.len(),"producer_members":files.len(),"producer_bytes":bytes,
         "original_members_unchanged":true,
         "capture_members":captured.len(),

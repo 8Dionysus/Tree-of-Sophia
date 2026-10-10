@@ -2865,6 +2865,27 @@ fn open_source_runtime_inputs(
     if cut.current().revision() != revision {
         return Err(Refusal("native selected source revision differs from opened cut").into());
     }
+    // Resolve the next owner's authored dependency list before materializing
+    // or compiling the corpus. An incomplete selected cut cannot yield all
+    // six runtime products, even when its philosophy inputs are complete.
+    let evidence_source = cut.read_member(
+        revision,
+        &RelativePath::parse(tos_compiler::epistemic_evidence::SOURCE_REF)?,
+        plan.cut.max_member_bytes,
+        deadline,
+        cancelled,
+    )?;
+    for path in
+        tos_compiler::epistemic_evidence::required_source_paths(&evidence_source.raw, deadline)?
+    {
+        if !cut
+            .current()
+            .members()
+            .any(|member| member.path.as_str() == path)
+        {
+            return Err(Refusal("native evidence stage authored input closure incomplete").into());
+        }
+    }
     let selection = SoftwareCaptureSelectionV1 {
         source_git_commit: source.source_git_commit.clone(),
         source_git_tree: source.source_git_tree.clone(),

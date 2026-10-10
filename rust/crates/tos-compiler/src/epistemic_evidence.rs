@@ -422,6 +422,33 @@ fn reference_path(root: &Path, reference: &str) -> Result<std::path::PathBuf> {
     }
     Ok(root.join(p))
 }
+/// Authored dependencies of the Evidence Lens stage. Generated graph carriers
+/// are supplied by prior stages; these exact route files must already belong
+/// to the selected source cut. Listing them grants no source or rights authority.
+pub fn required_source_paths(source_definition: &[u8], deadline: Instant) -> Result<Vec<String>> {
+    guard(deadline)?;
+    let source = decode(source_definition)?;
+    let mut paths = BTreeSet::from([
+        SOURCE_REF.to_owned(),
+        SCHEMA_REF.to_owned(),
+        CANON_REF.to_owned(),
+    ]);
+    for scene in array(&source, "scenes")? {
+        guard(deadline)?;
+        if !scene.is_object() {
+            return Err(Error::Invalid("Evidence Lens scenes must be objects"));
+        }
+        for route in array(scene, "routes")? {
+            guard(deadline)?;
+            let reference = string(&route["ref"])?;
+            reference_path(Path::new("."), reference)?;
+            paths.insert(reference.to_owned());
+        }
+    }
+    guard(deadline)?;
+    Ok(paths.into_iter().collect())
+}
+
 fn read(root: &Path, reference: &str, deadline: Instant) -> Result<Vec<u8>> {
     guard(deadline)?;
     let mut file = safe_open::open_regular(&reference_path(root, reference)?, CAP as u64)?;
@@ -1786,6 +1813,22 @@ pub fn check_isolated_selected(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn source_stage_lists_sorted_routes_and_rejects_unsafe_inputs() {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let raw = br#"{"scenes":[{"routes":[{"ref":"ToS/b.json"},{"ref":"ToS/a.json"},{"ref":"ToS/b.json"}]}]}"#;
+        let paths = super::required_source_paths(raw, deadline).unwrap();
+        assert!(paths.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(paths.iter().any(|path| path == "ToS/a.json"));
+        assert!(paths.iter().any(|path| path == super::CANON_REF));
+        for reference in ["../private", "/private", "ToS/source/payload/private"] {
+            let raw =
+                serde_json::to_vec(&serde_json::json!({"scenes":[{"routes":[{"ref":reference}]}]}))
+                    .unwrap();
+            assert!(super::required_source_paths(&raw, deadline).is_err());
+        }
+    }
+
     use super::*;
     use std::fs;
     #[test]

@@ -54,7 +54,9 @@ and after use. Incomplete preparation cannot be resumed as a ready dataset.
 The consumer recipe retains its small canon/Claims/navigation cut and frozen
 query oracle. The six-product producer uses a separately identified cut that
 preserves those members and adds the complete authored `ToS/philosophy/`
-branch. Its preparation runs before catalog/index construction. To upgrade an
+branch, the Evidence Lens owner's explicit source routes, and their selected
+bibliographic endpoints. The producer checks that source dependency set before
+materialization. Its preparation runs before catalog/index construction. To upgrade an
 older consumer-only checkpoint without repeating that construction, select
 `producer-prepare`: it creates a sibling `producer-prepared-<digest>.json`, prints its
 digest and keeps the original checkpoint intact. Select the new checkpoint
