@@ -497,7 +497,8 @@ pub(crate) fn page_with_layout(
     layout: KnowledgePayloadLayout,
 ) -> Result<PhilosophyOriginalPage> {
     let mut decode_work = 0;
-    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_rows, max_page_bytes, layout)?;
+    let work_cap =
+        crate::knowledge_original_rows::page_decode_work_limit(max_rows, max_page_bytes, layout)?;
     page_with_layout_and_work(
         db,
         collection,

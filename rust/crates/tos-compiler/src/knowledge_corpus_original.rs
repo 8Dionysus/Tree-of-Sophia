@@ -939,7 +939,8 @@ pub(crate) fn page_with_layout(
     layout: KnowledgePayloadLayout,
 ) -> Result<CorpusOriginalPage> {
     let mut decode_work = 0;
-    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_rows, max_page_bytes, layout)?;
+    let work_cap =
+        crate::knowledge_original_rows::page_decode_work_limit(max_rows, max_page_bytes, layout)?;
     page_with_layout_and_work(
         db,
         collection,
@@ -1093,7 +1094,8 @@ pub(crate) fn all_row_with_state_budget_and_layout(
         .checked_sub(overhead)
         .ok_or(Error::Budget("corpus original row state"))?;
     let mut decode_work = 0;
-    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(1, max_page_bytes, layout)?;
+    let work_cap =
+        crate::knowledge_original_rows::page_decode_work_limit(1, max_page_bytes, layout)?;
     let raw = crate::knowledge_original_rows::decode_packet_from_connection(
         Some(db),
         borrowed,

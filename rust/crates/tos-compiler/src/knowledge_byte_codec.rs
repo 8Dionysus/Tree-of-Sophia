@@ -821,7 +821,12 @@ mod tests {
                 raw.len() + 1 + decoder_workspace_upper().unwrap(),
                 crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2,
                 &mut 0,
-                crate::knowledge_original_rows::page_decode_work_limit(1, raw.len() as u64, crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2).unwrap(),
+                crate::knowledge_original_rows::page_decode_work_limit(
+                    1,
+                    raw.len() as u64,
+                    crate::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV2,
+                )
+                .unwrap(),
             )
             .unwrap();
             assert_eq!(&got, raw);

@@ -44,7 +44,11 @@ pub(crate) fn page_decode_work_limit(
     max_page_bytes: u64,
     layout: crate::knowledge_stage::KnowledgePayloadLayout,
 ) -> Result<u64> {
-    if max_rows == 0 || max_rows > MAX_PAGE_ROWS || max_page_bytes == 0 || max_page_bytes > 64 * 1024 * 1024 {
+    if max_rows == 0
+        || max_rows > MAX_PAGE_ROWS
+        || max_page_bytes == 0
+        || max_page_bytes > 64 * 1024 * 1024
+    {
         return Err(Error::Budget("original projection decode page limits"));
     }
     // A dictionary is decoded/authenticated and then seeds the row decoder.
