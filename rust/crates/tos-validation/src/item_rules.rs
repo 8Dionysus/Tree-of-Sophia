@@ -35,6 +35,7 @@ pub enum ItemRefusal {
         used: Option<u64>,
         limit: Option<u64>,
     },
+    #[cfg(feature = "native")]
     Executor(Box<ItemExecutorRefusal>),
     Deadline,
     Source(String),
@@ -46,6 +47,7 @@ impl ItemRefusal {
     /// executor evidence. Foundation's typed receiver does not use this view.
     pub fn compatibility_category(self) -> Self {
         match self {
+            #[cfg(feature = "native")]
             Self::Executor(evidence) => match evidence.reason {
                 crate::executor::ExecutorFailure::Timeout => Self::Deadline,
                 crate::executor::ExecutorFailure::Cancelled => {
@@ -61,6 +63,7 @@ impl ItemRefusal {
 }
 
 /// Bounded mechanical failure evidence; contains no instance, parser text or path.
+#[cfg(feature = "native")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ItemExecutorRefusal {
     pub stage: &'static str,
@@ -72,6 +75,7 @@ pub struct ItemExecutorRefusal {
     /// None means the refusal did not carry a batch checkpoint.
     pub batch_completed_count: Option<u64>,
 }
+#[cfg(feature = "native")]
 impl ItemExecutorRefusal {
     pub fn summary(&self) -> String {
         // Stage and boundary are authored static guard names. Fingerprint them
@@ -92,13 +96,16 @@ impl ItemExecutorRefusal {
     }
 }
 
+#[cfg(feature = "native")]
 impl std::fmt::Display for ItemExecutorRefusal {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str(&self.summary())
     }
 }
+#[cfg(feature = "native")]
 impl std::error::Error for ItemExecutorRefusal {}
 
+#[cfg(feature = "native")]
 pub(crate) fn executor_refusal(
     stage: &'static str,
     reason: crate::executor::ExecutorFailure,

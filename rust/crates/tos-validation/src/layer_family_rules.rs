@@ -26,7 +26,7 @@ pub trait LayerFamilySource {
 
     fn generated_selection(
         &self,
-    ) -> Option<std::sync::Arc<dyn crate::record_biblio_cut::GeneratedSourceSelection>> {
+    ) -> Option<std::sync::Arc<dyn crate::source_record_selection::GeneratedSourceSelection>> {
         None
     }
     /// Explicit semantic membership differs from full physical/raw membership.

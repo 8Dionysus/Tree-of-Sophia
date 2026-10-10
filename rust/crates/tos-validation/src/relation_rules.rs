@@ -10,7 +10,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::Value;
 use tos_foundation::Digest256;
 
+#[cfg(feature = "native")]
 use crate::biblio_rules::SourceFoundationBiblioManifestSink;
+#[cfg(feature = "native")]
 use crate::source_foundation_default_rules::{
     SourceFoundationDefaultClaims, SourceFoundationDefaultRecordsLookup,
 };
@@ -1030,6 +1032,7 @@ pub(crate) fn inspect_current_topology_bounded(
 /// the kernel's indexes/report are charged simultaneously before row copies.
 /// For N rows in these selected projections, the charge follows their actual
 /// retained JSON and index fields; N is not a capacity or total-input claim.
+#[cfg(feature = "native")]
 pub(crate) fn inspect_current_topology_from_stored<
     C: SourceFoundationDefaultClaims + ?Sized,
     R: SourceFoundationDefaultRecordsLookup + ?Sized,

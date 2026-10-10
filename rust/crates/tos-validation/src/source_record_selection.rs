@@ -15,6 +15,39 @@ use tos_foundation::{
     parse_json,
 };
 
+/// Workload-owned proof for a declared generated cohort. Selection is exact
+/// class/ordinal geometry; verification uses the same authenticated raw bytes.
+/// This proof does not turn an Artifact, TextUnit or Claim into a Corpus record.
+/// Existing family owners still classify and validate each selected payload.
+pub trait GeneratedSourceSelection {
+    fn binding_digest(&self) -> Digest256;
+    fn declared_member_count(&self) -> u64;
+    fn retained_state_bytes(&self) -> usize;
+    fn selects_member(&self, path: &str) -> Result<bool, ItemRefusal>;
+    /// Raw generated support may be required without owning a semantic fact.
+    fn selects_required_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.selects_member(path)
+    }
+    /// Catalog roots are the five declared record families, separately counted
+    /// from generated rights, discovery and provenance support facts.
+    fn selects_catalog_member(&self, path: &str) -> Result<bool, ItemRefusal> {
+        self.selects_member(path)
+    }
+    /// Source-claim rows have their maintained local-forms owner, distinct from events.
+    fn selects_claim_row(&self, _path: &str, _physical_line: u64) -> Result<bool, ItemRefusal> {
+        Ok(false)
+    }
+    fn selects_row(&self, path: &str, physical_line: u64) -> Result<bool, ItemRefusal>;
+    fn verify_member(
+        &self,
+        path: &str,
+        raw: &[u8],
+        caller_live_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+}
+
 pub const SELECTION_SCHEMA_PATH: &str = "ToS/contracts/source-record-closure-selection.schema.json";
 pub const SELECTION_SCHEMA_BYTES: &[u8] =
     include_bytes!("../../../../ToS/contracts/source-record-closure-selection.schema.json");
