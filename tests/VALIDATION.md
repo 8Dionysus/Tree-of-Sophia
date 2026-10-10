@@ -41,7 +41,7 @@ actual admission. This per-producer launch keeps the test's fs-verity files
 and HTTP host on their separately admitted filesystem and network. The native
 producer always verifies the ticket, limits and kernel isolation itself.
 
-The same case supports `TOS_NATIVE_CORPUS_PHASE=prepare`, `mcp`, `http`,
+The same case supports `TOS_NATIVE_CORPUS_PHASE=prepare`, `producer-prepare`, `mcp`, `http`,
 `consumer`, `producer`, `check`, or `producer-read`. Omission selects `all`,
 the complete fresh acceptance pass. `prepare` runs the original source and
 cold-query assertions and writes a completed checkpoint selected explicitly
@@ -50,6 +50,19 @@ software capture and sealed model only after preparation succeeds. The log
 prints its SHA-256. A later phase requires that path and
 `TOS_NATIVE_CORPUS_CHECKPOINT_SHA256`; all retained inputs are checked before
 and after use. Incomplete preparation cannot be resumed as a ready dataset.
+
+The consumer recipe retains its small canon/Claims/navigation cut and frozen
+query oracle. The six-product producer uses a separately identified cut that
+preserves those members and adds the complete authored `ToS/philosophy/`
+branch. Its preparation runs before catalog/index construction. To upgrade an
+older consumer-only checkpoint without repeating that construction, select
+`producer-prepare`: it creates a sibling `producer-prepared.json`, prints its
+digest and keeps the original checkpoint intact. Select the new checkpoint
+for `producer`, `check` and `producer-read`. This operation adds real authored
+inputs; it does not admit an incomplete candidate or synthesize graph rows.
+The writer's working RAM must cover the complete philosophy producer; the
+small consumer's process allowance is independent. The source-file ceiling
+and cold-reader row ceiling also describe different resources.
 
 `mcp` and `http` replay their existing assertions on fresh disposable copies of
 the prepared snapshot. `consumer` also exercises provenance refusals and

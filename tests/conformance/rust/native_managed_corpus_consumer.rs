@@ -23,6 +23,9 @@ use tos_foundation::{
 use tos_query::corpus_read::CorpusReadRequest as R;
 
 const VOCABULARY_PATH: &str = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
+const PRODUCER_SOURCE_MEMBERS: u64 = 4090;
+const PRODUCER_SOURCE_BYTES: u64 = 64 * 1024 * 1024;
+const PRODUCER_SOURCE_MEMBER_BYTES: u64 = 32 * 1024 * 1024;
 
 fn run_native_corpus_build(binary: &Path, request: &serde_json::Value, preflight: bool) -> Output {
     let address_space_bytes = request["process_limits"]["address_space_bytes"]
@@ -755,16 +758,16 @@ fn build_request(
     use serde_json::json;
     let (quota_bytes, inode_limit, working_ram_bytes, _) = stage_resources();
     let process_limits = tos_compiler::NativeProcessLimits {
-        address_space_bytes: NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS
-            .address_space_bytes
-            .min(working_ram_bytes),
+        // The complete philosophy producer has its own admitted working set;
+        // the small consumer fixture's 1 GiB process cap does not describe it.
+        address_space_bytes: working_ram_bytes,
         file_size_bytes: NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS.file_size_bytes,
     };
     for (key, value) in [
         ("max_revisions", 1u64),
-        ("max_members", 512),
-        ("max_total_bytes", 16 * 1024 * 1024),
-        ("max_member_bytes", 2 * 1024 * 1024),
+        ("max_members", PRODUCER_SOURCE_MEMBERS),
+        ("max_total_bytes", PRODUCER_SOURCE_BYTES),
+        ("max_member_bytes", PRODUCER_SOURCE_MEMBER_BYTES),
         ("max_schema_receipts", 4096),
         ("max_schema_receipt_bytes", 4 * 1024 * 1024),
         ("worker_cpu_seconds", 60),
@@ -795,8 +798,7 @@ fn build_request(
 }
 
 pub(super) fn prepare_native_corpus_build(
-    selected: &FullKnowledgeFixture,
-    projection: &NativeCorpusProjection,
+    cold: tos_compiler::ColdOpenLimits,
     repository: &Path,
     source_store: &Path,
     source_revision: tos_foundation::SourceRevision,
@@ -835,15 +837,171 @@ pub(super) fn prepare_native_corpus_build(
         "max_schema_receipt_bytes": 4 * 1024 * 1024,
         "worker_cpu_seconds": 60,
     });
-    let build_request = build_request(selected.cold_limits(), source_selection);
+    let build_request = build_request(cold, source_selection);
     json!({"request":build_request,"source_revision":source_revision.0.to_hex(),
-        "projection_source_revision":projection.receipt().source_revision,
         "runtime_declaration":serde_json::from_slice::<serde_json::Value>(
             &fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap()).unwrap()})
 }
 
+/// The small retained consumer cut intentionally has no philosophy family.
+/// The six-product writer needs that family's actual authored inputs. Keep the
+/// old cut intact and declare a separate complete producer cut, preserving all
+/// its original members byte-for-byte. No generated projection is an input.
+pub(super) fn prepare_producer_source(
+    base: &serde_json::Value,
+    repository: &Path,
+    target: &Path,
+) -> serde_json::Value {
+    use tos_source_store::{CorpusReader, CutReadLimits, ReadLimits};
+    let source = &base["request"]["source_only"];
+    assert!(
+        base.get("source_cohort").is_none(),
+        "producer source is already prepared"
+    );
+    assert!(!target.exists());
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let cancelled = std::sync::atomic::AtomicBool::new(false);
+    let revision = tos_foundation::SourceRevision(
+        Digest256::from_hex(source["source_revision"].as_str().unwrap()).unwrap(),
+    );
+    let reader = CorpusReader::open_existing(
+        Path::new(source["corpus_store"].as_str().unwrap()),
+        ReadLimits {
+            max_manifest_bytes: 4 * 1024 * 1024,
+            max_manifest_entries: PRODUCER_SOURCE_MEMBERS as usize,
+            max_selected_object_bytes: PRODUCER_SOURCE_MEMBER_BYTES,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 1,
+                max_members: PRODUCER_SOURCE_MEMBERS,
+                max_total_bytes: PRODUCER_SOURCE_BYTES,
+                max_member_bytes: PRODUCER_SOURCE_MEMBER_BYTES,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let mut stream = cut.stream(revision).unwrap();
+    let membership = stream.expectation();
+    let mut files = BTreeMap::new();
+    while let Some(member) = stream.next_member(deadline, &cancelled).unwrap() {
+        assert!(
+            files
+                .insert(member.path.as_str().to_owned(), member.raw)
+                .is_none()
+        );
+    }
+    assert_eq!(stream.coverage(), Some(membership));
+    let original = files
+        .iter()
+        .map(|(path, bytes)| (path.clone(), Digest256::of_bytes(bytes)))
+        .collect::<BTreeMap<_, _>>();
+    fn add_philosophy(
+        repository: &Path,
+        root: &Path,
+        files: &mut BTreeMap<String, Vec<u8>>,
+        deadline: Instant,
+        bytes: &mut u64,
+    ) {
+        assert!(Instant::now() < deadline);
+        let mut children = fs::read_dir(root)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect::<Vec<_>>();
+        children.sort();
+        for path in children {
+            assert!(Instant::now() < deadline);
+            let metadata = fs::symlink_metadata(&path).unwrap();
+            assert!(!metadata.file_type().is_symlink());
+            if metadata.is_dir() {
+                add_philosophy(repository, &path, files, deadline, bytes);
+                continue;
+            }
+            assert!(metadata.is_file() && metadata.len() <= PRODUCER_SOURCE_MEMBER_BYTES);
+            let relative = path.strip_prefix(repository).unwrap().to_str().unwrap();
+            let raw = fs::read(&path).unwrap();
+            assert_eq!(raw.len() as u64, metadata.len());
+            if let Some(existing) = files.get(relative) {
+                assert_eq!(
+                    existing, &raw,
+                    "overlapping source member changed: {relative}"
+                );
+            } else {
+                *bytes = bytes.checked_add(raw.len() as u64).unwrap();
+                assert!(*bytes <= PRODUCER_SOURCE_BYTES);
+                assert!(files.len() < PRODUCER_SOURCE_MEMBERS as usize);
+                files.insert(relative.to_owned(), raw);
+            }
+        }
+    }
+    let mut bytes = files.values().map(|raw| raw.len() as u64).sum::<u64>();
+    add_philosophy(
+        repository,
+        &repository.join("ToS/philosophy"),
+        &mut files,
+        deadline,
+        &mut bytes,
+    );
+    // Check the actual owner's entry inputs before capture/index preparation.
+    // Further dependency/semantic checks remain with its normal producer.
+    for path in [
+        tos_compiler::source_philosophy_multilingual::LABEL_LEDGER,
+        tos_compiler::source_philosophy_atlas::ATLAS_SOURCE,
+        tos_compiler::source_philosophy_atlas::DOSSIERS_SOURCE,
+        tos_compiler::source_philosophy_atlas::DOSSIERS_MANIFEST,
+        tos_compiler::source_philosophy_atlas::GRAPH_SHAPE,
+        tos_compiler::source_philosophy_views::VIEW_CONTRACT,
+        tos_compiler::source_philosophy_views::LENS_CONTRACT,
+        tos_compiler::source_philosophy_views::LAYERS_SOURCE,
+        tos_compiler::source_philosophy_graph::CLUSTER_CONTRACT,
+        tos_compiler::source_philosophy_graph::REVIEW_CONTRACT,
+    ] {
+        assert!(files.contains_key(path), "producer input absent: {path}");
+    }
+    for (path, sha) in &original {
+        assert_eq!(Digest256::of_bytes(&files[path]), *sha);
+    }
+    let producer_revision = super::super::validation_cut_cases::write_cut_store(&files, target);
+    let mut source = source.clone();
+    source["corpus_store"] = serde_json::json!(target);
+    source["source_revision"] = serde_json::json!(producer_revision.0.to_hex());
+    let mut cold: tos_compiler::ColdOpenLimits =
+        serde_json::from_value(base["request"]["cold_open"].clone()).unwrap();
+    cold.max_file_bytes = 512 * 1024 * 1024;
+    cold.max_vm_steps = 50_000_000_000;
+    cold.max_rows = 100_000;
+    cold.max_work_bytes = 32 * 1024 * 1024 * 1024;
+    cold.max_row_bytes = 8 * 1024 * 1024;
+    cold.max_metadata_bytes = tos_compiler::ColdOpenLimits::MAX_METADATA_BYTES;
+    cold.validate().unwrap();
+    let mut prepared = base.clone();
+    prepared
+        .as_object_mut()
+        .unwrap()
+        .remove("projection_source_revision");
+    prepared["request"] = build_request(cold, source);
+    prepared["consumer_source_revision"] = serde_json::json!(revision.0.to_hex());
+    prepared["source_revision"] = serde_json::json!(producer_revision.0.to_hex());
+    prepared["source_cohort"] = serde_json::json!({
+        "selection":"retained consumer sources plus complete authored ToS/philosophy branch",
+        "original_members":original.len(),"producer_members":files.len(),"producer_bytes":bytes,
+        "original_members_unchanged":true,
+    });
+    prepared
+}
+
 fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root: &Path) {
     use serde_json::json;
+    assert!(
+        case.get("source_cohort").is_some(),
+        "the retained consumer cut needs producer-prepare before a six-product build"
+    );
     let owner = PathBuf::from(std::env::var_os("TOS_NATIVE_OWNER_COMMAND_BIN").unwrap());
     let consumer = PathBuf::from(std::env::var_os("TOS_NATIVE_MANAGED_CONSUMER_BIN").unwrap());
     let build_request = &case["request"];
@@ -919,9 +1077,10 @@ fn exercise_native_corpus_build(case: &serde_json::Value, phase: &str, case_root
     let claims_file = data.join(&claims_path);
     let corpus_bytes = fs::read(&corpus_file).unwrap();
     let claims_bytes = fs::read(&claims_file).unwrap();
+    assert_eq!(case["source_cohort"]["original_members_unchanged"], true);
     assert_eq!(
-        case["projection_source_revision"], case["source_revision"],
-        "producer and existing five-class projection use the same source cut"
+        case["request"]["source_only"]["source_revision"], case["source_revision"],
+        "writer uses the independently declared complete producer source cut"
     );
     for (path, raw) in [(&corpus_path, &corpus_bytes), (&claims_path, &claims_bytes)] {
         let member = members
@@ -1143,7 +1302,15 @@ pub(super) fn selected_phase() -> String {
     let phase = std::env::var("TOS_NATIVE_CORPUS_PHASE").unwrap_or_else(|_| "all".into());
     assert!(matches!(
         phase.as_str(),
-        "all" | "prepare" | "consumer" | "mcp" | "http" | "producer" | "check" | "producer-read"
+        "all"
+            | "prepare"
+            | "producer-prepare"
+            | "consumer"
+            | "mcp"
+            | "http"
+            | "producer"
+            | "check"
+            | "producer-read"
     ));
     phase
 }
@@ -1162,7 +1329,37 @@ pub(super) fn resume_selected_phase() -> bool {
     let case = read_record(&path);
     assert_eq!(case["preparation_complete"], true);
     verify_pins(&case["inputs"]);
-    run_phase(&case, &phase, path.parent().unwrap());
+    if phase == "producer-prepare" {
+        let parent = path.parent().unwrap();
+        let output = parent.join("producer-prepared.json");
+        assert!(
+            !output.exists(),
+            "completed producer preparation is immutable"
+        );
+        let temporary = tempfile::Builder::new()
+            .prefix("producer-inputs-")
+            .tempdir_in(parent)
+            .unwrap();
+        let repository = super::super::validation_cut_cases::repository()
+            .canonicalize()
+            .unwrap();
+        let producer = prepare_producer_source(
+            &case["producer"],
+            &repository,
+            &temporary.path().join("source-store"),
+        );
+        let prepared = prepared_record(case["managed"].clone(), producer);
+        write_record(&output, &prepared);
+        temporary.keep();
+        eprintln!(
+            "native corpus checkpoint={} sha256={}",
+            output.display(),
+            hash_file(&output).to_hex()
+        );
+        eprintln!("native corpus completed phase=producer-prepare");
+    } else {
+        run_phase(&case, &phase, path.parent().unwrap());
+    }
     verify_pins(&case["inputs"]);
     true
 }
@@ -1178,6 +1375,16 @@ pub(super) fn finish_preparation(
     assert!(path.is_absolute() && !path.exists());
     let parent = path.parent().unwrap();
     fs::create_dir_all(parent).unwrap();
+    let case = prepared_record(managed, producer);
+    write_record(&path, &case);
+    eprintln!(
+        "native corpus checkpoint={} sha256={}",
+        path.display(),
+        hash_file(&path).to_hex()
+    );
+    (case, parent.to_owned(), selected.is_some())
+}
+fn prepared_record(managed: serde_json::Value, producer: serde_json::Value) -> serde_json::Value {
     let mut inputs = Vec::new();
     pin_tree(Path::new(managed["data"].as_str().unwrap()), &mut inputs);
     let source = &producer["request"]["source_only"];
@@ -1191,13 +1398,7 @@ pub(super) fn finish_preparation(
     }
     let case = serde_json::json!({"preparation_complete":true,"managed":managed,"producer":producer,"inputs":inputs});
     verify_pins(&case["inputs"]);
-    write_record(&path, &case);
-    eprintln!(
-        "native corpus checkpoint={} sha256={}",
-        path.display(),
-        hash_file(&path).to_hex()
-    );
-    (case, parent.to_owned(), selected.is_some())
+    case
 }
 pub(super) fn run_phase(case: &serde_json::Value, phase: &str, root: &Path) {
     verify_pins(&case["inputs"]);

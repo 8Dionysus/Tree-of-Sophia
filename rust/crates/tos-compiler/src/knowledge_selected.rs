@@ -100,6 +100,27 @@ pub struct ColdOpenLimits {
 impl ColdOpenLimits {
     /// Maximum metadata envelope accepted by the selected cold reader.
     pub const MAX_METADATA_BYTES: usize = 256 * 1024;
+
+    /// The same numeric admission used immediately before a real cold open.
+    /// This preflight selects no model and grants no immutable custody.
+    pub fn validate(self) -> Result<()> {
+        if self.max_file_bytes == 0
+            || self.max_vm_steps == 0
+            || self.sqlite_cache_kib == 0
+            || self.sqlite_cache_kib > 512 * 1024
+            || self.max_rows == 0
+            || self.max_work_bytes == 0
+            || self.max_row_bytes == 0
+            || self.max_row_bytes > 64 * 1024 * 1024
+            || self.max_metadata_bytes == 0
+            || self.max_metadata_bytes > Self::MAX_METADATA_BYTES
+            || self.max_sources == 0
+            || self.max_sources > 4096
+        {
+            return Err(Error::Budget("knowledge cold-open limits"));
+        }
+        Ok(())
+    }
 }
 
 /// This owner-held guard must maintain a kernel-enforced immutable custody
@@ -498,21 +519,7 @@ pub(crate) fn validate(
     expected: &KnowledgeSelectedExpectation,
     limits: ColdOpenLimits,
 ) -> Result<()> {
-    if limits.max_file_bytes == 0
-        || limits.max_vm_steps == 0
-        || limits.sqlite_cache_kib == 0
-        || limits.sqlite_cache_kib > 512 * 1024
-        || limits.max_rows == 0
-        || limits.max_work_bytes == 0
-        || limits.max_row_bytes == 0
-        || limits.max_row_bytes > 64 * 1024 * 1024
-        || limits.max_metadata_bytes == 0
-        || limits.max_metadata_bytes > ColdOpenLimits::MAX_METADATA_BYTES
-        || limits.max_sources == 0
-        || limits.max_sources > 4096
-    {
-        return Err(Error::Budget("knowledge cold-open limits"));
-    }
+    limits.validate()?;
     if expected.model_size_bytes == 0
         || expected.model_size_bytes > limits.max_file_bytes
         || !tos_foundation::KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&expected.model_abi.as_str())

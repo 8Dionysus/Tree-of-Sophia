@@ -1222,6 +1222,27 @@ fn native_corpus_composition_case(installed: bool) {
     .unwrap();
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&files, &store);
+    // The retained consumer recipe stays small and keeps its historical
+    // oracle. Prepare the complete, separately identified writer input before
+    // the expensive catalog/index stages so missing inputs fail here.
+    let producer = installed.then(|| {
+        let base = native_managed_corpus_consumer::prepare_native_corpus_build(
+            tos_compiler::knowledge_full_fixture::native_fixture_cold_limits(
+                full_limits,
+                vocabulary.sources.len(),
+            ),
+            &repository,
+            &store,
+            revision,
+            &capture,
+            &super::validation_cut_cases::selected_worker_path(),
+        );
+        native_managed_corpus_consumer::prepare_producer_source(
+            &base,
+            &repository,
+            &fixture.path().join("producer-source-store"),
+        )
+    });
     let reader = CorpusReader::open_existing(&store, read_limits).unwrap();
     let cut = reader
         .open_source_cut(
@@ -2041,17 +2062,11 @@ fn native_corpus_composition_case(installed: bool) {
             &packets,
             &case_root,
         );
-        let producer = native_managed_corpus_consumer::prepare_native_corpus_build(
-            &selected,
-            &projection,
-            &repository,
-            &store,
-            revision,
-            &capture,
-            &super::validation_cut_cases::selected_worker_path(),
+        let (case, root, retain) = native_managed_corpus_consumer::finish_preparation(
+            managed,
+            producer.unwrap(),
+            &case_root,
         );
-        let (case, root, retain) =
-            native_managed_corpus_consumer::finish_preparation(managed, producer, &case_root);
         if retain {
             // Complete immutable inputs survive a later transport/producer
             // failure. Incomplete preparation still has normal TempDir cleanup.

@@ -68,7 +68,7 @@ const MAX_PRODUCER_WORK_BYTES: u64 = 512 * 1024 * 1024 * 1024;
 const MAX_COLD_WORK_BYTES: u64 = 32 * 1024 * 1024 * 1024;
 const MAX_COLD_ROWS: u64 = 10_000_000;
 const MAX_COLD_ROW_BYTES: usize = 8 * 1024 * 1024;
-const MAX_COLD_METADATA_BYTES: usize = 1024 * 1024;
+const MAX_COLD_METADATA_BYTES: usize = ColdOpenLimits::MAX_METADATA_BYTES;
 const MAX_COLD_SOURCES: usize = 4096;
 
 /// Explicit resource envelope for direct source-root projection. The route
@@ -113,7 +113,9 @@ impl DirectRepositoryProjectionLimits {
             max_build_seconds: 30 * 60,
             max_source_members: manifest::NATIVE_PRODUCER_MAX_MEMBERS as u64,
             max_source_bytes: manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES,
-            max_member_bytes: 8 * 1024 * 1024,
+            // A complete authored JSONL file is not one normalized SQLite
+            // row. The philosophy source-anchor backlog alone exceeds 8 MiB.
+            max_member_bytes: 32 * 1024 * 1024,
             max_manifest_bytes: 8 * 1024 * 1024,
             max_capture_member_read_bytes: 64 * 1024 * 1024,
             max_capture_write_bytes: 256 * 1024 * 1024,
@@ -229,6 +231,25 @@ impl fmt::Display for Refusal {
     }
 }
 impl StdError for Refusal {}
+
+#[derive(Debug)]
+struct ProductRefusal {
+    product: &'static str,
+    reason_sha256: Digest256,
+}
+impl fmt::Display for ProductRefusal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // The owner error can contain private paths or source text. Preserve
+        // a stable correlation token without putting those bytes on the wire.
+        write!(
+            f,
+            "native source {} failed (reason_sha256={})",
+            self.product,
+            self.reason_sha256.to_hex()
+        )
+    }
+}
+impl StdError for ProductRefusal {}
 pub(crate) type Result<T> = std::result::Result<T, Box<dyn StdError>>;
 
 #[derive(Deserialize)]
@@ -1749,6 +1770,7 @@ fn validate_request(request: &Request) -> Result<()> {
         previous.validate()?;
     }
     let cold = request.cold_open;
+    cold.validate()?;
     let process = request.process_limits;
     if cold.max_file_bytes == 0
         || cold.max_file_bytes > manifest::NATIVE_PRODUCER_MAX_MODEL_BYTES
@@ -1796,7 +1818,6 @@ fn validate_source_only_request(source: &NativeSourceOnlyRequest, request: &Requ
         || source.max_total_bytes > manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES
         || source.max_member_bytes == 0
         || source.max_member_bytes > source.max_total_bytes
-        || source.max_member_bytes > MAX_COLD_ROW_BYTES as u64
         || source.software_components.is_empty()
         || source.software_components.len() > 128
         || source.max_schema_receipts == 0
@@ -2741,7 +2762,10 @@ fn prepare_source_only_runtime(
         request.tmpfs_quota_bytes.to_string(),
     ];
     tos_ops_mechanics_plan::philosophy_products::run(&philosophy_args, Arc::clone(cancelled))
-        .map_err(|_| Refusal("native source philosophy products failed"))?;
+        .map_err(|reason| ProductRefusal {
+            product: "philosophy products",
+            reason_sha256: Digest256::of_bytes(reason.as_bytes()),
+        })?;
     let evidence_stage = isolation.root().join("tos-native-evidence-stage.sqlite3");
     let mut evidence_limits =
         manifest::portable_native_snapshot_limits(request.max_build_seconds)?.capture;
@@ -2864,6 +2888,7 @@ pub(crate) fn validate_direct_projection_request(
     request: &DirectRepositoryProjectionRequest,
 ) -> Result<()> {
     let limits = request.limits;
+    limits.cold_open.validate()?;
     let root = request
         .repository_root
         .to_str()
@@ -2893,7 +2918,6 @@ pub(crate) fn validate_direct_projection_request(
         || limits.max_source_bytes > manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES
         || limits.max_member_bytes == 0
         || limits.max_member_bytes > limits.max_source_bytes
-        || limits.max_member_bytes > MAX_COLD_ROW_BYTES as u64
         || limits.max_manifest_bytes < 4096
         || limits.max_manifest_bytes == usize::MAX
         || limits.max_capture_member_read_bytes == 0
@@ -5229,6 +5253,7 @@ mod projection_limit_tests {
     #[test]
     fn source_projection_budgets_fit_family_rows_and_original_format() {
         let profile = DirectRepositoryProjectionLimits::repo_validation_v1();
+        profile.cold_open.validate().unwrap();
         validate_direct_projection_request(&DirectRepositoryProjectionRequest {
             repository_root: "/selected/repository".into(),
             software_git_commit: "0".repeat(40),
@@ -5284,9 +5309,18 @@ mod projection_limit_tests {
             previous_native_snapshot: None,
         };
         let original_ceiling = tos_compiler::NavigationOriginalLimits::maximum();
-        for member_bytes in [4096, 1024 * 1024, 2 * 1024 * 1024, 8 * 1024 * 1024] {
+        for member_bytes in [
+            4096,
+            1024 * 1024,
+            2 * 1024 * 1024,
+            8 * 1024 * 1024,
+            16 * 1024 * 1024,
+            32 * 1024 * 1024,
+            manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES,
+        ] {
             source.max_member_bytes = member_bytes;
-            source.max_total_bytes = 4 * member_bytes;
+            source.max_total_bytes =
+                (4 * member_bytes).min(manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES);
             for rows in [1, 128, 16_384, MAX_COLD_ROWS] {
                 request.cold_open.max_rows = rows;
                 validate_source_only_request(&source, &request).unwrap();
@@ -5300,6 +5334,8 @@ mod projection_limit_tests {
                 limits.bibliographic.catalog.validate().unwrap();
                 limits.bibliographic.validate().unwrap();
                 limits.schema_work.validate().unwrap();
+                assert_eq!(request.cold_open.max_row_bytes, MAX_COLD_ROW_BYTES);
+                assert!(limits.repository.max_source_bytes <= MAX_COLD_ROW_BYTES);
                 assert_eq!(
                     limits.schema_work.max_total_units,
                     source.max_schema_receipts as u64
@@ -5334,5 +5370,20 @@ mod projection_limit_tests {
                 assert!(limits.originals.max_total_bytes <= original_ceiling.max_total_bytes);
             }
         }
+        source.max_member_bytes = source.max_total_bytes + 1;
+        assert!(validate_source_only_request(&source, &request).is_err());
+        let mut incompatible = profile;
+        incompatible.cold_open.max_metadata_bytes = ColdOpenLimits::MAX_METADATA_BYTES + 1;
+        assert!(
+            validate_direct_projection_request(&DirectRepositoryProjectionRequest {
+                repository_root: "/selected/repository".into(),
+                software_git_commit: "0".repeat(40),
+                software_git_tree: "0".repeat(40),
+                schema_worker_absolute_path: "/selected/worker".into(),
+                schema_worker_sha256: "0".repeat(64),
+                limits: incompatible,
+            })
+            .is_err()
+        );
     }
 }
