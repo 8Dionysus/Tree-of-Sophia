@@ -1357,8 +1357,16 @@ impl<'budget> CreationState<'budget> {
             .ok_or(Error::Budget("runtime carrier creation state overflow"))?;
         (self.remaining_after_retained)(total)
     }
+    #[track_caller]
     pub(crate) fn retain(&self, bytes: usize) -> Result<()> {
-        self.remaining(bytes)?;
+        if let Err(error) = self.remaining(bytes) {
+            let site = std::panic::Location::caller();
+            eprintln!(
+                "Native state retain refused at {}:{}: retained={} additional={}",
+                site.file(), site.line(), self.retained.get(), bytes,
+            );
+            return Err(error);
+        }
         self.retained.set(
             self.retained
                 .get()

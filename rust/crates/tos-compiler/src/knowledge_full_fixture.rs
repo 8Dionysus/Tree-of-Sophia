@@ -248,8 +248,8 @@ pub fn build_fixture() -> FullKnowledgeFixture {
 pub(crate) fn build_fixture_with_semantic_report(report: Option<Value>) -> FullKnowledgeFixture {
     build_fixture_configured(report, false, None)
 }
-pub(crate) fn build_fixture_with_prepared_catalog() -> FullKnowledgeFixture {
-    build_fixture_configured(None, true, None)
+pub(crate) fn build_fixture_with_prepared_catalog(report: Option<Value>) -> FullKnowledgeFixture {
+    build_fixture_configured(report, true, None)
 }
 #[cfg(test)]
 pub(crate) fn build_fixture_with_final_semantics(fused: bool) -> FullKnowledgeFixture {
@@ -559,9 +559,14 @@ fn build_fixture_configured(
         different_header["source_revision"] = json!("f".repeat(64));
         assert!(
             proof
-                .into_packet(&mut stage, &different_header, &vocabulary, &registry)
+                .packet(&mut stage, &different_header, &vocabulary, &registry)
                 .is_err()
         );
+        let packet = proof.packet(&mut stage, &header, &vocabulary, &registry).unwrap();
+        assert!(std::ptr::eq(packet.counts().unwrap(), &header["counts"]));
+        assert!(packet.body["counts"].as_object().unwrap().is_empty());
+        drop(packet);
+        drop(proof);
         let prepared = reduction
             .finish_prepared(
                 &mut stage,

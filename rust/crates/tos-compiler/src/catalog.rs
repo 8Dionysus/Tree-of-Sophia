@@ -52,6 +52,68 @@ pub struct CatalogReceipt {
     pub relation_count: u64,
 }
 
+/// A packet borrows its counts from the bound graph header during the native
+/// handoff. Public receipts still own a complete JSON value.
+pub(crate) struct CatalogPacketRef<'a> {
+    pub(crate) body: &'a Value,
+    pub(crate) counts: Option<&'a Value>,
+    pub(crate) sha256: &'a str,
+    pub(crate) node_count: u64,
+    pub(crate) relation_count: u64,
+}
+impl CatalogPacketRef<'_> {
+    pub(crate) fn counts(&self) -> Option<&Value> {
+        self.counts.or_else(|| self.body.get("counts"))
+    }
+}
+impl serde::Serialize for CatalogPacketRef<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        // Iterate the existing map to preserve both sorted and preserve_order
+        // builds. The placeholder occupies the original counts position.
+        let Some(object) = self.body.as_object() else {
+            return serde::Serialize::serialize(self.body, serializer);
+        };
+        let mut map = serializer.serialize_map(Some(object.len()))?;
+        for (key, value) in object {
+            map.serialize_entry(
+                key,
+                if key == "counts" { self.counts.unwrap_or(value) } else { value },
+            )?;
+        }
+        map.end()
+    }
+}
+impl CatalogReceipt {
+    pub(crate) fn as_packet(&self) -> CatalogPacketRef<'_> {
+        CatalogPacketRef {
+            body: &self.catalog,
+            counts: None,
+            sha256: &self.sha256,
+            node_count: self.node_count,
+            relation_count: self.relation_count,
+        }
+    }
+}
+
+struct CatalogParts {
+    body: Value,
+    sha256: String,
+    node_count: u64,
+    relation_count: u64,
+}
+impl CatalogParts {
+    fn as_packet<'a>(&'a self, header: &'a Value) -> CatalogPacketRef<'a> {
+        CatalogPacketRef {
+            body: &self.body,
+            counts: header.get("counts"),
+            sha256: &self.sha256,
+            node_count: self.node_count,
+            relation_count: self.relation_count,
+        }
+    }
+}
+
 struct ByteBudget {
     used: Cell<usize>,
     max: usize,
@@ -2786,10 +2848,8 @@ fn render(
             ),
         ],
     )?;
-    let counts = match header.get("counts") {
-        Some(value) => owned_value(value, creation)?,
-        None => Value::Object(Map::new()),
-    };
+    let empty_counts = Value::Object(Map::new());
+    let counts = header.get("counts").unwrap_or(&empty_counts);
     let source_revision = header
         .get("source_revision")
         .map(|value| owned_value(value, creation))
@@ -2874,7 +2934,7 @@ fn render(
         presentation(entity_registry, creation)?,
     );
     packet.insert("contract_refs".into(), contract_refs);
-    packet.insert("counts".into(), counts);
+    packet.insert("counts".into(), Value::Object(Map::new()));
     packet.insert(
         "node_kinds".into(),
         group_catalog(db, NODE, relation_entries, budget, creation)?,
@@ -3012,7 +3072,7 @@ pub(crate) fn compile_catalog_with_state(
 /// Internal token tied to the final core and the exact header/configuration.
 /// Only the shared row reduction can create it; it is not stored in the model.
 pub(crate) struct PreparedCatalog {
-    packet: CatalogReceipt,
+    packet: CatalogParts,
     roots: crate::knowledge_stage::CoreRoots,
     header: Digest256,
     descriptor: String,
@@ -3035,13 +3095,13 @@ fn prepared_header_digest(
     }
 }
 impl PreparedCatalog {
-    pub(crate) fn into_packet(
-        self,
+    pub(crate) fn packet<'a>(
+        &'a self,
         stage: &mut crate::knowledge_stage::KnowledgeStage<'_>,
-        header: &Value,
+        header: &'a Value,
         vocabulary: &QueryVocabulary,
         registry: &crate::KnowledgeRegistry,
-    ) -> Result<CatalogReceipt> {
+    ) -> Result<CatalogPacketRef<'a>> {
         let actual = stage.core_roots()?;
         if actual.nodes != self.roots.nodes
             || actual.relations != self.roots.relations
@@ -3054,7 +3114,7 @@ impl PreparedCatalog {
         {
             return Err(Error::Invalid("prepared catalog final core/header binding"));
         }
-        Ok(self.packet)
+        Ok(self.packet.as_packet(header))
     }
 }
 
@@ -3372,7 +3432,7 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
             self.creation,
         )?;
         let packet = stage.with_connection(crate::knowledge_stage::WritePhase::Finalize, |db| {
-            self.finish(db, graph_header, saved_lenses)
+            self.finish_parts(db, graph_header, saved_lenses)
         })?;
         let roots = stage.core_roots()?;
         if packet.node_count != roots.nodes || packet.relation_count != roots.relations {
@@ -3402,6 +3462,23 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
         graph_header: &Value,
         saved_lenses: &[Value],
     ) -> Result<CatalogReceipt> {
+        let mut parts = self.finish_parts(db, graph_header, saved_lenses)?;
+        if let Some(counts) = graph_header.get("counts") {
+            parts.body["counts"] = owned_value(counts, self.creation)?;
+        }
+        Ok(CatalogReceipt {
+            catalog: parts.body,
+            sha256: parts.sha256,
+            node_count: parts.node_count,
+            relation_count: parts.relation_count,
+        })
+    }
+    fn finish_parts(
+        &self,
+        db: &Connection,
+        graph_header: &Value,
+        saved_lenses: &[Value],
+    ) -> Result<CatalogParts> {
         let Self {
             descriptor,
             entity_registry,
@@ -3476,8 +3553,15 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
                 &budget,
                 creation,
             )?;
+            let view = CatalogPacketRef {
+                body: &catalog,
+                counts: graph_header.get("counts"),
+                sha256: "",
+                node_count: nodes,
+                relation_count: relations,
+            };
             let sha256 = if let Some(creation) = creation {
-                creation.with_json_encoded(&catalog, limits.max_catalog_bytes, |bytes| {
+                creation.with_json_encoded(&view, limits.max_catalog_bytes, |bytes| {
                     creation.retain(64)?;
                     creation.charge_work(
                         bytes
@@ -3492,7 +3576,7 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
                     bytes: Vec::new(),
                     max: limits.max_catalog_bytes,
                 };
-                serde_json::to_writer(&mut writer, &catalog)
+                serde_json::to_writer(&mut writer, &view)
                     .map_err(|_| Error::Budget("catalog output bytes"))?;
                 Digest256::of_bytes(&writer.bytes).to_hex()
             };
@@ -3502,8 +3586,8 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
         if pages > limits.max_staging_pages {
             return Err(Error::Budget("catalog staging pages"));
         }
-        Ok(CatalogReceipt {
-            catalog,
+        Ok(CatalogParts {
+            body: catalog,
             sha256,
             node_count: nodes,
             relation_count: relations,

@@ -4,7 +4,7 @@
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{
     Error, QueryVocabulary, Result,
-    catalog::{CatalogReceipt, python_casefold_with_state},
+    catalog::{CatalogPacketRef, CatalogReceipt, python_casefold_with_state},
     d1_public_capture::{CreationState, CreationStateHold},
 };
 use rusqlite::{Connection, OptionalExtension, params};
@@ -344,12 +344,21 @@ pub fn materialize_catalog(
     vocabulary: &QueryVocabulary,
     limits: CatalogIndexLimits,
 ) -> Result<CatalogIndexReceipt> {
+    materialize_catalog_packet(stage, &receipt.as_packet(), vocabulary, limits)
+}
+
+pub(crate) fn materialize_catalog_packet(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &CatalogPacketRef<'_>,
+    vocabulary: &QueryVocabulary,
+    limits: CatalogIndexLimits,
+) -> Result<CatalogIndexReceipt> {
     let creation = stage.owned_creation_state();
     let result = (|| {
         limits.validate()?;
-        let packet = encode_packet(&receipt.catalog, limits.max_packet_bytes, creation)?;
+        let packet = encode_packet(receipt, limits.max_packet_bytes, creation)?;
         let packet_sha = Digest256::of_bytes(&packet);
-        let receipt_sha = Digest256::from_hex(&receipt.sha256)
+        let receipt_sha = Digest256::from_hex(receipt.sha256)
             .map_err(|_| Error::Invalid("catalog index receipt digest"))?;
         if packet_sha != receipt_sha {
             return Err(Error::Invalid("catalog index receipt digest"));
@@ -383,7 +392,7 @@ pub fn materialize_catalog(
 
 fn materialize_inner(
     db: &mut Connection,
-    receipt: &CatalogReceipt,
+    receipt: &CatalogPacketRef<'_>,
     vocabulary: &QueryVocabulary,
     limits: CatalogIndexLimits,
     packet: &[u8],
@@ -399,11 +408,11 @@ fn materialize_inner(
         "tos_knowledge_catalog_v1",
         crate::managed_source::MANAGED_CATALOG_SCHEMA,
     ]
-    .contains(&string(&receipt.catalog, "schema")?)
+    .contains(&string(receipt.body, "schema")?)
     {
         return Err(Error::Invalid("catalog index packet schema"));
     }
-    if let Some(counts) = receipt.catalog.get("counts") {
+    if let Some(counts) = receipt.counts() {
         for (key, expected) in [
             ("nodes", receipt.node_count),
             ("relations", receipt.relation_count),
@@ -414,7 +423,7 @@ fn materialize_inner(
         }
     }
     let caps = receipt
-        .catalog
+        .body
         .get("capabilities")
         .filter(|value| value.is_object())
         .ok_or(Error::Invalid("catalog capabilities absent"))?;

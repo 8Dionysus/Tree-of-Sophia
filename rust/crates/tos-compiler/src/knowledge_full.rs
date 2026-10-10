@@ -4,8 +4,10 @@
 
 use crate::{
     Error, KnowledgeRegistry, QueryVocabulary, Result,
-    catalog::{CatalogLimits, CatalogReceipt, compile_catalog_with_state},
-    knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog},
+    catalog::{CatalogLimits, compile_catalog_with_state},
+    knowledge_catalog_index::{
+        CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog, materialize_catalog_packet,
+    },
     knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope},
     knowledge_seal::{KnowledgeSealReceipt, SealLimits, seal_knowledge_model},
     knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index},
@@ -162,26 +164,37 @@ fn compile_inner(
     // copy. Capture it before taking the mutable SQLite connection.
     let creation = stage.owned_creation_state();
     let payload_layout = stage.payload_layout();
-    let packet: CatalogReceipt = full_component_stage("catalog", || match prepared {
-        Some(prepared) => prepared.into_packet(stage, graph_header, vocabulary, registry),
-        None => stage.with_connection(WritePhase::Catalog, |db| {
-            compile_catalog_with_state(
-                db,
-                graph_header,
-                &entity,
-                &relation,
-                saved_lenses,
-                vocabulary,
-                descriptor_bytes,
-                limits.catalog,
-                creation,
-                payload_layout,
-            )
-        }),
-    })?;
-    let catalog = full_component_stage("catalog-index", || {
-        materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)
-    })?;
+    let catalog = match prepared {
+        Some(prepared) => {
+            let packet = full_component_stage("catalog", || {
+                prepared.packet(stage, graph_header, vocabulary, registry)
+            })?;
+            full_component_stage("catalog-index", || {
+                materialize_catalog_packet(stage, &packet, vocabulary, limits.catalog_index)
+            })?
+        }
+        None => {
+            let packet = full_component_stage("catalog", || {
+                stage.with_connection(WritePhase::Catalog, |db| {
+                    compile_catalog_with_state(
+                        db,
+                        graph_header,
+                        &entity,
+                        &relation,
+                        saved_lenses,
+                        vocabulary,
+                        descriptor_bytes,
+                        limits.catalog,
+                        creation,
+                        payload_layout,
+                    )
+                })
+            })?;
+            full_component_stage("catalog-index", || {
+                materialize_catalog(stage, &packet, vocabulary, limits.catalog_index)
+            })?
+        }
+    };
     let search = full_component_stage("search", || build_search_index(stage, limits.search))?;
     let seal = full_component_stage("seal", || {
         seal_knowledge_model(
@@ -251,7 +264,7 @@ mod tests {
     #[test]
     fn prepared_catalog_keeps_full_seal_and_cold_packets_identical() {
         let regular = crate::knowledge_full_fixture::build_fixture();
-        let reduced = crate::knowledge_full_fixture::build_fixture_with_prepared_catalog();
+        let reduced = crate::knowledge_full_fixture::build_fixture_with_prepared_catalog(None);
         assert_eq!(
             regular.expectation.graph_root_sha256,
             reduced.expectation.graph_root_sha256
@@ -285,6 +298,20 @@ mod tests {
         let report = json!({"valid":true,"violations":[],"gaps":gaps});
         let mut fixture =
             crate::knowledge_full_fixture::build_fixture_with_semantic_report(Some(report.clone()));
+        let prepared =
+            crate::knowledge_full_fixture::build_fixture_with_prepared_catalog(Some(report.clone()));
+        assert_eq!(
+            fixture.expectation.catalog_packet_sha256,
+            prepared.expectation.catalog_packet_sha256
+        );
+        assert_eq!(
+            fixture.expectation.catalog_index_root_sha256,
+            prepared.expectation.catalog_index_root_sha256
+        );
+        assert_eq!(
+            fixture.expectation.graph_root_sha256,
+            prepared.expectation.graph_root_sha256
+        );
         let read = |fixture: &crate::knowledge_full_fixture::FullKnowledgeFixture| {
             let selected = fixture.open().unwrap();
             let raw: Vec<u8> = selected
@@ -303,6 +330,14 @@ mod tests {
             raw
         };
         let before = read(&fixture);
+        assert_eq!(read(&prepared), before);
+        let catalog = |fixture: &crate::knowledge_full_fixture::FullKnowledgeFixture| {
+            let selected = fixture.open().unwrap();
+            selected.connection().query_row(
+                "SELECT packet FROM catalog_index_meta", [], |r| r.get::<_, Vec<u8>>(0),
+            ).unwrap()
+        };
+        assert_eq!(catalog(&fixture), catalog(&prepared));
         let restored = fixture.path.with_file_name("restored.sqlite3");
         std::fs::copy(&fixture.path, &restored).unwrap();
         fixture.path = restored;
