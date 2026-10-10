@@ -4637,8 +4637,9 @@ fn build_native_snapshot_from_capture_inner(
             creation,
         )?;
         vocabulary.verify_authored_bytes_with_owned_state(&descriptor, creation)?;
-        let descriptor_limits = JsonLimits::new(limits.full.catalog.max_catalog_bytes, 96, 1_000_000, 4096)
-            .map_err(|_| Error::Budget("owned model serde limits"))?;
+        let descriptor_limits =
+            JsonLimits::new(limits.full.catalog.max_catalog_bytes, 96, 1_000_000, 4096)
+                .map_err(|_| Error::Budget("owned model serde limits"))?;
         let descriptor_value = creation.serde_scoped_with_limits(&descriptor, descriptor_limits)?;
         let mut reduction = crate::catalog::CatalogReduction::new(
             &entity_value.0,

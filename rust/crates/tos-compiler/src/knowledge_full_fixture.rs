@@ -562,7 +562,9 @@ fn build_fixture_configured(
                 .packet(&mut stage, &different_header, &vocabulary, &registry)
                 .is_err()
         );
-        let packet = proof.packet(&mut stage, &header, &vocabulary, &registry).unwrap();
+        let packet = proof
+            .packet(&mut stage, &header, &vocabulary, &registry)
+            .unwrap();
         assert!(std::ptr::eq(packet.counts().unwrap(), &header["counts"]));
         assert!(packet.body["counts"].as_object().unwrap().is_empty());
         drop(packet);

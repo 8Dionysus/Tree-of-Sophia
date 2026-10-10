@@ -1175,8 +1175,16 @@ mod tests {
             max_decoded_bytes: 1,
             ..CatalogIndexLimits::default()
         };
-        let error = materialize_inner(&mut db, &receipt.as_packet(), &vocab, limits, &packet, &digest, None)
-            .unwrap_err();
+        let error = materialize_inner(
+            &mut db,
+            &receipt.as_packet(),
+            &vocab,
+            limits,
+            &packet,
+            &digest,
+            None,
+        )
+        .unwrap_err();
         assert!(error.to_string().contains("catalog facet casefold bytes"));
     }
 

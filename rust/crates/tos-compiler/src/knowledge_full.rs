@@ -53,7 +53,10 @@ pub(crate) fn registry_value_scoped<'state, 'budget>(
     expected_sha256: &str,
     cap: usize,
     state: &'state crate::d1_public_capture::CreationState<'budget>,
-) -> Result<(Value, crate::d1_public_capture::CreationStateHold<'state, 'budget>)> {
+) -> Result<(
+    Value,
+    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+)> {
     let limits = registry_limits(raw, expected_sha256, cap, Some(state))?;
     state.serde_scoped_with_limits(raw, limits)
 }
@@ -175,8 +178,18 @@ fn compile_inner(
         Some(prepared) => {
             // The token binds the already parsed registries. Still verify the
             // caller's actual bytes and caps before using that prepared result.
-            registry_limits(entity_registry_bytes, &registry.entity_sha256, limits.max_registry_bytes, creation)?;
-            registry_limits(relation_registry_bytes, &registry.relation_sha256, limits.max_registry_bytes, creation)?;
+            registry_limits(
+                entity_registry_bytes,
+                &registry.entity_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
+            registry_limits(
+                relation_registry_bytes,
+                &registry.relation_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
             let packet = full_component_stage("catalog", creation, || {
                 prepared.packet(stage, graph_header, vocabulary, registry)
             })?;
@@ -185,8 +198,18 @@ fn compile_inner(
             })?
         }
         None => {
-            let entity = registry_value(entity_registry_bytes, &registry.entity_sha256, limits.max_registry_bytes, creation)?;
-            let relation = registry_value(relation_registry_bytes, &registry.relation_sha256, limits.max_registry_bytes, creation)?;
+            let entity = registry_value(
+                entity_registry_bytes,
+                &registry.entity_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
+            let relation = registry_value(
+                relation_registry_bytes,
+                &registry.relation_sha256,
+                limits.max_registry_bytes,
+                creation,
+            )?;
             let packet = full_component_stage("catalog", creation, || {
                 stage.with_connection(WritePhase::Catalog, |db| {
                     compile_catalog_with_state(
@@ -208,7 +231,9 @@ fn compile_inner(
             })?
         }
     };
-    let search = full_component_stage("search", creation, || build_search_index(stage, limits.search))?;
+    let search = full_component_stage("search", creation, || {
+        build_search_index(stage, limits.search)
+    })?;
     let seal = full_component_stage("seal", creation, || {
         seal_knowledge_model(
             stage,
@@ -237,7 +262,11 @@ fn full_component_stage<T>(
 ) -> Result<T> {
     let retained = || state.map(|s| s.observed_retained_state_bytes());
     let persistent = || state.map(|s| s.observed_persistent_state_bytes());
-    eprintln!("Native full-components stage={name} status=start retained={:?} persistent={:?}", retained(), persistent());
+    eprintln!(
+        "Native full-components stage={name} status=start retained={:?} persistent={:?}",
+        retained(),
+        persistent()
+    );
     let started = std::time::Instant::now();
     let result = run();
     eprintln!(
@@ -323,8 +352,9 @@ mod tests {
         let report = json!({"valid":true,"violations":[],"gaps":gaps});
         let mut fixture =
             crate::knowledge_full_fixture::build_fixture_with_semantic_report(Some(report.clone()));
-        let prepared =
-            crate::knowledge_full_fixture::build_fixture_with_prepared_catalog(Some(report.clone()));
+        let prepared = crate::knowledge_full_fixture::build_fixture_with_prepared_catalog(Some(
+            report.clone(),
+        ));
         assert_eq!(
             fixture.expectation.catalog_packet_sha256,
             prepared.expectation.catalog_packet_sha256
@@ -358,9 +388,12 @@ mod tests {
         assert_eq!(read(&prepared), before);
         let catalog = |fixture: &crate::knowledge_full_fixture::FullKnowledgeFixture| {
             let selected = fixture.open().unwrap();
-            selected.connection().query_row(
-                "SELECT packet FROM catalog_index_meta", [], |r| r.get::<_, Vec<u8>>(0),
-            ).unwrap()
+            selected
+                .connection()
+                .query_row("SELECT packet FROM catalog_index_meta", [], |r| {
+                    r.get::<_, Vec<u8>>(0)
+                })
+                .unwrap()
         };
         assert_eq!(catalog(&fixture), catalog(&prepared));
         let restored = fixture.path.with_file_name("restored.sqlite3");

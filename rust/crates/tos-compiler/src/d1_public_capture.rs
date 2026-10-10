@@ -674,7 +674,10 @@ impl<'budget> CreationState<'budget> {
             .checked_sub(before)
             .ok_or(Error::Budget("constructor result custody mismatch"))?;
         self.persistent.set(before);
-        let hold = CreationStateHold { owner: self, admitted };
+        let hold = CreationStateHold {
+            owner: self,
+            admitted,
+        };
         // On failure the constructor's locals have already dropped. Only its
         // own admission is released; earlier persistent state remains live.
         result.map(|value| (value, hold))
@@ -1385,7 +1388,10 @@ impl<'budget> CreationState<'budget> {
             let site = std::panic::Location::caller();
             eprintln!(
                 "Native state retain refused at {}:{}: retained={} additional={}",
-                site.file(), site.line(), self.retained.get(), bytes,
+                site.file(),
+                site.line(),
+                self.retained.get(),
+                bytes,
             );
             return Err(error);
         }
@@ -7643,10 +7649,14 @@ mod construction_phase_tests {
         assert!(state.json_visits.get() > before_visits);
         let before_work = work.load(Ordering::Acquire);
         let before_visits = state.json_visits.get();
-        assert!(state.with_retained_result(|| {
-            let _local = state.serde_owned(raw, 8192)?;
-            Err::<(), _>(Error::Invalid("constructor refused"))
-        }).is_err());
+        assert!(
+            state
+                .with_retained_result(|| {
+                    let _local = state.serde_owned(raw, 8192)?;
+                    Err::<(), _>(Error::Invalid("constructor refused"))
+                })
+                .is_err()
+        );
         assert_eq!(state.retained.get(), outer_retained);
         assert_eq!(state.persistent.get(), outer_persistent);
         assert!(work.load(Ordering::Acquire) > before_work);

@@ -67,7 +67,10 @@ impl CatalogPacketRef<'_> {
     }
 }
 impl serde::Serialize for CatalogPacketRef<'_> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
         // Iterate the existing map to preserve both sorted and preserve_order
         // builds. The placeholder occupies the original counts position.
@@ -78,7 +81,11 @@ impl serde::Serialize for CatalogPacketRef<'_> {
         for (key, value) in object {
             map.serialize_entry(
                 key,
-                if key == "counts" { self.counts.unwrap_or(value) } else { value },
+                if key == "counts" {
+                    self.counts.unwrap_or(value)
+                } else {
+                    value
+                },
             )?;
         }
         map.end()
@@ -3421,7 +3428,12 @@ impl<'a, 'state, 'budget> CatalogReduction<'a, 'state, 'budget> {
     ) -> Result<PreparedCatalog<'state, 'budget>> {
         let construct = || {
             self.finish_prepared_inner(
-                stage, graph_header, saved_lenses, vocabulary, descriptor_bytes, registry,
+                stage,
+                graph_header,
+                saved_lenses,
+                vocabulary,
+                descriptor_bytes,
+                registry,
             )
         };
         if let Some(state) = self.creation {
