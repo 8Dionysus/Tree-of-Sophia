@@ -30,12 +30,8 @@ A successful run proves its declared native pipeline and consumer contracts;
 source-language adequacy, rights, canon and semantic assessment retain their
 actual owners. Reference file/method counts are inventory dimensions.
 
-Use the explicit retained Growth oracle only when investigating or comparing
-reference behavior:
-
-```bash
-tos-ops-mechanics-plan --repo-root ROOT --execute --growth-python-oracle
-```
+Retained Growth Python material is historical comparison evidence. The maintained
+executor has no Python oracle or discovered-script execution mode.
 
 For the bounded three-home native mechanics cohort, use:
 
@@ -43,16 +39,12 @@ For the bounded three-home native mechanics cohort, use:
 tos-ops-mechanics-plan --repo-root ROOT --execute --native-contracts-only
 ```
 
-The five original Python files remain frozen reference evidence. Discovery checks
-both their exact filename sets and bytes before substituting native assertions;
-a changed reference needs owner review and corresponding native assertions.
-The maintained assertion source is `rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts/`.
-
-This runs the installed executor with its existing time, cancellation and output
-limits. It refuses an incomplete three-home selection and has no Cargo or
-Python test fallback. The Rust route proves native implementation and selected
-conformance behavior only; the retained Python oracle remains a separate
-comparison surface until its per-assertion removal conditions are reviewed.
+The maintained assertion source is
+`rust/crates/tos-ops-mechanics-plan/tests/mechanics_contracts/`. Historical Python
+material retains its original meaning and bytes outside executable discovery.
+The installed executor preserves time, cancellation and output limits, requires
+all three contract homes, and refuses unexpected Python test/build/validator
+files before starting any command.
 
 For a read-only source-owned native Growth class plan, use
 `tos-ops-mechanics-plan --repo-root ROOT --growth-native-plan`. It resolves

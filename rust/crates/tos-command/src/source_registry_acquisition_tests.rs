@@ -356,13 +356,18 @@ fn reviewed_tei_profiles_bind_language_role_identity_and_exact_opening() {
             "ἀ",
         ),
     ] {
+        let (identity_anchor, edition_identity) = if language == "grc" {
+            ("edition_n", format!(r#" n="{urn}""#))
+        } else {
+            ("body_xml_base", String::new())
+        };
         let body = format!(
-            r#"{prefix}<text><body xml:base="{urn}"><div type="{xml_role}" xml:lang="{xml_language}"><div type="textpart" subtype="section" n="1">{}</div></div></body></text></TEI>"#,
+            r#"{prefix}<text><body xml:base="{urn}"><div type="{xml_role}" xml:lang="{xml_language}"{edition_identity}><div type="textpart" subtype="section" n="1">{}</div></div></body></text></TEI>"#,
             words.repeat(1100)
         );
         let mut target = json!({"slug":"profile-fixture","language":language,"expression_role":role,
             "coverage":{"kind":kind,"citation_scope":"hierarchical_divisions","cts_urn":urn,
-            "identity_anchor":"body_xml_base","header_prefix_sha256":sha256(prefix.as_bytes())}});
+            "identity_anchor":identity_anchor,"header_prefix_sha256":sha256(prefix.as_bytes())}});
         let report = inspected(&target, "source.xml", &body).unwrap();
         assert_eq!(report["source_bytes_changed"], false);
         for (before, after) in [

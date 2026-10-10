@@ -1,4 +1,4 @@
-//! One synthetic package fixture exercises ordered execution and durable
+//! A synthetic native validation sequence exercises ordered execution and durable
 //! lifecycle risks through the real CLI, without executing repository tools.
 #[cfg(target_os = "linux")]
 #[test]
@@ -16,15 +16,8 @@ fn ordered_runner_stops_and_owns_ordinary_and_escaped_children() {
             .unwrap()
             .as_nanos()
     ));
-    for path in [
-        "mechanics/fixture/tests/test_unit.py",
-        "mechanics/fixture/scripts/build_unit.py",
-        "mechanics/fixture/scripts/validate_unit.py",
-    ] {
-        let path = root.join(path);
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, b"").unwrap();
-    }
+    fs::create_dir_all(root.join("docs/validation")).unwrap();
+    fs::write(root.join("docs/validation/validation_lanes.json"), r#"{"command_sequences":{"custody":[{"label":"assertions","command":["/bin/sh","adapter","assertions"]},{"label":"builder","command":["/bin/sh","adapter","builder","--check"]},{"label":"validator","command":["/bin/sh","adapter","validator"]}]}}"#).unwrap();
     let adapter = root.join("adapter");
     fs::write(
         &adapter,
@@ -61,16 +54,15 @@ esac
         for path in ["trace", "ordinary.pid", "escaped.pid", "escaped-all"] {
             let _ = fs::remove_file(root.join(path));
         }
-        let executable = std::env::var_os("TOS_MECHANICS_TEST_EXECUTABLE")
-            .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
+        let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
+            .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-validation-lanes").into());
         let mut command = Command::new(executable);
         command
             .args([
                 "--repo-root",
                 root.to_str().unwrap(),
-                "--python",
-                adapter.to_str().unwrap(),
-                "--execute",
+                "--run",
+                "custody",
                 "--command-timeout-ms",
                 "200",
                 "--lane-timeout-ms",
@@ -169,6 +161,7 @@ esac
             Some(match scenario {
                 "success" | "daemon" => 0,
                 "cancel" => 130,
+                "failure" => 7,
                 _ => 1,
             }),
             "{scenario}: {}",
@@ -196,11 +189,8 @@ esac
             "{scenario}"
         );
         if scenario == "success" {
-            assert_eq!(
-                trace,
-                "-m unittest discover -s mechanics/fixture/tests -p test*.py\nmechanics/fixture/scripts/build_unit.py --check\nmechanics/fixture/scripts/validate_unit.py\n"
-            );
-            assert!(String::from_utf8_lossy(&output.stdout).ends_with("[ok] completed mechanics-local unittest, builder, and validator coverage across 1 test files\n"));
+            assert_eq!(trace, "assertions\nbuilder --check\nvalidator\n");
+            assert!(String::from_utf8_lossy(&output.stdout).ends_with("[ok] validator\n"));
         }
         for path in ["ordinary.pid", "escaped-all"] {
             if let Ok(value) = fs::read_to_string(root.join(path)) {

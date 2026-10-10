@@ -111,11 +111,11 @@ acceptance of the currently ignored tests or this patch.
    includes owned command classes, generic native residuals and exact isolated
    lifecycle cases. An assessment flag cannot replace that execution plan.
 
-Plain execution now runs this finite native pipeline. `--native-contracts-only`
-remains the bounded three-home route and `--growth-python-oracle` explicitly runs
-the retained comparison APIs. This restores the native default without claiming
-reference method-for-method equivalence or semantic acceptance. Installed success
-still requires a matching Ops product and actual complete execution.
+Plain execution runs this finite native pipeline. `--native-contracts-only`
+selects the bounded three-home route. Historical Python assertions remain
+comparison evidence; the removed Python oracle flag and script discovery no
+longer execute them. Installed success requires a matching Ops product and
+actual execution. Mechanical results do not grant semantic acceptance.
 
 ## Concrete source repair from the classification
 

@@ -72,8 +72,8 @@ fn selected_steps(
 }
 
 /// A standalone mechanics fixture with no Growth owner retains its ordinary
-/// executor contract. A present Growth source contract (even malformed), or
-/// the retained owner's actual unittest home, requires native Growth planning.
+/// executor contract. The Growth home itself requires native planning, even
+/// when its contract is missing and no retired Python tests remain.
 pub fn uses_native_route(root: &Path, mechanics: &crate::Plan) -> io::Result<bool> {
     match fs::symlink_metadata(root.join(CONTRACT)) {
         Ok(_) => Ok(true),
@@ -82,10 +82,14 @@ pub fn uses_native_route(root: &Path, mechanics: &crate::Plan) -> io::Result<boo
                 .split_once("/parts/")
                 .ok_or_else(|| io::Error::other("Growth contract owner route missing"))?
                 .0;
-            Ok(mechanics
-                .commands
-                .iter()
-                .any(|command| command.kind == "unittest" && command.home == owner))
+            match fs::symlink_metadata(root.join(owner)) {
+                Ok(_) => Ok(true),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(mechanics
+                    .commands
+                    .iter()
+                    .any(|command| command.home == owner)),
+                Err(error) => Err(error),
+            }
         }
         Err(error) => Err(error),
     }

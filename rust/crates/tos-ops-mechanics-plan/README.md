@@ -1,19 +1,20 @@
 # Mechanics-local command planning and execution
 
-`tos-ops-mechanics-plan` discovers package-local and part-local mechanics
-tests, builders and validators. The default CLI still emits exactly one
-`tos_mechanics_local_plan_v1` JSON line: `test_file_count` plus commands with
-`kind`, `home` and `argv`. Order remains unittest-discover per test home,
-then builders `--check`, then validators; homes and names sort by path.
+`tos-ops-mechanics-plan` discovers native package-local and part-local mechanics
+assertions, builders and validators. The default CLI emits one
+`tos_mechanics_local_plan_v1` JSON line with `test_file_count` (zero after Python
+retirement) and commands containing `kind`, `home` and `argv`. Order is native
+assertions by home, builder checks, then validators.
 
-`--repo-root ABSOLUTE_PATH` is required. `--python COMMAND` selects the
-explicit interpreter adapter (default `python`; choose an exact interpreter
-to match the former Python runner's `sys.executable`). `--execute` instead
-runs that same plan from the repository root, printing the progress lines and
-final success line. The first
-nonzero child stops the lane with exit 1, as the former Python runner did;
-child stdout and stderr retain their streams. Diagnostic traceback wording
-and cross-stream interleaving are not compatibility promises. Plan shape and ordering are preserved; native owner homes no longer need interpreter files.
+`--repo-root ABSOLUTE_PATH` is required. `--execute` runs the native Growth
+pipeline with the other selected native mechanics from that root. Unexpected
+Python test/build/validator files fail discovery before any command starts.
+`--python COMMAND` remains only for explicitly selected external-owner adapters;
+the ToS mechanics pipeline does not use an interpreter.
+
+The first nonzero child stops execution. Child stdout and stderr retain their
+streams; diagnostic traceback wording and cross-stream interleaving are not
+compatibility promises.
 
 Execution has explicit limits, optionally lowered or raised within the hard
 ceilings using these flags:
@@ -57,7 +58,7 @@ host supervision. No host services or privileges are configured by this tool.
 
 Discovery visits only immediate `mechanics/*` and `mechanics/*/parts/*`
 homes, rejects encountered symlinks and caps scanned entries/commands. The
-synthetic oracle fixture protects ordering; the real CLI fixture protects
+native discovery fixtures protect ordering; the real validation-lane CLI fixture protects
 stop behavior, output/cancellation deadlines, ordinary/escaped descendants,
 successful daemon cleanup, and syscall-unavailable refusal before tool start.
 A synthetic PID stream covers the prior count/byte cutoff without spawning
@@ -70,7 +71,7 @@ route survives removal of Python wrappers; unexpected Python builders or
 validators in those homes fail discovery. Artifact validation retains the
 source-owned runtime integration pause and uses the selected external owner
 CLI when enabled. Mirror sync and KAG generation remain explicit writes.
-The retained Growth Python assertions still require `--growth-python-oracle`.
+Historical Growth assertions are retained evidence and have no executable oracle flag.
 
 `--mechanics-topology-validate` is a separate read-only native candidate for
 the existing `mechanics_topology` lane. It checks package/part membership,
@@ -79,14 +80,13 @@ inventories, context budget and moved-path accounting. It bounds traversal to
 10,000 entries, retained input to 64 MiB (8 MiB per file), and diagnostics to
 4,096 issues of at most 8 KiB each; references have separate 100,000-entry
 and 64 MiB byte bounds, and retained anchor text has its own 64 MiB bound.
-The existing Python command entry now selects this native mode; the retained
-Python API remains an independent oracle. This validates mechanics topology
+The former Python command entry is retired; the native mode owns this operation. This validates mechanics topology
 and does not accept authored ToS meaning.
 
 `tos-validation-lanes` owns the validation command plane. Its `--check`,
 `--sequence ID`, and `--run ID` modes read the existing
-`docs/validation/validation_lanes.json` in authored order. Native sequences
-require no interpreter. A selected retained Python step requires an explicit
+`docs/validation/validation_lanes.json` in authored order. Maintained ToS sequences
+require no interpreter. An explicitly supplied external-owner Python step requires
 `--python PATH`; the native binary does not discover or install an interpreter.
 The read is bounded to 1 MiB. Run uses the existing dedicated Linux
 pidfd/subreaper executor with its default 300-second command wall,
@@ -101,7 +101,7 @@ have been retired.
 `release_check` sequence. `--phase all` keeps authored order; `checks` and
 `tests` select before or at the complete final suffix of named `run tests: `
 steps, while retaining support for one legacy final `run tests` step. It takes
-an exact `--python PATH` adapter only when the selected phase retains Python
+an exact `--python PATH` adapter only for explicitly supplied external-owner
 steps, and preserves the maintained runner's `PYTEST_DISABLE_PLUGIN_AUTOLOAD` default, Windows-style
 `list2cmdline` progress text, first failure line on stdout, and child status.
 The same native executor imposes the finite command, sequence, cleanup, and
@@ -113,8 +113,8 @@ wiring does not claim an actual release or repository CI run.
 Install with `cargo install --locked --offline --path
 rust/crates/tos-ops-mechanics-plan --root <admitted isolated install root>`
 from the integrated workspace. The existing native fixture may target that
-installed executable via `TOS_MECHANICS_TEST_EXECUTABLE`; without the variable
-it targets Cargo's built CLI. This compares the installed candidate using the
+installed validation executor via `TOS_VALIDATION_LANES_TEST_EXECUTABLE`;
+without the variable it targets Cargo's built validation CLI. This compares the installed candidate using the
 same lifecycle/ordering risks, without another test framework.
 
 `tos-software-ci` owns software check selection and result aggregation. `plan --repo-root PATH --base REF`
@@ -286,7 +286,7 @@ philosophy topology validator. The registered lane retains its command path;
 the existing executable now selects this native mode through
 `TOS_OPS_MECHANICS_EXECUTOR` or installed `tos-ops-mechanics-plan` on PATH,
 with no build on call or Python fallback. An empty explicit selector refuses.
-Imported `main` and `run_validation` remain reference APIs until final retirement.
+The replaced Python entry and imported APIs are retained only as historical evidence.
 This candidate checks manifest/packet/branch boundaries,
 planting schema and exact atlas/backlog/Work/Collection membership, branch
 planting references/counts and metadata labels in all ToS descendant paths.
@@ -440,8 +440,7 @@ meaning, rights or canon.
 
 Root-entry route values have one authored generator input,
 `scripts/root_entry_map.source.json`. Native operations read it through held
-`RouteSources` and the current root-entry schema; the explicit Python comparison
-API reads the same declaration. The compact output ABI and selected export
+`RouteSources` and the current root-entry schema. The compact output ABI and selected export
 verification stay unchanged.
 
 Agent surface, documentation family, decision indexes and root-entry map use
@@ -457,8 +456,8 @@ installed Ops `--kag-source-export-build` / `--kag-source-export-verify` route.
 Root-entry map has no Python builder, validator or imported comparison engine.
 Its route declaration remains `scripts/root_entry_map.source.json`; the native
 owner validates its schema and live references before building or checking the
-selected companion. The other route families retain their explicit comparison
-APIs until their own retirement. Compatible generated format markers may keep
+selected companion. Replaced Python implementations remain historical evidence.
+Compatible generated format markers may keep
 historical names without requiring those launchers.
 
 ## Native validation lanes
@@ -467,15 +466,15 @@ historical names without requiring those launchers.
 shows the authored command sequence; `--run route_docs` executes it under the
 same bounded process supervisor. Native sequences need no Python argument.
 The manifest's exact `{repo_root}` argument resolves to the selected canonical
-root without shell expansion. An explicitly retained Python step still
+root without shell expansion. An explicitly supplied external-owner Python step
 requires `--python EXACT_INTERPRETER`; no interpreter is discovered for it.
 
 Route currentness, nested cards, task harness, tiny entry and the philosophy
 projection lanes call their existing Rust implementations directly.
 `tos-ops-mechanics-plan --agents-route-harness-check --repo-root ABSOLUTE_PATH`
 and `--tiny-entry-validate` also expose those narrow owner checks individually.
-`tos-release-check` follows the same interpreter rule for its selected phase;
-its remaining Python test steps still require explicit selection until retired.
+`tos-release-check` follows the same explicit external-adapter rule; maintained
+ToS test steps execute native products.
 
 The source-home lane runs `--lived-witness-validate` through the native owner.
 It checks the schema, exact body/review digests, purpose-specific permissions,

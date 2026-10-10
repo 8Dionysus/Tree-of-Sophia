@@ -15,7 +15,6 @@ enum Action {
     GrowthNativePlan,
     Execute {
         native_contracts_only: bool,
-        growth_python_oracle: bool,
     },
     LocalContracts {
         home: String,
@@ -103,7 +102,6 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut python = "python".to_owned();
     let mut execute = false;
     let mut native_contracts_only = false;
-    let mut growth_python_oracle = false;
     let mut growth_native_plan = false;
     let mut local_contracts = None;
     let mut threshold_build = false;
@@ -152,7 +150,6 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         match argument.as_str() {
             "--execute" => execute = true,
             "--native-contracts-only" => native_contracts_only = true,
-            "--growth-python-oracle" => growth_python_oracle = true,
             "--growth-native-plan" => growth_native_plan = true,
             "--local-contracts" => {
                 local_contracts = Some(args.next().ok_or("missing native assertion home")?)
@@ -343,8 +340,6 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
                 || root_entry_map_validate
                 || kag_source_export_verify))
         || (native_contracts_only && !execute)
-        || (growth_python_oracle && !execute)
-        || (native_contracts_only && growth_python_oracle)
         || (!semantic_registry_transition
             && (semantic.baseline_commit.is_some()
                 || semantic.allow_initial_introduction
@@ -359,7 +354,6 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     } else if execute {
         Action::Execute {
             native_contracts_only,
-            growth_python_oracle,
         }
     } else if threshold_build {
         Action::ThresholdBuild { check }
@@ -626,7 +620,7 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--growth-python-oracle | --native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --prepare-source-anchor --atlas-row ID --source-table-index N --source-row-index N --source-label LABEL | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --prepare-source-anchor --atlas-row ID --source-table-index N --source-row-index N --source-label LABEL | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
@@ -1140,7 +1134,6 @@ fn main() {
                 let whole_steps = if matches!(
                     action,
                     Action::Execute {
-                        growth_python_oracle: false,
                         native_contracts_only: false,
                     }
                 )

@@ -3,13 +3,13 @@
   "whole_route_status": "native_execution_bound",
   "maintained_route": "rust_workspace",
   "bounded_native_route": "--native-contracts-only",
-  "reference_route": "--growth-python-oracle",
+  "reference_route": "historical-evidence-only",
   "assessment_route": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_BEHAVIOR_COVERAGE.md",
   "reference_discovery": {
     "root": "mechanics/growth-cycle/tests",
     "pattern": "test*.py"
   },
-  "completion_rule": "Execute the source-owned native pipeline and retained other-mechanics checks. Results attest declared native assertions/consumer contracts; reference API counts and semantic judgments keep their owners, and no 719-method equivalence or retirement is inferred.",
+  "completion_rule": "Execute the source-owned native pipeline and native other-mechanics checks. Results attest declared assertions and installed consumer contracts; historical API counts remain evidence and semantic judgments keep their owners.",
   "native_test_routes": [
     {
       "cargo_manifest": "rust/crates/tos-command/Cargo.toml",

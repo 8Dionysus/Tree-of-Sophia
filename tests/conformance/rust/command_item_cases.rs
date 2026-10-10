@@ -371,6 +371,9 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
     let second_fixture = opaque_capture.packets.get("factory").unwrap();
     let owner = opaque_root.join("item-owner.json");
     config = second_fixture["config"].clone();
+    // The second fixture is independently materialized. Its creation fence
+    // needs the same exact current software bytes selected by the invocation.
+    super::command_record_cases::materialize_native_fixture_software(&opaque_root, &capture_files);
     let before_second =
         fs::read(opaque_root.join(fixture["edition_ref"].as_str().unwrap())).unwrap();
     let after_catalog = super::command_work_cases::authored_work_files(&opaque_root);
