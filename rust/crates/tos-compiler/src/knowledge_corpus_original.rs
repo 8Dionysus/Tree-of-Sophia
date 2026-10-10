@@ -939,7 +939,7 @@ pub(crate) fn page_with_layout(
     layout: KnowledgePayloadLayout,
 ) -> Result<CorpusOriginalPage> {
     let mut decode_work = 0;
-    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?;
+    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_rows, max_page_bytes, layout)?;
     page_with_layout_and_work(
         db,
         collection,
@@ -1093,7 +1093,7 @@ pub(crate) fn all_row_with_state_budget_and_layout(
         .checked_sub(overhead)
         .ok_or(Error::Budget("corpus original row state"))?;
     let mut decode_work = 0;
-    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?;
+    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(1, max_page_bytes, layout)?;
     let raw = crate::knowledge_original_rows::decode_packet_from_connection(
         Some(db),
         borrowed,
@@ -1323,44 +1323,39 @@ pub(crate) fn verify_stage(
     descriptor: Option<&str>,
 ) -> Result<Option<CorpusOriginalReceipt>> {
     let layout = stage.payload_layout();
+    let state = stage.owned_creation_state();
     let binding = stage.exact_receipt()?.binding.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
-        if !present(db)? {
+        if !present_with_state(db, state)? {
             return Ok(None);
         }
-        verify_ddl_with_layout(db, layout)?;
-        let r = receipt(db)?;
+        verify_ddl_with_owned_state_and_layout(db, state, layout)?;
+        let r = receipt_with_state(db, state)?;
         if r.source_cut != binding.source_cut
             || r.membership_root != binding.membership_root
             || descriptor.is_some_and(|d| d != r.descriptor_sha256)
         {
             return Err(Error::Invalid("corpus stage composition"));
         }
-        verify_rows(
+        verify_rows_with_state(
             db,
             &r,
             crate::knowledge_original_rows::maximum_limits(),
             &mut 0,
-            crate::knowledge_original_rows::MAX_COLD_WORK,
+            crate::knowledge_original_rows::stage_work_limit(state)?,
+            state,
             layout,
         )?;
         if descriptor.is_none() {
-            sealed_root(db, &r)?;
-            let abi: String = db.query_row(
-                "SELECT CAST(value AS TEXT) FROM metadata WHERE key='model_abi'",
-                [],
-                |r| r.get(0),
-            )?;
-            let sha: String = db.query_row(
-                "SELECT CAST(value AS TEXT) FROM metadata WHERE key='descriptor_sha256'",
-                [],
-                |r| r.get(0),
-            )?;
-            if abi
-                != layout
+            sealed_root_with_state(db, &r, state)?;
+            if !metadata_matches(
+                db,
+                "model_abi",
+                layout
                     .carrier_model_abi()
-                    .unwrap_or(KNOWLEDGE_CORPUS_MODEL_ABI)
-                || sha != r.descriptor_sha256
+                    .unwrap_or(KNOWLEDGE_CORPUS_MODEL_ABI),
+                state,
+            )? || !metadata_matches(db, "descriptor_sha256", &r.descriptor_sha256, state)?
             {
                 return Err(Error::Invalid("corpus finish ABI/descriptor"));
             }

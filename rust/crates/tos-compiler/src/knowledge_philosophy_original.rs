@@ -497,7 +497,7 @@ pub(crate) fn page_with_layout(
     layout: KnowledgePayloadLayout,
 ) -> Result<PhilosophyOriginalPage> {
     let mut decode_work = 0;
-    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?;
+    let work_cap = crate::knowledge_original_rows::page_decode_work_limit(max_rows, max_page_bytes, layout)?;
     page_with_layout_and_work(
         db,
         collection,
@@ -691,14 +691,15 @@ pub(crate) fn verify_stage(
     descriptor: Option<&str>,
 ) -> Result<Option<PhilosophyOriginalReceipt>> {
     let layout = stage.payload_layout();
+    let state = stage.owned_creation_state();
     let binding = stage.exact_receipt()?.binding.clone();
     let inputs = stage.exact_receipt()?.collections.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
-        if !present(db)? {
+        if !present_with_state(db, state)? {
             return Ok(None);
         }
-        verify_ddl_with_layout(db, layout)?;
-        let r = receipt(db)?;
+        verify_ddl_with_owned_state_and_layout(db, state, layout)?;
+        let r = receipt_with_state(db, state)?;
         validate_producer_receipt(&r, &inputs)?;
         if r.source_cut != binding.source_cut
             || r.membership_root != binding.membership_root
@@ -706,27 +707,25 @@ pub(crate) fn verify_stage(
         {
             return Err(Error::Invalid("philosophy original stage binding"));
         }
-        verify_rows(
+        verify_rows_with_state(
             db,
             &r,
             crate::knowledge_original_rows::maximum_limits(),
             &mut 0,
-            crate::knowledge_original_rows::MAX_COLD_WORK,
+            crate::knowledge_original_rows::stage_work_limit(state)?,
+            state,
             layout,
         )?;
         if descriptor.is_none() {
-            sealed_root(db, &r)?;
-            let descriptor:Option<String>=db.query_row("SELECT CASE WHEN length(CAST(value AS BLOB))=64 THEN CAST(value AS TEXT) ELSE NULL END FROM metadata WHERE key='descriptor_sha256'",[],|row|row.get(0)).optional()?.flatten();
-            if descriptor.as_deref()!=Some(r.descriptor_sha256.as_str()){return Err(Error::Invalid("philosophy original finish descriptor"));}
-            let abi: String = db.query_row(
-                "SELECT CAST(value AS TEXT) FROM metadata WHERE key='model_abi'",
-                [],
-                |r| r.get(0),
-            )?;
+            sealed_root_with_state(db, &r, state)?;
+            if !metadata_matches(db, "descriptor_sha256", &r.descriptor_sha256, state)? {
+                return Err(Error::Invalid("philosophy original finish descriptor"));
+            }
             let abi_matches = if let Some(expected) = layout.carrier_model_abi() {
-                abi == expected
+                metadata_matches(db, "model_abi", expected, state)?
             } else {
-                [KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI].contains(&abi.as_str())
+                metadata_matches(db, "model_abi", KNOWLEDGE_PHILOSOPHY_MODEL_ABI, state)?
+                    || metadata_matches(db, "model_abi", crate::KNOWLEDGE_CORPUS_MODEL_ABI, state)?
             };
             if !abi_matches {
                 return Err(Error::Invalid("philosophy original finish ABI"));
@@ -1337,3 +1336,6 @@ pub(crate) fn verify_with_owned_state(
     sealed_root_with_state(db, &r, state)?;
     Ok(Some(r))
 }
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod stage_budget_tests;

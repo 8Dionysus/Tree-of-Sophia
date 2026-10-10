@@ -6,6 +6,11 @@ pub(crate) const MAX_ROWS: u64 = 1_000_000;
 pub(crate) const MAX_ROW_BYTES: usize = 8 * 1024 * 1024;
 pub(crate) const MAX_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
 pub(crate) const MAX_COLD_WORK: u64 = 320 * 1024 * 1024;
+pub(crate) fn stage_work_limit(
+    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+) -> Result<u64> {
+    state.map_or(Ok(MAX_COLD_WORK), |state| state.remaining_work_bytes())
+}
 pub(crate) fn maximum_limits() -> crate::NavigationOriginalLimits {
     crate::NavigationOriginalLimits {
         max_rows: MAX_ROWS,
@@ -34,9 +39,30 @@ pub(crate) fn page_limits(
 }
 /// Uncontrolled page APIs have a finite byte/work envelope. Controlled callers
 /// continue to use their original CreationState through the owned readers.
-pub(crate) fn page_decode_work_limit(max_page_bytes: u64) -> Result<u64> {
+pub(crate) fn page_decode_work_limit(
+    max_rows: usize,
+    max_page_bytes: u64,
+    layout: crate::knowledge_stage::KnowledgePayloadLayout,
+) -> Result<u64> {
+    if max_rows == 0 || max_rows > MAX_PAGE_ROWS || max_page_bytes == 0 || max_page_bytes > 64 * 1024 * 1024 {
+        return Err(Error::Budget("original projection decode page limits"));
+    }
+    // A dictionary is decoded/authenticated and then seeds the row decoder.
+    // Those bounded bytes are work, not returned logical page bytes. Price
+    // both passes for every admitted row, including dictionary SQL/framing.
+    // Non-dictionary layouts retain their existing page envelope.
+    let dictionary_work_input = if layout.dictionary_bytes() {
+        (layout.dictionary_capacity() as u64)
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(512))
+            .and_then(|n| n.checked_mul(max_rows as u64))
+            .ok_or(Error::Budget("original projection dictionary page work"))?
+    } else {
+        0
+    };
     max_page_bytes
-        .checked_mul(16)
+        .checked_add(dictionary_work_input)
+        .and_then(|n| n.checked_mul(16))
         .ok_or(Error::Budget("original projection decode work limit"))
 }
 

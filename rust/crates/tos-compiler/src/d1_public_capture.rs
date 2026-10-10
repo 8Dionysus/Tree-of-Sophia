@@ -982,6 +982,19 @@ impl<'budget> CreationState<'budget> {
     pub(crate) fn observed_work_bytes(&self) -> u64 {
         self.work.load(std::sync::atomic::Ordering::Acquire)
     }
+    /// A secondary scan bound within the original, cumulative owner budget.
+    /// Actual work still charges this state, including a tighter active phase.
+    pub(crate) fn remaining_work_bytes(&self) -> Result<u64> {
+        self.active()?;
+        let limit = self.capture_owner.map_or(Ok(self.work_limit), |owner| {
+            owner
+                .active_work_limit()
+                .map(|limit| limit.min(self.work_limit))
+        })?;
+        limit
+            .checked_sub(self.observed_work_bytes())
+            .ok_or(Error::Budget("owned original remaining work"))
+    }
     #[track_caller]
     pub(crate) fn charge_work(&self, bytes: usize) -> Result<()> {
         self.remaining(0)?;

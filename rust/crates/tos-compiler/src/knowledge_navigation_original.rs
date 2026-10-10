@@ -15,6 +15,17 @@ pub(crate) const MEMBER_DDL: &str = "CREATE TABLE navigation_original_members(co
 pub(crate) const META_DDL: &str = "CREATE TABLE navigation_original_meta(singleton INTEGER PRIMARY KEY CHECK(singleton=1),profile TEXT NOT NULL,descriptor_sha256 TEXT NOT NULL,source_cut TEXT NOT NULL,membership_root TEXT NOT NULL,source_graph TEXT NOT NULL,node_count INTEGER NOT NULL,edge_count INTEGER NOT NULL,rights_count INTEGER NOT NULL,node_input_root BLOB NOT NULL,edge_input_root BLOB NOT NULL,header_sha256 BLOB NOT NULL,rights_root BLOB NOT NULL,component_root BLOB NOT NULL,total_bytes INTEGER NOT NULL,member_index_root BLOB NOT NULL,member_index_bytes INTEGER NOT NULL)";
 pub(crate) const ROW_DDL: &str = "CREATE TABLE navigation_original_rows(ordinal INTEGER PRIMARY KEY,packet_len INTEGER NOT NULL,packet_sha256 BLOB NOT NULL,packet BLOB NOT NULL)";
 
+fn navigation_original_model_abi_supported(model_abi: &str) -> bool {
+    crate::knowledge_stage::KnowledgePayloadLayout::from_model_abi(model_abi).uses_carriers()
+        || [
+            KNOWLEDGE_NAVIGATION_MODEL_ABI,
+            crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+            crate::KNOWLEDGE_CORPUS_MODEL_ABI,
+            crate::KNOWLEDGE_MANAGED_MODEL_ABI,
+        ]
+        .contains(&model_abi)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct NavigationOriginalLimits {
     pub max_rows: u64,
@@ -692,7 +703,11 @@ pub(crate) fn page(
         max_row_bytes,
         crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
         &mut 0,
-        crate::knowledge_original_rows::page_decode_work_limit(max_page_bytes)?,
+        crate::knowledge_original_rows::page_decode_work_limit(
+            max_rows,
+            max_page_bytes,
+            crate::knowledge_stage::KnowledgePayloadLayout::InlineV1,
+        )?,
     )?;
     let next_ordinal = if rows.len() == max_rows {
         rows.last().map(|r| r.0)
@@ -714,14 +729,7 @@ pub(crate) fn verify(
 ) -> Result<Option<NavigationOriginalReceipt>> {
     let present = present(db)?;
     if present != expected.navigation_original_root_sha256.is_some()
-        || present
-            && ![
-                KNOWLEDGE_NAVIGATION_MODEL_ABI,
-                crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
-                crate::KNOWLEDGE_CORPUS_MODEL_ABI,
-                crate::KNOWLEDGE_MANAGED_MODEL_ABI,
-            ]
-            .contains(&expected.model_abi.as_str())
+        || present && !navigation_original_model_abi_supported(&expected.model_abi)
     {
         return Err(Error::Invalid("navigation original model ABI coverage"));
     }
@@ -858,10 +866,23 @@ pub(crate) fn verify_stage(
     descriptor: Option<&str>,
 ) -> Result<Option<NavigationOriginalReceipt>> {
     let layout = stage.payload_layout();
+    let state = stage.owned_creation_state();
     let binding = stage.exact_receipt()?.binding.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
+        let _sql = state
+            .map(|state| {
+                state.hold(2 * tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound())
+            })
+            .transpose()?;
         if !present(db)? {
             return Ok(None);
+        }
+        if let Some(state) = state {
+            // receipt() already caps its text columns. Keep its returned owner
+            // live with the stage; row scratch has separate scoped holds.
+            let receipt_bytes = 8 * (4096 + 4096);
+            state.retain(receipt_bytes)?;
+            state.charge_work(receipt_bytes)?;
         }
         verify_ddl(db)?;
         let r = receipt(db)?;
@@ -873,20 +894,36 @@ pub(crate) fn verify_stage(
         {
             return Err(Error::Invalid("navigation original stage binding"));
         }
-        let mut work = 0;
-        verify_rows(
-            db,
-            &r,
-            crate::knowledge_original_rows::maximum_limits(),
-            &mut work,
-            crate::knowledge_original_rows::MAX_COLD_WORK,
-        )?;
+        if let Some(state) = state {
+            verify_rows_with_owned_state(
+                db,
+                &r,
+                crate::knowledge_original_rows::maximum_limits(),
+                state,
+                &|| state.active(),
+            )?;
+        } else {
+            verify_rows(
+                db,
+                &r,
+                crate::knowledge_original_rows::maximum_limits(),
+                &mut 0,
+                crate::knowledge_original_rows::MAX_COLD_WORK,
+            )?;
+        }
         if descriptor.is_none() {
-            let abi: String=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key='model_abi'",[],|r|r.get(0))?;
+            let abi: Option<String> = db.query_row(
+                "SELECT CASE WHEN length(CAST(value AS BLOB)) BETWEEN 1 AND 128 THEN CAST(value AS TEXT) END FROM metadata WHERE key='model_abi'",
+                [],
+                |row| row.get(0),
+            )?;
+            if let Some(state) = state {
+                state.charge_work(abi.as_ref().map_or(0, String::len))?;
+            }
             let abi_matches = if let Some(expected) = layout.carrier_model_abi() {
-                abi == expected
+                abi.as_deref() == Some(expected)
             } else {
-                [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI].contains(&abi.as_str())
+                abi.as_deref().is_some_and(|abi| [KNOWLEDGE_NAVIGATION_MODEL_ABI, crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, crate::KNOWLEDGE_CORPUS_MODEL_ABI, crate::KNOWLEDGE_MANAGED_MODEL_ABI].contains(&abi))
             };
             if !abi_matches { return Err(Error::Invalid("navigation original finish ABI")); }
             for (key,wanted) in [("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {
@@ -933,10 +970,44 @@ mod addressed_membership_tests {
     }
 }
 
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod cold_abi_admission_tests {
+    use super::*;
+
+    #[test]
+    fn cold_verifier_accepts_current_carrier_abi_and_checks_exact_binding() {
+        let fixture =
+            crate::knowledge_full_fixture::build_native_fixture_with_navigation_original();
+        let db = Connection::open(&fixture.path).unwrap();
+        let mut expected = fixture.expectation.clone();
+        expected.model_abi = crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI.into();
+
+        let mut work = 0;
+        let verified = verify(&db, &expected, fixture.cold_limits(), &mut work)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            verified.component_root_sha256,
+            fixture
+                .navigation_original
+                .as_ref()
+                .unwrap()
+                .component_root_sha256
+        );
+
+        let mut unknown = expected.clone();
+        unknown.model_abi = "unknown-carrier-once-model-abi".into();
+        assert!(verify(&db, &unknown, fixture.cold_limits(), &mut 0).is_err());
+
+        expected.source_cut.push('x');
+        assert!(verify(&db, &expected, fixture.cold_limits(), &mut 0).is_err());
+    }
+}
+
 /// Same selected Navigation Original verifier under the active authentic
 /// CreationState. The row and statement holds are acquired before bounded SQL
 /// decode; aggregate work is charged before parsing, hashing or retaining each
-/// row. The legacy unowned verifier remains unchanged for legacy callers.
+/// row. Both cold paths share the same ABI admission predicate.
 pub(crate) fn verify_with_owned_state(
     db: &Connection,
     expected: &KnowledgeSelectedExpectation,
@@ -977,18 +1048,7 @@ pub(crate) fn verify_with_owned_state(
     state.charge_work(receipt_bytes)?;
     let present = present(db)?;
     if present != expected.navigation_original_root_sha256.is_some()
-        || present
-            && ![
-                KNOWLEDGE_NAVIGATION_MODEL_ABI,
-                crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
-                crate::KNOWLEDGE_CORPUS_MODEL_ABI,
-                crate::KNOWLEDGE_MANAGED_MODEL_ABI,
-                crate::knowledge_stage::KNOWLEDGE_CARRIER_ONCE_MODEL_ABI,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V1,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V2,
-                tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1_CARRIER_ONCE_V3,
-            ]
-            .contains(&expected.model_abi.as_str())
+        || present && !navigation_original_model_abi_supported(&expected.model_abi)
     {
         return Err(Error::Invalid("navigation original model ABI coverage"));
     }
@@ -1040,7 +1100,7 @@ pub(crate) fn verify_with_owned_state(
         max_row_bytes: limits.max_row_bytes.min(8 * 1024 * 1024),
         max_total_bytes: limits.max_work_bytes.min(256 * 1024 * 1024),
     };
-    verify_rows_with_owned_state(db, &receipt, row_limits, context)?;
+    verify_rows_with_owned_state(db, &receipt, row_limits, state, &|| context.check())?;
     let meta: Option<String> = db.query_row(
         "SELECT CAST(value AS TEXT) FROM metadata WHERE key='navigation_original_root_sha256' AND length(CAST(value AS BLOB))=64",
         [],
@@ -1058,9 +1118,9 @@ fn verify_rows_with_owned_state(
     db: &Connection,
     receipt: &NavigationOriginalReceipt,
     limits: NavigationOriginalLimits,
-    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    check: &impl Fn() -> Result<()>,
 ) -> Result<()> {
-    let state = context.owned_state();
     if receipt
         .rights
         .checked_add(receipt.nodes)
@@ -1085,7 +1145,7 @@ fn verify_rows_with_owned_state(
     let mut bytes = 0u64;
     let mut rights = rights_hash();
     loop {
-        context.check()?;
+        check()?;
         let row_hold_bytes = row_workspace
             .checked_add(statement_bytes)
             .ok_or(Error::Budget("owned navigation row statement workspace"))?;
@@ -1105,7 +1165,7 @@ fn verify_rows_with_owned_state(
                     .checked_add(40)
                     .ok_or(Error::Budget("owned navigation row work"))?,
             )?;
-            context.check()?;
+            check()?;
             let want = count as i64 - 1;
             if *ordinal != want {
                 return Err(Error::Invalid("navigation original ordinal coverage"));
@@ -1138,16 +1198,16 @@ fn verify_rows_with_owned_state(
     {
         return Err(Error::Invalid("navigation original root/coverage"));
     }
-    verify_members_with_owned_state(db, receipt, limits.max_rows, context)
+    verify_members_with_owned_state(db, receipt, limits.max_rows, state, check)
 }
 
 fn verify_members_with_owned_state(
     db: &Connection,
     receipt: &NavigationOriginalReceipt,
     row_cap: u64,
-    context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
+    state: &crate::d1_public_capture::CreationState<'_>,
+    check: &impl Fn() -> Result<()>,
 ) -> Result<()> {
-    let state = context.owned_state();
     let statement_bytes =
         tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
     let row_workspace = 8192usize
@@ -1165,13 +1225,13 @@ fn verify_members_with_owned_state(
         let mut seen = 0u64;
         let mut input = Digest256Hasher::new();
         loop {
-            context.check()?;
+            check()?;
             let _row_hold = state.hold(row_workspace)?;
             let page = member_page(db, collection, after.as_deref(), 1, 8192)?;
             for member in &page.rows {
                 let charge = member_charge(member) as usize;
                 state.charge_work(charge)?;
-                context.check()?;
+                check()?;
                 member_item(&mut index, member)?;
                 hash_text(&mut input, &member.id);
                 input.update(
