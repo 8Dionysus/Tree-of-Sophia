@@ -369,16 +369,28 @@ fn real_pending_refuses_changed_dependency_then_resumes_or_rolls_back() {
         // the current implementation and dependency bindings for this run.
         let mut preview_worker = worker(&selected, deadline, &cancelled);
         let preview = prepare_isolated_work_expression_from_proposal(
-            &filesystem, &context, &selected, &software, &components,
-            &mut preview_worker, limits, &cancelled,
-        ).unwrap();
+            &filesystem,
+            &context,
+            &selected,
+            &software,
+            &components,
+            &mut preview_worker,
+            limits,
+            &cancelled,
+        )
+        .unwrap();
         drop(preview_worker);
         let mut request = preview.request().clone();
         assert_eq!(
             serde_value(cmd::field(&request, "fields").unwrap()).unwrap(),
             fixture["request"]["fields"]
         );
-        cmd::set(&mut request, "command_id", cmd::string("native:pending-work")).unwrap();
+        cmd::set(
+            &mut request,
+            "command_id",
+            cmd::string("native:pending-work"),
+        )
+        .unwrap();
         context.request_raw = cmd::canonical(&request).unwrap();
         let mut schema = worker(&selected, deadline, &cancelled);
         let prepared = prepare_work_application(

@@ -350,8 +350,8 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
     // Cargo tests. Those tests can relink target/debug/tos-access with a
     // different dependency feature set, which must still fail the image guard.
     let expected = vec![
-        source, classes, segment, cases[3].0, cases[4].0, cases[5].0,
-        cases[6].0, workspace, release, cases[0].0, cases[1].0, cases[2].0,
+        source, classes, segment, cases[3].0, cases[4].0, cases[5].0, cases[6].0, workspace,
+        release, cases[0].0, cases[1].0, cases[2].0,
     ];
     assert_eq!(
         labels
