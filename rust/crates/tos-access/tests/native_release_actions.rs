@@ -32,6 +32,12 @@ impl Scratch {
         ));
         fs::create_dir(&path).unwrap();
         fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+        // Cargo's bin and deps entries may be hard links to one inode. Release
+        // preparation requires custody of a single-link running image, just
+        // like the independently extracted executable used after installation.
+        let program = path.join("release-tool");
+        fs::copy(CLI, &program).unwrap();
+        fs::set_permissions(&program, fs::Permissions::from_mode(0o700)).unwrap();
         Self(path)
     }
     fn path(&self) -> &Path {
@@ -384,7 +390,7 @@ fn install_archive(archive: &Path, prefix: &Path) -> Output {
 }
 
 fn action(action: &str, root: &Path, value: serde_json::Value) -> Output {
-    action_with(Path::new(CLI), action, root, value)
+    action_with(&root.join("release-tool"), action, root, value)
 }
 
 fn action_with(program: &Path, action: &str, root: &Path, value: serde_json::Value) -> Output {
