@@ -1136,7 +1136,7 @@ fn load_readiness_mcp_process(
         .env_remove("TOS_DATA_ROOT")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::inherit())
         .spawn()
         .expect("start selected native MCP query product");
     let input = child.stdin.take().unwrap();
@@ -1371,7 +1371,7 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     mcp.input.flush().unwrap();
     let search_request = json!({
         "jsonrpc":"2.0","id":101,"method":"tools/call",
-        "params":{"name":"tos_knowledge_search","arguments":{"mode":"compressed","query":"revision-fixture","limit":3}}
+        "params":{"name":"tos_knowledge_search","arguments":{"mode":"compressed","query":"revision-fixture","limit":64,"sources":["source-navigation"]}}
     });
     let discover_request = json!({
         "jsonrpc":"2.0","id":102,"method":"tools/call",
@@ -1388,6 +1388,9 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
             .is_some_and(|nodes| !nodes.is_empty()),
         "selected prepared compressed search returns a real synthetic metadata result"
     );
+    // Capture the complete bounded fixture page: paginated cursor expiry is
+    // intentionally time-dependent and cannot be a cross-run byte oracle.
+    assert!(search_result["page"]["next_cursor"].is_null());
     let (discover_response, discover_bytes) = mcp.call(&discover_request);
     assert!(discover_response.get("result").is_some());
     let handle = load_readiness_tool_value(&discover_response)["handle"].clone();
@@ -1420,6 +1423,9 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     fs::set_permissions(&token_path, fs::Permissions::from_mode(0o600)).unwrap();
 
     let ignored_receipt_paths = vec![
+        // The harness checks this digest and receipt against the exact published
+        // form-set bytes in its isolated owner stage.
+        "/result/revision".to_owned(),
         "/result/owner_configuration".to_owned(),
         "/result/receipt/owner_configuration".to_owned(),
         "/result/receipt/recorded_at".to_owned(),
@@ -1435,19 +1441,16 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
         let operations = vec![
             json!({
                 "channel":"mcp","label":"indexed-search","request":search_request,
-                "expected_status":200,"expected_sha256":Digest256::of_bytes(&search_bytes).to_hex(),
-                "expected_body":search_response
+                "expected_status":200,"expected_sha256":Digest256::of_bytes(&search_bytes).to_hex()
             }),
             json!({
                 "channel":"mcp","label":"source-handle-discovery","request":discover_request,
                 "expected_status":200,"expected_sha256":Digest256::of_bytes(&discover_bytes).to_hex(),
-                "expected_body":discover_response,
                 "reconnect_before":index==0
             }),
             json!({
                 "channel":"mcp","label":"exact-source-return","request":read_request,
-                "expected_status":200,"expected_sha256":Digest256::of_bytes(&read_bytes).to_hex(),
-                "expected_body":read_response
+                "expected_status":200,"expected_sha256":Digest256::of_bytes(&read_bytes).to_hex()
             }),
             json!({
                 "channel":"sdk","label":"native-owner-describe","request":describe_request,
@@ -1469,7 +1472,11 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
     }
     let schedule = json!({"schema":"tos_protocol_load_schedule_v1","sessions":sessions});
     let schedule_path = output.join("load-readiness-schedule.json");
-    fs::write(&schedule_path, serde_json::to_vec(&schedule).unwrap()).unwrap();
+    // Exact MCP response digests already protect every response byte. Keeping
+    // their repeated bodies would exceed the maintained reader's 16 MiB cap.
+    let schedule_bytes = serde_json::to_vec(&schedule).unwrap();
+    assert!(schedule_bytes.len() <= 16_777_216);
+    fs::write(&schedule_path, schedule_bytes).unwrap();
     fs::set_permissions(&schedule_path, fs::Permissions::from_mode(0o600)).unwrap();
     let manifest = json!({
         "schema_version":"tos_load_readiness_fixture_export_v1",
@@ -1481,6 +1488,13 @@ fn export_protected_native_load_readiness_fixture_when_selected() {
         "stages":[2,8,16,32,64,128,256],
         "query_binary":fixture_path(&query_binary),
         "owner_binary":fixture_path(&native),
+        "model":fixture_path(&model),
+        "binding":fixture_path(&binding_path),
+        "source_root":fixture_path(&source_root),
+        "source_inputs":fixture_path(&source_inputs_path),
+        "owner_config":fixture_path(&owner_path),
+        "invocation":fixture_path(&invocation_path),
+        "token_file":fixture_path(&token_path),
         "source_record_id":source_record_id,
         "source_representation":"record",
         "conflict_group":"synthetic-form-apply-v1",

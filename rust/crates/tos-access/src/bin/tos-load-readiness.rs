@@ -1253,6 +1253,7 @@ fn write_lease(output: &Path, unit: &str, cap: usize) -> Result<String, String> 
         .ok_or_else(|| "output lease execution identity absent".into())
 }
 const VOLATILE_JSON_PATHS: &[&str] = &[
+    "/result/revision",
     "/result/owner_configuration",
     "/result/receipt/owner_configuration",
     "/result/receipt/recorded_at",
@@ -1343,7 +1344,8 @@ fn valid_utc_timestamp(value: &Value) -> bool {
 
 fn ignored_value_valid(path: &str, value: &Value) -> bool {
     match path {
-        "/result/owner_configuration"
+        "/result/revision"
+        | "/result/owner_configuration"
         | "/result/receipt/owner_configuration"
         | "/result/receipt/request_digest"
         | "/result/receipt/files/source-create-provenance.jsonl/sha256" => digest_value(value),
@@ -1397,7 +1399,55 @@ fn body_matches(
     }
 }
 
-fn outcome_matches(op: &Operation, expected: &ExpectedOutcome, attempt: &Attempt) -> bool {
+// Form-set bytes contain the command receipt, including its runtime timestamp.
+// Check that revision against the exact published stage instead of the separate
+// preflight's receipt; the rest of the response still matches the semantic oracle.
+fn published_form_revision_matches(args: &Args, op: &Operation, actual: &Value) -> bool {
+    let check = || -> Option<()> {
+        if op.channel != "owner_http" || !op.bind_expected_configuration_from_owner {
+            return None;
+        }
+        args.owner_stage_baseline.as_ref()?;
+        let owner = read_stage_json(args.owner_config.as_deref()?).ok()?;
+        let root = Path::new(owner["source_root"].as_str()?);
+        if !root.starts_with(args.output.join("owner-stage")) {
+            return None;
+        }
+        let relative = actual.pointer("/result/target_path")?.as_str()?;
+        tos_foundation::RelativePath::parse(relative).ok()?;
+        if !relative.ends_with(".human-forms.json") {
+            return None;
+        }
+        let file = tos_fd_open::open_absolute_regular(&root.join(relative), 2_097_152).ok()?;
+        let before = file.metadata().ok()?;
+        let mut raw = Vec::new();
+        (&file).take(2_097_153).read_to_end(&mut raw).ok()?;
+        let after = file.metadata().ok()?;
+        if raw.len() as u64 != before.len()
+            || before.len() != after.len()
+            || before.mtime() != after.mtime()
+            || before.mtime_nsec() != after.mtime_nsec()
+            || before.ctime() != after.ctime()
+            || before.ctime_nsec() != after.ctime_nsec()
+            || actual.pointer("/result/revision")?.as_str()? != format!("sha256:{}", sha(&raw))
+        {
+            return None;
+        }
+        let published: Value = serde_json::from_slice(&raw).ok()?;
+        if published["growth_history"].as_array()?.last()? != actual.pointer("/result/receipt")? {
+            return None;
+        }
+        Some(())
+    };
+    check().is_some()
+}
+
+fn outcome_matches(
+    args: &Args,
+    op: &Operation,
+    expected: &ExpectedOutcome,
+    attempt: &Attempt,
+) -> bool {
     if expected.status != attempt.status
         || expected
             .sha256
@@ -1419,6 +1469,8 @@ fn outcome_matches(op: &Operation, expected: &ExpectedOutcome, attempt: &Attempt
             .cloned()
             .collect::<BTreeSet<_>>();
         body_matches(body, &actual, &ignored_paths, "")
+            && (!ignored_paths.contains("/result/revision")
+                || published_form_revision_matches(args, op, &actual))
             && (!ignored_paths.contains("/result/receipt/command_id")
                 || actual.pointer("/result/receipt/command_id") == op.request.get("command_id"))
     });
@@ -2330,7 +2382,7 @@ fn run_operation(
     let matched_outcome = final_attempt.as_ref().and_then(|attempt| {
         expected
             .iter()
-            .find(|value| outcome_matches(op, value, attempt))
+            .find(|value| outcome_matches(args, op, value, attempt))
     });
     let passed = error.is_none() && auth_ok && matched_outcome.is_some();
     let status = final_attempt.as_ref().map(|a| a.status);

@@ -830,7 +830,36 @@ fn native_catalog_fixture_with_graph(
 
 pub(crate) fn publish_native_catalog_fixture(repository: &Path, root: &Path, deadline: Instant) {
     let inputs = fixture_catalog_inputs(root);
-    let catalog = native_catalog_fixture_with_graph(repository, &inputs, deadline, false);
+    let publication_path = root.join("ToS/source-witnesses/.metadata-publication.json");
+    let publication_raw = match fs::read(&publication_path) {
+        Ok(raw) => Some(raw),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => panic!("fixture publication: {error}"),
+    };
+    let epoch =
+        tos_source_store::MetadataPublicationEpoch::select(publication_raw.as_ref().map(|raw| {
+            parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+                .unwrap()
+                .into_root()
+        }))
+        .unwrap();
+    let mut catalog = native_catalog_fixture_with_graph(repository, &inputs, deadline, false);
+    if let Some(token) = epoch.token() {
+        let file_digests = catalog
+            .files
+            .iter()
+            .map(|(path, raw)| {
+                (
+                    path.clone(),
+                    Value::String(Digest256::of_bytes(raw).to_hex()),
+                )
+            })
+            .collect::<serde_json::Map<_, _>>();
+        catalog.manifest["selected_metadata_publication"] = serde_json::json!({
+            "protocol":"tos_selected_source_metadata_v1", "token":token, "files":file_digests,
+        });
+    }
+    assert_eq!(fs::read(&publication_path).ok(), publication_raw);
     assert_eq!(
         catalog.manifest["schema_version"],
         "tos_source_witness_catalog_v3"
@@ -1524,8 +1553,55 @@ fn native_corpus_composition_case(installed: bool) {
         fs::create_dir_all(to.parent().unwrap()).unwrap();
         fs::write(to, raw).unwrap();
     }
-    let expected_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
-    let expected: Value = serde_json::from_slice(&expected_raw).unwrap();
+    let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
+    let mut expected: Value = serde_json::from_slice(&historical_raw).unwrap();
+    assert_eq!(
+        expected["validation_refs"],
+        serde_json::json!([
+            "scripts/build_tos_corpus_index.py",
+            "scripts/validate_tos_corpus_index.py",
+            "tests/test_tos_corpus_index.py",
+        ])
+    );
+    expected["validation_refs"] = serde_json::json!([
+        "rust/crates/tos-compiler/src/source_corpus.rs",
+        "tests/conformance/rust/compiler_source_cases.rs",
+    ]);
+    let resource_rows = expected["resources"].as_array_mut().unwrap();
+    let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
+    assert!(
+        !resource_rows
+            .iter()
+            .any(|row| row["path"] == vocabulary_path)
+    );
+    resource_rows.push(serde_json::json!({
+        "path":vocabulary_path, "resource_kind":"json", "owner_branch":"ToS/doctrine",
+        "authority_layer":"doctrine", "sha256":"", "size_bytes":0,
+    }));
+    for row in resource_rows.iter_mut() {
+        let path = row["path"].as_str().unwrap();
+        let raw = files
+            .get(path)
+            .unwrap_or_else(|| panic!("selected resource absent: {path}"));
+        row["sha256"] = serde_json::json!(Digest256::of_bytes(raw).to_hex());
+        row["size_bytes"] = serde_json::json!(raw.len());
+    }
+    resource_rows.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+    expected["counts"]["resources"] = serde_json::json!(resource_rows.len());
+    let expected_limits = JsonLimits::new(16 * 1024 * 1024, 96, 1_000_000, 4096).unwrap();
+    let expected_document = parse_json(
+        &serde_json::to_vec(&expected).unwrap(),
+        JsonMode::PublishedStrict,
+        expected_limits,
+    )
+    .unwrap();
+    let mut expected_raw = canonical_bytes_v1(
+        expected_document.root(),
+        CanonicalProfile::SourceRecordDigestV1,
+        expected_limits,
+    )
+    .unwrap();
+    expected_raw.push(b'\n');
     let query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), expected_raw.as_slice());

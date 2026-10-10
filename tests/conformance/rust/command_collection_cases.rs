@@ -246,6 +246,13 @@ fn native_collection_cli_attaches_replays_and_recovers_multi_file_membership() {
             .path()
             .join(fixture["config"]["claim_source_path"].as_str().unwrap());
         let claim_before = fs::read(&claim_path).unwrap();
+        // Refresh the derived catalog from the completed publication before
+        // freezing the next cut and preparing a second sibling command.
+        super::compiler_source_cases::publish_native_catalog_fixture(
+            &repository,
+            isolated.path(),
+            deadline,
+        );
         let after = super::command_work_cases::authored_work_files(isolated.path());
         let current =
             super::validation_cut_cases::write_cut_store_on_base(&after, &store, Some(selected));

@@ -422,7 +422,7 @@ fn native_object_link_cli_creates_and_cold_replays_original_package() {
     );
     assert_eq!(claim_view["subject"]["id"], config["claim_id"]);
     assert_eq!(
-        result["source_profiles"][config["predicate"].as_str().unwrap()]["relation_type_id"],
+        result["source_profiles"]["claim"]["relation_type_id"],
         json!("tos.relation.described-by")
     );
     let current_files = authored_text_files(isolated.path());

@@ -17,7 +17,9 @@ use tos_foundation::{
 use zip::{ZipWriter, write::SimpleFileOptions};
 
 const CLI: &str = env!("CARGO_BIN_EXE_tos-access");
-const MAX_METADATA: usize = 262_144;
+// The selected relation registry is over 256 KiB; all vocabulary members
+// must fit the same explicit metadata envelope used by release preparation.
+const MAX_METADATA: usize = 524_288;
 
 struct Scratch(PathBuf);
 impl Scratch {

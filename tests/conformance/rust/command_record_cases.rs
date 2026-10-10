@@ -772,6 +772,8 @@ fn context(selected: bool) -> CommandContext {
     owner!("rust/crates/tos-command/src/source_command.rs");
     owner!("rust/crates/tos-command/src/source_revisions.rs");
     owner!("rust/crates/tos-command/src/source_sign_native.rs");
+    owner!("rust/crates/tos-compiler/src/source_bibliographic_versions.rs");
+    owner!("rust/crates/tos-compiler/src/source_witness_catalog.rs");
     owner!("rust/crates/tos-command/src/source_forms.rs");
     owner!("rust/crates/tos-validation/src/assessment.rs");
     owner!("rust/crates/tos-command/src/source_private_profile.rs");

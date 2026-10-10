@@ -995,7 +995,7 @@ pub(crate) fn native_python_fixture(
         .as_array()
         .expect("declared root relocations");
     let mut file_relocations =
-        BTreeMap::<(String, String, String, bool), Vec<(String, String)>>::new();
+        BTreeMap::<(String, String, String), Vec<(String, bool, String)>>::new();
     for relocation in relocations {
         let operation = required(relocation, "operation");
         let artifact = required(relocation, "artifact");
@@ -1074,25 +1074,24 @@ pub(crate) fn native_python_fixture(
                         file_root_name.to_owned(),
                         relative_path.to_string_lossy().into_owned(),
                         captured_value.to_owned(),
-                        json_key,
                     ))
                     .or_default()
-                    .push((pointer.to_owned(), replacement));
+                    .push((pointer.to_owned(), json_key, replacement));
             }
             other => panic!("unknown relocation artifact {other}"),
         }
     }
-    for ((root_name, relative, captured_value, json_key), edits) in file_relocations {
+    for ((root_name, relative, captured_value), edits) in file_relocations {
         assert!(
             edits
                 .iter()
-                .all(|(_, replacement)| replacement == &edits[0].1)
+                .all(|(_, _, replacement)| replacement == &edits[0].2)
         );
         let target = root_paths[&root_name].join(capture_relative_path(&relative));
         let source = fs::read(&target).unwrap();
         let parsed: Value = serde_json::from_slice(&source).expect("relocated source file is JSON");
-        for (pointer, _) in &edits {
-            if json_key {
+        for (pointer, json_key, _) in &edits {
+            if *json_key {
                 assert!(
                     capture_object_has_key(&parsed, pointer, &captured_value),
                     "file object-key relocation source changed"
@@ -1106,7 +1105,7 @@ pub(crate) fn native_python_fixture(
             }
         }
         let old_token = serde_json::to_vec(&captured_value).unwrap();
-        let new_token = serde_json::to_vec(&edits[0].1).unwrap();
+        let new_token = serde_json::to_vec(&edits[0].2).unwrap();
         let old_count = source
             .windows(old_token.len())
             .filter(|window| *window == old_token.as_slice())
@@ -1145,8 +1144,8 @@ pub(crate) fn native_python_fixture(
         assert_eq!(updated.len(), expected_len);
         let relocated: Value =
             serde_json::from_slice(&updated).expect("relocated JSON remains valid");
-        for (pointer, replacement) in &edits {
-            if json_key {
+        for (pointer, json_key, replacement) in &edits {
+            if *json_key {
                 assert!(
                     capture_object_has_key(&relocated, pointer, replacement),
                     "file object-key relocation target changed"

@@ -201,7 +201,7 @@ fn selected_software(
         ReadLimits {
             max_manifest_bytes: 1_048_576,
             max_manifest_entries: 512,
-            max_selected_object_bytes: 2_097_152,
+            max_selected_object_bytes: 8_388_608,
             json: JsonLimits::default(),
         },
         deadline,
