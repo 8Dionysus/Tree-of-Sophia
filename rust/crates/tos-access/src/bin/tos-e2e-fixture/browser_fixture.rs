@@ -16,6 +16,9 @@ use tos_query::{
 
 const REV: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const CONTENT: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+// Synthetic opaque continuation with the real parser's envelope shape.
+// Only this fixture accepts this token; production MAC verification is unchanged.
+const SEARCH_CURSOR: &str = "eyJzdGF0ZSI6eyJzY2hlbWEiOiJ0b3NfcHVibGlzaGVkX3NlYXJjaF9jdXJzb3JfdjEiLCJiaW5kaW5nIjoiYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYSIsInF1ZXJ5IjoiY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjYyIsImV4cGlyZXMiOjQyOTQ5NjcyOTUsIm5vZGVzIjp7ImN1cnNvciI6bnVsbCwiZXhoYXVzdGVkIjpmYWxzZSwicGVuZGluZyI6W119LCJyZWxhdGlvbnMiOnsiY3Vyc29yIjpudWxsLCJleGhhdXN0ZWQiOmZhbHNlLCJwZW5kaW5nIjpbXX19LCJtYWMiOiJkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkIn0";
 const GRAPH: &[u8] = include_bytes!("browser_graph.json");
 const WORK_RECORD: &str = include_str!(
     "../../../../../../ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json"
@@ -102,7 +105,7 @@ impl BrowserFixtureExecutor {
         let node_id = raw["node_id"].as_str().unwrap_or("a");
         let id = format!("philosophy:{node_id}");
         let label = raw["label"].clone();
-        let mut packet = json!({"id":id,"node_id":node_id,"entity_id":format!("tos.node.fixture.{node_id}"),
+        let mut packet = json!({"id":id,"node_id":node_id,"native_id":node_id,"source_graph":"philosophy","entity_id":format!("tos.node.fixture.{node_id}"),
             "kind_id":raw["node_type"],"label":label,"content_revision":CONTENT,
             "source_refs":[raw["source_ref"]],"display":{"title":{"ru":label,"en":label},
                 "kind_label":{"ru":"Материал","en":"Material"},"summary":{"ru":"Synthetic browser fixture","en":"Synthetic browser fixture"}},
@@ -160,8 +163,31 @@ impl BrowserFixtureExecutor {
                 json!({"source_revision":REV,"target":self.source_target()}),
             );
         }
-        json!({"schema":"tos_knowledge_inspect_v1","schema_version":"tos_knowledge_inspect_v1","source_revision":REV,
-            "match":node,"matches":[node],"relations":[],"source_read_targets":Value::Object(targets)})
+        json!({"schema":"tos_knowledge_node_packet_v1","source_revision":REV,
+            "requested_id":id,"ambiguous_native_id":false,"shared_entity_id":false,
+            "matches":[node],"related_relations":[],"source_read_targets":Value::Object(targets)})
+    }
+    fn relation_inspect(&self, requested: &str) -> Result<Value, AccessError> {
+        let graph = self.graph();
+        let native_id = requested.strip_prefix("philosophy:").unwrap_or(requested);
+        let edge = graph["edges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|edge| edge["edge_id"] == native_id)
+            .ok_or_else(|| {
+                AccessError::new(AccessErrorCode::UnknownExactId, "unknown fixture relation")
+            })?;
+        let from = self.material_node(edge["from_id"].as_str().unwrap());
+        let to = self.material_node(edge["to_id"].as_str().unwrap());
+        let relation = json!({"id":format!("philosophy:{native_id}"),"from_id":from["id"],"to_id":to["id"],
+            "source_graph":"philosophy","predicate_id":"relates","relation_type_id":"relates","content_revision":CONTENT,
+            "source_refs":[edge["source_ref"]],"display":{"label":{"ru":"Связано","en":"Related"}},"attributes":{}});
+        Ok(
+            json!({"schema":"tos_knowledge_relation_packet_v1","source_revision":REV,
+            "requested_id":requested,"ambiguous_native_id":false,"matches":[relation],"endpoints":[from,to],
+            "source_read_targets":{}}),
+        )
     }
     fn graph_view(&self, view_id: &str, limit: usize) -> Value {
         let graph = self.graph();
@@ -249,7 +275,7 @@ impl BrowserFixtureExecutor {
             .collect::<Vec<_>>();
         let edge_rows = graph["edges"].as_array().unwrap().iter().map(|e| json!({
             "id":format!("philosophy:{}",e["edge_id"].as_str().unwrap()),"from_id":format!("philosophy:{}",e["from_id"].as_str().unwrap()),
-            "to_id":format!("philosophy:{}",e["to_id"].as_str().unwrap()),"relation_type_id":"relates","content_revision":CONTENT,
+            "to_id":format!("philosophy:{}",e["to_id"].as_str().unwrap()),"source_graph":"philosophy","predicate_id":"relates","relation_type_id":"relates","content_revision":CONTENT,
             "source_refs":[e["source_ref"]],"display":{"label":{"ru":"Связано","en":"Related"}}})).collect::<Vec<_>>();
         let origin = request.get("origin").cloned().unwrap_or_else(
             || json!({"kind":"node","id":"philosophy:a","content_revision":CONTENT}),
@@ -436,7 +462,7 @@ fn fixture_scene(
         "focus_vertex_id":focus_vertex,"scope":"returned-packet-only","identity_rule":"declared-tos-entity-id",
         "authority":"presentation-mapping-not-semantic-admission",
         "compact":{"rule":"explicit-claim-paths-v1","vertex_ids":vertex_ids,"relation_ids":relation_ids,
-            "claim_paths":[],"folded_vertex_ids":[],"retained_claims":[]}})
+            "claim_paths":[],"folded_vertex_ids":[],"retained_claims":[],"authority":"presentation-only-no-new-assertion"}})
 }
 impl AccessExecutor for BrowserFixtureExecutor {
     fn source_descend_available(&self) -> bool {
@@ -497,6 +523,16 @@ impl AccessExecutor for BrowserFixtureExecutor {
         request: CompressedSearchRequest,
         _: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
+        if request
+            .cursor
+            .as_deref()
+            .is_some_and(|cursor| cursor != SEARCH_CURSOR)
+        {
+            return Err(AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "unknown fixture search cursor",
+            ));
+        }
         let graph = self.graph();
         let mut nodes = graph["nodes"]
             .as_array()
@@ -538,10 +574,10 @@ impl AccessExecutor for BrowserFixtureExecutor {
         let graph_edges = graph["edges"].as_array().unwrap();
         let relations=graph_edges.iter().skip(offset).take(request.limit).map(|e|json!({
             "id":format!("philosophy:{}",e["edge_id"].as_str().unwrap()),"from_id":format!("philosophy:{}",e["from_id"].as_str().unwrap()),"to_id":format!("philosophy:{}",e["to_id"].as_str().unwrap()),
-            "predicate_id":"relates","relation_type_id":"relates","content_revision":CONTENT,"source_refs":[e["source_ref"]],
+            "source_graph":"philosophy","predicate_id":"relates","relation_type_id":"relates","content_revision":CONTENT,"source_refs":[e["source_ref"]],
             "display":{"label":{"ru":"Связано","en":"Related"}}})).collect::<Vec<_>>();
         let next = if offset == 0 {
-            Some("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")
+            Some(SEARCH_CURSOR)
         } else {
             None
         };
@@ -636,9 +672,47 @@ impl AccessExecutor for BrowserFixtureExecutor {
                     "runtime_projection_boundary":self.graph()["runtime_projection_boundary"],
                     "authority_note":"Synthetic fingerprint for browser review routing."})
             }
-            K::Philosophy(P::Node { node_id }) => self.node_inspect(&node_id),
+            K::Philosophy(P::Node { node_id }) => {
+                let graph = self.graph();
+                let node = graph["nodes"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|node| node["node_id"] == node_id)
+                    .ok_or_else(|| {
+                        AccessError::new(AccessErrorCode::UnknownExactId, "unknown fixture node")
+                    })?;
+                let edges = graph["edges"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|edge| edge["from_id"] == node_id || edge["to_id"] == node_id)
+                    .collect::<Vec<_>>();
+                json!({"schema":"tos_philosophy_mcp_node_v1","node_id":node_id,"node":node,"related_edges":edges})
+            }
+            K::Philosophy(P::Edge { edge_id }) => {
+                let graph = self.graph();
+                let edge = graph["edges"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|edge| edge["edge_id"] == edge_id)
+                    .ok_or_else(|| {
+                        AccessError::new(AccessErrorCode::UnknownExactId, "unknown fixture edge")
+                    })?;
+                let endpoints = graph["nodes"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|node| {
+                        node["node_id"] == edge["from_id"] || node["node_id"] == edge["to_id"]
+                    })
+                    .collect::<Vec<_>>();
+                json!({"schema":"tos_philosophy_mcp_edge_v1","edge_id":edge_id,"edge":edge,"endpoints":endpoints})
+            }
             K::Lens(spec) => self.lens(
-                spec.object_get("focus_id")
+                spec.object_get("seed")
+                    .and_then(|seed| seed.object_get("focus_node_id"))
                     .and_then(tos_foundation::JsonValue::as_str),
             ),
             K::Explore(request) => self.exploration(&foundation_to_value(&request)),
@@ -646,9 +720,7 @@ impl AccessExecutor for BrowserFixtureExecutor {
                 json!({"schema":"tos_interpretation_comparison_v1","source_revision":REV,"page_updated":true,"authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false},"comparisons":[],"items":[]})
             }
             K::Focus(_) => self.lens(Some("philosophy:a")),
-            K::Relation { relation_id } => {
-                json!({"schema":"tos_knowledge_inspect_v1","source_revision":REV,"match":{"id":relation_id,"semantic_kind":"relation"},"matches":[]})
-            }
+            K::Relation { relation_id } => self.relation_inspect(&relation_id)?,
             K::Philosophy(_) => {
                 json!({"schema":"tos_philosophy_graph_packet_v1","source_revision":REV,"nodes":[],"edges":[],"authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}})
             }
