@@ -56,6 +56,10 @@ owner surfaces.
    remaining package tests. Its real captured corpus,
    pair switching and revocation checks take about ten minutes in CI; each
    command retains its own fifteen-minute bound within the same lane deadline.
+   The sequential Rust workspace lane has a three-hour aggregate CI budget
+   on the two-worker host. This includes the remaining cold recovery, install
+   and WASM checks after the source and package test groups; each command
+   keeps its separate limit from the validation manifest.
    Conformance and Growth consume the pinned workspace images before package
    tests can relink the shared Cargo binary paths with different feature sets.
    The image digest checks remain active throughout those consumer steps.
