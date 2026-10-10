@@ -443,7 +443,12 @@ fn browser_behavior_runs_the_complete_native_node_playwright_suite() {
         argv.iter()
             .map(|value| value.as_str().unwrap())
             .collect::<Vec<_>>(),
-        vec!["node", "--test", "access/e2e/test_webmcp.mjs"]
+        vec![
+            "node",
+            "--test",
+            "--test-reporter=tap",
+            "access/e2e/test_webmcp.mjs"
+        ]
     );
 
     let source = fs::read_to_string(repository().join("access/e2e/test_webmcp.mjs")).unwrap();

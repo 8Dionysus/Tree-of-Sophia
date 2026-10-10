@@ -1499,6 +1499,7 @@
         "command": [
           "node",
           "--test",
+          "--test-reporter=tap",
           "access/e2e/test_webmcp.mjs"
         ]
       }
