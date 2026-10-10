@@ -415,6 +415,8 @@ pub(crate) fn compact(value: &JsonValue, cap: usize) -> Result<Vec<u8>> {
 }
 
 const FOUNDATION_JSON_DIAGNOSTICS: &[&str] = &[
+    "owned model canonical cutoff",
+    "owned model canonical work/visits",
     "runtime carrier compact cutoff/cancellation",
     "runtime carrier compact work overflow",
     "runtime carrier compact original work",
@@ -1183,7 +1185,22 @@ impl<'budget> CreationState<'budget> {
                 &mut check,
                 &mut admit,
             )
-            .map_err(|_| Error::Budget("owned model canonical admission"))?;
+            .map_err(|error| {
+                let error = foundation_json_error(error);
+                // Only fixed mechanical diagnostics and numeric budget facts
+                // cross this boundary; never include a source value or path.
+                eprintln!(
+                    "Native canonical refused: {error}; available_bytes={available} retained_bytes={} max_output_bytes={} max_visits={} owner_visits_before={before} owner_visits_now={} owner_visits_limit={} work_bytes={} work_limit={}",
+                    self.retained.get(),
+                    limits.max_bytes,
+                    limits.max_visits,
+                    self.json_visits.get(),
+                    self.max_json_visits,
+                    self.work.load(std::sync::atomic::Ordering::Acquire),
+                    self.work_limit,
+                );
+                error
+            })?;
         if self.json_visits.get().checked_sub(before) != Some(used) {
             return Err(Error::Invalid("owned model canonical visit accounting"));
         }

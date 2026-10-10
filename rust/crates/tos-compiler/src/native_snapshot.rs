@@ -4421,15 +4421,16 @@ fn build_native_snapshot_from_capture_inner(
         )?,
         None => QueryVocabulary::parse(&descriptor, NATIVE_KNOWLEDGE_ADAPTER_PROFILES)?,
     };
-    match state {
-        Some(state) => prepare_family_rows_owned(capture, limits.capture, state)?,
-        None => prepare_family_rows(capture, limits.capture)?,
-    };
+    native_snapshot_phase(capture, "prepare-family-rows", || match state {
+        Some(state) => prepare_family_rows_owned(capture, limits.capture, state),
+        None => prepare_family_rows(capture, limits.capture),
+    })?;
     let capture_identity = capture.capture_identity()?;
-    let (collections, membership_root, projection_root) = match state {
-        Some(state) => captured_input_roots_owned(capture, &vocabulary, state)?,
-        None => captured_input_roots(capture, &vocabulary)?,
-    };
+    let (collections, membership_root, projection_root) =
+        native_snapshot_phase(capture, "input-roots", || match state {
+            Some(state) => captured_input_roots_owned(capture, &vocabulary, state),
+            None => captured_input_roots(capture, &vocabulary),
+        })?;
     // The chosen original corpus/phi connector selects the existing V5 ABI.
     // Original receipts remain distinct from normalized projections.
     let abi = payload_layout
@@ -4460,7 +4461,7 @@ fn build_native_snapshot_from_capture_inner(
         complete: true,
     };
     check_snapshot_active(cancelled, deadline)?;
-    let originals = match state {
+    let originals = native_snapshot_phase(capture, "prepare-originals", || match state {
         Some(state) => crate::native_snapshot_originals::prepare_owned(
             capture,
             &binding,
@@ -4469,7 +4470,7 @@ fn build_native_snapshot_from_capture_inner(
             deadline,
             cancelled,
             state,
-        )?,
+        ),
         None => crate::native_snapshot_originals::prepare(
             capture,
             &binding,
@@ -4477,8 +4478,8 @@ fn build_native_snapshot_from_capture_inner(
             limits.originals,
             deadline,
             cancelled,
-        )?,
-    };
+        ),
+    })?;
     check_snapshot_active(cancelled, deadline)?;
     if originals.expected_model_abi_with_layout(payload_layout) != abi {
         return Err(Error::Invalid("native snapshot original component ABI"));
