@@ -505,6 +505,55 @@ struct OwnedInputPage<'a> {
     container_hold: crate::d1_public_capture::CreationStateHold<'a, 'a>,
 }
 
+/// Input bytes remain admitted until the entire borrowed page is consumed.
+/// Only the next cursor survives page retirement; retained consumer output
+/// has its own accounting and is never refunded by this reader.
+pub(crate) struct ScopedInputPage<'a> {
+    owned: Option<OwnedInputPage<'a>>,
+    legacy: Option<ScanPage>,
+    state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+}
+impl std::ops::Deref for ScopedInputPage<'_> {
+    type Target = ScanPage;
+    fn deref(&self) -> &ScanPage {
+        match &self.owned {
+            Some(owned) => &owned.page,
+            None => self.legacy.as_ref().expect("unowned input page"),
+        }
+    }
+}
+impl<'a> ScopedInputPage<'a> {
+    pub(crate) fn into_next_id(mut self) -> Result<Option<ScopedInputCursor<'a>>> {
+        let next = match &mut self.owned {
+            Some(owned) => owned.page.next_id.take(),
+            None => self
+                .legacy
+                .as_mut()
+                .expect("unowned input page")
+                .next_id
+                .take(),
+        };
+        next.map(|id| {
+            let hold = self
+                .state
+                .map(|state| state.hold(id.capacity()))
+                .transpose()?;
+            Ok(ScopedInputCursor { id, _hold: hold })
+        })
+        .transpose()
+    }
+}
+pub(crate) struct ScopedInputCursor<'a> {
+    id: String,
+    _hold: Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
+}
+impl std::ops::Deref for ScopedInputCursor<'_> {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.id
+    }
+}
+
 /// An exact source row whose input admission follows the borrowed row's actual
 /// lifetime. Dropping this reader releases only its own input, never output
 /// retained independently by the consumer.
@@ -4441,6 +4490,34 @@ impl<'a> KnowledgeStage<'a> {
             .transpose()
     }
 
+    pub(crate) fn scoped_scan_input(
+        &self,
+        source_graph: &str,
+        collection: &str,
+        after_id: Option<&str>,
+        max_rows: usize,
+    ) -> Result<ScopedInputPage<'a>> {
+        let state = self.owned_creation_state();
+        match state {
+            Some(state) => Ok(ScopedInputPage {
+                owned: Some(self.scoped_input_page(
+                    source_graph,
+                    collection,
+                    after_id,
+                    max_rows,
+                    state,
+                )?),
+                legacy: None,
+                state: Some(state),
+            }),
+            None => Ok(ScopedInputPage {
+                owned: None,
+                legacy: Some(self.scan_input(source_graph, collection, after_id, max_rows)?),
+                state: None,
+            }),
+        }
+    }
+
     /// Same indexed input page consumed under scoped original state. The
     /// statement is closed before the mutable Stage callback starts; input
     /// rows and their holds stay live through the callback and then drop.
@@ -7346,6 +7423,13 @@ mod tests {
             // must not reserve every previously dropped source row forever.
             let baseline = state.remaining(0).unwrap();
             for _ in 0..32 {
+                let page = stage
+                    .scoped_scan_input("fixture.graph", "fixture/raw", None, 1)
+                    .unwrap();
+                assert_eq!(page.rows[0].payload, b"raw");
+                assert!(state.remaining(0).unwrap() < baseline);
+                assert!(page.into_next_id().unwrap().is_none());
+                assert_eq!(state.remaining(0).unwrap(), baseline);
                 let raw = stage
                     .scoped_raw_by_id("fixture.graph", "fixture/raw", "raw.1")
                     .unwrap();

@@ -799,13 +799,13 @@ fn prepare_inner(
     let mut order_count = 0;
     let mut order_root = Digest256Hasher::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &source,
             ORDER_COLLECTION,
             after.as_deref(),
             limits.max_page_rows,
         )?;
-        for raw in page.rows {
+        for raw in &page.rows {
             charge(&mut work, raw.payload.len(), limits)?;
             let row = SourceRow::parse_scoped_with_optional_owned_state(
                 &raw.payload,
@@ -849,7 +849,7 @@ fn prepare_inner(
                 return Err(Error::Budget("repository order rows"));
             }
         }
-        match page.next_id {
+        match page.into_next_id()? {
             Some(id) => after = Some(id),
             None => break,
         }
@@ -877,9 +877,13 @@ fn prepare_inner(
         let mut count = 0u64;
         let mut input_root = Digest256Hasher::new();
         loop {
-            let page =
-                stage.scan_input(&source, collection, after.as_deref(), limits.max_page_rows)?;
-            for raw in page.rows {
+            let page = stage.scoped_scan_input(
+                &source,
+                collection,
+                after.as_deref(),
+                limits.max_page_rows,
+            )?;
+            for raw in &page.rows {
                 charge(&mut work, raw.payload.len(), limits)?;
                 let ordinal:u64=stage.with_connection(WritePhase::Sort,|db| {
                     db.query_row("SELECT ordinal FROM knowledge_repository_order WHERE collection=?1 AND raw_id=?2",params![collection,raw.id],|r|r.get(0)).optional()?.ok_or(Error::Invalid("repository missing source ordinal"))
@@ -951,7 +955,7 @@ fn prepare_inner(
                     return Err(Error::Budget("repository source scan"));
                 }
             }
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(id) => after = Some(id),
                 None => break,
             }

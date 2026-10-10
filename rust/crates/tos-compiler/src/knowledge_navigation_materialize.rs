@@ -193,13 +193,13 @@ fn append_node(
         .ok_or(Error::Budget("navigation source order"))?;
     Ok(Digest256::of_bytes(&payload).to_hex())
 }
-struct Walk {
+struct Walk<'a> {
     count: u64,
     hash: Digest256Hasher,
-    after: Option<String>,
+    after: Option<crate::knowledge_stage::ScopedInputCursor<'a>>,
     work: u64,
 }
-impl Walk {
+impl<'a> Walk<'a> {
     fn new() -> Self {
         Self {
             count: 0,
@@ -256,7 +256,7 @@ pub fn materialize_navigation_nodes(
                 limits.max_output_bytes,
                 limits.max_raw_bytes,
             )?;
-            let page = stage.scan_input(
+            let page = stage.scoped_scan_input(
                 &prepared.source_graph,
                 "nodes",
                 walk.after.as_deref(),
@@ -283,7 +283,7 @@ pub fn materialize_navigation_nodes(
                     Ok(())
                 },
             )?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(next) => walk.after = Some(next),
                 None => break,
             }
@@ -348,7 +348,7 @@ pub fn materialize_navigation_placeholders(
                 .min(seek_rows)
                 .min(write_rows / 2)
                 .min(write_bytes as usize / (2 * limits.max_output_bytes));
-            let page = stage.scan_input(
+            let page = stage.scoped_scan_input(
                 &prepared.source_graph,
                 "edges",
                 walk.after.as_deref(),
@@ -415,7 +415,7 @@ pub fn materialize_navigation_placeholders(
                     Ok(())
                 },
             )?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(next) => walk.after = Some(next),
                 None => break,
             }
@@ -483,7 +483,7 @@ where
                 limits.max_output_bytes,
                 limits.max_raw_bytes,
             )?;
-            let page = stage.scan_input(
+            let page = stage.scoped_scan_input(
                 &prepared.source_graph,
                 "edges",
                 walk.after.as_deref(),
@@ -564,7 +564,7 @@ where
                     Ok(())
                 },
             )?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(next) => walk.after = Some(next),
                 None => break,
             }

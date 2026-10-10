@@ -178,12 +178,12 @@ fn root_row(hash: &mut Digest256Hasher, raw: &SeekRow) -> Result<()> {
     Ok(())
 }
 
-struct InputWalk {
+struct InputWalk<'a> {
     count: u64,
     root: Digest256Hasher,
-    after: Option<String>,
+    after: Option<crate::knowledge_stage::ScopedInputCursor<'a>>,
 }
-impl InputWalk {
+impl<'a> InputWalk<'a> {
     fn new() -> Self {
         Self {
             count: 0,
@@ -234,7 +234,7 @@ fn walk_nodes(
 ) -> Result<u64> {
     let mut walk = InputWalk::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "nodes",
             walk.after.as_deref(),
@@ -254,7 +254,7 @@ fn walk_nodes(
                 return Err(Error::Invalid("source-claims node properties"));
             }
         }
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => walk.after = Some(next),
             None => break,
         }
@@ -280,7 +280,7 @@ fn walk_traces(
 ) -> Result<u64> {
     let mut walk = InputWalk::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "claim_traces",
             walk.after.as_deref(),
@@ -361,7 +361,7 @@ fn walk_traces(
             tx.commit()?;
             Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => walk.after = Some(next),
             None => break,
         }
@@ -386,7 +386,7 @@ fn walk_edges(
 ) -> Result<u64> {
     let mut walk = InputWalk::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "edges",
             walk.after.as_deref(),
@@ -435,7 +435,7 @@ fn walk_edges(
             tx.commit()?;
             Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => walk.after = Some(next),
             None => break,
         }
@@ -449,9 +449,9 @@ fn mark_trace_edges(
     limits: ClaimPrepareLimits,
     work: &mut u64,
 ) -> Result<()> {
-    let mut after: Option<String> = None;
+    let mut after: Option<crate::knowledge_stage::ScopedInputCursor<'_>> = None;
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "claim_traces",
             after.as_deref(),
@@ -492,7 +492,7 @@ fn mark_trace_edges(
             tx.commit()?;
             Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => after = Some(next),
             None => break,
         }

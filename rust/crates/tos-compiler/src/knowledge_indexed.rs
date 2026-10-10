@@ -294,9 +294,9 @@ fn materialize_indexed_sources_inner(
     let mut node_count = 0u64;
     let mut relation_count = 0u64;
     for source in ordered.iter().filter(|_| nodes) {
-        let mut after: Option<String> = None;
+        let mut after: Option<crate::knowledge_stage::ScopedInputCursor<'_>> = None;
         loop {
-            let page = stage.scan_input(
+            let page = stage.scoped_scan_input(
                 &source.source_graph_id,
                 "nodes",
                 after.as_deref(),
@@ -319,7 +319,7 @@ fn materialize_indexed_sources_inner(
                 page_rows,
                 page_bytes,
                 |stage| {
-                    for raw in page.rows {
+                    for raw in &page.rows {
                         let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
                         let (native, entity, kind, type_id) =
                             checked_node(&row, &source.source_graph_id, &raw.id, registry)?;
@@ -344,16 +344,16 @@ fn materialize_indexed_sources_inner(
                     Ok(())
                 },
             )?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(next) => after = Some(next),
                 None => break,
             }
         }
     }
     for source in ordered.iter().filter(|_| relations) {
-        let mut after: Option<String> = None;
+        let mut after: Option<crate::knowledge_stage::ScopedInputCursor<'_>> = None;
         loop {
-            let page = stage.scan_input(
+            let page = stage.scoped_scan_input(
                 &source.source_graph_id,
                 "relations",
                 after.as_deref(),
@@ -376,7 +376,7 @@ fn materialize_indexed_sources_inner(
                 page_rows,
                 page_bytes,
                 |stage| {
-                    for raw in page.rows {
+                    for raw in &page.rows {
                         let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
                         let (native, from_id, to_id, predicate, relation_type) =
                             checked_relation(&row, &source.source_graph_id, &raw.id, registry)?;
@@ -402,7 +402,7 @@ fn materialize_indexed_sources_inner(
                     Ok(())
                 },
             )?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(next) => after = Some(next),
                 None => break,
             }

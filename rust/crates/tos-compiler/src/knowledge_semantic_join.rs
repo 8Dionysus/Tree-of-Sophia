@@ -450,9 +450,13 @@ pub fn prepare_semantic_joins(
         if let (Some(canon), Some(nav)) = (&canon, &navigation) {
             let mut after = None;
             loop {
-                let rows =
-                    stage.scan_input(canon, "nodes", after.as_deref(), limits.max_page_rows)?;
-                for raw in rows.rows {
+                let rows = stage.scoped_scan_input(
+                    canon,
+                    "nodes",
+                    after.as_deref(),
+                    limits.max_page_rows,
+                )?;
+                for raw in &rows.rows {
                     charge(&mut work, raw.payload.len(), limits)?;
                     let row = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
                     if let (Some(path), Some(id)) = (
@@ -468,16 +472,20 @@ pub fn prepare_semantic_joins(
                         })?;
                     }
                 }
-                match rows.next_id {
+                match rows.into_next_id()? {
                     Some(id) => after = Some(id),
                     None => break,
                 }
             }
             let mut after = None;
             loop {
-                let rows =
-                    stage.scan_input(nav, "nodes", after.as_deref(), limits.max_page_rows)?;
-                for raw in rows.rows {
+                let rows = stage.scoped_scan_input(
+                    nav,
+                    "nodes",
+                    after.as_deref(),
+                    limits.max_page_rows,
+                )?;
+                for raw in &rows.rows {
                     charge(&mut work, raw.payload.len(), limits)?;
                     let row = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
                     let item = row.value();
@@ -520,7 +528,7 @@ pub fn prepare_semantic_joins(
                         }
                     }
                 }
-                match rows.next_id {
+                match rows.into_next_id()? {
                     Some(id) => after = Some(id),
                     None => break,
                 }

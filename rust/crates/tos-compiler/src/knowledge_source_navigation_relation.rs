@@ -836,14 +836,14 @@ fn prepare_inner(
     limits.validate()?;
     verify_prepared(stage, prepared, vocabulary, limits)?;
     create_table(stage)?;
-    let mut after: Option<String> = None;
+    let mut after: Option<crate::knowledge_stage::ScopedInputCursor<'_>> = None;
     let mut count = 0u64;
     let mut work = 0u64;
     let mut direct = 0u64;
     let mut claims = 0u64;
     let mut root = Digest256Hasher::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &prepared.source_graph,
             "edges",
             after.as_deref(),
@@ -928,7 +928,7 @@ fn prepare_inner(
             }
             tx.commit()?;Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => after = Some(next),
             None => break,
         }

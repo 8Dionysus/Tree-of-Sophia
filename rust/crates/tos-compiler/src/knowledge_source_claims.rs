@@ -1054,13 +1054,13 @@ fn verify_prepared_dependencies(
     let mut work = 0;
     let mut traces = 0;
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &prepared.source_graph,
             "claim_traces",
             after.as_deref(),
             limits.max_page_rows,
         )?;
-        for raw in page.rows {
+        for raw in &page.rows {
             charge(&mut work, raw.payload.len(), limits.max_work_bytes)?;
             let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
             let t = source.value();
@@ -1078,7 +1078,7 @@ fn verify_prepared_dependencies(
             }
             traces += 1;
         }
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => after = Some(next),
             None => break,
         }
@@ -1188,10 +1188,14 @@ pub fn materialize_source_claim_nodes(
                 normalizer.limits.max_output_bytes,
                 normalizer.limits.max_raw_bytes,
             )?;
-            let page =
-                stage.scan_input(&prepared.source_graph, "nodes", after.as_deref(), page_rows)?;
+            let page = stage.scoped_scan_input(
+                &prepared.source_graph,
+                "nodes",
+                after.as_deref(),
+                page_rows,
+            )?;
             stage.with_write_page(WritePhase::Normalized, physical_rows, physical_bytes, |stage| {
-            for raw in page.rows {
+            for raw in &page.rows {
                 charge(
                     &mut work,
                     raw.payload.len(),
@@ -1235,7 +1239,7 @@ pub fn materialize_source_claim_nodes(
             }
             Ok(())
             })?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(id) => after = Some(id),
                 None => break,
             }
@@ -1545,10 +1549,14 @@ pub fn materialize_source_claim_relations(
                 normalizer.limits.max_output_bytes,
                 normalizer.limits.max_raw_bytes,
             )?;
-            let page =
-                stage.scan_input(&prepared.source_graph, "edges", after.as_deref(), page_rows)?;
+            let page = stage.scoped_scan_input(
+                &prepared.source_graph,
+                "edges",
+                after.as_deref(),
+                page_rows,
+            )?;
             stage.with_write_page(WritePhase::Normalized, physical_rows, physical_bytes, |stage| {
-            for raw in page.rows {
+            for raw in &page.rows {
                 charge(
                     &mut work,
                     raw.payload.len(),
@@ -1634,7 +1642,7 @@ pub fn materialize_source_claim_relations(
             }
             Ok(())
             })?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(id) => after = Some(id),
                 None => break,
             }
@@ -1672,7 +1680,7 @@ pub fn finalize_source_claims(
                 .max_page_rows
                 .min(write_rows / 2)
                 .min(write_bytes as usize / (2 * normalizer.limits.max_output_bytes));
-            let page = stage.scan_input(
+            let page = stage.scoped_scan_input(
                 &prepared.source_graph,
                 "claim_traces",
                 after.as_deref(),
@@ -1683,7 +1691,7 @@ pub fn finalize_source_claims(
                 page_rows * 2,
                 (page_rows * 2 * normalizer.limits.max_output_bytes) as u64,
                 |stage| {
-                    for raw in page.rows {
+                    for raw in &page.rows {
                         charge(
                             &mut work,
                             raw.payload.len(),
@@ -1753,7 +1761,7 @@ pub fn finalize_source_claims(
                     Ok(())
                 },
             )?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(id) => after = Some(id),
                 None => break,
             }
@@ -1804,13 +1812,13 @@ pub fn clear_source_claim_indices(
         let mut after = None;
         let mut work = 0;
         loop {
-            let page = stage.scan_input(
+            let page = stage.scoped_scan_input(
                 &prepared.source_graph,
                 "claim_traces",
                 after.as_deref(),
                 limits.max_page_rows,
             )?;
-            for raw in page.rows {
+            for raw in &page.rows {
                 charge(&mut work, raw.payload.len(), limits.max_work_bytes)?;
                 let trace = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
                 let carrier = node(
@@ -1836,7 +1844,7 @@ pub fn clear_source_claim_indices(
                     return Err(Error::Invalid("Claim cleanup incomplete final trace"));
                 }
             }
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(next) => after = Some(next),
                 None => break,
             }

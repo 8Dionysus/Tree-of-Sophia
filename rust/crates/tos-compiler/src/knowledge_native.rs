@@ -184,8 +184,12 @@ fn other_placeholders(
                 .min(seek_rows)
                 .min(write_rows / 2)
                 .min(write_bytes as usize / (2 * limits.max_output_bytes));
-            let page =
-                stage.scan_input(&entry.source_graph, "edges", after.as_deref(), page_rows)?;
+            let page = stage.scoped_scan_input(
+                &entry.source_graph,
+                "edges",
+                after.as_deref(),
+                page_rows,
+            )?;
             stage.with_write_page(
                 WritePhase::Normalized,
                 page_rows * 2,
@@ -285,7 +289,7 @@ fn other_placeholders(
                     Ok(())
                 },
             )?;
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(id) => after = Some(id),
                 None => break,
             }
@@ -801,13 +805,14 @@ pub(crate) fn materialize_native_sources_with_observer(
                     stage, vocabulary, &prepared, original,
                 )?);
             }
-            let normalizer = PhilosophyNormalizer::new(
+            let normalizer = PhilosophyNormalizer::new_with_optional_owned_state(
                 registry,
                 entity_bytes,
                 relation_bytes,
                 vocabulary,
                 descriptor_bytes,
                 limits.philosophy,
+                stage.owned_creation_state(),
             )?;
             materialize_philosophy_nodes(stage, &normalizer, &prepared)?;
             Some((prepared, normalizer))

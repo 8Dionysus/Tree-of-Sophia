@@ -232,12 +232,12 @@ fn charge(work: &mut u64, bytes: usize, limits: NavigationPrepareLimits) -> Resu
     }
     Ok(())
 }
-struct Walk {
+struct Walk<'a> {
     count: u64,
     root: Digest256Hasher,
-    after: Option<String>,
+    after: Option<crate::knowledge_stage::ScopedInputCursor<'a>>,
 }
-impl Walk {
+impl<'a> Walk<'a> {
     fn new() -> Self {
         Self {
             count: 0,
@@ -299,7 +299,7 @@ fn walk_nodes(
 ) -> Result<u64> {
     let mut walk = Walk::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "nodes",
             walk.after.as_deref(),
@@ -344,7 +344,7 @@ fn walk_nodes(
             tx.commit()?;
             Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => walk.after = Some(next),
             None => break,
         }
@@ -370,7 +370,7 @@ fn walk_edges(
 ) -> Result<u64> {
     let mut walk = Walk::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "edges",
             walk.after.as_deref(),
@@ -430,7 +430,7 @@ fn walk_edges(
             }
             tx.commit()?; Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => walk.after = Some(next),
             None => break,
         }

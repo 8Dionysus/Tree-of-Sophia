@@ -206,12 +206,12 @@ fn charge(work: &mut u64, bytes: usize, limits: PhilosophyPrepareLimits) -> Resu
     Ok(())
 }
 
-struct Walk {
+struct Walk<'a> {
     count: u64,
     hash: Digest256Hasher,
-    after: Option<String>,
+    after: Option<crate::knowledge_stage::ScopedInputCursor<'a>>,
 }
-impl Walk {
+impl<'a> Walk<'a> {
     fn new() -> Self {
         Self {
             count: 0,
@@ -279,7 +279,7 @@ fn walk_nodes(
 ) -> Result<u64> {
     let mut walk = Walk::new();
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "nodes",
             walk.after.as_deref(),
@@ -289,7 +289,11 @@ fn walk_nodes(
         for raw in &page.rows {
             charge(work, raw.payload.len(), limits)?;
             walk.add(raw, limits.max_nodes)?;
-            let row = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
+            let row = SourceRow::parse_scoped_with_optional_owned_state(
+                &raw.payload,
+                limits.max_row_bytes,
+                stage.owned_creation_state(),
+            )?;
             let value = row.value();
             if !projection {
                 owner_shape(value, true)?;
@@ -362,7 +366,7 @@ fn walk_nodes(
             tx.commit()?;
             Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => walk.after = Some(next),
             None => break,
         }
@@ -392,7 +396,7 @@ fn walk_edges(
     let mut walk = Walk::new();
     let mut view_tokens = 0u64;
     loop {
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &selected.source,
             "edges",
             walk.after.as_deref(),
@@ -402,7 +406,11 @@ fn walk_edges(
         for raw in &page.rows {
             charge(work, raw.payload.len(), limits)?;
             walk.add(raw, limits.max_edges)?;
-            let row = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
+            let row = SourceRow::parse_scoped_with_optional_owned_state(
+                &raw.payload,
+                limits.max_row_bytes,
+                stage.owned_creation_state(),
+            )?;
             let value = row.value();
             if !projection {
                 owner_shape(value, false)?;
@@ -429,7 +437,8 @@ fn walk_edges(
             for (role, source, endpoint) in [("from", from_source, from), ("to", to_source, to)] {
                 if source != selected.source
                     || stage
-                        .raw_by_id(&selected.source, "nodes", endpoint)?
+                        .scoped_raw_by_id(&selected.source, "nodes", endpoint)?
+                        .as_ref()
                         .is_none()
                 {
                     unresolved.push((role, source.to_owned(), endpoint.to_owned()));
@@ -494,7 +503,7 @@ fn walk_edges(
             }
             tx.commit()?; Ok(())
         })?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => walk.after = Some(next),
             None => break,
         }

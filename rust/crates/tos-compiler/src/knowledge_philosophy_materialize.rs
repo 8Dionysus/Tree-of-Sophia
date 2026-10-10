@@ -92,6 +92,25 @@ impl<'a> PhilosophyNormalizer<'a> {
         descriptor_bytes: &[u8],
         limits: PhilosophyMaterializeLimits,
     ) -> Result<Self> {
+        Self::new_with_optional_owned_state(
+            registry,
+            entity_bytes,
+            relation_bytes,
+            vocabulary,
+            descriptor_bytes,
+            limits,
+            None,
+        )
+    }
+    pub(crate) fn new_with_optional_owned_state(
+        registry: &'a KnowledgeRegistry,
+        entity_bytes: &[u8],
+        relation_bytes: &[u8],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
+        limits: PhilosophyMaterializeLimits,
+        state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    ) -> Result<Self> {
         limits.validate()?;
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
         if registry.entity_registry_id != vocabulary.entity_registry_id
@@ -114,17 +133,33 @@ impl<'a> PhilosophyNormalizer<'a> {
         if sources.len() != 1 {
             return Err(Error::Invalid("philosophy selected materializer"));
         }
-        let shared = KnowledgeBaseNormalizer::new(
-            registry,
-            entity_bytes,
-            relation_bytes,
-            vocabulary,
-            descriptor_bytes,
-            BaseNormalizationLimits {
-                max_registry_bytes: limits.max_registry_bytes,
-                max_output_bytes: limits.max_output_bytes,
-            },
-        )?;
+        let base_limits = BaseNormalizationLimits {
+            max_registry_bytes: limits.max_registry_bytes,
+            max_output_bytes: limits.max_output_bytes,
+        };
+        let shared = match state {
+            Some(state) => KnowledgeBaseNormalizer::new_with_owned_state(
+                registry,
+                entity_bytes,
+                relation_bytes,
+                vocabulary,
+                descriptor_bytes,
+                base_limits,
+                state,
+            )?,
+            None => KnowledgeBaseNormalizer::new(
+                registry,
+                entity_bytes,
+                relation_bytes,
+                vocabulary,
+                descriptor_bytes,
+                base_limits,
+            )?,
+        };
+        if let Some(state) = state {
+            state.retain(sources[0].source_graph_id.len())?;
+            state.charge_work(sources[0].source_graph_id.len())?;
+        }
         Ok(Self {
             registry,
             source_graph: sources[0].source_graph_id.clone(),
@@ -168,6 +203,24 @@ impl<'a> PhilosophyNormalizer<'a> {
         native: &str,
         relation: bool,
     ) -> Result<SeekRow> {
+        let raw = stage
+            .raw_by_id(
+                &self.source_graph,
+                if relation { "edges" } else { "nodes" },
+                native,
+            )?
+            .ok_or(Error::Invalid("missing philosophy raw row"))?;
+        self.verify_raw(stage, prepared, &raw, relation)?;
+        Ok(raw)
+    }
+    fn verify_raw(
+        &self,
+        stage: &mut KnowledgeStage<'_>,
+        prepared: &PhilosophyPrepareReceipt,
+        raw: &SeekRow,
+        relation: bool,
+    ) -> Result<()> {
+        let native = &raw.id;
         self.bind(stage, prepared)?;
         let sql = if relation {
             "SELECT raw_sha256 FROM knowledge_philosophy_edges WHERE edge_id=?1"
@@ -179,20 +232,13 @@ impl<'a> PhilosophyNormalizer<'a> {
                 .optional()?
                 .ok_or(Error::Invalid("missing philosophy prepared row"))
         })?;
-        let raw = stage
-            .raw_by_id(
-                &self.source_graph,
-                if relation { "edges" } else { "nodes" },
-                native,
-            )?
-            .ok_or(Error::Invalid("missing philosophy raw row"))?;
         if raw.payload.len() > self.limits.max_raw_bytes
             || sha != Digest256::of_bytes(&raw.payload).as_bytes()
             || raw.payload_sha256 != Digest256::of_bytes(&raw.payload).to_hex()
         {
             return Err(Error::Invalid("philosophy prepared raw binding"));
         }
-        Ok(raw)
+        Ok(())
     }
     fn base(
         &self,
@@ -347,7 +393,7 @@ where
             normalizer.limits.max_output_bytes,
             normalizer.limits.max_raw_bytes,
         )?;
-        let page = stage.scan_input(
+        let page = stage.scoped_scan_input(
             &normalizer.source_graph,
             if relation { "edges" } else { "nodes" },
             after.as_deref(),
@@ -358,68 +404,116 @@ where
             physical_rows,
             physical_bytes,
             |stage| {
-                for raw in page.rows {
-                    let base = if relation {
-                        let (from, to) = normalizer.relation_endpoints(stage, prepared, &raw.id)?;
-                        let (left, right) = titles(stage, &from, &to)?;
-                        normalizer.normalize_relation(
-                            stage,
-                            prepared,
-                            &raw.id,
-                            PhilosophyRelationGlobalInputs {
-                                source_cut: &prepared.source_cut,
-                                endpoint_title_root_sha256: title_root.ok_or(Error::Invalid(
-                                    "philosophy missing global title root",
-                                ))?,
-                                left_title: &left,
-                                right_title: &right,
-                            },
-                        )?
-                    } else {
-                        normalizer.normalize_node(stage, prepared, &raw.id)?
-                    };
-                    let value = base.value();
-                    let bytes = serde_json::to_vec(value)
-                        .map_err(|_| Error::Invalid("philosophy normalized serialization"))?;
-                    work_bytes = work_bytes
-                        .checked_add(raw.payload.len() as u64)
-                        .and_then(|n| n.checked_add(bytes.len() as u64))
-                        .ok_or(Error::Budget("philosophy materialization work"))?;
-                    rows = rows
-                        .checked_add(1)
-                        .ok_or(Error::Budget("philosophy materialization rows"))?;
-                    if work_bytes > normalizer.limits.max_work_bytes || rows > expected {
-                        return Err(Error::Budget("philosophy materialization work/rows"));
+                for raw in &page.rows {
+                    normalizer.verify_raw(stage, prepared, raw, relation)?;
+                    let state = stage.owned_creation_state();
+                    let source = SourceRow::parse_scoped_with_optional_owned_state(
+                        &raw.payload,
+                        normalizer.limits.max_raw_bytes,
+                        state,
+                    )?;
+                    if required(source.value(), if relation { "edge_id" } else { "node_id" })?
+                        != raw.id
+                    {
+                        return Err(Error::Invalid("philosophy raw row identity"));
                     }
-                    if relation {
-                        stage.insert_relation_with_exact_source(
-                            RelationRow {
-                                id: required(value, "id")?,
-                                source_graph: &normalizer.source_graph,
-                                native_id: Some(&raw.id),
-                                from_id: required(value, "from_id")?,
-                                to_id: required(value, "to_id")?,
-                                predicate_id: required(value, "predicate_id")?,
-                                relation_type_id: required(value, "relation_type_id")?,
-                                source_order: order,
-                                payload: &bytes,
-                            },
-                            base.ordered_source_raw(),
-                        )?;
+                    let endpoint_titles = if relation {
+                        let root = title_root
+                            .ok_or(Error::Invalid("philosophy missing global title root"))?;
+                        Digest256::from_hex(root)
+                            .map_err(|_| Error::Invalid("philosophy global title receipt"))?;
+                        let (from, to) = endpoints(source.value(), &normalizer.source_graph)?;
+                        Some(titles(stage, &from, &to)?)
                     } else {
-                        stage.insert_node_with_exact_source(
-                            NodeRow {
-                                id: required(value, "id")?,
-                                source_graph: &normalizer.source_graph,
-                                native_id: Some(&raw.id),
-                                entity_id: Some(required(value, "entity_id")?),
-                                kind_id: required(value, "kind_id")?,
-                                type_id: required(value, "type_id")?,
-                                source_order: order,
-                                payload: &bytes,
-                            },
-                            base.ordered_source_raw(),
-                        )?;
+                        None
+                    };
+                    let mut write = |value: &Value, bytes: &[u8]| -> Result<()> {
+                        work_bytes = work_bytes
+                            .checked_add(raw.payload.len() as u64)
+                            .and_then(|n| n.checked_add(bytes.len() as u64))
+                            .ok_or(Error::Budget("philosophy materialization work"))?;
+                        rows = rows
+                            .checked_add(1)
+                            .ok_or(Error::Budget("philosophy materialization rows"))?;
+                        if work_bytes > normalizer.limits.max_work_bytes || rows > expected {
+                            return Err(Error::Budget("philosophy materialization work/rows"));
+                        }
+                        if relation {
+                            stage.insert_relation_with_exact_source(
+                                RelationRow {
+                                    id: required(value, "id")?,
+                                    source_graph: &normalizer.source_graph,
+                                    native_id: Some(&raw.id),
+                                    from_id: required(value, "from_id")?,
+                                    to_id: required(value, "to_id")?,
+                                    predicate_id: required(value, "predicate_id")?,
+                                    relation_type_id: required(value, "relation_type_id")?,
+                                    source_order: order,
+                                    payload: &bytes,
+                                },
+                                &raw.payload,
+                            )?;
+                        } else {
+                            stage.insert_node_with_exact_source(
+                                NodeRow {
+                                    id: required(value, "id")?,
+                                    source_graph: &normalizer.source_graph,
+                                    native_id: Some(&raw.id),
+                                    entity_id: Some(required(value, "entity_id")?),
+                                    kind_id: required(value, "kind_id")?,
+                                    type_id: required(value, "type_id")?,
+                                    source_order: order,
+                                    payload: &bytes,
+                                },
+                                &raw.payload,
+                            )?;
+                        }
+                        Ok(())
+                    };
+                    if let Some(state) = state {
+                        normalizer.shared.ensure_same_owned_state(state)?;
+                        if let Some((left, right)) = &endpoint_titles {
+                            normalizer.shared.with_normalized_relation_owned(
+                                &source,
+                                &normalizer.source_graph,
+                                None,
+                                left,
+                                right,
+                                "derived-export",
+                                normalizer.limits.max_output_bytes,
+                                &mut write,
+                            )?;
+                        } else {
+                            normalizer.shared.with_normalized_node_owned(
+                                &source,
+                                &normalizer.source_graph,
+                                false,
+                                BaseNodeOverrides::default(),
+                                normalizer.limits.max_output_bytes,
+                                &mut write,
+                            )?;
+                        }
+                    } else {
+                        let value = if let Some((left, right)) = &endpoint_titles {
+                            normalizer.shared.normalize_relation(
+                                &source,
+                                &normalizer.source_graph,
+                                None,
+                                left,
+                                right,
+                                "derived-export",
+                            )?
+                        } else {
+                            normalizer.shared.normalize_node(
+                                &source,
+                                &normalizer.source_graph,
+                                false,
+                                BaseNodeOverrides::default(),
+                            )?
+                        };
+                        let bytes = serde_json::to_vec(&value)
+                            .map_err(|_| Error::Invalid("philosophy normalized serialization"))?;
+                        write(&value, &bytes)?;
                     }
                     order = order
                         .checked_add(1)
@@ -428,7 +522,7 @@ where
                 Ok(())
             },
         )?;
-        match page.next_id {
+        match page.into_next_id()? {
             Some(next) => after = Some(next),
             None => break,
         }

@@ -1089,11 +1089,12 @@ impl<'budget> CreationState<'budget> {
         value: &T,
         cap: usize,
     ) -> Result<Vec<u8>> {
-        let raw = self.encode_json(value, cap)?;
-        let document = self.json(&raw, cap)?;
-        let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
-            .map_err(|_| Error::Budget("owned model canonical limits"))?;
-        self.encode_foundation_canonical_with_limits(&document, limits)
+        self.with_json_encoded(value, cap, |raw| {
+            let document = self.json(raw, cap)?;
+            let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
+                .map_err(|_| Error::Budget("owned model canonical limits"))?;
+            self.encode_foundation_canonical_with_limits(&document, limits)
+        })
     }
     pub(crate) fn with_foundation_compact_bytes<T>(
         &self,
@@ -7557,6 +7558,18 @@ mod construction_phase_tests {
         assert!(state.persistent.get() > 0);
         assert_eq!(state.retained.get(), baseline + state.persistent.get());
         drop(persistent);
+        state.transfer_persistent_to_capture().unwrap();
+        assert_eq!(state.retained.get(), baseline);
+
+        // The serde carrier and parsed document are temporary. Only the
+        // returned canonical bytes may escape into persistent model state.
+        let canonical = state
+            .encode_canonical(&serde_json::json!({"z":1,"a":[true]}), 8192)
+            .unwrap();
+        assert_eq!(canonical, br#"{"a":[true],"z":1}"#);
+        assert_eq!(state.retained.get(), baseline + canonical.capacity());
+        assert_eq!(state.persistent.get(), canonical.capacity());
+        drop(canonical);
         state.transfer_persistent_to_capture().unwrap();
         assert_eq!(state.retained.get(), baseline);
 

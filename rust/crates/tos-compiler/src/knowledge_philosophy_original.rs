@@ -260,10 +260,7 @@ pub fn retain_philosophy_original(
                 if !seen.insert(id.to_owned()) {
                     return Err(Error::Invalid("philosophy original duplicate ID"));
                 }
-                let selected = stage
-                    .raw_by_id(&prepared.source_graph, collection, id)?
-                    .ok_or(Error::Invalid("philosophy original absent stage row"))?;
-                if selected.payload.as_slice() != *raw {
+                if !stage.raw_matches_bytes(&prepared.source_graph, collection, id, raw)? {
                     return Err(Error::Invalid("philosophy original stage bytes differ"));
                 }
                 total = total

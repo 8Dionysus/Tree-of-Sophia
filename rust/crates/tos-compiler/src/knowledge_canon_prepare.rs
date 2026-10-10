@@ -376,9 +376,13 @@ fn prepare_family_mode(
         let mut root = Digest256Hasher::new();
         let mut after = None;
         loop {
-            let page =
-                stage.scan_input(&graph, collection, after.as_deref(), limits.max_page_rows)?;
-            for raw in page.rows {
+            let page = stage.scoped_scan_input(
+                &graph,
+                collection,
+                after.as_deref(),
+                limits.max_page_rows,
+            )?;
+            for raw in &page.rows {
                 charge(&mut work, raw.payload.len(), limits)?;
                 count = count.checked_add(1).ok_or(Error::Budget("canon rows"))?;
                 if count > cap
@@ -631,7 +635,7 @@ fn prepare_family_mode(
                     }
                 }
             }
-            match page.next_id {
+            match page.into_next_id()? {
                 Some(next) => after = Some(next),
                 None => break,
             }
