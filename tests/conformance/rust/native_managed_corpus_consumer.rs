@@ -968,10 +968,12 @@ pub(super) fn prepare_producer_source(
         );
     }
     // The selected real Evidence Lens Work has two authored_by endpoints.
-    // Preserve their actual metadata with the route's discovery evidence.
+    // Preserve their actual metadata and the exact provenance-event carrier
+    // named by both Claims, alongside the route's discovery evidence.
     for path in [
         "ToS/source-witnesses/agents/logan-born/agent.json",
         "ToS/source-witnesses/agents/kathryn-erin-kelley/agent.json",
+        "ToS/source-witnesses/discovery/provenance.jsonl",
         "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2021-6-quantitative-sign-use.2026-08-12.v1.json",
     ] {
         add_source_input(
