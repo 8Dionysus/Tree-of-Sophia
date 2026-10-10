@@ -148,8 +148,12 @@ const MAX_DATA_MEMBERS: usize = 4090;
 const MAX_CACHE_TREE_DEPTH: usize = 64;
 const MAX_CACHE_TREE_ENTRIES: usize = 65_536;
 const MAX_DATA_BYTES: u64 = 512 * 1024 * 1024;
-const MAX_CAPTURE_MEMBER_BYTES: usize = 64 * 1024 * 1024;
-const MAX_CAPTURE_CLOSURE_BYTES: u64 = 64 * 1024 * 1024;
+const MAX_AUTHORED_SOURCE_BYTES: u64 = 64 * 1024 * 1024;
+// Capture includes the six generated products as well as authored inputs.
+// The complete philosophy graph alone exceeds the authored-source allowance.
+// These carriers still share the unchanged total data and staging ceilings.
+const MAX_CAPTURE_MEMBER_BYTES: usize = MAX_DATA_BYTES as usize;
+const MAX_CAPTURE_CLOSURE_BYTES: u64 = MAX_DATA_BYTES;
 const MAX_CAPTURE_STAGING_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_NATIVE_MODEL_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_NATIVE_STAGE_TEMP_BYTES: u64 = 512 * 1024 * 1024;
@@ -158,7 +162,7 @@ pub const NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES: u64 = MIN_STAGE_QUOTA_BYTES;
 pub const NATIVE_PRODUCER_MEMBER_READ_CAP_BYTES: usize = MAX_CAPTURE_MEMBER_BYTES;
 pub const NATIVE_PRODUCER_MAX_DATA_BYTES: u64 = MAX_DATA_BYTES;
 pub const NATIVE_PRODUCER_MAX_MODEL_BYTES: u64 = MAX_NATIVE_MODEL_BYTES;
-pub const NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES: u64 = MAX_CAPTURE_CLOSURE_BYTES;
+pub const NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES: u64 = MAX_AUTHORED_SOURCE_BYTES;
 pub const NATIVE_PRODUCER_MAX_MEMBERS: usize = MAX_DATA_MEMBERS;
 /// Explicit independently expected source selection. Evidence refs remain opaque;
 /// this profile selects data, never installed code or an ambient checkout.
@@ -576,7 +580,7 @@ fn source_membership(rows: &[NativeSourceMemberBinding]) -> Result<(String, u64)
         hash.update(digest.as_bytes());
         bytes = bytes
             .checked_add(row.size_bytes)
-            .filter(|value| *value <= MAX_CAPTURE_CLOSURE_BYTES)
+            .filter(|value| *value <= MAX_AUTHORED_SOURCE_BYTES)
             .ok_or(Error::Budget("native selected source byte ceiling"))?;
     }
     Ok((hash.finalize().to_hex(), bytes))
@@ -780,7 +784,8 @@ impl NativeSelectedSnapshotProfile {
 }
 const MAX_MEMBER_PATH_BYTES: usize = 4096;
 const MAX_MEMBER_PATH_TOTAL_BYTES: usize = 512 * 1024;
-const MAX_BINDING_PATH_TOTAL_BYTES: usize = 128 * 1024;
+// Bindings name the same source members admitted by the data manifest.
+const MAX_BINDING_PATH_TOTAL_BYTES: usize = MAX_MEMBER_PATH_TOTAL_BYTES;
 const MAX_COMPILER_PATH_TOTAL_BYTES: usize = 256 * 1024;
 const MAX_JSON_VISITS: usize = 300_000;
 const MAX_JSON_DEPTH: usize = 64;
@@ -3123,12 +3128,39 @@ mod selected_snapshot_tests {
 
     #[test]
     fn source_only_profile_binds_canonical_cut_and_selected_worker() {
-        let source_members = vec![NativeSourceMemberBinding {
+        let mut source_members = vec![NativeSourceMemberBinding {
             path: "ToS/source_home.manifest.json".into(),
             mode: 0o644,
             size_bytes: 4,
             sha256: Digest256::of_bytes(b"home").to_hex(),
         }];
+        // A complete authored branch has many bounded paths. Their binding
+        // must fit the member-path envelope, not a smaller implicit subset.
+        source_members.extend((0..2048).map(|ordinal| NativeSourceMemberBinding {
+            path: format!(
+                "ToS/philosophy/{}/node-{ordinal:04}.json",
+                "branch".repeat(20)
+            ),
+            mode: 0o644,
+            size_bytes: 1,
+            sha256: Digest256::of_bytes(b"x").to_hex(),
+        }));
+        source_members.sort_by(|left, right| left.path.cmp(&right.path));
+        assert!(
+            source_members
+                .iter()
+                .map(|row| row.path.len())
+                .sum::<usize>()
+                > 128 * 1024
+        );
+        let mut oversized_paths = source_members.clone();
+        for row in &mut oversized_paths {
+            row.path.push_str(&"x".repeat(256));
+        }
+        assert!(matches!(
+            validate_source_member_rows(&oversized_paths),
+            Err(Error::Budget("native selected source path aggregate"))
+        ));
         let (membership_root, _) = source_membership(&source_members).unwrap();
         let mut products = required_native_runtime_product_paths()
             .into_iter()

@@ -4350,8 +4350,10 @@ fn execute(mut request: Request) -> Result<Value> {
         .iter()
         .try_fold(0u64, |sum, member| sum.checked_add(member.size_bytes))
         .ok_or(Refusal("native source closure byte arithmetic"))?;
-    if source_bytes > manifest::NATIVE_PRODUCER_MAX_SOURCE_CLOSURE_BYTES {
-        return Err(Refusal("native source closure byte ceiling").into());
+    // Captured inputs include generated projections. Authored-source limits
+    // were enforced on the selected cut before those products were built.
+    if source_bytes > manifest::NATIVE_PRODUCER_MAX_DATA_BYTES {
+        return Err(Refusal("native captured runtime closure byte ceiling").into());
     }
     let payload_layout = tos_compiler::knowledge_stage::KnowledgePayloadLayout::CarrierOnceV4;
     let model_abi = payload_layout

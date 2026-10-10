@@ -1095,6 +1095,11 @@ source or publication authority. The historical `native-original-produce`
 entry still requires all three. The public Worker builder
 uses native `tos build-data`; its source selection, finite ceilings and artifact
 admission are documented in the [Worker route](deploy/cloudflare-worker/README.md).
+The selected authored cut retains its 64 MiB byte ceiling. Capture also includes
+the six generated products, so it uses the existing 512 MiB data allowance;
+sources, products, model and manifests must still fit that total candidate cap.
+Source bindings and manifest members share the 512 KiB aggregate path allowance.
+The separate Site profile still requires a 512 MiB build and 256 MiB cold file.
 Managed NativeData preparation, status, promotion, rollback and revocation use
 the native actions in [native-managed-release.v1.md](contracts/native-managed-release.v1.md).
 A built candidate is not selected data until the native release writer verifies
