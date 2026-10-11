@@ -143,10 +143,10 @@ pub(crate) fn require_schema_v1(
         .ok_or(DurableError::Refused(
             "PG Work revision extension absent or unknown",
         ))?;
-    let oid: i64 = relation.get(0);
+    let oid: i64 = relation.try_get(0)?;
     schema_budget(tx, deadline, cancelled)?;
     let columns = tx.query(
-        "SELECT a.attname,pg_catalog.format_type(a.atttypid,a.atttypmod),a.attnotnull
+        "SELECT a.attname::text,pg_catalog.format_type(a.atttypid,a.atttypmod),a.attnotnull
          FROM pg_catalog.pg_attribute a
          WHERE a.attrelid=$1::bigint::oid AND a.attnum>0 AND NOT a.attisdropped
          ORDER BY a.attnum",
@@ -179,24 +179,25 @@ pub(crate) fn require_schema_v1(
         ("prepare_id", "bytea", true),
         ("commit_seq", "bigint", true),
     ];
-    if columns.len() != expected.len()
-        || columns
-            .iter()
-            .zip(expected)
-            .any(|(row, (name, ty, not_null))| {
-                row.get::<_, String>(0) != name
-                    || row.get::<_, String>(1) != ty
-                    || row.get::<_, bool>(2) != not_null
-            })
-    {
+    if columns.len() != expected.len() {
         return Err(DurableError::Refused(
             "unknown PG Work revision extension columns",
         ));
     }
+    for (row, (name, ty, not_null)) in columns.iter().zip(expected) {
+        if row.try_get::<_, String>(0)? != name
+            || row.try_get::<_, String>(1)? != ty
+            || row.try_get::<_, bool>(2)? != not_null
+        {
+            return Err(DurableError::Refused(
+                "unknown PG Work revision extension columns",
+            ));
+        }
+    }
     schema_budget(tx, deadline, cancelled)?;
     let constraints = tx.query(
         "SELECT c.contype::text,c.conkey,c.confrelid::bigint,c.confkey,c.convalidated,
-                c.condeferrable,c.condeferred,pg_catalog.pg_get_expr(c.conbin,c.conrelid),
+                c.condeferrable,c.condeferred,pg_catalog.pg_get_expr(c.conbin,c.conrelid)::text,
                 c.confupdtype::text,c.confdeltype::text,c.confmatchtype::text
          FROM pg_catalog.pg_constraint c WHERE c.conrelid=$1::bigint::oid",
         &[&oid],
@@ -208,27 +209,27 @@ pub(crate) fn require_schema_v1(
     }
     let domain_oid: i64 = tx
         .query_one("SELECT 'cmd2_domain'::regclass::oid::bigint", &[])?
-        .get(0);
+        .try_get(0)?;
     let domain_attnum: i16 = tx
         .query_one(
             "SELECT attnum FROM pg_catalog.pg_attribute
          WHERE attrelid='cmd2_domain'::regclass AND attname='domain' AND NOT attisdropped",
             &[],
         )?
-        .get(0);
+        .try_get(0)?;
     let mut seen = BTreeSet::new();
     let mut key_count = 0usize;
     for constraint in constraints {
-        if !constraint.get::<_, bool>(4)
-            || constraint.get::<_, bool>(5)
-            || constraint.get::<_, bool>(6)
-        {
+        let validated: bool = constraint.try_get(4)?;
+        let deferrable: bool = constraint.try_get(5)?;
+        let deferred: bool = constraint.try_get(6)?;
+        if !validated || deferrable || deferred {
             return Err(DurableError::Refused(
                 "deferred PG Work revision constraint",
             ));
         }
-        let kind: String = constraint.get(0);
-        let keys: Vec<i16> = constraint.get(1);
+        let kind: String = constraint.try_get(0)?;
+        let keys: Vec<i16> = constraint.try_get(1)?;
         if matches!(kind.as_str(), "p" | "u") {
             key_count += 1;
         }
@@ -237,14 +238,14 @@ pub(crate) fn require_schema_v1(
             "u" => keys == [1, 3, 4, 7] || keys == [1, 20] || keys == [1, 3, 4, 8],
             "f" => {
                 keys == [1]
-                    && constraint.get::<_, i64>(2) == domain_oid
-                    && constraint.get::<_, Vec<i16>>(3) == [domain_attnum]
-                    && constraint.get::<_, String>(8) == "a"
-                    && constraint.get::<_, String>(9) == "a"
-                    && constraint.get::<_, String>(10) == "s"
+                    && constraint.try_get::<_, i64>(2)? == domain_oid
+                    && constraint.try_get::<_, Vec<i16>>(3)? == [domain_attnum]
+                    && constraint.try_get::<_, String>(8)? == "a"
+                    && constraint.try_get::<_, String>(9)? == "a"
+                    && constraint.try_get::<_, String>(10)? == "s"
             }
             "c" => {
-                let expression: Option<String> = constraint.get(7);
+                let expression: Option<String> = constraint.try_get(7)?;
                 match (keys.as_slice(), expression.as_deref()) {
                     ([5], Some("(generation > 0)")) => true,
                     ([2], Some("(octet_length(store_id) = 16)")) => true,
@@ -272,14 +273,14 @@ pub(crate) fn require_schema_v1(
               +(SELECT count(*) FROM pg_catalog.pg_rewrite WHERE ev_class=$1::bigint::oid)",
             &[&oid],
         )?
-        .get(0);
+        .try_get(0)?;
     if extras != 0 {
         return Err(DurableError::Refused(
             "unknown PG Work revision extension default/rule",
         ));
     }
     let triggers = tx.query(
-        "SELECT t.tgname,t.tgenabled,t.tgtype::integer,p.proname
+        "SELECT t.tgname::text,t.tgenabled::text,t.tgtype::integer,p.proname::text
          FROM pg_catalog.pg_trigger t JOIN pg_catalog.pg_proc p ON p.oid=t.tgfoid
          WHERE t.tgrelid=$1::bigint::oid AND NOT t.tgisinternal ORDER BY t.tgname",
         &[&oid],
@@ -298,27 +299,28 @@ pub(crate) fn require_schema_v1(
             "cmd2_refuse_audited_truncate",
         ),
     ];
-    if triggers.len() != expected_triggers.len()
-        || triggers
-            .iter()
-            .zip(expected_triggers)
-            .any(|(row, (name, enabled, kind, function))| {
-                row.get::<_, String>(0) != name
-                    || row.get::<_, String>(1) != enabled
-                    || row.get::<_, i32>(2) != kind
-                    || row.get::<_, String>(3) != function
-            })
-    {
+    if triggers.len() != expected_triggers.len() {
         return Err(DurableError::Refused(
             "unknown PG Work revision extension triggers",
         ));
+    }
+    for (row, (name, enabled, kind, function)) in triggers.iter().zip(expected_triggers) {
+        if row.try_get::<_, String>(0)? != name
+            || row.try_get::<_, String>(1)? != enabled
+            || row.try_get::<_, i32>(2)? != kind
+            || row.try_get::<_, String>(3)? != function
+        {
+            return Err(DurableError::Refused(
+                "unknown PG Work revision extension triggers",
+            ));
+        }
     }
     let index_count: i64 = tx
         .query_one(
             "SELECT count(*) FROM pg_catalog.pg_index i WHERE i.indrelid=$1::bigint::oid",
             &[&oid],
         )?
-        .get(0);
+        .try_get(0)?;
     if index_count != 4 {
         return Err(DurableError::Refused(
             "unknown PG Work revision extension indexes",

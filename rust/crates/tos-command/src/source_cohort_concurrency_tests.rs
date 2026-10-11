@@ -31,7 +31,12 @@ const SOFTWARE_COMPONENTS: &[&str] = &[
     "rust/crates/tos-command/src/source_revisions.rs",
     "rust/crates/tos-command/src/source_forms.rs",
     "rust/crates/tos-command/src/source_private_profile.rs",
+    "rust/crates/tos-command/src/source_private_claim.rs",
+    "rust/crates/tos-command/src/source_private_owner_store.rs",
+    "rust/crates/tos-command/src/source_text_owner.rs",
+    "rust/crates/tos-command/src/source_work_transaction.rs",
     "rust/crates/tos-validation/src/assessment.rs",
+    "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
     "rust/crates/tos-compiler/src/source_witness_catalog.rs",
 ];
 const SHARED_SOURCE: &[&str] = &[

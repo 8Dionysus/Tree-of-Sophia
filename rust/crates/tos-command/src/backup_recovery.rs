@@ -117,12 +117,17 @@ pub struct RestoreSelection<'a> {
     pub store_limits: SegmentLimits,
     pub fresh_target_owner_confirmed: bool,
 }
+#[track_caller]
 fn error() -> io::Error {
+    let predicate = std::panic::Location::caller().line();
     io::Error::new(
         io::ErrorKind::InvalidData,
-        "owner-selected backup/restore integrity check failed",
+        format!(
+            "owner-selected backup/restore integrity check failed at predicate line {predicate}"
+        ),
     )
 }
+#[track_caller]
 fn require(ok: bool) -> io::Result<()> {
     if ok { Ok(()) } else { Err(error()) }
 }

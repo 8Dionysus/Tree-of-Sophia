@@ -4980,6 +4980,34 @@ pub(crate) fn schema(
     )
 }
 
+/// Validate one schema against an explicitly named selected source path.
+/// Whole-cut contexts, such as PG bootstrap, do not carry a single
+/// record-owner `source_path`; callers still bind this path to the exact
+/// selected source member while reusing the same worker and read identity.
+pub(crate) fn schema_for_source_path(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
+    refs: &[String],
+    root: &str,
+    source_path: &str,
+    instance: &JsonValue,
+) -> SourceCommandResult<()> {
+    path(source_path)?;
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        refs,
+        root,
+        instance,
+        Some(source_path),
+        false,
+    )
+}
+
 /// Validate one schema with a worker whose selected resources are bound to an
 /// explicit non-SourceRevision identity (for example, a bounded PG read epoch).
 /// The legacy `CommandContext.base_revision` remains the bootstrap revision;

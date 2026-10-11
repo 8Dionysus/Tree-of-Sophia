@@ -4633,13 +4633,14 @@ pub(crate) fn agent_inventory_contribution(
             location.strip_suffix(".human-forms.json").unwrap()
         );
         if parent.ends_with("/agent.json") && grouped.files.contains_key(parent.as_str()) {
-            crate::source_revisions::schema(
+            crate::source_revisions::schema_for_source_path(
                 executor,
                 deadline,
                 cancelled,
                 ctx,
                 &["ToS/contracts/human-form-set.schema.json".into()],
                 "ToS/contracts/human-form-set.schema.json",
+                &parent,
                 &prior,
             )?;
         }

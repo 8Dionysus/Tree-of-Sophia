@@ -3176,7 +3176,13 @@ fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Pa
     let expected_paths = BTreeSet::from([
         CREATED_RECORD_PATH.to_owned(),
         "ToS/source-witnesses/agents/pg-real-addition-fixture/agent.human-forms.json".to_owned(),
+        "ToS/source-witnesses/agents/pg-real-addition-fixture/source-create-request.json"
+            .to_owned(),
+        "ToS/source-witnesses/agents/pg-real-addition-fixture/source-create-environment.json"
+            .to_owned(),
         "ToS/source-witnesses/agents/pg-real-addition-fixture/source-create-provenance.jsonl"
+            .to_owned(),
+        "ToS/source-witnesses/agents/pg-real-addition-fixture/source-create-receipt.json"
             .to_owned(),
     ]);
     let actual_paths = retry["created_source_paths"]
