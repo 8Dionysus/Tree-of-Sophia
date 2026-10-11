@@ -498,6 +498,12 @@ fn work_revision_recorded_at(
     // A Work revision also writes the immutable archive for the predecessor
     // package. Admit only its exact owner-derived manifest and the blobs bound
     // by that manifest; arbitrary extra writes are not part of ready recovery.
+    // The owner may already have retained these exact bytes, in which case its
+    // ordinary reprepare validates the existing archive and correctly emits no
+    // archive writes. The caller always performs that reprepare before commit.
+    if actual == expected {
+        return Ok(recorded_at);
+    }
     let archive = source_revisions::archive_path(
         &cmd::object(vec![("record_id", cmd::string(&binding.record_id))]),
         cmd::text(latest, "previous_revision").map_err(source_error)?,

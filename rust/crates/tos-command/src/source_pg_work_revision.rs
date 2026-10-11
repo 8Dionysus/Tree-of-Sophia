@@ -548,9 +548,9 @@ fn decode_receipt_row(
         || revision::transaction_id(request).map_err(DurableError::Source)? != transaction_id
         || cmd::record_digest(request).map_err(DurableError::Source)? != request_canonical
         || cmd::text(request, "expected_configuration").map_err(DurableError::Source)?
-            != Digest256::to_prefixed(&owner_canonical)
+            != owner_canonical.to_prefixed()
         || cmd::field(request, "expected_publication").map_err(DurableError::Source)?
-            != &serde_json::Value::Null
+            != &tos_foundation::JsonValue::Null
     {
         return Err(DurableError::Corrupt(
             "PG Work revision authorization binding",
@@ -728,7 +728,7 @@ pub(crate) fn make_commit_evidence(
     validate_write_scope(&observation.source_path, writes)?;
     let request = cmd::parse(&context.request_raw).map_err(DurableError::Source)?;
     if cmd::field(&request, "expected_publication").map_err(DurableError::Source)?
-        != &serde_json::Value::Null
+        != &tos_foundation::JsonValue::Null
         || observation.selected.is_some()
         || observation.selected_refs.is_some()
         || proposal.operation != "record.revise"
@@ -1361,7 +1361,9 @@ fn receipt_digest(
     part(&mut hasher, &generation.to_be_bytes());
     part(
         &mut hasher,
-        predecessor.map_or(&[][..], |digest| digest.as_bytes()),
+        predecessor
+            .as_ref()
+            .map_or(&[][..], |digest| digest.as_bytes()),
     );
     part(&mut hasher, transaction_id.as_bytes());
     part(&mut hasher, command_id.as_bytes());
