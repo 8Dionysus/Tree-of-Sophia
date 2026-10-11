@@ -4727,7 +4727,8 @@ fn maintained_agent_creation_operation<
                     "current original bodies and complete owner indexes differ"
                 ))
             ),
-            "addressed public selection must refuse the missing owner index at the complete index audit: {result:?}"
+            "addressed public selection must refuse the missing owner index at the complete index audit: {:?}",
+            result.as_ref().err()
         );
     } else {
         assert!(
