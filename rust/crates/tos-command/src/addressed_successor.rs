@@ -5,7 +5,8 @@ use super::super::audit_delta;
 use super::*;
 use tos_segment_store::{
     AuthenticatedTreeDeltaV1, AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1,
-    AuthenticatedTreeLimitsV1, decode_placement_tree_row, encode_placement_tree_row,
+    AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, decode_placement_tree_row,
+    encode_placement_tree_row,
 };
 
 const OBJECT_KIND: &[u8] = b"cmd2-managed-addressed-selection-v2";
@@ -13,6 +14,70 @@ const METADATA_KIND: &[u8] = b"cmd2-private-row-commitments-v2";
 const HISTORY_KIND: &[u8] = b"cmd2-history-addressed-v2";
 const CURRENT_KIND: &[u8] = b"cmd2-current-addressed-v2";
 const MAX_DESCRIPTOR: usize = 65536;
+
+pub(super) fn build_mixed_inventory_from_retained_projections(
+    tx: &mut Transaction<'_>,
+    store: &SegmentStore,
+    domain: &str,
+    generation: u64,
+    limits: AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<super::addressed_inventory::AddressedMixedInventoryV1> {
+    active(deadline, cancelled)?;
+    let admission = format!(
+        "WITH members AS ({RETAINED_PROJECTIONS}) SELECT count(*),coalesce(sum(octet_length(inventory_projection)),0),count(*) FILTER(WHERE inventory_projection IS NULL) FROM members"
+    );
+    let sequence = as_i64(generation)?;
+    let admitted = tx.query_one(&admission, &[&domain, &sequence])?;
+    let expected_count = as_u64(admitted.get(0))?;
+    if expected_count > limits.max_rows
+        || as_u64(admitted.get(1))? > 64 * 1024 * 1024
+        || admitted.get::<_, i64>(2) != 0
+    {
+        return Err(DurableError::Refused(
+            "mixed source projection exceeds the cold inventory envelope or is incomplete",
+        ));
+    }
+
+    let sql = format!(
+        "WITH members AS ({RETAINED_PROJECTIONS}) SELECT * FROM members ORDER BY subject COLLATE \"C\""
+    );
+    let mut rows = tx.query_raw(
+        &sql,
+        [&domain as &(dyn postgres::types::ToSql + Sync), &sequence],
+    )?;
+    let projections = std::iter::from_fn(|| match rows.next() {
+        Ok(Some(row)) => {
+            let result = (|| -> DurableResult<(String, Vec<u8>)> {
+                active(deadline, cancelled)?;
+                let subject: String = row.get("subject");
+                let raw = row
+                    .get::<_, Option<Vec<u8>>>("inventory_projection")
+                    .ok_or(DurableError::Refused(
+                        "managed mixed inventory projection incomplete; FullOnly required",
+                    ))?;
+                super::projection_value(&row)?;
+                Ok((subject, raw))
+            })();
+            Some(result)
+        }
+        Ok(None) => None,
+        Err(error) => Some(Err(DurableError::Database(error))),
+    });
+    let result =
+        super::addressed_inventory::AddressedMixedInventoryV1::build_from_assessed_projections(
+            store,
+            projections,
+            expected_count,
+            limits,
+            deadline,
+            cancelled,
+            &mut AuthenticatedTreeWorkV1::default(),
+        );
+    drop(rows);
+    result
+}
 
 fn tree_callback_state_bytes(limits: AuthenticatedTreeLimitsV1) -> DurableResult<usize> {
     usize::try_from(limits.max_total_bytes)
@@ -208,7 +273,7 @@ pub(crate) struct AddressedCutV2 {
     pub metadata: AuthenticatedTreeDescriptorV2,
     pub history: AuthenticatedTreeDescriptorV2,
     pub current: AuthenticatedTreeDescriptorV2,
-    pub inventory: super::addressed_inventory::AddressedInventoryV2,
+    pub inventory: super::addressed_inventory::AddressedMixedInventoryV1,
 }
 #[derive(Clone, Debug)]
 pub(crate) struct VerifiedAddressedGeneration {
@@ -284,7 +349,7 @@ impl AddressedCutV2 {
             metadata: AuthenticatedTreeDescriptorV2::decode(&bytes(&fields[10])?, MAX_DESCRIPTOR)?,
             history: AuthenticatedTreeDescriptorV2::decode(&bytes(&fields[11])?, MAX_DESCRIPTOR)?,
             current: AuthenticatedTreeDescriptorV2::decode(&bytes(&fields[12])?, MAX_DESCRIPTOR)?,
-            inventory: super::addressed_inventory::AddressedInventoryV2::decode(&bytes(
+            inventory: super::addressed_inventory::AddressedMixedInventoryV1::decode(&bytes(
                 &fields[13],
             )?)?,
         };
@@ -605,7 +670,7 @@ impl DurablePgCoordinator {
             build_addressed_metadata_tree(&mut tx, store, domain, limits, deadline, cancelled)?;
         let (history_tree, current_tree) =
             build_addressed_membership_trees(store, &legacy, limits, deadline, cancelled)?;
-        let inventory = super::addressed_inventory::AddressedInventoryV2::build(
+        let inventory = build_mixed_inventory_from_retained_projections(
             &mut tx,
             store,
             domain,
@@ -1299,7 +1364,7 @@ impl DurablePgCoordinator {
                 "retained addressed inventory basis differs",
             ));
         }
-        cut.inventory.select(
+        cut.inventory.select_agent(
             store,
             context,
             addressed_replay_limits(),

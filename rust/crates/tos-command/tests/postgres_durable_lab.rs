@@ -1,5 +1,6 @@
-//! Real PostgreSQL + STO private shadow laboratory. The fixture only writes
-//! synthetic records in an isolated database/domain and temporary byte store.
+//! Real PostgreSQL + STO private shadow laboratory. Mutations use an isolated
+//! database/domain and temporary byte store; the streamed mixed-profile case
+//! copies exact authored Agent/Work package bytes into its private source cut.
 //! Set TOS_CMD_POSTGRES_URL for a dedicated ephemeral PostgreSQL instance.
 
 use std::collections::HashMap;
@@ -676,7 +677,7 @@ fn managed_fixture_query_budgets() -> tos_access::knowledge::SelectedKnowledgeBu
 #[test]
 fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes() {
     maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV1>(
-        false, false,
+        false, false, false,
     );
 }
 
@@ -687,14 +688,14 @@ fn addressed_agent_creation_reaches_selected_reader_and_cold_restore() {
         return;
     }
     maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV2>(
-        true, false,
+        true, false, true,
     );
 }
 
 #[test]
 fn postgres_projection_resumes_committed_source_events() {
     maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV1>(
-        false, true,
+        false, true, false,
     );
 }
 
@@ -1143,6 +1144,7 @@ fn maintained_agent_creation_operation<
 >(
     addressed: bool,
     exercise_source_projection: bool,
+    mixed_source_profile: bool,
 ) {
     use std::collections::BTreeMap;
     use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
@@ -1345,13 +1347,120 @@ fn maintained_agent_creation_operation<
             input_paths.insert(path);
         }
     }
-    let files = input_paths
+    let mut files = input_paths
         .into_iter()
         .map(|path| {
             let raw = fs::read(repository.join(&path)).unwrap();
             (path, raw)
         })
         .collect::<BTreeMap<_, _>>();
+    let mut mixed_source_members = BTreeMap::new();
+    let mut mixed_work_current_path = None;
+    let mut mixed_work_historical_record_blob_path = None;
+    if mixed_source_profile {
+        // Seed the streamed cohort with the complete authored Agent and Work
+        // packages, including Work forms/history and its retained v1 archive.
+        // This reproduces the mixed family shape without fabricating records
+        // or dropping any member from either package.
+        for relative_dir in [
+            "ToS/source-witnesses/agents/justus-lipsius",
+            "ToS/source-witnesses/works/justus-lipsius/de-constantia",
+        ] {
+            let entries = fs::read_dir(repository.join(relative_dir))
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            assert!(!entries.is_empty(), "mixed source package is present");
+            for entry in entries {
+                assert!(entry.file_type().unwrap().is_file());
+                let relative_path =
+                    format!("{relative_dir}/{}", entry.file_name().to_string_lossy());
+                let raw = fs::read(entry.path()).unwrap();
+                assert!(
+                    files.insert(relative_path.clone(), raw.clone()).is_none(),
+                    "mixed source fixture does not replace another selected source member"
+                );
+                mixed_source_members.insert(relative_path, raw);
+            }
+        }
+
+        let work_history_path =
+            "ToS/source-witnesses/works/justus-lipsius/de-constantia/source-revision-history.json";
+        let work_history: serde_json::Value =
+            serde_json::from_slice(&files[work_history_path]).unwrap();
+        let archive_paths = work_history["receipts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|receipt| receipt["archive_path"].as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(archive_paths.len(), 1, "Work v1 is retained exactly once");
+        for archive_path in archive_paths {
+            assert!(archive_path.starts_with("ToS/source-witnesses/.record-revisions/"));
+            let archive_entries = fs::read_dir(repository.join(archive_path))
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            let mut historical_record = None;
+            for entry in archive_entries {
+                assert!(entry.file_type().unwrap().is_file());
+                let relative_path =
+                    format!("{archive_path}/{}", entry.file_name().to_string_lossy());
+                let raw = fs::read(entry.path()).unwrap();
+                if relative_path.ends_with("/manifest.json") {
+                    let manifest: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+                    let archived_work = &manifest["files"]["work.json"];
+                    let blob_name = archived_work["blob"].as_str().unwrap();
+                    let digest = archived_work["sha256"]
+                        .as_str()
+                        .unwrap()
+                        .strip_prefix("sha256:")
+                        .unwrap()
+                        .to_owned();
+                    historical_record = Some((
+                        format!("{archive_path}/{blob_name}"),
+                        digest,
+                        archived_work["bytes"].as_u64().unwrap(),
+                    ));
+                }
+                assert!(
+                    files.insert(relative_path.clone(), raw.clone()).is_none(),
+                    "retained Work archive does not replace another selected source member"
+                );
+                mixed_source_members.insert(relative_path, raw);
+            }
+            let (historical_path, historical_digest, historical_bytes) =
+                historical_record.expect("Work archive manifest identifies the old record");
+            let historical_raw = &mixed_source_members[&historical_path];
+            assert_eq!(historical_raw.len() as u64, historical_bytes);
+            assert_eq!(
+                Digest256::of_bytes(historical_raw).to_hex(),
+                historical_digest
+            );
+            let historical_record: serde_json::Value =
+                serde_json::from_slice(historical_raw).unwrap();
+            assert_eq!(historical_record["record_type"], "work");
+            assert_eq!(historical_record["record_version"], 1);
+            mixed_work_historical_record_blob_path = Some(historical_path);
+        }
+        mixed_work_current_path =
+            Some("ToS/source-witnesses/works/justus-lipsius/de-constantia/work.json".to_owned());
+        let historical = mixed_work_historical_record_blob_path
+            .as_ref()
+            .expect("the retained archive contains the older Work record bytes");
+        assert!(mixed_source_members.contains_key(historical));
+        assert!(mixed_source_members.contains_key(mixed_work_current_path.as_ref().unwrap()));
+        assert!(mixed_source_members.contains_key(
+            "ToS/source-witnesses/works/justus-lipsius/de-constantia/work.human-forms.json"
+        ));
+        let agent_path = "ToS/source-witnesses/agents/justus-lipsius/agent.json";
+        let agent: serde_json::Value = serde_json::from_slice(&files[agent_path]).unwrap();
+        assert_eq!(agent["record_type"], "agent");
+        let work: serde_json::Value =
+            serde_json::from_slice(&files[mixed_work_current_path.as_ref().unwrap()]).unwrap();
+        assert_eq!(work["record_type"], "work");
+        assert_eq!(work["record_version"], 2);
+    }
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     fs::create_dir_all(isolated.path().join("ToS/source-witnesses/agents")).unwrap();
@@ -1630,8 +1739,9 @@ fn maintained_agent_creation_operation<
         max_total_bytes: 64 * 1024 * 1024,
         max_rows: 4096,
     };
-    let initial_cohort = if std::env::var_os("TOS_CMD2_STREAMED_COLD_V1").as_deref()
-        == Some(std::ffi::OsStr::new("1"))
+    let initial_cohort = if mixed_source_profile
+        || std::env::var_os("TOS_CMD2_STREAMED_COLD_V1").as_deref()
+            == Some(std::ffi::OsStr::new("1"))
     {
         assert!(
             addressed,
@@ -2103,6 +2213,44 @@ fn maintained_agent_creation_operation<
             &cancelled,
         )
         .unwrap();
+    for (path, expected_raw) in &mixed_source_members {
+        assert_eq!(
+            reopened.files.get(path),
+            Some(expected_raw),
+            "typed Agent creation preserves the exact mixed source member {path}"
+        );
+        let observed = reopened_db
+            .read_current_source_member(
+                &reopened_store,
+                &reopened.cohort,
+                &RelativePath::parse(path).unwrap(),
+                8_388_608,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(
+            &observed.raw, expected_raw,
+            "cold current Work/Agent source bytes remain exact after Agent creation"
+        );
+    }
+    if let (Some(current_path), Some(historical_path)) = (
+        mixed_work_current_path.as_deref(),
+        mixed_work_historical_record_blob_path.as_deref(),
+    ) {
+        assert_ne!(
+            mixed_source_members[current_path], mixed_source_members[historical_path],
+            "current Work v2 and retained Work v1 are distinct source bytes"
+        );
+        assert_eq!(
+            reopened.files[current_path], mixed_source_members[current_path],
+            "current Work source is preserved"
+        );
+        assert_eq!(
+            reopened.files[historical_path], mixed_source_members[historical_path],
+            "older Work source archive is preserved"
+        );
+    }
     for package in &packages[..1] {
         for (name, raw) in package.prepared().files() {
             let path = format!("{}/{name}", package.prepared().home().as_str());
@@ -4457,6 +4605,21 @@ fn maintained_agent_creation_operation<
     // A successful recovery finishes its actual worker before the commit
     // fence. Preserve that boundary; the later refusal-only calls can share
     // one new worker while retaining their independent durable checks.
+    let original_reads: Vec<u8> = sql
+        .query_one(
+            "SELECT source_reads FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&recovery_domain, &&b"agent-current-second"[..]],
+        )
+        .unwrap()
+        .get(0);
+    if mixed_source_profile {
+        let retained: serde_json::Value = serde_json::from_slice(&original_reads).unwrap();
+        let inventory = retained["original"]["inventory"].as_array().unwrap();
+        assert_eq!(inventory.len(), 3);
+        assert_eq!(inventory[2], 3, "mixed Agent inventory uses commitment v3");
+        assert!(inventory[0].as_str().is_some_and(|value| !value.is_empty()));
+        assert!(inventory[1].as_str().is_some_and(|value| !value.is_empty()));
+    }
     let mut recovery_worker = new_worker(&cut);
     eprintln!("STO tail recovery worker ready; committed replay begin");
     let (second_replayed, _) = recovered_db
@@ -4557,13 +4720,6 @@ fn maintained_agent_creation_operation<
     );
     eprintln!("STO cold metadata row overflow refuses both consumers without publication PASS");
     eprintln!("STO tail pending refusal PASS; original binding corruptions begin");
-    let original_reads: Vec<u8> = sql
-        .query_one(
-            "SELECT source_reads FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
-            &[&recovery_domain, &&b"agent-current-second"[..]],
-        )
-        .unwrap()
-        .get(0);
     for corruption in [
         "original-basis",
         "registered-read-closure",

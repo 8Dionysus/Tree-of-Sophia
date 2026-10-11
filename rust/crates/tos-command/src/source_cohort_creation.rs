@@ -1055,11 +1055,7 @@ impl DurablePgCoordinator {
                     "bounded PG creation definition absent",
                 ))?,
         )?;
-        if definition != super::definition() {
-            return Err(DurableError::Conflict(
-                "bounded PG creation recovery definition differs",
-            ));
-        }
+        super::require_current_source_definition(definition)?;
         let reads = decode_reads(
             &attempt
                 .get::<_, Option<Vec<u8>>>("source_reads")
@@ -1214,6 +1210,7 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
         active(deadline, cancelled)?;
+        super::require_current_source_definition(attempt.definition)?;
         if attempt.definition != definition()
             || attempt.contract != contract
             || store.custody_domain() != attempt.domain.as_bytes()
@@ -1339,6 +1336,11 @@ pub(super) fn check_commit_owner(
     let expected_indexes = attempt.index_binding.clone();
     let expected_reads = reads_bytes(&attempt.reads)?;
     let empty_projections = projections_bytes(&ProjectionRows::new())?;
+    super::require_current_source_definition(attempt.definition)?;
+    let domain_definition = domain
+        .get::<_, Option<String>>("source_definition_digest")
+        .ok_or(DurableError::Corrupt("source definition absent"))?;
+    super::require_current_source_definition(parse_hex(domain_definition)?)?;
     if attempt.domain != request.domain
         || attempt.prepare_id != request.prepare_id
         || attempt.fence != request.attempt_fence

@@ -310,11 +310,7 @@ impl DurablePgCoordinator {
             row.get::<_, Option<String>>("source_definition_digest")
                 .ok_or(DurableError::Corrupt("source definition absent"))?,
         )?;
-        if definition_digest != super::definition() {
-            return Err(DurableError::Conflict(
-                "bounded source revision definition differs",
-            ));
-        }
+        super::require_current_source_definition(definition_digest)?;
         let source_generation = as_u64(
             row.get::<_, Option<i64>>("source_generation")
                 .ok_or(DurableError::Refused("source generation absent"))?,
@@ -1004,6 +1000,10 @@ impl SourceRevisionReadSession<'_> {
             "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
             &[&self.selection.cohort.domain],
         )?;
+        super::require_current_source_definition(parse_hex(
+            row.get::<_, Option<String>>("source_definition_digest")
+                .ok_or(DurableError::Corrupt("source definition absent"))?,
+        )?)?;
         if fence.get::<_, String>(1) != "normal"
             || !row.get::<_, bool>("rights_allowed")
             || !row.get::<_, bool>("source_complete")
@@ -1135,6 +1135,10 @@ impl SourceRevisionReadSession<'_> {
              FROM cmd2_domain WHERE domain=$1 FOR SHARE",
             &[&self.selection.cohort.domain],
         )?;
+        super::require_current_source_definition(parse_hex(
+            gate.get::<_, Option<String>>(5)
+                .ok_or(DurableError::Corrupt("source definition absent"))?,
+        )?)?;
         if !gate.get::<_, bool>(0)
             || !gate.get::<_, bool>(1)
             || gate.get::<_, Option<i64>>(2) != Some(as_i64(self.selection.source_generation)?)

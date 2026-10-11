@@ -4404,9 +4404,9 @@ pub(crate) fn maintained_inventory_from_cut(
     )
 }
 
-/// Only the privately verified complete managed Agent input may use this route.
-/// Native packet/profile/Claim scopes remain unported rather than inheriting
-/// the schema cut's authored completeness.
+/// Complete managed public metadata membership is supplied by the owner.
+/// Native packets, private sources and Claims require their dedicated readers;
+/// this route never infers their absence from the independently selected schemas.
 pub(crate) fn maintained_agent_inventory_from_managed(
     ctx: &CommandContext,
     capture_member_inputs: bool,
@@ -4415,20 +4415,8 @@ pub(crate) fn maintained_agent_inventory_from_managed(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
     for file in &ctx.files {
-        let path = file.path.as_str();
-        let name = path.rsplit('/').next().unwrap_or(path);
-        if path.starts_with("ToS/source-witnesses/")
-            && !path
-                .split('/')
-                .any(|p| ["catalog", "payload", "local-content", ".record-revisions"].contains(&p))
-            && (name.starts_with("semantic-annotation") && name.ends_with(".json")
-                || name == CLAIM_STREAM
-                || LEGACY_CLAIM_STREAMS.contains(&name)
-                || name == "historical-claims.jsonl")
-        {
-            return Err(SourceCommandError::Unsupported(
-                "managed Agent inventory native/Claim scope requires owner reader",
-            ));
+        if file.path.as_str().starts_with("ToS/") {
+            agent_source_reject_unsupported_member(file.path.as_str())?;
         }
     }
     let inventory = maintained_inventory_inner(
@@ -4446,14 +4434,9 @@ pub(crate) fn maintained_agent_inventory_from_managed(
 fn complete_agent_inventory(
     mut inventory: MaintainedInventory,
 ) -> SourceCommandResult<MaintainedInventory> {
-    if !inventory.claims.is_empty()
-        || inventory
-            .objects
-            .values()
-            .any(|entry| text(entry, "record_type").ok() != Some("agent"))
-    {
+    if !inventory.claims.is_empty() || inventory.native_text_snapshot.is_some() {
         return Err(SourceCommandError::Unsupported(
-            "managed Agent inventory has unported record scope",
+            "managed mixed metadata inventory requires Claim/native text owner",
         ));
     }
     // Same maintained empty native-packet map encoding, after complete
@@ -4466,23 +4449,42 @@ fn complete_agent_inventory(
 
 #[derive(Default)]
 struct AgentInventoryMember<'a> {
-    records: BTreeMap<&'a str, Vec<&'a JsonValue>>,
     events: Vec<(&'a JsonString, &'a JsonValue)>,
     anchors: Vec<(&'a JsonString, &'a JsonValue)>,
 }
 
-/// Operation-local borrowed grouping of the already extracted inventory.
-/// No body is parsed again or copied to a second inventory.
+/// Operation-local borrowed evidence grouping and one checked schema profile.
+/// The full and streamed routes share exact per-member assessment.
 pub(crate) struct AgentInventoryMembers<'a> {
     files: BTreeMap<&'a str, &'a SourceFile>,
     members: BTreeMap<&'a str, AgentInventoryMember<'a>>,
-    base_profiles: JsonValue,
+    profile: AgentInventoryAssessmentProfile,
 }
 pub(crate) fn agent_inventory_members<'a>(
     ctx: &'a CommandContext,
     inventory: &'a MaintainedInventory,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> SourceCommandResult<AgentInventoryMembers<'a>> {
     ctx.check()?;
+    let selected_files = ctx
+        .files
+        .iter()
+        .map(|file| (file.path.as_str(), file))
+        .collect();
+    let mut transport = InventorySelectedFiles {
+        files: &selected_files,
+    };
+    let profile = prepare_agent_inventory_assessment_profile(
+        &mut transport,
+        ctx.base_revision,
+        ctx.effective_uid,
+        ENTITIES,
+        executor,
+        deadline,
+        cancelled,
+    )?;
     let mut grouped = AgentInventoryMembers {
         files: ctx
             .files
@@ -4490,37 +4492,8 @@ pub(crate) fn agent_inventory_members<'a>(
             .map(|file| (file.path.as_str(), file))
             .collect(),
         members: BTreeMap::new(),
-        base_profiles: raw_digests(
-            ctx,
-            &[
-                ENTITIES,
-                "ToS/contracts/semantic-entity-type-registry.schema.json",
-            ],
-            false,
-        )?,
+        profile,
     };
-    for (kind, entries) in inventory
-        .records
-        .as_object()
-        .ok_or(SourceCommandError::Invalid("Agent inventory record map"))?
-    {
-        let kind = kind
-            .as_str()
-            .ok_or(SourceCommandError::Invalid("Agent inventory kind"))?;
-        for entry in entries
-            .as_array()
-            .ok_or(SourceCommandError::Invalid("Agent catalogue array"))?
-        {
-            grouped
-                .members
-                .entry(text(entry, "source_record_ref")?)
-                .or_default()
-                .records
-                .entry(kind)
-                .or_default()
-                .push(entry);
-        }
-    }
     for (entries, anchors) in [(&inventory.events, false), (&inventory.anchors, true)] {
         for (key, entry) in entries
             .as_object()
@@ -4568,127 +4541,105 @@ pub(crate) fn agent_inventory_contribution(
             "Agent contribution differs from selected bytes",
         ));
     }
-    if location
-        .split('/')
-        .any(|part| ["owner-local", "payload", "local-content"].contains(&part))
+    if ctx.base_revision != grouped.profile.source_revision
+        || ctx.effective_uid != grouped.profile.effective_uid
+        || inventory.native_identity_snapshot.is_none()
     {
-        return Err(SourceCommandError::Unsupported(
-            "Agent projection requires private/native reader",
-        ));
-    }
-    let basename = location.rsplit('/').next().unwrap_or(location);
-    // These scopes require their actual owner readers. Never infer their
-    // absence from an empty Agent catalogue contribution.
-    if location.starts_with("ToS/source-witnesses/")
-        && !location.split('/').any(|part| {
-            ["catalog", "payload", "local-content", ".record-revisions"].contains(&part)
-        })
-        && (basename.starts_with("semantic-annotation") && basename.ends_with(".json")
-            || basename == CLAIM_STREAM
-            || LEGACY_CLAIM_STREAMS.contains(&basename)
-            || basename == "historical-claims.jsonl")
-    {
-        return Err(SourceCommandError::Unsupported(
-            "Agent projection requires Claim/native owner",
+        return Err(SourceCommandError::Conflict(
+            "mixed inventory assessment basis differs",
         ));
     }
     let member = grouped.members.get(location);
-    let mut records = object(vec![]);
-    for kind in NATIVE_CATALOG_KINDS {
-        set(
-            &mut records,
-            kind,
-            JsonValue::Array(
-                member
-                    .and_then(|member| member.records.get(kind))
-                    .into_iter()
-                    .flatten()
-                    .map(|entry| (**entry).clone())
-                    .collect(),
-            ),
-        )?;
-    }
-    let evidence = |anchors: bool| -> JsonValue {
-        JsonValue::Object(
-            member
-                .into_iter()
-                .flat_map(|member| {
-                    if anchors {
-                        member.anchors.iter()
-                    } else {
-                        member.events.iter()
-                    }
-                })
-                .map(|(key, entry)| ((**key).clone(), (**entry).clone()))
-                .collect(),
-        )
+    let evidence = |anchors: bool| -> SourceCommandResult<Vec<SourceCommandResult<AgentInventoryEvidenceRow>>> {
+        let mut entries = member.into_iter().flat_map(|member| {
+            if anchors { member.anchors.iter() } else { member.events.iter() }
+        }).map(|(key, entry)| {
+            Ok(AgentInventoryEvidenceRow {
+                id: key.as_str().ok_or(SourceCommandError::Invalid("mixed evidence identity"))?.to_owned(),
+                physical_line: integer(entry, "source_line")?,
+                source_sha256: Digest256::from_hex(text(entry, "source_sha256")?)
+                    .map_err(|_| SourceCommandError::Invalid("mixed evidence source digest"))?,
+                canonical_payload: canonical(field(entry, "payload")?)?,
+            })
+        }).collect::<SourceCommandResult<Vec<_>>>()?;
+        entries.sort_by(|left, right| left.id.as_bytes().cmp(right.id.as_bytes()));
+        Ok(entries.into_iter().map(Ok).collect())
     };
-    let form = if location.starts_with("ToS/source-witnesses/")
-        && basename.ends_with(".human-forms.json")
-    {
-        let prior = parse(&file.raw)?;
-        crate::source_forms::apply_form_changes(Some(&prior), field(&prior, "subject")?, &[])?;
-        let parent = format!(
-            "{}.json",
-            location.strip_suffix(".human-forms.json").unwrap()
-        );
-        if parent.ends_with("/agent.json") && grouped.files.contains_key(parent.as_str()) {
-            crate::source_revisions::schema_for_source_path(
-                executor,
-                deadline,
-                cancelled,
-                ctx,
-                &["ToS/contracts/human-form-set.schema.json".into()],
-                "ToS/contracts/human-form-set.schema.json",
-                &parent,
-                &prior,
-            )?;
+    let mut transport = InventorySelectedFiles {
+        files: &grouped.files,
+    };
+    let raw = render_agent_inventory_member(
+        &grouped.profile,
+        file,
+        &mut transport,
+        evidence(false)?,
+        evidence(true)?,
+        |name| Ok(grouped.files.contains_key(name)),
+        executor,
+        tos_validation::item_rules::ItemLimits {
+            max_member_bytes: SELECTED_SOURCE_MAX_MEMBER_BYTES,
+            max_total_bytes: SELECTED_SOURCE_MAX_BYTES as u64,
+            max_state_bytes: SELECTED_SOURCE_MAX_BYTES,
+            max_issues: 256,
+            deadline,
+        },
+        deadline,
+        cancelled,
+    )?;
+    parse(&raw)
+}
+
+/// Borrowed complete selected membership for the full compatibility route.
+/// Streamed and addressed callers supply their own held-epoch transport.
+struct InventorySelectedFiles<'a, 'b> {
+    files: &'a BTreeMap<&'b str, &'b SourceFile>,
+}
+impl crate::source_revisions::ReadonlyRecordFiles for InventorySelectedFiles<'_, '_> {
+    fn read(
+        &mut self,
+        name: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(SourceCommandError::Denied(
+                "mixed inventory read deadline or cancellation",
+            ));
         }
-        object(vec![
-            (
-                "raw_sha256",
-                string(&Digest256::of_bytes(&file.raw).to_prefixed()),
-            ),
-            (
-                "form_ids",
-                JsonValue::Array(
-                    ["forms", "prior_forms"]
-                        .into_iter()
-                        .map(|section| array(&prior, section))
-                        .collect::<SourceCommandResult<Vec<_>>>()?
-                        .into_iter()
-                        .flatten()
-                        .map(|form| field(form, "form_id").cloned())
-                        .collect::<SourceCommandResult<Vec<_>>>()?,
-                ),
-            ),
-        ])
-    } else {
-        JsonValue::Null
-    };
-    Ok(object(vec![
-        (
-            "schema_version",
-            string("tos_managed_agent_inventory_member_v1"),
-        ),
-        ("path", string(location)),
-        (
-            "raw_sha256",
-            string(&Digest256::of_bytes(&file.raw).to_hex()),
-        ),
-        ("records", records),
-        (
-            "source_profiles",
-            inventory
-                .record_member_inputs
-                .get(location)
-                .cloned()
-                .unwrap_or_else(|| grouped.base_profiles.clone()),
-        ),
-        ("events", evidence(false)),
-        ("anchors", evidence(true)),
-        ("form", form),
-    ]))
+        let file = self.files.get(name).ok_or(SourceCommandError::Conflict(
+            "mixed inventory selected input absent",
+        ))?;
+        if file.raw.len() > max_bytes {
+            return Err(SourceCommandError::Unsupported(
+                "mixed inventory selected input byte budget",
+            ));
+        }
+        Ok(file.raw.clone())
+    }
+    fn has_file(
+        &mut self,
+        name: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<bool> {
+        if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(SourceCommandError::Denied(
+                "mixed inventory read deadline or cancellation",
+            ));
+        }
+        Ok(self.files.contains_key(name))
+    }
+    fn list_directory(
+        &mut self,
+        _name: &str,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<(String, bool)>> {
+        Err(SourceCommandError::Unsupported(
+            "mixed inventory requires exact member selection",
+        ))
+    }
 }
 
 const AGENT_MEMBER_PROJECTION_MAX_BYTES: usize = 1_048_576;
@@ -4715,15 +4666,13 @@ pub(crate) struct AgentInventoryEvidenceRow {
     pub canonical_payload: Vec<u8>,
 }
 
-/// The only retained source-derived state for streamed Agent assessment is the
+/// The only retained source-derived state for streamed mixed assessment is the
 /// bounded fixed profile and validated record-type route table. Current source
 /// members, identities, evidence and projections are streamed separately.
 pub(crate) struct AgentInventoryAssessmentProfile {
     source_revision: tos_foundation::SourceRevision,
     effective_uid: u64,
-    schema_source_path: String,
     base_profiles: JsonValue,
-    entities: JsonValue,
     metadata_kinds: BTreeMap<String, String>,
     profiled_metadata_kinds: BTreeSet<String>,
     profile_files: Vec<SourceFile>,
@@ -4814,6 +4763,8 @@ pub(crate) fn prepare_agent_inventory_assessment_profile(
         .map(|kind| (format!("{kind}.json"), (*kind).to_owned()))
         .collect();
     let mut profiled_metadata_kinds = BTreeSet::new();
+    metadata_kinds.insert("artifact-witness.json".into(), "artifact".into());
+    metadata_kinds.insert("composite-witness.json".into(), "composite".into());
     for entity in array(&entities, "types")? {
         if let Some(profile) = entity.object_get("source_record_profile") {
             let kind = text(profile, "record_type")?.to_owned();
@@ -4824,9 +4775,7 @@ pub(crate) fn prepare_agent_inventory_assessment_profile(
     Ok(AgentInventoryAssessmentProfile {
         source_revision,
         effective_uid,
-        schema_source_path: schema_source_path.to_owned(),
         base_profiles,
-        entities,
         metadata_kinds,
         profiled_metadata_kinds,
         profile_files: files,
@@ -4847,7 +4796,7 @@ fn agent_source_reject_unsupported_member(location: &str) -> SourceCommandResult
     }
     if location
         .split('/')
-        .any(|part| ["owner-local", "payload", "local-content"].contains(&part))
+        .any(|part| ["owner-local", "private", "payload", "local-content"].contains(&part))
     {
         return Err(SourceCommandError::Unsupported(
             "Agent projection requires private/native reader",
@@ -4865,20 +4814,15 @@ fn agent_source_reject_unsupported_member(location: &str) -> SourceCommandResult
             "Agent projection requires Claim/native owner",
         ));
     }
-    if location.starts_with("ToS/source-witnesses/")
-        && !agent_source_internal_path(location)
-        && [
-            "artifact-witness.json",
-            "composite-witness.json",
-            "link.json",
-        ]
-        .contains(&basename)
-    {
-        return Err(SourceCommandError::Unsupported(
-            "maintained Agent inventory contains Claims or non-Agent identities",
-        ));
-    }
     Ok(())
+}
+
+fn mixed_record_kind(record: &JsonValue) -> SourceCommandResult<&str> {
+    match text(record, "schema_version")? {
+        "tos_artifact_source_witness_v1" | "tos_artifact_source_witness_v2" => Ok("artifact"),
+        "tos_scholarly_composite_witness_v1" => Ok("composite"),
+        _ => text(record, "record_type"),
+    }
 }
 
 /// First pass: derive stable identities and evidence rows directly from each
@@ -4905,18 +4849,14 @@ pub(crate) fn stage_agent_inventory_member(
     let basename = location.rsplit('/').next().unwrap_or(location);
     if location.starts_with("ToS/source-witnesses/") && !agent_source_internal_path(location) {
         if let Some(kind) = profile.metadata_kinds.get(basename) {
-            if kind != "agent" {
-                return Err(SourceCommandError::Unsupported(
-                    "maintained Agent inventory contains Claims or non-Agent identities",
-                ));
-            }
             let record = parse(&file.raw)?;
-            if text(&record, "record_type")? != kind {
+            if mixed_record_kind(&record)? != kind {
                 return Err(SourceCommandError::Conflict(
                     "catalog record kind differs from basename",
                 ));
             }
-            let id = text(&record, "record_id")?;
+            let subject = metadata_subject(&record)?;
+            let id = text(&subject, "id")?;
             if id.is_empty() {
                 return Err(SourceCommandError::Invalid("catalog metadata identity"));
             }
@@ -5052,121 +4992,106 @@ pub(crate) fn render_agent_inventory_member(
     let mut source_profiles = profile.base_profiles.clone();
     if location.starts_with("ToS/source-witnesses/") && !agent_source_internal_path(location) {
         if let Some(kind) = profile.metadata_kinds.get(basename) {
-            if kind != "agent" {
-                return Err(SourceCommandError::Unsupported(
-                    "maintained Agent inventory contains Claims or non-Agent identities",
-                ));
-            }
             let record = parse(&file.raw)?;
-            if text(&record, "record_type")? != kind {
+            if mixed_record_kind(&record)? != kind {
                 return Err(SourceCommandError::Conflict(
                     "catalog record kind differs from basename",
                 ));
             }
-            let schema_ref = if profile.profiled_metadata_kinds.contains(kind) {
-                let exact = metadata_subject(&record)?;
-                let package = crate::source_revisions::collect_readonly_record_files(
-                    transport, location, deadline, cancelled,
-                )?;
-                let collected = package
-                    .iter()
-                    .find(|selected| selected.path == file.path)
-                    .ok_or(SourceCommandError::Conflict(
-                        "streamed Agent metadata owner absent from selected revision package",
-                    ))?;
-                if collected.raw != file.raw {
-                    return Err(SourceCommandError::Conflict(
-                        "streamed Agent metadata bytes differ from readonly owner package",
-                    ));
-                }
-                let mut merged = profile
-                    .profile_files
-                    .iter()
-                    .cloned()
-                    .chain(package)
-                    .collect::<Vec<_>>();
-                merged.sort_by(|left, right| left.path.as_str().cmp(right.path.as_str()));
-                let mut unique = Vec::with_capacity(merged.len());
-                for selected in merged {
-                    if let Some(previous) = unique.last() {
-                        let previous: &SourceFile = previous;
-                        if previous.path == selected.path {
-                            if previous.raw != selected.raw {
-                                return Err(SourceCommandError::Conflict(
-                                    "cached Agent profile differs from selected revision package",
-                                ));
-                            }
-                            continue;
-                        }
-                    }
-                    unique.push(selected);
-                }
-                let input = crate::source_revisions::RecordVersionReadInput {
-                    files: &unique,
-                    source_revision: profile.source_revision,
-                    effective_uid: profile.effective_uid,
-                    schema_source_path: location,
-                };
-                let resolved = crate::source_revisions::resolve_record_version_readonly(
-                    &input, location, limits, &exact, executor, deadline, cancelled,
-                )?;
-                if resolved.source_path != location || resolved.record != record {
-                    return Err(SourceCommandError::Conflict(
-                        "catalog profile source owner drift",
-                    ));
-                }
-                let schema = profile
-                    .entities
-                    .object_get("types")
-                    .and_then(JsonValue::as_array)
-                    .and_then(|entities| {
-                        entities.iter().find_map(|entity| {
-                            let route_profile = entity.object_get("source_record_profile")?;
-                            if text(route_profile, "record_type").ok() != Some(kind.as_str()) {
-                                return None;
-                            }
-                            array(route_profile, "schemas").ok()?.iter().find(|route| {
-                                route.object_get("schema_version")
-                                    == record.object_get("schema_version")
-                            })
+            if record.object_get("native_text_binding").is_some() {
+                return Err(SourceCommandError::Unsupported(
+                    "mixed metadata requires native text binding owner",
+                ));
+            }
+            let exact = metadata_subject(&record)?;
+            let package = crate::source_revisions::collect_readonly_record_files(
+                transport, location, deadline, cancelled,
+            )?;
+            let unique =
+                agent_assessment_file_map(profile.profile_files.iter().cloned().chain(package))?
+                    .into_iter()
+                    .map(|(name, raw)| {
+                        Ok(SourceFile {
+                            path: RelativePath::parse(&name).map_err(|_| {
+                                SourceCommandError::Invalid("mixed metadata input path")
+                            })?,
+                            raw,
                         })
                     })
+                    .collect::<SourceCommandResult<Vec<_>>>()?;
+            if unique
+                .iter()
+                .find(|input| input.path == file.path)
+                .is_none_or(|input| input.raw != file.raw)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "mixed metadata source differs from readonly package",
+                ));
+            }
+            let input = crate::source_revisions::RecordVersionReadInput {
+                files: &unique,
+                source_revision: profile.source_revision,
+                effective_uid: profile.effective_uid,
+                schema_source_path: location,
+            };
+            let resolved = crate::source_revisions::resolve_record_version_readonly(
+                &input, location, limits, &exact, executor, deadline, cancelled,
+            )?;
+            if resolved.source_path != location || resolved.record != record {
+                return Err(SourceCommandError::Conflict(
+                    "catalog mixed source owner drift",
+                ));
+            }
+            let descriptor =
+                resolved
+                    .descriptor
+                    .as_ref()
                     .ok_or(SourceCommandError::Unsupported(
-                        "catalog metadata schema route",
+                        "mixed metadata owner descriptor absent",
                     ))?;
-                let schema_ref = text(schema, "schema_ref")?;
-                let mut route_inputs = vec!["ToS/contracts/corpus-record.schema.json"];
-                route_inputs.extend(
-                    array(schema, "schema_dependencies")?
-                        .iter()
-                        .map(|dependency| {
-                            dependency.as_str().ok_or(SourceCommandError::Invalid(
-                                "Agent record schema dependency",
-                            ))
-                        })
-                        .collect::<SourceCommandResult<Vec<_>>>()?,
-                );
-                route_inputs.push(schema_ref);
-                for name in route_inputs {
-                    let raw = unique
-                        .iter()
-                        .find(|selected| selected.path.as_str() == name)
-                        .map(|selected| selected.raw.as_slice())
-                        .ok_or(SourceCommandError::Unsupported(
-                            "Agent record schema route input absent",
-                        ))?;
+            let schema_ref = text(descriptor, "source_schema_ref")?;
+            for input in &unique {
+                if input.path.as_str().starts_with("ToS/contracts/")
+                    && input.path.as_str().ends_with(".schema.json")
+                {
                     set(
                         &mut source_profiles,
-                        name,
-                        string(&Digest256::of_bytes(raw).to_hex()),
+                        input.path.as_str(),
+                        string(&Digest256::of_bytes(&input.raw).to_hex()),
                     )?;
                 }
-                Some(schema_ref.to_owned())
+            }
+            let native_witness =
+                matches!(basename, "artifact-witness.json" | "composite-witness.json");
+            let entry = if native_witness {
+                let source: serde_json::Value = serde_json::from_slice(&canonical(&record)?)
+                    .map_err(|_| SourceCommandError::Invalid("native witness renderer input"))?;
+                let rendered = tos_compiler::source_witness_catalog::render_catalog_record(
+                    &source,
+                    location,
+                    Some(schema_ref),
+                    8_388_608,
+                )
+                .map_err(|_| SourceCommandError::Invalid("native witness catalog rendering"))?;
+                parse(
+                    &serde_json::to_vec(&rendered).map_err(|_| {
+                        SourceCommandError::Invalid("native witness renderer output")
+                    })?,
+                )?
             } else {
-                None
+                // Preserve the established catalog shape for bare Corpus records;
+                // schema custody is carried independently in source_profiles.
+                catalogue_record(
+                    &record,
+                    location,
+                    profile
+                        .profiled_metadata_kinds
+                        .contains(kind)
+                        .then_some(schema_ref),
+                )?
+                .construct()?
             };
-            let entry = catalogue_record(&record, location, schema_ref.as_deref())?.construct()?;
-            set(&mut records, "agent", JsonValue::Array(vec![entry]))?;
+            set(&mut records, kind, JsonValue::Array(vec![entry]))?;
         }
     }
     let events = agent_evidence_map(
@@ -5181,34 +5106,46 @@ pub(crate) fn render_agent_inventory_member(
         "anchor_id",
         anchors,
     )?;
-    let form = if location.starts_with("ToS/source-witnesses/")
-        && basename.ends_with(".human-forms.json")
-    {
-        let prior = parse(&file.raw)?;
-        apply_form_changes(Some(&prior), field(&prior, "subject")?, &[])?;
-        let parent = format!(
-            "{}.json",
-            location
-                .strip_suffix(".human-forms.json")
-                .ok_or(SourceCommandError::Invalid("Agent human form path suffix"),)?
-        );
-        if parent.ends_with("/agent.json") && contains_member(&parent)? {
-            let mut schema_files = profile.profile_files.clone();
-            if !schema_files
-                .iter()
-                .any(|selected| selected.path.as_str() == location)
-            {
-                schema_files.push(file.clone());
+    let form =
+        if location.starts_with("ToS/source-witnesses/") && basename.ends_with(".human-forms.json")
+        {
+            let prior = parse(&file.raw)?;
+            apply_form_changes(Some(&prior), field(&prior, "subject")?, &[])?;
+            let parent = format!(
+                "{}.json",
+                location
+                    .strip_suffix(".human-forms.json")
+                    .ok_or(SourceCommandError::Invalid("Agent human form path suffix"),)?
+            );
+            if !contains_member(&parent)? {
+                return Err(SourceCommandError::Unsupported(
+                    "mixed HumanForm owner is absent or requires another owner",
+                ));
             }
+            let parent_basename = parent.rsplit('/').next().unwrap_or(&parent);
+            let expected_kind = profile.metadata_kinds.get(parent_basename).ok_or(
+                SourceCommandError::Unsupported("mixed HumanForm metadata owner route"),
+            )?;
+            let parent_raw =
+                transport.read(&parent, limits.max_member_bytes, deadline, cancelled)?;
+            let parent_record = parse(&parent_raw)?;
+            if mixed_record_kind(&parent_record)? != expected_kind {
+                return Err(SourceCommandError::Conflict(
+                    "mixed HumanForm owner kind differs",
+                ));
+            }
+            apply_form_changes(Some(&prior), &metadata_subject(&parent_record)?, &[])?;
+            let mut schema_files = profile.profile_files.clone();
+            schema_files.push(file.clone());
             let input = crate::source_revisions::RecordVersionReadInput {
                 files: &schema_files,
                 source_revision: profile.source_revision,
                 effective_uid: profile.effective_uid,
-                schema_source_path: &profile.schema_source_path,
+                schema_source_path: location,
             };
             crate::source_revisions::validate_readonly_schema(
                 &input,
-                &profile.schema_source_path,
+                location,
                 &[AGENT_FORM_SET_SCHEMA.to_owned()],
                 AGENT_FORM_SET_SCHEMA,
                 &prior,
@@ -5216,33 +5153,43 @@ pub(crate) fn render_agent_inventory_member(
                 deadline,
                 cancelled,
             )?;
-        }
-        object(vec![
-            (
-                "raw_sha256",
-                string(&Digest256::of_bytes(&file.raw).to_prefixed()),
-            ),
-            (
-                "form_ids",
-                JsonValue::Array(
-                    ["forms", "prior_forms"]
-                        .into_iter()
-                        .map(|section| array(&prior, section))
-                        .collect::<SourceCommandResult<Vec<_>>>()?
-                        .into_iter()
-                        .flatten()
-                        .map(|form| field(form, "form_id").cloned())
-                        .collect::<SourceCommandResult<Vec<_>>>()?,
+            for input in &profile.profile_files {
+                if input.path.as_str().starts_with("ToS/contracts/")
+                    && input.path.as_str().ends_with(".schema.json")
+                {
+                    set(
+                        &mut source_profiles,
+                        input.path.as_str(),
+                        string(&Digest256::of_bytes(&input.raw).to_hex()),
+                    )?;
+                }
+            }
+            object(vec![
+                (
+                    "raw_sha256",
+                    string(&Digest256::of_bytes(&file.raw).to_prefixed()),
                 ),
-            ),
-        ])
-    } else {
-        JsonValue::Null
-    };
+                (
+                    "form_ids",
+                    JsonValue::Array(
+                        ["forms", "prior_forms"]
+                            .into_iter()
+                            .map(|section| array(&prior, section))
+                            .collect::<SourceCommandResult<Vec<_>>>()?
+                            .into_iter()
+                            .flatten()
+                            .map(|form| field(form, "form_id").cloned())
+                            .collect::<SourceCommandResult<Vec<_>>>()?,
+                    ),
+                ),
+            ])
+        } else {
+            JsonValue::Null
+        };
     let contribution = object(vec![
         (
             "schema_version",
-            string("tos_managed_agent_inventory_member_v1"),
+            string("tos_managed_mixed_source_inventory_member_v1"),
         ),
         ("path", string(location)),
         (
@@ -9290,6 +9237,27 @@ fn identifier_tail(value: &str, prefix: &str) -> bool {
                     .bytes()
                     .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
         })
+}
+
+#[cfg(test)]
+mod mixed_inventory_boundary_tests {
+    use super::*;
+
+    #[test]
+    fn private_non_metadata_member_cannot_enter_public_projection() {
+        assert!(matches!(
+            agent_source_reject_unsupported_member(
+                "ToS/source-witnesses/access-requests/private/README.md"
+            ),
+            Err(SourceCommandError::Unsupported(_))
+        ));
+        assert!(
+            agent_source_reject_unsupported_member(
+                "ToS/source-witnesses/works/justus-lipsius/de-constantia/work.json"
+            )
+            .is_ok()
+        );
+    }
 }
 
 #[cfg(test)]

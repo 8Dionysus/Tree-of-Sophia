@@ -27,6 +27,17 @@ its creation reads bind the entire verified file set. The explicit PostgreSQL
 record-revision and initial-Agent routes below select a bounded source readset
 instead. Other source-command families still use their declared cut-based route.
 
+Mixed managed Agent dependency commitments bind the raw configuration and the
+canonical Agent creation template: its selected Agent profile/schema map,
+creation contracts, and implementation inputs. The fixed registry/schema
+baseline is bound from the selected context even when the mixed source contains
+no current Agent. Existing Agent records, events, anchors, and forms are not
+creation inputs; the complete mixed root and current head, epoch, rights, and
+audit fences establish source currentness separately, while durable uniqueness
+and absence predicates continue to protect global identities and homes. The
+addressed inventory uses commitment version 3 and retained coverage uses
+version 4; older Agent-only versions require a fresh mixed-source bootstrap.
+
 ## Private PostgreSQL source-text projection
 
 [TOS-D-0071](../../../docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md)

@@ -877,10 +877,37 @@ fn definition() -> Digest256 {
         let mut h = Digest256Hasher::new();
         part(
             &mut h,
+            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V2,
+        );
+        h.finalize()
+    })
+}
+fn legacy_agent_definition() -> Digest256 {
+    static DEFINITION: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
+    *DEFINITION.get_or_init(|| {
+        let mut h = Digest256Hasher::new();
+        part(
+            &mut h,
             super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V1,
         );
         h.finalize()
     })
+}
+
+/// Fail with an actionable rebootstrap refusal for the old Agent-only domain
+/// profile. Other unknown profile digests remain ordinary definition drift.
+pub(super) fn require_current_source_definition(actual: Digest256) -> DurableResult<()> {
+    if actual == legacy_agent_definition() {
+        return Err(DurableError::Refused(
+            "legacy Agent-only source profile requires fresh mixed-source bootstrap",
+        ));
+    }
+    if actual != definition() {
+        return Err(DurableError::Conflict(
+            "mixed public-metadata source definition differs",
+        ));
+    }
+    Ok(())
 }
 pub(super) fn known_profile(profile: &[u8]) -> bool {
     [
@@ -1089,9 +1116,11 @@ fn inventory_projections_for(
             "missing object field in maintained Agent projection inventory",
         )
     })?;
-    let grouped = source_claims::agent_inventory_members(ctx, &inventory).map_err(|error| {
-        source_error_with_phase(error, "missing object field in Agent projection grouping")
-    })?;
+    let grouped =
+        source_claims::agent_inventory_members(ctx, &inventory, worker, deadline, cancelled)
+            .map_err(|error| {
+                source_error_with_phase(error, "missing object field in mixed projection grouping")
+            })?;
     let mut projections = ProjectionRows::new();
     let mut projection_bytes = 0usize;
     for file in ctx.files.iter().filter(|file| {
@@ -1143,7 +1172,7 @@ fn optional_agent_projections(
 
 fn projection_root(projections: &ProjectionRows) -> Digest256 {
     let mut hash = Digest256Hasher::new();
-    part(&mut hash, b"tos-managed-agent-inventory-coverage-v1");
+    part(&mut hash, b"tos-managed-mixed-source-inventory-coverage-v1");
     for (path, raw) in projections {
         part(&mut hash, path.as_bytes());
         part(&mut hash, Digest256::of_bytes(raw).as_bytes());
@@ -1653,62 +1682,6 @@ fn original_digest(value: &serde_json::Value) -> Digest256 {
 // This performs O(N) compact passes outside the publication/commit fence.
 const RETAINED_PROJECTIONS: &str = "WITH selected_history AS (SELECT DISTINCT ON (subject) domain,subject,revision,commit_seq,content_digest,inventory_projection FROM cmd2_history WHERE domain=$1 AND commit_seq<=$2 ORDER BY subject,revision DESC) SELECT h.subject,h.content_digest,CASE WHEN p.effective_seq IS NULL THEN CASE WHEN octet_length(h.inventory_projection)<=1048576 THEN h.inventory_projection ELSE NULL END WHEN p.source_revision=h.revision AND p.content_digest=h.content_digest AND p.definition_digest=d.source_definition_digest THEN CASE WHEN octet_length(p.inventory_projection)<=1048576 THEN p.inventory_projection ELSE NULL END ELSE NULL END AS inventory_projection FROM selected_history h JOIN cmd2_domain d ON d.domain=h.domain LEFT JOIN LATERAL (SELECT source_revision,content_digest,definition_digest,inventory_projection,effective_seq FROM cmd2_source_inventory_projection WHERE domain=h.domain AND subject=h.subject AND effective_seq>=h.commit_seq AND effective_seq<=$2 ORDER BY effective_seq DESC LIMIT 1) p ON TRUE";
 
-struct AgentDigest {
-    hash: Digest256Hasher,
-    bytes: usize,
-    visits: usize,
-    limits: tos_foundation::JsonLimits,
-}
-impl AgentDigest {
-    fn new() -> Self {
-        Self {
-            hash: Digest256Hasher::new(),
-            bytes: 0,
-            visits: 0,
-            limits: tos_foundation::JsonLimits {
-                max_bytes: 8_388_608,
-                ..Default::default()
-            },
-        }
-    }
-    fn framing(&mut self, bytes: &[u8]) -> DurableResult<()> {
-        self.bytes = self
-            .bytes
-            .checked_add(bytes.len())
-            .filter(|n| *n <= self.limits.max_bytes)
-            .ok_or(DurableError::Refused(
-                "Agent dependency canonical byte bound",
-            ))?;
-        self.hash.update(bytes);
-        Ok(())
-    }
-    fn container(&mut self, byte: u8) -> DurableResult<()> {
-        self.visits = self
-            .visits
-            .checked_add(1)
-            .filter(|n| *n <= self.limits.max_visits)
-            .ok_or(DurableError::Refused(
-                "Agent dependency canonical node bound",
-            ))?;
-        self.framing(&[byte])
-    }
-    fn key(&mut self, key: &str) -> DurableResult<()> {
-        self.framing(&cmd::canonical(&cmd::string(key)).map_err(source_error)?)?;
-        self.framing(b":")
-    }
-    fn value(&mut self, value: &tos_foundation::JsonValue, depth: usize) -> DurableResult<()> {
-        tos_foundation::canonical_feed_digest_v1(
-            value,
-            tos_foundation::CanonicalProfile::SourceRecordDigestV1,
-            self.limits,
-            &mut self.hash,
-            &mut self.bytes,
-            &mut self.visits,
-            depth,
-        )
-        .map_err(|_| DurableError::Refused("Agent dependency canonical structural bound"))
-    }
-}
 fn projection_value(row: &postgres::Row) -> DurableResult<tos_foundation::JsonValue> {
     let raw = row
         .get::<_, Option<Vec<u8>>>("inventory_projection")
@@ -1720,33 +1693,11 @@ fn projection_value(row: &postgres::Row) -> DurableResult<tos_foundation::JsonVa
             "Agent projection exceeds cold metadata bound",
         ));
     }
-    let value = cmd::parse(&raw).map_err(source_error)?;
-    cmd::exact_keys(
-        &value,
-        &[
-            "schema_version",
-            "path",
-            "raw_sha256",
-            "records",
-            "source_profiles",
-            "events",
-            "anchors",
-            "form",
-        ],
+    addressed_inventory::AddressedMixedInventoryV1::checked_projection(
+        &row.get::<_, String>("subject"),
+        &raw,
+        &row.get::<_, String>("content_digest"),
     )
-    .map_err(source_error)?;
-    if cmd::text(&value, "schema_version").map_err(source_error)?
-        != "tos_managed_agent_inventory_member_v1"
-        || cmd::text(&value, "path").map_err(source_error)? != row.get::<_, String>("subject")
-        || cmd::text(&value, "raw_sha256").map_err(source_error)?
-            != row.get::<_, String>("content_digest")
-        || cmd::canonical(&value).map_err(source_error)? != raw
-    {
-        return Err(DurableError::Corrupt(
-            "Agent projection raw/classification binding differs",
-        ));
-    }
-    Ok(value)
 }
 fn retained_projection_root(
     tx: &mut Transaction<'_>,
@@ -1754,7 +1705,7 @@ fn retained_projection_root(
     generation: u64,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> DurableResult<(Digest256, tos_foundation::JsonValue, u64)> {
+) -> DurableResult<(Digest256, BTreeMap<String, Digest256>, u64)> {
     retained_projection_root_with_work(
         tx,
         domain,
@@ -1772,7 +1723,7 @@ fn retained_projection_root_with_work(
     deadline: Instant,
     cancelled: &AtomicBool,
     source_work: &mut ManagedSourceWorkV1,
-) -> DurableResult<(Digest256, tos_foundation::JsonValue, u64)> {
+) -> DurableResult<(Digest256, BTreeMap<String, Digest256>, u64)> {
     active(deadline, cancelled)?;
     let admission = format!(
         "WITH members AS ({RETAINED_PROJECTIONS}) SELECT count(*),coalesce(sum(octet_length(inventory_projection)),0),count(*) FILTER(WHERE inventory_projection IS NULL) FROM members"
@@ -1795,8 +1746,8 @@ fn retained_projection_root_with_work(
         ));
     }
     let mut root = Digest256Hasher::new();
-    part(&mut root, b"tos-managed-agent-inventory-coverage-v1");
-    let mut profiles = cmd::object(vec![]);
+    part(&mut root, b"tos-managed-mixed-source-inventory-coverage-v1");
+    let mut profiles = BTreeMap::<String, Digest256>::new();
     let mut cursor = String::new();
     let mut count = 0u64;
     active(deadline, cancelled)?;
@@ -1832,53 +1783,24 @@ fn retained_projection_root_with_work(
 
         part(&mut root, path.as_bytes());
         part(&mut root, Digest256::of_bytes(&raw).as_bytes());
-        for (key, digest) in cmd::field(&value, "source_profiles")
-            .map_err(source_error)?
-            .as_object()
-            .ok_or(DurableError::Corrupt("Agent source profile map"))?
+        for (key, digest) in
+            addressed_inventory::collect_agent_profile_contributions(&path, &value)?
         {
-            let key = key
-                .as_str()
-                .ok_or(DurableError::Corrupt("Agent profile locator"))?;
-            if profiles
-                .object_get(key)
-                .is_some_and(|prior| prior != digest)
-            {
+            if profiles.get(&key).is_some_and(|prior| prior != &digest) {
                 return Err(DurableError::Corrupt(
-                    "Agent source profile contributions disagree",
+                    "mixed Agent source profile contributions disagree",
                 ));
             }
-            cmd::set(&mut profiles, key, digest.clone()).map_err(source_error)?;
+            profiles.insert(key, digest);
         }
-        // EVERY member is represented, including non-catalogue paths.
-        // Non-Agent/native/Claim scopes cannot obtain these contributions.
+        // Every member contributes to the mixed root. Agent schema inputs are
+        // collected through the same owner filter used by the addressed tree.
         count = count
             .checked_add(1)
             .ok_or(DurableError::Corrupt("Agent projection coverage overflow"))?;
         cursor = path;
     }
     Ok((root.finalize(), profiles, count))
-}
-
-fn visit_projection_section(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-    generation: u64,
-    section: &str,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-    mut visit: impl FnMut(&str, &tos_foundation::JsonValue) -> DurableResult<()>,
-) -> DurableResult<()> {
-    visit_projection_section_with_work(
-        tx,
-        domain,
-        generation,
-        section,
-        deadline,
-        cancelled,
-        &mut ManagedSourceWorkV1::default(),
-        visit,
-    )
 }
 
 fn visit_projection_section_with_work(
@@ -1967,36 +1889,6 @@ fn visit_projection_section_with_work(
     }
     Ok(())
 }
-fn stream_projection_section(
-    tx: &mut Transaction<'_>,
-    domain: &str,
-    generation: u64,
-    section: &str,
-    output: &mut AgentDigest,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> DurableResult<()> {
-    let mut first = true;
-    visit_projection_section(
-        tx,
-        domain,
-        generation,
-        section,
-        deadline,
-        cancelled,
-        |key, entry| {
-            if !first {
-                output.framing(b",")?;
-            }
-            first = false;
-            if section != "records" {
-                output.key(key)?;
-            }
-            output.value(entry, if section == "records" { 3 } else { 2 })
-        },
-    )
-}
-
 fn retained_agent_inventory(
     tx: &mut Transaction<'_>,
     domain: &str,
@@ -2007,98 +1899,14 @@ fn retained_agent_inventory(
 ) -> DurableResult<(ManagedAgentInventory, u64)> {
     let (root, profiles, count) =
         retained_projection_root(tx, domain, generation, deadline, cancelled)?;
-    // Resource digests from retained owner contributions must name the exact
-    // independently selected schema bytes read by this operation.
-    for (path, sha) in profiles
-        .as_object()
-        .ok_or(DurableError::Corrupt("Agent profile contribution object"))?
-    {
-        let path = RelativePath::parse(
-            path.as_str()
-                .ok_or(DurableError::Corrupt("Agent profile path"))?,
-        )
-        .map_err(|_| DurableError::Corrupt("Agent profile path"))?;
-        let raw = ctx
-            .file(&path)
-            .map_err(source_error)?
-            .ok_or(DurableError::Conflict(
-                "Agent profile resource not selected",
-            ))?;
-        if sha.as_str() != Some(Digest256::of_bytes(raw).to_hex().as_str()) {
-            return Err(DurableError::Conflict(
-                "Agent profile resource digest differs",
-            ));
-        }
-    }
-    let template =
-        crate::source_creation::agent_dependency_template(ctx, profiles).map_err(source_error)?;
-    let mut fields = template
-        .as_object()
-        .ok_or(DurableError::Corrupt("Agent dependency template"))?
-        .iter()
-        .collect::<Vec<_>>();
-    fields.sort_by(|(a, _), (b, _)| a.as_str().cmp(&b.as_str()));
-    let mut output = AgentDigest::new();
-    output.container(b'{')?;
-    for (index, (key, value)) in fields.into_iter().enumerate() {
-        if index > 0 {
-            output.framing(b",")?;
-        }
-        let key = key
-            .as_str()
-            .ok_or(DurableError::Corrupt("Agent dependency key"))?;
-        output.key(key)?;
-        match key {
-            "records" => {
-                output.container(b'{')?;
-                let mut kinds = source_claims::NATIVE_CATALOG_KINDS
-                    .iter()
-                    .copied()
-                    .collect::<Vec<_>>();
-                kinds.sort_unstable();
-                for (i, kind) in kinds.into_iter().enumerate() {
-                    if i > 0 {
-                        output.framing(b",")?;
-                    }
-                    output.key(kind)?;
-                    output.container(b'[')?;
-                    if kind == "agent" {
-                        stream_projection_section(
-                            tx,
-                            domain,
-                            generation,
-                            "records",
-                            &mut output,
-                            deadline,
-                            cancelled,
-                        )?;
-                    }
-                    output.framing(b"]")?;
-                }
-                output.framing(b"}")?;
-            }
-            "events" | "anchors" | "forms" => {
-                output.container(b'{')?;
-                stream_projection_section(
-                    tx,
-                    domain,
-                    generation,
-                    key,
-                    &mut output,
-                    deadline,
-                    cancelled,
-                )?;
-                output.framing(b"}")?;
-            }
-            _ => output.value(value, 1)?,
-        }
-    }
-    output.framing(b"}")?;
+    let dependencies = addressed_inventory::mixed_agent_dependency_commitment_v1(
+        ctx, &profiles, deadline, cancelled,
+    )?;
     Ok((
         ManagedAgentInventory {
-            commitment_version: 1,
+            commitment_version: 4,
             root,
-            dependencies: output.hash.finalize().to_prefixed(),
+            dependencies,
         },
         count,
     ))
@@ -2202,6 +2010,10 @@ fn cohort_matches(
     cohort: &ManagedSourceCohort,
     require_complete: bool,
 ) -> DurableResult<()> {
+    if let Some(stored) = row.get::<_, Option<String>>("source_definition_digest") {
+        require_current_source_definition(parse_hex(stored)?)?;
+    }
+    require_current_source_definition(cohort.definition)?;
     if row.get::<_, Option<String>>("source_revision") != Some(cohort.initial_revision.0.to_hex())
         || row.get::<_, Option<String>>("source_membership_digest")
             != Some(cohort.initial_membership.digest.to_hex())
@@ -2210,7 +2022,6 @@ fn cohort_matches(
         || row.get::<_, Option<i64>>("source_epoch") != Some(as_i64(cohort.epoch)?)
         || row.get::<_, Option<String>>("source_definition_digest")
             != Some(cohort.definition.to_hex())
-        || cohort.definition != definition()
         || (require_complete && !row.get::<_, bool>("source_complete"))
     {
         return Err(DurableError::Conflict(
@@ -2813,7 +2624,7 @@ impl DurablePgCoordinator {
                     ));
                 }
                 Some(
-                    addressed_inventory::AddressedInventoryV2::checked_projection(
+                    addressed_inventory::AddressedMixedInventoryV1::checked_projection(
                         path.as_str(),
                         &raw,
                         &metadata.sha256.to_hex(),
@@ -3535,7 +3346,7 @@ impl DurablePgCoordinator {
         }
         let (inventory, count) = match generation.selected() {
             SelectedSourceGeneration::Addressed(selected) => (
-                selected.cut.inventory.select(
+                selected.cut.inventory.select_agent(
                     &selected.store,
                     ctx,
                     selected.limits,
@@ -4241,6 +4052,8 @@ impl DurablePgCoordinator {
                 "addressed parent requires V2 continuation",
             ))?;
         parent.audited_root.require_store(store)?;
+        require_current_source_definition(attempt.definition)?;
+        require_current_source_definition(cohort.definition)?;
         if attempt.domain != cohort.domain
             || attempt.epoch != cohort.epoch
             || attempt.definition != cohort.definition
@@ -5500,11 +5313,7 @@ impl DurablePgCoordinator {
                 .get::<_, Option<String>>("source_definition_digest")
                 .ok_or(DurableError::Corrupt("source revision definition absent"))?,
         )?;
-        if definition_digest != definition() {
-            return Err(DurableError::Conflict(
-                "source revision recovery definition differs",
-            ));
-        }
+        require_current_source_definition(definition_digest)?;
         let members = tx.query(
             "SELECT * FROM cmd2_member WHERE domain=$1 AND prepare_id=$2
              ORDER BY member_slot LIMIT $3",
@@ -5736,6 +5545,7 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
         active(deadline, cancelled)?;
+        require_current_source_definition(attempt.definition)?;
         if attempt.definition != definition()
             || attempt.contract != contract
             || store.custody_domain() != attempt.domain.as_bytes()
@@ -6019,24 +5829,30 @@ impl DurablePgCoordinator {
         if let Some(expected) = &input.inventory {
             let mut projection_tx = self.client.transaction()?;
             projection_tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL statement_timeout='15s'")?;
-            let actual = if expected.commitment_version == 2 {
-                Self::replay_addressed_inventory(
+            let actual = match expected.commitment_version {
+                3 => Self::replay_addressed_inventory(
                     store,
                     &input.basis,
                     &input.context,
                     deadline,
                     cancelled,
-                )?
-            } else {
-                retained_agent_inventory(
-                    &mut projection_tx,
-                    &cohort.domain,
-                    input.basis.generation,
-                    &input.context,
-                    deadline,
-                    cancelled,
-                )?
-                .0
+                )?,
+                4 => {
+                    retained_agent_inventory(
+                        &mut projection_tx,
+                        &cohort.domain,
+                        input.basis.generation,
+                        &input.context,
+                        deadline,
+                        cancelled,
+                    )?
+                    .0
+                }
+                _ => {
+                    return Err(DurableError::Refused(
+                        "legacy Agent-only inventory requires fresh mixed-source bootstrap",
+                    ));
+                }
             };
             if &actual != expected {
                 return Err(DurableError::Corrupt(
@@ -6718,6 +6534,7 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
         active(deadline, cancelled)?;
+        require_current_source_definition(attempt.definition)?;
         if attempt.delta != registered_source_delta(package, &attempt.reads, &attempt.projections)?
             || attempt.definition != definition()
             || store.custody_domain() != attempt.domain.as_bytes()
@@ -7078,6 +6895,11 @@ impl DurablePgCoordinator {
              FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1",
             &[&domain],
         )?;
+        require_current_source_definition(parse_hex(
+            domain_row
+                .get::<_, Option<String>>("source_definition_digest")
+                .ok_or(DurableError::Corrupt("source definition absent"))?,
+        )?)?;
         // The opt-in audit profile is the persistent per-domain V2 protocol
         // marker. The table is deliberately absent from legacy V1 installs.
         let addressed_profile_table = metadata_tx
@@ -7939,6 +7761,11 @@ pub(super) fn check_commit_owner(
                 "SELECT * FROM cmd2_domain WHERE domain=$1",
                 &[&request.domain],
             )?;
+            require_current_source_definition(attempt.definition)?;
+            let domain_definition = domain
+                .get::<_, Option<String>>("source_definition_digest")
+                .ok_or(DurableError::Corrupt("source definition absent"))?;
+            require_current_source_definition(parse_hex(domain_definition)?)?;
             if attempt.domain != request.domain
                 || attempt.prepare_id != request.prepare_id
                 || attempt.fence != request.attempt_fence
@@ -8102,6 +7929,11 @@ pub(super) fn check_commit_owner(
             let expected_reads = reads_bytes(&attempt.reads)?;
             let expected_indexes = indexes_bytes(&attempt.indexes)?;
             let empty_projections = projections_bytes(&ProjectionRows::new())?;
+            require_current_source_definition(attempt.definition)?;
+            let domain_definition = domain
+                .get::<_, Option<String>>("source_definition_digest")
+                .ok_or(DurableError::Corrupt("source definition absent"))?;
+            require_current_source_definition(parse_hex(domain_definition)?)?;
             if attempt.domain != request.domain
                 || attempt.prepare_id != request.prepare_id
                 || attempt.fence != request.attempt_fence
@@ -8752,9 +8584,9 @@ fn decode_managed_original(
                 )
                 .map_err(|_| DurableError::Corrupt("original inventory version"))?
             };
-            if ![1, 2].contains(&commitment_version) {
+            if ![3, 4].contains(&commitment_version) {
                 return Err(DurableError::Refused(
-                    "unsupported original inventory commitment",
+                    "legacy Agent-only inventory requires fresh mixed-source bootstrap",
                 ));
             }
             let dependencies = retained_text(&fields[1])?.to_owned();

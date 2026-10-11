@@ -1,4 +1,4 @@
-//! Additive cold Agent assessment over complete verified source membership.
+//! Additive cold mixed-public-metadata assessment over complete verified source membership.
 //! The private SQLite index is a bounded derived lookup carrier. It never
 //! grants currentness, rights, semantic admission or a selected generation.
 
@@ -584,16 +584,16 @@ fn index_owned_key(
     active(deadline, cancelled)
 }
 
-struct CompleteAgentIdentityPassV1 {
+struct CompleteMixedIdentityPassV1 {
     members: u64,
 }
 
-fn stage_current_agent_identities(
+fn stage_current_mixed_identities(
     epoch: &mut StreamedSourceReadEpoch<'_, '_>,
     profile: &crate::source_claims::AgentInventoryAssessmentProfile,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> DurableResult<CompleteAgentIdentityPassV1> {
+) -> DurableResult<CompleteMixedIdentityPassV1> {
     use super::source_cohort_stream_index::{SourceEvidenceKind, SourceIdentityKind};
     use crate::source_claims::{AgentInventoryEvidenceKind, AgentInventoryIdentityKind};
     let mut after = None::<String>;
@@ -701,7 +701,7 @@ fn stage_current_agent_identities(
         ));
     }
     active(deadline, cancelled)?;
-    Ok(CompleteAgentIdentityPassV1 { members: count })
+    Ok(CompleteMixedIdentityPassV1 { members: count })
 }
 
 fn evidence_for_member(
@@ -745,21 +745,21 @@ fn evidence_for_member(
     Ok(output)
 }
 
-struct CompleteAgentProjectionPassV1 {
+struct CompleteMixedProjectionPassV1 {
     members: u64,
-    // Exact original ordered V1 projection transcript, not an addressed root.
+    // Exact ordered mixed projection transcript, not the addressed root.
     projection_digest: Digest256,
 }
 
-fn render_current_agent_projections(
+fn render_current_mixed_projections(
     epoch: &mut StreamedSourceReadEpoch<'_, '_>,
     profile: &crate::source_claims::AgentInventoryAssessmentProfile,
-    first: CompleteAgentIdentityPassV1,
+    first: CompleteMixedIdentityPassV1,
     worker: &mut CutWorkerSchemaExecutor,
     limits: tos_validation::item_rules::ItemLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> DurableResult<CompleteAgentProjectionPassV1> {
+) -> DurableResult<CompleteMixedProjectionPassV1> {
     use super::source_cohort_stream_index::{AssessmentProjectionRow, SourceEvidenceKind};
     active(deadline, cancelled)?;
     if first.members != epoch.cold.current_members {
@@ -770,7 +770,10 @@ fn render_current_agent_projections(
     let mut after = None::<String>;
     let mut count = 0u64;
     let mut transcript = Digest256Hasher::new();
-    part(&mut transcript, b"tos-managed-agent-inventory-coverage-v1");
+    part(
+        &mut transcript,
+        b"tos-managed-mixed-source-inventory-coverage-v1",
+    );
     loop {
         active(deadline, cancelled)?;
         let next = epoch
@@ -921,13 +924,13 @@ fn render_current_agent_projections(
         .borrow_mut()
         .finish_source_inputs(&mut **epoch.index_work.borrow_mut())?;
     active(deadline, cancelled)?;
-    Ok(CompleteAgentProjectionPassV1 {
+    Ok(CompleteMixedProjectionPassV1 {
         members: count,
         projection_digest: transcript.finalize(),
     })
 }
 
-struct CompleteStreamedOwnerAssessmentV1 {
+struct CompleteStreamedMixedSourceAssessmentV1 {
     members: u64,
     projection_digest: Digest256,
 }
@@ -940,12 +943,12 @@ fn compare_current_owner_indexes(
     work: &mut SourceAssessmentWork,
     original: &tos_source_store::StreamedCorpusCutReaderV1,
     verified_original: &VerifiedStreamedOriginalContentV1,
-    projected: &CompleteAgentProjectionPassV1,
+    projected: &CompleteMixedProjectionPassV1,
     source_index_rows: u64,
     owned_predicate_rows: u64,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> DurableResult<CompleteStreamedOwnerAssessmentV1> {
+) -> DurableResult<CompleteStreamedMixedSourceAssessmentV1> {
     use super::source_cohort_stream_index::{
         AssessmentIndexRow, AssessmentPredicateRow, AssessmentProjectionRow,
     };
@@ -1062,7 +1065,7 @@ fn compare_current_owner_indexes(
         after = Some(id);
     }
     active(deadline, cancelled)?;
-    Ok(CompleteStreamedOwnerAssessmentV1 {
+    Ok(CompleteStreamedMixedSourceAssessmentV1 {
         members: projected.members,
         projection_digest: projected.projection_digest,
     })
@@ -1073,7 +1076,7 @@ fn compare_current_owner_indexes(
 // the coordinator must still hold and repeat its domain/audit/rights gates.
 fn build_assessed_inventory(
     store: &SegmentStore,
-    assessment: &CompleteStreamedOwnerAssessmentV1,
+    assessment: &CompleteStreamedMixedSourceAssessmentV1,
     index: &mut SourceAssessmentIndex,
     index_work: &mut SourceAssessmentWork,
     limits: tos_segment_store::AuthenticatedTreeLimitsV1,
@@ -1081,7 +1084,7 @@ fn build_assessed_inventory(
     deadline: Instant,
     cancelled: &AtomicBool,
     owner_check: &dyn Fn() -> DurableResult<()>,
-) -> DurableResult<super::addressed_inventory::AddressedInventoryV2> {
+) -> DurableResult<super::addressed_inventory::AddressedMixedInventoryV1> {
     owner_check()?;
     let mut after = None::<String>;
     let mut ended = false;
@@ -1114,7 +1117,7 @@ fn build_assessed_inventory(
         }
     });
     let mut tree_owner_check = || owner_check().is_ok();
-    let result = super::addressed_inventory::AddressedInventoryV2::build_from_assessed_projections_with_callback(
+    let result = super::addressed_inventory::AddressedMixedInventoryV1::build_from_assessed_projections_with_callback(
         store,
         projections,
         assessment.members,
@@ -1318,8 +1321,8 @@ fn assess_held_current_source(
     cancelled: &AtomicBool,
     owner_check: &dyn Fn() -> DurableResult<()>,
 ) -> DurableResult<(
-    CompleteStreamedOwnerAssessmentV1,
-    super::addressed_inventory::AddressedInventoryV2,
+    CompleteStreamedMixedSourceAssessmentV1,
+    super::addressed_inventory::AddressedMixedInventoryV1,
 )> {
     let (mut source_rows, mut predicate_rows) =
         admit_streamed_owner_metadata(tx, max_statement_ms, domain, limits, deadline, cancelled)?;
@@ -1369,8 +1372,8 @@ fn assess_held_current_source(
             cancelled,
         )
         .map_err(source_error)?;
-        let first = stage_current_agent_identities(&mut epoch, &profile, deadline, cancelled)?;
-        render_current_agent_projections(
+        let first = stage_current_mixed_identities(&mut epoch, &profile, deadline, cancelled)?;
+        render_current_mixed_projections(
             &mut epoch,
             &profile,
             first,
