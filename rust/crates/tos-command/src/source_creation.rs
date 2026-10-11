@@ -56,6 +56,15 @@ const LINKS: &[&str] = &[
     "association_claim_refs",
 ];
 
+#[path = "source_creation_pg.rs"]
+pub(crate) mod pg;
+
+pub(crate) fn pg_agent_creation_requirements(
+    context: &CommandContext,
+) -> SourceCommandResult<pg::PgAgentCreationRequirements> {
+    pg::requirements(context)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CreationFamily {
     HistoricalV1,
@@ -559,6 +568,32 @@ impl PreparedCreation {
         cancelled: &AtomicBool,
         retained: Option<&BTreeMap<String, Vec<u8>>>,
     ) -> SourceCommandResult<(PreparedCreation, cmd::CommandPlan)> {
+        self.serialize_content_with_schema(
+            software,
+            components,
+            deadline,
+            cancelled,
+            retained,
+            |ctx, refs, root, event| {
+                revisions::schema(worker, deadline, cancelled, ctx, refs, root, event)
+            },
+        )
+    }
+
+    pub(crate) fn serialize_content_with_schema(
+        mut self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        retained: Option<&BTreeMap<String, Vec<u8>>>,
+        mut validate_schema: impl FnMut(
+            &CommandContext,
+            &[String],
+            &str,
+            &JsonValue,
+        ) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<(PreparedCreation, cmd::CommandPlan)> {
         if components != &self.components || software.selection() != self.components.capture() {
             return Err(SourceCommandError::Conflict(
                 "creation software capture selection changed before serialization",
@@ -611,10 +646,7 @@ impl PreparedCreation {
             }
             let raw = self.files.get("source-create-provenance.jsonl").unwrap();
             let event = cmd::parse(raw)?;
-            revisions::schema(
-                worker,
-                deadline,
-                cancelled,
+            validate_schema(
                 &self.context,
                 &["ToS/contracts/provenance-event-v2.schema.json".into()],
                 "ToS/contracts/provenance-event-v2.schema.json",
@@ -1055,6 +1087,135 @@ fn configuration(
     Ok((family, config, home))
 }
 
+/// Shared initial corpus identity gates. The caller owns schema execution;
+/// both cut-backed and typed-PG paths run the same type, path, assertion, and
+/// contract checks here.
+pub(crate) fn initial_corpus_with_schema(
+    config: &JsonValue,
+    family: CreationFamily,
+    record: &JsonValue,
+    mut validate_schema: impl FnMut(&[String], &str, &JsonValue) -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<String>> {
+    if !family.corpus() {
+        return Err(SourceCommandError::Unsupported(
+            "initial corpus record requires a corpus creation family",
+        ));
+    }
+    initial_identity(config, record)?;
+    let kind = cmd::text(record, "record_type")?;
+    let path = cmd::text(config, "source_path")?;
+    let allowed = if family == CreationFamily::CorpusV2 {
+        &["agent", "place", "organization", "work", "collection"][..]
+    } else {
+        &["agent", "place", "organization", "work"][..]
+    };
+    if !allowed.contains(&kind)
+        || cmd::text(config, "record_type")? != kind
+        || !path.ends_with(&format!("/{kind}.json"))
+        || !path.starts_with("ToS/source-witnesses/")
+        || !revisions::valid_id(
+            cmd::text(record, "record_id")?,
+            &format!("tos.{kind}."),
+            false,
+        )
+        || kind == "collection" && !path.starts_with("ToS/source-witnesses/collections/")
+        || kind == "work" && path.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/")
+    {
+        return Err(SourceCommandError::Denied(
+            "creation corpus type/path grant or stronger Nietzsche home",
+        ));
+    }
+    for link in LINKS {
+        if record.object_get(link).is_some() {
+            if (kind == "work" && *link == "expression_claim_refs"
+                || kind == "collection" && *link == "membership_claim_refs")
+                && cmd::array(record, link)?.is_empty()
+            {
+                continue;
+            }
+            return Err(SourceCommandError::Denied(
+                "initial standalone identity cannot assert links",
+            ));
+        }
+    }
+    if ["work", "collection"].contains(&kind) {
+        let allowed = [
+            "schema_version",
+            "record_type",
+            "record_id",
+            "record_version",
+            "preferred_label",
+            "variant_labels",
+            "field_languages",
+            "identity_status",
+            "source_refs",
+            "external_identifiers",
+            "same_as_posture",
+            "notes",
+            "supersedes_ref",
+            if kind == "work" {
+                "expression_claim_refs"
+            } else {
+                "membership_claim_refs"
+            },
+        ];
+        if record
+            .as_object()
+            .ok_or(SourceCommandError::Invalid("creation record object"))?
+            .iter()
+            .any(|(k, _)| !allowed.contains(&k.as_str().unwrap_or("")))
+        {
+            return Err(SourceCommandError::Denied(
+                "Work/Collection creation descriptive fields only",
+            ));
+        }
+        cmd::array(
+            record,
+            if kind == "work" {
+                "expression_claim_refs"
+            } else {
+                "membership_claim_refs"
+            },
+        )?;
+    }
+    for section in ["variant_labels", "external_identifiers"] {
+        if let Some(rows) = record.object_get(section) {
+            for row in rows
+                .as_array()
+                .ok_or(SourceCommandError::Invalid("creation identity assertions"))?
+            {
+                if cmd::text(row, "status")? != "unverified" {
+                    return Err(SourceCommandError::Denied(
+                        "initial identity has accepted attribution",
+                    ));
+                }
+            }
+        }
+    }
+    validate_schema(
+        &["ToS/contracts/corpus-record.schema.json".into()],
+        "ToS/contracts/corpus-record.schema.json",
+        record,
+    )?;
+    Ok(Vec::new())
+}
+
+fn initial_identity(config: &JsonValue, record: &JsonValue) -> SourceCommandResult<()> {
+    if cmd::text(record, "record_id")? != cmd::text(config, "record_id")?
+        || cmd::integer(record, "record_version")? != 1
+        || record
+            .object_get("supersedes_ref")
+            .is_some_and(|v| v != &JsonValue::Null)
+        || cmd::text(record, "identity_status")? != "provisional"
+        || cmd::text(record, "same_as_posture")? != "no_equivalence_claim"
+    {
+        return Err(SourceCommandError::Denied(
+            "creation delegated provisional initial identity",
+        ));
+    }
+    Ok(())
+}
+
 fn initial(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
@@ -1070,6 +1231,13 @@ fn initial(
             ctx, config, record, worker, deadline, cancelled,
         );
     }
+    if family.corpus() {
+        let mut validate_schema = |refs: &[String], root: &str, instance: &JsonValue| {
+            revisions::schema(worker, deadline, cancelled, ctx, refs, root, instance)
+        };
+        return initial_corpus_with_schema(config, family, record, &mut validate_schema);
+    }
+    initial_identity(config, record)?;
     let mut profile_resources = Vec::new();
     if cmd::text(record, "record_id")? != cmd::text(config, "record_id")?
         || cmd::integer(record, "record_version")? != 1
@@ -1085,104 +1253,7 @@ fn initial(
     }
     let kind = cmd::text(record, "record_type")?;
     let path = cmd::text(config, "source_path")?;
-    if family.corpus() {
-        let allowed = if family == CreationFamily::CorpusV2 {
-            &["agent", "place", "organization", "work", "collection"][..]
-        } else {
-            &["agent", "place", "organization", "work"][..]
-        };
-        if !allowed.contains(&kind)
-            || cmd::text(config, "record_type")? != kind
-            || !path.ends_with(&format!("/{kind}.json"))
-            || !revisions::valid_id(
-                cmd::text(record, "record_id")?,
-                &format!("tos.{kind}."),
-                false,
-            )
-            || kind == "collection" && !path.starts_with("ToS/source-witnesses/collections/")
-            || kind == "work" && path.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/")
-        {
-            return Err(SourceCommandError::Denied(
-                "creation corpus type/path grant or stronger Nietzsche home",
-            ));
-        }
-        for link in LINKS {
-            if record.object_get(link).is_some() {
-                if (kind == "work" && *link == "expression_claim_refs"
-                    || kind == "collection" && *link == "membership_claim_refs")
-                    && cmd::array(record, link)?.is_empty()
-                {
-                    continue;
-                }
-                return Err(SourceCommandError::Denied(
-                    "initial standalone identity cannot assert links",
-                ));
-            }
-        }
-        if ["work", "collection"].contains(&kind) {
-            let allowed = [
-                "schema_version",
-                "record_type",
-                "record_id",
-                "record_version",
-                "preferred_label",
-                "variant_labels",
-                "field_languages",
-                "identity_status",
-                "source_refs",
-                "external_identifiers",
-                "same_as_posture",
-                "notes",
-                "supersedes_ref",
-                if kind == "work" {
-                    "expression_claim_refs"
-                } else {
-                    "membership_claim_refs"
-                },
-            ];
-            if record
-                .as_object()
-                .ok_or(SourceCommandError::Invalid("creation record object"))?
-                .iter()
-                .any(|(k, _)| !allowed.contains(&k.as_str().unwrap_or("")))
-            {
-                return Err(SourceCommandError::Denied(
-                    "Work/Collection creation descriptive fields only",
-                ));
-            }
-            cmd::array(
-                record,
-                if kind == "work" {
-                    "expression_claim_refs"
-                } else {
-                    "membership_claim_refs"
-                },
-            )?;
-        }
-        for section in ["variant_labels", "external_identifiers"] {
-            if let Some(rows) = record.object_get(section) {
-                for row in rows
-                    .as_array()
-                    .ok_or(SourceCommandError::Invalid("creation identity assertions"))?
-                {
-                    if cmd::text(row, "status")? != "unverified" {
-                        return Err(SourceCommandError::Denied(
-                            "initial identity has accepted attribution",
-                        ));
-                    }
-                }
-            }
-        }
-        revisions::schema(
-            worker,
-            deadline,
-            cancelled,
-            ctx,
-            &["ToS/contracts/corpus-record.schema.json".into()],
-            "ToS/contracts/corpus-record.schema.json",
-            record,
-        )?;
-    } else if family.historical() {
+    if family.historical() {
         if !["historical-event", "historical-process", "historical-state"].contains(&kind)
             || !path.ends_with(&format!("/{kind}.json"))
             || !revisions::valid_id(
@@ -1684,6 +1755,70 @@ pub fn prepare_sign_promotion_from_captures(
     )
 }
 
+pub(crate) struct PreparedSourceForms {
+    pub(crate) subject: JsonValue,
+    pub(crate) set: JsonValue,
+    pub(crate) ids: BTreeSet<String>,
+}
+
+/// Shared maintained source-copy form construction and contract admission.
+/// Callers may add owner-index observations around this result, but form
+/// meaning and the required ready name form stay in one place.
+pub(crate) fn prepare_source_forms(
+    config: &JsonValue,
+    record: &JsonValue,
+    selections: &[JsonValue],
+    mut validate_schema: impl FnMut(&[String], &str, &JsonValue) -> SourceCommandResult<()>,
+) -> SourceCommandResult<PreparedSourceForms> {
+    if selections.is_empty() || selections.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "creation form selections budget",
+        ));
+    }
+    let mut ids = BTreeSet::new();
+    let mut changes = Vec::new();
+    for selection in selections {
+        cmd::exact_keys(selection, &["form_id", "field_id"])?;
+        let id = cmd::text(selection, "form_id")?;
+        if !contains(config, "allowed_form_ids", id)? || !ids.insert(id.to_owned()) {
+            return Err(SourceCommandError::Denied(
+                "creation form identity grant or repeated ID",
+            ));
+        }
+        changes.push(forms::prepare_form_change(
+            record,
+            None,
+            cmd::text(config, "principal_id")?,
+            id,
+            cmd::text(selection, "field_id")?,
+        )?);
+    }
+    let subject = forms::metadata_subject(record)?;
+    let set = forms::apply_form_changes(None, &subject, &changes)?;
+    let views = forms::materialize_source_forms(record, &set)?;
+    if views
+        .iter()
+        .any(|v| cmd::text(v, "state").ok() != Some("ready"))
+        || !views
+            .iter()
+            .any(|v| cmd::text(v, "role").ok() == Some("name"))
+    {
+        return Err(SourceCommandError::Invalid(
+            "creation requires ready source-copy name form",
+        ));
+    }
+    validate_schema(
+        &[
+            "ToS/contracts/human-form.schema.json".into(),
+            "ToS/contracts/human-form-set.schema.json".into(),
+            "ToS/contracts/human-form-template.schema.json".into(),
+        ],
+        "ToS/contracts/human-form-set.schema.json",
+        &set,
+    )?;
+    Ok(PreparedSourceForms { subject, set, ids })
+}
+
 fn prepare_creation(
     context: &CommandContext,
     cut: &CorpusCutReader,
@@ -1885,51 +2020,14 @@ fn prepare_creation(
             "initial Claims belong only to historical grant",
         ));
     }
-    let mut seen = BTreeSet::new();
-    let mut changes = Vec::new();
-    for selection in selections {
-        cmd::exact_keys(selection, &["form_id", "field_id"])?;
-        let id = cmd::text(selection, "form_id")?;
-        if !contains(&config, "allowed_form_ids", id)? || !seen.insert(id) {
-            return Err(SourceCommandError::Denied(
-                "creation form identity grant or repeated ID",
-            ));
-        }
-        changes.push(forms::prepare_form_change(
-            record,
-            None,
-            cmd::text(&config, "principal_id")?,
-            id,
-            cmd::text(selection, "field_id")?,
-        )?);
-    }
-    let subject = forms::metadata_subject(record)?;
-    let set = forms::apply_form_changes(None, &subject, &changes)?;
-    let views = forms::materialize_source_forms(record, &set)?;
-    if views
-        .iter()
-        .any(|v| cmd::text(v, "state").ok() != Some("ready"))
-        || !views
-            .iter()
-            .any(|v| cmd::text(v, "role").ok() == Some("name"))
-    {
-        return Err(SourceCommandError::Invalid(
-            "creation requires ready source-copy name form",
-        ));
-    }
-    revisions::schema(
-        worker,
-        deadline,
-        cancelled,
-        &ctx,
-        &[
-            "ToS/contracts/human-form.schema.json".into(),
-            "ToS/contracts/human-form-set.schema.json".into(),
-            "ToS/contracts/human-form-template.schema.json".into(),
-        ],
-        "ToS/contracts/human-form-set.schema.json",
-        &set,
-    )?;
+    let mut validate_form_schema = |refs: &[String], root: &str, instance: &JsonValue| {
+        revisions::schema(worker, deadline, cancelled, &ctx, refs, root, instance)
+    };
+    let prepared_forms =
+        prepare_source_forms(&config, record, selections, &mut validate_form_schema)?;
+    let seen = prepared_forms.ids;
+    let subject = prepared_forms.subject;
+    let set = prepared_forms.set;
     let mut form_inputs = cmd::object(vec![]);
     let mut form_paths = BTreeSet::new();
     if let Some(inventory) = &inventory {

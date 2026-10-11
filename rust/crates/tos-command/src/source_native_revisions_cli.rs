@@ -782,7 +782,11 @@ fn context_selected_record_from_budgeted_transport<T: ReadonlyRecordFiles>(
             .read_selected_component(
                 components,
                 &member.path,
-                8_388_608.min(transport.budget.max_member_bytes),
+                8_388_608.min(
+                    u64::try_from(transport.budget.max_member_bytes).map_err(|_| {
+                        SourceCommandError::Invalid("Record revision member byte budget overflow")
+                    })?,
+                ),
                 deadline,
                 cancelled,
             )

@@ -193,6 +193,14 @@ pub struct SegmentOperationWorkV1 {
     pub work_bytes: u64,
 }
 
+/// Logical bytes read by a point lookup, including custody metadata and the
+/// selected segment envelope. These are application reads, not physical I/O.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct SelectedFrameReadWorkV1 {
+    pub custody_metadata_bytes_read: u64,
+    pub segment_bytes_read: u64,
+}
+
 /// Finite Rust-side and work ceiling for one physical segment operation.
 /// `caller_live_state_bytes` is the caller's already retained state, including
 /// any owner-owned cursor or input rows that overlap this call.
@@ -2971,6 +2979,164 @@ impl SegmentStore {
         )
     }
 
+    /// Read one already committed frame through its exact fenced intent and
+    /// sealed pin. The caller must hold current rights and verify the returned
+    /// descriptive placement against its committed owner locator before
+    /// disclosing bytes. This never constructs a durability receipt: commit
+    /// admission and cold audit still require whole-segment verification.
+    ///
+    /// Only the selected frame and segment envelope are read. Corruption of
+    /// unrelated frames is discovered by their own reads or a cold audit.
+    #[allow(clippy::too_many_arguments)]
+    pub fn read_selected_fenced(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        receipt_id: Digest256,
+        binding: &OwnerBinding,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(Vec<u8>, PlacementV1, SelectedFrameReadWorkV1)> {
+        check_generation(deadline, cancelled)?;
+        if attempt_fence == 0 || max_bytes == 0 {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "selected fenced read bounds",
+            ));
+        }
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
+        let intent = self.read_intent_raw(prepare_id)?.ok_or_else(|| {
+            SegmentError::new(Code::InvalidReceipt, "selected fenced intent absent")
+        })?;
+        let pin_id = decode_attempt_intent_fenced(
+            &intent,
+            self.inner.store_id,
+            self.inner.domain_digest,
+            prepare_id,
+            attempt_fence,
+            0,
+        )?;
+        let (journal, pin_bytes) = self.read_pin_with_bytes(pin_id)?;
+        if journal.state != PinState::Sealed || journal.prepare_id != prepare_id {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "selected pin is not sealed for attempt",
+            ));
+        }
+        let (index, frame) = journal
+            .frames
+            .iter()
+            .enumerate()
+            .find(|(index, _)| self.receipt_id(&journal, *index as u32) == receipt_id)
+            .ok_or_else(|| {
+                SegmentError::new(Code::InvalidReceipt, "selected receipt absent from pin")
+            })?;
+        if frame.binding != *binding {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "selected owner binding differs",
+            ));
+        }
+        let placement = PlacementV1 {
+            store_id: self.inner.store_id,
+            domain_digest: self.inner.domain_digest,
+            pin_id,
+            fence_epoch: journal.fence_epoch,
+            receipt_id,
+            segment_digest: journal.segment_digest.ok_or_else(|| {
+                SegmentError::new(Code::InvalidReceipt, "selected sealed pin has no segment")
+            })?,
+            segment_size: journal.segment_size,
+            frame_index: index as u32,
+            coordinate: frame.coordinate,
+        };
+        let root_before = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat selected store root", error))?;
+        let directory_before =
+            self.inner.segments.metadata().map_err(|error| {
+                SegmentError::io("cannot stat selected segment directory", error)
+            })?;
+        require_segment_root_and_directory(&root_before, &directory_before)?;
+        let named_directory = open_directory(&self.inner._root, "segments")?;
+        if !same_directory(
+            &directory_before,
+            &named_directory
+                .metadata()
+                .map_err(|error| SegmentError::io("cannot stat named segment directory", error))?,
+        ) {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "selected segment directory changed",
+            ));
+        }
+        let name = placement.segment_digest.to_hex();
+        let file = open_regular(&self.inner.segments, &name)?;
+        let before = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat selected segment", error))?;
+        require_packed_segment_file(&before, placement.segment_size, directory_before.dev())?;
+        let mut bytes = Vec::new();
+        format::read_selected(
+            file.try_clone()
+                .map_err(|error| SegmentError::io("cannot retain selected segment", error))?,
+            placement.segment_size,
+            placement.coordinate,
+            self.inner.domain_digest,
+            journal.frames.len() as u32,
+            placement.frame_index,
+            max_bytes.min(self.inner.limits.max_frame_bytes),
+            &mut bytes,
+        )?;
+        check_generation(deadline, cancelled)?;
+        let after = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat selected segment", error))?;
+        let named_after = open_regular(&self.inner.segments, &name)?
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat selected segment name", error))?;
+        let root_after = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat selected store root", error))?;
+        let directory_after =
+            self.inner.segments.metadata().map_err(|error| {
+                SegmentError::io("cannot restat selected segment directory", error)
+            })?;
+        let named_directory_after = open_directory(&self.inner._root, "segments")?
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat named segment directory", error))?;
+        require_segment_root_and_directory(&root_after, &directory_after)?;
+        if !same_directory(&root_before, &root_after)
+            || !same_directory(&directory_before, &directory_after)
+            || !same_directory(&directory_after, &named_directory_after)
+            || !same_packed_segment(&before, &after)
+            || !same_packed_segment(&after, &named_after)
+        {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "selected frame custody changed during read",
+            ));
+        }
+        let work = SelectedFrameReadWorkV1 {
+            custody_metadata_bytes_read: (intent.len() as u64).checked_add(pin_bytes).ok_or_else(
+                || SegmentError::new(Code::BudgetExceeded, "selected metadata byte overflow"),
+            )?,
+            segment_bytes_read: placement
+                .coordinate
+                .size_bytes
+                .checked_add(format::HEADER_BYTES + format::FRAME_HEADER_BYTES + format::END_BYTES)
+                .ok_or_else(|| {
+                    SegmentError::new(Code::BudgetExceeded, "selected segment byte overflow")
+                })?,
+        };
+        Ok((bytes, placement, work))
+    }
+
     /// Read one content-addressed frame through the exact held store root.
     /// The extent row supplies the pack and frame coordinates; the frame's
     /// ordinal, envelope, and content digest are checked before any bytes are
@@ -3218,6 +3384,10 @@ impl SegmentStore {
     }
 
     fn read_pin(&self, pin_id: [u8; 16]) -> Result<PinJournal> {
+        self.read_pin_with_bytes(pin_id).map(|(journal, _)| journal)
+    }
+
+    fn read_pin_with_bytes(&self, pin_id: [u8; 16]) -> Result<(PinJournal, u64)> {
         let mut raw = Vec::new();
         open_regular(&self.inner.pins, &hex_id(pin_id))?
             .take(self.inner.limits.max_journal_bytes as u64 + 1)
@@ -3233,7 +3403,7 @@ impl SegmentStore {
                 "pin store/domain identity differs",
             ));
         }
-        Ok(journal)
+        Ok((journal, raw.len() as u64))
     }
 
     fn lock_pin_dir(&self, operation: FlockOperation) -> Result<PinDirectoryLease> {
@@ -3816,7 +3986,7 @@ fn crash_test_barrier(phase: &str, _pin_id: [u8; 16]) {
 mod tests {
     use std::env;
     use std::fs::{self, OpenOptions};
-    use std::io::{Cursor, Seek, SeekFrom, Write};
+    use std::io::{Cursor, Read, Seek, SeekFrom, Write};
     use std::os::unix::fs::DirBuilderExt;
     use std::os::unix::fs::symlink;
     use std::os::unix::process::ExitStatusExt;
@@ -5354,5 +5524,185 @@ mod tests {
             .seal_segment_fenced(b"fenced-phase-prepare", 7, 0, &mut frames)
             .unwrap();
         panic!("fenced test barrier did not terminate child");
+    }
+
+    #[test]
+    fn fenced_selected_read_is_exact_bounded_and_not_a_cold_receipt() {
+        let root = PrivateRoot::new();
+        let prepare_id = b"selected-fenced-read";
+        let first = b"first selected bytes".to_vec();
+        let second = b"second unrelated bytes".to_vec();
+        let first_binding = binding(0);
+        let second_binding = binding(1);
+        let mut first_reader = Cursor::new(first.clone());
+        let mut second_reader = Cursor::new(second.clone());
+        let mut frames = [
+            FrameInput {
+                binding: first_binding.clone(),
+                declared_size: first.len() as u64,
+                declared_sha256: Digest256::of_bytes(&first),
+                reader: &mut first_reader,
+            },
+            FrameInput {
+                binding: second_binding,
+                declared_size: second.len() as u64,
+                declared_sha256: Digest256::of_bytes(&second),
+                reader: &mut second_reader,
+            },
+        ];
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let receipts = store
+            .seal_segment_fenced(prepare_id, 7, 0, &mut frames)
+            .unwrap();
+        assert_eq!(receipts.len(), 2);
+        let expected_placement = receipts[0].placement();
+        let second_placement = receipts[1].placement();
+        let receipt_id = receipts[0].receipt_id();
+        drop(receipts);
+        drop(store);
+
+        let store = SegmentStore::open_existing(&root.0, limits()).unwrap();
+        let cancelled = AtomicBool::new(false);
+        let (bytes, placement, work) = store
+            .read_selected_fenced(
+                prepare_id,
+                7,
+                receipt_id,
+                &first_binding,
+                first.len() as u64,
+                Instant::now() + Duration::from_secs(5),
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(bytes, first);
+        assert_eq!(placement, expected_placement);
+        let expected_metadata_bytes =
+            fs::metadata(root.0.join("attempts").join(attempt_name(prepare_id)))
+                .unwrap()
+                .len()
+                + fs::metadata(
+                    root.0
+                        .join("pins")
+                        .join(hex_id(expected_placement.pin_id())),
+                )
+                .unwrap()
+                .len();
+        assert_eq!(work.custody_metadata_bytes_read, expected_metadata_bytes);
+        let selected_segment_read_bound = expected_placement.coordinate().size_bytes
+            + format::HEADER_BYTES
+            + format::FRAME_HEADER_BYTES
+            + format::END_BYTES;
+        assert_eq!(work.segment_bytes_read, selected_segment_read_bound);
+        assert!(work.segment_bytes_read <= selected_segment_read_bound);
+
+        let wrong_fence = store
+            .read_selected_fenced(
+                prepare_id,
+                8,
+                receipt_id,
+                &first_binding,
+                first.len() as u64,
+                Instant::now() + Duration::from_secs(5),
+                &cancelled,
+            )
+            .unwrap_err();
+        assert_eq!(wrong_fence.code, Code::InvalidReceipt);
+        let mut wrong_binding = first_binding.clone();
+        wrong_binding.subject_key = b"another-subject".to_vec();
+        let wrong_owner = store
+            .read_selected_fenced(
+                prepare_id,
+                7,
+                receipt_id,
+                &wrong_binding,
+                first.len() as u64,
+                Instant::now() + Duration::from_secs(5),
+                &cancelled,
+            )
+            .unwrap_err();
+        assert_eq!(wrong_owner.code, Code::InvalidReceipt);
+        let wrong_receipt = store
+            .read_selected_fenced(
+                prepare_id,
+                7,
+                Digest256::of_bytes(b"not the committed receipt"),
+                &first_binding,
+                first.len() as u64,
+                Instant::now() + Duration::from_secs(5),
+                &cancelled,
+            )
+            .unwrap_err();
+        assert_eq!(wrong_receipt.code, Code::InvalidReceipt);
+
+        let segment_path = root
+            .0
+            .join("segments")
+            .join(expected_placement.segment_digest().to_hex());
+        let first_payload_offset =
+            expected_placement.coordinate().header_offset + format::FRAME_HEADER_BYTES;
+        let original_selected_byte = {
+            let mut file = OpenOptions::new().read(true).open(&segment_path).unwrap();
+            file.seek(SeekFrom::Start(first_payload_offset)).unwrap();
+            let mut byte = [0];
+            file.read_exact(&mut byte).unwrap();
+            byte[0]
+        };
+        let mutate_byte = |offset: u64, value: u8| {
+            let mut file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&segment_path)
+                .unwrap();
+            let before = file.metadata().unwrap();
+            assert_eq!(before.mode() & 0o7777, 0o600);
+            file.seek(SeekFrom::Start(offset)).unwrap();
+            file.write_all(&[value]).unwrap();
+            file.sync_all().unwrap();
+            let after = file.metadata().unwrap();
+            assert_eq!((after.dev(), after.ino()), (before.dev(), before.ino()));
+            assert_eq!(after.mode(), before.mode());
+            assert_eq!(after.uid(), before.uid());
+            assert_eq!(after.nlink(), before.nlink());
+        };
+        mutate_byte(first_payload_offset, original_selected_byte ^ 0xff);
+        let corrupted_selected = store.read_selected_fenced(
+            prepare_id,
+            7,
+            receipt_id,
+            &first_binding,
+            first.len() as u64,
+            Instant::now() + Duration::from_secs(5),
+            &cancelled,
+        );
+        assert!(
+            corrupted_selected.is_err(),
+            "corrupt selected bytes are never returned"
+        );
+        mutate_byte(first_payload_offset, original_selected_byte);
+
+        let second_payload_offset =
+            second_placement.coordinate().header_offset + format::FRAME_HEADER_BYTES;
+        let original_unrelated_byte = {
+            let mut file = OpenOptions::new().read(true).open(&segment_path).unwrap();
+            file.seek(SeekFrom::Start(second_payload_offset)).unwrap();
+            let mut byte = [0];
+            file.read_exact(&mut byte).unwrap();
+            byte[0]
+        };
+        mutate_byte(second_payload_offset, original_unrelated_byte ^ 0xff);
+        let (still_selected, still_same_placement, _) = store
+            .read_selected_fenced(
+                prepare_id,
+                7,
+                receipt_id,
+                &first_binding,
+                first.len() as u64,
+                Instant::now() + Duration::from_secs(5),
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(still_selected, first);
+        assert_eq!(still_same_placement, expected_placement);
+        assert!(store.recover_sealed(expected_placement.pin_id()).is_err());
     }
 }

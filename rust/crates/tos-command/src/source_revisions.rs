@@ -4141,8 +4141,9 @@ where
         &command.recorded_at,
         "record.revise",
     )?;
-    let mut changes = retain_archive(ctx, &config, family, &inspection)?;
-    changes.extend(source_changes(ctx, &config, &after.files)?);
+    let command_context = ctx.command_context();
+    let mut changes = retain_archive(command_context, &config, family, &inspection)?;
+    changes.extend(source_changes(command_context, &config, &after.files)?);
     response = result(
         worker,
         deadline,
@@ -4810,6 +4811,24 @@ pub(crate) fn schema(
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
+    refs: &[String],
+    root: &str,
+    instance: &JsonValue,
+) -> SourceCommandResult<()> {
+    schema_at(
+        worker, deadline, cancelled, ctx, refs, root, instance, None, false,
+    )
+}
+
+/// Validate one schema with a worker whose selected resources are bound to an
+/// explicit non-SourceRevision identity (for example, a bounded PG read epoch).
+/// The legacy `CommandContext.base_revision` remains the bootstrap revision;
+/// the separate typed context supplies this worker's identity.
+pub(crate) fn schema_candidate<I: Copy + Eq>(
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &impl RecordRead<Identity = I>,
     refs: &[String],
     root: &str,
     instance: &JsonValue,
@@ -5824,6 +5843,30 @@ pub(crate) fn validate_source_profile_registry(
     cancelled: &AtomicBool,
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
 ) -> SourceCommandResult<JsonValue> {
+    validate_source_profile_registry_with(worker, deadline, cancelled, ctx)
+}
+
+/// Candidate-worker counterpart for bounded source creation/revision paths.
+/// It executes the same registry constructor law over the typed read identity.
+pub(crate) fn validate_source_profile_registry_candidate<I: Copy + Eq>(
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &impl RecordRead<Identity = I>,
+) -> SourceCommandResult<JsonValue> {
+    validate_source_profile_registry_with(worker, deadline, cancelled, ctx)
+}
+
+fn validate_source_profile_registry_with<W, C>(
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &C,
+) -> SourceCommandResult<JsonValue>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
     schema_at(

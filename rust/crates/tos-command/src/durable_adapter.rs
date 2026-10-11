@@ -20,8 +20,8 @@ use tos_segment_store::{
     AttemptRecovery, AuditedStoreRoot, ByteDurabilityReceipt, GenerationCatalogV1,
     GenerationCoverageV1, GenerationCutV1, GenerationDescriptorV1, GenerationNamespaceV1,
     GenerationReadLimits, GenerationRowStreamV1, GenerationShapeLimits, InstalledGenerationV1,
-    KeyComparatorV1, PackedPartitionRefV1, PackedPlacementLeafV1, PartitionBoundsV1,
-    PlacementGenerationRowV1, SegmentError, SegmentStore, VerificationBudget,
+    KeyComparatorV1, OwnerBinding, PackedPartitionRefV1, PackedPlacementLeafV1, PartitionBoundsV1,
+    PlacementGenerationRowV1, PlacementV1, SegmentError, SegmentStore, VerificationBudget,
     describe_placement_partition,
 };
 
@@ -461,6 +461,13 @@ pub struct ColdRecoveredMember {
     subject: String,
     revision: u64,
     receipt: ByteDurabilityReceipt,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct CommittedSourceReadWork {
+    pub(crate) custody_metadata_bytes_read: u64,
+    pub(crate) segment_bytes_read: u64,
+    pub(crate) committed_member_rows_examined: u64,
 }
 
 #[derive(Clone)]
@@ -1703,7 +1710,9 @@ impl DurablePgCoordinator {
         }
         if !matches!(
             mode,
-            source_cohort::CommitMode::Creation { .. } | source_cohort::CommitMode::Revision { .. }
+            source_cohort::CommitMode::Creation { .. }
+                | source_cohort::CommitMode::Revision { .. }
+                | source_cohort::CommitMode::PgCreation { .. }
         ) && head != request.full_base_seq
         {
             return Err(DurableError::Conflict(
@@ -2176,6 +2185,193 @@ impl DurablePgCoordinator {
             revision,
             receipt,
         })
+    }
+
+    /// Point read from the durable committed owner locator. The selected
+    /// frame is checked against the sealed pin; no unrelated segment payloads
+    /// are rehashed. The caller's selection validator runs under the same
+    /// audit/domain read locks as current rights and the exact source read.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn read_committed_source_selected(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        subject: &str,
+        revision: Option<u64>,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        verify_selection: impl FnOnce(&postgres::Row) -> DurableResult<()>,
+    ) -> DurableResult<(postgres::Row, Vec<u8>, PlacementV1, CommittedSourceReadWork)> {
+        if store.custody_domain() != domain.as_bytes()
+            || max_bytes == 0
+            || cancelled.load(Ordering::Relaxed)
+            || Instant::now() >= deadline
+        {
+            return Err(DurableError::Refused(
+                "selected source custody or read bound",
+            ));
+        }
+        let _custody = store.hold_audit_root()?;
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .start()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let audit = tx.query_one(
+            "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let domain_row = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if audit.get::<_, String>(0) != "normal" || !domain_row.get::<_, bool>("rights_allowed") {
+            return Err(DurableError::Refused(
+                "selected source current rights or maintenance",
+            ));
+        }
+        verify_selection(&domain_row)?;
+        let current = if revision.is_none() {
+            Some(
+                tx.query_opt(
+                    "SELECT c.*,to_jsonb(c)=to_jsonb(h) AS matches_history
+                     FROM cmd2_current c JOIN cmd2_history h
+                       ON h.domain=c.domain AND h.subject=c.subject AND h.revision=c.revision
+                     WHERE c.domain=$1 AND c.subject=$2",
+                    &[&domain, &subject],
+                )?
+                .ok_or(DurableError::Conflict("selected current source absent"))?,
+            )
+        } else {
+            None
+        };
+        if current
+            .as_ref()
+            .is_some_and(|row| !row.get::<_, bool>("matches_history"))
+        {
+            return Err(DurableError::Corrupt(
+                "selected current metadata differs from history",
+            ));
+        }
+        let revision = match revision {
+            Some(revision) => revision,
+            None => as_u64(
+                current
+                    .as_ref()
+                    .expect("current branch selected")
+                    .get("revision"),
+            )?,
+        };
+        let row = tx
+            .query_opt(
+                "SELECT * FROM cmd2_history WHERE domain=$1 AND subject=$2 AND revision=$3",
+                &[&domain, &subject, &as_i64(revision)?],
+            )?
+            .ok_or(DurableError::Corrupt("selected committed history absent"))?;
+        let prepare_id: Vec<u8> = row.get("prepare_id");
+        let attempt = tx
+            .query_opt(
+                "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+                &[&domain, &prepare_id],
+            )?
+            .ok_or(DurableError::Corrupt("selected committed attempt absent"))?;
+        if attempt.get::<_, String>("state") != "committed"
+            || attempt.get::<_, Option<i64>>("commit_seq") != Some(row.get("commit_seq"))
+        {
+            return Err(DurableError::Corrupt(
+                "selected history attempt is not committed",
+            ));
+        }
+        // The existing receipt/log/outbox checks bind the attempt to the
+        // committed command. This is bounded by one event, not corpus size.
+        let (receipt, member_count) = receipt_from_committed_attempt_with_count(&mut tx, &attempt)?;
+        if receipt.commit_seq != as_u64(row.get("commit_seq"))? {
+            return Err(DurableError::Corrupt(
+                "selected history receipt sequence differs",
+            ));
+        }
+        let binding = OwnerBinding {
+            profile_id: row.get::<_, String>("profile_id").into_bytes(),
+            profile_version: row.get::<_, String>("profile_version").into_bytes(),
+            subject_key: subject.as_bytes().to_vec(),
+            member_slot: u32::try_from(row.get::<_, i32>("member_slot"))
+                .map_err(|_| DurableError::Corrupt("selected source member slot"))?,
+        };
+        let committed_member = tx
+            .query_opt(
+                "SELECT m.*,m.proposed_revision AS revision FROM cmd2_member m
+             WHERE domain=$1 AND prepare_id=$2 AND member_slot=$3",
+                &[&domain, &prepare_id, &row.get::<_, i32>("member_slot")],
+            )?
+            .ok_or(DurableError::Corrupt(
+                "selected source member absent from committed receipt",
+            ))?;
+        if committed_member.get::<_, Option<i32>>("source_mode")
+            != row.get::<_, Option<i32>>("source_mode")
+            || committed_member.get::<_, Option<Vec<String>>>("source_dependencies")
+                != row.get::<_, Option<Vec<String>>>("source_dependencies")
+        {
+            return Err(DurableError::Corrupt(
+                "selected source owner metadata differs from committed member",
+            ));
+        }
+        let (raw, placement, work) = store.read_selected_fenced(
+            &prepare_id,
+            as_u64(attempt.get("attempt_fence"))?,
+            Digest256::from_hex(&row.get::<_, String>("sto_receipt_id"))
+                .map_err(|_| DurableError::Corrupt("selected source receipt digest"))?,
+            &binding,
+            max_bytes,
+            deadline,
+            cancelled,
+        )?;
+        check_history_placement(
+            &row,
+            &placement,
+            &binding,
+            &prepare_id,
+            domain,
+            subject,
+            revision,
+        )?;
+        check_history_placement(
+            &committed_member,
+            &placement,
+            &binding,
+            &prepare_id,
+            domain,
+            subject,
+            revision,
+        )?;
+        if let Some(current) = &current {
+            check_history_placement(
+                current,
+                &placement,
+                &binding,
+                &prepare_id,
+                domain,
+                subject,
+                revision,
+            )?;
+        }
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(DurableError::Refused(
+                "selected source read deadline or cancellation",
+            ));
+        }
+        tx.commit()?;
+        Ok((
+            current.unwrap_or(row),
+            raw,
+            placement,
+            CommittedSourceReadWork {
+                custody_metadata_bytes_read: work.custody_metadata_bytes_read,
+                segment_bytes_read: work.segment_bytes_read,
+                committed_member_rows_examined: member_count + 1,
+            },
+        ))
     }
 
     /// Current local rights stay locked through selected frame verification
@@ -3506,6 +3702,13 @@ fn receipt_from_committed_attempt(
     tx: &mut Transaction<'_>,
     attempt: &postgres::Row,
 ) -> DurableResult<DurableCommitReceipt> {
+    receipt_from_committed_attempt_with_count(tx, attempt).map(|(receipt, _)| receipt)
+}
+
+fn receipt_from_committed_attempt_with_count(
+    tx: &mut Transaction<'_>,
+    attempt: &postgres::Row,
+) -> DurableResult<(DurableCommitReceipt, u64)> {
     let domain: String = attempt.get("domain");
     let prepare_id: Vec<u8> = attempt.get("prepare_id");
     let command_id: String = attempt.get("command_id");
@@ -3554,7 +3757,7 @@ fn receipt_from_committed_attempt(
         return Err(DurableError::Corrupt("committed outbox event differs"));
     }
     let members = tx.query(
-        "SELECT * FROM cmd2_member WHERE domain=$1 AND prepare_id=$2 ORDER BY member_slot",
+        "SELECT * FROM cmd2_member WHERE domain=$1 AND prepare_id=$2 ORDER BY member_slot LIMIT 65",
         &[&domain, &prepare_id],
     )?;
     if members.is_empty() || members.len() > MAX_MEMBERS {
@@ -3588,16 +3791,19 @@ fn receipt_from_committed_attempt(
     if receipt_hasher.finalize().to_hex() != receipt_digest {
         return Err(DurableError::Corrupt("committed receipt digest differs"));
     }
-    Ok(DurableCommitReceipt {
-        domain,
-        prepare_id,
-        command_id,
-        commit_seq: commit_seq_u64,
-        raw_request_digest: parse_hex(raw_request_digest)?,
-        delta_digest: parse_hex(delta_digest)?,
-        member_root: members_root_digest,
-        replayed: false,
-    })
+    Ok((
+        DurableCommitReceipt {
+            domain,
+            prepare_id,
+            command_id,
+            commit_seq: commit_seq_u64,
+            raw_request_digest: parse_hex(raw_request_digest)?,
+            delta_digest: parse_hex(delta_digest)?,
+            member_root: members_root_digest,
+            replayed: false,
+        },
+        members.len() as u64,
+    ))
 }
 
 fn check_history_locator(
@@ -3607,31 +3813,56 @@ fn check_history_locator(
     subject: &str,
     revision: u64,
 ) -> DurableResult<()> {
-    let coordinate = receipt.coordinate();
+    if receipt.custody_domain() != domain.as_bytes() {
+        return Err(DurableError::Corrupt(
+            "committed locator custody domain differs",
+        ));
+    }
+    check_history_placement(
+        row,
+        &receipt.placement(),
+        receipt.binding(),
+        receipt.prepare_id(),
+        domain,
+        subject,
+        revision,
+    )
+}
+
+fn check_history_placement(
+    row: &postgres::Row,
+    placement: &PlacementV1,
+    binding: &OwnerBinding,
+    prepare_id: &[u8],
+    domain: &str,
+    subject: &str,
+    revision: u64,
+) -> DurableResult<()> {
+    let coordinate = placement.coordinate();
     if row.get::<_, String>("domain") != domain
         || row.get::<_, String>("subject") != subject
-        || !source_cohort::known_profile(&receipt.binding().profile_id)
-        || receipt.binding().profile_version != PROFILE_VERSION
-        || receipt.binding().subject_key != subject.as_bytes()
+        || !source_cohort::known_profile(&binding.profile_id)
+        || binding.profile_version != PROFILE_VERSION
+        || binding.subject_key != subject.as_bytes()
         || row.get::<_, i64>("revision") != as_i64(revision)?
-        || row.get::<_, i32>("member_slot") != receipt.binding().member_slot as i32
-        || row.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id()
-        || row.get::<_, String>("profile_id").as_bytes() != receipt.binding().profile_id
+        || row.get::<_, i32>("member_slot") != binding.member_slot as i32
+        || row.get::<_, Vec<u8>>("prepare_id") != prepare_id
+        || row.get::<_, String>("profile_id").as_bytes() != binding.profile_id
         || row.get::<_, String>("profile_version") != "1"
-        || row.get::<_, Vec<u8>>("store_id") != receipt.store_id()
-        || row.get::<_, String>("custody_domain_digest") != receipt.domain_digest().to_hex()
-        || row.get::<_, Vec<u8>>("custody_domain") != receipt.custody_domain()
-        || row.get::<_, Vec<u8>>("pin_id") != receipt.pin_id()
-        || row.get::<_, i64>("pin_fence") != as_i64(receipt.fence_epoch())?
-        || row.get::<_, String>("segment_digest") != receipt.segment_digest().to_hex()
-        || row.get::<_, i64>("segment_size") != as_i64(receipt.segment_size())?
-        || row.get::<_, i32>("frame_index") != receipt.frame_index() as i32
+        || row.get::<_, Vec<u8>>("store_id") != placement.store_id()
+        || row.get::<_, String>("custody_domain_digest") != placement.domain_digest().to_hex()
+        || row.get::<_, Vec<u8>>("custody_domain") != domain.as_bytes()
+        || row.get::<_, Vec<u8>>("pin_id") != placement.pin_id()
+        || row.get::<_, i64>("pin_fence") != as_i64(placement.fence_epoch())?
+        || row.get::<_, String>("segment_digest") != placement.segment_digest().to_hex()
+        || row.get::<_, i64>("segment_size") != as_i64(placement.segment_size())?
+        || row.get::<_, i32>("frame_index") != placement.frame_index() as i32
         || row.get::<_, i64>("frame_header_offset") != as_i64(coordinate.header_offset)?
         || row.get::<_, String>("frame_digest") != coordinate.sha256.to_hex()
         || row.get::<_, i64>("frame_length") != as_i64(coordinate.size_bytes)?
         || row.get::<_, String>("content_digest") != coordinate.sha256.to_hex()
         || row.get::<_, i64>("content_length") != as_i64(coordinate.size_bytes)?
-        || row.get::<_, String>("sto_receipt_id") != receipt.receipt_id().to_hex()
+        || row.get::<_, String>("sto_receipt_id") != placement.receipt_id().to_hex()
         || row.get::<_, String>("durability_class") != "LinuxFileAndDirectorySyncReopenSha256V1"
     {
         return Err(DurableError::Corrupt(

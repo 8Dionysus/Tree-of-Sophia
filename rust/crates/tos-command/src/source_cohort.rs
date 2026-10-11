@@ -38,6 +38,8 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 /// mistaken for an initial source member or a maintained Agent creation.
 pub(super) const REVISION: &[u8] = b"tos.source-file.revision-v1";
 
+#[path = "source_cohort_creation.rs"]
+pub(crate) mod creation;
 #[path = "source_cohort_revision.rs"]
 pub(crate) mod revision;
 
@@ -50,7 +52,7 @@ pub(crate) struct ManagedManifestSelectionV2 {
     pub manifest_digest: Digest256,
 }
 
-type IndexRows = BTreeSet<(String, String, String)>;
+pub(crate) type IndexRows = BTreeSet<(String, String, String)>;
 type ProjectionRows = BTreeMap<String, Vec<u8>>;
 
 /// Exact complete compact inventory basis; not source/semantic admission.
@@ -426,6 +428,7 @@ enum SourceRegistrationBasis<'a> {
     CommittedReplay,
 }
 
+#[derive(Clone)]
 pub(crate) struct SourceReads {
     pub(crate) reads: Vec<PredicateRead>,
     pub(crate) locators: BTreeMap<String, Digest256>,
@@ -544,6 +547,12 @@ pub(super) enum CommitMode<'a> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     },
+    PgCreation {
+        attempt: &'a creation::PgAgentCreationAttempt,
+        owner_check: &'a dyn Fn() -> DurableResult<()>,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    },
 }
 
 fn source_error(error: cmd::SourceCommandError) -> DurableError {
@@ -591,7 +600,10 @@ fn definition() -> Digest256 {
         for bytes in [
             include_bytes!("source_cohort.rs").as_slice(),
             include_bytes!("source_cohort_revision.rs").as_slice(),
+            include_bytes!("source_cohort_creation.rs").as_slice(),
             include_bytes!("source_creation.rs").as_slice(),
+            include_bytes!("source_creation_pg.rs").as_slice(),
+            include_bytes!("source_native_pg_creation_cli.rs").as_slice(),
             include_bytes!("source_claims.rs").as_slice(),
             include_bytes!("source_forms.rs").as_slice(),
             include_bytes!("source_revisions.rs").as_slice(),
@@ -603,7 +615,14 @@ fn definition() -> Digest256 {
     })
 }
 pub(super) fn known_profile(profile: &[u8]) -> bool {
-    [PROFILE_ID, ORIGINAL, CREATION, REVISION].contains(&profile)
+    [
+        PROFILE_ID,
+        ORIGINAL,
+        CREATION,
+        REVISION,
+        creation::PG_CREATION,
+    ]
+    .contains(&profile)
 }
 pub(super) fn check_source_member(
     profile: &[u8],
@@ -611,7 +630,7 @@ pub(super) fn check_source_member(
 ) -> DurableResult<()> {
     let valid_path =
         member.subject.starts_with("ToS/") && RelativePath::parse(&member.subject).is_ok();
-    let initial = [ORIGINAL, CREATION].contains(&profile)
+    let initial = [ORIGINAL, CREATION, creation::PG_CREATION].contains(&profile)
         && member.expected_predecessor.is_none()
         && member.proposed_revision == 1;
     let successor = profile == REVISION
@@ -641,6 +660,7 @@ pub(super) fn check_writer_profile(
     if (profile == PROFILE_ID && managed)
         || (profile == ORIGINAL && (!managed || row.get::<_, bool>(1)))
         || (profile == CREATION && (!managed || !row.get::<_, bool>(1)))
+        || (profile == creation::PG_CREATION && (!managed || !row.get::<_, bool>(1)))
         || (profile == REVISION && (!managed || !row.get::<_, bool>(1)))
         || !known_profile(profile)
     {
@@ -4920,7 +4940,7 @@ impl DurablePgCoordinator {
             return Err(DurableError::Invalid("source revision member count"));
         }
         let state = self.resolve_attempt(&attempt.domain, &attempt.prepare_id)?;
-        let receipts = match state {
+        let receipts: Vec<ByteDurabilityReceipt> = match state {
             AttemptResolution::Registered => {
                 let members =
                     match store.recover_attempt_fenced(&attempt.prepare_id, attempt.fence, 0)? {
@@ -6239,7 +6259,9 @@ impl DurablePgCoordinator {
                 if row.get::<_, String>("definition_version") != definition().to_hex()
                     || !["unique", "range"].contains(&kind.as_str())
                     || (kind == "range"
-                        && !["source-home", "source-inventory"].contains(&scope.as_str()))
+                        && !["source-home", "source-inventory"].contains(&scope.as_str())
+                        && !(scope == creation::DEPENDENCY_SCOPE
+                            && token == creation::COMMITMENT_VERSION.to_string()))
                     || (scope == "source-inventory" && token != "all")
                     || (kind == "unique"
                         && !["metadata", "claim", "event", "anchor", "form", "path"]
@@ -6358,7 +6380,9 @@ impl DurablePgCoordinator {
                         "original source bytes/profile changed",
                     ));
                 }
-            } else if receipt.binding().profile_id != CREATION
+            } else if ![CREATION, creation::PG_CREATION]
+                .iter()
+                .any(|profile| receipt.binding().profile_id.as_slice() == *profile)
                 || carrier.mode != 0o644
                 || carrier.dependencies.is_none()
             {
@@ -7159,6 +7183,19 @@ pub(super) fn check_commit_owner(
             active(*deadline, cancelled)?;
             Ok(())
         }
+        CommitMode::PgCreation {
+            attempt,
+            owner_check,
+            ..
+        } => creation::check_commit_owner(
+            tx,
+            request,
+            registered,
+            members,
+            attempt,
+            *owner_check,
+            replayed,
+        ),
     }
 }
 
@@ -7304,6 +7341,9 @@ pub(super) fn apply_source_change(
             )?;
             Ok(())
         }
+        CommitMode::PgCreation { attempt, .. } => {
+            creation::apply_source_change(tx, request, attempt, seq)
+        }
     }
 }
 
@@ -7320,6 +7360,9 @@ pub(super) fn verify_owner_before_outcome(mode: &CommitMode<'_>) -> DurableResul
                 .map_err(source_error)?;
         }
         CommitMode::Revision { owner_check, .. } => owner_check()?,
+        CommitMode::PgCreation { owner_check, .. } => {
+            creation::verify_owner_before_outcome(*owner_check)?
+        }
         CommitMode::Shadow | CommitMode::Bootstrap => {}
     }
     Ok(())

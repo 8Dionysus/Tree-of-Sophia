@@ -201,6 +201,9 @@ pub struct DurableProjectionWork {
     pub examined_event_members: u64,
     pub exact_source_members_read: u64,
     pub exact_source_bytes_read: u64,
+    pub custody_metadata_bytes_read: u64,
+    pub segment_bytes_read: u64,
+    pub committed_member_rows_examined: u64,
     pub extracted_documents: u64,
     pub published_source_paths: u64,
     pub published_documents: u64,
@@ -225,6 +228,15 @@ impl DurableProjectionWork {
         checked(
             &mut self.exact_source_bytes_read,
             other.exact_source_bytes_read,
+        )?;
+        checked(
+            &mut self.custody_metadata_bytes_read,
+            other.custody_metadata_bytes_read,
+        )?;
+        checked(&mut self.segment_bytes_read, other.segment_bytes_read)?;
+        checked(
+            &mut self.committed_member_rows_examined,
+            other.committed_member_rows_examined,
         )?;
         checked(&mut self.extracted_documents, other.extracted_documents)?;
         checked(
@@ -706,9 +718,16 @@ impl DurablePgCoordinator {
                 return Err(DurableError::Refused("projection event deadline exceeded"));
             }
             validate_relative_path(&member.source_path)?;
-            let recovered =
-                self.cold_recover_exact(store, domain, &member.source_path, member.revision)?;
-            let bytes = self.warm_read_selected(store, &recovered, limits.max_event_bytes)?;
+            let (_, bytes, _, source_work) = self.read_committed_source_selected(
+                store,
+                domain,
+                &member.source_path,
+                Some(member.revision),
+                limits.max_event_bytes,
+                deadline,
+                &std::sync::atomic::AtomicBool::new(false),
+                |_| Ok(()),
+            )?;
             if Instant::now() >= deadline {
                 return Err(DurableError::Refused("projection event deadline exceeded"));
             }
@@ -720,6 +739,27 @@ impl DurablePgCoordinator {
             staged.work.exact_source_members_read += 1;
             // The checked event-byte sum already bounds these payload bytes.
             staged.work.exact_source_bytes_read += bytes.len() as u64;
+            staged.work.custody_metadata_bytes_read = staged
+                .work
+                .custody_metadata_bytes_read
+                .checked_add(source_work.custody_metadata_bytes_read)
+                .ok_or(DurableError::Refused(
+                    "projection custody metadata byte overflow",
+                ))?;
+            staged.work.segment_bytes_read = staged
+                .work
+                .segment_bytes_read
+                .checked_add(source_work.segment_bytes_read)
+                .ok_or(DurableError::Refused(
+                    "projection segment read byte overflow",
+                ))?;
+            staged.work.committed_member_rows_examined = staged
+                .work
+                .committed_member_rows_examined
+                .checked_add(source_work.committed_member_rows_examined)
+                .ok_or(DurableError::Refused(
+                    "projection committed member count overflow",
+                ))?;
             let documents = extractor.extract(&member.source_path, member.revision, &bytes)?;
             if Instant::now() >= deadline {
                 return Err(DurableError::Refused("projection event deadline exceeded"));

@@ -325,19 +325,19 @@ pub(super) fn run(
         cancelled,
     )?;
     let owner = cmd::parse(&owner_raw)?;
-    if text(&owner, "schema_version")? != "tos_local_corpus_revision_owner_v1" {
+    if cmd::text(&owner, "schema_version")? != "tos_local_corpus_revision_owner_v1" {
         return Err(SourceCommandError::Unsupported(
             "PostgreSQL flat corpus revision owner",
         ));
     }
     let request_raw = request_bytes(input)?;
     let request = cmd::parse(&request_raw)?;
-    if text(&request, "schema_version")? != "tos_local_source_command_v1" {
+    if cmd::text(&request, "schema_version")? != "tos_local_source_command_v1" {
         return Err(SourceCommandError::Unsupported(
             "PostgreSQL record revision request profile",
         ));
     }
-    let operation = text(&request, "operation")?;
+    let operation = cmd::text(&request, "operation")?;
     if !matches!(operation, "describe" | "prepare-revise" | "record.revise") {
         return Err(SourceCommandError::Unsupported(
             "PostgreSQL record revision operation",
@@ -349,12 +349,12 @@ pub(super) fn run(
         .ok_or(SourceCommandError::Invalid(
             "PostgreSQL source store root UTF-8",
         ))?;
-    if text(&owner, "source_root")? != selected_store_root {
+    if cmd::text(&owner, "source_root")? != selected_store_root {
         return Err(SourceCommandError::Denied(
             "PostgreSQL owner root differs from selected STO root",
         ));
     }
-    let source_path = text(&owner, "source_path")?;
+    let source_path = cmd::text(&owner, "source_path")?;
     RelativePath::parse(source_path)
         .map_err(|_| SourceCommandError::Invalid("PostgreSQL revision source path"))?;
     let store = SegmentStore::open_existing(&selection.store_root, selection.store_limits)
@@ -411,8 +411,23 @@ pub(super) fn run(
     owner_fs.current_context(prepared.context(), deadline, cancelled)?;
 
     let mut result = value(&prepared.proposal().response)?;
+    // Transport work is reported separately from physical I/O and software
+    // capture reads. The counters charge repeated source reads as performed;
+    // they are not the cardinality of the deduplicated admission readset.
+    let source_work = readset.work;
+    result["source_read_work"] = json!({
+        "scope":"bounded PG/STO source selection; software capture and physical I/O excluded",
+        "exact_source_members_read":source_work.exact_source_members_read,
+        "exact_source_bytes_read":source_work.exact_source_bytes_read,
+        "custody_metadata_bytes_read":source_work.custody_metadata_bytes_read,
+        "segment_bytes_read":source_work.segment_bytes_read,
+        "committed_member_rows_examined":source_work.committed_member_rows_examined,
+        "metadata_member_lookups":source_work.metadata_member_lookups,
+        "directory_index_rows_examined":source_work.directory_index_rows_examined,
+        "unique_index_lookups":source_work.unique_index_lookups,
+    });
     if operation == "record.revise" {
-        let command_id = text(&request, "command_id")?;
+        let command_id = cmd::text(&request, "command_id")?;
         let prepare_id = prepare_id(&selection.domain, command_id);
         let attempt = if prepared.proposal().replayed {
             db.recover_source_revision_attempt(

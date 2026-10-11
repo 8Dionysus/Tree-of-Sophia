@@ -14,6 +14,11 @@ use std::sync::atomic::AtomicBool;
 const MAX_CHILDREN: usize = 64;
 const MAX_RETAINED_STATE_BYTES: usize = 64 * 1024 * 1024;
 
+/// The bounded initial Agent route treats these five identity namespaces as a
+/// single uniqueness domain.  Keep the list with the PG transport so the
+/// absence probes and their generation predicates cannot drift apart.
+pub(crate) const PG_AGENT_INDEX_KINDS: [&str; 5] = ["metadata", "claim", "event", "anchor", "form"];
+
 #[derive(Clone, Debug)]
 pub(crate) struct SourceRevisionSelection {
     pub(crate) cohort: ManagedSourceCohort,
@@ -118,6 +123,37 @@ pub(crate) struct SourceRevisionReadSet {
     pub(crate) selection: SourceRevisionSelection,
     pub(crate) reads: SourceReads,
     pub(crate) observations: BTreeMap<String, SourceRevisionObservation>,
+    pub(crate) work: SourceRevisionReadWork,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PgSourceHomeObservation {
+    pub(crate) parent: RelativePath,
+    pub(crate) children: Vec<(String, bool)>,
+    pub(crate) generation: u64,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PgSourceUniqueIndexObservation {
+    pub(crate) kind: String,
+    pub(crate) token: String,
+    pub(crate) rows: Vec<(String, String)>,
+    pub(crate) generation: u64,
+}
+
+/// Bounded source transport accounting. These counters describe work actually
+/// performed by the selected PG/STO route; they are not a claim that a
+/// complete source inventory was observed.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct SourceRevisionReadWork {
+    pub(crate) exact_source_members_read: u64,
+    pub(crate) exact_source_bytes_read: u64,
+    pub(crate) custody_metadata_bytes_read: u64,
+    pub(crate) segment_bytes_read: u64,
+    pub(crate) committed_member_rows_examined: u64,
+    pub(crate) metadata_member_lookups: u64,
+    pub(crate) directory_index_rows_examined: u64,
+    pub(crate) unique_index_lookups: u64,
 }
 
 pub(crate) struct SourceRevisionReadSession<'a> {
@@ -128,6 +164,25 @@ pub(crate) struct SourceRevisionReadSession<'a> {
     observations: BTreeMap<String, SourceRevisionObservation>,
     retained_state_bytes: usize,
     predicate_reads: BTreeSet<(String, String, String)>,
+    work: SourceRevisionReadWork,
+}
+
+impl SourceRevisionReadSet {
+    pub(crate) fn selection(&self) -> &SourceRevisionSelection {
+        &self.selection
+    }
+
+    pub(crate) fn reads(&self) -> &SourceReads {
+        &self.reads
+    }
+
+    pub(crate) fn observations(&self) -> &BTreeMap<String, SourceRevisionObservation> {
+        &self.observations
+    }
+
+    pub(crate) fn work(&self) -> SourceRevisionReadWork {
+        self.work
+    }
 }
 
 impl DurablePgCoordinator {
@@ -170,6 +225,7 @@ impl DurablePgCoordinator {
             observations: BTreeMap::new(),
             retained_state_bytes: 0,
             predicate_reads: BTreeSet::new(),
+            work: SourceRevisionReadWork::default(),
         };
         let result = operation(&mut session)?;
         session.verify_fresh(deadline, cancelled)?;
@@ -177,6 +233,7 @@ impl DurablePgCoordinator {
             selection: session.selection.clone(),
             reads: session.reads,
             observations: session.observations,
+            work: session.work,
         };
         Ok((result, readset))
     }
@@ -302,6 +359,269 @@ impl DurablePgCoordinator {
 impl SourceRevisionReadSession<'_> {
     pub(crate) fn selection(&self) -> &SourceRevisionSelection {
         &self.selection
+    }
+
+    pub(crate) fn work(&self) -> SourceRevisionReadWork {
+        self.work
+    }
+
+    fn charge_work(counter: &mut u64, amount: u64) -> DurableResult<()> {
+        *counter = counter
+            .checked_add(amount)
+            .ok_or(DurableError::Refused("bounded source read work overflow"))?;
+        Ok(())
+    }
+
+    fn observe_predicate_generation(
+        &mut self,
+        kind: PredicateKind,
+        scope: &str,
+        token: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<u64> {
+        active(deadline, cancelled)?;
+        if scope.is_empty() || token.is_empty() {
+            return Err(DurableError::Invalid(
+                "bounded source predicate identity empty",
+            ));
+        }
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence
+             WHERE domain=$1 FOR SHARE",
+            &[&self.selection.cohort.domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict(
+                "bounded source predicate audit fence changed",
+            ));
+        }
+        let gate = tx.query_one(
+            "SELECT rights_allowed,source_complete,source_generation,source_epoch,
+                    contract_digest,source_definition_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&self.selection.cohort.domain],
+        )?;
+        if !gate.get::<_, bool>(0)
+            || !gate.get::<_, bool>(1)
+            || gate.get::<_, Option<i64>>(2) != Some(as_i64(self.selection.source_generation)?)
+            || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.epoch)?)
+            || gate.get::<_, String>(4) != self.selection.contract.to_hex()
+            || gate.get::<_, Option<String>>(5) != Some(self.selection.cohort.definition.to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "bounded source predicate read epoch changed",
+            ));
+        }
+        let kind_text = kind.as_str();
+        let predicate = tx.query_opt(
+            "SELECT generation,complete,definition_version FROM cmd2_predicate
+             WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5",
+            &[
+                &self.selection.cohort.domain,
+                &kind_text,
+                &OWNER,
+                &scope,
+                &token,
+            ],
+        )?;
+        let generation = predicate
+            .as_ref()
+            .map(|row| as_u64(row.get(0)))
+            .transpose()?
+            .unwrap_or(0);
+        if predicate.as_ref().is_some_and(|row| {
+            !row.get::<_, bool>(1)
+                || row.get::<_, String>(2) != self.selection.cohort.definition.to_hex()
+        }) {
+            return Err(DurableError::Conflict(
+                "bounded source predicate definition differs",
+            ));
+        }
+        tx.commit()?;
+        self.record_predicate(kind_text, scope, token, generation);
+        Ok(generation)
+    }
+
+    /// Record and verify that the complete source-home prefix is empty. The
+    /// C-collated half-open range is an indexed existence check, not a corpus
+    /// directory scan.
+    pub(crate) fn observe_home_absence(
+        &mut self,
+        home: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<PgSourceHomeObservation> {
+        active(deadline, cancelled)?;
+        let home = home.as_str();
+        if !home.starts_with("ToS/") || home.ends_with('/') {
+            return Err(DurableError::Invalid("bounded source home path"));
+        }
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence
+             WHERE domain=$1 FOR SHARE",
+            &[&self.selection.cohort.domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict(
+                "bounded source home audit fence changed",
+            ));
+        }
+        let lower = format!("{home}/");
+        let upper = format!("{home}0");
+        if tx
+            .query_opt(
+                "SELECT subject FROM cmd2_current
+                 WHERE domain=$1 AND subject=$2
+                 LIMIT 1",
+                &[&self.selection.cohort.domain, &home],
+            )?
+            .is_some()
+        {
+            return Err(DurableError::Conflict(
+                "bounded source home is already occupied",
+            ));
+        }
+        if tx
+            .query_opt(
+                "SELECT subject FROM cmd2_current
+                 WHERE domain=$1
+                   AND subject COLLATE \"C\" >= $2 COLLATE \"C\"
+                   AND subject COLLATE \"C\" < $3 COLLATE \"C\"
+                 ORDER BY subject COLLATE \"C\" LIMIT 1",
+                &[&self.selection.cohort.domain, &lower, &upper],
+            )?
+            .is_some()
+        {
+            return Err(DurableError::Conflict(
+                "bounded source home is already occupied",
+            ));
+        }
+        tx.commit()?;
+        let generation = self.observe_predicate_generation(
+            PredicateKind::Range,
+            "source-home",
+            home,
+            deadline,
+            cancelled,
+        )?;
+        Ok(PgSourceHomeObservation {
+            parent: RelativePath::parse(home)
+                .map_err(|_| DurableError::Invalid("bounded source home path"))?,
+            children: Vec::new(),
+            generation,
+        })
+    }
+
+    /// Record a point unique-identity observation. Only the fixed owner index
+    /// kinds are admitted by the bounded Agent-creation route.
+    pub(crate) fn observe_unique_index(
+        &mut self,
+        kind: &str,
+        token: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<PgSourceUniqueIndexObservation> {
+        if !PG_AGENT_INDEX_KINDS.contains(&kind) {
+            return Err(DurableError::Refused(
+                "bounded source unique index kind is outside Agent profile",
+            ));
+        }
+        if token.is_empty() {
+            return Err(DurableError::Invalid("bounded source unique token empty"));
+        }
+        active(deadline, cancelled)?;
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence
+             WHERE domain=$1 FOR SHARE",
+            &[&self.selection.cohort.domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+        {
+            return Err(DurableError::Conflict(
+                "bounded source unique audit fence changed",
+            ));
+        }
+        let kinds = PG_AGENT_INDEX_KINDS
+            .iter()
+            .map(|kind| (*kind).to_owned())
+            .collect::<Vec<_>>();
+        if tx
+            .query_opt(
+                "SELECT 1 FROM cmd2_source_index
+                 WHERE domain=$1 AND kind=ANY($2) AND token=$3 LIMIT 1",
+                &[&self.selection.cohort.domain, &kinds, &token],
+            )?
+            .is_some()
+        {
+            return Err(DurableError::Conflict(
+                "bounded source unique identity is already occupied",
+            ));
+        }
+        tx.commit()?;
+        Self::charge_work(&mut self.work.unique_index_lookups, 1)?;
+        // A token is unique across the five fixed namespaces.  Record every
+        // namespace's generation in the readset so a later write in any one
+        // of them invalidates this admission.
+        let mut generation = None;
+        for observed_kind in PG_AGENT_INDEX_KINDS {
+            let observed = self.observe_predicate_generation(
+                PredicateKind::Unique,
+                observed_kind,
+                token,
+                deadline,
+                cancelled,
+            )?;
+            if observed_kind == kind {
+                generation = Some(observed);
+            }
+        }
+        Ok(PgSourceUniqueIndexObservation {
+            kind: kind.to_owned(),
+            token: token.to_owned(),
+            rows: Vec::new(),
+            generation: generation.ok_or(DurableError::Corrupt(
+                "bounded source unique generation missing",
+            ))?,
+        })
+    }
+
+    /// Bind the semantic dependency commitment to its own invalidation
+    /// predicate. This is intentionally separate from the legacy complete
+    /// `source-inventory/all` range used by cold creation.
+    pub(crate) fn observe_dependency_commitment(
+        &mut self,
+        version: u16,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<u64> {
+        let scope = match version {
+            1 => "source-dependencies-v1",
+            2 => "source-dependencies-v2",
+            _ => {
+                return Err(DurableError::Refused(
+                    "bounded source dependency commitment version",
+                ));
+            }
+        };
+        self.observe_predicate_generation(
+            PredicateKind::Range,
+            scope,
+            &version.to_string(),
+            deadline,
+            cancelled,
+        )
     }
 
     fn record_exact_metadata(
@@ -458,19 +778,41 @@ impl SourceRevisionReadSession<'_> {
                 "bounded source revision path outside authored namespace",
             ));
         }
-        let member = self.coordinator.read_source_member_bound(
+        let (row, raw, placement, work) = self.coordinator.read_committed_source_selected(
             self.store,
-            &self.selection.cohort,
+            &self.selection.cohort.domain,
+            path.as_str(),
             None,
-            path,
             max_bytes,
             deadline,
             cancelled,
+            |row| cohort_matches(row, &self.selection.cohort, true),
         )?;
-        let locator = self.coordinator.source_member_locator_digest(
-            &self.selection.cohort,
-            path,
-            member.custody_revision,
+        let (metadata, dependency_claims) = expose_metadata(&row, path)?;
+        let locator = metadata_locator_digest(&row);
+        let member = ManagedCurrentMember {
+            path: path.clone(),
+            custody_revision: as_u64(row.get("revision"))?,
+            current_generation: self.selection.head_seq,
+            commit_seq: as_u64(row.get("commit_seq"))?,
+            raw,
+            metadata,
+            dependency_claims,
+            placement,
+        };
+        Self::charge_work(&mut self.work.exact_source_members_read, 1)?;
+        Self::charge_work(
+            &mut self.work.exact_source_bytes_read,
+            member.raw.len() as u64,
+        )?;
+        Self::charge_work(
+            &mut self.work.custody_metadata_bytes_read,
+            work.custody_metadata_bytes_read,
+        )?;
+        Self::charge_work(&mut self.work.segment_bytes_read, work.segment_bytes_read)?;
+        Self::charge_work(
+            &mut self.work.committed_member_rows_examined,
+            work.committed_member_rows_examined,
         )?;
         self.record_exact(member, locator)?;
         Ok(self
@@ -562,6 +904,7 @@ impl SourceRevisionReadSession<'_> {
                 &[&self.selection.cohort.domain, &lower, &upper, &inclusive],
             )?;
             let Some(row) = row else { break };
+            Self::charge_work(&mut self.work.directory_index_rows_examined, 1)?;
             let subject: String = row.get("subject");
             let rest = subject
                 .strip_prefix(&prefix)
@@ -710,6 +1053,8 @@ impl ReadonlyRecordFiles for SourceRevisionReadSession<'_> {
                 &[&self.selection.cohort.domain, &path.as_str()],
             )
             .map_err(|error| source_command_error(DurableError::Database(error)))?;
+        Self::charge_work(&mut self.work.metadata_member_lookups, 1)
+            .map_err(source_command_error)?;
         let Some(row) = row else {
             tx.commit()
                 .map_err(|error| source_command_error(DurableError::Database(error)))?;

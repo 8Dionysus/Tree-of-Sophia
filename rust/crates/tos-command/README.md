@@ -6,7 +6,12 @@ The crate owns source command preparation and durable PostgreSQL/STO transaction
 
 The former CMD1 `PgCoordinator`, synthetic byte references, independent SQL schema and protocol-only test target are retired. Their useful conflict, ordered commit, current authority, retained history, rollback, replay and closed-cut integrity obligations execute on the durable path. Real managed creation exercises form-identity and source-home phantom generations, definition/completeness refusal and unchanged projections on refusal. The earlier synthetic prefix/reverse/interval names did not establish any maintained source reader or completeness law; their removal grants no corresponding affected admission.
 
-The current managed source preparation still uses a complete v1 immutable manifest and complete authored input inventory. Explicit successor selection performs O(N) manifest/hash/fixity work and retained-base-chain opening outside commit locks. Creation reads still bind the entire verified current file set and globally invalidate the consumed inventory. Addressed durable predicates alone do not make the maintained command scalable. A versioned indexed source carrier and owner-derived dependency contract are still required before that coupling can change; no cap increase or weaker v1 root substitutes for them.
+The v1 cut-based managed source preparation uses a complete immutable manifest
+and authored input inventory. Successor selection performs O(N)
+manifest/hash/fixity work and retained-base-chain opening outside commit locks;
+its creation reads bind the entire verified file set. The explicit PostgreSQL
+record-revision and initial-Agent routes below select a bounded source readset
+instead. Other source-command families still use their declared cut-based route.
 
 ## Private PostgreSQL source-text projection
 
@@ -19,6 +24,14 @@ commits those rows and its progress position together. Failed extraction or
 publication leaves the event pending; a fresh process resumes committed progress.
 The source history and outbox are retained. This initial direct-source profile
 has no inferred cross-record dependencies.
+
+Source reads verify the selected STO frame and its envelope against the exact
+committed locator, fenced intent and sealed pin. They return bytes without
+constructing a new durability receipt. Commit admission and cold recovery retain
+whole-segment verification; damage to an unrelated frame is detected by that
+frame's read or a cold audit. Work counters distinguish selected source bytes,
+segment bytes including envelopes, custody metadata and committed-member rows.
+These are logical read counts; device I/O is measured separately.
 
 The native owner entry is:
 
@@ -85,8 +98,8 @@ The CLI's initial event limits are 64 changed members, 256 documents and 16 MiB
 of exact source input, with 1 MiB per document. They bound one compound event,
 not total corpus size. Oversized initial bootstrap events require a resumable
 bootstrap path; increasing these limits is not that implementation. Run under
-the normal host resource supervisor: deadlines are cooperative around existing
-STO recovery, and a single recovery call can exceed a shorter batch deadline.
+the normal host resource supervisor: deadlines are cooperative around database
+and filesystem calls.
 
 The source-text projection is not a general source-command migration, does not
 resolve every knowledge-graph join and does not replace CLI/HTTP/MCP/Worker
@@ -129,6 +142,35 @@ the selected STO and commits through the ordinary durable owner transaction.
 An exact command retry returns the retained commit receipt. Its result envelope
 has `grants_admission: false`: source admission, external rights, semantic
 acceptance, publication and canon remain separate owner decisions.
+
+## Native PostgreSQL initial Agent creation
+
+The ordinary `--invocation` route also has a bounded PG profile for initial
+Agent creation from `tos_local_corpus_create_owner_v2` owner configuration. It
+accepts only `prepare-create` and `source.create` requests under the existing
+`tos_local_source_command_v1` grammar. The owner configuration and current
+software capture remain separately selected, protected inputs.
+The invocation schema is `tos_local_pg_agent_creation_invocation_v1`.
+
+Its explicit `source_selection` names one existing domain, the exact source
+contract, private STO root and limits, plus an existing `job_id` and positive
+`job_fence`. The route uses the same PostgreSQL 16 NoTls numeric-loopback
+connection as the revision entry. It refuses an absent or changed lease and
+does not create or substitute one.
+
+Creation starts from the selected cohort's real bootstrap `SourceRevision`,
+kept distinct from the current typed PG generation identity. The adapter selects
+only the Agent request's addressed source references, schema closure and exact
+software components; it does not reopen a full `CorpusCutReader` or claim a
+complete authored inventory. The owner checks the requested source-home range
+and stable form/provenance identities through bounded PG observations, then
+binds those predicates to durable registration and commit. `prepare-create`
+returns the maintained preview without a durable attempt. `source.create`
+registers and commits the exact serialized package, with exact retries returning
+the same durable result fields and created paths from the retained attempt.
+Replay reports zero ordinary source-selection work separately from durable
+receipt metadata. The result has `grants_admission: false`; source admission,
+external rights, publication and canon remain separate decisions.
 
 Provide a nonempty `TOS_CMD_POSTGRES_URL` for a dedicated isolated PostgreSQL instance and run `cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture` from the OPS-integrated workspace. Explicit PG target execution fails closed without the URL. Destructive child/restore probes remain explicitly ignored and are not part of ordinary CI execution. Tests establish bounded mechanical behavior, not source or rights admission.
 

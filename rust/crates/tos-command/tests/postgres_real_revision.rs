@@ -6,18 +6,19 @@ use super::{Lab, ScratchRoot, contract_digest, database_url, limits};
 use postgres::{Client, NoTls};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
+use std::fs::{self, OpenOptions};
 use std::io::Read;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::os::unix::process::CommandExt;
+use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::sync::atomic::AtomicBool;
+use std::process::{Command, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 use tos_command::{
-    DurablePgCoordinator, DurableProjectionLimits, DurableProjectionProfile,
-    DurableProjectionSearch, DurableProjectionStatus,
+    DurablePgCoordinator, DurableProjectionExtractor, DurableProjectionLimits,
+    DurableProjectionProfile, DurableProjectionSearch, DurableProjectionStatus,
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, RelativePath, SourceRevision,
@@ -52,6 +53,9 @@ const SOFTWARE_COMPONENTS: &[&str] = &[
     "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
     "rust/crates/tos-command/src/source_creation.rs",
     "rust/crates/tos-command/src/source_creation_store.rs",
+    "rust/crates/tos-command/src/source_creation_pg.rs",
+    "rust/crates/tos-command/src/source_native_pg_creation_cli.rs",
+    "rust/crates/tos-command/src/source_cohort_creation.rs",
     "rust/crates/tos-command/src/source_serialization.rs",
     "rust/crates/tos-compiler/src/knowledge_normalization.rs",
     "rust/crates/tos-command/src/source_private_claim.rs",
@@ -63,6 +67,9 @@ const RECORD_PATH: &str = "ToS/source-witnesses/agents/parmenides-of-elea/agent.
 const FORMS_PATH: &str = "ToS/source-witnesses/agents/parmenides-of-elea/agent.human-forms.json";
 const HISTORY_PATH: &str =
     "ToS/source-witnesses/agents/parmenides-of-elea/source-revision-history.json";
+const CREATED_RECORD_PATH: &str = "ToS/source-witnesses/agents/pg-real-addition-fixture/agent.json";
+const CREATED_RECORD_ID: &str = "tos.agent.pg-real-addition-fixture";
+const CREATED_FORM_ID: &str = "tos.form.pg-real-addition-fixture.preferred-name";
 const FORM_IDS: &[&str] = &[
     "tos.form.parmenides-survival.parmenides.name-ru",
     "tos.form.parmenides-survival.parmenides.name-en",
@@ -614,12 +621,14 @@ fn invocation(
     binary: &Path,
     worker_path: &Path,
     invocation_path: &Path,
+    owner_config: &Path,
+    schema_version: &str,
 ) {
     let binary_digest = Digest256::of_bytes(&fs::read(binary).unwrap()).to_prefixed();
     let worker_digest = Digest256::of_bytes(&fs::read(worker_path).unwrap()).to_prefixed();
     let value = json!({
-        "schema_version":"tos_local_pg_record_revision_invocation_v1",
-        "owner_config":case.owner_config,
+        "schema_version":schema_version,
+        "owner_config":owner_config,
         "native_executable":binary,
         "native_executable_sha256":binary_digest,
         "source_selection":{
@@ -661,17 +670,8 @@ fn invocation(
 
 struct NativeInvocation {
     result: Value,
+    dropped_source_read_work: Option<Value>,
     resources: Value,
-}
-
-#[derive(Clone, Copy)]
-struct SelfUsage {
-    user_cpu_micros: u64,
-    system_cpu_micros: u64,
-    max_rss_bytes: u64,
-    input_block_operations: u64,
-    output_block_operations: u64,
-    proc_io: Option<(u64, u64)>,
 }
 
 fn proc_io_counters(pid: u32) -> Option<(u64, u64)> {
@@ -700,27 +700,347 @@ fn drain_bounded(mut stream: impl Read, cap: usize) -> std::io::Result<(Vec<u8>,
     }
 }
 
-fn self_usage() -> SelfUsage {
-    let mut usage: libc::rusage = unsafe { std::mem::zeroed() };
-    assert_eq!(
-        unsafe { libc::getrusage(libc::RUSAGE_SELF, &mut usage) },
-        0,
-        "test process resource snapshot is available"
-    );
-    let timeval_micros = |value: libc::timeval| {
-        u64::try_from(value.tv_sec)
-            .unwrap()
-            .saturating_mul(1_000_000)
-            .saturating_add(u64::try_from(value.tv_usec).unwrap())
-    };
-    SelfUsage {
-        user_cpu_micros: timeval_micros(usage.ru_utime),
-        system_cpu_micros: timeval_micros(usage.ru_stime),
-        max_rss_bytes: u64::try_from(usage.ru_maxrss).unwrap().saturating_mul(1024),
-        input_block_operations: u64::try_from(usage.ru_inblock).unwrap(),
-        output_block_operations: u64::try_from(usage.ru_oublock).unwrap(),
-        proc_io: proc_io_counters(std::process::id()),
+struct KillAfterFirstExtract {
+    marker: PathBuf,
+    calls: AtomicUsize,
+}
+
+impl tos_command::DurableProjectionExtractor for KillAfterFirstExtract {
+    fn extract(
+        &self,
+        source_path: &str,
+        revision: u64,
+        exact_source_bytes: &[u8],
+    ) -> tos_command::DurableResult<Vec<tos_command::DurableProjectionDocument>> {
+        let documents = tos_command::source_projection_cli::SourceTextExtractor.extract(
+            source_path,
+            revision,
+            exact_source_bytes,
+        )?;
+        if self.calls.fetch_add(1, Ordering::SeqCst) == 0 {
+            use std::io::Write;
+            let pending_marker = self.marker.with_extension("pending");
+            let mut marker = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(&pending_marker)
+                .expect("private projection interruption marker is created once");
+            marker
+                .write_all(b"production source extraction reached during event staging")
+                .unwrap();
+            marker.sync_all().unwrap();
+            drop(marker);
+            fs::rename(pending_marker, &self.marker)
+                .expect("ready marker appears only after its contents are durable");
+            loop {
+                thread::sleep(Duration::from_secs(1));
+            }
+        }
+        Ok(documents)
     }
+}
+
+/// Invoked only by the parent integration test after it has committed one
+/// real source event. The parent kills this process after the production
+/// extractor has run once, while `apply_projection_batch` stages that event.
+#[test]
+fn pg_real_projection_interrupt_child_entry() {
+    let Some(marker) = std::env::var_os("TOS_PG_REAL_PROJECTION_MARKER") else {
+        return;
+    };
+    let domain = std::env::var("TOS_PG_REAL_PROJECTION_DOMAIN").unwrap();
+    let consumer = std::env::var("TOS_PG_REAL_PROJECTION_CONSUMER").unwrap();
+    let store_root = PathBuf::from(std::env::var_os("TOS_PG_REAL_PROJECTION_STORE").unwrap());
+    let url = super::database_url();
+    let mut db = tos_command::DurablePgCoordinator::connect(&url).unwrap();
+    let store =
+        tos_segment_store::SegmentStore::open_existing(&store_root, super::limits()).unwrap();
+    let profile = tos_command::DurableProjectionProfile {
+        id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+        version: 1,
+        source_contract: super::contract_digest(),
+    };
+    let extractor = KillAfterFirstExtract {
+        marker: PathBuf::from(marker),
+        calls: AtomicUsize::new(0),
+    };
+    db.apply_projection_batch(
+        &store,
+        &domain,
+        &consumer,
+        &profile,
+        &extractor,
+        tos_command::DurableProjectionLimits {
+            max_events: 1,
+            ..tos_command::DurableProjectionLimits::default()
+        },
+    )
+    .expect("the child is killed while one real outbox event is in flight");
+    panic!("projection child unexpectedly completed before its parent killed it");
+}
+
+/// Opens the committed database through a new process after the extraction
+/// process was killed, then resumes from the still-committed projection cursor.
+#[test]
+fn pg_real_projection_resume_child_entry() {
+    if std::env::var_os("TOS_PG_REAL_PROJECTION_RESUME").is_none() {
+        return;
+    }
+    let domain = std::env::var("TOS_PG_REAL_PROJECTION_DOMAIN").unwrap();
+    let consumer = std::env::var("TOS_PG_REAL_PROJECTION_CONSUMER").unwrap();
+    let store_root = PathBuf::from(std::env::var_os("TOS_PG_REAL_PROJECTION_STORE").unwrap());
+    let mut db = tos_command::DurablePgCoordinator::connect(&super::database_url()).unwrap();
+    let store =
+        tos_segment_store::SegmentStore::open_existing(&store_root, super::limits()).unwrap();
+    let profile = tos_command::DurableProjectionProfile {
+        id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+        version: 1,
+        source_contract: super::contract_digest(),
+    };
+    let progress = db
+        .apply_projection_batch(
+            &store,
+            &domain,
+            &consumer,
+            &profile,
+            &tos_command::source_projection_cli::SourceTextExtractor,
+            tos_command::DurableProjectionLimits {
+                max_events: 1,
+                ..tos_command::DurableProjectionLimits::default()
+            },
+        )
+        .expect("fresh process resumes the committed source event");
+    assert!(matches!(
+        progress.status,
+        tos_command::DurableProjectionStatus::Current { .. }
+    ));
+    let work = serde_json::to_value(&progress.work).unwrap();
+    println!(
+        "TOS_PG_REAL_PROJECTION_RESUME_RESULT {}",
+        serde_json::to_string(&work).unwrap()
+    );
+}
+
+fn resume_projection_in_fresh_process(case: &RevisionCase, consumer: &str) -> (Value, Value) {
+    let started = Instant::now();
+    let pg_cgroup_before = isolated_pg_cgroup_snapshot();
+    let executable = std::env::current_exe().expect("integration test executable is available");
+    let mut command = Command::new(executable);
+    command.process_group(0);
+    let mut child = command
+        .arg("pg_real_projection_resume_child_entry")
+        .arg("--nocapture")
+        .env("TOS_CMD_POSTGRES_URL", &case.lab.url)
+        .env("TOS_SOURCE_PG_URL", &case.lab.url)
+        .env("TOS_PG_REAL_PROJECTION_RESUME", "1")
+        .env("TOS_PG_REAL_PROJECTION_DOMAIN", &case.lab.domain)
+        .env("TOS_PG_REAL_PROJECTION_CONSUMER", consumer)
+        .env("TOS_PG_REAL_PROJECTION_STORE", &case.lab._root.0)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("fresh projection process starts");
+    let pid = child.id();
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
+    let stdout_reader = thread::spawn(move || drain_bounded(stdout, 1_048_576).unwrap());
+    let stderr_reader = thread::spawn(move || drain_bounded(stderr, 1_048_576).unwrap());
+    let deadline = started + Duration::from_secs(30);
+    let mut exited = false;
+    loop {
+        let mut siginfo: libc::siginfo_t = unsafe { std::mem::zeroed() };
+        let waited = unsafe {
+            libc::waitid(
+                libc::P_PID,
+                pid as libc::id_t,
+                &mut siginfo,
+                libc::WEXITED | libc::WNOWAIT | libc::WNOHANG,
+            )
+        };
+        if waited == 0 {
+            if unsafe { siginfo.si_pid() } != 0 {
+                exited = true;
+                break;
+            }
+        } else {
+            assert_eq!(
+                std::io::Error::last_os_error().raw_os_error(),
+                Some(libc::EINTR),
+                "fresh projection process wait reaches exit"
+            );
+        }
+        if Instant::now() >= deadline {
+            unsafe {
+                libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
+            }
+            let _ = child.kill();
+            let mut siginfo: libc::siginfo_t = unsafe { std::mem::zeroed() };
+            loop {
+                let waited = unsafe {
+                    libc::waitid(
+                        libc::P_PID,
+                        pid as libc::id_t,
+                        &mut siginfo,
+                        libc::WEXITED | libc::WNOWAIT,
+                    )
+                };
+                if waited == 0 {
+                    break;
+                }
+                assert_eq!(
+                    std::io::Error::last_os_error().raw_os_error(),
+                    Some(libc::EINTR),
+                    "timed-out fresh projection process is stopped"
+                );
+            }
+            break;
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    let proc_io = proc_io_counters(pid);
+    let mut status = 0;
+    let mut usage: libc::rusage = unsafe { std::mem::zeroed() };
+    let reaped = unsafe { libc::wait4(pid as libc::pid_t, &mut status, 0, &mut usage) };
+    assert_eq!(
+        reaped, pid as libc::pid_t,
+        "fresh projection process is reaped"
+    );
+    let (stdout, stdout_bytes) = stdout_reader.join().unwrap();
+    let (stderr, stderr_bytes) = stderr_reader.join().unwrap();
+    assert!(stdout_bytes <= 1_048_576 && stderr_bytes <= 1_048_576);
+    assert!(
+        exited && status == 0,
+        "fresh projection process completes within 30 seconds: status={}, stdout={}, stderr={}",
+        ExitStatus::from_raw(status),
+        String::from_utf8_lossy(&stdout),
+        String::from_utf8_lossy(&stderr)
+    );
+    let prefix = b"TOS_PG_REAL_PROJECTION_RESUME_RESULT ";
+    let work = stdout
+        .split(|byte| *byte == b'\n')
+        .find_map(|line| line.strip_prefix(prefix))
+        .map(|line| serde_json::from_slice(line).expect("child work report is JSON"))
+        .expect("fresh projection process reports its logical work");
+    let pg_cgroup_after = isolated_pg_cgroup_snapshot();
+    let resources = json!({
+        "scope":"fresh projection child direct-process wait4 rusage and /proc PID I/O; excludes PostgreSQL server",
+        "wall_micros":u64::try_from(started.elapsed().as_micros()).unwrap(),
+        "wait4_user_cpu_micros":timeval_micros(usage.ru_utime),
+        "wait4_system_cpu_micros":timeval_micros(usage.ru_stime),
+        "wait4_max_rss_bytes":u64::try_from(usage.ru_maxrss).unwrap().saturating_mul(1024),
+        "wait4_input_block_operations":u64::try_from(usage.ru_inblock).unwrap(),
+        "wait4_output_block_operations":u64::try_from(usage.ru_oublock).unwrap(),
+        "proc_read_bytes":proc_io.map(|(read, _)| read),
+        "proc_write_bytes":proc_io.map(|(_, write)| write),
+        "postgres_cgroup":{"before":pg_cgroup_before,"after":pg_cgroup_after},
+        "stdout_bytes":stdout_bytes,
+        "stderr_bytes":stderr_bytes
+    });
+    (work, resources)
+}
+
+fn kill_projection_child(case: &RevisionCase, consumer: &str) -> Value {
+    let marker = case._owner_scratch.0.join("projection-process-kill-ready");
+    let started = Instant::now();
+    let pg_cgroup_before = isolated_pg_cgroup_snapshot();
+    let executable = std::env::current_exe().expect("integration test executable is available");
+    let mut command = Command::new(executable);
+    command.process_group(0);
+    let mut child = command
+        .arg("pg_real_projection_interrupt_child_entry")
+        .arg("--nocapture")
+        .env("TOS_CMD_POSTGRES_URL", &case.lab.url)
+        .env("TOS_SOURCE_PG_URL", &case.lab.url)
+        .env("TOS_PG_REAL_PROJECTION_MARKER", &marker)
+        .env("TOS_PG_REAL_PROJECTION_DOMAIN", &case.lab.domain)
+        .env("TOS_PG_REAL_PROJECTION_CONSUMER", consumer)
+        .env("TOS_PG_REAL_PROJECTION_STORE", &case.lab._root.0)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("isolated test process starts the real projection apply child");
+    let pid = child.id();
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
+    let stdout_reader = thread::spawn(move || drain_bounded(stdout, 1_048_576).unwrap());
+    let stderr_reader = thread::spawn(move || drain_bounded(stderr, 1_048_576).unwrap());
+    let deadline = started + Duration::from_secs(30);
+    loop {
+        if marker.exists() {
+            break;
+        }
+        if let Some(status) = child
+            .try_wait()
+            .expect("projection child status is readable")
+        {
+            let (stdout, _) = stdout_reader.join().unwrap();
+            let (stderr, _) = stderr_reader.join().unwrap();
+            panic!(
+                "projection child exited before its extraction barrier: status={status}, stdout={}, stderr={}",
+                String::from_utf8_lossy(&stdout),
+                String::from_utf8_lossy(&stderr)
+            );
+        }
+        if Instant::now() >= deadline {
+            unsafe {
+                libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
+            }
+            let _ = child.kill();
+            let status = child.wait().expect("timed-out projection child is reaped");
+            let (stdout, _) = stdout_reader.join().unwrap();
+            let (stderr, _) = stderr_reader.join().unwrap();
+            panic!(
+                "projection child missed its 30 second extraction barrier: status={status}, stdout={}, stderr={}",
+                String::from_utf8_lossy(&stdout),
+                String::from_utf8_lossy(&stderr)
+            );
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    let marker_bytes = fs::read(&marker).unwrap();
+    assert_eq!(
+        marker_bytes,
+        b"production source extraction reached during event staging"
+    );
+    unsafe {
+        libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
+    }
+    let mut status = 0;
+    let mut usage: libc::rusage = unsafe { std::mem::zeroed() };
+    let reaped = unsafe { libc::wait4(pid as libc::pid_t, &mut status, 0, &mut usage) };
+    assert_eq!(
+        reaped, pid as libc::pid_t,
+        "killed projection child is reaped"
+    );
+    let (stdout, stdout_bytes) = stdout_reader.join().unwrap();
+    let (stderr, stderr_bytes) = stderr_reader.join().unwrap();
+    assert!(stdout_bytes <= 1_048_576 && stderr_bytes <= 1_048_576);
+    assert_eq!(
+        ExitStatus::from_raw(status).signal(),
+        Some(libc::SIGKILL),
+        "the projection process ended from the parent's SIGKILL"
+    );
+    let pg_cgroup_after = isolated_pg_cgroup_snapshot();
+    json!({
+        "scope":"real test-executable process running production apply_projection_batch with SourceTextExtractor; parent SIGKILL during event staging after first extract",
+        "wall_micros":u64::try_from(started.elapsed().as_micros()).unwrap(),
+        "wait4_user_cpu_micros":timeval_micros(usage.ru_utime),
+        "wait4_system_cpu_micros":timeval_micros(usage.ru_stime),
+        "wait4_max_rss_bytes":u64::try_from(usage.ru_maxrss).unwrap().saturating_mul(1024),
+        "stdout_bytes":stdout_bytes,
+        "stderr_bytes":stderr_bytes,
+        "postgres_cgroup":{"before":pg_cgroup_before,"after":pg_cgroup_after}
+    })
+}
+
+fn timeval_micros(value: libc::timeval) -> u64 {
+    u64::try_from(value.tv_sec)
+        .unwrap()
+        .saturating_mul(1_000_000)
+        .saturating_add(u64::try_from(value.tv_usec).unwrap())
 }
 
 fn isolated_pg_cgroup_snapshot() -> Value {
@@ -769,6 +1089,61 @@ fn invoke(
     url: &str,
     request: &Value,
     discard_reply: bool,
+) -> NativeInvocation {
+    invoke_with_expected_exit(
+        binary,
+        invocation_path,
+        url,
+        request,
+        discard_reply,
+        true,
+        "tos_local_pg_record_revision_result_v1",
+    )
+}
+
+fn invoke_creation(
+    binary: &Path,
+    invocation_path: &Path,
+    url: &str,
+    request: &Value,
+    discard_reply: bool,
+) -> NativeInvocation {
+    invoke_with_expected_exit(
+        binary,
+        invocation_path,
+        url,
+        request,
+        discard_reply,
+        true,
+        "tos_local_pg_agent_creation_result_v1",
+    )
+}
+
+fn invoke_refusal(
+    binary: &Path,
+    invocation_path: &Path,
+    url: &str,
+    request: &Value,
+) -> NativeInvocation {
+    invoke_with_expected_exit(
+        binary,
+        invocation_path,
+        url,
+        request,
+        false,
+        false,
+        "tos_local_pg_record_revision_result_v1",
+    )
+}
+
+fn invoke_with_expected_exit(
+    binary: &Path,
+    invocation_path: &Path,
+    url: &str,
+    request: &Value,
+    discard_reply: bool,
+    expect_success: bool,
+    expected_envelope: &str,
 ) -> NativeInvocation {
     let input = canonical(request);
     assert!(input.len() <= 1_048_576);
@@ -875,26 +1250,37 @@ fn invoke(
         "native invocation completed within its 30 second deadline: {}",
         String::from_utf8_lossy(&stderr)
     );
-    assert_eq!(
-        status,
-        0,
-        "native invocation refused: {}",
-        String::from_utf8_lossy(&stderr)
-    );
     assert!(
         stdin_result.is_ok(),
         "native invocation accepted the bounded request"
     );
-    let result = if discard_reply {
-        Value::Null
-    } else {
-        let response: Value = serde_json::from_slice(&stdout).unwrap();
+    let mut dropped_source_read_work = None;
+    let result = if expect_success {
         assert_eq!(
-            response["schema_version"],
-            "tos_local_pg_record_revision_result_v1"
+            status,
+            0,
+            "native invocation refused: {}",
+            String::from_utf8_lossy(&stderr)
         );
-        assert_eq!(response["grants_admission"], false);
-        response["result"].clone()
+        if discard_reply {
+            let response: Value = serde_json::from_slice(&stdout).unwrap();
+            assert_eq!(response["schema_version"], expected_envelope);
+            assert_eq!(response["grants_admission"], false);
+            dropped_source_read_work = response["result"].get("source_read_work").cloned();
+            Value::Null
+        } else {
+            let response: Value = serde_json::from_slice(&stdout).unwrap();
+            assert_eq!(response["schema_version"], expected_envelope);
+            assert_eq!(response["grants_admission"], false);
+            response["result"].clone()
+        }
+    } else {
+        json!({
+            "refused":status != 0,
+            "exit_status":status,
+            "stdout":String::from_utf8_lossy(&stdout).into_owned(),
+            "stderr":String::from_utf8_lossy(&stderr).into_owned()
+        })
     };
     let timeval_micros = |value: libc::timeval| {
         u64::try_from(value.tv_sec)
@@ -904,6 +1290,7 @@ fn invoke(
     };
     NativeInvocation {
         result,
+        dropped_source_read_work,
         resources: json!({
             "scope":"native subprocess direct-child wait4 rusage and /proc PID I/O; excludes PostgreSQL server and is not whole-transaction physical I/O",
             "wall_micros":u64::try_from(started.elapsed().as_micros()).unwrap(),
@@ -967,6 +1354,27 @@ fn projection_documents(rows: &[String]) -> BTreeMap<(String, String), Value> {
         .collect()
 }
 
+fn assert_bounded_committed_member_rows(work: &Value, scope: &str) {
+    let exact_members = work["exact_source_members_read"]
+        .as_u64()
+        .unwrap_or_else(|| panic!("{scope} exact-source member count is reported"));
+    assert!(
+        work["custody_metadata_bytes_read"].as_u64().is_some(),
+        "{scope} custody metadata bytes are reported independently"
+    );
+    assert!(
+        work["segment_bytes_read"].as_u64().is_some(),
+        "{scope} selected STO payload bytes are reported independently"
+    );
+    let examined = work["committed_member_rows_examined"]
+        .as_u64()
+        .unwrap_or_else(|| panic!("{scope} committed-member row count is reported"));
+    assert!(
+        examined <= exact_members.saturating_mul(65),
+        "{scope} examines at most 65 committed rows per exact source member: {examined} <= 65 * {exact_members}"
+    );
+}
+
 fn history_source_paths(case: &RevisionCase, seq: u64) -> Vec<String> {
     let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
     db.query(
@@ -984,7 +1392,112 @@ fn history_source_paths(case: &RevisionCase, seq: u64) -> Vec<String> {
 fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Path) -> Value {
     let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
     let invocation_path = case.source_root.join("revision-invocation.json");
-    invocation(case, software, binary, &worker_path, &invocation_path);
+    let record_path = RECORD_PATH.to_owned();
+    invocation(
+        case,
+        software,
+        binary,
+        &worker_path,
+        &invocation_path,
+        &case.owner_config,
+        "tos_local_pg_record_revision_invocation_v1",
+    );
+    let source_before_drift = source_member(case, RECORD_PATH);
+    let before_fault_counts =
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
+    let db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let selected_row = db
+        .query_one(
+            "SELECT source_mode,content_digest,source_dependencies
+             FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &record_path],
+        )
+        .expect("selected current source row exists");
+    let original_source_mode = selected_row.get::<_, i32>("source_mode");
+    let original_content_digest = selected_row.get::<_, String>("content_digest");
+    let original_dependencies = selected_row.get::<_, Option<Vec<String>>>("source_dependencies");
+    drop(db);
+    let drifted_source_mode = original_source_mode ^ 1;
+    assert!((0..=0o7777).contains(&drifted_source_mode));
+    assert_ne!(original_source_mode, drifted_source_mode);
+    let db = Client::connect(&case.lab.url, NoTls).unwrap();
+    assert_eq!(
+        db.execute(
+            "UPDATE cmd2_current SET source_mode=$3 WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &record_path, &drifted_source_mode],
+        )
+        .unwrap(),
+        1,
+        "the isolated fault changes only the selected current mode"
+    );
+    drop(db);
+    let refused_call = invoke_refusal(
+        binary,
+        &invocation_path,
+        &case.lab.url,
+        &json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+    );
+    let refusal_text = format!(
+        "{}{}",
+        refused_call.result["stdout"].as_str().unwrap(),
+        refused_call.result["stderr"].as_str().unwrap()
+    );
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let drifted_row = db
+        .query_one(
+            "SELECT source_mode,content_digest,source_dependencies
+             FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &record_path],
+        )
+        .expect("selected current source remains available after refusal");
+    let observed_drifted_source_mode = drifted_row.get::<_, i32>("source_mode");
+    let observed_drifted_content_digest = drifted_row.get::<_, String>("content_digest");
+    let observed_drifted_dependencies =
+        drifted_row.get::<_, Option<Vec<String>>>("source_dependencies");
+    assert_eq!(
+        db.execute(
+            "UPDATE cmd2_current SET source_mode=$3 WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &record_path, &original_source_mode],
+        )
+        .unwrap(),
+        1,
+        "the source mode is restored exactly"
+    );
+    let restored_row = db
+        .query_one(
+            "SELECT source_mode,content_digest,source_dependencies
+             FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &record_path],
+        )
+        .expect("selected current source is restored");
+    let restored_source_mode = restored_row.get::<_, i32>("source_mode");
+    assert_eq!(restored_source_mode, original_source_mode);
+    assert_eq!(
+        restored_row.get::<_, String>("content_digest"),
+        original_content_digest
+    );
+    assert_eq!(
+        restored_row.get::<_, Option<Vec<String>>>("source_dependencies"),
+        original_dependencies
+    );
+    drop(db);
+    assert_eq!(
+        refused_call.result["refused"], true,
+        "native describe refuses the corrupted current metadata"
+    );
+    assert!(
+        refusal_text.contains("PostgreSQL source revision metadata"),
+        "native describe refuses the current/history source-mode mismatch: {refusal_text}"
+    );
+    assert_eq!(observed_drifted_source_mode, drifted_source_mode);
+    assert_eq!(observed_drifted_content_digest, original_content_digest);
+    assert_eq!(observed_drifted_dependencies, original_dependencies);
+    assert_eq!(source_member(case, RECORD_PATH), source_before_drift);
+    assert_eq!(
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table)),
+        before_fault_counts,
+        "the isolated metadata drift and refusal add no durable command records"
+    );
     let described_call = invoke(
         binary,
         &invocation_path,
@@ -1162,6 +1675,14 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         "changed_source_paths":paths,
         "native_invocations":{
             "describe":describe_resources,
+            "source_mode_drift_refusal":{
+                "source_mode_before":original_source_mode,
+                "source_mode_drifted":drifted_source_mode,
+                "source_mode_restored":restored_source_mode,
+                "native_describe_refused":true,
+                "error":refused_call.result,
+                "resources":refused_call.resources
+            },
             "prepare_revise":prepare_resources,
             "record_revise_reply_dropped":commit_resources,
             "same_command_retry":retry_resources
@@ -1171,8 +1692,175 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         "current_record_sha256":Digest256::of_bytes(&current_record).to_hex(),
         "retained_original_bytes":case.original_record.len(),
         "retained_original_sha256":Digest256::of_bytes(&case.original_record).to_hex(),
+        "source_read_work":retry["source_read_work"].clone(),
+        "source_read_work_scope":"logical source-store work; segment_bytes_read counts selected STO frame and envelope bytes read, while physical device I/O is separate; software capture/context is excluded",
         "replayed":retry["replayed"],
         "archive_manifest_path":archive_manifest_path
+    })
+}
+
+fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Path) -> Value {
+    let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    let invocation_path = case.source_root.join("creation-invocation.json");
+    let owner_config = case._owner_scratch.0.join("creation-owner.json");
+    let uid = rustix::process::getuid().as_raw();
+    let owner = json!({
+        "schema_version":"tos_local_corpus_create_owner_v2",
+        "uid":uid,
+        "principal_id":"software:test-private-pg-real-addition",
+        "maker_type":"software",
+        "source_root":case.source_root,
+        "source_path":CREATED_RECORD_PATH,
+        "record_type":"agent",
+        "record_id":CREATED_RECORD_ID,
+        "authority_ref":"test:private-pg-real-addition:no-admission",
+        "allowed_form_ids":[CREATED_FORM_ID],
+        "allowed_operations":["source.create"],
+        "expires_at":"2099-01-01T00:00:00Z",
+        "provenance_event_id":"tos.event.pg-real-addition-fixture"
+    });
+    fs::write(&owner_config, canonical(&owner)).unwrap();
+    fs::set_permissions(&owner_config, fs::Permissions::from_mode(0o600)).unwrap();
+    invocation(
+        case,
+        software,
+        binary,
+        &worker_path,
+        &invocation_path,
+        &owner_config,
+        "tos_local_pg_agent_creation_invocation_v1",
+    );
+
+    let record = json!({
+        "schema_version":"tos_corpus_record_v1",
+        "record_type":"agent",
+        "record_id":CREATED_RECORD_ID,
+        "record_version":1,
+        "preferred_label":"Sundial PostgreSQL addition fixture",
+        "variant_labels":[],
+        "identity_status":"provisional",
+        "source_refs":["test:private-pg-real-addition:no-admission"],
+        "external_identifiers":[],
+        "same_as_posture":"no_equivalence_claim",
+        "notes":"Private PostgreSQL mechanics fixture; no semantic, source, rights, or canon admission.",
+        "supersedes_ref":null,
+        "field_languages":{
+            "preferred_label":{"language":"en","script":"Latn"},
+            "notes":{"language":"en","script":"Latn"}
+        }
+    });
+    let prepare_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-create",
+        "record":record,
+        "forms":[{"form_id":CREATED_FORM_ID,"field_id":"metadata.preferred-name"}]
+    });
+    let prepare_call = invoke_creation(
+        binary,
+        &invocation_path,
+        &case.lab.url,
+        &prepare_request,
+        false,
+    );
+    let preview = prepare_call.result;
+    assert_eq!(preview["record_id"], CREATED_RECORD_ID);
+    let mut request = prepare_request.clone();
+    request["operation"] = json!("source.create");
+    request["command_id"] = json!("test:pg-real-addition-fixture");
+    request["expected_configuration"] = preview["owner_configuration"].clone();
+    request["expected_dependencies"] = preview["expected_dependencies"].clone();
+    let before_head = case.lab.head_seq();
+    let before_counts =
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
+    let commit_call = invoke_creation(binary, &invocation_path, &case.lab.url, &request, true);
+    let commit_resources = commit_call.resources;
+    let initial_source_read_work = commit_call
+        .dropped_source_read_work
+        .expect("the dropped initial creation reply contains bounded source-read counters");
+    let committed_head = case.lab.head_seq();
+    assert_eq!(
+        committed_head,
+        before_head + 1,
+        "one Agent addition is one durable event"
+    );
+    let committed_counts =
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
+    assert_eq!(committed_counts[4], before_counts[4] + 1);
+
+    let retry_call = invoke_creation(binary, &invocation_path, &case.lab.url, &request, false);
+    let retry = retry_call.result;
+    assert_eq!(retry["operation"], "source.create");
+    assert_eq!(retry["record_id"], CREATED_RECORD_ID);
+    assert_eq!(retry["source_path"], CREATED_RECORD_PATH);
+    assert_eq!(
+        retry["replayed"], true,
+        "the exact command recovers its lost reply"
+    );
+    assert_eq!(retry["durable_commit"]["replayed"], true);
+    assert_eq!(retry["durable_commit"]["commit_seq"], committed_head);
+    assert_eq!(case.lab.head_seq(), committed_head);
+    assert_eq!(
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table)),
+        committed_counts,
+        "exact retry leaves every durable counter unchanged"
+    );
+    let expected_paths = BTreeSet::from([
+        CREATED_RECORD_PATH.to_owned(),
+        "ToS/source-witnesses/agents/pg-real-addition-fixture/agent.human-forms.json".to_owned(),
+        "ToS/source-witnesses/agents/pg-real-addition-fixture/source-create-provenance.jsonl"
+            .to_owned(),
+    ]);
+    let actual_paths = retry["created_source_paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|path| path.as_str().unwrap().to_owned())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual_paths, expected_paths);
+    for path in &actual_paths {
+        let raw = source_member(case, path);
+        assert!(
+            !raw.is_empty(),
+            "created source member is exactly readable: {path}"
+        );
+    }
+    let created_record = source_member(case, CREATED_RECORD_PATH);
+    assert_eq!(created_record, canonical(&record));
+    assert_eq!(
+        retry["source_read_work"]["exact_source_members_read"], 0,
+        "durable replay does not repeat ordinary source-selection reads"
+    );
+    let reopened_store =
+        tos_segment_store::SegmentStore::open_existing(&case.source_root, limits())
+            .expect("the isolated STO root reopens after native initial Agent creation");
+    let mut reopened_db = DurablePgCoordinator::connect(&case.lab.url).unwrap();
+    let _cold_cut = reopened_db
+        .cold_verify_cut(&reopened_store, &case.lab.domain)
+        .expect("the created PG/STO generation passes the existing cold cut verifier");
+    let cold_record = reopened_db
+        .cold_recover_exact(&reopened_store, &case.lab.domain, CREATED_RECORD_PATH, 1)
+        .expect("the new Agent is discoverable by its cold exact historical locator");
+    assert_eq!(
+        reopened_db
+            .warm_read_selected(&reopened_store, &cold_record, 1_048_576)
+            .unwrap(),
+        created_record,
+        "cold reopen returns the exact created Agent bytes"
+    );
+    json!({
+        "record_id":CREATED_RECORD_ID,
+        "source_path":CREATED_RECORD_PATH,
+        "committed_head":committed_head,
+        "created_source_paths":actual_paths,
+        "record_sha256":Digest256::of_bytes(&created_record).to_hex(),
+        "cold_cut_verified":true,
+        "initial_source_read_work":initial_source_read_work,
+        "retry_source_read_work":retry["source_read_work"].clone(),
+        "native_invocations":{
+            "prepare_create":prepare_call.resources,
+            "source_create_reply_dropped":commit_resources,
+            "same_command_retry":retry_call.resources
+        }
     })
 }
 
@@ -1183,6 +1871,7 @@ fn project_case(
     binary: &Path,
 ) -> Value {
     let consumer = format!("private-pg-real-revision-{records}");
+    let creation = create_agent(case, software, binary);
     let profile = DurableProjectionProfile {
         id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
         version: 1,
@@ -1219,6 +1908,12 @@ fn project_case(
             .iter()
             .any(|row| row.contains("tos.agent.parmenides-of-elea"))
     );
+    assert!(
+        before_rows
+            .iter()
+            .any(|row| row.contains(CREATED_RECORD_ID)),
+        "the initial Agent addition is published in the selected-text projection"
+    );
     if records == 3 {
         assert!(
             before_rows
@@ -1232,52 +1927,51 @@ fn project_case(
         );
     }
     let receipt = record_correction(case, software, binary);
-    let revision_apply_started = Instant::now();
-    let pg_cgroup_before_apply = isolated_pg_cgroup_snapshot();
-    let self_before_apply = self_usage();
-    let one = case
-        .lab
-        .db
-        .apply_projection_batch(
-            &case.lab.store,
-            &case.lab.domain,
-            &consumer,
-            &profile,
-            &extractor,
-            DurableProjectionLimits {
-                max_events: 1,
-                ..DurableProjectionLimits::default()
-            },
-        )
-        .expect("one committed source correction projects atomically");
-    let revision_apply_wall_micros =
-        u64::try_from(revision_apply_started.elapsed().as_micros()).unwrap();
-    let self_after_apply = self_usage();
-    let pg_cgroup_after_apply = isolated_pg_cgroup_snapshot();
-    let revision_work = serde_json::to_value(&one.work).unwrap();
-    let self_proc_io_delta = match (self_before_apply.proc_io, self_after_apply.proc_io) {
-        (Some((read_before, write_before)), Some((read_after, write_after))) => json!({
-            "available":true,
-            "read_bytes":read_after.saturating_sub(read_before),
-            "write_bytes":write_after.saturating_sub(write_before)
-        }),
-        _ => json!({"available":false,"reason":"/proc/self/io was unavailable"}),
-    };
-    let revision_apply_resources = json!({
-        "scope":"single revision apply_projection_batch call; test-process rusage and /proc/self/io deltas exclude PostgreSQL server",
-        "wall_micros":revision_apply_wall_micros,
-        "test_process":{
-            "user_cpu_delta_micros":self_after_apply.user_cpu_micros.saturating_sub(self_before_apply.user_cpu_micros),
-            "system_cpu_delta_micros":self_after_apply.system_cpu_micros.saturating_sub(self_before_apply.system_cpu_micros),
-            "max_rss_after_bytes":self_after_apply.max_rss_bytes,
-            "input_block_operation_delta":self_after_apply.input_block_operations.saturating_sub(self_before_apply.input_block_operations),
-            "output_block_operation_delta":self_after_apply.output_block_operations.saturating_sub(self_before_apply.output_block_operations),
-            "proc_io_delta":self_proc_io_delta
-        },
-        "postgres_cgroup":{"before":pg_cgroup_before_apply,"after":pg_cgroup_after_apply}
-    });
+    let created_record = source_member(case, CREATED_RECORD_PATH);
+    assert_eq!(
+        Digest256::of_bytes(&created_record).to_hex(),
+        creation["record_sha256"],
+        "the added Agent remains byte-exact after the neighboring revision"
+    );
+    let revision_head = case.lab.head_seq();
     assert!(matches!(
-        one.status,
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == initial_head && head_seq == revision_head
+    ));
+    let interrupted_process_resources = kill_projection_child(case, &consumer);
+    assert_eq!(
+        projection_rows(case, &consumer),
+        before_rows,
+        "killing a real projector during extraction leaves the committed projection rows unchanged"
+    );
+    // The killed process left no in-memory resume state. Reopen through a new
+    // coordinator and prove the durable cursor still points before the event.
+    case.lab.db = DurablePgCoordinator::connect(&case.lab.url).unwrap();
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == initial_head && head_seq == revision_head
+    ));
+    let (revision_work, resume_process_resources) =
+        resume_projection_in_fresh_process(case, &consumer);
+    let revision_apply_resources = json!({
+        "scope":"fresh-process single revision apply_projection_batch; direct-child wait4 rusage and /proc PID I/O exclude PostgreSQL server",
+        "resume_process":resume_process_resources,
+        "interrupted_process":interrupted_process_resources
+    });
+    case.lab.db = DurablePgCoordinator::connect(&case.lab.url).unwrap();
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
         DurableProjectionStatus::Current { through_seq } if through_seq == case.lab.head_seq()
     ));
     let after_rows = projection_rows(case, &consumer);
@@ -1304,6 +1998,11 @@ fn project_case(
     );
     assert_eq!(changed_documents[0].0, RECORD_PATH);
     assert_eq!(changed_documents[0].1, "tos.agent.parmenides-of-elea");
+    assert_eq!(
+        after_documents[&(CREATED_RECORD_PATH.to_owned(), CREATED_RECORD_ID.to_owned())],
+        before_documents[&(CREATED_RECORD_PATH.to_owned(), CREATED_RECORD_ID.to_owned())],
+        "the newly added Agent stays unchanged during the neighboring correction"
+    );
     assert!(
         !serde_json::to_string(&before_documents[changed_documents[0]])
             .unwrap()
@@ -1345,14 +2044,40 @@ fn project_case(
             if through_seq == case.lab.head_seq()
                 && hits.iter().any(|hit| hit.document_id == "tos.agent.parmenides-of-elea")
     ));
+    let creation_search = case
+        .lab
+        .db
+        .search_projection(
+            &case.lab.domain,
+            &consumer,
+            &profile,
+            "Sundial",
+            10,
+            Duration::from_secs(15),
+        )
+        .unwrap();
+    assert!(
+        matches!(
+            creation_search,
+            DurableProjectionSearch::Current { ref hits, through_seq }
+                if through_seq == case.lab.head_seq()
+                    && hits.iter().any(|hit| hit.document_id == CREATED_RECORD_ID)
+        ),
+        "the created Agent is searchable after projection publication"
+    );
     json!({
         "consumer":consumer,
         "initial_documents":before_rows.len(),
         "final_documents":after_rows.len(),
         "projection_cursor":case.lab.head_seq(),
         "new_text_search":"Quartz",
-        "projection_work":{"bootstrap":initial_work,"revision":revision_work},
+        "projection_work":{
+            "scope":"logical projection work; segment_bytes_read counts selected STO frame and envelope bytes read, while physical device I/O is separate; publication counters cover work applied by this consumer",
+            "bootstrap":initial_work,
+            "revision":revision_work
+        },
         "revision_apply_resources":revision_apply_resources,
+        "initial_agent_creation":creation,
         "revision":receipt
     })
 }
@@ -1368,10 +2093,29 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
     let binary = native_binary();
     let one_projection = project_case(&mut one, &software, 1, &binary);
     let three_projection = project_case(&mut three, &software, 3, &binary);
+    for (records, projection) in [(1, &one_projection), (3, &three_projection)] {
+        assert_bounded_committed_member_rows(
+            &projection["projection_work"]["bootstrap"],
+            &format!("{records}-record bootstrap projection"),
+        );
+        assert_bounded_committed_member_rows(
+            &projection["projection_work"]["revision"],
+            &format!("{records}-record revision projection"),
+        );
+        assert_bounded_committed_member_rows(
+            &projection["revision"]["source_read_work"],
+            &format!("{records}-record native source revision"),
+        );
+        assert_bounded_committed_member_rows(
+            &projection["initial_agent_creation"]["initial_source_read_work"],
+            &format!("{records}-record native initial Agent creation"),
+        );
+    }
     for counter in [
         "examined_event_members",
         "exact_source_members_read",
         "exact_source_bytes_read",
+        "segment_bytes_read",
         "extracted_documents",
         "published_source_paths",
         "published_documents",
@@ -1382,9 +2126,49 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
             "the one-record correction operation has the same {counter} work at 1 and 3 records"
         );
     }
+    let one_creation_work = &one_projection["initial_agent_creation"]["initial_source_read_work"];
+    let three_creation_work =
+        &three_projection["initial_agent_creation"]["initial_source_read_work"];
+    for counter in [
+        "exact_source_members_read",
+        "exact_source_bytes_read",
+        "segment_bytes_read",
+        "committed_member_rows_examined",
+        "metadata_member_lookups",
+        "directory_index_rows_examined",
+        "unique_index_lookups",
+    ] {
+        assert!(one_creation_work[counter].as_u64().is_some());
+        assert_eq!(
+            one_creation_work[counter], three_creation_work[counter],
+            "the same ordinary Agent addition has the same {counter} source-selection work at 1 and 3 records"
+        );
+    }
+    let one_source_read_work = &one_projection["revision"]["source_read_work"];
+    let three_source_read_work = &three_projection["revision"]["source_read_work"];
+    assert!(one_source_read_work.is_object());
+    assert!(three_source_read_work.is_object());
+    for counter in [
+        "exact_source_members_read",
+        "exact_source_bytes_read",
+        "segment_bytes_read",
+        "metadata_member_lookups",
+        "directory_index_rows_examined",
+        "unique_index_lookups",
+    ] {
+        assert!(
+            one_source_read_work[counter].as_u64().is_some(),
+            "native source-read work counter {counter} is numeric"
+        );
+        assert_eq!(
+            one_source_read_work[counter], three_source_read_work[counter],
+            "the one-record correction has the same {counter} logical source-read work at 1 and 3 records"
+        );
+    }
     let output = json!({
         "schema_version":"tos_cmd2_real_source_revision_test_v1",
         "source_record":"tos.agent.parmenides-of-elea",
+        "initial_added_record":CREATED_RECORD_ID,
         "bootstrap_cases":[
             {"record_count":1,"source":source_counters(&one.all_source),"projection":one_projection},
             {"record_count":3,"source":source_counters(&three.all_source),"projection":three_projection}

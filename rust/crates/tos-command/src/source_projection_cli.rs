@@ -205,16 +205,34 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
                 return Err("source revision must be positive");
             }
             let store = open_store(&selection)?;
-            let recovered = db
-                .cold_recover_exact(&store, &selection.domain, &source_path, revision)
-                .map_err(|_| "exact source locator refused")?;
-            let bytes = db
-                .warm_read_selected(&store, &recovered, 1_048_576)
+            let (_, bytes, _, work) = db
+                .read_committed_source_selected(
+                    &store,
+                    &selection.domain,
+                    &source_path,
+                    Some(revision),
+                    1_048_576,
+                    deadline,
+                    &cancelled,
+                    |row| {
+                        if row.get::<_, String>("contract_digest") != source_contract.to_hex() {
+                            return Err(crate::DurableError::Conflict(
+                                "selected exact source contract differs",
+                            ));
+                        }
+                        Ok(())
+                    },
+                )
                 .map_err(|_| "exact source read refused")?;
             Ok(json!({
                 "schema_version":"tos_source_projection_exact_v1",
                 "domain":selection.domain, "source_path":source_path, "revision":revision,
                 "bytes":bytes.len(), "sha256":Digest256::of_bytes(&bytes).to_hex(),
+                "source_read_work":{
+                    "custody_metadata_bytes_read":work.custody_metadata_bytes_read,
+                    "segment_bytes_read":work.segment_bytes_read,
+                    "committed_member_rows_examined":work.committed_member_rows_examined
+                },
                 "content_base64":base64::engine::general_purpose::STANDARD.encode(&bytes)
             }))
         }
