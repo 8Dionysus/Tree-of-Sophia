@@ -419,7 +419,16 @@ fn rust_workspace_preserves_isolated_source_cases_and_exact_preparation_order() 
             (cases[8].0, 900000),
             (workspace, 900000),
             (release, 900000),
-            (cases[0].0, 1020000)
+            (cases[0].0, 1020000),
+            ("install native exact reader outside checkout", 3600000),
+            (
+                "install native mechanics executor and verify process custody",
+                3600000
+            ),
+            (
+                "verify generated WEB.1 binding in Node WebAssembly host",
+                3600000
+            )
         ]
     );
 }

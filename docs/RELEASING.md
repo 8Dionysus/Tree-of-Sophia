@@ -60,6 +60,10 @@ owner surfaces.
    on the two-worker host. This includes the remaining cold recovery, install
    and WASM checks after the source and package test groups; each command
    keeps its separate limit from the validation manifest.
+   The isolated reader, mechanics installation and Node WASM host verifiers
+   each receive a one-hour outer command budget matching their nested lane
+   budget, including cold Cargo builds. Their individual child commands keep
+   the fifteen-minute limit; the aggregate Rust lane remains three hours.
    The existing WASM foundation and validation type checks run immediately
    after formatting, so portable-profile errors are found before native
    code generation and the long fixture groups.

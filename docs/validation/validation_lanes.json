@@ -667,6 +667,7 @@
       },
       {
         "label": "install native exact reader outside checkout",
+        "command_timeout_ms": 3600000,
         "command": [
           "tos-software-ci",
           "verify-reader-install",
@@ -676,6 +677,7 @@
       },
       {
         "label": "install native mechanics executor and verify process custody",
+        "command_timeout_ms": 3600000,
         "command": [
           "tos-software-ci",
           "verify-mechanics-install",
@@ -685,6 +687,7 @@
       },
       {
         "label": "verify generated WEB.1 binding in Node WebAssembly host",
+        "command_timeout_ms": 3600000,
         "command": [
           "tos-software-ci",
           "verify-web-host",
