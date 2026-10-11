@@ -834,11 +834,7 @@ include_bytes!("knowledge_native_finalize.rs"),
                                 &[final_task, owner_input, group],
                                 || {
                                     let mut result = value.clone();
-                                    match compiler
-                                        .as_ref()
-                                        .ok_or(Error::Invalid("native readable compiler absent"))?
-                                        .compile(&raw, Some(&witness))?
-                                    {
+                                    match compiler.compile(&raw, Some(&witness))? {
                                         ReadableContextCarrier::Absent => {
                                             result.as_object_mut().unwrap().remove("readable_context");
                                         }

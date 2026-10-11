@@ -961,6 +961,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
                 let mut value = self.normalize_relation_unstamped(
                     source,
                     source_graph,
+                    None,
                     identity,
                     left.value(),
                     right.value(),

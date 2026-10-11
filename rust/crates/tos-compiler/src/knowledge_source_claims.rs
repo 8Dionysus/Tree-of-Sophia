@@ -100,8 +100,9 @@ fn processing_group(
         let source = if let Some(node) = run.result(&base_id) {
             node
         } else {
-            let raw = stage
-                .scoped_raw_by_id(&prepared.source_graph, "nodes", native_id)?
+            let held = stage.scoped_raw_by_id(&prepared.source_graph, "nodes", native_id)?;
+            let raw = held
+                .as_ref()
                 .ok_or(Error::Invalid("Claim context source absent"))?;
             if Digest256::of_bytes(&raw.payload).as_bytes().as_slice() != owner_sha.as_slice() {
                 return Err(Error::Invalid("Claim context source digest"));

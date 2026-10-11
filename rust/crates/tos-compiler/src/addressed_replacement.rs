@@ -191,7 +191,8 @@ fn array_size(values: &[Value], cap: usize) -> Result<usize> {
         }
         // The supplied row arrays are children of the accounting envelope,
         // so their entries begin at the same depth as Python's bounded helper.
-        add(&mut bytes, json_size(value, cap - bytes, 2)?, cap)?;
+        let row_bytes = json_size(value, cap - bytes, 2)?;
+        add(&mut bytes, row_bytes, cap)?;
     }
     Ok(bytes)
 }
@@ -213,12 +214,16 @@ fn input_size(
     // The top-level array contributes two brackets and six separators.
     let mut total = 2 + 6;
     for value in [prior, replacement] {
-        add(&mut total, json_size(value, cap - total, 1)?, cap)?;
+        let value_bytes = json_size(value, cap - total, 1)?;
+        add(&mut total, value_bytes, cap)?;
     }
-    add(&mut total, array_size(relations, cap - total)?, cap)?;
-    add(&mut total, array_size(endpoints, cap - total)?, cap)?;
+    let relation_bytes = array_size(relations, cap - total)?;
+    add(&mut total, relation_bytes, cap)?;
+    let endpoint_bytes = array_size(endpoints, cap - total)?;
+    add(&mut total, endpoint_bytes, cap)?;
     for value in [binding, entities, relation_registry] {
-        add(&mut total, json_size(value, cap - total, 1)?, cap)?;
+        let value_bytes = json_size(value, cap - total, 1)?;
+        add(&mut total, value_bytes, cap)?;
     }
     for raw in [
         current.descriptor_bytes,
