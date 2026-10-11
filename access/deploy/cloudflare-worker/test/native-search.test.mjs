@@ -7,10 +7,11 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
-import {createHash} from 'node:crypto';
+import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {knowledgeSearchD1,knowledgeSearchD1Indexed} from '../src/knowledge-store.ts';
 import {nativePacketJson} from '../src/native-lens.ts';
+import {sourceTextGatewayCapability,sourceTextSearchGatewayResponse} from '../src/source-text-gateway.ts';
 import {publishedNodeFixtureWorker,publishedWorkerFixtureModules,publishedFixtureSearchControlsRuntime} from './native-lens-fixture.ts';
 
 const repo=fileURLToPath(new URL('../../../../',import.meta.url));
@@ -123,6 +124,289 @@ test('Cloudflare explicitly refuses source-text search without a selected durabl
  assert.deepEqual(await response.json(),{
   error:'source-text search unavailable: an explicitly selected durable PostgreSQL consumer is required',
  });
+});
+
+const callerAccessIssuer='https://tos-example.cloudflareaccess.com';
+const callerAccessAudience='tos-private-source-text-test-audience';
+const callerAccessKeys=generateKeyPairSync('rsa',{modulusLength:2048,publicExponent:0x10001});
+const callerAccessJwk={...callerAccessKeys.publicKey.export({format:'jwk'}),kid:'test-access-kid',kty:'RSA',alg:'RS256',use:'sig'};
+const base64url=value=>Buffer.from(typeof value==='string'?value:JSON.stringify(value)).toString('base64url');
+function callerAccessToken(claimOverrides={},headerOverrides={}){
+ const now=Math.floor(Date.now()/1000);
+ const header=base64url({alg:'RS256',kid:'test-access-kid',typ:'JWT',...headerOverrides});
+ const claims=base64url({iss:callerAccessIssuer,aud:[callerAccessAudience],iat:now,exp:now+3600,type:'app',...claimOverrides});
+ const signingInput=`${header}.${claims}`;
+ return `${signingInput}.${sign('RSA-SHA256',Buffer.from(signingInput),callerAccessKeys.privateKey).toString('base64url')}`;
+}
+const validCallerAccessToken=callerAccessToken();
+const callerJwksUrl=`${callerAccessIssuer}/cdn-cgi/access/certs`;
+const callerJwksResponse=()=>new Response(JSON.stringify({keys:[callerAccessJwk]}),{
+ status:200,headers:{'content-type':'application/json'},
+});
+const gatewayFetcher=nativeFetcher=>async(input,init)=>String(input)===callerJwksUrl
+ ? callerJwksResponse()
+ : nativeFetcher(input,init);
+
+const gatewayEnv=(overrides={})=>({
+ TOS_SOURCE_TEXT_GATEWAY_URL:'https://native-source.example.net',
+ TOS_SOURCE_TEXT_GATEWAY_ACCESS_CLIENT_ID:'test-access-id',
+ TOS_SOURCE_TEXT_GATEWAY_ACCESS_CLIENT_SECRET:'test-access-secret',
+ TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_ISSUER:callerAccessIssuer,
+ TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_AUDIENCE:callerAccessAudience,
+ ...overrides,
+});
+const sourceTextRequest=(body='{"query":"α","limit":5}',{url='https://tos.test/api/source-text/search?destination=ignored',token=validCallerAccessToken}={})=>new Request(url,{
+ method:'POST',headers:{'content-type':'application/json','cookie':'caller=private','authorization':'Bearer caller-private',...(token?{'cf-access-jwt-assertion':token}:{})},body,
+});
+
+test('source-text gateway requires a cryptographically valid Access app token on alternate Worker hosts',async()=>{
+ let nativeCalls=0,jwksCalls=0;
+ const fetcher=async(input)=>{
+  if(String(input)===callerJwksUrl){jwksCalls++;return callerJwksResponse();}
+  nativeCalls++;return new Response('{"hits":[]}',{headers:{'content-type':'application/json'}});
+ };
+ const anonymous=await sourceTextSearchGatewayResponse(sourceTextRequest(undefined,{token:null}),gatewayEnv(),fetcher);
+ assert.equal(anonymous.status,401);
+ assert.equal(jwksCalls,0,'a missing assertion must fail before any key lookup');
+ assert.equal(nativeCalls,0);
+
+ const forgedParts=validCallerAccessToken.split('.');
+ const forgedSignature=Buffer.from(forgedParts[2],'base64url');forgedSignature[0]^=1;
+ const alternateHost=sourceTextRequest(undefined,{
+  url:'https://tree-of-sophia.account.workers.dev/api/source-text/search',
+  token:`${forgedParts[0]}.${forgedParts[1]}.${forgedSignature.toString('base64url')}`,
+ });
+ const forged=await sourceTextSearchGatewayResponse(alternateHost,gatewayEnv(),fetcher);
+ assert.equal(forged.status,401);
+ assert.equal(jwksCalls,1,'the alternate host must still perform signature validation');
+ assert.equal(nativeCalls,0,'a caller-supplied assertion header cannot reach the native owner');
+});
+
+test('source-text gateway rejects invalid issuer, audience, expiry, token type, algorithm, and key id',async()=>{
+ const rejected=[
+  callerAccessToken({aud:['wrong-audience']}),
+  callerAccessToken({iss:'https://other.cloudflareaccess.com'}),
+  callerAccessToken({exp:Math.floor(Date.now()/1000)-1}),
+  callerAccessToken({iat:undefined}),
+  callerAccessToken({iat:Math.floor(Date.now()/1000)+120}),
+  callerAccessToken({nbf:Math.floor(Date.now()/1000)+30}),
+  callerAccessToken({type:'service'}),
+  callerAccessToken({}, {alg:'HS256'}),
+  callerAccessToken({}, {kid:'unknown-kid'}),
+ ];
+ let jwksCalls=0,nativeCalls=0;
+ for(const token of rejected){
+  const response=await sourceTextSearchGatewayResponse(sourceTextRequest(undefined,{token}),gatewayEnv(),async(input)=>{
+   if(String(input)===callerJwksUrl){jwksCalls++;return callerJwksResponse();}
+   nativeCalls++;return new Response('{"hits":[]}');
+  });
+  assert.equal(response.status,401);
+ }
+ assert.equal(jwksCalls,1,'only the unknown-key token needs a bounded JWKS lookup');
+ assert.equal(nativeCalls,0,'claim/header rejection must precede native access');
+});
+
+test('source-text gateway fails closed when fixed Access JWKS is invalid or unavailable',async()=>{
+ let nativeCalls=0;
+ const malformed=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response('{"keys":"invalid"}',{headers:{'content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(malformed.status,503);
+ assert.equal(nativeCalls,0);
+
+ const redirected=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response('',{status:302,headers:{location:'https://elsewhere.example.net/jwks','content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(redirected.status,503);
+ assert.equal(nativeCalls,0);
+
+ const excessiveKeys=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response(JSON.stringify({keys:Array(9).fill(callerAccessJwk)}),{headers:{'content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(excessiveKeys.status,503);
+
+ const oversizedKeys=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),async(input)=>{
+  if(String(input)===callerJwksUrl)return new Response(' '.repeat(16*1024+1),{headers:{'content-type':'application/json'}});
+  nativeCalls++;return new Response('{"hits":[]}');
+ });
+ assert.equal(oversizedKeys.status,503);
+ assert.equal(nativeCalls,0);
+});
+
+test('source-text gateway binds the fixed native route, requires Access, and preserves only the native JSON response',async()=>{
+ const caller=sourceTextRequest(),rawBody=await caller.clone().text();let captured,jwksInit;
+ const response=await sourceTextSearchGatewayResponse(caller,gatewayEnv(),async(input,init)=>{
+  if(String(input)===callerJwksUrl){jwksInit=init;return callerJwksResponse();}
+  captured={url:String(input),init};
+  return new Response('{"operation_profile":"tos_source_text_search_v1","query":"α","hits":[]}',{
+   status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=300','set-cookie':'native=private'},
+  });
+ });
+ assert.equal(response.status,200);
+ assert.equal(await response.text(),'{"operation_profile":"tos_source_text_search_v1","query":"α","hits":[]}');
+ assert.equal(captured.url,'https://native-source.example.net/api/source-text/search');
+ assert.equal(captured.init.method,'POST');
+ assert.equal(captured.init.redirect,'manual');
+ assert.ok(captured.init.signal instanceof AbortSignal);
+ assert.notEqual(captured.init.signal,caller.signal,'the operation signal also enforces the gateway deadline');
+ assert.deepEqual([...new Headers(captured.init.headers).keys()].sort(),[
+  'accept','cf-access-client-id','cf-access-client-secret','content-type',
+ ]);
+ assert.equal(new Headers(captured.init.headers).get('cf-access-client-id'),'test-access-id');
+ assert.equal(new Headers(captured.init.headers).get('cf-access-client-secret'),'test-access-secret');
+ assert.equal(new Headers(captured.init.headers).get('cf-access-jwt-assertion'),null);
+ assert.equal(new Headers(captured.init.headers).get('authorization'),null);
+ assert.equal(new Headers(captured.init.headers).get('cookie'),null);
+ assert.deepEqual([...new Headers(jwksInit.headers).keys()],['accept'],'caller JWKS fetch sends no caller or native service credentials');
+ assert.equal(jwksInit.signal,captured.init.signal,'JWKS and native transport share one deadline signal');
+ assert.equal(new TextDecoder().decode(captured.init.body),rawBody);
+ assert.equal(response.headers.get('cache-control'),'no-store');
+ assert.equal(response.headers.get('set-cookie'),null);
+ assert.equal(response.headers.get('x-content-type-options'),'nosniff');
+
+ const capability=sourceTextGatewayCapability(gatewayEnv(),caller.url);
+ assert.equal(capability.status,'selected');
+ assert.equal(capability.selected,true);
+ assert.equal(capability.runtime_readiness,'not-probed');
+ assert.equal(capability.endpoint_origin_exposed,false);
+ assert.equal(JSON.stringify(capability).includes('native-source.example.net'),false);
+ assert.equal(JSON.stringify(capability).includes(callerAccessAudience),false);
+});
+
+test('source-text gateway deadline covers stalled request body, origin headers, and native response body',async()=>{
+ let jwksSignal;
+ const jwksTimeout=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),(input,init)=>{
+  jwksSignal=init.signal;
+  return new Promise((_,reject)=>init.signal.addEventListener('abort',()=>reject(init.signal.reason),{once:true}));
+ },100);
+ assert.equal(jwksTimeout.status,504);
+ assert.equal(jwksSignal.aborted,true,'the shared deadline includes Access JWKS lookup');
+
+ let requestBodyCancelled=false;
+ const stalledRequestBody=new ReadableStream({
+  start(){},
+  cancel(){requestBodyCancelled=true;},
+ });
+ const request=new Request('https://tos.test/api/source-text/search',{
+  method:'POST',headers:{'content-type':'application/json','cf-access-jwt-assertion':validCallerAccessToken},body:stalledRequestBody,duplex:'half',
+ });
+ const bodyTimeout=await sourceTextSearchGatewayResponse(request,gatewayEnv(),gatewayFetcher(async()=>{
+  throw new Error('request body must time out before fetch');
+ }),100);
+ assert.equal(bodyTimeout.status,504);
+ assert.equal(requestBodyCancelled,true,'deadline cancels the active inbound reader');
+
+ let fetchSignal,fetchCancelled=false;
+ const fetchTimeout=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher((_input,init)=>{
+  fetchSignal=init.signal;
+  return new Promise((_,reject)=>init.signal.addEventListener('abort',()=>{
+   fetchCancelled=true;reject(init.signal.reason);
+  },{once:true}));
+ }),100);
+ assert.equal(fetchTimeout.status,504);
+ assert.equal(fetchSignal.aborted,true,'deadline aborts the native fetch');
+ assert.equal(fetchCancelled,true,'stalled native fetch observes cancellation');
+
+ let responseBodyCancelled=false;
+ const stalledResponseBody=new ReadableStream({
+  start(){},
+  cancel(){responseBodyCancelled=true;},
+ });
+ const responseTimeout=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response(
+  stalledResponseBody,{status:200,headers:{'content-type':'application/json'}},
+ )),100);
+ assert.equal(responseTimeout.status,504);
+ assert.equal(responseBodyCancelled,true,'deadline cancels the active native response reader');
+});
+
+test('source-text gateway client cancellation stops an active native request and clears its deadline',async()=>{
+ const clientController=new AbortController();
+ const clientRequest=new Request('https://tos.test/api/source-text/search',{
+  method:'POST',headers:{'content-type':'application/json','cf-access-jwt-assertion':validCallerAccessToken},body:'{"query":"α","limit":5}',signal:clientController.signal,
+ });
+ let fetchSignal,fetchCancelled=false,markFetchStarted;
+ const fetchStarted=new Promise(resolve=>{markFetchStarted=resolve;});
+ const responsePromise=sourceTextSearchGatewayResponse(clientRequest,gatewayEnv(),gatewayFetcher((_input,init)=>{
+  fetchSignal=init.signal;
+  markFetchStarted();
+  return new Promise((_,reject)=>init.signal.addEventListener('abort',()=>{
+   fetchCancelled=true;reject(init.signal.reason);
+  },{once:true}));
+ }),100);
+ await new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>reject(new Error('native fetch did not start')),1000);
+  fetchStarted.then(()=>{clearTimeout(timer);resolve();});
+ });
+ clientController.abort();
+ const cancelled=await responsePromise;
+ assert.equal(cancelled.status,499);
+ assert.equal(fetchSignal.aborted,true);
+ assert.equal(fetchCancelled,true);
+
+ let completedSignal;
+ const completed=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async(_input,init)=>{
+  completedSignal=init.signal;
+  return new Response('{"hits":[]}',{headers:{'content-type':'application/json'}});
+ }),100);
+ assert.equal(completed.status,200);
+ await new Promise(resolve=>setTimeout(resolve,120));
+ assert.equal(completedSignal.aborted,false,'successful completion clears the deadline timer');
+});
+
+test('source-text gateway fails closed on partial, looping, oversized, and redirected routes',async()=>{
+ const partial=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_ACCESS_CLIENT_SECRET:undefined,
+ }),async()=>{throw new Error('must not fetch');});
+ assert.equal(partial.status,503);
+
+ const missingCaller=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_AUDIENCE:undefined,
+ }),async()=>{throw new Error('must not fetch');});
+ assert.equal(missingCaller.status,503);
+
+ const invalidIssuer=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_CALLER_ACCESS_ISSUER:'https://attacker.example/path',
+ }),async()=>{throw new Error('must not fetch');});
+ assert.equal(invalidIssuer.status,503);
+
+ let called=false;
+ const loop=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_URL:'https://tos.test',
+ }),async()=>{called=true;throw new Error('must not fetch');});
+ assert.equal(loop.status,503);
+ assert.equal(called,false);
+
+ const pathBinding=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv({
+  TOS_SOURCE_TEXT_GATEWAY_URL:'https://native-source.example.net/search?database=wrong',
+ }),async()=>{called=true;throw new Error('must not fetch');});
+ assert.equal(pathBinding.status,503);
+ assert.equal(called,false);
+
+ const oversized=await sourceTextSearchGatewayResponse(sourceTextRequest('x'.repeat(65*1024)),gatewayEnv(),gatewayFetcher(async()=>{
+  throw new Error('must not fetch');
+ }));
+ assert.equal(oversized.status,413);
+
+ const redirect=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response('redirect',{
+  status:302,headers:{location:'https://elsewhere.example.net/api/source-text/search','content-type':'application/json'},
+ })));
+ assert.equal(redirect.status,502);
+ assert.match((await redirect.json()).error,/invalid response/);
+
+ const staleBody='{"error":"selected source-text consumer is stale"}';
+ const stale=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response(staleBody,{
+  status:503,headers:{'content-type':'application/json'},
+ })));
+ assert.equal(stale.status,503);
+ assert.equal(await stale.text(),staleBody);
+
+ const oversizedNative=await sourceTextSearchGatewayResponse(sourceTextRequest(),gatewayEnv(),gatewayFetcher(async()=>new Response(
+  ' '.repeat(1024*1024+1),{status:200,headers:{'content-type':'application/json'}},
+ )));
+ assert.equal(oversizedNative.status,502);
 });
 
 function intersectionGrams(query){

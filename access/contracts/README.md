@@ -22,6 +22,9 @@ code or a mutation. A synthesized description is explicitly marked and never
 presented as authored ToS meaning. The live catalog also publishes observed
 attribute fields and types, filter-value contracts, facets, bounds, and stored
 lenses, so clients do not need to hard-code the current corpus vocabulary.
+`source-text-gateway.v1.md` defines the optional Worker transport to the native
+PostgreSQL source-text reader; its selection-only capability packet is defined
+by `source-text-gateway-capability.v1.schema.json`.
 
 Exact node and relation inspection packets may additionally carry
 `source_read_targets`. Each entry is keyed by the exact normalized material ID

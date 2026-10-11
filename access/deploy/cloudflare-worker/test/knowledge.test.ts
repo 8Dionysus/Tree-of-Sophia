@@ -285,6 +285,7 @@ test("health packet compacts diagnostics and rejects incomplete coverage", async
       available: boolean;
       source_epoch: unknown;
       authority: Record<string, unknown>;
+      source_text_search: Record<string, unknown>;
     };
     assert.equal(sourceCapabilities.available, false);
     assert.equal(sourceCapabilities.source_epoch, null);
@@ -293,7 +294,26 @@ test("health packet compacts diagnostics and rejects incomplete coverage", async
       writes_to_source: false,
       grants_current_use: false,
       native_text_payload: false,
-      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader or durable PostgreSQL source-text search consumer.',
+      note: 'D1 exposes derived source navigation only; a separately configured native PostgreSQL source-text gateway is reported below and does not make D1 a source reader.',
+    });
+    assert.deepEqual(sourceCapabilities.source_text_search, {
+      schema_version: 'tos_source_text_gateway_capability_v1',
+      operation_id: 'tos.source-text.search',
+      operation_profile: 'tos_source_text_search_v1',
+      request_path: '/api/source-text/search',
+      status: 'unsupported',
+      selected: false,
+      reason: 'gateway-not-configured',
+      runtime_readiness: 'not-probed',
+      endpoint_origin_exposed: false,
+      authentication: 'cloudflare-access-jwt-and-service-token-required',
+      caller_access_audience_exposed: false,
+      authority: {
+        d1_reads_source_text: false,
+        worker_selects_source_consumer: false,
+        native_selected_consumer_owns_currentness_and_disclosure: true,
+        grants_rights_or_publication: false,
+      },
     });
 
     const incompleteCounts = {

@@ -6,6 +6,31 @@ Workers Static Assets carries high-volume packets, and D1 serves bounded search
 and graph queries. Existing scale-export routes stream CSV/JSONL from normalized
 D1 rows.
 
+## Native source-text gateway
+
+`POST /api/source-text/search` forwards the bounded request to the existing
+native PostgreSQL source-text endpoint only when the explicit HTTPS origin,
+Cloudflare Access service-token bindings, and inbound Access issuer/audience
+are configured. The Worker verifies the inbound Access JWT against the fixed
+issuer JWKS; its request-local key lookup shares the gateway deadline. The
+inbound caller token is not forwarded, and the outbound service token is not
+used as caller authentication. The source owner must bind the inbound app
+audience and Access Allow policy to the principal set authorized for the
+selected native private delivery scope. This does not grant publication or
+source rights. The origin is an operator-owned deployment value; this
+repository names no live host. See the
+[gateway contract](../../contracts/source-text-gateway.v1.md) for the exact
+bindings, limits, and authority boundary. The Worker exposes selection state
+through `/api/source/capabilities` with `runtime_readiness: not-probed`; it does
+not check origin health, choose the native consumer, or read source text from
+D1. It applies one bounded 65-second end-to-end deadline across inbound
+JWT/JWKS validation, request body reading, native response headers, and native
+response body reading. These stages share the same cap, so preflight time
+reduces the time available to the native query; the native 60-second query cap
+is not reserved in addition to the Worker deadline. Keep the native
+origin on a distinct TLS hostname behind an Access policy that accepts this
+Worker service token, so the Worker cannot call itself.
+
 The edge is a generated read model. It does not own philosophical meaning,
 review state, rights, or canon. The installed native `tos build-data` command
 is the maintained producer invoked by `npm run build:data`. It reads the

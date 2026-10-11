@@ -11,6 +11,7 @@
     "temporal_comparison_request": "temporal-comparison-request.v1.schema.json",
     "temporal_comparison_result": "temporal-comparison-result.v1.schema.json",
     "source_read": "source-read.v1.schema.json",
+    "source_text_gateway_capability": "source-text-gateway-capability.v1.schema.json",
     "entity_type_registry_schema": "../../ToS/contracts/semantic-entity-type-registry.schema.json",
     "relation_type_registry_schema": "../../ToS/contracts/semantic-relation-type-registry.schema.json",
     "entity_type_registry": "../../ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -36,8 +37,8 @@
       "http": {"method": "GET", "path": "/api/source/capabilities"},
       "mcp_tool": "tos_source_read_capabilities",
       "cli": "tos source capabilities",
-      "result": "selected exact-source owner epoch, supported metadata families and limits, or explicit unavailability",
-      "available_on": "native local HTTP, CLI and MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability"
+      "result": "selected exact-source owner epoch, supported metadata families and limits, explicit D1 unavailability, and the separately selected native source-text gateway capability",
+      "available_on": "native local HTTP, CLI and MCP; source owner is opt-in. Cloudflare/D1 remains unavailable as a source reader; its capability packet may report a source-text gateway only when the native HTTPS origin, outbound Access service token, inbound Access issuer and application audience are configured, without probing runtime readiness"
     },
     {
       "operation_id": "tos.source.read.contracts",

@@ -46,8 +46,11 @@ The initial private source-text projection and its explicit owner CLI are
 documented in the [`tos-command` README](../rust/crates/tos-command/README.md).
 It does not yet replace the full knowledge API or select data for this reader.
 `tos.source-text.search` requires an explicitly selected durable PostgreSQL
-consumer on native HTTP, CLI or MCP; Cloudflare Worker/D1 returns an explicit
-501 unavailable response and does not bridge to that consumer.
+consumer on native HTTP, CLI or MCP. The Cloudflare Worker can forward this
+operation when an explicit native HTTPS origin, outbound Cloudflare Access
+service token, and inbound Access issuer and application audience are
+configured. The Worker verifies the caller JWT; capability reports
+configuration only, while D1 remains unavailable as a source-text reader.
 The offline Rust source compiler offers an optional, explicitly located
 processing DAG/cache in [`PROCESSING_DEPENDENCIES.md`](PROCESSING_DEPENDENCIES.md).
 Callers opt in through `NativeFamilyInputs.processing_run`; the default build
@@ -1254,6 +1257,10 @@ released snapshot performs bounded native integrity and member-binding checks;
 - `contracts/query-operations.v1.json` owns transport-neutral read operations.
 - `contracts/knowledge-api.v1.json` maps the knowledge catalog, search,
   inspection, stored-lens, and compile operations across HTTP, MCP, and CLI.
+- `contracts/source-text-gateway.v1.md` and
+  `contracts/source-text-gateway-capability.v1.schema.json` define the
+  optional Cloudflare-to-native PostgreSQL source-text transport and its
+  configuration-only capability packet.
 - `contracts/knowledge-graph.v1.schema.json` defines the normalized,
   display-complete read model.
 - `contracts/lens-spec.v1.schema.json` defines the bounded declarative

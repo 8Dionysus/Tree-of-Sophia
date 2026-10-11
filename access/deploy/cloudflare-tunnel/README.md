@@ -31,6 +31,23 @@ Set `TOS_SOURCE_PG_URL` privately in `site.env` for that consumer. Keep this
 environment file mode `0600` because it may contain database credentials. The
 tunnel token remains in its separate credential file.
 
+## Optional Worker source-text origin
+
+The Worker profile can use this native PostgreSQL endpoint through a separately
+configured HTTPS hostname and Cloudflare Access service-token policy. That
+hostname must be distinct from `treeofsophia.com`, which this temporary profile
+routes to the native site; the Worker must never target its own public route.
+Configure the Worker-side origin and outbound Access client ID/secret only
+after the native origin has its selected `TOS_SOURCE_TEXT_SEARCH_SELECTION` and
+private `TOS_SOURCE_PG_URL`. Also configure the inbound Access team issuer and
+application audience. The source owner must align that application's Allow
+policy with the principal set admitted for the selected native private
+source-text delivery scope. The Worker verifies the JWT audience and never
+forwards its assertion or identity headers. These settings do not grant source
+rights or public publication. No gateway hostname is assigned by this
+repository, and the Worker capability route reports configuration only, not
+origin health.
+
 The systemd origin still locates the maintained helper through
 `TOS_SITE_ROOT` for backward compatibility. When the helper is kept separately
 from Site data, set `TOS_ACCESS_ORIGIN_LAUNCHER` to its absolute `run-origin.sh`

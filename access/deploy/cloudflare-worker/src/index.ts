@@ -35,6 +35,7 @@ import {installNativePythonRuntime, NativeBudgetExceeded} from '../../../shared/
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 import { withWebAnalytics } from "./web-analytics";
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
+import {sourceTextGatewayCapability, sourceTextSearchGatewayResponse} from './source-text-gateway.ts';
 import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
 import {initSync, KnowledgeSceneSession, TemporalReplaySession, validate_temporal_request_wasm_v1,
   InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1,
@@ -177,7 +178,8 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
     layers: {metadata_record: [], claim_record: false, source_slot: false, authored_csv_record: false},
     source_epoch: null, representations: [],
     authority: {is_source: false, writes_to_source: false, grants_current_use: false, native_text_payload: false,
-      note: 'D1 exposes derived source navigation, not an explicitly selected source-owner reader or durable PostgreSQL source-text search consumer.'},
+      note: 'D1 exposes derived source navigation only; a separately configured native PostgreSQL source-text gateway is reported below and does not make D1 a source reader.'},
+    source_text_search: sourceTextGatewayCapability(env, request.url),
     status: 'unsupported', reason: 'source-owner-reader-not-configured',
   }, 200, method);
   if (path === "/api/knowledge/explore/capabilities") return jsonResponse(await explorationCapabilitiesD1(env.DB), 200, method);
@@ -489,11 +491,7 @@ export default {
       }
     }
     if (request.method === "POST" && url.pathname === "/api/source-text/search") {
-      return jsonResponse(
-        { error: "source-text search unavailable: an explicitly selected durable PostgreSQL consumer is required" },
-        501,
-        request.method,
-      );
+      return sourceTextSearchGatewayResponse(request, env);
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       return jsonResponse({ error: "standalone access is read-only" }, 405, request.method);

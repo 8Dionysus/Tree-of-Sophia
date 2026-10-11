@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/source-text-gateway-capability.v1.schema.json",
+  "title": "Tree of Sophia source-text gateway capability v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_id",
+    "operation_profile",
+    "request_path",
+    "status",
+    "selected",
+    "reason",
+    "runtime_readiness",
+    "endpoint_origin_exposed",
+    "authentication",
+    "caller_access_audience_exposed",
+    "authority"
+  ],
+  "properties": {
+    "schema_version": { "const": "tos_source_text_gateway_capability_v1" },
+    "operation_id": { "const": "tos.source-text.search" },
+    "operation_profile": { "const": "tos_source_text_search_v1" },
+    "request_path": { "const": "/api/source-text/search" },
+    "status": { "enum": ["unsupported", "misconfigured", "selected"] },
+    "selected": { "type": "boolean" },
+    "reason": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "enum": [
+            "gateway-not-configured",
+            "gateway-configuration-incomplete",
+            "gateway-configuration-invalid",
+            "gateway-url-invalid",
+            "gateway-origin-loops-to-worker",
+            "gateway-caller-access-configuration-incomplete",
+            "gateway-caller-access-configuration-invalid"
+          ]
+        }
+      ]
+    },
+    "runtime_readiness": { "const": "not-probed" },
+    "endpoint_origin_exposed": { "const": false },
+    "authentication": { "const": "cloudflare-access-jwt-and-service-token-required" },
+    "caller_access_audience_exposed": { "const": false },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "d1_reads_source_text",
+        "worker_selects_source_consumer",
+        "native_selected_consumer_owns_currentness_and_disclosure",
+        "grants_rights_or_publication"
+      ],
+      "properties": {
+        "d1_reads_source_text": { "const": false },
+        "worker_selects_source_consumer": { "const": false },
+        "native_selected_consumer_owns_currentness_and_disclosure": { "const": true },
+        "grants_rights_or_publication": { "const": false }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "selected" } }, "required": ["status"] },
+      "then": { "properties": { "selected": { "const": true }, "reason": { "type": "null" } } },
+      "else": { "properties": { "selected": { "const": false }, "reason": { "type": "string" } } }
+    }
+  ]
+}

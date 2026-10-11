@@ -17,6 +17,7 @@ const QUERY_OPERATIONS: &[&str] = &[
     "tos.snapshot",
     "tos.search",
     "tos.knowledge.search",
+    "tos.source-text.search",
     "tos_philosophy_graph_scale_rows",
     "tos.source-gaps.search",
     "tos.source.descend",
@@ -75,7 +76,7 @@ const PAGE_COMMANDS: &[&str] = &[
     "tos.page.clear-focus",
     "tos.page.cancel",
 ];
-const TEN_ACCESS_SCHEMAS: &[&str] = &[
+const ACCESS_SCHEMAS: &[&str] = &[
     "access/contracts/knowledge-graph.v1.schema.json",
     "access/contracts/knowledge-search-indexed.v2.schema.json",
     "access/contracts/lens-spec.v1.schema.json",
@@ -86,6 +87,7 @@ const TEN_ACCESS_SCHEMAS: &[&str] = &[
     "access/contracts/exploration-result.v1.schema.json",
     "access/contracts/exploration-request.v2.schema.json",
     "access/contracts/exploration-result.v2.schema.json",
+    "access/contracts/source-text-gateway-capability.v1.schema.json",
 ];
 const ALL_PROGRAM_SCHEMAS: &[&str] = &[
     "access/contracts/knowledge-graph.v1.schema.json",
@@ -102,6 +104,7 @@ const ALL_PROGRAM_SCHEMAS: &[&str] = &[
     "ToS/contracts/semantic-relation-type-registry.schema.json",
     "access/contracts/readable-context.v1.schema.json",
     "access/contracts/source-read.v1.schema.json",
+    "access/contracts/source-text-gateway-capability.v1.schema.json",
 ];
 const SOFTWARE_CONTRACT_PATHS: &[&str] = &[
     "access/contracts/runtime-manifest.v1.json",
@@ -109,6 +112,7 @@ const SOFTWARE_CONTRACT_PATHS: &[&str] = &[
     "access/contracts/web-actions.v1.json",
     "access/contracts/query-operations.v1.json",
     "access/contracts/knowledge-api.v1.json",
+    "access/contracts/source-text-gateway-capability.v1.schema.json",
     "access/contracts/epistemic-packet.v1.schema.json",
     "ToS/contracts/epistemic-evidence-projection.schema.json",
     "access/contracts/evidence-lens-packet.v1.schema.json",
@@ -497,7 +501,7 @@ fn validate_software_contracts(meter: &mut Meter) -> Result<usize, String> {
         .compile_all()
         .map_err(|e| format!("standalone schema compilation: {e:?}"))?;
 
-    for path in TEN_ACCESS_SCHEMAS {
+    for path in ACCESS_SCHEMAS {
         if !documents.contains_key(path) {
             let (_, value) = meter.json(path, SOFTWARE_FILE_BYTES as usize)?;
             documents.insert(*path, value);
