@@ -241,6 +241,13 @@ struct CaptureOperation {
     phase_limited: bool,
 }
 
+/// Active deadline and work ceiling observed once for a single charge call.
+#[derive(Clone, Copy, Debug)]
+struct CaptureWorkBudget {
+    deadline: Instant,
+    work_limit: u64,
+}
+
 pub struct PublicCapture {
     root: PathBuf,
     prepared_profile: bool,
@@ -997,12 +1004,20 @@ impl<'budget> CreationState<'budget> {
     }
     #[track_caller]
     pub(crate) fn charge_work(&self, bytes: usize) -> Result<()> {
-        self.remaining(0)?;
-        let limit = self.capture_owner.map_or(Ok(self.work_limit), |owner| {
-            owner
-                .active_work_limit()
-                .map(|limit| limit.min(self.work_limit))
-        })?;
+        let capture_budget = match self.capture_owner {
+            Some(owner) => {
+                let budget = owner.active_work_budget()?;
+                self.remaining_with_deadline(0, self.deadline.min(budget.deadline))?;
+                Some(budget)
+            }
+            None => {
+                self.remaining(0)?;
+                None
+            }
+        };
+        let limit = capture_budget.map_or(self.work_limit, |budget| {
+            budget.work_limit.min(self.work_limit)
+        });
         checked_add(&self.work, bytes, limit)
     }
     pub(crate) fn encode_json<T: serde::Serialize + ?Sized>(
@@ -1387,6 +1402,9 @@ impl<'budget> CreationState<'budget> {
             Some(capture) => self.deadline.min(capture.active_deadline()?),
             None => self.deadline,
         };
+        self.remaining_with_deadline(prospective, deadline)
+    }
+    fn remaining_with_deadline(&self, prospective: usize, deadline: Instant) -> Result<usize> {
         check_capture_active(Some(self.cancelled), deadline)?;
         let total = self
             .retained
@@ -5333,6 +5351,23 @@ impl PublicCapture {
         Ok(active.map_or(self.max_work_bytes, |phase| phase.work_limit))
     }
 
+    fn active_work_budget(&self) -> Result<CaptureWorkBudget> {
+        let active = self
+            .operation_deadline
+            .lock()
+            .map_err(|_| Error::Invalid("capture operation deadline poisoned"))?;
+        Ok(active.map_or(
+            CaptureWorkBudget {
+                deadline: self.deadline,
+                work_limit: self.max_work_bytes,
+            },
+            |phase| CaptureWorkBudget {
+                deadline: phase.deadline.min(self.deadline),
+                work_limit: phase.work_limit,
+            },
+        ))
+    }
+
     fn active_vm_limit(&self) -> Result<u64> {
         let active = self
             .operation_deadline
@@ -5342,11 +5377,12 @@ impl PublicCapture {
     }
 
     pub fn charge_work(&self, bytes: u64) -> Result<()> {
-        check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
-        if Instant::now() >= self.active_deadline()? {
+        let budget = self.active_work_budget()?;
+        check_capture_active(Some(self.cancelled.as_ref()), budget.deadline)?;
+        if Instant::now() >= budget.deadline {
             return Err(Error::Budget("public D1 build deadline"));
         }
-        let limit = self.active_work_limit()?;
+        let limit = budget.work_limit;
         let mut current = self.work_bytes.load(std::sync::atomic::Ordering::Acquire);
         loop {
             let next = current
@@ -5362,7 +5398,7 @@ impl PublicCapture {
                 Ok(_) => return Ok(()),
                 Err(observed) => current = observed,
             }
-            check_capture_active(Some(self.cancelled.as_ref()), self.active_deadline()?)?;
+            check_capture_active(Some(self.cancelled.as_ref()), budget.deadline)?;
         }
     }
 
@@ -7698,5 +7734,195 @@ mod construction_phase_tests {
         assert_eq!(state.retained.get(), before);
         drop(interrupted);
         assert_eq!(state.retained.get(), baseline);
+    }
+}
+
+#[cfg(test)]
+mod capture_work_budget_tests {
+    use super::*;
+    use crate::knowledge_payload_read::RuntimeKnowledgeOwnedBudget;
+    use std::{
+        sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+        time::Duration,
+    };
+
+    fn capture(
+        work_bytes: Arc<AtomicU64>,
+        vm_used: Arc<AtomicU64>,
+        cancelled: Arc<AtomicBool>,
+    ) -> PublicCapture {
+        PublicCapture {
+            root: PathBuf::new(),
+            prepared_profile: false,
+            evidence_profile: false,
+            runtime_capture_role: None,
+            prepared_state: Vec::new(),
+            path: PathBuf::new(),
+            inode: (0, 0),
+            sources: Vec::new(),
+            partitioned: false,
+            file_state: (0, 0, 0, 0, 0, 0, 0),
+            family_seal: Mutex::new(FamilyPreparationSeal::Initial),
+            rows: 0,
+            work_bytes,
+            max_work_bytes: 100,
+            deadline: Instant::now() + Duration::from_secs(30),
+            operation_deadline: Mutex::new(None),
+            limits: PublicCaptureLimits {
+                max_input_bytes: 1,
+                max_rows: 1,
+                max_staging_bytes: 1,
+                max_work_bytes: 100,
+                max_sql_vm_steps: 100,
+                sqlite_cache_kib: 1,
+            },
+            vm_used,
+            shared_vm: true,
+            sqlite_heap: None,
+            controlled_identity: None,
+            cancelled,
+        }
+    }
+
+    #[test]
+    fn capture_charge_work_preserves_phase_limit_and_monotonic_counter() {
+        let work = Arc::new(AtomicU64::new(0));
+        let vm = Arc::new(AtomicU64::new(0));
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let capture = capture(Arc::clone(&work), vm, Arc::clone(&cancelled));
+
+        cancelled.store(true, Ordering::Release);
+        assert!(matches!(
+            capture.charge_work(0),
+            Err(Error::Budget("public D1 capture cancelled"))
+        ));
+        assert_eq!(work.load(Ordering::Acquire), 0);
+        cancelled.store(false, Ordering::Release);
+
+        let operation_deadline = Instant::now() + Duration::from_secs(10);
+        capture
+            .with_owned_operation_deadline_and_limits(operation_deadline, Some((4, 3)), || {
+                capture.charge_work(4)?;
+                assert_eq!(work.load(Ordering::Acquire), 4);
+                assert!(capture.charge_work(1).is_err());
+                assert_eq!(work.load(Ordering::Acquire), 4);
+                assert_eq!(capture.active_vm_limit()?, 3);
+
+                capture.finish_owned_operation_phase_limits()?;
+                capture.charge_work(2)?;
+                assert_eq!(work.load(Ordering::Acquire), 6);
+                assert_eq!(capture.active_vm_limit()?, 100);
+                Ok(())
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn creation_charge_work_keeps_live_owner_check_and_phase_snapshot() {
+        const CHILD: &str = "TOS_CAPTURE_WORK_BUDGET_TEST_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            // Dedicated SQLite heap initialization is process-global; keep it
+            // isolated from other tests in this binary.
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "d1_public_capture::capture_work_budget_tests::creation_charge_work_keeps_live_owner_check_and_phase_snapshot",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let work = Arc::new(AtomicU64::new(0));
+        let vm = Arc::new(AtomicU64::new(0));
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let callback_calls = AtomicUsize::new(0);
+        let callback_limit = AtomicUsize::new(usize::MAX);
+        let callback_bytes = AtomicUsize::new(0);
+        let remaining = |bytes: usize| {
+            callback_calls.fetch_add(1, Ordering::AcqRel);
+            callback_bytes.store(bytes, Ordering::Release);
+            callback_limit
+                .load(Ordering::Acquire)
+                .checked_sub(bytes)
+                .ok_or(Error::Budget("test retained owner"))
+        };
+        let heap = sqlite_budget::DedicatedSessionSqliteHeap::establish(
+            64 * 1024,
+            &remaining,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let budget = RuntimeKnowledgeOwnedBudget {
+            remaining_after_retained: &remaining,
+            original_work: &work,
+            original_work_limit: 100,
+            original_sql_vm: &vm,
+            original_sql_vm_limit: 100,
+            original_sqlite_heap: &heap,
+            remaining_json_visits: 100,
+            owner_deadline: deadline,
+            operation_deadline: deadline,
+            cancelled: &cancelled,
+        };
+        let capture = capture(Arc::clone(&work), Arc::clone(&vm), Arc::clone(&cancelled));
+        let mut state = CreationState::from_runtime_owned_budget(&budget).unwrap();
+        state.capture_owner = Some(&capture);
+        let retained = state.observed_retained_state_bytes();
+        callback_calls.store(0, Ordering::Release);
+
+        capture
+            .with_owned_operation_deadline_and_limits(
+                Instant::now() + Duration::from_secs(10),
+                Some((4, 3)),
+                || {
+                    assert_eq!(state.sql_vm_limit(), 3);
+                    assert!(state.charge_work(3).is_ok());
+                    assert_eq!(callback_calls.load(Ordering::Acquire), 1);
+                    assert_eq!(callback_bytes.load(Ordering::Acquire), retained);
+                    assert_eq!(work.load(Ordering::Acquire), 3);
+
+                    callback_limit.store(retained - 1, Ordering::Release);
+                    assert!(state.charge_work(1).is_err());
+                    assert_eq!(callback_calls.load(Ordering::Acquire), 2);
+                    assert_eq!(callback_bytes.load(Ordering::Acquire), retained);
+                    assert_eq!(work.load(Ordering::Acquire), 3);
+
+                    callback_limit.store(usize::MAX, Ordering::Release);
+                    cancelled.store(true, Ordering::Release);
+                    assert!(matches!(
+                        state.charge_work(1),
+                        Err(Error::Budget("public D1 capture cancelled"))
+                    ));
+                    assert_eq!(callback_calls.load(Ordering::Acquire), 2);
+                    assert_eq!(work.load(Ordering::Acquire), 3);
+                    cancelled.store(false, Ordering::Release);
+
+                    assert!(state.charge_work(1).is_ok());
+                    assert_eq!(callback_calls.load(Ordering::Acquire), 3);
+                    assert_eq!(work.load(Ordering::Acquire), 4);
+                    assert!(state.charge_work(1).is_err());
+                    assert_eq!(callback_calls.load(Ordering::Acquire), 4);
+                    assert_eq!(work.load(Ordering::Acquire), 4);
+
+                    capture.finish_owned_operation_phase_limits()?;
+                    assert_eq!(state.sql_vm_limit(), 100);
+                    assert!(state.charge_work(2).is_ok());
+                    assert_eq!(callback_calls.load(Ordering::Acquire), 5);
+                    assert_eq!(work.load(Ordering::Acquire), 6);
+                    Ok(())
+                },
+            )
+            .unwrap();
     }
 }
