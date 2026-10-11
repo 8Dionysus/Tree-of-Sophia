@@ -14,7 +14,7 @@ pub use cold_membership_spool::{ColdWorkspaceLimits, PrivateGenerationWorkspace}
 use cold_membership_spool::{RunCollector, ScratchReader, ScratchRows};
 
 use postgres::fallible_iterator::FallibleIterator;
-use postgres::{Client, IsolationLevel, NoTls, Transaction};
+use postgres::{Client, GenericClient, IsolationLevel, NoTls, Transaction};
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::{
     AttemptRecovery, AuditedStoreRoot, ByteDurabilityReceipt, GenerationCatalogV1,
@@ -1242,6 +1242,61 @@ pub struct DurablePgCoordinator {
     client: Client,
 }
 
+fn compatible_core_schema(client: &mut impl GenericClient) -> DurableResult<bool> {
+    let compatible: bool = client
+        .query_one(
+            "WITH required_tables(name) AS (VALUES
+               ('cmd2_domain'),('cmd2_audit_fence'),('cmd2_job'),('cmd2_predicate'),
+               ('cmd2_attempt'),('cmd2_source_index'),('cmd2_member'),('cmd2_current'),
+               ('cmd2_history'),('cmd2_receipt'),('cmd2_log'),
+               ('cmd2_source_inventory_projection'),('cmd2_outbox')),
+             required_indexes(name) AS (VALUES
+               ('cmd2_current_source_cold_seek'),('cmd2_current_source_subject_c_seek'),
+               ('cmd2_source_index_cold_seek'),('cmd2_source_index_path_semantic_seek'),
+               ('cmd2_predicate_source_cold_seek')),
+             required_functions(name) AS (VALUES
+               ('cmd2_register_audit_domain'),('cmd2_bump_audit_fence'),
+               ('cmd2_refuse_audited_truncate'),('cmd2_fence_maintenance_transition'),
+               ('cmd2_invalidate_source_maintenance')),
+             required_triggers(name) AS (VALUES
+               ('cmd2_audit_domain_insert'),('cmd2_audit_domain_update'),
+               ('cmd2_refuse_domain_truncate'),('cmd2_fence_maintenance_transition'),
+               ('cmd2_invalidate_source_maintenance'),
+               ('cmd2_audit_cmd2_job'),('cmd2_refuse_cmd2_job_truncate'),
+               ('cmd2_audit_cmd2_predicate'),('cmd2_refuse_cmd2_predicate_truncate'),
+               ('cmd2_audit_cmd2_attempt'),('cmd2_refuse_cmd2_attempt_truncate'),
+               ('cmd2_audit_cmd2_member'),('cmd2_refuse_cmd2_member_truncate'),
+               ('cmd2_audit_cmd2_current'),('cmd2_refuse_cmd2_current_truncate'),
+               ('cmd2_audit_cmd2_history'),('cmd2_refuse_cmd2_history_truncate'),
+               ('cmd2_audit_cmd2_receipt'),('cmd2_refuse_cmd2_receipt_truncate'),
+               ('cmd2_audit_cmd2_log'),('cmd2_refuse_cmd2_log_truncate'),
+               ('cmd2_audit_cmd2_outbox'),('cmd2_refuse_cmd2_outbox_truncate'),
+               ('cmd2_audit_cmd2_source_index'),('cmd2_refuse_cmd2_source_index_truncate'),
+               ('cmd2_audit_cmd2_source_inventory_projection'),
+               ('cmd2_refuse_cmd2_source_inventory_projection_truncate'))
+             SELECT
+               (SELECT count(*)=13 FROM required_tables r JOIN pg_class c
+                 ON c.relname=r.name AND c.relkind IN ('r','p')
+                JOIN pg_namespace n ON n.oid=c.relnamespace
+                WHERE n.nspname=current_schema())
+               AND (SELECT count(*)=5 FROM required_indexes r JOIN pg_class c
+                 ON c.relname=r.name AND c.relkind='i'
+                JOIN pg_namespace n ON n.oid=c.relnamespace
+                WHERE n.nspname=current_schema())
+               AND (SELECT count(*)=5 FROM required_functions r JOIN pg_proc p
+                 ON p.proname=r.name JOIN pg_namespace n ON n.oid=p.pronamespace
+                WHERE n.nspname=current_schema())
+               AND (SELECT count(*)=27 FROM required_triggers r JOIN pg_trigger t
+                 ON t.tgname=r.name AND NOT t.tgisinternal
+                JOIN pg_class c ON c.oid=t.tgrelid
+                JOIN pg_namespace n ON n.oid=c.relnamespace
+                WHERE n.nspname=current_schema())",
+            &[],
+        )?
+        .get(0);
+    Ok(compatible)
+}
+
 impl DurablePgCoordinator {
     pub fn connect(url: &str) -> DurableResult<Self> {
         let mut client = Client::connect(url, NoTls)?;
@@ -1317,64 +1372,54 @@ impl DurablePgCoordinator {
     /// This does not attest catalog definitions or grants: the private schema
     /// owner and its DDL remain trusted under the selected database profile.
     pub fn require_compatible_schema(&mut self) -> DurableResult<()> {
-        let compatible: bool = self
-            .client
-            .query_one(
-                "WITH required_tables(name) AS (VALUES
-                   ('cmd2_domain'),('cmd2_audit_fence'),('cmd2_job'),('cmd2_predicate'),
-                   ('cmd2_attempt'),('cmd2_source_index'),('cmd2_member'),('cmd2_current'),
-                   ('cmd2_history'),('cmd2_receipt'),('cmd2_log'),
-                   ('cmd2_source_inventory_projection'),('cmd2_outbox')),
-                 required_indexes(name) AS (VALUES
-                   ('cmd2_current_source_cold_seek'),('cmd2_current_source_subject_c_seek'),
-                   ('cmd2_source_index_cold_seek'),('cmd2_source_index_path_semantic_seek'),
-                   ('cmd2_predicate_source_cold_seek')),
-                 required_functions(name) AS (VALUES
-                   ('cmd2_register_audit_domain'),('cmd2_bump_audit_fence'),
-                   ('cmd2_refuse_audited_truncate'),('cmd2_fence_maintenance_transition'),
-                   ('cmd2_invalidate_source_maintenance')),
-                 required_triggers(name) AS (VALUES
-                   ('cmd2_audit_domain_insert'),('cmd2_audit_domain_update'),
-                   ('cmd2_refuse_domain_truncate'),('cmd2_fence_maintenance_transition'),
-                   ('cmd2_invalidate_source_maintenance'),
-                   ('cmd2_audit_cmd2_job'),('cmd2_refuse_cmd2_job_truncate'),
-                   ('cmd2_audit_cmd2_predicate'),('cmd2_refuse_cmd2_predicate_truncate'),
-                   ('cmd2_audit_cmd2_attempt'),('cmd2_refuse_cmd2_attempt_truncate'),
-                   ('cmd2_audit_cmd2_member'),('cmd2_refuse_cmd2_member_truncate'),
-                   ('cmd2_audit_cmd2_current'),('cmd2_refuse_cmd2_current_truncate'),
-                   ('cmd2_audit_cmd2_history'),('cmd2_refuse_cmd2_history_truncate'),
-                   ('cmd2_audit_cmd2_receipt'),('cmd2_refuse_cmd2_receipt_truncate'),
-                   ('cmd2_audit_cmd2_log'),('cmd2_refuse_cmd2_log_truncate'),
-                   ('cmd2_audit_cmd2_outbox'),('cmd2_refuse_cmd2_outbox_truncate'),
-                   ('cmd2_audit_cmd2_source_index'),('cmd2_refuse_cmd2_source_index_truncate'),
-                   ('cmd2_audit_cmd2_source_inventory_projection'),
-                   ('cmd2_refuse_cmd2_source_inventory_projection_truncate'))
-                 SELECT
-                   (SELECT count(*)=13 FROM required_tables r JOIN pg_class c
-                     ON c.relname=r.name AND c.relkind IN ('r','p')
-                    JOIN pg_namespace n ON n.oid=c.relnamespace
-                    WHERE n.nspname=current_schema())
-                   AND (SELECT count(*)=5 FROM required_indexes r JOIN pg_class c
-                     ON c.relname=r.name AND c.relkind='i'
-                    JOIN pg_namespace n ON n.oid=c.relnamespace
-                    WHERE n.nspname=current_schema())
-                   AND (SELECT count(*)=5 FROM required_functions r JOIN pg_proc p
-                     ON p.proname=r.name JOIN pg_namespace n ON n.oid=p.pronamespace
-                    WHERE n.nspname=current_schema())
-                   AND (SELECT count(*)=27 FROM required_triggers r JOIN pg_trigger t
-                     ON t.tgname=r.name AND NOT t.tgisinternal
-                    JOIN pg_class c ON c.oid=t.tgrelid
-                    JOIN pg_namespace n ON n.oid=c.relnamespace
-                    WHERE n.nspname=current_schema())",
-                &[],
-            )?
-            .get(0);
+        let compatible = compatible_core_schema(&mut self.client)?;
         if !compatible {
             return Err(DurableError::Refused(
                 "selected PostgreSQL CMD.2 schema is absent or incomplete",
             ));
         }
         Ok(())
+    }
+
+    pub(crate) fn provision_work_revision_schema(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut owner_check: impl FnMut() -> DurableResult<()>,
+    ) -> DurableResult<bool> {
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        tx.query_one("SELECT pg_advisory_xact_lock(1414482771,1129130034)", &[])?;
+        crate::source_pg_work_revision::schema_budget(&mut tx, deadline, cancelled)?;
+        if !compatible_core_schema(&mut tx)? {
+            return Err(DurableError::Refused(
+                "selected PostgreSQL CMD.2 schema is absent or incomplete",
+            ));
+        }
+        let extension_present: bool = tx
+            .query_one(
+                "SELECT EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_class c
+                   JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+                   WHERE n.nspname=current_schema()
+                     AND c.relname='cmd2_work_revision_history_v1'
+                 )",
+                &[],
+            )?
+            .get(0);
+        if extension_present {
+            owner_check()?;
+            crate::source_pg_work_revision::require_schema_v1(&mut tx, deadline, cancelled)?;
+        } else {
+            owner_check()?;
+            crate::source_pg_work_revision::schema_budget(&mut tx, deadline, cancelled)?;
+            tx.batch_execute(include_str!("source_pg_work_revision_v1.sql"))?;
+            crate::source_pg_work_revision::require_schema_v1(&mut tx, deadline, cancelled)?;
+        }
+        crate::source_pg_work_revision::schema_budget(&mut tx, deadline, cancelled)?;
+        owner_check()?;
+        tx.commit()?;
+        Ok(!extension_present)
     }
 
     pub fn create_domain(&mut self, domain: &str, contract_digest: Digest256) -> DurableResult<()> {

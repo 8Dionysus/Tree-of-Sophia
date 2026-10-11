@@ -253,6 +253,102 @@ fn request_bytes(input: impl Read) -> SourceCommandResult<Vec<u8>> {
     Ok(raw)
 }
 
+fn provision_work_revision_schema(
+    invocation_path: &Path,
+    invocation_raw: &[u8],
+    invocation: &Value,
+    uid: u32,
+    owner_path: &Path,
+    owner_fs: &CreationFilesystem,
+    owner_raw: &[u8],
+    request_raw: &[u8],
+    selection: &SourceSelection,
+    store: &SegmentStore,
+    db: &mut DurablePgCoordinator,
+    runtime_observation: &crate::source_serialization::ExecutableObservation,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Value> {
+    let selected = db
+        .open_source_revision_selection(
+            store,
+            &selection.domain,
+            &selection.job_id,
+            selection.job_fence,
+            deadline,
+            cancelled,
+        )
+        .map_err(source_error)?;
+    if selected.contract != selection.contract {
+        return Err(SourceCommandError::Conflict(
+            "selected source contract differs from current domain",
+        ));
+    }
+    let context = cmd::CommandContext {
+        base_revision: selected.cohort.initial_revision(),
+        configuration_raw: owner_raw.to_vec(),
+        request_raw: request_raw.to_vec(),
+        recorded_at: crate::source_serialization::instant()?,
+        effective_uid: u64::from(uid),
+        files: Vec::new(),
+    };
+    crate::source_revisions::require_work_revision_schema_provision(&context)?;
+    owner_fs.current_context(&context, deadline, cancelled)?;
+    let expected_executable_digest = digest(text(invocation, "native_executable_sha256")?)?;
+    let owner_check = || {
+        if super::read_absolute(
+            invocation_path,
+            uid,
+            true,
+            invocation_raw.len(),
+            deadline,
+            cancelled,
+        )
+        .map_err(DurableError::Source)?
+            != invocation_raw
+        {
+            return Err(DurableError::Conflict(
+                "PostgreSQL revision invocation changed before provision",
+            ));
+        }
+        let (current_fs, current_raw) = CreationFilesystem::select_protected_native_owner_at_root(
+            owner_path,
+            &selection.store_root,
+            deadline,
+            cancelled,
+        )
+        .map_err(DurableError::Source)?;
+        if current_raw != owner_raw {
+            return Err(DurableError::Conflict(
+                "PostgreSQL revision owner configuration changed before provision",
+            ));
+        }
+        current_fs
+            .current_context(&context, deadline, cancelled)
+            .map_err(DurableError::Source)?;
+        if runtime_observation
+            .current_digest(deadline, cancelled)
+            .map_err(DurableError::Source)?
+            != expected_executable_digest
+        {
+            return Err(DurableError::Conflict(
+                "native command executable changed before provision",
+            ));
+        }
+        Ok(())
+    };
+    let created = db
+        .provision_work_revision_schema(deadline, cancelled, owner_check)
+        .map_err(source_error)?;
+    Ok(json!({
+        "schema_version":"tos_local_pg_work_revision_schema_provision_result_v1",
+        "extension":"cmd2_work_revision_history_v1",
+        "created":created,
+        "verified_schema_v1":true,
+        "grants_admission":false
+    }))
+}
+
 fn prepare_id(domain: &str, command_id: &str) -> Vec<u8> {
     let mut seed = b"tos-pg-record-revision-v1\0".to_vec();
     seed.extend_from_slice(&(domain.len() as u64).to_be_bytes());
@@ -341,10 +437,21 @@ pub(super) fn run(
         ));
     }
     let operation = cmd::text(&request, "operation")?;
-    if !matches!(operation, "describe" | "prepare-revise" | "record.revise") {
+    if !matches!(
+        operation,
+        "describe" | "prepare-revise" | "record.revise" | "work.revision-schema.provision"
+    ) {
         return Err(SourceCommandError::Unsupported(
             "PostgreSQL record revision operation",
         ));
+    }
+    if operation == "work.revision-schema.provision" {
+        cmd::exact_keys(&request, &["schema_version", "operation"])?;
+        if !work_owner {
+            return Err(SourceCommandError::Denied(
+                "protected Work revision schema provisioning grant",
+            ));
+        }
     }
     if work_owner
         && operation == "record.revise"
@@ -370,11 +477,35 @@ pub(super) fn run(
         .map_err(|_| SourceCommandError::Invalid("PostgreSQL revision source path"))?;
     let store = SegmentStore::open_existing(&selection.store_root, selection.store_limits)
         .map_err(|_| SourceCommandError::Conflict("selected private source store"))?;
-    let (software, components) = software_selection(invocation, deadline, cancelled)?;
     let mut db = DurablePgCoordinator::from_configured_client(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
     );
+    if operation == "work.revision-schema.provision" {
+        let result = provision_work_revision_schema(
+            invocation_path,
+            invocation_raw,
+            invocation,
+            uid,
+            &owner_path,
+            &owner_fs,
+            &owner_raw,
+            &request_raw,
+            &selection,
+            &store,
+            &mut db,
+            &runtime_observation,
+            deadline,
+            cancelled,
+        )?;
+        drop(owner_fs);
+        return Ok(json!({
+            "schema_version":"tos_local_pg_record_revision_result_v1",
+            "result":result,
+            "grants_admission":false
+        }));
+    }
+    let (software, components) = software_selection(invocation, deadline, cancelled)?;
     let (prepared, readset) = db
         .with_source_revision_session(
             &store,

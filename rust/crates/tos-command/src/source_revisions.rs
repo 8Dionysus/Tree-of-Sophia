@@ -1418,10 +1418,13 @@ pub(crate) fn configuration(
         ));
     }
     let operations = texts(&config, "allowed_operations", 32)?;
-    if operations
-        .iter()
-        .any(|op| op != "record.revise" && !(family.selected() && op == "record.recover"))
-    {
+    let work_owner =
+        family == RevisionFamily::CorpusSelectedV3 && cmd::text(&config, "record_type")? == "work";
+    if operations.iter().any(|op| {
+        op != "record.revise"
+            && !(family.selected() && op == "record.recover")
+            && !(work_owner && op == "work.revision-schema.provision")
+    }) {
         return Err(SourceCommandError::Denied(
             "record revision operation grant",
         ));
@@ -1450,6 +1453,25 @@ pub(crate) fn configuration(
         }
     }
     Ok((config, family))
+}
+
+pub(crate) fn require_work_revision_schema_provision(
+    ctx: &CommandContext,
+) -> SourceCommandResult<()> {
+    let (config, family) = configuration(ctx)?;
+    if family != RevisionFamily::CorpusSelectedV3
+        || cmd::text(&config, "record_type")? != "work"
+        || !has(
+            &config,
+            "allowed_operations",
+            "work.revision-schema.provision",
+        )?
+    {
+        return Err(SourceCommandError::Denied(
+            "protected Work revision schema provisioning grant",
+        ));
+    }
+    Ok(())
 }
 
 pub(crate) fn history(files: &Package, record: &JsonValue) -> SourceCommandResult<JsonValue> {

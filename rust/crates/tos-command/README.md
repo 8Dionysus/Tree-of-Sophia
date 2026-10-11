@@ -173,6 +173,16 @@ An exact command retry returns the retained commit receipt. Its result envelope
 has `grants_admission: false`: source admission, external rights, semantic
 acceptance, publication and canon remain separate owner decisions.
 
+The optional Work history table is provisioned only through the explicit
+`work.revision-schema.provision` request on this invocation route. It requires
+the protected `tos_local_corpus_revision_owner_v3` Work configuration to grant
+that exact token in `allowed_operations`. Provisioning takes the core schema
+initializer advisory lock, checks the existing CMD.2 schema, creates the
+extension in one bounded transaction when absent, and verifies the exact
+extension shape before commit. An already present but unknown extension is
+refused. Ordinary Work revision operations only check the extension; they do
+not run DDL. The provision result has `grants_admission: false`.
+
 The independent bounded source-change path awaits focused runtime verification.
 Record revisions and PG Agent creations commit against their exact source reads
 and affected predicate generations, together with the current source epoch,

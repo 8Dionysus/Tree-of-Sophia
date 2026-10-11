@@ -493,7 +493,7 @@ fn work_revision_recorded_at(
     let recorded_at = cmd::text(latest, "recorded_at")
         .map_err(source_error)?
         .to_owned();
-    source_revisions::validate_instant(&recorded_at).map_err(source_error)?;
+    cmd::validate_instant(&recorded_at).map_err(source_error)?;
 
     // A Work revision also writes the immutable archive for the predecessor
     // package. Admit only its exact owner-derived manifest and the blobs bound

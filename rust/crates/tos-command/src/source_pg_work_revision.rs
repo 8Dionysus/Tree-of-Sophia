@@ -326,7 +326,7 @@ pub(crate) fn require_schema_v1(
     Ok(())
 }
 
-fn schema_budget(
+pub(crate) fn schema_budget(
     tx: &mut Transaction<'_>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1066,10 +1066,10 @@ pub(crate) fn apply_source_change(
         || evidence.observation.selected_refs.is_some()
         || evidence.observation.selected.is_some()
         || actual_compound_digest != evidence.compound_members_digest
-        || evidence.owner_configuration_raw_digest == Digest256::default()
-        || evidence.owner_configuration_canonical_digest == Digest256::default()
-        || evidence.request_raw_digest == Digest256::default()
-        || evidence.request_canonical_digest == Digest256::default()
+        || evidence.owner_configuration_raw_digest == Digest256::from_bytes([0; 32])
+        || evidence.owner_configuration_canonical_digest == Digest256::from_bytes([0; 32])
+        || evidence.request_raw_digest == Digest256::from_bytes([0; 32])
+        || evidence.request_canonical_digest == Digest256::from_bytes([0; 32])
         || commit_seq == 0
     {
         return Err(DurableError::Conflict(

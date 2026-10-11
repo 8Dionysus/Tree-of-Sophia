@@ -67,6 +67,7 @@ const SOFTWARE_COMPONENTS: &[&str] = &[
     "rust/crates/tos-command/src/source_work_transaction.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_versions.rs",
 ];
+static WORK_REVISION_SCHEMA_PROVISION_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 const RECORD_PATH: &str = "ToS/source-witnesses/agents/parmenides-of-elea/agent.json";
 const FORMS_PATH: &str = "ToS/source-witnesses/agents/parmenides-of-elea/agent.human-forms.json";
 const HISTORY_PATH: &str =
@@ -929,6 +930,11 @@ fn bootstrap_case_on_lab(
     let record_raw = source.members[target.source_path].0.clone();
     let record: Value = serde_json::from_slice(&record_raw).unwrap();
     let uid = rustix::process::getuid().as_raw();
+    let allowed_operations = if target.record_type == "work" {
+        vec!["record.revise", "work.revision-schema.provision"]
+    } else {
+        vec!["record.revise"]
+    };
     let config = json!({
         "schema_version":if target.record_type == "work" { "tos_local_corpus_revision_owner_v3" } else { "tos_local_corpus_revision_owner_v1" },
         "uid":uid,
@@ -939,7 +945,7 @@ fn bootstrap_case_on_lab(
         "authority_ref":"test:bounded-pg-source-revision",
         "allowed_form_ids":target.form_ids,
         "allowed_fields":target.allowed_fields,
-        "allowed_operations":["record.revise"],
+        "allowed_operations":allowed_operations,
         "expires_at":"2099-01-01T00:00:00Z",
         "record_type":target.record_type
     });
@@ -1066,6 +1072,84 @@ fn invocation(
     assert!(invocation_path.is_absolute());
     fs::write(invocation_path, canonical(&value)).unwrap();
     fs::set_permissions(invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+}
+
+fn provision_work_revision_extension(
+    case: &RevisionCase,
+    software: &SoftwareFixture,
+    binary: &Path,
+) {
+    let _guard = WORK_REVISION_SCHEMA_PROVISION_LOCK.lock().unwrap();
+    let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    let invocation_path = case
+        ._owner_scratch
+        .0
+        .join("work-revision-schema-provision-invocation.json");
+    invocation(
+        case,
+        software,
+        binary,
+        &worker_path,
+        &invocation_path,
+        &case.owner_config,
+        "tos_local_pg_record_revision_invocation_v1",
+    );
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let was_present: bool = db
+        .query_one(
+            "SELECT to_regclass(current_schema() || '.cmd2_work_revision_history_v1') IS NOT NULL",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    if !was_present {
+        let absent_read = invoke_refusal(
+            binary,
+            &invocation_path,
+            &case.lab.url,
+            &json!({
+                "schema_version":"tos_local_source_command_v1",
+                "operation":"describe"
+            }),
+        );
+        assert_eq!(absent_read.result["refused"], true);
+        assert!(
+            absent_read.result["stderr"]
+                .as_str()
+                .unwrap()
+                .contains("PostgreSQL source revision selection refused")
+        );
+        let extension_still_absent: bool = db
+            .query_one(
+                "SELECT to_regclass(current_schema() || '.cmd2_work_revision_history_v1') IS NOT NULL",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        assert!(
+            !extension_still_absent,
+            "ordinary Work reads do not provision DDL"
+        );
+    }
+    drop(db);
+    let result = invoke(
+        binary,
+        &invocation_path,
+        &case.lab.url,
+        &json!({
+            "schema_version":"tos_local_source_command_v1",
+            "operation":"work.revision-schema.provision"
+        }),
+        false,
+    )
+    .result;
+    assert_eq!(
+        result["schema_version"],
+        "tos_local_pg_work_revision_schema_provision_result_v1"
+    );
+    assert_eq!(result["created"], !was_present);
+    assert_eq!(result["verified_schema_v1"], true);
+    assert_eq!(result["grants_admission"], false);
 }
 
 struct NativeInvocation {
@@ -3888,21 +3972,9 @@ fn real_pg_selected_work_revision_replays_and_cold_reads_exact_history() {
     let repository = repository_root();
     let software = software_fixture(&repository, deadline, &cancelled);
     let mut case = bootstrap_work_case(&repository, &software, deadline, &cancelled);
-    let mut provisioner = Client::connect(&case.lab.url, NoTls).unwrap();
-    let extension_present: bool = provisioner
-        .query_one(
-            "SELECT to_regclass('cmd2_work_revision_history_v1') IS NOT NULL",
-            &[],
-        )
-        .unwrap()
-        .get(0);
-    if !extension_present {
-        provisioner
-            .batch_execute(include_str!("../src/source_pg_work_revision_v1.sql"))
-            .expect("the optional Work revision extension is explicitly provisioned");
-    }
-    drop(provisioner);
-    let result = record_correction(&mut case, &software, &native_binary());
+    let binary = native_binary();
+    provision_work_revision_extension(&case, &software, &binary);
+    let result = record_correction(&mut case, &software, &binary);
     assert_eq!(result["record_id"], WORK_TARGET.record_id);
     assert_eq!(result["source_path"], WORK_TARGET.source_path);
     assert_eq!(result["replayed"], true);
@@ -3960,23 +4032,10 @@ fn real_pg_selected_work_revision_recovers_ready_attempt_and_cold_reads_exact_hi
     let repository = repository_root();
     let software = software_fixture(&repository, deadline, &cancelled);
     let mut case = bootstrap_work_case(&repository, &software, deadline, &cancelled);
-    let mut provisioner = Client::connect(&case.lab.url, NoTls).unwrap();
-    let extension_present: bool = provisioner
-        .query_one(
-            "SELECT to_regclass('cmd2_work_revision_history_v1') IS NOT NULL",
-            &[],
-        )
-        .unwrap()
-        .get(0);
-    if !extension_present {
-        provisioner
-            .batch_execute(include_str!("../src/source_pg_work_revision_v1.sql"))
-            .expect("the optional Work revision extension is explicitly provisioned");
-    }
-    drop(provisioner);
+    let binary = native_binary();
+    provision_work_revision_extension(&case, &software, &binary);
 
     let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
-    let binary = native_binary();
     let invocation_path = case._owner_scratch.0.join("ready-revision-invocation.json");
     invocation(
         &case,
