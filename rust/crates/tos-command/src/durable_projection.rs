@@ -194,6 +194,9 @@ pub struct DurableProjectionProgress {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct DomainSnapshot {
+    // Extraction-to-publication guard only. Reader freshness deliberately does
+    // not persist this audit counter because unrelated attempts also change it.
+    audit_generation: i64,
     head_seq: i64,
     rights_version: i64,
     rights_allowed: bool,
@@ -1259,7 +1262,7 @@ fn publish_event(
             observed_rights_version=$5,observed_rights_allowed=$6,observed_rule_version=$7,
             observed_contract_digest=$8,observed_schema_profile_digest=$9,
             observed_source_generation=$10,observed_source_complete=$11
-         WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$13",
+         WHERE domain=$1 AND consumer_id=$2 AND cursor_seq=$12",
         &[
             &domain,
             &consumer_id,
@@ -1287,7 +1290,7 @@ fn publish_event(
 fn lock_domain_snapshot(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<DomainSnapshot> {
     let audit = tx
         .query_opt(
-            "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
             &[&domain],
         )?
         .ok_or(DurableError::Corrupt("domain audit fence absent"))?;
@@ -1300,6 +1303,7 @@ fn lock_domain_snapshot(tx: &mut Transaction<'_>, domain: &str) -> DurableResult
         )?
         .ok_or(DurableError::Invalid("projection domain absent"))?;
     Ok(DomainSnapshot {
+        audit_generation: audit.get("generation"),
         head_seq: row.get("head_seq"),
         rights_version: row.get("rights_version"),
         rights_allowed: row.get("rights_allowed"),
@@ -1317,12 +1321,13 @@ fn read_domain_snapshot(tx: &mut Transaction<'_>, domain: &str) -> DurableResult
         .query_opt(
             "SELECT d.head_seq,d.rights_version,d.rights_allowed,d.rule_version,d.contract_digest,
                 d.schema_profile_digest,d.source_generation,d.source_complete,
-                f.maintenance_state
+                f.generation AS audit_generation,f.maintenance_state
          FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1",
             &[&domain],
         )?
         .ok_or(DurableError::Invalid("projection domain absent"))?;
     Ok(DomainSnapshot {
+        audit_generation: row.get("audit_generation"),
         head_seq: row.get("head_seq"),
         rights_version: row.get("rights_version"),
         rights_allowed: row.get("rights_allowed"),
