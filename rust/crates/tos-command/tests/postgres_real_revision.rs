@@ -216,8 +216,13 @@ fn canonical(value: &Value) -> Vec<u8> {
 }
 
 fn published_source_bytes(value: &Value) -> Vec<u8> {
-    let raw = serde_json::to_vec(value).unwrap();
-    let parsed = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let normalized = canonical(value);
+    let parsed = parse_json(
+        &normalized,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
     emit_json_profile(
         parsed.root(),
         JsonEmissionProfile::SourceFormSetPublishedV1,

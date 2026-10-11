@@ -1373,9 +1373,10 @@ fn source_command_error(error: DurableError) -> SourceCommandError {
         DurableError::Conflict(_) => {
             SourceCommandError::Conflict("bounded source revision read changed or is unavailable")
         }
-        DurableError::Refused(_) => SourceCommandError::Denied(
-            "bounded source revision read is refused by current custody state",
-        ),
+        // Refusal labels are static owner-authored diagnostics. Retain them so
+        // bounded selected reads can identify the exact pre-commit guard
+        // without exposing source, request, configuration, or database data.
+        DurableError::Refused(reason) => SourceCommandError::Denied(reason),
         DurableError::Invalid(_) | DurableError::Corrupt(_) => {
             SourceCommandError::Invalid("bounded source revision read metadata")
         }

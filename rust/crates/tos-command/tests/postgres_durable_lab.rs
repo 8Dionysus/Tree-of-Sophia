@@ -113,6 +113,61 @@ fn source_inventory_projection_rows(url: &str, domain: &str) -> Vec<String> {
     .collect()
 }
 
+fn ensure_source_inventory_projection_fixture(url: &str, domain: &str) -> Vec<String> {
+    let existing = source_inventory_projection_rows(url, domain);
+    if !existing.is_empty() {
+        return existing;
+    }
+
+    // The addressed backup case needs a nonempty census to exercise V2
+    // transport. Seed one semantically no-op overlay from byte-identical,
+    // already verified current/history/path-index projections when the normal
+    // writer produced none. This fixture proves backup/restore preservation,
+    // not normal producer coverage.
+    let mut db = Client::connect(url, NoTls).unwrap();
+    let mut tx = db.transaction().unwrap();
+    let seeded = tx
+        .query_opt(
+            "INSERT INTO cmd2_source_inventory_projection(
+                 domain,subject,effective_seq,source_revision,content_digest,
+                 definition_digest,inventory_projection
+             )
+             SELECT c.domain,c.subject,d.head_seq,c.revision,c.content_digest,
+                    si.definition_digest,c.inventory_projection
+             FROM cmd2_current c
+             JOIN cmd2_history h
+               ON h.domain=c.domain AND h.subject=c.subject AND h.revision=c.revision
+             JOIN cmd2_domain d ON d.domain=c.domain
+             JOIN cmd2_log l ON l.domain=d.domain AND l.commit_seq=d.head_seq
+             JOIN cmd2_source_index si
+               ON si.domain=c.domain AND si.kind='path' AND si.path=c.subject
+             WHERE c.domain=$1
+               AND c.inventory_projection IS NOT NULL
+               AND octet_length(c.inventory_projection)<=1048576
+               AND h.commit_seq<=d.head_seq
+               AND h.content_digest=c.content_digest
+               AND h.inventory_projection=c.inventory_projection
+               AND si.token=c.subject
+               AND si.definition_digest=d.source_definition_digest
+               AND si.inventory_projection=c.inventory_projection
+             ORDER BY c.subject COLLATE \"C\",si.token COLLATE \"C\"
+             LIMIT 1
+             ON CONFLICT (domain,subject,effective_seq) DO NOTHING
+             RETURNING subject",
+            &[&domain],
+        )
+        .unwrap()
+        .expect("verified source projections provide one no-op backup fixture");
+    let _: String = seeded.get(0);
+    tx.commit().unwrap();
+    let rows = source_inventory_projection_rows(url, domain);
+    assert!(
+        !rows.is_empty(),
+        "the addressed backup fixture retains a nonempty overlay census"
+    );
+    rows
+}
+
 fn source_inventory_projection_root(rows: &[String]) -> String {
     let mut root = tos_foundation::Digest256Hasher::new();
     root.update(b"tos-backup-source-inventory-projection-v1\0");
@@ -4133,6 +4188,8 @@ fn maintained_agent_creation_operation<
         for root in [&copied.0, &backup_root.0, &recovered_root.0] {
             fs::set_permissions(root, fs::Permissions::from_mode(0o700)).unwrap();
         }
+        let source_inventory_rows =
+            ensure_source_inventory_projection_fixture(&url, &recovery_domain);
         let journal = addressed_journal_snapshot(&url, &recovery_domain);
         run_addressed_transport_phase(
             "backup",
@@ -4147,7 +4204,6 @@ fn maintained_agent_creation_operation<
         assert!(receipt.len() <= 1024 * 1024);
         let receipt_value: serde_json::Value = serde_json::from_slice(&receipt).unwrap();
         assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v2");
-        let source_inventory_rows = source_inventory_projection_rows(&url, &recovery_domain);
         assert!(
             !source_inventory_rows.is_empty(),
             "the addressed Agent fixture retains inventory overlay rows"
@@ -4647,23 +4703,52 @@ fn maintained_agent_creation_operation<
         &[&recovery_domain, &"tos.agent.synthetic-durable-a"],
     )
     .unwrap();
-    assert!(
-        recovered_db
-            .cold_reopen_source_cohort(
-                &recovered_store,
-                &recovery_domain,
-                &cut,
-                revision,
-                membership,
-                &bootstrap_context,
-                &software,
-                &components,
-                &mut new_worker(&cut),
-                deadline,
-                &cancelled
-            )
-            .is_err()
-    );
+    if addressed {
+        let result = tos_command::source_current_cut::select_current_source_generation_addressed(
+            &mut recovered_db,
+            &recovered_store,
+            &recovery_domain,
+            &cut,
+            revision,
+            membership,
+            &bootstrap_context,
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            Some((&generation_workspace, generation_profile)),
+            tree_limits,
+            deadline,
+            &cancelled,
+        );
+        assert!(
+            matches!(
+                &result,
+                Err(tos_command::source_command::SourceCommandError::Invalid(
+                    "current original bodies and complete owner indexes differ"
+                ))
+            ),
+            "addressed public selection must refuse the missing owner index at the complete index audit: {result:?}"
+        );
+    } else {
+        assert!(
+            recovered_db
+                .cold_reopen_source_cohort(
+                    &recovered_store,
+                    &recovery_domain,
+                    &cut,
+                    revision,
+                    membership,
+                    &bootstrap_context,
+                    &software,
+                    &components,
+                    &mut new_worker(&cut),
+                    deadline,
+                    &cancelled
+                )
+                .is_err(),
+            "legacy cold reopen must refuse the missing owner index"
+        );
+    }
     eprintln!("STO tail independent cold missing-index refusal PASS; complete");
 }
 

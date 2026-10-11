@@ -223,9 +223,10 @@ fn source_error(error: DurableError) -> SourceCommandError {
         // a failed pre-seal guard can be diagnosed without returning request,
         // configuration, or database payloads.
         DurableError::Conflict(reason) => SourceCommandError::Conflict(reason),
-        DurableError::Refused(_) => {
-            SourceCommandError::Denied("PostgreSQL source revision selection refused")
-        }
+        // Refusal reasons are static owner-authored labels, just like conflict
+        // reasons above. Keeping them makes bounded guard failures diagnosable
+        // without exposing request, configuration, or database payloads.
+        DurableError::Refused(reason) => SourceCommandError::Denied(reason),
         DurableError::Invalid(_) | DurableError::Corrupt(_) => {
             SourceCommandError::Invalid("PostgreSQL source revision metadata")
         }
