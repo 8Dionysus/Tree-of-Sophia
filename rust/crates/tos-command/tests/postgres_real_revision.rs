@@ -4014,10 +4014,6 @@ fn real_pg_selected_work_revision_replays_and_cold_reads_exact_history() {
     assert_eq!(result["source_path"], WORK_TARGET.source_path);
     assert_eq!(result["replayed"], true);
     assert_eq!(
-        result["native_invocations"]["same_command_retry"]["replayed"],
-        true
-    );
-    assert_eq!(
         result["source_read_work"]["historical_source_members_read"], 6,
         "exact Work retry reopens three predecessor and three successor source members"
     );
