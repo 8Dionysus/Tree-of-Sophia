@@ -201,18 +201,21 @@ pub(crate) trait FinalRowObserver {
 
 fn processing_base_row(
     run: &crate::processing_cache::ProcessingRunHandle,
-    row: &RowRef<'_>,
+    source_graph: &str,
+    stable_id: &str,
+    digest: Digest256,
+    payload_len: usize,
     relation: bool,
     value: &Value,
 ) -> Result<crate::processing_cache::ProcessingValue> {
     let kind = if relation { "relation" } else { "node" };
-    let task_id = format!("{kind}:{}", row.id);
+    let task_id = format!("{kind}:{}", stable_id);
     if let Some(previous) = run.result(&task_id) {
         if previous.value() == value {
             return Ok(previous);
         }
     }
-    if let Some(previous) = run.latest_output(kind, row.id) {
+    if let Some(previous) = run.latest_output(kind, stable_id) {
         if previous.value() != value {
             return Err(Error::Invalid(
                 "processing final row differs from latest producer",
@@ -220,16 +223,16 @@ fn processing_base_row(
         }
         return Ok(previous);
     }
-    if let Some(previous) = run.result(&task_id) {
+    if run.result(&task_id).is_some() {
         return Err(Error::Invalid("processing base row differs from producer"));
     }
     let input = run.input(
-        &format!("normalized-row:{kind}:{}", row.id),
+        &format!("normalized-row:{kind}:{}", stable_id),
         &json!({
-            "source_graph":row.source,
-            "stable_id":row.id,
-            "row_sha256":row.digest.to_hex(),
-            "row_bytes":row.payload.len(),
+            "source_graph":source_graph,
+            "stable_id":stable_id,
+            "row_sha256":digest.to_hex(),
+            "row_bytes":payload_len,
         }),
     )?;
     let fingerprint = processing_fingerprint!(
@@ -245,7 +248,7 @@ fn processing_base_row(
         kind,
         "knowledge_native_finalize::bind_base_row",
         fingerprint,
-        &json!({"source_graph":row.source,"stable_id":row.id,"table":if relation {"relations"} else {"nodes"}}),
+        &json!({"source_graph":source_graph,"stable_id":stable_id,"table":if relation {"relations"} else {"nodes"}}),
         &[input],
         || Ok(value.clone()),
     )
@@ -476,7 +479,7 @@ where
                     let mut final_processing = None;
                     if let Some(run) = processing_run {
                         let relation = table == "knowledge_relations";
-                        let base = processing_base_row(run, &row, relation, &value)?;
+                        let base = processing_base_row(run, row.source, row.id, row.digest, original_len, relation, &value)?;
                         if relation {
                             let views = processing_relation_views(
                                 run,
