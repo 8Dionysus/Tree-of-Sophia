@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {validatePose} from '../../../../access/web/src/observatory/view-state.mjs';
 import {validatePoseLegacyOracle} from '../../../../access/web/src/observatory/view-state-legacy-oracle.test-support.mjs';
+import {installClientPacketRules} from '../../../../access/web/src/observatory/client-packet-rules.mjs';
 import {installPoseRules} from '../../../../access/web/src/observatory/view-state-rust.mjs';
 import {capturePlace,readPlaces,savePlace,readResume,RESUME_KEY} from '../../../../access/web/src/observatory/place-model.mjs';
 
@@ -29,6 +30,7 @@ assert.throws(()=>validatePose(structuredClone(valid[0])),
 const rules=await import(pathToFileURL(bindingPath).href);
 await rules.default({module_or_path:await readFile(wasmPath)});
 installPoseRules(rules);
+installClientPacketRules(rules);
 for(let index=0;index<valid.length;index++)assert.deepEqual(validatePose(structuredClone(valid[index])),oracle[index],`pose ${index}`);
 for(const value of invalid)assert.throws(()=>validatePose(structuredClone(value)));
 
