@@ -52,7 +52,7 @@ pub(crate) mod revision;
 
 const ORIGINAL: &[u8] = b"tos.source-file.original-v1";
 const CREATION: &[u8] = b"tos.source-file.agent-create-v1";
-const OWNER: &str = "native-corpus-create:agent";
+pub(crate) const OWNER: &str = "native-corpus-create:agent";
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ManagedManifestSelectionV2 {
     pub model_version: u64,
@@ -448,8 +448,9 @@ fn work_revision_recorded_at(
             "ready PG Work recovery record absent",
         ))?;
     let record = cmd::parse(&record_raw.exact_bytes).map_err(source_error)?;
+    let subject = source_forms::metadata_subject(&record).map_err(source_error)?;
     if cmd::text(&record, "record_type").map_err(source_error)? != "work"
-        || cmd::text(&record, "id").map_err(source_error)? != binding.record_id
+        || cmd::text(&subject, "id").map_err(source_error)? != binding.record_id
     {
         return Err(DurableError::Conflict(
             "ready PG Work recovery record identity differs",

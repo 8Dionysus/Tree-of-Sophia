@@ -95,8 +95,11 @@ The field selection lives in `source_search_projection.rs`: corpus and historica
 record titles, variant labels and declared descriptive fields; historical claim
 quotes; current freeform HumanForms. Only `.json` and `.jsonl` sources participate.
 Technical keys, source paths, provenance and arbitrary nested objects are not
-search text. A supported claim without quotes still has exact ID lookup. IDs are
-matched exactly before ranked text matches. PostgreSQL `pg_catalog.simple` and
+search text. Projected document-type labels are family-qualified exact identifiers:
+`corpus_record/<record_type>`, `historical_record/<record_type>`,
+`historical_claim`, and `human_form/<role>`. A supported claim without quotes
+still has exact ID lookup. IDs are matched exactly before ranked text matches.
+PostgreSQL `pg_catalog.simple` and
 `plainto_tsquery` define token matching; GIN indexes the selected text. Title,
 alias and body use weights A, B and C, followed by stable byte-order ties. This
 is a separate search contract from whole-JSON substring search. There is no

@@ -5,7 +5,7 @@
 //! as authored source or treated as semantic admission.
 
 use crate::durable_adapter::{DurableError, DurableResult};
-use crate::source_cohort::SourceRevisionWrite;
+use crate::source_cohort::{OWNER as SOURCE_OWNER, SourceRevisionWrite};
 use crate::source_command::{
     self as cmd, CommandContext, PreparedCommand, SourceCommandError, SourceCommandResult,
 };
@@ -1114,9 +1114,9 @@ pub(crate) fn apply_source_change(
     let generation_row = tx
         .query_opt(
             "SELECT generation,complete,definition_version FROM cmd2_predicate
-         WHERE domain=$1 AND kind='range' AND owner='abyss-stack'
-           AND scope=$2 AND token=$3 FOR UPDATE",
-            &[&domain, &PREDICATE_SCOPE, &token],
+         WHERE domain=$1 AND kind='range' AND owner=$2
+           AND scope=$3 AND token=$4 FOR UPDATE",
+            &[&domain, &SOURCE_OWNER, &PREDICATE_SCOPE, &token],
         )?
         .ok_or(DurableError::Refused("PG Work revision predicate absent"))?;
     if as_u64(generation_row.get(0))? != expected_predicate_generation
@@ -1240,11 +1240,12 @@ pub(crate) fn apply_source_change(
     }
     let advanced = tx.execute(
         "UPDATE cmd2_predicate SET generation=generation+1
-         WHERE domain=$1 AND kind='range' AND owner='abyss-stack' AND scope=$2 AND token=$3
-           AND complete AND definition_version=$4 AND generation=$5
+         WHERE domain=$1 AND kind='range' AND owner=$2 AND scope=$3 AND token=$4
+           AND complete AND definition_version=$5 AND generation=$6
            AND generation<9223372036854775807",
         &[
             &domain,
+            &SOURCE_OWNER,
             &PREDICATE_SCOPE,
             &token,
             &definition.to_hex(),

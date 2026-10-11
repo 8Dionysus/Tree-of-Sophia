@@ -1365,7 +1365,7 @@ fn pg_real_source_text_disclosure_guard_child_entry() {
     let request = SourceTextSearchRequest {
         query: "Sundial".to_owned(),
         limit: 1,
-        document_types: vec!["agent".to_owned()],
+        document_types: vec!["corpus_record/agent".to_owned()],
         source_paths: vec![CREATED_RECORD_PATH.to_owned()],
         cursor: None,
     };
@@ -2148,7 +2148,7 @@ fn run_source_text_search_scenario(
 ) -> Value {
     let profile = tos_command::source_search_projection::SOURCE_SEARCH_PROFILE;
     let paths = vec![RECORD_PATH.to_owned(), CREATED_RECORD_PATH.to_owned()];
-    let filters = vec!["agent".to_owned()];
+    let filters = vec!["corpus_record/agent".to_owned()];
     let cyrillic = SourceTextSearchRequest {
         query: "а".to_owned(),
         limit: 10,
@@ -2182,7 +2182,7 @@ fn run_source_text_search_scenario(
             .as_array()
             .unwrap()
             .iter()
-            .all(|hit| hit["document_type"] == "agent")
+            .all(|hit| hit["document_type"] == "corpus_record/agent")
     );
     assert_source_text_cli_matches_qry(
         case,
@@ -3421,7 +3421,7 @@ fn project_case(
             "operation":"search-text",
             "query":"Quartz",
             "limit":1,
-            "document_types":["agent"],
+            "document_types":["corpus_record/agent"],
             "source_paths":[RECORD_PATH]
         }),
     );
