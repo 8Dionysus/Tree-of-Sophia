@@ -28,6 +28,9 @@ use tos_segment_store::{
 #[path = "durable_projection.rs"]
 pub mod durable_projection;
 
+#[path = "durable_compatibility.rs"]
+mod durable_compatibility;
+
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
 const PROFILE_VERSION: &[u8] = b"1";
 const LAB_MAGIC: &[u8; 8] = b"CMD2LAB1";
@@ -1088,8 +1091,11 @@ fn parse_hex(value: String) -> DurableResult<Digest256> {
 
 fn schema_profile_digest() -> Digest256 {
     let mut hasher = Digest256Hasher::new();
-    part(&mut hasher, b"cmd2-coordinator-schema-profile-v3");
-    part(&mut hasher, include_bytes!("durable_schema.sql"));
+    part(&mut hasher, b"cmd2-coordinator-schema-profile-v4");
+    part(
+        &mut hasher,
+        durable_compatibility::DURABLE_SCHEMA_ABI_PROFILE_V1,
+    );
     part(&mut hasher, COLD_AUDIT_PROFILE);
     part(&mut hasher, RECEIPT_PROFILE);
     hasher.finalize()

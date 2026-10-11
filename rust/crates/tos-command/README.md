@@ -2,6 +2,20 @@
 
 The crate owns source command preparation and durable PostgreSQL/STO transaction mechanics. Source, semantic, rights, publication and canon admission remain separate owner gates. Canonical writes remain closed without those gates.
 
+Managed-source compatibility and the durable PostgreSQL schema use explicit,
+versioned descriptors in `src/durable_compatibility.rs`. Routine Rust edits do
+not change those identities. The source owner advances its descriptor when
+carrier profiles, semantic indexes or predicates, readset/concurrency rules,
+or temporal inventory-overlay semantics change; the durable owner advances
+the schema ABI when PostgreSQL tables, keys, constraints, access paths, or
+audit behavior change. `durable_schema.sql` remains the initializer, and cold
+verification keeps its metadata, receipt, STO, and complete-cut audits. The
+private profile does not attest arbitrary out-of-band DDL or trigger changes;
+that remains outside its trust boundary. Domains carrying the former
+source-code or bundled-DDL file fingerprints remain incompatible and are
+refused rather than silently rebound. No automatic migration or installed
+production PostgreSQL compatibility is claimed.
+
 `DurablePgCoordinator` binds registered attempts and exact STO locators to atomic current/history/receipt/log/outbox writes. Current rights, rule/schema contracts, job leases, retention pins and audit/restore fences are checked at commit and replay. Private source creation also binds owner-derived exact, absent, identity and namespace-range observations to the registered package; predicate validation and invalidation commit together. Mutable external authored trees remain `FullOnly`.
 
 The former CMD1 `PgCoordinator`, synthetic byte references, independent SQL schema and protocol-only test target are retired. Their useful conflict, ordered commit, current authority, retained history, rollback, replay and closed-cut integrity obligations execute on the durable path. Real managed creation exercises form-identity and source-home phantom generations, definition/completeness refusal and unchanged projections on refusal. The earlier synthetic prefix/reverse/interval names did not establish any maintained source reader or completeness law; their removal grants no corresponding affected admission.

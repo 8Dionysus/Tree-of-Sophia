@@ -608,21 +608,10 @@ fn definition() -> Digest256 {
     static DEFINITION: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
     *DEFINITION.get_or_init(|| {
         let mut h = Digest256Hasher::new();
-        part(&mut h, b"tos-managed-agent-source-definition-v1");
-        for bytes in [
-            include_bytes!("source_cohort.rs").as_slice(),
-            include_bytes!("source_cohort_revision.rs").as_slice(),
-            include_bytes!("source_cohort_creation.rs").as_slice(),
-            include_bytes!("source_creation.rs").as_slice(),
-            include_bytes!("source_creation_pg.rs").as_slice(),
-            include_bytes!("source_native_pg_creation_cli.rs").as_slice(),
-            include_bytes!("source_claims.rs").as_slice(),
-            include_bytes!("source_forms.rs").as_slice(),
-            include_bytes!("source_revisions.rs").as_slice(),
-            include_bytes!("source_native_revisions_cli.rs").as_slice(),
-        ] {
-            part(&mut h, bytes);
-        }
+        part(
+            &mut h,
+            super::durable_compatibility::SOURCE_COMPATIBILITY_PROFILE_V1,
+        );
         h.finalize()
     })
 }

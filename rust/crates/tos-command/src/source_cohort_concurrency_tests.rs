@@ -183,7 +183,7 @@ fn revision_request(target: &Target, label: &str, operation: &str) -> Value {
 }
 
 fn prepare_revision(
-    fixture: &Fixture,
+    fixture: &mut Fixture,
     target: &Target,
     label: &str,
     command_id: &str,
@@ -486,7 +486,7 @@ fn retained_projection_overlay_is_temporal_and_never_falls_back_when_stale() {
     );
 
     let (prepared, readset) = prepare_revision(
-        &fixture,
+        &mut fixture,
         &other_record,
         "Justus Lipsius creates a later source cut",
         "test:pg-inventory-overlay-as-of",
@@ -835,7 +835,7 @@ fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_re
     let lipsius = fixture.targets[1].clone();
 
     let (parmenides_prepared, parmenides_readset) = prepare_revision(
-        &fixture,
+        &mut fixture,
         &parmenides,
         "Parmenides concurrency transaction fixture",
         "test:pg-concurrent-parmenides",
@@ -843,7 +843,7 @@ fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_re
         &cancelled,
     );
     let (lipsius_prepared, lipsius_readset) = prepare_revision(
-        &fixture,
+        &mut fixture,
         &lipsius,
         "Justus Lipsius concurrency transaction fixture",
         "test:pg-concurrent-lipsius",
@@ -909,7 +909,7 @@ fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_re
     assert_eq!(counts_after_independent.3, counts_before_independent.3 + 2);
 
     let (first_prepared, first_readset) = prepare_revision(
-        &fixture,
+        &mut fixture,
         &parmenides,
         "Parmenides first same-object transaction fixture",
         "test:pg-same-record-first",
@@ -917,7 +917,7 @@ fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_re
         &cancelled,
     );
     let (second_prepared, second_readset) = prepare_revision(
-        &fixture,
+        &mut fixture,
         &parmenides,
         "Parmenides second same-object transaction fixture",
         "test:pg-same-record-second",
@@ -1013,7 +1013,7 @@ fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_re
     );
 
     let (after_reopen_prepared, after_reopen_readset) = prepare_revision(
-        &fixture,
+        &mut fixture,
         &parmenides,
         "Parmenides revision after cold reopen",
         "test:pg-after-cold-reopen",
