@@ -175,7 +175,8 @@ pub fn reader_occurrences_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str> {
         while text_index < units.len() {
             let start = text_index;
             let (point, width) = scalar_at(units, text_index);
-            ring[scalar_index % ring.len()] = start;
+            let ring_slot = scalar_index % ring.len();
+            ring[ring_slot] = start;
             let folded = unicode_simple_casefold_scalar16_v1(point);
             while matched > 0 && folded_query[matched] != folded {
                 matched = prefix[matched - 1];

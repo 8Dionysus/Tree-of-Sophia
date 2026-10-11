@@ -1775,8 +1775,10 @@ mod tests {
         let rendered = first_page.render_json(64 * 1024, &NoAbort).unwrap();
         assert!(rendered.len() <= 64 * 1024);
 
+        let mut second_request = request.clone();
+        second_request.cursor = Some(cursor);
         let second_page = execute_source_text_search(
-            &request("needle", 1, Some(cursor)),
+            &second_request,
             &selection,
             SourceTextCandidateSet {
                 complete: true,

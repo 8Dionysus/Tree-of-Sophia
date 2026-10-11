@@ -783,7 +783,10 @@ pub fn run_source_text_search(
             if let Err(error) = disclosure.recheck() {
                 if is_source_text_sql_timeout(&error) {
                     drop(disclosure);
-                    return Ok(match probe.reason() {
+                    let abort = probe.reason().or_else(|| {
+                        (Instant::now() >= deadline).then_some(AbortReason::DeadlineExceeded)
+                    });
+                    return Ok(match abort {
                         Some(AbortReason::Cancelled) => SourceTextSearchResult::Rejected {
                             through_seq,
                             head_seq: through_seq,
@@ -791,8 +794,7 @@ pub fn run_source_text_search(
                                 Cancelled,
                             reason: "source-text search cancelled",
                         },
-                        Some(AbortReason::DeadlineExceeded) | None
-                            if Instant::now() >= deadline => SourceTextSearchResult::Rejected {
+                        Some(AbortReason::DeadlineExceeded) => SourceTextSearchResult::Rejected {
                             through_seq,
                             head_seq: through_seq,
                             code: tos_query::source_text_search::SourceTextSearchErrorCode::
