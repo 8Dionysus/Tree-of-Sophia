@@ -672,8 +672,33 @@ pub(super) fn source_error(error: DurableError) -> SourceCommandError {
         DurableError::Invalid(_) | DurableError::Corrupt(_) => {
             SourceCommandError::Invalid("PostgreSQL bootstrap metadata")
         }
-        DurableError::Database(_) | DurableError::Storage(_) | DurableError::Indeterminate(_) => {
-            SourceCommandError::Conflict("PostgreSQL bootstrap unavailable or incomplete")
+        DurableError::Database(error) => {
+            // PostgreSQL messages may contain private source values. Expose only
+            // the fixed protocol code, never Display/Debug or server detail.
+            let code = error
+                .code()
+                .map(|code| code.code())
+                .filter(|code| {
+                    code.len() == 5
+                        && code
+                            .bytes()
+                            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+                })
+                .unwrap_or("unclassified");
+            eprintln!("PostgreSQL bootstrap database failure SQLSTATE={code}");
+            SourceCommandError::Conflict("PostgreSQL bootstrap database operation failed")
+        }
+        DurableError::Storage(error) => {
+            // SegmentError detail is a static owner label; the attached IO
+            // error and its possibly private path are deliberately not emitted.
+            eprintln!(
+                "PostgreSQL bootstrap storage failure category={:?}",
+                error.code
+            );
+            SourceCommandError::Conflict(error.detail)
+        }
+        DurableError::Indeterminate(_) => {
+            SourceCommandError::Conflict("PostgreSQL bootstrap completion is indeterminate")
         }
     }
 }

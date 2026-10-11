@@ -286,6 +286,11 @@ silently applies the idempotent DDL as a migration. When the choice is absent
 or false in both selections, the route requires the provisioned CMD.2 tables,
 indexes, functions and audit triggers and performs no DDL. This describes
 native provisioning capability, not evidence of a live database setup.
+The streamed profile also requires the addressed audit companion. Its authorized
+initialization installs that companion through the existing opt-in initializer;
+otherwise it verifies the existing SQL bindings read-only. This check precedes
+private STO initialization and all imported source writes. Streamed tree limits
+are likewise checked against the STO representation before input is consumed.
 
 The transport selects PostgreSQL 16 through the existing private NoTls
 numeric-loopback profile and `TOS_SOURCE_PG_URL`. Deploy this private

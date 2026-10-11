@@ -47,7 +47,9 @@ pub struct AuthenticatedTreeLimitsV1 {
 }
 
 impl AuthenticatedTreeLimitsV1 {
-    fn validate(self) -> Result<Self> {
+    /// Validate finite caller-supplied limits against the authenticated-tree
+    /// representation contract before any tree input or storage is touched.
+    pub fn validate(self) -> std::result::Result<Self, SegmentError> {
         if self.max_key_bytes == 0
             || self.max_key_bytes > MAX_KEY_BYTES
             || self.max_value_bytes == 0

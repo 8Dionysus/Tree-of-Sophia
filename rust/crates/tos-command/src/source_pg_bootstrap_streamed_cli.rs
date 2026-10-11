@@ -264,7 +264,9 @@ fn streamed_budgets(value: &Value, deadline: Instant) -> SourceCommandResult<Str
         max_nodes: field(tree_value, "max_nodes", MAX_SOURCE_MEMBERS)?,
         max_total_bytes: field(tree_value, "max_total_bytes", MAX_SOURCE_BYTES)?,
         max_rows: field(tree_value, "max_rows", MAX_SOURCE_MEMBERS)?,
-    };
+    }
+    .validate()
+    .map_err(|_| SourceCommandError::Invalid("streamed bootstrap tree limits"))?;
 
     let item_value = object(value, "item")?;
     exact(
@@ -508,6 +510,19 @@ pub(super) fn run(
     }
     db.require_compatible_schema()
         .map_err(|_| SourceCommandError::Conflict("selected CMD.2 schema is not provisioned"))?;
+    owner_check().map_err(source_error)?;
+    if selection.initialize_schema {
+        db.enable_addressed_audit_protocol().map_err(|_| {
+            SourceCommandError::Conflict("initialize addressed audit companion schema")
+        })?;
+    } else {
+        db.require_addressed_audit_protocol(deadline, cancelled.as_ref())
+            .map_err(|_| {
+                SourceCommandError::Conflict(
+                    "selected addressed audit companion schema is not provisioned",
+                )
+            })?;
+    }
     owner_check().map_err(source_error)?;
     let store = selected_store(&protected.owner_fs, selection)?;
     owner_check().map_err(source_error)?;

@@ -99,6 +99,9 @@ impl DurablePgCoordinator {
     ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
         active(deadline, &cancelled)?;
         owner_check()?;
+        let tree_limits = tree_limits
+            .validate()
+            .map_err(|_| DurableError::Refused("bootstrap authenticated tree limits"))?;
         if max_member_bytes > BATCH_BODY_BYTES as u64 {
             return Err(DurableError::Refused(
                 "bootstrap member exceeds fixed batch body bound",

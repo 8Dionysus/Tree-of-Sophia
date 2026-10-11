@@ -619,6 +619,37 @@ impl DurablePgCoordinator {
         Ok(())
     }
 
+    /// Require the addressed audit companion without installing or changing
+    /// schema. Existing-schema bootstrap paths use this before any source or
+    /// store writes; only the explicitly authorized initialization route may
+    /// call `enable_addressed_audit_protocol`.
+    pub(crate) fn require_addressed_audit_protocol(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        active(deadline, cancelled)?;
+        let deadline = deadline.min(Instant::now() + Duration::from_secs(5));
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        audit_delta::verify_sql_binding_types(
+            &mut tx,
+            audit_delta::AuditDeltaControl {
+                deadline,
+                cancelled,
+            },
+        )
+        .map_err(delta_error)?;
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Ok(())
+    }
+
     /// Bootstrap after complete source+custody cold verification. The borrowed
     /// parent supplies the exact anchored root and V1 EOF membership certificate;
     /// after return the caller replaces that parent with the new addressed handle.

@@ -1057,6 +1057,17 @@ pub(crate) fn verify_sql_binding_types(
                 .zip(columns)
                 .all(|(actual, expected)| actual.type_() == expected)
     };
+    // Activation uses this separate companion table only after the exhaustive
+    // baseline. Check its actual binding now so partial provisioning fails early.
+    control.bound_statement_timeout(tx)?;
+    let activation = tx.prepare(
+        "SELECT domain,baseline_generation,profile_digest FROM cmd2_audit_delta_v1_domain WHERE false",
+    )?;
+    if !shape(&activation, &[], &[Type::TEXT, Type::INT8, Type::BPCHAR]) {
+        return Err(AuditDeltaError::ColdRequired(
+            ColdRequiredReason::ProfileMismatch,
+        ));
+    }
     let domain = "";
     let from = 0i64;
     let through = 0i64;
@@ -1104,6 +1115,18 @@ pub(crate) fn verify_sql_binding_types(
     for table in MetadataTable::ALL {
         control.bound_statement_timeout(tx)?;
         let id = table.id();
+        // Metadata-tree construction and journal triggers also need the key
+        // function; final row-commitment lookups alone do not exercise it.
+        let key = tx.prepare(&format!(
+            "SELECT cmd2_audit_delta_v1_row_key($1::smallint,row_to_json(t)) FROM {} t WHERE false",
+            table.sql_name()
+        ))?;
+        if !shape(&key, &[Type::INT2], &[Type::BYTEA]) {
+            return Err(AuditDeltaError::ColdRequired(
+                ColdRequiredReason::ProfileMismatch,
+            ));
+        }
+        control.bound_statement_timeout(tx)?;
         let statement = tx.prepare(&final_lookup_sql(table))?;
         if !shape(
             &statement,
