@@ -25,6 +25,9 @@ use tos_segment_store::{
     describe_placement_partition,
 };
 
+#[path = "durable_projection.rs"]
+pub mod durable_projection;
+
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
 const PROFILE_VERSION: &[u8] = b"1";
 const LAB_MAGIC: &[u8; 8] = b"CMD2LAB1";

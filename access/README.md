@@ -38,6 +38,13 @@ and [compressed-search bootstrap and rollback](../rust/crates/tos-compiler/tests
 The old Python cache/delta scheduler and its test harness are not active runtime
 contracts; the native compiler publishes its owned full candidate and native
 search writers own their separate bounded bootstrap/delta routes.
+These full candidates remain the current export implementation. Under
+[TOS-D-0071](../docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md),
+ordinary central source updates move to PostgreSQL transactions and separately
+updated projections; a successful full export does not establish that migration.
+The initial private source-text projection and its explicit owner CLI are
+documented in the [`tos-command` README](../rust/crates/tos-command/README.md).
+It does not yet replace the full knowledge API or select data for this reader.
 The offline Rust source compiler offers an optional, explicitly located
 processing DAG/cache in [`PROCESSING_DEPENDENCIES.md`](PROCESSING_DEPENDENCIES.md).
 Callers opt in through `NativeFamilyInputs.processing_run`; the default build

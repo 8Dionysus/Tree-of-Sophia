@@ -60,6 +60,8 @@ pub mod source_managed_selection;
 pub mod source_metadata_publication;
 mod source_metadata_publication_assembly;
 pub mod source_native_cli;
+pub mod source_projection_cli;
+pub mod source_search_projection;
 pub use durable_adapter::source_cohort;
 pub(crate) use source_creation_store::work_transaction as source_work_transaction;
 mod source_assessment_journal;
@@ -106,6 +108,11 @@ mod source_text_unit_proposal;
 
 use tos_foundation::Digest256;
 
+pub use durable_adapter::durable_projection::{
+    DurableProjectionDocument, DurableProjectionExtractor, DurableProjectionHit,
+    DurableProjectionLimits, DurableProjectionProfile, DurableProjectionProgress,
+    DurableProjectionSearch, DurableProjectionStatus,
+};
 pub use durable_adapter::{
     AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, ColdWorkspaceLimits,
     CommitShadowAttempt, CompleteGeneration, DurableCommitReceipt, DurableError,

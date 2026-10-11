@@ -326,7 +326,7 @@ fn copy_store(
 }
 // Both Rust and native tools accept only this same non-TLS target subset.
 // Reject routing differences before opening a database or writing backup bytes.
-fn selected_config(url: &str) -> io::Result<postgres::Config> {
+pub(crate) fn selected_config(url: &str) -> io::Result<postgres::Config> {
     let config = url.parse::<postgres::Config>().map_err(|_| error())?;
     require(config.get_hosts().len() == 1 && config.get_ports().len() <= 1)?;
     require(config.get_hostaddrs().is_empty())?;

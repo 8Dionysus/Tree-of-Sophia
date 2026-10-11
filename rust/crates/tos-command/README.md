@@ -8,6 +8,92 @@ The former CMD1 `PgCoordinator`, synthetic byte references, independent SQL sche
 
 The current managed source preparation still uses a complete v1 immutable manifest and complete authored input inventory. Explicit successor selection performs O(N) manifest/hash/fixity work and retained-base-chain opening outside commit locks. Creation reads still bind the entire verified current file set and globally invalidate the consumed inventory. Addressed durable predicates alone do not make the maintained command scalable. A versioned indexed source carrier and owner-derived dependency contract are still required before that coupling can change; no cap increase or weaker v1 root substitutes for them.
 
+## Private PostgreSQL source-text projection
+
+[TOS-D-0071](../../../docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md)
+selects persistent transactions and independently updated projections as the
+central update direction. `DurablePgCoordinator::apply_projection_batch` consumes
+the existing ordered outbox. For each event it reads that event's exact source
+revisions from STO, replaces only the changed paths' derived documents, and
+commits those rows and its progress position together. Failed extraction or
+publication leaves the event pending; a fresh process resumes committed progress.
+The source history and outbox are retained. This initial direct-source profile
+has no inferred cross-record dependencies.
+
+The native owner entry is:
+
+```sh
+tos-native-owner-command source-projection --selection /absolute/private/selection.json < request.json
+```
+
+Supply the PostgreSQL 16 connection privately through `TOS_SOURCE_PG_URL`.
+The transport uses the existing local NoTls profile: one numeric TCP loopback
+host, an explicit user/database and at most one port. Credentials are never
+accepted from the request or printed. The selection file must be owned by the
+invoking user, protected from other users and located under protected parents:
+
+```json
+{
+  "schema_version": "tos_source_projection_selection_v1",
+  "domain": "owner-selected-existing-domain",
+  "source_contract_sha256": "<exact existing domain contract SHA-256>",
+  "consumer": "source-text-v1",
+  "profile": "tos_source_selected_text_v1",
+  "store_root": "/absolute/private/existing-store",
+  "store_limits": {
+    "max_segment_bytes": 8388608,
+    "max_frame_bytes": 1048576,
+    "max_frames": 64,
+    "max_journal_bytes": 1048576
+  }
+}
+```
+
+These store limits illustrate the existing small source profile. Select the
+actual store's limits; this command neither creates nor admits source data.
+Requests are strict JSON objects:
+
+- `{"operation":"init"}` explicitly creates derived tables/indexes. It does
+  not initialize the source schema, domain or source store.
+- `{"operation":"apply","max_events":8}` resumes up to that many events.
+- `{"operation":"status"}` reports current, pending or stale progress.
+- `{"operation":"search","query":"Socrates","limit":20}` returns at most
+  50 ranked hits, each with its exact source path and source revision.
+- `{"operation":"exact-source","source_path":"ToS/path/record.json","revision":1}`
+  reads the retained exact bytes under current local rights and returns their
+  Base64 representation and SHA-256. Historical source selection is independent
+  of the newest search result.
+
+The field selection lives in `source_search_projection.rs`: corpus and historical
+record titles, variant labels and declared descriptive fields; historical claim
+quotes; current freeform HumanForms. Only `.json` and `.jsonl` sources participate.
+Technical keys, source paths, provenance and arbitrary nested objects are not
+search text. A supported claim without quotes still has exact ID lookup. IDs are
+matched exactly before ranked text matches. PostgreSQL `pg_catalog.simple` and
+`plainto_tsquery` define token matching; GIN indexes the selected text. Title,
+alias and body use weights A, B and C, followed by stable byte-order ties. This
+is a separate search contract from whole-JSON substring search. There is no
+pagination or total-count claim in this first profile.
+
+A consumer is bound to its explicit profile/version/source contract. Search
+requires its committed cursor to reach the current source head and holds current
+local rights during the read. Pending or stale output is not delivered as current
+hits. Uncommitted attempt bookkeeping does not invalidate source-text freshness.
+External rights and semantic/source admission remain with the actual owner.
+
+The CLI's initial event limits are 64 changed members, 256 documents and 16 MiB
+of exact source input, with 1 MiB per document. They bound one compound event,
+not total corpus size. Oversized initial bootstrap events require a resumable
+bootstrap path; increasing these limits is not that implementation. Run under
+the normal host resource supervisor: deadlines are cooperative around existing
+STO recovery, and a single recovery call can exceed a shorter batch deadline.
+
+This first projection does not connect filesystem `record.revise` to PostgreSQL,
+complete general source-command migration, resolve every knowledge-graph join,
+or replace CLI/HTTP/MCP/Worker knowledge readers. Those remain explicit completion
+requirements. Full Site exports and their existing versioned readers retain
+their compatibility contract while that migration is implemented.
+
 Provide a nonempty `TOS_CMD_POSTGRES_URL` for a dedicated isolated PostgreSQL instance and run `cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture` from the OPS-integrated workspace. Explicit PG target execution fails closed without the URL. Destructive child/restore probes remain explicitly ignored and are not part of ordinary CI execution. Tests establish bounded mechanical behavior, not source or rights admission.
 
 ## Explicit native backup and restore

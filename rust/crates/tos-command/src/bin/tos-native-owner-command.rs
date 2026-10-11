@@ -3,6 +3,29 @@ use std::path::Path;
 fn main() {
     if std::env::args_os()
         .nth(1)
+        .is_some_and(|arg| arg == "source-projection")
+    {
+        let args = std::env::args_os().skip(2).take(4).collect::<Vec<_>>();
+        if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
+            print!("{}", tos_command::source_projection_cli::HELP);
+            return;
+        }
+        if args.len() != 2 || args[0] != "--selection" {
+            eprintln!("source-projection requires --selection ABS_JSON");
+            std::process::exit(2);
+        }
+        match tos_command::source_projection_cli::run(Path::new(&args[1]), std::io::stdin().lock())
+        {
+            Ok(value) => println!("{value}"),
+            Err(reason) => {
+                eprintln!("source-projection refused: {reason}");
+                std::process::exit(2);
+            }
+        }
+        return;
+    }
+    if std::env::args_os()
+        .nth(1)
         .is_some_and(|arg| arg == "private-text-read")
     {
         let args = std::env::args_os().skip(2).take(4).collect::<Vec<_>>();

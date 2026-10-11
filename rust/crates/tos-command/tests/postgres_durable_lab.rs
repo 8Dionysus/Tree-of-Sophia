@@ -588,7 +588,7 @@ fn managed_fixture_query_budgets() -> tos_access::knowledge::SelectedKnowledgeBu
 #[test]
 fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes() {
     maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV1>(
-        false,
+        false, false,
     );
 }
 
@@ -598,7 +598,16 @@ fn addressed_agent_creation_reaches_selected_reader_and_cold_restore() {
         addressed_backup_restore_phase(&phase);
         return;
     }
-    maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV2>(true);
+    maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV2>(
+        true, false,
+    );
+}
+
+#[test]
+fn postgres_projection_resumes_committed_source_events() {
+    maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV1>(
+        false, true,
+    );
 }
 
 // Transport phases execute in children of the same protected fixture image
@@ -764,6 +773,7 @@ fn maintained_agent_creation_operation<
     P: tos_command::source_managed_selection::ManagedSelectedProof,
 >(
     addressed: bool,
+    exercise_source_projection: bool,
 ) {
     use std::collections::BTreeMap;
     use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
@@ -2366,6 +2376,305 @@ fn maintained_agent_creation_operation<
             .iter()
             .any(|path| path.as_str() == earlier_path)
     );
+    if exercise_source_projection {
+        // The selected consumer reads each exact CMD history member through
+        // STO and publishes one source event atomically with its cursor.
+        let projection_consumer = "private-agent-selected-text-test";
+        let projection_profile = tos_command::DurableProjectionProfile {
+            id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+            version: 1,
+            source_contract: contract_digest(),
+        };
+        reopened_db
+            .init_projection_schema()
+            .expect("the selected projection schema initializes independently");
+        let source_extractor = tos_command::source_projection_cli::SourceTextExtractor;
+        let bootstrap_and_first_event = usize::try_from(a.commit_seq)
+            .expect("the bounded maintained fixture has a usize-sized commit sequence");
+        assert!(
+            (1..=1024).contains(&bootstrap_and_first_event),
+            "the source projection event window remains bounded"
+        );
+        let through_first_agent_event = tos_command::DurableProjectionLimits {
+            max_events: bootstrap_and_first_event,
+            ..tos_command::DurableProjectionLimits::default()
+        };
+        let one_event = tos_command::DurableProjectionLimits {
+            max_events: 1,
+            ..tos_command::DurableProjectionLimits::default()
+        };
+        let first_projection = reopened_db
+            .apply_projection_batch(
+                &reopened_store,
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                &source_extractor,
+                through_first_agent_event,
+            )
+            .expect("the committed bootstrap and first Agent events project");
+        assert!(matches!(
+            first_projection.status,
+            tos_command::DurableProjectionStatus::Pending {
+                through_seq,
+                head_seq
+            } if through_seq == a.commit_seq && head_seq == second_receipt.commit_seq
+        ));
+        let mut projection_sql = Client::connect(&url, NoTls).unwrap();
+        let event_member_rows = projection_sql
+            .query(
+                "SELECT subject FROM cmd2_history
+                 WHERE domain=$1 AND commit_seq=$2 AND source_mode IS NOT NULL
+                 ORDER BY member_slot",
+                &[&lab.domain, &(second_receipt.commit_seq as i64)],
+            )
+            .unwrap();
+        let changed_paths = event_member_rows
+            .iter()
+            .map(|row| row.get::<_, String>(0))
+            .collect::<Vec<_>>();
+        assert!(
+            changed_paths.len() > 1,
+            "the second maintained Agent event must have multiple source members"
+        );
+        let read_projection_rows = || {
+            let mut client = Client::connect(&url, NoTls).unwrap();
+            client
+                .query(
+                    "SELECT row_to_json(p)::text FROM (
+                         SELECT source_path,document_id,source_revision,title,body,aliases,
+                                identity,document_type
+                         FROM cmd2_projection_document
+                         WHERE domain=$1 AND consumer_id=$2
+                         ORDER BY source_path,document_id
+                     ) p",
+                    &[&lab.domain, &projection_consumer],
+                )
+                .unwrap()
+                .into_iter()
+                .map(|row| row.get::<_, String>(0))
+                .collect::<Vec<_>>()
+        };
+        let old_projection_rows = read_projection_rows();
+        assert!(old_projection_rows.iter().any(|row| {
+            row.contains("tos.agent.synthetic-durable-a")
+                && row.contains("Synthetic custody subject")
+        }));
+
+        // Fail after one event member has been extracted. No document delete,
+        // insert, or cursor advance may escape the failed compound event.
+        let extractor_calls = std::cell::Cell::new(0usize);
+        let interrupted_extractor = |path: &str, revision: u64, raw: &[u8]| {
+            let calls = extractor_calls.get() + 1;
+            extractor_calls.set(calls);
+            if calls == 2 {
+                return Err(tos_command::DurableError::Refused(
+                    "injected projection interruption",
+                ));
+            }
+            source_extractor.extract(path, revision, raw)
+        };
+        assert!(matches!(
+            reopened_db.apply_projection_batch(
+                &reopened_store,
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                &interrupted_extractor,
+                one_event,
+            ),
+            Err(tos_command::DurableError::Refused(
+                "injected projection interruption"
+            ))
+        ));
+        assert_eq!(extractor_calls.get(), 2);
+        assert_eq!(read_projection_rows(), old_projection_rows);
+        assert!(matches!(
+            reopened_db
+                .projection_status(
+                    &lab.domain,
+                    projection_consumer,
+                    &projection_profile,
+                    Duration::from_secs(15),
+                )
+            .unwrap(),
+            tos_command::DurableProjectionStatus::Pending {
+                through_seq,
+                head_seq
+            } if through_seq == a.commit_seq && head_seq == second_receipt.commit_seq
+        ));
+
+        // A fresh coordinator replays the same committed event from the first
+        // Agent commit's cursor.
+        let mut resumed_db = DurablePgCoordinator::connect(&url).unwrap();
+        let resumed = resumed_db
+            .apply_projection_batch(
+                &reopened_store,
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                &source_extractor,
+                one_event,
+            )
+            .expect("a fresh coordinator resumes the failed source event");
+        assert!(matches!(
+            resumed.status,
+            tos_command::DurableProjectionStatus::Current { through_seq }
+                if through_seq == second_receipt.commit_seq
+        ));
+        let current_projection_rows = read_projection_rows();
+        let changed_path_set = changed_paths
+            .iter()
+            .map(String::as_str)
+            .collect::<std::collections::BTreeSet<_>>();
+        let unaffected = |rows: &[String]| {
+            rows.iter()
+                .filter(|row| {
+                    let value: serde_json::Value = serde_json::from_str(row).unwrap();
+                    !changed_path_set.contains(value["source_path"].as_str().unwrap())
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            unaffected(&old_projection_rows),
+            unaffected(&current_projection_rows),
+            "the event preserves every document outside its changed source paths"
+        );
+        assert!(current_projection_rows.iter().any(|row| {
+            let value: serde_json::Value = serde_json::from_str(row).unwrap();
+            changed_path_set.contains(value["source_path"].as_str().unwrap())
+                && value["document_id"] == "tos.agent.synthetic-durable-current"
+        }));
+
+        let selected_text = resumed_db
+            .search_projection(
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                "custody",
+                10,
+                Duration::from_secs(15),
+            )
+            .unwrap();
+        assert!(matches!(
+            selected_text,
+            tos_command::DurableProjectionSearch::Current { ref hits, .. }
+                if hits.iter().any(|hit| hit.document_id == "tos.agent.synthetic-durable-a")
+        ));
+        let metadata_only = resumed_db
+            .search_projection(
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                "provisional",
+                10,
+                Duration::from_secs(15),
+            )
+            .unwrap();
+        assert!(matches!(
+            metadata_only,
+            tos_command::DurableProjectionSearch::Current { ref hits, .. } if hits.is_empty()
+        ));
+
+        // The prior record remains byte-identical in the committed current
+        // source view after the second command.
+        let retained_old_source = successor
+            .read_current_member(
+                &mut reopened_db,
+                &reopened_store,
+                &RelativePath::parse(earlier_path).unwrap(),
+                8_388_608,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(retained_old_source.raw, reopened.files[earlier_path]);
+
+        // An unrelated attempt changes the global audit generation without
+        // changing the committed source head or adding an outbox event.
+        let head_before_attempt = lab.head_seq();
+        let outbox_before_attempt = lab.count("outbox");
+        let mut freshness_sql = Client::connect(&url, NoTls).unwrap();
+        let audit_before_attempt: i64 = freshness_sql
+            .query_one(
+                "SELECT generation FROM cmd2_audit_fence WHERE domain=$1",
+                &[&lab.domain],
+            )
+            .unwrap()
+            .get(0);
+        lab.db
+            .register_attempt(&RegisterShadowAttempt {
+                domain: &lab.domain,
+                prepare_id: b"projection-unrelated-attempt",
+                command_id: "projection-unrelated-attempt",
+                raw_request_digest: Digest256::of_bytes(b"projection-unrelated-attempt"),
+                delta_digest: Digest256::of_bytes(b"no source event"),
+            })
+            .expect("an unrelated attempt may advance the global audit fence");
+        let audit_after_attempt: i64 = freshness_sql
+            .query_one(
+                "SELECT generation FROM cmd2_audit_fence WHERE domain=$1",
+                &[&lab.domain],
+            )
+            .unwrap()
+            .get(0);
+        assert!(audit_after_attempt > audit_before_attempt);
+        assert_eq!(lab.head_seq(), head_before_attempt);
+        assert_eq!(lab.count("outbox"), outbox_before_attempt);
+        assert!(matches!(
+            resumed_db
+                .projection_status(
+                    &lab.domain,
+                    projection_consumer,
+                    &projection_profile,
+                    Duration::from_secs(15),
+                )
+                .unwrap(),
+            tos_command::DurableProjectionStatus::Current { through_seq }
+                if through_seq == second_receipt.commit_seq
+        ));
+        assert!(matches!(
+            resumed_db
+                .search_projection(
+                    &lab.domain,
+                    projection_consumer,
+                    &projection_profile,
+                    "custody",
+                    10,
+                    Duration::from_secs(15),
+                )
+                .unwrap(),
+            tos_command::DurableProjectionSearch::Current { ref hits, through_seq }
+                if through_seq == second_receipt.commit_seq
+                    && hits.iter().any(|hit| hit.document_id == "tos.agent.synthetic-durable-a")
+        ));
+
+        resumed_db
+            .revoke_local(&lab.domain)
+            .expect("the fixture revokes its own local source-search right");
+        assert!(matches!(
+            resumed_db.projection_status(
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                Duration::from_secs(15),
+            ),
+            Err(tos_command::DurableError::Refused("current rights revoked"))
+        ));
+        assert!(matches!(
+            resumed_db.search_projection(
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                "custody",
+                10,
+                Duration::from_secs(15),
+            ),
+            Err(tos_command::DurableError::Refused("current rights revoked"))
+        ));
+        return;
+    }
     if let Some(parent) = &overlay_parent {
         use tos_command::backup_recovery::{
             BackupSelection, PgTool, RestoreSelection, backup_quiescent,

@@ -110,6 +110,7 @@
 - [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 - [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
+- [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
 
 ## declarative lens
 
@@ -161,6 +162,7 @@
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 - [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
+- [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
 
 ## generated export
 
@@ -179,6 +181,7 @@
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 - [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
+- [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
 
 ## growth route
 
