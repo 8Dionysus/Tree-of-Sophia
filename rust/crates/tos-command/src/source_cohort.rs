@@ -6866,6 +6866,7 @@ impl DurablePgCoordinator {
             worker,
             None,
             None,
+            false,
             deadline,
             cancelled,
         )
@@ -6900,6 +6901,7 @@ impl DurablePgCoordinator {
             worker,
             None,
             Some(owner_check),
+            false,
             deadline,
             cancelled,
         )
@@ -6937,6 +6939,57 @@ impl DurablePgCoordinator {
             worker,
             Some((workspace, profile)),
             None,
+            false,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Explicit source-verified re-selection for an addressed restore or
+    /// cold open. This authenticates a retained V2 descriptor, then performs
+    /// the complete source/index/custody audit and publishes a fresh selection
+    /// bound to this database identity before returning. A transitional V1
+    /// selection is accepted only when its exact V1 cold-open still matches
+    /// this database; re-binding an interrupted V1 checkpoint across a restored
+    /// database identity remains unsupported and fails closed.
+    pub(crate) fn cold_reopen_source_cohort_addressed_reselect(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        original: &CorpusCutReader,
+        initial_revision: SourceRevision,
+        initial_membership: SourceMembershipV1,
+        context: &CommandContext,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        streamed: Option<(
+            &super::PrivateGenerationWorkspace,
+            super::StreamedGenerationProfile,
+        )>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ReopenedSourceCohort> {
+        let streamed = streamed
+            .map(|(workspace, profile)| {
+                profile
+                    .validate(workspace)
+                    .map(|profile| (workspace, profile))
+            })
+            .transpose()?;
+        self.cold_reopen_source_cohort_inner(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            context,
+            software,
+            components,
+            worker,
+            streamed,
+            None,
+            true,
             deadline,
             cancelled,
         )
@@ -6958,6 +7011,7 @@ impl DurablePgCoordinator {
             super::StreamedGenerationProfile,
         )>,
         owner_check: Option<&dyn Fn() -> DurableResult<()>>,
+        addressed_reselect: bool,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<ReopenedSourceCohort> {
@@ -7023,6 +7077,39 @@ impl DurablePgCoordinator {
              FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1",
             &[&domain],
         )?;
+        // The opt-in audit profile is the persistent per-domain V2 protocol
+        // marker. The table is deliberately absent from legacy V1 installs.
+        let addressed_profile_table = metadata_tx
+            .query_one(
+                "SELECT to_regclass('cmd2_audit_delta_v1_domain') IS NOT NULL",
+                &[],
+            )?
+            .get::<_, bool>(0);
+        let addressed_protocol_active = if addressed_profile_table {
+            match metadata_tx.query_opt(
+                "SELECT profile_digest FROM cmd2_audit_delta_v1_domain WHERE domain=$1",
+                &[&domain],
+            )? {
+                Some(profile) => {
+                    if profile.get::<_, String>(0).trim_end()
+                        != audit_delta::audit_delta_schema_digest().to_hex()
+                    {
+                        return Err(DurableError::Corrupt(
+                            "active addressed audit profile differs",
+                        ));
+                    }
+                    true
+                }
+                None => false,
+            }
+        } else {
+            false
+        };
+        if addressed_protocol_active && !addressed_reselect {
+            return Err(DurableError::Refused(
+                "active addressed protocol requires explicit cold reselection",
+            ));
+        }
         if as_u64(domain_row.get("head_seq"))? != before.through_commit_seq
             || as_u64(domain_row.get("audit_generation"))? != before.audit_generation
             || domain_row.get::<_, String>("maintenance_state") != "normal"
@@ -7282,7 +7369,58 @@ impl DurablePgCoordinator {
         let rebuild_projections = domain_row
             .get::<_, Option<String>>("source_projection_digest")
             .is_none();
+        if rebuild_projections
+            && addressed_protocol_active
+            && domain_row
+                .get::<_, Option<String>>("selected_generation_digest")
+                .is_some()
+        {
+            return Err(DurableError::Corrupt(
+                "addressed selection remains after projection invalidation",
+            ));
+        }
+        if !rebuild_projections && addressed_protocol_active && projections.is_none() {
+            return Err(DurableError::Corrupt(
+                "addressed source projection inventory unavailable",
+            ));
+        }
         if let Some(projections) = &projections {
+            let addressed_selection_matches = if !rebuild_projections && addressed_protocol_active {
+                addressed_successor::verify_published_addressed_inventory(
+                    store,
+                    &domain_row,
+                    domain,
+                    before.through_commit_seq,
+                    before.database_oid,
+                    &ctx,
+                    projections,
+                    addressed_reselect,
+                    deadline,
+                    cancelled,
+                )?
+            } else {
+                false
+            };
+            let selected_generation_digest =
+                domain_row.get::<_, Option<String>>("selected_generation_digest");
+            if !rebuild_projections
+                && addressed_protocol_active
+                && !addressed_selection_matches
+                && selected_generation_digest.is_some()
+            {
+                // Activation can precede V2 publication. Treat that reachable
+                // state as legacy only after a complete cold V1 selected-open.
+                match streamed {
+                    Some((workspace, profile)) => {
+                        self.cold_open_selected_generation_streamed(
+                            store, domain, workspace, profile, deadline, cancelled,
+                        )?;
+                    }
+                    None => {
+                        self.cold_open_selected_generation(store, domain, deadline, cancelled)?;
+                    }
+                }
+            }
             if rows.len() != projections.len()
                 || rows
                     .iter()
@@ -7294,8 +7432,9 @@ impl DurablePgCoordinator {
                 ));
             }
             if !rebuild_projections
-                && (domain_row.get::<_, Option<String>>("source_projection_digest")
-                    != Some(projection_root(projections).to_hex())
+                && ((!addressed_selection_matches
+                    && domain_row.get::<_, Option<String>>("source_projection_digest")
+                        != Some(projection_root(projections).to_hex()))
                     || &indexed_projections != projections
                     || rows.iter().any(|row| {
                         let path: String = row.get("subject");

@@ -706,6 +706,118 @@ impl AddressedInventoryV2 {
         })
     }
 
+    /// Require both authenticated namespaces to describe projections freshly
+    /// derived from the complete selected source. This is the cold-reopen
+    /// counterpart to `build_from_assessed_projections`: it reads the retained
+    /// descriptor and checks exact path/digest coverage without replacing a
+    /// still-published root.
+    pub(super) fn verify_source_projections(
+        &self,
+        store: &SegmentStore,
+        ctx: &CommandContext,
+        projections: &ProjectionRows,
+        limits: AuthenticatedTreeLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        self.require_store(store)?;
+        if self.projections.entries != projections.len() as u64 {
+            return Err(DurableError::Corrupt(
+                "addressed source projection coverage differs",
+            ));
+        }
+
+        let mut expected_profiles = BTreeMap::new();
+        for (path, raw) in projections {
+            let value = parse_projection(path, raw, None)?;
+            collect_profiles(&value, &mut expected_profiles)?;
+        }
+
+        let mut projection_rows = store
+            .stream_authenticated_tree_v2(&self.projections, limits)
+            .map_err(tree_error)?;
+        let mut expected = projections.iter();
+        let mut previous = String::new();
+        let mut count = 0u64;
+        while let Some(entry) = projection_rows
+            .next_row(deadline, cancelled)
+            .map_err(tree_error)?
+        {
+            active(deadline, cancelled)?;
+            let path = String::from_utf8(entry.key)
+                .map_err(|_| DurableError::Corrupt("addressed source projection key"))?;
+            if path <= previous {
+                return Err(DurableError::Corrupt(
+                    "addressed source projection ordering differs",
+                ));
+            }
+            let (expected_path, raw) = expected.next().ok_or(DurableError::Corrupt(
+                "addressed source projection has extra member",
+            ))?;
+            let digest = Digest256::of_bytes(raw);
+            if path.as_str() != expected_path.as_str()
+                || entry.value.as_slice() != &digest.as_bytes()[..]
+            {
+                return Err(DurableError::Conflict(
+                    "addressed source projection differs from verified source",
+                ));
+            }
+            previous = path;
+            count = count.checked_add(1).ok_or(DurableError::Corrupt(
+                "addressed source projection count overflow",
+            ))?;
+        }
+        if count != self.projections.entries || expected.next().is_some() {
+            return Err(DurableError::Corrupt(
+                "addressed source projection EOF differs",
+            ));
+        }
+
+        let mut profile_rows = store
+            .stream_authenticated_tree_v2(&self.profiles, limits)
+            .map_err(tree_error)?;
+        let mut expected = expected_profiles.iter();
+        let mut previous = String::new();
+        let mut count = 0u64;
+        while let Some(entry) = profile_rows
+            .next_row(deadline, cancelled)
+            .map_err(tree_error)?
+        {
+            active(deadline, cancelled)?;
+            let path = String::from_utf8(entry.key)
+                .map_err(|_| DurableError::Corrupt("addressed source profile key"))?;
+            if path <= previous {
+                return Err(DurableError::Corrupt(
+                    "addressed source profile ordering differs",
+                ));
+            }
+            let (expected_path, expected_digest) = expected.next().ok_or(DurableError::Corrupt(
+                "addressed source profile has extra member",
+            ))?;
+            if path.as_str() != expected_path.as_str()
+                || entry.value.as_slice() != &expected_digest.as_bytes()[..]
+            {
+                return Err(DurableError::Conflict(
+                    "addressed source profile differs from verified projections",
+                ));
+            }
+            previous = path;
+            count = count.checked_add(1).ok_or(DurableError::Corrupt(
+                "addressed source profile count overflow",
+            ))?;
+        }
+        if count != self.profiles.entries || expected.next().is_some() {
+            return Err(DurableError::Corrupt(
+                "addressed source profile EOF differs",
+            ));
+        }
+
+        // The source bytes must also still provide the exact selected profile
+        // files and dependency template bound by this authenticated inventory.
+        self.select(store, ctx, limits, deadline, cancelled)?;
+        Ok(())
+    }
+
     pub(super) fn encode(&self) -> DurableResult<Vec<u8>> {
         self.check_descriptor_pair()?;
         let projections = self

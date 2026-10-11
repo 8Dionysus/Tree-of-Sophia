@@ -23,6 +23,19 @@ use std::{
 use tos_foundation::Digest256Hasher;
 use tos_segment_store::{SegmentLimits, SegmentStore};
 const BYTES: u64 = 64 * 1024 * 1024;
+const BACKUP_SCHEMA_V1: &str = "tos_cmd2_quiescent_backup_v1";
+const BACKUP_SCHEMA_V2: &str = "tos_cmd2_quiescent_backup_v2";
+const SOURCE_INVENTORY_CENSUS_V1: &str = "tos_backup_source_inventory_projection_v1";
+
+fn census_v2_for_schema(schema: &str) -> io::Result<bool> {
+    if schema == BACKUP_SCHEMA_V1 {
+        Ok(false)
+    } else if schema == BACKUP_SCHEMA_V2 {
+        Ok(true)
+    } else {
+        Err(error())
+    }
+}
 /// Owner-selected finite transport/admission budget, not corpus topology.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -674,6 +687,78 @@ fn frozen_domain(
     }
     Ok(result)
 }
+
+/// Add the complete retained source-inventory overlay to the legacy bounded
+/// census. Cold-verify the cut first, then record this census from the same
+/// quiescent state. Cold verification does not write overlay rows.
+fn frozen_domain_v2(
+    db: &mut Client,
+    domain: &str,
+    store: &SegmentStore,
+    profile: BackupProfile,
+    d: Instant,
+    c: &AtomicBool,
+) -> io::Result<Value> {
+    let mut result = frozen_domain(db, domain, store, profile, d, c)?;
+    let mut total_rows = result["rows"].as_u64().ok_or_else(error)?;
+    let mut total_bytes = result["bytes"].as_u64().ok_or_else(error)?;
+    let scan_rows = i64::try_from(
+        profile
+            .max_metadata_rows
+            .checked_sub(total_rows)
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(error)?,
+    )
+    .map_err(|_| error())?;
+    let query = "SELECT octet_length(row_to_json(t)::text),
+                        sha256(convert_to(row_to_json(t)::text,'UTF8'))
+         FROM (
+             SELECT * FROM cmd2_source_inventory_projection WHERE domain=$1
+             ORDER BY subject COLLATE \"C\",effective_seq LIMIT $2
+         ) t";
+    let params: [&(dyn postgres::types::ToSql + Sync); 2] = [&domain, &scan_rows];
+    let mut rows = db.query_raw(query, params).map_err(|_| error())?;
+    use postgres::fallible_iterator::FallibleIterator;
+    let mut count = 0u64;
+    let mut bytes = 0u64;
+    let mut root = Digest256Hasher::new();
+    root.update(b"tos-backup-source-inventory-projection-v1\0");
+    while let Some(row) = rows.next().map_err(|_| error())? {
+        active(d, c)?;
+        let row_bytes =
+            u64::try_from(row.try_get::<_, i32>(0).map_err(|_| error())?).map_err(|_| error())?;
+        let digest: Vec<u8> = row.try_get(1).map_err(|_| error())?;
+        require(digest.len() == 32)?;
+        count = count.checked_add(1).ok_or_else(error)?;
+        bytes = bytes.checked_add(row_bytes).ok_or_else(error)?;
+        total_rows = total_rows.checked_add(1).ok_or_else(error)?;
+        total_bytes = total_bytes.checked_add(row_bytes).ok_or_else(error)?;
+        require(
+            count <= profile.max_metadata_rows
+                && total_rows <= profile.max_metadata_rows
+                && bytes <= profile.max_metadata_bytes
+                && total_bytes <= profile.max_metadata_bytes,
+        )?;
+        root.update(&row_bytes.to_be_bytes());
+        root.update(&digest);
+    }
+    active(d, c)?;
+    {
+        let counts = result["counts"].as_object_mut().ok_or_else(error)?;
+        require(!counts.contains_key("cmd2_source_inventory_projection"))?;
+        counts.insert("cmd2_source_inventory_projection".into(), json!(count));
+    }
+    result["rows"] = json!(total_rows);
+    result["bytes"] = json!(total_bytes);
+    result["source_inventory_projection_v1"] = json!({
+        "schema":SOURCE_INVENTORY_CENSUS_V1,
+        "rows":count,
+        "bytes":bytes,
+        "row_root":root.finalize().to_hex(),
+    });
+    Ok(result)
+}
+
 /// Global cold backup work is explicit; it never runs on a warm successor.
 fn managed_model_cold_closure(
     db: &mut Client,
@@ -789,12 +874,12 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
     require(fs::read_dir(&target)?.next().is_none())?;
     let mut db = client(s.pg_url, d, c)?;
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
-    let metadata = frozen_domain(&mut db, s.domain, &store, profile, d, c)?;
+    let original_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+    let metadata = frozen_domain_v2(&mut db, s.domain, &store, profile, d, c)?;
     let database: String = db
         .query_one("SELECT current_database()", &[])
         .map_err(|_| error())?
         .get(0);
-    let original_cut = cut(s.pg_url, s.domain, &store, d, c)?;
     let members = inventory(&anchored(&source), profile, d, c)?;
     let dump = target.join("metadata.dump");
     let dump_file = OpenOptions::new()
@@ -823,9 +908,9 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
     let copied =
         tos_fd_open::open_directory_at(&backup, Path::new("store")).map_err(|_| error())?;
     copy_store(&source, &copied, &members, profile, d, c)?;
-    require(frozen_domain(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
     require(cut(s.pg_url, s.domain, &store, d, c)? == original_cut)?;
-    let mut receipt = json!({"schema":"tos_cmd2_quiescent_backup_v1","domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
+    require(frozen_domain_v2(&mut db, s.domain, &store, profile, d, c)? == metadata)?;
+    let mut receipt = json!({"schema":BACKUP_SCHEMA_V2,"domain":s.domain,"database":database,"cut":original_cut,"profile":profile,"metadata":metadata,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool_receipt,"source_admission":false,"production_quiescence_verified":false});
     if metadata.get("managed_model_v2").is_some() {
         let oid = db
             .query_one(
@@ -932,8 +1017,12 @@ pub fn restore_into_fresh_with_managed_binding(
         raw
     })
     .map_err(|_| error())?;
-    require(receipt["schema"] == "tos_cmd2_quiescent_backup_v1" && receipt["domain"] == s.domain)?;
+    let census_v2 = census_v2_for_schema(receipt["schema"].as_str().ok_or_else(error)?)?;
+    require(receipt["domain"] == s.domain)?;
     require(receipt.get("profile").is_some() == receipt.get("metadata").is_some())?;
+    if census_v2 {
+        require(receipt.get("profile").is_some() && receipt.get("metadata").is_some())?;
+    }
     let stored_profile: BackupProfile = receipt
         .get("profile")
         .map(|v| serde_json::from_value(v.clone()))
@@ -1003,6 +1092,22 @@ pub fn restore_into_fresh_with_managed_binding(
                 && metadata["counts"]["cmd2_log"].as_u64()
                     == receipt["cut"]["through_commit_seq"].as_u64(),
         )?;
+        if census_v2 {
+            let census = &metadata["source_inventory_projection_v1"];
+            let rows = metadata["counts"]["cmd2_source_inventory_projection"]
+                .as_u64()
+                .ok_or_else(error)?;
+            let root = census["row_root"].as_str().ok_or_else(error)?;
+            require(
+                census["schema"] == SOURCE_INVENTORY_CENSUS_V1
+                    && census["rows"].as_u64() == Some(rows)
+                    && census["bytes"]
+                        .as_u64()
+                        .is_some_and(|n| n <= profile.max_metadata_bytes)
+                    && tos_foundation::Digest256::from_hex(root).is_ok()
+                    && rows <= profile.max_metadata_rows,
+            )?;
+        }
     }
     copy_store(&source, &restored, members, profile, d, c)?;
     let dump_file = OpenOptions::new()
@@ -1028,11 +1133,23 @@ pub fn restore_into_fresh_with_managed_binding(
             && hash_bounded(&receipt_path, profile.max_receipt_bytes, d, c)?.1 == s.receipt_sha256,
     )?;
     let store = SegmentStore::open_existing(s.store_root, s.store_limits).map_err(|_| error())?;
-    let recovered_metadata = frozen_domain(&mut db, s.domain, &store, profile, d, c)?;
-    if let Some(expected) = receipt.get("metadata") {
-        require(&recovered_metadata == expected)?;
-    }
-    let recovered = cut(s.pg_url, s.domain, &store, d, c)?;
+    let (recovered_metadata, recovered) = if census_v2 {
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        let recovered_metadata = frozen_domain_v2(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        (recovered_metadata, recovered_cut)
+    } else {
+        // Preserve the v1 receipt's exact historical census and verification
+        // order; it never claimed a source-inventory overlay row commitment.
+        let recovered_metadata = frozen_domain(&mut db, s.domain, &store, profile, d, c)?;
+        if let Some(expected) = receipt.get("metadata") {
+            require(&recovered_metadata == expected)?;
+        }
+        let recovered_cut = cut(s.pg_url, s.domain, &store, d, c)?;
+        (recovered_metadata, recovered_cut)
+    };
     require(recovered == receipt["cut"])?;
     active(d, c)?;
     let mut result = json!({"status":"restore_verified","domain":s.domain,"cut":recovered,"tool":tool_receipt,"source_admission":false,"source_currentness_granted":false});
@@ -1111,4 +1228,21 @@ fn backup_binding_digest(value: &Value, max_bytes: u64) -> io::Result<String> {
     )
     .map_err(|_| error())?;
     Ok(tos_foundation::Digest256::of_bytes(&canonical).to_hex())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BACKUP_SCHEMA_V1, BACKUP_SCHEMA_V2, census_v2_for_schema};
+
+    #[test]
+    fn receipt_version_dispatch_is_explicit() {
+        assert!(!census_v2_for_schema(BACKUP_SCHEMA_V1).unwrap());
+        assert!(census_v2_for_schema(BACKUP_SCHEMA_V2).unwrap());
+        assert_eq!(
+            census_v2_for_schema("tos_cmd2_quiescent_backup_v3")
+                .unwrap_err()
+                .kind(),
+            std::io::ErrorKind::InvalidData
+        );
+    }
 }

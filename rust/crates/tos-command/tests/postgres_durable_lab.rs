@@ -98,6 +98,35 @@ fn limits() -> SegmentLimits {
     }
 }
 
+fn source_inventory_projection_rows(url: &str, domain: &str) -> Vec<String> {
+    let mut db = Client::connect(url, NoTls).unwrap();
+    db.query(
+        "SELECT row_to_json(t)::text FROM (
+             SELECT * FROM cmd2_source_inventory_projection WHERE domain=$1
+             ORDER BY subject COLLATE \"C\",effective_seq
+         ) t",
+        &[&domain],
+    )
+    .unwrap()
+    .into_iter()
+    .map(|row| row.get::<_, String>(0))
+    .collect()
+}
+
+fn source_inventory_projection_root(rows: &[String]) -> String {
+    let mut root = tos_foundation::Digest256Hasher::new();
+    root.update(b"tos-backup-source-inventory-projection-v1\0");
+    for row in rows {
+        root.update(&(row.len() as u64).to_be_bytes());
+        root.update(tos_foundation::Digest256::of_bytes(row.as_bytes()).as_bytes());
+    }
+    root.finalize().to_hex()
+}
+
+fn source_inventory_projection_bytes(rows: &[String]) -> u64 {
+    rows.iter().map(|row| row.len() as u64).sum()
+}
+
 fn database_url() -> String {
     let url = std::env::var("TOS_CMD_POSTGRES_URL")
         .expect("postgres_durable_lab requires an explicitly selected PostgreSQL URL");
@@ -3437,26 +3466,19 @@ fn maintained_agent_creation_operation<
             );
             result.unwrap()
         } else {
-            let current = tos_command::source_current_cut::select_current_source_generation(
-                &mut recovered_db,
-                &recovered_store,
-                &lab.domain,
-                &cut,
-                revision,
-                membership,
-                &contexts[0],
-                &software,
-                &components,
-                &mut new_worker(&cut),
-                Some((&generation_workspace, generation_profile)),
-                deadline,
-                &cancelled,
-            )
-            .unwrap();
-            let current = recovered_db
-                .migrate_current_source_generation_addressed(
+            let current =
+                tos_command::source_current_cut::select_current_source_generation_addressed(
+                    &mut recovered_db,
                     &recovered_store,
-                    &current,
+                    &lab.domain,
+                    &cut,
+                    revision,
+                    membership,
+                    &contexts[0],
+                    &software,
+                    &components,
+                    &mut new_worker(&cut),
+                    Some((&generation_workspace, generation_profile)),
                     tree_limits,
                     deadline,
                     &cancelled,
@@ -4123,6 +4145,37 @@ fn maintained_agent_creation_operation<
         );
         let receipt = fs::read(backup_root.0.join("receipt.json")).unwrap();
         assert!(receipt.len() <= 1024 * 1024);
+        let receipt_value: serde_json::Value = serde_json::from_slice(&receipt).unwrap();
+        assert_eq!(receipt_value["schema"], "tos_cmd2_quiescent_backup_v2");
+        let source_inventory_rows = source_inventory_projection_rows(&url, &recovery_domain);
+        assert!(
+            !source_inventory_rows.is_empty(),
+            "the addressed Agent fixture retains inventory overlay rows"
+        );
+        let inventory_census = &receipt_value["metadata"]["source_inventory_projection_v1"];
+        assert_eq!(
+            inventory_census["schema"],
+            "tos_backup_source_inventory_projection_v1"
+        );
+        assert_eq!(
+            receipt_value["metadata"]["counts"]["cmd2_source_inventory_projection"],
+            serde_json::json!(source_inventory_rows.len())
+        );
+        assert_eq!(
+            inventory_census["rows"],
+            serde_json::json!(source_inventory_rows.len())
+        );
+        assert_eq!(
+            inventory_census["bytes"],
+            serde_json::json!(source_inventory_projection_bytes(&source_inventory_rows))
+        );
+        let expected_source_inventory_root =
+            source_inventory_projection_root(&source_inventory_rows);
+        assert_eq!(
+            inventory_census["row_root"].as_str(),
+            Some(expected_source_inventory_root.as_str()),
+            "the receipt commits the complete deterministically ordered overlay set"
+        );
         let receipt_sha256 = Digest256::of_bytes(&receipt).to_hex();
         run_addressed_transport_phase(
             "restore",
@@ -4137,6 +4190,11 @@ fn maintained_agent_creation_operation<
             journal,
             addressed_journal_snapshot(&restored_url, &recovery_domain),
             "actual DB restore preserves exact V2 journal/profile/fence before cold selection"
+        );
+        assert_eq!(
+            source_inventory_projection_rows(&restored_url, &recovery_domain),
+            source_inventory_rows,
+            "the actual addressed child transport preserves every committed overlay row"
         );
         restored_url
     } else {
@@ -4175,35 +4233,41 @@ fn maintained_agent_creation_operation<
     let current_filesystem =
         CreationFilesystem::select_isolated(&isolated, &current_owner, deadline, &cancelled)
             .unwrap();
-    let current_reopened = tos_command::source_current_cut::select_current_source_generation(
-        &mut recovered_db,
-        &recovered_store,
-        &recovery_domain,
-        &cut,
-        revision,
-        membership,
-        &bootstrap_context,
-        &software,
-        &components,
-        &mut new_worker(&cut),
-        Some((&generation_workspace, generation_profile)),
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
     let current_reopened = if addressed {
-        recovered_db
-            .migrate_current_source_generation_addressed(
-                &recovered_store,
-                &current_reopened,
-                tree_limits,
-                deadline,
-                &cancelled,
-            )
-            .unwrap()
+        tos_command::source_current_cut::select_current_source_generation_addressed(
+            &mut recovered_db,
+            &recovered_store,
+            &recovery_domain,
+            &cut,
+            revision,
+            membership,
+            &bootstrap_context,
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            Some((&generation_workspace, generation_profile)),
+            tree_limits,
+            deadline,
+            &cancelled,
+        )
     } else {
-        current_reopened
-    };
+        tos_command::source_current_cut::select_current_source_generation(
+            &mut recovered_db,
+            &recovered_store,
+            &recovery_domain,
+            &cut,
+            revision,
+            membership,
+            &bootstrap_context,
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            Some((&generation_workspace, generation_profile)),
+            deadline,
+            &cancelled,
+        )
+    }
+    .unwrap();
     // Record ordinary and controlled plans for the actual keyset queries.
     // These small-fixture observations do not establish whole-query capacity
     // or gate the current/cold/recovery protection checks below.

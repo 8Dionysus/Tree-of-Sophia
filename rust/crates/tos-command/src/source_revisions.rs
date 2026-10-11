@@ -2625,7 +2625,70 @@ fn retain_archive(
     family: RevisionFamily,
     inspection: &Inspection,
 ) -> SourceCommandResult<Vec<SourceChange>> {
-    let revision = revision(&inspection.files)?;
+    retained_archive_changes(ctx, config, family, &inspection.files, &inspection.subject)
+}
+
+/// Recheck that a selected Work proposal's non-current-member changes are
+/// exactly the immutable archive produced for its retained predecessor. The
+/// Work receipt has compact before/after refs for the three current members;
+/// the complete archive changes remain in the durable source attempt.
+pub(crate) fn validate_pg_work_revision_archive_changes(
+    ctx: &CommandContext,
+    proposal: &PreparedCommand,
+) -> SourceCommandResult<()> {
+    let (config, family) = configuration(ctx)?;
+    if family != RevisionFamily::CorpusSelectedV3 || proposal.operation != "record.revise" {
+        return Err(SourceCommandError::Denied(
+            "PG Work archive requires the selected Work revision owner",
+        ));
+    }
+    let source_path = cmd::text(&config, "source_path")?;
+    let (parent, _) = split(source_path)?;
+    let current_members = names(source_path)?
+        .into_iter()
+        .map(|name| format!("{parent}/{name}"))
+        .collect::<BTreeSet<_>>();
+    let files = package(ctx, source_path, true, None)?;
+    let (_, base) = split(source_path)?;
+    let record = cmd::parse(files.get(base).ok_or(SourceCommandError::Conflict(
+        "Work predecessor record absent",
+    ))?)?;
+    let subject = source_forms::metadata_subject(&record)?;
+    let expected = retained_archive_changes(ctx, &config, family, &files, &subject)?
+        .into_iter()
+        .map(|change| (change.path.as_str().to_owned(), change))
+        .collect::<BTreeMap<_, _>>();
+    let mut actual = BTreeMap::new();
+    for change in proposal
+        .changes
+        .iter()
+        .filter(|change| !current_members.contains(change.path.as_str()))
+    {
+        if actual
+            .insert(change.path.as_str().to_owned(), change.clone())
+            .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG Work predecessor archive change is duplicated",
+            ));
+        }
+    }
+    if actual != expected {
+        return Err(SourceCommandError::Conflict(
+            "PG Work changes differ from exact predecessor archive",
+        ));
+    }
+    Ok(())
+}
+
+fn retained_archive_changes(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    family: RevisionFamily,
+    files: &Package,
+    subject: &JsonValue,
+) -> SourceCommandResult<Vec<SourceChange>> {
+    let revision = revision(files)?;
     let location = archive_path(config, &revision)?;
     let source_path = cmd::text(config, "source_path")?;
     let mut manifest = cmd::object(vec![
@@ -2638,15 +2701,15 @@ fn retain_archive(
             }),
         ),
         ("source_path", cmd::string(source_path)),
-        ("source", inspection.subject.clone()),
+        ("source", subject.clone()),
         ("revision", cmd::string(&revision)),
-        ("files", file_refs(&inspection.files, true)),
+        ("files", file_refs(files, true)),
     ]);
     if family.selected() {
         cmd::set(&mut manifest, "publication_protocol", cmd::string(PROTOCOL))?;
     }
     let mut writes = BTreeMap::new();
-    for raw in inspection.files.values() {
+    for raw in files.values() {
         writes.insert(
             format!("{}.blob", Digest256::of_bytes(raw).to_hex()),
             raw.clone(),
@@ -2659,10 +2722,10 @@ fn retain_archive(
     if existing_manifest {
         let stub = cmd::object(vec![
             ("previous_revision", cmd::string(&revision)),
-            ("previous_source", inspection.subject.clone()),
+            ("previous_source", subject.clone()),
             ("archive_path", cmd::string(&location)),
         ]);
-        if read_archive(ctx, config, &stub)?.0 != inspection.files {
+        if read_archive(ctx, config, &stub)?.0 != *files {
             return Err(SourceCommandError::Conflict(
                 "existing archive differs from predecessor bytes",
             ));

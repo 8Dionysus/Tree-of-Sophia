@@ -727,7 +727,9 @@ pub(crate) fn make_commit_evidence(
             "PG revision evidence requires exact selected Work owner",
         ));
     }
-    validate_write_scope(&observation.source_path, writes)?;
+    revision::validate_pg_work_revision_archive_changes(context, proposal)
+        .map_err(DurableError::Source)?;
+    let member_writes = selected_member_writes(&observation.source_path, writes)?;
     let request = cmd::parse(&context.request_raw).map_err(DurableError::Source)?;
     if cmd::field(&request, "expected_publication").map_err(DurableError::Source)?
         != &tos_foundation::JsonValue::Null
@@ -772,8 +774,9 @@ pub(crate) fn make_commit_evidence(
             .ok_or(DurableError::Conflict(
                 "PG Work revision selected member change absent",
             ))?;
-        let write = writes
+        let write = member_writes
             .iter()
+            .copied()
             .find(|write| write.subject == path_text)
             .ok_or(DurableError::Conflict(
                 "PG Work selected member write absent",
@@ -983,18 +986,18 @@ pub(crate) fn validate_attempt_evidence(
         .source_path
         .rsplit_once('/')
         .ok_or(DurableError::Corrupt("PG Work source path parent"))?;
-    validate_write_scope(&evidence.source_path, writes)?;
+    let member_writes = selected_member_writes(&evidence.source_path, writes)?;
     let mut expected_before = Vec::new();
     let mut expected_after = Vec::new();
     for name in revision::names(&evidence.source_path).map_err(DurableError::Source)? {
         let path = format!("{parent}/{name}");
-        let write =
-            writes
-                .iter()
-                .find(|write| write.subject == path)
-                .ok_or(DurableError::Conflict(
-                    "PG Work attempt member write absent",
-                ))?;
+        let write = member_writes
+            .iter()
+            .copied()
+            .find(|write| write.subject == path)
+            .ok_or(DurableError::Conflict(
+                "PG Work attempt member write absent",
+            ))?;
         expected_before.push(match write.expected_predecessor {
             Some((revision, digest)) => MemberVersionRef {
                 path: path.clone(),
@@ -1025,25 +1028,39 @@ pub(crate) fn validate_attempt_evidence(
     Ok(())
 }
 
-fn validate_write_scope(source_path: &str, writes: &[SourceRevisionWrite]) -> DurableResult<()> {
+/// Select exactly the three current Work members whose before/after locators
+/// the compact Work receipt records. The complete durable write set still
+/// includes the predecessor archive: its exact authored bytes remain bound by
+/// `compound_members_digest`, the typed `retain_archive` proposal, the source
+/// readset and the source-revision path indexes. Ready recovery independently
+/// reconstructs and validates that whole archive package.
+fn selected_member_writes<'a>(
+    source_path: &str,
+    writes: &'a [SourceRevisionWrite],
+) -> DurableResult<Vec<&'a SourceRevisionWrite>> {
     let (parent, _) = source_path
         .rsplit_once('/')
         .ok_or(DurableError::Corrupt("PG Work source path parent"))?;
-    let expected = revision::names(source_path)
-        .map_err(DurableError::Source)?
-        .into_iter()
-        .map(|name| format!("{parent}/{name}"))
-        .collect::<BTreeSet<_>>();
-    let actual = writes
-        .iter()
-        .map(|write| write.subject.clone())
-        .collect::<BTreeSet<_>>();
-    if expected.len() != 3 || actual.len() != writes.len() || actual != expected {
-        return Err(DurableError::Conflict(
-            "PG Work revision write scope differs",
-        ));
+    let names = revision::names(source_path).map_err(DurableError::Source)?;
+    if names.iter().collect::<BTreeSet<_>>().len() != 3 {
+        return Err(DurableError::Corrupt("PG Work selected member names"));
     }
-    Ok(())
+    names
+        .into_iter()
+        .map(|name| {
+            let path = format!("{parent}/{name}");
+            let mut matches = writes.iter().filter(|write| write.subject == path);
+            let write = matches.next().ok_or(DurableError::Conflict(
+                "PG Work selected member write absent",
+            ))?;
+            if matches.next().is_some() {
+                return Err(DurableError::Conflict(
+                    "PG Work selected member write is duplicated",
+                ));
+            }
+            Ok(write)
+        })
+        .collect()
 }
 
 pub(crate) fn apply_source_change(

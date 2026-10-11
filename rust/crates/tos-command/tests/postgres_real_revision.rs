@@ -2,7 +2,10 @@
 //! The selected authored bytes are copied into a private fixture before any
 //! capture or mutation; the repository remains read-only.
 
-use super::{Lab, ScratchRoot, contract_digest, database_url, limits};
+use super::{
+    Lab, ScratchRoot, contract_digest, database_url, limits, source_inventory_projection_bytes,
+    source_inventory_projection_root, source_inventory_projection_rows,
+};
 use postgres::{Client, NoTls};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -21,8 +24,8 @@ use tos_command::{
     DurableProjectionProfile, DurableProjectionSearch, DurableProjectionStatus,
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, RelativePath, SourceRevision,
-    canonical_bytes_v1, parse_json,
+    CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, RelativePath,
+    SourceRevision, canonical_bytes_v1, emit_json_profile, parse_json,
 };
 use tos_query::source_text_search::{
     SourceTextCandidateSet, SourceTextDocument, SourceTextSearchBudget, SourceTextSearchRequest,
@@ -210,6 +213,18 @@ fn canonical(value: &Value) -> Vec<u8> {
         JsonLimits::default(),
     )
     .unwrap()
+}
+
+fn published_source_bytes(value: &Value) -> Vec<u8> {
+    let raw = serde_json::to_vec(value).unwrap();
+    let parsed = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    emit_json_profile(
+        parsed.root(),
+        JsonEmissionProfile::SourceFormSetPublishedV1,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .bytes
 }
 
 fn owner_configuration_digest(path: &Path) -> String {
@@ -3200,7 +3215,7 @@ fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Pa
         );
     }
     let created_record = source_member(case, CREATED_RECORD_PATH);
-    assert_eq!(created_record, canonical(&record));
+    assert_eq!(created_record, published_source_bytes(&record));
     assert_eq!(
         retry["source_read_work"]["exact_source_members_read"], 0,
         "durable replay does not repeat ordinary source-selection reads"
@@ -5129,6 +5144,11 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     let source_cut_before = cold_recovery_cut(&mut case);
     assert_eq!(source_cut_before["through_commit_seq"], case.lab.head_seq());
     let metadata_before = real_recovery_metadata_snapshot(&case);
+    let source_inventory_before = source_inventory_projection_rows(&case.lab.url, &case.lab.domain);
+    assert!(
+        !source_inventory_before.is_empty(),
+        "the real source fixture must retain inventory overlays for backup coverage"
+    );
 
     let backup_scratch = ScratchRoot::new();
     fs::set_permissions(&backup_scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
@@ -5143,10 +5163,40 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     );
     let backup = run_recovery_cli(&binary, "backup", &backup_args, &source_url);
     assert_eq!(backup["status"], "backup_complete");
-    assert_eq!(backup["receipt"]["schema"], "tos_cmd2_quiescent_backup_v1");
+    assert_eq!(backup["receipt"]["schema"], "tos_cmd2_quiescent_backup_v2");
     assert_eq!(backup["receipt"]["source_admission"], false);
     assert_eq!(backup["receipt"]["production_quiescence_verified"], false);
-    let receipt_raw = fs::read(backup_root.join("receipt.json")).unwrap();
+    let inventory_census = &backup["receipt"]["metadata"]["source_inventory_projection_v1"];
+    assert_eq!(
+        inventory_census["schema"],
+        "tos_backup_source_inventory_projection_v1"
+    );
+    assert_eq!(
+        backup["receipt"]["metadata"]["counts"]["cmd2_source_inventory_projection"],
+        json!(source_inventory_before.len())
+    );
+    assert_eq!(
+        inventory_census["rows"],
+        json!(source_inventory_before.len())
+    );
+    assert_eq!(
+        inventory_census["bytes"],
+        json!(source_inventory_projection_bytes(&source_inventory_before))
+    );
+    assert!(
+        inventory_census["row_root"]
+            .as_str()
+            .and_then(|root| Digest256::from_hex(root).ok())
+            .is_some(),
+        "the v2 backup records a digest for all retained inventory overlays"
+    );
+    assert_eq!(
+        inventory_census["row_root"],
+        source_inventory_projection_root(&source_inventory_before),
+        "the receipt root commits the complete deterministically ordered source row set"
+    );
+    let receipt_path = backup_root.join("receipt.json");
+    let receipt_raw = fs::read(&receipt_path).unwrap();
     let receipt_sha = Digest256::of_bytes(&receipt_raw).to_hex();
     assert_eq!(backup["receipt_sha256"], receipt_sha);
 
@@ -5187,6 +5237,11 @@ pub(super) fn run_parmenides_backup_restore_regression() -> Value {
     let restored_cut = cold_recovery_cut(&mut case);
     assert_eq!(restored_cut, source_cut_before);
     assert_eq!(real_recovery_metadata_snapshot(&case), metadata_before);
+    assert_eq!(
+        source_inventory_projection_rows(&case.lab.url, &case.lab.domain),
+        source_inventory_before,
+        "restore preserves every retained inventory overlay row committed by the v2 census"
+    );
     assert_eq!(real_projection_snapshot(&case, consumer), projection);
     assert_eq!(
         real_projection_search(&mut case, consumer),

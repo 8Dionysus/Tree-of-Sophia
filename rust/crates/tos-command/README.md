@@ -340,6 +340,16 @@ files without hardlinks. Restore verifies the receipt/dump and copied store,
 then restores the schema/data in one PostgreSQL transaction and checks the
 native committed-history cut. A missing dump schema is not filled in by lab
 initialization.
+
+New receipts use `tos_cmd2_quiescent_backup_v2`. Its bounded metadata census
+includes every `cmd2_source_inventory_projection` row for the selected domain,
+ordered by subject and effective sequence, with a framed row digest and exact
+row/byte counts; PostgreSQL returns only each row's byte length and SHA-256 to
+the transport. Backup and restore cold-verify the cut before recording this
+census from the same quiescent state. Cold verification is read-only. Restore also
+continues to accept `tos_cmd2_quiescent_backup_v1` with its original census
+coverage; that version carries no commitment to inventory-projection rows.
+Unknown receipt versions are refused.
 Do not point either operation at another owner's live resources.
 
 All selected store and backup directories must already exist, belong to the

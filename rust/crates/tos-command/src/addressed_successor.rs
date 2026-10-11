@@ -381,6 +381,114 @@ impl VerifiedAddressedGeneration {
     }
 }
 
+/// Verify that the currently published selector still points at its exact V2
+/// descriptor and that its authenticated inventory is freshly reconstructed
+/// from source. `Ok(false)` only means the V2 parser did not identify the
+/// selected bytes; callers must positively open the selected V1 generation
+/// before treating it as a legacy transition. All other read/decode failures
+/// remain fail-closed.
+pub(super) fn verify_published_addressed_inventory(
+    store: &SegmentStore,
+    row: &postgres::Row,
+    domain: &str,
+    head: u64,
+    database_oid: u64,
+    context: &CommandContext,
+    projections: &ProjectionRows,
+    allow_database_rebind: bool,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<bool> {
+    let Some(selected_digest) = row.get::<_, Option<String>>("selected_generation_digest") else {
+        return Ok(false);
+    };
+    let selected_digest = Digest256::from_hex(selected_digest.trim_end())
+        .map_err(|_| DurableError::Corrupt("addressed selected generation digest"))?;
+    let raw = match store.read_authenticated_object_v1(
+        OBJECT_KIND,
+        selected_digest,
+        MAX_DESCRIPTOR,
+        deadline,
+        cancelled,
+    ) {
+        Ok(raw) => raw,
+        // V1 descriptors use the generation format rather than this V2
+        // authenticated-object envelope. This is only a tentative dispatch;
+        // the caller must cold-open the exact V1 descriptor and cut.
+        Err(error)
+            if error.code == tos_segment_store::SegmentErrorCode::InvalidFormat
+                && error.detail == "authenticated object header differs" =>
+        {
+            return Ok(false);
+        }
+        // Another authenticated object kind also needs positive V1 validation
+        // by the caller. The kind mismatch alone grants no legacy selection.
+        Err(error)
+            if error.code == tos_segment_store::SegmentErrorCode::InvalidReceipt
+                && error.detail == "authenticated object kind differs" =>
+        {
+            return Ok(false);
+        }
+        Err(error) => return Err(DurableError::Storage(error)),
+    };
+    let cut = AddressedCutV2::decode(&raw)?;
+    cut.require_store(store)?;
+    let state_digest = cut.state_digest()?;
+    let selected_audit_generation =
+        cut.audit_generation
+            .checked_add(1)
+            .ok_or(DurableError::Corrupt(
+                "addressed selected audit generation overflow",
+            ))?;
+    let projection_root = cut.inventory.root().to_hex();
+    let complete_cut_digest =
+        row.get::<_, Option<String>>("complete_cut_digest")
+            .ok_or(DurableError::Corrupt(
+                "addressed complete cut digest absent",
+            ))?;
+    let source_projection_digest = row
+        .get::<_, Option<String>>("source_projection_digest")
+        .ok_or(DurableError::Corrupt(
+            "addressed source projection digest absent",
+        ))?;
+    let schema_digest = row
+        .get::<_, Option<String>>("schema_profile_digest")
+        .ok_or(DurableError::Corrupt(
+            "addressed schema profile digest absent",
+        ))?;
+    // A full-audit restore/reselection may authenticate a retained descriptor
+    // whose database identity belongs to the source database. The caller must
+    // then clear it and build a new selection bound to the current OID; this
+    // old descriptor is never returned as current authority.
+    if cut.domain != domain
+        || cut.through_seq != head
+        || (!allow_database_rebind && cut.database_oid != database_oid)
+        || row.get::<_, i64>("head_seq") != as_i64(head)?
+        || row.get::<_, i64>("published_seq") != as_i64(head)?
+        || row.get::<_, Option<i64>>("source_generation") != Some(as_i64(head)?)
+        || row.get::<_, Option<i64>>("complete_cut_generation")
+            != Some(as_i64(selected_audit_generation)?)
+        || complete_cut_digest.trim_end() != state_digest.to_hex()
+        || source_projection_digest.trim_end() != projection_root
+        || schema_digest.trim_end() != cut.schema_profile_digest.to_hex()
+        || cut.state_profile_digest != audit_delta::audit_delta_schema_digest()
+        || cut.schema_profile_digest != schema_profile_digest()
+    {
+        return Err(DurableError::Corrupt(
+            "published addressed source selection binding differs",
+        ));
+    }
+    cut.inventory.verify_source_projections(
+        store,
+        context,
+        projections,
+        addressed_replay_limits(),
+        deadline,
+        cancelled,
+    )?;
+    Ok(true)
+}
+
 impl VerifiedAddressedGeneration {
     pub(crate) fn facts(&self) -> SourceSelectionFacts<'_> {
         SourceSelectionFacts {

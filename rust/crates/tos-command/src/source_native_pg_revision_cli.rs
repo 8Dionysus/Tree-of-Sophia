@@ -219,9 +219,10 @@ fn software_selection(
 fn source_error(error: DurableError) -> SourceCommandError {
     match error {
         DurableError::Source(error) => error,
-        DurableError::Conflict(_) => {
-            SourceCommandError::Conflict("PostgreSQL source revision selection changed")
-        }
+        // Conflict reasons are static owner-authored labels. Preserve them so
+        // a failed pre-seal guard can be diagnosed without returning request,
+        // configuration, or database payloads.
+        DurableError::Conflict(reason) => SourceCommandError::Conflict(reason),
         DurableError::Refused(_) => {
             SourceCommandError::Denied("PostgreSQL source revision selection refused")
         }

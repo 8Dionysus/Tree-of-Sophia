@@ -244,7 +244,9 @@ impl ManagedCurrentSourceCut {
 }
 
 /// Explicit cold selection of existing durable roots without a v1 export.
-/// The present owner still performs a complete source/index/custody audit;
+/// This strict legacy route refuses any active addressed protocol marker so it
+/// cannot select or rebuild V1 beneath V2 state. The present owner still
+/// performs a complete source/index/custody audit;
 /// this removes the mandatory filesystem export, not that audit's O(N) cost.
 /// An explicit private workspace/profile selects the existing streamed custody
 /// route for all cold audits. Current bodies/metadata still obey the finite
@@ -314,6 +316,9 @@ pub fn select_current_source_generation(
 /// maintained source/index assessment, then installs independent authenticated
 /// state and membership roots. This is the same operation on a cold restore;
 /// prior V1/V2 descriptor objects and exact historical references are retained.
+/// A retained V2 descriptor may be reselected after the restored database's
+/// own source, rights, index, overlay, and custody checks; a transitional V1
+/// descriptor must still cold-open against the current database identity.
 /// The caller installs the audit protocol explicitly in its isolated private DB
 /// before this function; no installed-release writer is switched by selection.
 pub fn select_current_source_generation_addressed(
@@ -335,21 +340,32 @@ pub fn select_current_source_generation_addressed(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<ManagedCurrentSourceGeneration> {
-    let cold = select_current_source_generation(
-        coordinator,
-        store,
-        domain,
-        original,
-        initial_revision,
-        initial_membership,
-        bootstrap_context,
-        software,
-        components,
-        worker,
-        streamed,
-        deadline,
-        cancel,
-    )?;
+    let reopened = coordinator
+        .cold_reopen_source_cohort_addressed_reselect(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            bootstrap_context,
+            software,
+            components,
+            worker,
+            streamed,
+            deadline,
+            cancel,
+        )
+        .map_err(durable)?;
+    if reopened.selected.cut().through_commit_seq() != reopened.cohort.generation() {
+        return Err(Error::Conflict(
+            "managed generation and source cohort differ",
+        ));
+    }
+    let cold = ManagedCurrentSourceGeneration {
+        store_id: store.store_id(),
+        cohort: reopened.cohort,
+        selected: SelectedSourceGeneration::Cold(reopened.selected),
+    };
     coordinator
         .migrate_current_source_generation_addressed(store, &cold, tree_limits, deadline, cancel)
         .map_err(durable)

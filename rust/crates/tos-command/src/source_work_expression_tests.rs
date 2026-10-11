@@ -204,7 +204,12 @@ pub(crate) fn software(
     let read_limits = ReadLimits {
         max_manifest_bytes: 1_048_576,
         max_manifest_entries: 512,
-        max_selected_object_bytes: 2_097_152,
+        // The shared native test profile now includes the bounded PG source
+        // revision inputs as well as the older Work/ObjectLink/Item inputs.
+        // Keep the aggregate selection finite and bind it to the command's
+        // existing 8 MiB selected-member ceiling; the owner-specific
+        // per-member limits remain enforced when bytes are read.
+        max_selected_object_bytes: crate::source_command::SELECTED_SOURCE_MAX_MEMBER_BYTES as u64,
         json: JsonLimits::default(),
     };
     restore_capture(
