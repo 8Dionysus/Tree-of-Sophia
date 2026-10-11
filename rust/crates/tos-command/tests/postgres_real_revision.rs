@@ -1144,7 +1144,7 @@ fn provision_work_revision_extension(
             absent_read.result["stderr"]
                 .as_str()
                 .unwrap()
-                .contains("PostgreSQL source revision selection refused")
+                .contains("PG Work revision extension absent or unknown")
         );
         let extension_still_absent: bool = db
             .query_one(
@@ -4133,13 +4133,16 @@ fn real_pg_selected_work_revision_recovers_ready_attempt_and_cold_reads_exact_hi
     let suffix = &digest[..24];
     let function = format!("tos_test_fail_work_apply_{suffix}");
     let trigger = format!("tos_test_fail_work_apply_{suffix}");
+    let sequence = format!("tos_test_fail_work_apply_{suffix}_fired");
     let domain_literal = case.lab.domain.replace('\'', "''");
     let mut interrupt = Client::connect(&case.lab.url, NoTls).unwrap();
     interrupt
         .batch_execute(&format!(
-            "CREATE FUNCTION public.{function}() RETURNS trigger LANGUAGE plpgsql AS $$
+            "CREATE SEQUENCE public.{sequence};
+             CREATE FUNCTION public.{function}() RETURNS trigger LANGUAGE plpgsql AS $$
              BEGIN
                IF NEW.domain = '{domain_literal}' THEN
+                 PERFORM nextval('public.{sequence}'::regclass);
                  RAISE EXCEPTION 'intentional ready-work interrupt';
                END IF;
                RETURN NEW;
@@ -4166,13 +4169,18 @@ fn real_pg_selected_work_revision_recovers_ready_attempt_and_cold_reads_exact_hi
             "DROP TRIGGER {trigger} ON cmd2_current; DROP FUNCTION public.{function}();"
         ))
         .expect("the one-shot fixture interrupt is removed");
+    let apply_trigger_fired: bool = cleanup
+        .query_one(&format!("SELECT is_called FROM public.{sequence}"), &[])
+        .expect("the one-shot fixture witness survives the failed PG transaction")
+        .get(0);
+    cleanup
+        .batch_execute(&format!("DROP SEQUENCE public.{sequence};"))
+        .expect("the one-shot fixture witness is removed before retry");
     drop(cleanup);
     assert!(interrupted.result["refused"].as_bool().unwrap());
     assert!(
-        interrupted.result["stderr"]
-            .as_str()
-            .unwrap()
-            .contains("intentional ready-work interrupt")
+        apply_trigger_fired,
+        "the injected PG apply trigger ran before the command was refused"
     );
     assert_eq!(case.lab.head_seq(), before_head);
     let state: String = Client::connect(&case.lab.url, NoTls)
