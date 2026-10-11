@@ -9064,6 +9064,26 @@ mod tests {
                 payload: b"raw",
             })
             .unwrap();
+        // Scale the actual native MAIN/TEMP ratio onto this small real file.
+        // Its size exceeds half the MAIN cap, as in the complete Site build.
+        let profile = crate::native_snapshot_manifest::portable_native_snapshot_limits(60).unwrap();
+        let bytes = fs::metadata(&candidate).unwrap().len();
+        let mut admitted = limits();
+        admitted.sqlite.max_output_bytes = bytes + bytes / 2;
+        admitted.max_temp_bytes = admitted.sqlite.max_output_bytes * profile.stage.max_temp_bytes
+            / profile.stage.sqlite.max_output_bytes;
+        preflight_selected_vacuum(stage.db(), &candidate, stage.inode, admitted).unwrap();
+        admitted.max_temp_bytes = 2 * bytes - 1;
+        assert!(matches!(
+            preflight_selected_vacuum(stage.db(), &candidate, stage.inode, admitted),
+            Err(Error::Budget("selected VACUUM output/temp reserve"))
+        ));
+        admitted.max_temp_bytes = 2 * bytes;
+        admitted.sqlite.max_output_bytes = bytes - 1;
+        assert!(matches!(
+            preflight_selected_vacuum(stage.db(), &candidate, stage.inode, admitted),
+            Err(Error::Budget("selected VACUUM output/temp reserve"))
+        ));
         stage.mark_selected_full().unwrap();
         let result = stage.finish();
         assert!(matches!(
