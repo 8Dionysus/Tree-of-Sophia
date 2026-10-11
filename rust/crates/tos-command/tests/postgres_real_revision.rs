@@ -29,7 +29,7 @@ use tos_source_store::{
     GitCaptureLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 
 const AGENT_DIRS: &[&str] = &["parmenides-of-elea", "justus-lipsius", "hans-hahn"];
 const SHARED_SOURCE: &[&str] = &[
@@ -538,7 +538,7 @@ fn source_cut_from_members(
             cancelled,
         )
         .unwrap();
-    let expectation = cut.stream(revision).unwrap().unwrap().expectation();
+    let expectation = cut.stream(revision).unwrap().expectation();
     assert_eq!(expectation.count as usize, members.len());
     SourceCutFixture {
         _scratch: scratch,
@@ -686,7 +686,7 @@ fn software_reader(
 struct RevisionCase {
     _owner_scratch: ScratchRoot,
     lab: Lab,
-    cohort: tos_command::ManagedSourceCohort,
+    cohort: tos_command::source_cohort::ManagedSourceCohort,
     source_root: PathBuf,
     original_record: Vec<u8>,
     all_source: SourceMembers,
@@ -819,12 +819,7 @@ fn bootstrap_case_from_cut(
             &lab.domain,
             &source.cut,
             source.revision,
-            source
-                .cut
-                .stream(source.revision)
-                .unwrap()
-                .unwrap()
-                .expectation(),
+            source.cut.stream(source.revision).unwrap().expectation(),
             &context,
             &software,
             &components,
@@ -1680,7 +1675,7 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     let source_before_drift = source_member(case, target.source_path);
     let before_fault_counts =
         ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
-    let db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
     let selected_row = db
         .query_one(
             "SELECT revision,source_mode,content_digest,source_dependencies
@@ -1705,7 +1700,7 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     let drifted_source_mode = original_source_mode ^ 1;
     assert!((0..=0o7777).contains(&drifted_source_mode));
     assert_ne!(original_source_mode, drifted_source_mode);
-    let db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
     assert_eq!(
         db.execute(
             "UPDATE cmd2_current SET source_mode=$3 WHERE domain=$1 AND subject=$2",

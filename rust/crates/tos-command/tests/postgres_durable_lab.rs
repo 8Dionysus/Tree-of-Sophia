@@ -18,9 +18,10 @@ use postgres::{Client, NoTls};
 use tos_access::managed_source_query::ManagedKnowledgeWriter;
 use tos_command::{
     AttemptResolution, CancelOutcome, ColdWorkspaceLimits, CommitShadowAttempt, DurableError,
-    DurablePgCoordinator, DurableShadowMember, PrivateGenerationWorkspace, RegisterShadowAttempt,
-    ShadowWriteIdentity, StreamedGenerationProfile, durable_shadow_delta,
-    durable_shadow_delta_prepared, lab_record_bytes,
+    DurablePgCoordinator, DurableProjectionExtractor, DurableShadowMember,
+    PrivateGenerationWorkspace, RegisterShadowAttempt, ShadowWriteIdentity,
+    StreamedGenerationProfile, durable_shadow_delta, durable_shadow_delta_prepared,
+    lab_record_bytes,
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{

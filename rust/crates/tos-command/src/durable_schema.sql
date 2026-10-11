@@ -176,6 +176,10 @@ CREATE INDEX IF NOT EXISTS cmd2_current_source_subject_c_seek
   ON cmd2_current(domain,subject COLLATE "C");
 CREATE INDEX IF NOT EXISTS cmd2_source_index_cold_seek
   ON cmd2_source_index(domain,kind COLLATE "C",token COLLATE "C");
+-- Bounded successor checks address the semantic rows owned by one exact source
+-- path. Keep path first so a revision never scans another member's identities.
+CREATE INDEX IF NOT EXISTS cmd2_source_index_path_semantic_seek
+  ON cmd2_source_index(domain,path COLLATE "C",kind COLLATE "C",token COLLATE "C");
 CREATE INDEX IF NOT EXISTS cmd2_predicate_source_cold_seek
   ON cmd2_predicate(domain,owner,kind COLLATE "C",scope COLLATE "C",token COLLATE "C");
 
@@ -232,6 +236,25 @@ CREATE TABLE IF NOT EXISTS cmd2_log (
   members_root char(64) NOT NULL,
   PRIMARY KEY (domain, commit_seq),
   UNIQUE (domain, event_kind, command_id)
+);
+
+-- A retained source-inventory projection is an explicit as-of overlay. Its
+-- source revision remains tied to immutable history, and effective_seq must
+-- name an already committed log head rather than a future/arbitrary cut.
+CREATE TABLE IF NOT EXISTS cmd2_source_inventory_projection (
+  domain text NOT NULL REFERENCES cmd2_domain(domain),
+  subject text NOT NULL,
+  effective_seq bigint NOT NULL CHECK (effective_seq > 0),
+  source_revision bigint NOT NULL CHECK (source_revision > 0),
+  content_digest char(64) NOT NULL,
+  definition_digest char(64) NOT NULL,
+  inventory_projection bytea NOT NULL
+    CHECK (octet_length(inventory_projection) <= 1048576),
+  PRIMARY KEY (domain, subject, effective_seq),
+  FOREIGN KEY (domain, subject, source_revision)
+    REFERENCES cmd2_history(domain, subject, revision),
+  FOREIGN KEY (domain, effective_seq)
+    REFERENCES cmd2_log(domain, commit_seq)
 );
 
 CREATE TABLE IF NOT EXISTS cmd2_outbox (
@@ -340,7 +363,8 @@ DECLARE table_name text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'cmd2_job','cmd2_predicate','cmd2_attempt','cmd2_member',
-    'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox','cmd2_source_index'
+    'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox',
+    'cmd2_source_index','cmd2_source_inventory_projection'
   ] LOOP
     EXECUTE format(
       'CREATE OR REPLACE TRIGGER %I AFTER INSERT OR UPDATE OR DELETE ON %I '

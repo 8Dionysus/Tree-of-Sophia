@@ -18,7 +18,9 @@ use crate::source_creation::{
     ManagedCreationObservation, ManagedSerializedCreation, SerializedCreation,
 };
 use crate::source_creation_store::{CreationFilesystem, CreationOwnerFence};
-use crate::{PredicateKind, PredicateRead, PredicateToken, source_claims, source_forms};
+use crate::{
+    PredicateKind, PredicateRead, PredicateToken, source_claims, source_forms, source_revisions,
+};
 pub(crate) use addressed_successor::VerifiedAddressedGeneration;
 pub use source_cohort_stream_index::SourceAssessmentWork as StreamedSourceIndexWorkV1;
 pub use source_cohort_streamed::{StreamedColdSourceLimitsV1, StreamedColdSourceWorkV1};
@@ -38,8 +40,13 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 /// mistaken for an initial source member or a maintained Agent creation.
 pub(super) const REVISION: &[u8] = b"tos.source-file.revision-v1";
 
+#[cfg(all(test, feature = "postgres-lab"))]
+#[path = "source_cohort_concurrency_tests.rs"]
+mod concurrency_tests;
 #[path = "source_cohort_creation.rs"]
 pub(crate) mod creation;
+#[path = "source_cohort_recovery.rs"]
+mod recovery;
 #[path = "source_cohort_revision.rs"]
 pub(crate) mod revision;
 
@@ -510,6 +517,11 @@ pub(crate) struct SourceRevisionAttempt {
     pub(crate) delta: Digest256,
     pub(crate) reads: SourceReads,
     pub(crate) metadata: SourceMetadata,
+    /// Only structural source-index rows created by this revision are bound
+    /// here. Existing semantic rows remain in place after an index-preserving
+    /// update; newly inserted archive members still need their path rows for
+    /// the complete cold verifier.
+    pub(crate) indexes: IndexRows,
     pub(crate) predicate_keys: BTreeSet<(String, String, String)>,
     pub(crate) writes: Vec<SourceRevisionWrite>,
 }
@@ -984,6 +996,266 @@ fn predicates(indexes: &IndexRows) -> BTreeSet<(String, String, String)> {
     }
     keys
 }
+
+/// A bounded revision invalidates only structural rows that it actually adds.
+/// An empty set is meaningful for an index-preserving update: the readset still
+/// protects the exact predecessor and semantic owner checks, while shared
+/// inventory/source-home ranges are not spuriously advanced by every byte
+/// revision.
+fn revision_mutation_predicates(indexes: &IndexRows) -> BTreeSet<(String, String, String)> {
+    if indexes.is_empty() {
+        BTreeSet::new()
+    } else {
+        predicates(indexes)
+    }
+}
+
+fn decode_indexes(raw: &[u8]) -> DurableResult<IndexRows> {
+    let rows = serde_json::from_slice::<Vec<(String, String, String)>>(raw)
+        .map_err(|_| DurableError::Corrupt("source indexes decode"))?;
+    if rows
+        .iter()
+        .any(|(kind, token, path)| kind.is_empty() || token.is_empty() || path.is_empty())
+    {
+        return Err(DurableError::Corrupt("source indexes contain empty row"));
+    }
+    Ok(rows.into_iter().collect())
+}
+
+fn revision_indexes(writes: &[SourceRevisionWrite]) -> IndexRows {
+    writes
+        .iter()
+        .filter(|write| write.expected_predecessor.is_none())
+        .map(|write| {
+            (
+                "path".to_owned(),
+                write.subject.clone(),
+                write.subject.clone(),
+            )
+        })
+        .collect()
+}
+
+fn revision_form_ids(raw: &[u8]) -> DurableResult<BTreeSet<String>> {
+    let value = cmd::parse(raw).map_err(source_error)?;
+    source_forms::apply_form_changes(
+        Some(&value),
+        cmd::field(&value, "subject").map_err(source_error)?,
+        &[],
+    )
+    .map_err(source_error)?;
+    let mut ids = BTreeSet::new();
+    for section in ["forms", "prior_forms"] {
+        for form in cmd::array(&value, section).map_err(source_error)? {
+            let id = cmd::text(form, "form_id").map_err(source_error)?.to_owned();
+            ids.insert(id);
+        }
+    }
+    Ok(ids)
+}
+
+/// Existing maintained semantic rows are not recomputed from a whole corpus.
+/// The bounded owner already validates the successor package; this narrow
+/// check makes the durable path refuse an index identity transition it cannot
+/// atomically maintain. Archive additions carry path rows only.
+fn check_revision_semantic_indexes(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    writes: &[SourceRevisionWrite],
+) -> DurableResult<()> {
+    // `source_copy_kernel::validate_history` admits at most 32 current and
+    // 256 retained forms. A single forms member therefore has at most 288
+    // semantic rows; LIMIT+1 proves refusal without retaining an unbounded
+    // per-path result if the durable index is corrupt or unexpectedly larger.
+    const MAX_SEMANTIC_INDEX_ROWS_PER_SOURCE_PATH: usize = 32 + 256;
+    let semantic_row_limit = i64::try_from(MAX_SEMANTIC_INDEX_ROWS_PER_SOURCE_PATH + 1)
+        .map_err(|_| DurableError::Corrupt("semantic source index row limit"))?;
+    for write in writes {
+        let rows = tx.query(
+            "SELECT kind,token,path FROM cmd2_source_index
+             WHERE domain=$1 AND path COLLATE \"C\"=$2 COLLATE \"C\" AND kind<>'path'
+             ORDER BY kind COLLATE \"C\",token COLLATE \"C\"
+             LIMIT $3",
+            &[&domain, &write.subject, &semantic_row_limit],
+        )?;
+        if rows.len() > MAX_SEMANTIC_INDEX_ROWS_PER_SOURCE_PATH {
+            return Err(DurableError::Refused(
+                "source semantic index rows exceed the maintained form history bound",
+            ));
+        }
+        if rows.is_empty() {
+            continue;
+        }
+        let mut has_metadata = false;
+        let mut has_forms = false;
+        for row in &rows {
+            let kind: String = row.get("kind");
+            let path: String = row.get("path");
+            if path != write.subject {
+                return Err(DurableError::Corrupt(
+                    "source semantic index path binding differs",
+                ));
+            }
+            match kind.as_str() {
+                "metadata" => has_metadata = true,
+                "form" => has_forms = true,
+                _ => {
+                    return Err(DurableError::Refused(
+                        "bounded source revision semantic index transition unsupported",
+                    ));
+                }
+            }
+        }
+        // Parse each successor member once. The durable index may retain one
+        // row per historical form version, so doing this inside the row loop
+        // would turn a bounded 288-row check into repeated JSON validation.
+        let metadata_ids = if has_metadata {
+            let record = cmd::parse(&write.exact_bytes).map_err(source_error)?;
+            let subject = source_forms::metadata_subject(&record).map_err(source_error)?;
+            let id = cmd::text(&subject, "id").map_err(source_error)?;
+            BTreeSet::from([id.to_owned()])
+        } else {
+            BTreeSet::new()
+        };
+        let form_ids = if has_forms {
+            revision_form_ids(&write.exact_bytes)?
+        } else {
+            BTreeSet::new()
+        };
+        for row in &rows {
+            let kind: String = row.get("kind");
+            let token: String = row.get("token");
+            let matches = match kind.as_str() {
+                "metadata" => metadata_ids.contains(&token),
+                "form" => form_ids.contains(&token),
+                _ => {
+                    return Err(DurableError::Refused(
+                        "bounded source revision semantic index transition unsupported",
+                    ));
+                }
+            };
+            if !matches {
+                return Err(DurableError::Conflict(
+                    "source revision semantic identity changed",
+                ));
+            }
+        }
+        let stored_metadata = rows
+            .iter()
+            .filter(|row| row.get::<_, String>("kind") == "metadata")
+            .map(|row| row.get::<_, String>("token"))
+            .collect::<BTreeSet<_>>();
+        if !stored_metadata.is_empty() && stored_metadata != metadata_ids {
+            return Err(DurableError::Conflict(
+                "source revision metadata identity set changed",
+            ));
+        }
+        let stored_forms = rows
+            .iter()
+            .filter(|row| row.get::<_, String>("kind") == "form")
+            .map(|row| row.get::<_, String>("token"))
+            .collect::<BTreeSet<_>>();
+        if !stored_forms.is_empty() && stored_forms != form_ids {
+            return Err(DurableError::Conflict(
+                "source revision form identity set changed",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn check_revision_path_indexes(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    writes: &[SourceRevisionWrite],
+) -> DurableResult<IndexRows> {
+    let indexes = revision_indexes(writes);
+    let history_insertions = writes
+        .iter()
+        .filter(|write| {
+            write.expected_predecessor.is_none()
+                && write.subject.ends_with("/source-revision-history.json")
+        })
+        .collect::<Vec<_>>();
+    if history_insertions.len() > 1 {
+        return Err(DurableError::Invalid(
+            "source revision history insertion occurs more than once",
+        ));
+    }
+    if let Some(history_write) = history_insertions.first().copied() {
+        if !history_write.subject.starts_with("ToS/source-witnesses/") {
+            return Err(DurableError::Refused(
+                "bounded source revision history must remain under source witnesses",
+            ));
+        }
+        let (parent, _) = history_write
+            .subject
+            .rsplit_once('/')
+            .ok_or(DurableError::Invalid("source revision history parent"))?;
+        let record_writes = writes
+            .iter()
+            .filter(|write| {
+                write.expected_predecessor.is_some()
+                    && write
+                        .subject
+                        .rsplit_once('/')
+                        .is_some_and(|(write_parent, basename)| {
+                            write_parent == parent
+                                && basename != "source-revision-history.json"
+                                && !basename.ends_with(".human-forms.json")
+                        })
+            })
+            .collect::<Vec<_>>();
+        if record_writes.len() != 1 {
+            return Err(DurableError::Refused(
+                "bounded source revision history insertion lacks one owner record successor",
+            ));
+        }
+        let record_write = record_writes[0];
+        let (_, record_basename) = record_write
+            .subject
+            .rsplit_once('/')
+            .ok_or(DurableError::Invalid("source revision record parent"))?;
+        let record = cmd::parse(&record_write.exact_bytes).map_err(source_error)?;
+        let mut package = source_revisions::Package::new();
+        package.insert(record_basename.to_owned(), record_write.exact_bytes.clone());
+        package.insert(
+            "source-revision-history.json".to_owned(),
+            history_write.exact_bytes.clone(),
+        );
+        source_revisions::history(&package, &record).map_err(source_error)?;
+    }
+    for write in writes {
+        let paths = tx.query(
+            "SELECT path FROM cmd2_source_index
+             WHERE domain=$1 AND kind='path' AND token=$2",
+            &[&domain, &write.subject],
+        )?;
+        if write.expected_predecessor.is_none() {
+            if !write
+                .subject
+                .starts_with("ToS/source-witnesses/.record-revisions/")
+                && !write.subject.ends_with("/source-revision-history.json")
+            {
+                return Err(DurableError::Refused(
+                    "bounded source revision insertion is limited to owner history or retained archive members",
+                ));
+            }
+            if !paths.is_empty() {
+                return Err(DurableError::Conflict(
+                    "source revision archive path index is already occupied",
+                ));
+            }
+        } else if paths.len() != 1 || paths[0].get::<_, String>("path") != write.subject {
+            return Err(DurableError::Conflict(
+                "source revision predecessor path index is absent or ambiguous",
+            ));
+        }
+    }
+    check_revision_semantic_indexes(tx, domain, writes)?;
+    Ok(indexes)
+}
+
 fn indexes_bytes(rows: &IndexRows) -> DurableResult<Vec<u8>> {
     serde_json::to_vec(&rows.iter().collect::<Vec<_>>())
         .map_err(|_| DurableError::Invalid("source indexes encode"))
@@ -1090,7 +1362,7 @@ fn original_digest(value: &serde_json::Value) -> Digest256 {
 // Finite Agent dependency snapshot. SQL is only an ordering/cursor carrier;
 // original projection byte values are parsed/emitted by the same FND visitor.
 // This performs O(N) compact passes outside the publication/commit fence.
-const RETAINED_PROJECTIONS: &str = "SELECT DISTINCT ON (subject) subject,content_digest,CASE WHEN octet_length(inventory_projection)<=1048576 THEN inventory_projection ELSE NULL END AS inventory_projection FROM cmd2_history WHERE domain=$1 AND commit_seq<=$2 ORDER BY subject,revision DESC";
+const RETAINED_PROJECTIONS: &str = "WITH selected_history AS (SELECT DISTINCT ON (subject) domain,subject,revision,commit_seq,content_digest,inventory_projection FROM cmd2_history WHERE domain=$1 AND commit_seq<=$2 ORDER BY subject,revision DESC) SELECT h.subject,h.content_digest,CASE WHEN p.effective_seq IS NULL THEN CASE WHEN octet_length(h.inventory_projection)<=1048576 THEN h.inventory_projection ELSE NULL END WHEN p.source_revision=h.revision AND p.content_digest=h.content_digest AND p.definition_digest=d.source_definition_digest THEN CASE WHEN octet_length(p.inventory_projection)<=1048576 THEN p.inventory_projection ELSE NULL END ELSE NULL END AS inventory_projection FROM selected_history h JOIN cmd2_domain d ON d.domain=h.domain LEFT JOIN LATERAL (SELECT source_revision,content_digest,definition_digest,inventory_projection,effective_seq FROM cmd2_source_inventory_projection WHERE domain=h.domain AND subject=h.subject AND effective_seq>=h.commit_seq AND effective_seq<=$2 ORDER BY effective_seq DESC LIMIT 1) p ON TRUE";
 
 struct AgentDigest {
     hash: Digest256Hasher,
@@ -4419,7 +4691,7 @@ impl DurablePgCoordinator {
                 "source revision proposal base or operation differs",
             ));
         }
-        let (mut reads, writes, metadata, predicate_keys) = revision_package(proposal, readset)?;
+        let (mut reads, writes, metadata, _) = revision_package(proposal, readset)?;
         let request = cmd::parse(&context.request_raw).map_err(source_error)?;
         let command_id = cmd::text(&request, "command_id").map_err(source_error)?;
         let raw_request_digest = Digest256::of_bytes(&context.request_raw);
@@ -4429,18 +4701,10 @@ impl DurablePgCoordinator {
         let domain = selection.cohort.domain.as_str();
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
-        let audit_generation = lock_audit_fence(&mut tx, domain)?;
-        if audit_generation != selection.audit_generation {
-            return Err(DurableError::Conflict(
-                "source revision audit fence changed before registration",
-            ));
-        }
+        let _initial_audit_generation = lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
         cohort_matches(&row, &selection.cohort, true)?;
-        if as_u64(row.get("head_seq"))? != selection.head_seq
-            || row.get::<_, Option<i64>>("source_generation")
-                != Some(as_i64(selection.source_generation)?)
-            || as_u64(row.get("rights_version"))? != selection.rights_version
+        if as_u64(row.get("rights_version"))? != selection.rights_version
             || as_u64(row.get("rule_version"))? != selection.rule_version
             || row.get::<_, String>("contract_digest") != selection.contract.to_hex()
         {
@@ -4484,11 +4748,41 @@ impl DurablePgCoordinator {
                 ));
             }
         }
+        let new_writes = writes
+            .iter()
+            .filter(|write| write.expected_predecessor.is_none())
+            .cloned()
+            .collect::<Vec<_>>();
+        creation::add_derived_path_predicates(
+            &mut tx,
+            domain,
+            &new_writes,
+            selection.cohort.definition,
+        )?;
+        let indexes = check_revision_path_indexes(&mut tx, domain, &writes)?;
+        let predicate_keys = reads
+            .reads
+            .iter()
+            .filter_map(|read| match read {
+                PredicateRead::Generation { predicate, .. }
+                    if predicate.owner == OWNER
+                        && !(predicate.scope == "source-cohort"
+                            && predicate.token == "generation") =>
+                {
+                    Some((
+                        predicate.kind.as_str().to_owned(),
+                        predicate.scope.clone(),
+                        predicate.token.clone(),
+                    ))
+                }
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
         // The readset is extended with absent archive/member targets while the
         // same registration transaction owns the audit fence.
         let delta = revision_delta(proposal, selection, &reads, &writes, &metadata)?;
         let reads_encoded = reads_bytes(&reads)?;
-        let empty_indexes = indexes_bytes(&IndexRows::new())?;
+        let indexes_encoded = indexes_bytes(&indexes)?;
         let empty_projections = projections_bytes(&ProjectionRows::new())?;
         let existing = tx.query_opt(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
@@ -4503,7 +4797,8 @@ impl DurablePgCoordinator {
                 || existing.get::<_, Option<String>>("source_configuration_canonical_digest")
                     != Some(configuration_canonical_digest.to_hex())
                 || existing.get::<_, Option<Vec<u8>>>("source_reads") != Some(reads_encoded.clone())
-                || existing.get::<_, Option<Vec<u8>>>("source_indexes") != Some(empty_indexes)
+                || existing.get::<_, Option<Vec<u8>>>("source_indexes")
+                    != Some(indexes_encoded.clone())
                 || existing.get::<_, Option<Vec<u8>>>("source_projections")
                     != Some(empty_projections)
                 || existing.get::<_, String>("state") == "aborted"
@@ -4535,6 +4830,7 @@ impl DurablePgCoordinator {
                 delta,
                 reads,
                 metadata,
+                indexes,
                 predicate_keys,
                 writes,
             });
@@ -4594,7 +4890,7 @@ impl DurablePgCoordinator {
                 &raw_request_digest.to_hex(),
                 &delta.to_hex(),
                 &reads_encoded,
-                &empty_indexes,
+                &indexes_encoded,
                 &as_i64(selection.epoch)?,
                 &empty_projections,
                 &configuration_raw_digest.to_hex(),
@@ -4626,6 +4922,7 @@ impl DurablePgCoordinator {
             delta,
             reads,
             metadata,
+            indexes,
             predicate_keys,
             writes,
         })
@@ -4827,6 +5124,29 @@ impl DurablePgCoordinator {
                 exact_bytes,
             });
         }
+        let indexes = decode_indexes(
+            &attempt
+                .get::<_, Option<Vec<u8>>>("source_indexes")
+                .ok_or(DurableError::Corrupt("source revision indexes absent"))?,
+        )?;
+        let expected_indexes = revision_indexes(&writes);
+        // Pre-existing committed attempts may carry the legacy empty binding;
+        // replay never reapplies their source mutation. A ready attempt must
+        // carry the complete derived path set before a new commit is allowed.
+        if (state != "committed" && indexes != expected_indexes)
+            || (!indexes.is_empty() && indexes != expected_indexes)
+            || indexes.iter().any(|(kind, token, path)| {
+                kind != "path"
+                    || token != path
+                    || !writes
+                        .iter()
+                        .any(|write| write.expected_predecessor.is_none() && write.subject == *path)
+            })
+        {
+            return Err(DurableError::Corrupt(
+                "source revision structural index binding differs",
+            ));
+        }
         let predicate_keys = reads
             .reads
             .iter()
@@ -4898,6 +5218,7 @@ impl DurablePgCoordinator {
             delta,
             reads,
             metadata,
+            indexes,
             predicate_keys,
             writes,
         })
@@ -4969,7 +5290,7 @@ impl DurablePgCoordinator {
                     REVISION,
                     Some(attempt.delta),
                     Some(&attempt.metadata),
-                    Some(attempt.audit_generation),
+                    None,
                 )?;
                 members.into_iter().map(|member| member.receipt).collect()
             }
@@ -6367,29 +6688,15 @@ impl DurablePgCoordinator {
                 return Err(DurableError::Refused("cold current rights revoked"));
             }
             store.read_selected(receipt, 8_388_608, &mut raw)?;
+            recovery::check_current_source_lineage(
+                &mut rights_tx,
+                domain,
+                row,
+                &raw,
+                expected.get(&path).map(Vec::as_slice),
+                source_metadata.get(&path),
+            )?;
             rights_tx.commit()?;
-            let carrier = row_source_metadata(row)?;
-            if let Some(original_raw) = expected.get(&path) {
-                if source_metadata.get(&path) != Some(&carrier) {
-                    return Err(DurableError::Corrupt(
-                        "original source carrier metadata changed",
-                    ));
-                }
-                if original_raw != &raw || receipt.binding().profile_id != ORIGINAL {
-                    return Err(DurableError::Corrupt(
-                        "original source bytes/profile changed",
-                    ));
-                }
-            } else if ![CREATION, creation::PG_CREATION]
-                .iter()
-                .any(|profile| receipt.binding().profile_id.as_slice() == *profile)
-                || carrier.mode != 0o644
-                || carrier.dependencies.is_none()
-            {
-                return Err(DurableError::Corrupt(
-                    "extra current member is outside controlled Agent writer",
-                ));
-            }
             let member_path = RelativePath::parse(&path)
                 .map_err(|_| DurableError::Corrupt("current source path"))?;
             let (member_metadata, member_dependencies) = expose_metadata(row, &member_path)?;
@@ -6424,35 +6731,41 @@ impl DurablePgCoordinator {
         ctx.check().map_err(source_error)?;
         let indexes = index_rows(&ctx, worker, deadline, cancelled)?;
         let projections = optional_agent_projections(&ctx, worker, deadline, cancelled)?;
+        // Native bounded commands invalidate this derived root atomically with
+        // their source writes. This explicit, exhaustive cold route may rebuild
+        // those projections after verifying all current source and owner rows.
+        // A still-published projection remains exact evidence, not a repair hint.
+        let rebuild_projections = domain_row
+            .get::<_, Option<String>>("source_projection_digest")
+            .is_none();
         if let Some(projections) = &projections {
-            for row in &rows {
-                let path: String = row.get("subject");
-                if row
-                    .get::<_, Option<Vec<u8>>>("inventory_projection")
-                    .as_ref()
-                    != projections.get(&path)
-                {
-                    return Err(DurableError::Corrupt(
-                        "current Agent projection differs from original body",
-                    ));
-                }
-            }
             if rows.len() != projections.len()
-                || rows.iter().any(|row| {
-                    row.get::<_, Option<Vec<u8>>>("retained_inventory_projection")
-                        .as_ref()
-                        != projections.get(&row.get::<_, String>("subject"))
-                })
+                || rows
+                    .iter()
+                    .any(|row| !projections.contains_key(&row.get::<_, String>("subject")))
+                || indexed_projection_count != projections.len() as u64
             {
                 return Err(DurableError::Corrupt(
-                    "retained Agent projection membership differs",
+                    "rebuilt Agent projection membership differs",
                 ));
             }
-            if indexed_projection_count != projections.len() as u64
-                || &indexed_projections != projections
+            if !rebuild_projections
+                && (domain_row.get::<_, Option<String>>("source_projection_digest")
+                    != Some(projection_root(projections).to_hex())
+                    || &indexed_projections != projections
+                    || rows.iter().any(|row| {
+                        let path: String = row.get("subject");
+                        row.get::<_, Option<Vec<u8>>>("inventory_projection")
+                            .as_ref()
+                            != projections.get(&path)
+                            || row
+                                .get::<_, Option<Vec<u8>>>("retained_inventory_projection")
+                                .as_ref()
+                                != projections.get(&path)
+                    }))
             {
                 return Err(DurableError::Corrupt(
-                    "Agent index projection coverage differs",
+                    "published Agent projection differs from verified source",
                 ));
             }
         }
@@ -6485,6 +6798,87 @@ impl DurablePgCoordinator {
         cohort_matches(&row, &cohort, false)?;
         if as_u64(row.get("head_seq"))? != before.through_commit_seq {
             return Err(DurableError::Conflict("source cold head changed"));
+        }
+        if rebuild_projections {
+            if let Some(projections) = &projections {
+                for current in &rows {
+                    active(deadline, cancelled)?;
+                    let path: String = current.get("subject");
+                    let revision: i64 = current.get("revision");
+                    let commit_seq: i64 = current.get("commit_seq");
+                    let projection = projections.get(&path).ok_or(DurableError::Corrupt(
+                        "rebuilt Agent projection member missing",
+                    ))?;
+                    if current
+                        .get::<_, Option<Vec<u8>>>("inventory_projection")
+                        .as_ref()
+                        != Some(projection)
+                    {
+                        let changed = tx.execute(
+                            "UPDATE cmd2_current SET inventory_projection=$5
+                             WHERE domain=$1 AND subject=$2 AND revision=$3 AND commit_seq=$4",
+                            &[&domain, &path, &revision, &commit_seq, projection],
+                        )?;
+                        if changed != 1 {
+                            return Err(DurableError::Conflict("cold current projection changed"));
+                        }
+                    }
+                    if current
+                        .get::<_, Option<Vec<u8>>>("retained_inventory_projection")
+                        .as_ref()
+                        != Some(projection)
+                    {
+                        // Shared evidence may be newer than this member's
+                        // source commit. Publish its projection at the actual
+                        // verified cut without rewriting earlier history.
+                        let effective_seq = as_i64(before.through_commit_seq)?;
+                        let content_digest: String = current.get("content_digest");
+                        let definition_digest = cohort.definition.to_hex();
+                        tx.execute(
+                            "INSERT INTO cmd2_source_inventory_projection(
+                                domain,subject,effective_seq,source_revision,content_digest,
+                                definition_digest,inventory_projection)
+                             VALUES($1,$2,$3,$4,$5,$6,$7)
+                             ON CONFLICT(domain,subject,effective_seq) DO NOTHING",
+                            &[
+                                &domain,
+                                &path,
+                                &effective_seq,
+                                &revision,
+                                &content_digest,
+                                &definition_digest,
+                                projection,
+                            ],
+                        )?;
+                        let retained = tx.query_one(
+                            "SELECT source_revision,content_digest,definition_digest,inventory_projection
+                             FROM cmd2_source_inventory_projection
+                             WHERE domain=$1 AND subject=$2 AND effective_seq=$3",
+                            &[&domain, &path, &effective_seq],
+                        )?;
+                        if retained.get::<_, i64>(0) != revision
+                            || retained.get::<_, String>(1) != content_digest
+                            || retained.get::<_, String>(2) != definition_digest
+                            || retained.get::<_, Vec<u8>>(3) != *projection
+                        {
+                            return Err(DurableError::Conflict(
+                                "cold inventory projection cut already has a different value",
+                            ));
+                        }
+                    }
+                    if indexed_projections.get(&path) != Some(projection) {
+                        let changed = tx.execute(
+                            "UPDATE cmd2_source_index SET inventory_projection=$3
+                             WHERE domain=$1 AND kind='path' AND token=$2 AND path=$2
+                               AND definition_digest=$4",
+                            &[&domain, &path, projection, &cohort.definition.to_hex()],
+                        )?;
+                        if changed != 1 {
+                            return Err(DurableError::Conflict("cold indexed projection changed"));
+                        }
+                    }
+                }
+            }
         }
         // Existing empty/absent predicates must be verified and re-enabled too.
         tx.execute("UPDATE cmd2_predicate SET complete=true WHERE domain=$1 AND owner=$2 AND definition_version=$3", &[&domain,&OWNER,&cohort.definition.to_hex()])?;
@@ -6589,9 +6983,26 @@ fn cold_source_current_rows(
         active(deadline, cancelled)?;
         let page = tx.query(
             "SELECT c.*,a.attempt_fence AS source_attempt_fence,
-                    h.inventory_projection AS retained_inventory_projection
+                    CASE WHEN p.effective_seq IS NULL
+                         THEN CASE WHEN octet_length(h.inventory_projection)<=1048576
+                                   THEN h.inventory_projection ELSE NULL END
+                         WHEN p.source_revision=h.revision
+                              AND p.content_digest=h.content_digest
+                              AND p.definition_digest=d.source_definition_digest
+                         THEN CASE WHEN octet_length(p.inventory_projection)<=1048576
+                                   THEN p.inventory_projection ELSE NULL END
+                         ELSE NULL END AS retained_inventory_projection
              FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id)
-             LEFT JOIN cmd2_history h USING(domain,subject,revision)
+             JOIN cmd2_domain d ON d.domain=c.domain
+             LEFT JOIN cmd2_history h
+               ON h.domain=c.domain AND h.subject=c.subject AND h.revision=c.revision
+             LEFT JOIN LATERAL (
+               SELECT source_revision,content_digest,definition_digest,inventory_projection,effective_seq
+               FROM cmd2_source_inventory_projection
+               WHERE domain=c.domain AND subject=c.subject AND effective_seq>=h.commit_seq
+                 AND effective_seq<=d.head_seq
+               ORDER BY effective_seq DESC LIMIT 1
+             ) p ON TRUE
              WHERE c.domain=$1 AND
                (c.prepare_id,c.member_slot) > ($2,$3)
              ORDER BY c.prepare_id,c.member_slot LIMIT $4",
@@ -6980,7 +7391,7 @@ pub(super) fn check_commit_owner(
                 &[&request.domain],
             )?;
             let expected_reads = reads_bytes(&attempt.reads)?;
-            let empty_indexes = indexes_bytes(&IndexRows::new())?;
+            let expected_indexes = indexes_bytes(&attempt.indexes)?;
             let empty_projections = projections_bytes(&ProjectionRows::new())?;
             if attempt.domain != request.domain
                 || attempt.prepare_id != request.prepare_id
@@ -7009,7 +7420,7 @@ pub(super) fn check_commit_owner(
                 || registered.get::<_, Option<String>>("source_configuration_canonical_digest")
                     != Some(attempt.configuration_canonical_digest.to_hex())
                 || registered.get::<_, Option<Vec<u8>>>("source_reads") != Some(expected_reads)
-                || registered.get::<_, Option<Vec<u8>>>("source_indexes") != Some(empty_indexes)
+                || registered.get::<_, Option<Vec<u8>>>("source_indexes") != Some(expected_indexes)
                 || registered.get::<_, Option<Vec<u8>>>("source_projections")
                     != Some(empty_projections)
                 || members
@@ -7028,6 +7439,29 @@ pub(super) fn check_commit_owner(
                 return Err(DurableError::Refused(
                     "source revision current job lease changed",
                 ));
+            }
+            if replayed {
+                return Ok(());
+            }
+            for (kind, token, path) in &attempt.indexes {
+                if kind != "path" || token != path || !path.starts_with("ToS/") {
+                    return Err(DurableError::Corrupt(
+                        "source revision structural index binding differs",
+                    ));
+                }
+                if tx
+                    .query_opt(
+                        "SELECT 1 FROM cmd2_source_index
+                         WHERE domain=$1 AND kind='path' AND token=$2
+                         LIMIT 1",
+                        &[&request.domain, token],
+                    )?
+                    .is_some()
+                {
+                    return Err(DurableError::Conflict(
+                        "source revision structural path index changed",
+                    ));
+                }
             }
             let dependencies = attempt
                 .reads
@@ -7058,12 +7492,9 @@ pub(super) fn check_commit_owner(
                 }
             }
             if !replayed {
-                if domain.get::<_, Option<i64>>("source_epoch") != Some(as_i64(attempt.epoch)?)
-                    || domain.get::<_, Option<i64>>("source_generation")
-                        != Some(as_i64(attempt.source_generation)?)
-                {
+                if domain.get::<_, Option<i64>>("source_epoch") != Some(as_i64(attempt.epoch)?) {
                     return Err(DurableError::Conflict(
-                        "source revision cohort generation changed",
+                        "source revision cohort epoch changed",
                     ));
                 }
                 let mut observed = BTreeMap::new();
@@ -7307,7 +7738,32 @@ pub(super) fn apply_source_change(
             Ok(())
         }
         CommitMode::Revision { attempt, .. } => {
-            for (kind, scope, token) in &attempt.predicate_keys {
+            for (kind, token, path) in &attempt.indexes {
+                if kind != "path" || token != path || !path.starts_with("ToS/") {
+                    return Err(DurableError::Corrupt(
+                        "source revision structural index binding differs",
+                    ));
+                }
+                let inserted = tx.execute(
+                    "INSERT INTO cmd2_source_index(
+                         domain,kind,token,path,definition_digest)
+                     VALUES($1,$2,$3,$4,$5)",
+                    &[
+                        &request.domain,
+                        kind,
+                        token,
+                        path,
+                        &attempt.definition.to_hex(),
+                    ],
+                )?;
+                if inserted != 1 {
+                    return Err(DurableError::Conflict(
+                        "source revision structural index insertion changed",
+                    ));
+                }
+            }
+            let mutation_predicates = revision_mutation_predicates(&attempt.indexes);
+            for (kind, scope, token) in &mutation_predicates {
                 let changed = tx.execute(
                     "UPDATE cmd2_predicate SET generation=generation+1
                      WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5

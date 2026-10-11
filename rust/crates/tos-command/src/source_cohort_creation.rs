@@ -471,10 +471,9 @@ fn check_home_absent(
 /// producer supplies only its identity indexes, while every package member
 /// still receives the same `path` row and source-home invalidation coverage as
 /// the complete creation route.
-fn add_derived_path_predicates(
+pub(super) fn add_derived_path_predicates(
     tx: &mut postgres::Transaction<'_>,
     domain: &str,
-    reads: &mut SourceReads,
     writes: &[SourceRevisionWrite],
     definition: Digest256,
 ) -> DurableResult<()> {
@@ -496,43 +495,13 @@ fn add_derived_path_predicates(
         }
     }
     for (kind, scope, token) in predicates {
-        let generation = ensure_predicate(tx, domain, &kind, &scope, &token, definition, None)?;
-        let predicate_kind = if kind == "unique" {
-            PredicateKind::Unique
-        } else {
-            PredicateKind::Range
-        };
-        if let Some(observed) = reads.reads.iter().find_map(|read| match read {
-            PredicateRead::Generation {
-                predicate,
-                observed_generation,
-            } if predicate.kind == predicate_kind
-                && predicate.owner == OWNER
-                && predicate.scope == scope
-                && predicate.token == token
-                && predicate.definition_version == definition.to_hex() =>
-            {
-                Some(*observed_generation)
-            }
-            _ => None,
-        }) {
-            if observed != generation {
-                return Err(DurableError::Conflict(
-                    "bounded PG derived source predicate changed",
-                ));
-            }
-        } else {
-            reads.reads.push(PredicateRead::Generation {
-                predicate: PredicateToken {
-                    kind: predicate_kind,
-                    owner: OWNER.to_owned(),
-                    scope,
-                    token,
-                    definition_version: definition.to_hex(),
-                },
-                observed_generation: generation,
-            });
-        }
+        // These rows describe the keys that this package will invalidate at
+        // commit. They are write-derived coverage, not read predicates: adding
+        // shared ancestors to the caller's readset would make two independent
+        // homes conflict merely because both were created below the same ToS
+        // prefix. Actual admission predicates come from the bounded transport
+        // observations and exact source reads.
+        ensure_predicate(tx, domain, &kind, &scope, &token, definition, None)?;
     }
     Ok(())
 }
@@ -754,18 +723,10 @@ impl DurablePgCoordinator {
         let domain = selection.cohort.domain.as_str();
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
-        let initial_audit = lock_audit_fence(&mut tx, domain)?;
-        if initial_audit != selection.audit_generation {
-            return Err(DurableError::Conflict(
-                "bounded PG creation audit fence changed before registration",
-            ));
-        }
+        let _initial_audit = lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
         cohort_matches(&row, &selection.cohort, true)?;
-        if as_u64(row.get("head_seq"))? != selection.head_seq
-            || row.get::<_, Option<i64>>("source_generation")
-                != Some(as_i64(selection.source_generation)?)
-            || as_u64(row.get("rights_version"))? != selection.rights_version
+        if as_u64(row.get("rights_version"))? != selection.rights_version
             || as_u64(row.get("rule_version"))? != selection.rule_version
             || row.get::<_, String>("contract_digest") != selection.contract.to_hex()
         {
@@ -782,13 +743,7 @@ impl DurablePgCoordinator {
                 "bounded PG creation job lease changed",
             ));
         }
-        add_derived_path_predicates(
-            &mut tx,
-            domain,
-            &mut reads,
-            &writes,
-            selection.cohort.definition,
-        )?;
+        add_derived_path_predicates(&mut tx, domain, &writes, selection.cohort.definition)?;
         let predicate_keys = reads
             .reads
             .iter()
@@ -1312,7 +1267,7 @@ impl DurablePgCoordinator {
                     PG_CREATION,
                     Some(attempt.delta),
                     Some(&attempt.metadata),
-                    Some(attempt.audit_generation),
+                    None,
                 )?;
                 members.into_iter().map(|member| member.receipt).collect()
             }
@@ -1461,12 +1416,9 @@ pub(super) fn check_commit_owner(
     if replayed {
         return Ok(());
     }
-    if domain.get::<_, Option<i64>>("source_epoch") != Some(as_i64(attempt.epoch)?)
-        || domain.get::<_, Option<i64>>("source_generation")
-            != Some(as_i64(attempt.source_generation)?)
-    {
+    if domain.get::<_, Option<i64>>("source_epoch") != Some(as_i64(attempt.epoch)?) {
         return Err(DurableError::Conflict(
-            "bounded PG creation source generation changed",
+            "bounded PG creation source epoch changed",
         ));
     }
     let observed = check_predicate_reads(tx, &request.domain, &attempt.reads, attempt.definition)?;
@@ -1581,19 +1533,10 @@ pub(super) fn apply_source_change(
             ],
         )?;
     }
-    let mut predicates = attempt.predicate_keys.clone();
-    predicates.insert((
-        "range".to_owned(),
-        DEPENDENCY_SCOPE.to_owned(),
-        attempt.dependency_commitment.version.to_string(),
-    ));
-    // The legacy complete inventory predicate is invalidated for compatibility
-    // with old readers, but it is never a prerequisite of this bounded route.
-    predicates.insert((
-        "range".to_owned(),
-        "source-inventory".to_owned(),
-        "all".to_owned(),
-    ));
+    // Read predicates remain exact admission evidence. Invalidation is derived
+    // only from the indexes represented by this package, so two independent
+    // creations do not conflict merely because both observed the same epoch.
+    let predicates = super::predicates(&attempt.indexes);
     for (kind, scope, token) in predicates {
         ensure_predicate(
             tx,

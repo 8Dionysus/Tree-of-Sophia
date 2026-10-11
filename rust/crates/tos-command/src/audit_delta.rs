@@ -35,7 +35,7 @@ const AUDIT_INTERVAL_ROWS_SQL: &str =
 const ROW_KEY_PROFILE: &[u8] = b"cmd2-audit-delta-v1:table-u16be,key-len-u32be,key-json-utf8";
 
 /// Table identifiers follow `METADATA_TABLES` order; the semantic domain
-/// header is appended as table 11.
+/// header is table 11 and the retained inventory overlay is table 12.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(i16)]
 pub enum MetadataTable {
@@ -50,10 +50,11 @@ pub enum MetadataTable {
     Outbox = 9,
     SourceIndex = 10,
     DomainHeader = 11,
+    InventoryProjection = 12,
 }
 
 impl MetadataTable {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
         Self::Job,
         Self::Predicate,
         Self::Attempt,
@@ -65,6 +66,7 @@ impl MetadataTable {
         Self::Outbox,
         Self::SourceIndex,
         Self::DomainHeader,
+        Self::InventoryProjection,
     ];
 
     pub const fn id(self) -> i16 {
@@ -87,6 +89,7 @@ impl MetadataTable {
             Self::Predicate => 4,
             Self::Member | Self::History => 2,
             Self::SourceIndex => 3,
+            Self::InventoryProjection => 2,
         }
     }
 
@@ -103,6 +106,7 @@ impl MetadataTable {
             Self::Outbox => "cmd2_outbox",
             Self::SourceIndex => "cmd2_source_index",
             Self::DomainHeader => "cmd2_domain",
+            Self::InventoryProjection => "cmd2_source_inventory_projection",
         }
     }
 }
@@ -145,6 +149,7 @@ impl StableRowKey {
                 (table, index),
                 (MetadataTable::Member, 1)
                     | (MetadataTable::History, 1)
+                    | (MetadataTable::InventoryProjection, 1)
                     | (MetadataTable::Log, 0)
                     | (MetadataTable::Outbox, 0)
             );
@@ -1148,6 +1153,10 @@ fn final_lookup_sql(table: MetadataTable) -> String {
             "t.kind=k.value->>0 AND t.token=k.value->>1 AND t.path=k.value->>2",
         ),
         MetadataTable::DomainHeader => ("cmd2_domain", "t.domain=k.value->>0"),
+        MetadataTable::InventoryProjection => (
+            "cmd2_source_inventory_projection",
+            "t.subject=k.value->>0 AND t.effective_seq=(k.value->>1)::bigint",
+        ),
     };
     format!(
         "SELECT k.ordinality::bigint,

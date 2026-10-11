@@ -1095,7 +1095,7 @@ fn schema_profile_digest() -> Digest256 {
     hasher.finalize()
 }
 
-const METADATA_TABLES: [(&str, &str); 10] = [
+const METADATA_TABLES: [(&str, &str); 11] = [
     ("cmd2_job", "job_id"),
     ("cmd2_predicate", "kind,owner,scope,token"),
     ("cmd2_attempt", "prepare_id"),
@@ -1106,6 +1106,7 @@ const METADATA_TABLES: [(&str, &str); 10] = [
     ("cmd2_log", "commit_seq"),
     ("cmd2_outbox", "commit_seq"),
     ("cmd2_source_index", "kind,token,path"),
+    ("cmd2_source_inventory_projection", "subject,effective_seq"),
 ];
 fn admit_private_metadata(
     tx: &mut Transaction<'_>,

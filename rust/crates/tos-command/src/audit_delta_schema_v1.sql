@@ -1,5 +1,5 @@
 -- Explicit opt-in only. This schema is not part of durable_schema.sql or the
--- V1 schema profile. It replaces the existing ten generic audit triggers
+-- V1 schema profile. It replaces the existing generic audit triggers
 -- with a per-domain opt-in journal. Inactive domains retain the original V1
 -- fence behavior. Active domain updates always consume a generation; selector
 -- only updates journal an equal semantic-header commitment and their selector
@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS cmd2_audit_delta_v1 (
   domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
   generation bigint NOT NULL CHECK (generation > 0),
-  table_id smallint NOT NULL CHECK (table_id BETWEEN 1 AND 11),
+  table_id smallint NOT NULL CHECK (table_id BETWEEN 1 AND 12),
   operation text NOT NULL CHECK (operation IN ('I','U','D')),
   old_key bytea,
   new_key bytea,
@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS cmd2_audit_delta_v1_domain (
   profile_digest char(64) NOT NULL CHECK (profile_digest ~ '^[0-9a-f]{64}$')
 );
 
--- IDs 1..10 exactly follow METADATA_TABLES; 11 is the semantic domain header.
+-- IDs 1..10 exactly follow METADATA_TABLES; 11 is the semantic domain header;
+-- 12 is the retained source-inventory projection overlay.
 -- The key is the UTF-8 JSON array of the table's exact stable primary-key
 -- fields. Bytea fields retain PostgreSQL's row_to_json `\\x...` spelling.
 CREATE OR REPLACE FUNCTION cmd2_audit_delta_v1_row_key(
@@ -60,12 +61,13 @@ BEGIN
     WHEN 9 THEN key_text := json_build_array(p_row->'commit_seq')::text;
     WHEN 10 THEN key_text := json_build_array(p_row->'kind',p_row->'token',p_row->'path')::text;
     WHEN 11 THEN key_text := json_build_array(p_row->'domain')::text;
+    WHEN 12 THEN key_text := json_build_array(p_row->'subject',p_row->'effective_seq')::text;
     ELSE RAISE EXCEPTION 'CMD2 audit delta unknown table id %',p_table_id;
   END CASE;
   RETURN convert_to(key_text,'UTF8');
 END $$;
 
--- The first ten values are exactly row_to_json(table_row)::text. Domain
+-- Generic metadata values are exactly row_to_json(table_row)::text. Domain
 -- selection/publication fields are deliberately omitted and are read by the
 -- separate selector query. Keep this field list aligned with the V1 semantic
 -- domain header that append_private_metadata already audits.
@@ -75,7 +77,7 @@ CREATE OR REPLACE FUNCTION cmd2_audit_delta_v1_row_commitment(
 LANGUAGE plpgsql STABLE STRICT AS $$
 DECLARE serialized text;
 BEGIN
-  IF p_table_id BETWEEN 1 AND 10 THEN
+  IF p_table_id BETWEEN 1 AND 10 OR p_table_id=12 THEN
     serialized := p_row::text;
   ELSIF p_table_id=11 THEN
     SELECT row_to_json(header_row)::text INTO serialized
@@ -130,6 +132,7 @@ BEGIN
     WHEN 'cmd2_log' THEN 8
     WHEN 'cmd2_outbox' THEN 9
     WHEN 'cmd2_source_index' THEN 10
+    WHEN 'cmd2_source_inventory_projection' THEN 12
     ELSE NULL
   END;
   IF table_id IS NULL THEN
@@ -273,7 +276,8 @@ DECLARE table_name text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'cmd2_job','cmd2_predicate','cmd2_attempt','cmd2_member',
-    'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox','cmd2_source_index'
+    'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox',
+    'cmd2_source_index','cmd2_source_inventory_projection'
   ] LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS %I ON %I', 'cmd2_audit_' || table_name, table_name);
     EXECUTE format(

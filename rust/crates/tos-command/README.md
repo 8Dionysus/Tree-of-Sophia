@@ -159,6 +159,20 @@ An exact command retry returns the retained commit receipt. Its result envelope
 has `grants_admission: false`: source admission, external rights, semantic
 acceptance, publication and canon remain separate owner decisions.
 
+The independent bounded source-change path awaits focused runtime verification.
+Record revisions and PG Agent creations commit against their exact source reads
+and affected predicate generations, together with the current source epoch,
+rights, rule/contract and selected job lease; an unchanged global head is not a
+prerequisite. Revision commits persist structural path indexes for the
+owner-produced archive and source-revision-history members and invalidate only
+the affected structural predicates. Explicit cold reopen validates each member's
+bootstrap or controlled creation lineage and all retained successors. It can
+rebuild derived inventory projections after a command invalidates their root;
+a still-published projection must continue to match the verified source exactly.
+Rebuilt inventory values retain their effective commit sequence separately from
+source history. A historical cut selects only projections effective at that cut;
+cold recovery does not overwrite an older history row with newer shared inputs.
+
 ## Native PostgreSQL initial Agent creation
 
 The ordinary `--invocation` route also has a bounded PG profile for initial
