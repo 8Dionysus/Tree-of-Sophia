@@ -1207,12 +1207,12 @@ fn input_change_counts(
     ]);
     let base = base_run_id.unwrap_or("");
     let mut statement = db.prepare(
-        "WITH current AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?1 AND kind='input'),\
-         previous AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?2 AND kind='input')\
-         SELECT CASE WHEN p.id IS NULL THEN 'added' ELSE 'changed' END\
-           FROM current c LEFT JOIN previous p USING(id)\
-          WHERE p.id IS NULL OR p.output_digest!=c.output_digest\
-         UNION ALL SELECT 'removed' FROM previous p LEFT JOIN current c USING(id)\
+        "WITH current AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?1 AND kind='input'), \
+         previous AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?2 AND kind='input') \
+         SELECT CASE WHEN p.id IS NULL THEN 'added' ELSE 'changed' END \
+           FROM current c LEFT JOIN previous p USING(id) \
+          WHERE p.id IS NULL OR p.output_digest!=c.output_digest \
+         UNION ALL SELECT 'removed' FROM previous p LEFT JOIN current c USING(id) \
           WHERE c.id IS NULL AND ?3='complete'",
     )?;
     let rows = statement.query_map(params![run_id, base, status], |row| row.get::<_, String>(0))?;
@@ -1410,8 +1410,8 @@ impl<'a> ProcessingReadSnapshot<'a> {
             )?;
             let remaining = limits.max_edges.saturating_sub(packet.edges.len());
             let mut statement = self.db.prepare(
-                "SELECT CASE WHEN length(CAST(task_id AS BLOB))<=?4 THEN task_id END\
-                   FROM tos_rust_processing_dependencies INDEXED BY tos_rust_processing_dependencies_reverse\
+                "SELECT CASE WHEN length(CAST(task_id AS BLOB))<=?4 THEN task_id END \
+                   FROM tos_rust_processing_dependencies INDEXED BY tos_rust_processing_dependencies_reverse \
                   WHERE run_id=?1 AND dependency_id=?2 ORDER BY task_id LIMIT ?3",
             )?;
             let rows = statement.query_map(
@@ -1521,11 +1521,11 @@ impl<'a> ProcessingReadSnapshot<'a> {
         let run: Option<(Option<String>, Option<String>, bool, bool)> = self
             .db
             .query_row(
-                "SELECT CASE WHEN r.status IN ('running','complete','failed','skipped','superseded','interrupted') THEN r.status END,\
-                        CASE WHEN b.base_run_id IS NULL OR length(CAST(b.base_run_id AS BLOB))<=?2 THEN b.base_run_id END,\
-                        b.base_run_id IS NULL OR length(CAST(b.base_run_id AS BLOB))<=?2,\
-                        b.run_id IS NOT NULL\
-                   FROM tos_rust_processing_runs r\
+                "SELECT CASE WHEN r.status IN ('running','complete','failed','skipped','superseded','interrupted') THEN r.status END, \
+                        CASE WHEN b.base_run_id IS NULL OR length(CAST(b.base_run_id AS BLOB))<=?2 THEN b.base_run_id END, \
+                        b.base_run_id IS NULL OR length(CAST(b.base_run_id AS BLOB))<=?2, \
+                        b.run_id IS NOT NULL \
+                   FROM tos_rust_processing_runs r \
                  LEFT JOIN tos_rust_processing_run_bases b ON b.run_id=r.id WHERE r.id=?1",
                 params![run_id, self.limits.max_identifier_bytes as i64],
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
@@ -1553,16 +1553,16 @@ impl<'a> ProcessingReadSnapshot<'a> {
             ""
         };
         let sql = format!(
-            "WITH current AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?1 AND kind='input'),\
-             previous AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?2 AND kind='input'),\
-             changes AS (SELECT c.id,p.output_digest AS before,c.output_digest AS after,\
-                 CASE WHEN p.id IS NULL THEN 'added' ELSE 'changed' END AS change\
-                 FROM current c LEFT JOIN previous p USING(id) WHERE p.id IS NULL OR p.output_digest!=c.output_digest\
-                 UNION ALL SELECT p.id,p.output_digest,NULL,'removed' FROM previous p LEFT JOIN current c USING(id)\
-                 WHERE c.id IS NULL AND ?3='complete')\
-             SELECT CASE WHEN length(CAST(id AS BLOB))<=?6 THEN id END,\
-                    CASE WHEN before IS NULL OR length(CAST(before AS BLOB))=64 THEN before END,\
-                    CASE WHEN after IS NULL OR length(CAST(after AS BLOB))=64 THEN after END,change\
+            "WITH current AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?1 AND kind='input'), \
+             previous AS (SELECT id,output_digest FROM tos_rust_processing_tasks WHERE run_id=?2 AND kind='input'), \
+             changes AS (SELECT c.id,p.output_digest AS before,c.output_digest AS after, \
+                 CASE WHEN p.id IS NULL THEN 'added' ELSE 'changed' END AS change \
+                 FROM current c LEFT JOIN previous p USING(id) WHERE p.id IS NULL OR p.output_digest!=c.output_digest \
+                 UNION ALL SELECT p.id,p.output_digest,NULL,'removed' FROM previous p LEFT JOIN current c USING(id) \
+                 WHERE c.id IS NULL AND ?3='complete') \
+             SELECT CASE WHEN length(CAST(id AS BLOB))<=?6 THEN id END, \
+                    CASE WHEN before IS NULL OR length(CAST(before AS BLOB))=64 THEN before END, \
+                    CASE WHEN after IS NULL OR length(CAST(after AS BLOB))=64 THEN after END,change \
                FROM changes WHERE id>?4{source_filter} ORDER BY id LIMIT ?5"
         );
         let mut statement = self.db.prepare(&sql)?;
@@ -1878,8 +1878,8 @@ fn read_output(
 ) -> Result<Option<(Value, String)>> {
     let row: Option<(Option<Vec<u8>>, Option<String>, i64)> = db
         .query_row(
-            "SELECT CASE WHEN bytes>=0 AND bytes<=?2 AND length(payload)<=?2 THEN payload END,\
-                    CASE WHEN length(CAST(payload_digest AS BLOB))=64 THEN payload_digest END,bytes\
+            "SELECT CASE WHEN bytes>=0 AND bytes<=?2 AND length(payload)<=?2 THEN payload END, \
+                    CASE WHEN length(CAST(payload_digest AS BLOB))=64 THEN payload_digest END,bytes \
                FROM tos_rust_processing_outputs WHERE cache_key=?1",
             params![key, max_output_bytes as i64],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
@@ -1923,8 +1923,8 @@ fn write_output(
         return Ok(false);
     }
     db.execute(
-        "INSERT INTO tos_rust_processing_outputs(cache_key,payload,payload_digest,bytes,used)\
-         VALUES (?1,?2,?3,?4,?5) ON CONFLICT(cache_key) DO UPDATE SET\
+        "INSERT INTO tos_rust_processing_outputs(cache_key,payload,payload_digest,bytes,used) \
+         VALUES (?1,?2,?3,?4,?5) ON CONFLICT(cache_key) DO UPDATE SET \
          payload=excluded.payload,payload_digest=excluded.payload_digest,bytes=excluded.bytes,used=excluded.used",
         params![key, payload, digest, bytes as i64, next_used()],
     )?;
@@ -1943,7 +1943,7 @@ fn trim_outputs(db: &Connection, limits: ProcessingCacheLimits) -> Result<u64> {
             return Ok(evicted);
         }
         let deleted = db.execute(
-            "DELETE FROM tos_rust_processing_outputs WHERE cache_key IN\
+            "DELETE FROM tos_rust_processing_outputs WHERE cache_key IN \
                 (SELECT cache_key FROM tos_rust_processing_outputs ORDER BY used,cache_key LIMIT 128)",
             [],
         )?;
