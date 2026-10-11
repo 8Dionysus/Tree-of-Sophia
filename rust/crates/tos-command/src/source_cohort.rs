@@ -822,6 +822,20 @@ pub(super) enum CommitMode<'a> {
 fn source_error(error: cmd::SourceCommandError) -> DurableError {
     DurableError::Source(error)
 }
+
+/// Keep the authored-source refusal intact while naming the narrow owner
+/// phase that produced the otherwise context-free form/schema error.  The
+/// native bootstrap adapter preserves `Source` errors, so this context remains
+/// visible to the bounded caller without turning a malformed member into a
+/// successful optional projection.
+fn source_error_with_phase(error: cmd::SourceCommandError, phase: &'static str) -> DurableError {
+    match error {
+        cmd::SourceCommandError::Invalid("missing object field") => {
+            source_error(cmd::SourceCommandError::Invalid(phase))
+        }
+        error => source_error(error),
+    }
+}
 fn active(deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> {
     if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
         Err(DurableError::Refused(
@@ -930,8 +944,10 @@ fn index_rows(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<IndexRows> {
-    let inventory = source_claims::maintained_inventory(ctx, worker, deadline, cancelled)
-        .map_err(source_error)?;
+    let inventory =
+        source_claims::maintained_inventory(ctx, worker, deadline, cancelled).map_err(|error| {
+            source_error_with_phase(error, "missing object field in maintained source index")
+        })?;
     let mut rows = BTreeMap::<(String, String), String>::new();
     let mut identity_paths = BTreeMap::<String, String>::new();
     let mut insert = |kind: &str, id: &str, path: &str| -> DurableResult<()> {
@@ -956,14 +972,18 @@ fn index_rows(
         insert(
             "metadata",
             id,
-            cmd::text(entry, "source_record_ref").map_err(source_error)?,
+            cmd::text(entry, "source_record_ref").map_err(|error| {
+                source_error_with_phase(error, "missing object field in metadata index row")
+            })?,
         )?;
     }
     for (id, entry) in &inventory.claims {
         insert(
             "claim",
             id,
-            cmd::text(entry, "source_claim_file_ref").map_err(source_error)?,
+            cmd::text(entry, "source_claim_file_ref").map_err(|error| {
+                source_error_with_phase(error, "missing object field in claim index row")
+            })?,
         )?;
     }
     for (kind, entries) in [("event", &inventory.events), ("anchor", &inventory.anchors)] {
@@ -975,7 +995,9 @@ fn index_rows(
                 kind,
                 id.as_str()
                     .ok_or(DurableError::Corrupt("owner evidence identity string"))?,
-                cmd::text(entry, "source_ref").map_err(source_error)?,
+                cmd::text(entry, "source_ref").map_err(|error| {
+                    source_error_with_phase(error, "missing object field in evidence index row")
+                })?,
             )?;
         }
     }
@@ -988,18 +1010,31 @@ fn index_rows(
         if file.path.as_str().starts_with("ToS/source-witnesses/")
             && file.path.as_str().ends_with(".human-forms.json")
         {
-            let set = cmd::parse(&file.raw).map_err(source_error)?;
+            let set = cmd::parse(&file.raw).map_err(|error| {
+                source_error_with_phase(error, "missing object field in HumanForm source set")
+            })?;
             source_forms::apply_form_changes(
                 Some(&set),
-                cmd::field(&set, "subject").map_err(source_error)?,
+                cmd::field(&set, "subject").map_err(|error| {
+                    source_error_with_phase(error, "missing object field in HumanForm subject")
+                })?,
                 &[],
             )
-            .map_err(source_error)?;
+            .map_err(|error| {
+                source_error_with_phase(error, "missing object field in HumanForm history")
+            })?;
             for section in ["forms", "prior_forms"] {
-                for form in cmd::array(&set, section).map_err(source_error)? {
+                for form in cmd::array(&set, section).map_err(|error| {
+                    source_error_with_phase(error, "missing object field in HumanForm section")
+                })? {
                     insert(
                         "form",
-                        cmd::text(form, "form_id").map_err(source_error)?,
+                        cmd::text(form, "form_id").map_err(|error| {
+                            source_error_with_phase(
+                                error,
+                                "missing object field in HumanForm identity",
+                            )
+                        })?,
                         file.path.as_str(),
                     )?;
                 }
@@ -1047,8 +1082,15 @@ fn inventory_projections_for(
     let inventory = source_claims::maintained_agent_inventory_from_managed(
         ctx, true, worker, deadline, cancelled,
     )
-    .map_err(source_error)?;
-    let grouped = source_claims::agent_inventory_members(ctx, &inventory).map_err(source_error)?;
+    .map_err(|error| {
+        source_error_with_phase(
+            error,
+            "missing object field in maintained Agent projection inventory",
+        )
+    })?;
+    let grouped = source_claims::agent_inventory_members(ctx, &inventory).map_err(|error| {
+        source_error_with_phase(error, "missing object field in Agent projection grouping")
+    })?;
     let mut projections = ProjectionRows::new();
     let mut projection_bytes = 0usize;
     for file in ctx.files.iter().filter(|file| {
@@ -1059,7 +1101,12 @@ fn inventory_projections_for(
         let contribution = source_claims::agent_inventory_contribution(
             ctx, file, &inventory, &grouped, worker, deadline, cancelled,
         )
-        .map_err(source_error)?;
+        .map_err(|error| {
+            source_error_with_phase(
+                error,
+                "missing object field in Agent projection member or forms",
+            )
+        })?;
         let raw = cmd::canonical(&contribution).map_err(source_error)?;
         // Existing cold metadata-row admission; larger contributions cannot
         // silently enter the addressed route.

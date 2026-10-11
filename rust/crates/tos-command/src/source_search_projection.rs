@@ -994,10 +994,7 @@ mod tests {
 
     #[test]
     fn recognized_jsonl_output_has_a_total_document_limit() {
-        let record = concat!(
-            r#"{"schema_version":"tos_historical_claim_v1","claim_id":"tos.claim.x","#,
-            r#"supporting_quotes":[]}"#
-        );
+        let record = r#"{"schema_version":"tos_historical_claim_v1","claim_id":"tos.claim.x","supporting_quotes":[]}"#;
         let raw = std::iter::repeat(record)
             .take(MAX_PROJECTED_DOCUMENTS + 1)
             .collect::<Vec<_>>()

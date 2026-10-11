@@ -213,8 +213,15 @@ fn canonical(value: &Value) -> Vec<u8> {
 }
 
 fn owner_configuration_digest(path: &Path) -> String {
-    let owner: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
-    Digest256::of_bytes(&canonical(&owner)).to_prefixed()
+    let raw = fs::read(path).unwrap();
+    let owner = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let canonical = canonical_bytes_v1(
+        owner.root(),
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    Digest256::of_bytes(&canonical).to_prefixed()
 }
 
 fn repository_root() -> PathBuf {
@@ -3128,6 +3135,8 @@ fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Pa
     request["operation"] = json!("source.create");
     request["command_id"] = json!("test:pg-real-addition-fixture");
     request["expected_configuration"] = preview["owner_configuration"].clone();
+    request["expected_source"] = Value::Null;
+    request["expected_revision"] = Value::Null;
     request["expected_dependencies"] = preview["expected_dependencies"].clone();
     let before_head = case.lab.head_seq();
     let before_counts =

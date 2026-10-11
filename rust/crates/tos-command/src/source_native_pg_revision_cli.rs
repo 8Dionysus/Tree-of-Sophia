@@ -531,8 +531,11 @@ pub(super) fn run(
                 let work_revision = if let Some(configuration) = configuration.as_ref() {
                     let record_id =
                         cmd::text(configuration, "record_id").map_err(DurableError::Source)?;
-                    let command_id =
-                        cmd::text(&request, "command_id").map_err(DurableError::Source)?;
+                    let command_id = if operation == "record.revise" {
+                        cmd::text(&request, "command_id").map_err(DurableError::Source)?
+                    } else {
+                        ""
+                    };
                     Some(session.observe_pg_work_revision(
                         source_path,
                         record_id,

@@ -1755,7 +1755,6 @@ mod tests {
         budget.max_response_bytes = 64 * 1024;
         budget.max_work_steps = 2_000_000;
         let mut request = request("needle", 1, None);
-        request.source_paths.push(long_path);
 
         let first_page = execute_source_text_search(
             &request,
@@ -1769,6 +1768,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(first_page.hits[0].document_id, first_id);
+        assert_eq!(first_page.hits[0].source_path, long_path);
         let cursor = first_page.next_cursor.clone().expect("second page exists");
         assert!(cursor.len() > 2048);
         assert!(cursor.len() < MAX_CURSOR_BYTES);

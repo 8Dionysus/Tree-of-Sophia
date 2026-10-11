@@ -2685,6 +2685,20 @@ fn maintained_agent_creation_operation<
             .any(|path| path.as_str() == earlier_path)
     );
     if exercise_source_projection {
+        // Verify the second command preserves prior bytes before the projection
+        // fault injections deliberately advance the selected generation's audit fence.
+        let retained_old_source = successor
+            .read_current_member(
+                &mut reopened_db,
+                &reopened_store,
+                &RelativePath::parse(earlier_path).unwrap(),
+                8_388_608,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(retained_old_source.raw, reopened.files[earlier_path]);
+
         // The selected consumer reads each exact CMD history member through
         // STO and publishes one source event atomically with its cursor.
         let projection_consumer = "private-agent-selected-text-test";
@@ -2926,20 +2940,6 @@ fn maintained_agent_creation_operation<
             metadata_only,
             tos_command::DurableProjectionSearch::Current { ref hits, .. } if hits.is_empty()
         ));
-
-        // The prior record remains byte-identical in the committed current
-        // source view after the second command.
-        let retained_old_source = successor
-            .read_current_member(
-                &mut reopened_db,
-                &reopened_store,
-                &RelativePath::parse(earlier_path).unwrap(),
-                8_388_608,
-                deadline,
-                &cancelled,
-            )
-            .unwrap();
-        assert_eq!(retained_old_source.raw, reopened.files[earlier_path]);
 
         // An unrelated attempt changes the global audit generation without
         // changing the committed source head or adding an outbox event.

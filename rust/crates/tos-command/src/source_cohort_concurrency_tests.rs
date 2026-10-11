@@ -903,7 +903,8 @@ fn lab_fixture(deadline: Instant, cancelled: &AtomicBool) -> Fixture {
             cancelled,
         )
         .expect("the selected finite source cut bootstraps through PG/STO");
-    bootstrap_worker.finish(deadline, cancelled).unwrap();
+    // Bootstrap's final cold reopen owns and completes the selected schema
+    // worker before it publishes cohort completeness.
     Fixture {
         _root: root,
         coordinator,
