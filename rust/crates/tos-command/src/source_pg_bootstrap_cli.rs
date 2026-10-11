@@ -634,9 +634,10 @@ pub(super) fn run(
         .ok_or(SourceCommandError::Invalid(
             "source cut byte budget overflow",
         ))?;
-    let selected_count = u64::try_from(files.len())
-        .ok()
-        .and_then(|count| count.checked_add(cut.current().member_count()))
+    let selected_count = files
+        .len()
+        .checked_add(cut.current().member_count())
+        .and_then(|count| u64::try_from(count).ok())
         .ok_or(SourceCommandError::Invalid(
             "source cut member budget overflow",
         ))?;

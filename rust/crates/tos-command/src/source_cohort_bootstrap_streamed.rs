@@ -416,7 +416,12 @@ impl DurablePgCoordinator {
                 job_fence: 1,
                 full_base_seq: head,
             },
-            CommitMode::Bootstrap,
+            // This lower-level streamed route has no protected invocation.
+            // Its caller owns admission; retain its cancellation/deadline
+            // check at the same transaction boundaries as a CLI owner check.
+            CommitMode::Bootstrap {
+                owner_check: &|| active(deadline, cancelled),
+            },
             max_commit_seq,
         )?;
         active(deadline, cancelled)?;
