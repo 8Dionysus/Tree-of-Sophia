@@ -22,7 +22,11 @@ use tos_foundation::{
 use crate::{AbortProbe, AbortReason};
 
 pub const SOURCE_TEXT_SEARCH_OPERATION: &str = "tos_source_text_search_v1";
-const MAX_QUERY_RAW_CODE_POINTS: usize = 4096;
+/// Shared raw request ceiling used by native projection adapters before the
+/// Unicode16 strip/lower pass. Four UTF-8 bytes is the worst-case early guard
+/// for one admitted Unicode scalar value.
+pub const MAX_QUERY_RAW_CODE_POINTS: usize = 4096;
+pub const MAX_QUERY_RAW_UTF8_BYTES: usize = MAX_QUERY_RAW_CODE_POINTS * 4;
 const MAX_QUERY_NORMALIZED_CODE_POINTS: usize = 256;
 const MAX_FILTER_VALUES: usize = 100;
 const MAX_FILTER_VALUE_CODE_POINTS: usize = 1024;

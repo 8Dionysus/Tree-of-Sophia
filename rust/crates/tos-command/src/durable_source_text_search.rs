@@ -7,13 +7,14 @@
 
 use std::time::Instant;
 
-use tos_query::source_text_search::SourceTextSearchErrorCode;
+use postgres::GenericClient;
+use tos_query::source_text_search::{MAX_QUERY_RAW_UTF8_BYTES, SourceTextSearchErrorCode};
 use tos_query::{AbortProbe, AbortReason};
 
 use super::{
-    DurableError, DurablePgCoordinator, DurableProjectionDocument, DurableProjectionLimits,
-    DurableProjectionProfile, DurableResult, ProjectionReadGate, as_u64, read_projection_gate,
-    set_local_timeouts, validate_identifier, validate_relative_path,
+    DurableError, DurableProjectionDocument, DurableProjectionLimits, DurableProjectionProfile,
+    DurableResult, ProjectionReadGate, as_u64, read_projection_gate, validate_identifier,
+    validate_relative_path,
 };
 
 /// Consumer-local source-text normalizer/index profile.  The profile is put on
@@ -24,6 +25,10 @@ pub(crate) const SOURCE_TEXT_SEARCH_PROFILE_VERSION: i32 = 1;
 
 const MAX_SOURCE_TEXT_FILTERS: usize = 100;
 const MAX_SOURCE_TEXT_PAGE_RESULTS: usize = 100;
+// The shared QRY request admits at most 4096 Unicode code points and uses the
+// UTF-8 worst case as its early byte guard.  Keep the durable owner at the
+// same physical ceiling; a caller-configured lower owner limit is reported as
+// an explicit Budget outcome before semantic normalization.
 // These are the shared QRY hard ceilings.  Keep the adapter's derived budget
 // below them rather than handing a large projection event to QRY only to have
 // its own validator reject the whole page.
@@ -167,13 +172,12 @@ pub(crate) fn normalize_document(
     })
 }
 
-/// Execute one source-text page while holding the selected projection's
-/// currentness and rights locks.  The SQL candidate read is deliberately
-/// `candidate_bound + 1`; the wider complete set lets QRY rank and retain
-/// `limit + 1` for a continuation. An incomplete candidate set becomes an
-/// explicit budget outcome and never an empty success.
-pub(crate) fn search_source_text(
-    coordinator: &mut DurablePgCoordinator,
+/// Execute source-text search against an already-open owner transaction.
+/// The caller retains that transaction after this returns `Current`, so the
+/// same audit/domain/consumer locks cover candidate reads, page construction,
+/// and the final disclosure flush.
+pub(crate) fn search_source_text_in_transaction<C: GenericClient>(
+    tx: &mut C,
     domain: &str,
     consumer_id: &str,
     profile: &DurableProjectionProfile,
@@ -198,20 +202,25 @@ pub(crate) fn search_source_text(
     if probe.reason().is_some() {
         return Err(DurableError::Refused("source-text search aborted"));
     }
+    if request.query.contains('\0') {
+        return Err(DurableError::Invalid("invalid source-text request"));
+    }
+    let query_byte_budget = limits.max_query_bytes.min(MAX_QUERY_RAW_UTF8_BYTES);
+    if request.query.len() > query_byte_budget {
+        return Ok(SourceTextProjectionOutcome::Budget {
+            through_seq: 0,
+            head_seq: 0,
+            reason: "source-text query exceeds owner byte budget",
+        });
+    }
     let normalized_request = match request.normalize() {
         Ok(request) => request,
         Err(error) => return Ok(semantic_outcome(0, 0, error)),
     };
     validate_request(&request, limits)?;
 
-    let mut tx = coordinator
-        .client
-        .build_transaction()
-        .isolation_level(postgres::IsolationLevel::ReadCommitted)
-        .start()?;
-    set_local_timeouts(&mut tx, limits.statement_timeout)?;
     let (through_seq, rights_version, audit_generation, indexed_profile, indexed_version) =
-        match read_projection_gate(&mut tx, domain, consumer_id, profile) {
+        match read_projection_gate(tx, domain, consumer_id, profile) {
             Ok(gate) => match gate {
                 ProjectionReadGate::Current {
                     through_seq,
@@ -230,7 +239,6 @@ pub(crate) fn search_source_text(
                     through_seq,
                     head_seq,
                 } => {
-                    tx.commit()?;
                     return Ok(SourceTextProjectionOutcome::Pending {
                         through_seq,
                         head_seq,
@@ -241,7 +249,6 @@ pub(crate) fn search_source_text(
                     head_seq,
                     reason,
                 } => {
-                    tx.commit()?;
                     return Ok(SourceTextProjectionOutcome::Stale {
                         through_seq,
                         head_seq,
@@ -262,7 +269,6 @@ pub(crate) fn search_source_text(
     if indexed_profile.as_deref() != Some(SOURCE_TEXT_SEARCH_PROFILE)
         || indexed_version != Some(SOURCE_TEXT_SEARCH_PROFILE_VERSION)
     {
-        tx.commit()?;
         return Ok(SourceTextProjectionOutcome::Stale {
             through_seq: Some(through_seq),
             head_seq,
@@ -315,7 +321,6 @@ pub(crate) fn search_source_text(
     };
     let complete = rows.len() <= candidate_bound;
     if !complete {
-        tx.commit()?;
         return Ok(SourceTextProjectionOutcome::Budget {
             through_seq,
             head_seq,
@@ -492,7 +497,6 @@ pub(crate) fn search_source_text(
         Ok(page) => page,
         Err(error) => return Ok(semantic_outcome(through_seq, head_seq, error)),
     };
-    tx.commit()?;
     Ok(SourceTextProjectionOutcome::Current {
         through_seq,
         rights_version,
@@ -505,8 +509,7 @@ fn validate_request(
     request: &tos_query::source_text_search::SourceTextSearchRequest,
     limits: DurableProjectionLimits,
 ) -> DurableResult<()> {
-    if request.query.len() > limits.max_query_bytes
-        || request.query.contains('\0')
+    if request.query.contains('\0')
         || !(1..=MAX_SOURCE_TEXT_PAGE_RESULTS).contains(&request.limit)
         || request.limit > limits.max_results
         || request.document_types.len() > MAX_SOURCE_TEXT_FILTERS

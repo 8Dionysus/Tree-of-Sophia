@@ -30,6 +30,7 @@ use tos_segment_store::{
     SegmentStore, VerificationBudget, describe_placement_partition,
 };
 
+mod postgres_real_backup_restore;
 mod postgres_real_revision;
 
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);

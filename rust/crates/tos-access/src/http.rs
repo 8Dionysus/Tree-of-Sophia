@@ -1363,7 +1363,7 @@ pub fn serve_connection_scoped_controlled_with_source_text_search<
                                         "request target too large",
                                     ))
                                 } else if post_operation(target).is_none()
-                                    && target.split_once('?').map_or(target, |(path, _)| path)
+                                    && target.split_once('?').map_or(*target, |(path, _)| path)
                                         != crate::common::SOURCE_TEXT_SEARCH_HTTP_PATH
                                     && crate::source_read::Operation::http("POST", target).is_none()
                                 {

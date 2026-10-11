@@ -775,31 +775,6 @@ impl DurablePgCoordinator {
         Ok(DurableProjectionSearch::Current { hits, through_seq })
     }
 
-    /// Execute the separately versioned source-text v1 operation.  The child
-    /// adapter keeps the projection gate transaction open through candidate
-    /// admission and QRY's final page construction.
-    pub(crate) fn search_source_text(
-        &mut self,
-        domain: &str,
-        consumer_id: &str,
-        profile: &DurableProjectionProfile,
-        request: tos_query::source_text_search::SourceTextSearchRequest,
-        limits: DurableProjectionLimits,
-        deadline: Instant,
-        probe: &dyn tos_query::AbortProbe,
-    ) -> DurableResult<durable_source_text_search::SourceTextProjectionOutcome> {
-        durable_source_text_search::search_source_text(
-            self,
-            domain,
-            consumer_id,
-            profile,
-            request,
-            limits,
-            deadline,
-            probe,
-        )
-    }
-
     fn stage_event<E: DurableProjectionExtractor + ?Sized>(
         &mut self,
         store: &SegmentStore,
@@ -2120,7 +2095,7 @@ fn read_domain_snapshot(tx: &mut Transaction<'_>, domain: &str) -> DurableResult
     })
 }
 
-fn set_local_timeouts(tx: &mut Transaction<'_>, timeout: Duration) -> DurableResult<()> {
+fn set_local_timeouts<C: GenericClient>(tx: &mut C, timeout: Duration) -> DurableResult<()> {
     validate_timeout(timeout)?;
     let statement_ms = timeout.as_millis().max(1).to_string();
     let lock_ms = timeout.as_millis().min(5000).max(1).to_string();

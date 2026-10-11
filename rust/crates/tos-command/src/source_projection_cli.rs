@@ -136,9 +136,10 @@ pub enum SourceTextSearchResult {
 ///
 /// The guard owns a live transaction whose `FOR SHARE` locks cover the domain,
 /// audit fence and selected consumer.  A source rights revoke or head advance
-/// therefore waits for the final transport recheck; a revoke/regrant that
-/// happened in the hand-off gap is rejected by the captured versions. The
-/// recheck delegates to the shared projection gate, whose observed-state
+/// therefore waits for the final transport recheck. Candidate reads and this
+/// guard use the same transaction, so there is no unlocked hand-off window;
+/// the captured cut still rejects a revoke/regrant that changed the binding.
+/// The recheck delegates to the shared projection gate, whose observed-state
 /// fields cover rule, schema, contract and source-generation changes without
 /// maintaining a second raw-column binding snapshot here.
 pub struct SourceTextDisclosureGuard {
@@ -719,32 +720,50 @@ pub fn run_source_text_search(
         version,
         source_contract,
     };
-    let mut db = DurablePgCoordinator::from_configured_client(connect_selected_source_pg16_until(
-        deadline, probe,
-    )?);
-    let remaining =
-        deadline
-            .checked_duration_since(Instant::now())
-            .ok_or(DurableError::Refused(
-                "source-text search deadline exceeded",
-            ))?;
-    let mut limits = DurableProjectionLimits::default();
-    limits.max_results = 100;
-    limits.statement_timeout = remaining.min(Duration::from_secs(15));
-    let outcome = db.search_source_text(
-        &domain,
-        &consumer_id,
-        &profile,
-        request,
-        limits,
-        deadline,
-        probe,
-    )?;
-    // The search transaction only protects candidate assembly.  Close it
-    // before opening the owner-held disclosure transaction so the final
-    // packet has one unambiguous lock owner and no stale client survives the
-    // hand-off.
-    drop(db);
+    let mut client = connect_selected_source_pg16_until(deadline, probe)?;
+    client.batch_execute("BEGIN")?;
+    // Candidate reads, QRY page construction, and disclosure transport all
+    // share this one owner-held transaction.  In particular, there is no
+    // unlocked client hand-off between the source-text query and the final
+    // rights/currentness recheck.
+    let outcome = (|| -> DurableResult<_> {
+        check_source_text_access(deadline, probe)?;
+        let remaining =
+            deadline
+                .checked_duration_since(Instant::now())
+                .ok_or(DurableError::Refused(
+                    "source-text search deadline exceeded",
+                ))?;
+        let statement_ms = remaining.as_millis().clamp(1, 15_000);
+        let lock_ms = statement_ms.min(5_000);
+        client.batch_execute(&format!(
+            "SET LOCAL statement_timeout='{}ms'; \
+             SET LOCAL lock_timeout='{}ms'; \
+             SET LOCAL idle_in_transaction_session_timeout='0ms'",
+            statement_ms, lock_ms
+        ))?;
+        let mut limits = DurableProjectionLimits::default();
+        limits.max_query_bytes = tos_query::source_text_search::MAX_QUERY_RAW_UTF8_BYTES;
+        limits.max_results = 100;
+        limits.statement_timeout = remaining.min(Duration::from_secs(15));
+        crate::durable_adapter::durable_projection::durable_source_text_search::search_source_text_in_transaction(
+            &mut client,
+            &domain,
+            &consumer_id,
+            &profile,
+            request,
+            limits,
+            deadline,
+            probe,
+        )
+    })();
+    let outcome = match outcome {
+        Ok(outcome) => outcome,
+        Err(error) => {
+            let _ = client.batch_execute("ROLLBACK");
+            return Err(error);
+        }
+    };
     Ok(match outcome {
         crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Current {
             through_seq,
@@ -752,51 +771,43 @@ pub fn run_source_text_search(
             audit_generation,
             page,
         } => {
-            let disclosure = match acquire_source_text_disclosure_guard(
-                &domain,
-                &consumer_id,
-                &profile,
+            let mut disclosure = SourceTextDisclosureGuard {
+                client: Some(client),
+                domain: domain.clone(),
+                consumer_id: consumer_id.clone(),
+                profile: profile.clone(),
                 through_seq,
                 rights_version,
                 audit_generation,
-                deadline,
-                probe,
-            ) {
-                Ok(disclosure) => disclosure,
-                Err(error) if is_source_text_sql_timeout(&error) => {
-                    let abort = match probe.reason() {
-                        Some(AbortReason::Cancelled) => Some((
-                            tos_query::source_text_search::SourceTextSearchErrorCode::Cancelled,
-                            "source-text search cancelled",
-                        )),
-                        Some(AbortReason::DeadlineExceeded) => Some((
-                            tos_query::source_text_search::SourceTextSearchErrorCode::
-                                DeadlineExceeded,
-                            "source-text search deadline exceeded",
-                        )),
-                        None if Instant::now() >= deadline => Some((
-                            tos_query::source_text_search::SourceTextSearchErrorCode::
-                                DeadlineExceeded,
-                            "source-text search deadline exceeded",
-                        )),
-                        None => None,
-                    };
-                    if let Some((code, reason)) = abort {
-                        return Ok(SourceTextSearchResult::Rejected {
+            };
+            if let Err(error) = disclosure.recheck() {
+                if is_source_text_sql_timeout(&error) {
+                    drop(disclosure);
+                    return Ok(match probe.reason() {
+                        Some(AbortReason::Cancelled) => SourceTextSearchResult::Rejected {
                             through_seq,
                             head_seq: through_seq,
-                            code,
-                            reason,
-                        });
-                    }
-                    return Ok(SourceTextSearchResult::Budget {
-                        through_seq,
-                        head_seq: through_seq,
-                        reason: "source-text SQL statement timeout",
+                            code: tos_query::source_text_search::SourceTextSearchErrorCode::
+                                Cancelled,
+                            reason: "source-text search cancelled",
+                        },
+                        Some(AbortReason::DeadlineExceeded) | None
+                            if Instant::now() >= deadline => SourceTextSearchResult::Rejected {
+                            through_seq,
+                            head_seq: through_seq,
+                            code: tos_query::source_text_search::SourceTextSearchErrorCode::
+                                DeadlineExceeded,
+                            reason: "source-text search deadline exceeded",
+                        },
+                        None => SourceTextSearchResult::Budget {
+                            through_seq,
+                            head_seq: through_seq,
+                            reason: "source-text SQL statement timeout",
+                        },
                     });
                 }
-                Err(error) => return Err(error),
-            };
+                return Err(error);
+            }
             SourceTextSearchResult::Current {
                 through_seq,
                 page,
@@ -806,104 +817,36 @@ pub fn run_source_text_search(
         crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Pending {
             through_seq,
             head_seq,
-        } => SourceTextSearchResult::Pending {
-            through_seq,
-            head_seq,
-        },
+        } => {
+            let _ = client.batch_execute("ROLLBACK");
+            SourceTextSearchResult::Pending { through_seq, head_seq }
+        }
         crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Stale {
             through_seq,
             head_seq,
             reason,
-        } => SourceTextSearchResult::Stale {
-            through_seq,
-            head_seq,
-            reason,
-        },
+        } => {
+            let _ = client.batch_execute("ROLLBACK");
+            SourceTextSearchResult::Stale { through_seq, head_seq, reason }
+        }
         crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Budget {
             through_seq,
             head_seq,
             reason,
-        } => SourceTextSearchResult::Budget {
-            through_seq,
-            head_seq,
-            reason,
-        },
+        } => {
+            let _ = client.batch_execute("ROLLBACK");
+            SourceTextSearchResult::Budget { through_seq, head_seq, reason }
+        }
         crate::durable_adapter::durable_projection::durable_source_text_search::SourceTextProjectionOutcome::Rejected {
             through_seq,
             head_seq,
             code,
             reason,
-        } => SourceTextSearchResult::Rejected {
-            through_seq,
-            head_seq,
-            code,
-            reason,
-        },
+        } => {
+            let _ = client.batch_execute("ROLLBACK");
+            SourceTextSearchResult::Rejected { through_seq, head_seq, code, reason }
+        }
     })
-}
-
-fn acquire_source_text_disclosure_guard(
-    domain: &str,
-    consumer_id: &str,
-    profile: &DurableProjectionProfile,
-    through_seq: u64,
-    rights_version: u64,
-    audit_generation: u64,
-    deadline: Instant,
-    probe: &dyn AbortProbe,
-) -> DurableResult<SourceTextDisclosureGuard> {
-    check_source_text_access(deadline, probe)?;
-    let mut client = connect_selected_source_pg16_until(deadline, probe)?;
-    client.batch_execute("BEGIN")?;
-    if let Err(error) = check_source_text_access(deadline, probe) {
-        let _ = client.batch_execute("ROLLBACK");
-        return Err(error);
-    }
-    let remaining =
-        deadline
-            .checked_duration_since(Instant::now())
-            .ok_or(DurableError::Refused(
-                "source-text disclosure deadline exceeded",
-            ))?;
-    let statement_ms = remaining.as_millis().clamp(1, 15_000);
-    let lock_ms = statement_ms.min(5_000);
-    let mut guard = SourceTextDisclosureGuard {
-        client: Some(client),
-        domain: domain.to_owned(),
-        consumer_id: consumer_id.to_owned(),
-        profile: profile.clone(),
-        through_seq,
-        rights_version,
-        audit_generation,
-    };
-    {
-        let client = guard
-            .client
-            .as_mut()
-            .ok_or(DurableError::Refused("source-text disclosure guard closed"))?;
-        client.batch_execute(&format!(
-            "SET LOCAL statement_timeout='{}ms'; \
-             SET LOCAL lock_timeout='{}ms'; \
-             SET LOCAL idle_in_transaction_session_timeout='0ms'",
-            statement_ms, lock_ms
-        ))?;
-    }
-    if let Err(error) = guard.recheck() {
-        return Err(error);
-    }
-    Ok(guard)
-}
-
-fn is_source_text_sql_timeout(error: &DurableError) -> bool {
-    matches!(
-        error,
-        DurableError::Database(error)
-            if matches!(
-                error.code(),
-                Some(&postgres::error::SqlState::QUERY_CANCELED)
-                    | Some(&postgres::error::SqlState::LOCK_NOT_AVAILABLE)
-            )
-    )
 }
 
 fn check_source_text_access(deadline: Instant, probe: &dyn AbortProbe) -> DurableResult<()> {
@@ -921,6 +864,18 @@ fn check_source_text_access(deadline: Instant, probe: &dyn AbortProbe) -> Durabl
         });
     }
     Ok(())
+}
+
+fn is_source_text_sql_timeout(error: &DurableError) -> bool {
+    matches!(
+        error,
+        DurableError::Database(error)
+            if matches!(
+                error.code(),
+                Some(&postgres::error::SqlState::QUERY_CANCELED)
+                    | Some(&postgres::error::SqlState::LOCK_NOT_AVAILABLE)
+            )
+    )
 }
 
 /// Open the exact private PostgreSQL transport shared by source projection and

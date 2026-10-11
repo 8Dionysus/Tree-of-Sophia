@@ -177,6 +177,11 @@ fn canonical(value: &Value) -> Vec<u8> {
     .unwrap()
 }
 
+fn owner_configuration_digest(path: &Path) -> String {
+    let owner: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    Digest256::of_bytes(&canonical(&owner)).to_prefixed()
+}
+
 fn repository_root() -> PathBuf {
     match std::env::var_os("TOS_CMD2_LAB_SOURCE_ROOT") {
         Some(path) => {
@@ -740,7 +745,24 @@ fn bootstrap_case_from_cut(
     deadline: Instant,
     cancelled: &std::sync::Arc<AtomicBool>,
 ) -> RevisionCase {
-    let mut lab = Lab::new(&database_url());
+    bootstrap_case_on_lab(
+        Lab::new(&database_url()),
+        software_fixture,
+        source,
+        target,
+        deadline,
+        cancelled,
+    )
+}
+
+fn bootstrap_case_on_lab(
+    mut lab: Lab,
+    software_fixture: &SoftwareFixture,
+    source: SourceCutFixture,
+    target: RevisionTarget,
+    deadline: Instant,
+    cancelled: &std::sync::Arc<AtomicBool>,
+) -> RevisionCase {
     fs::set_permissions(&lab._root.0, fs::Permissions::from_mode(0o700)).unwrap();
     let source_root = lab._root.0.canonicalize().unwrap();
     let (software, components) = software_reader(software_fixture, deadline, cancelled);
@@ -1928,6 +1950,45 @@ fn run_source_text_search_scenario(
         &cyrillic_response["result"],
     );
 
+    // The raw query is over the old 4096-byte owner ceiling while remaining
+    // within QRY's 4096-code-point input bound; FND strip/lower reduces it to
+    // the same one-character Cyrillic query as the ordinary request.
+    let unicode_whitespace_query =
+        format!("{}А{}", "\u{3000}".repeat(1366), "\u{3000}".repeat(1366));
+    assert!(unicode_whitespace_query.len() > 4096);
+    let unicode_whitespace = SourceTextSearchRequest {
+        query: unicode_whitespace_query,
+        ..cyrillic.clone()
+    };
+    let unicode_whitespace_response = source_text_search_cli(
+        case,
+        binary,
+        consumer,
+        profile,
+        &json!({
+            "operation":"search-text",
+            "query":unicode_whitespace.query,
+            "limit":unicode_whitespace.limit,
+            "document_types":unicode_whitespace.document_types,
+            "source_paths":unicode_whitespace.source_paths
+        }),
+    );
+    assert_eq!(unicode_whitespace_response["status"], "current");
+    assert!(
+        unicode_whitespace_response["result"]["hits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|hit| hit["document_id"] == "tos.agent.parmenides-of-elea")
+    );
+    assert_source_text_cli_matches_qry(
+        case,
+        consumer,
+        through_seq,
+        &unicode_whitespace,
+        &unicode_whitespace_response["result"],
+    );
+
     let mut wildcard_searches = serde_json::Map::new();
     for query in ["%", "_"] {
         let request = SourceTextSearchRequest {
@@ -2404,7 +2465,7 @@ fn history_source_paths(case: &RevisionCase, seq: u64) -> Vec<String> {
 
 fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Path) -> Value {
     let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
-    let invocation_path = case.source_root.join("revision-invocation.json");
+    let invocation_path = case._owner_scratch.0.join("revision-invocation.json");
     let target = case.target;
     let record_path = target.source_path.to_owned();
     let original_authored_record_version = serde_json::from_slice::<Value>(&case.original_record)
@@ -2542,9 +2603,10 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     );
     let described = described_call.result;
     let describe_resources = described_call.resources;
+    assert_eq!(described["source"]["id"], target.record_id);
     assert_eq!(
-        described["owner_configuration"]["record_id"],
-        target.record_id
+        described["owner_configuration"],
+        owner_configuration_digest(&case.owner_config)
     );
     let mut fields = json!({"preferred_label":target.preferred_label});
     if let Some(notes) = target.notes {
@@ -2747,7 +2809,7 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
 
 fn create_agent(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Path) -> Value {
     let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
-    let invocation_path = case.source_root.join("creation-invocation.json");
+    let invocation_path = case._owner_scratch.0.join("creation-invocation.json");
     let owner_config = case._owner_scratch.0.join("creation-owner.json");
     let uid = rustix::process::getuid().as_raw();
     let owner = json!({
@@ -3897,4 +3959,780 @@ fn real_source_bootstrap_initializes_absent_schema_cold_selects_and_refuses_rein
     admin
         .batch_execute(&format!("DROP SCHEMA \"{pg_schema}\" CASCADE"))
         .expect("private bootstrap test schema is removed");
+}
+
+fn recovery_database_state(url: &str) -> (String, i64) {
+    let config = url
+        .parse::<postgres::Config>()
+        .expect("private PG URL parses");
+    assert_eq!(
+        config.get_hosts().len(),
+        1,
+        "one explicitly selected PG host"
+    );
+    assert!(config.get_ports().len() <= 1);
+    assert!(config.get_hostaddrs().is_empty());
+    assert_eq!(
+        config.get_target_session_attrs(),
+        postgres::config::TargetSessionAttrs::Any
+    );
+    assert!(matches!(
+        config.get_ssl_mode(),
+        postgres::config::SslMode::Disable | postgres::config::SslMode::Prefer
+    ));
+    assert!(matches!(
+        &config.get_hosts()[0],
+        postgres::config::Host::Tcp(host) if host == "127.0.0.1" || host == "::1"
+    ));
+    assert!(config.get_user().is_some());
+    assert!(config.get_dbname().is_some_and(|name| !name.is_empty()));
+    let mut db = Client::connect(url, NoTls).expect("dedicated recovery database connects");
+    let server_version = db
+        .query_one("SHOW server_version_num", &[])
+        .unwrap()
+        .get::<_, String>(0)
+        .parse::<u32>()
+        .expect("PostgreSQL reports its numeric server version");
+    assert_eq!(
+        server_version / 10_000,
+        16,
+        "recovery is pinned to PostgreSQL 16"
+    );
+    let database = db
+        .query_one("SELECT current_database()", &[])
+        .unwrap()
+        .get::<_, String>(0);
+    let public_tables = db
+        .query_one(
+            "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='public'",
+            &[],
+        )
+        .unwrap()
+        .get::<_, i64>(0);
+    (database, public_tables)
+}
+
+fn recovery_pg_endpoint(url: &str) -> (String, u16) {
+    let config = url
+        .parse::<postgres::Config>()
+        .expect("private PG URL parses");
+    let postgres::config::Host::Tcp(host) = &config.get_hosts()[0] else {
+        panic!("private recovery database uses a loopback TCP host");
+    };
+    (
+        host.clone(),
+        config.get_ports().first().copied().unwrap_or(5432),
+    )
+}
+
+fn new_real_backup_source_lab(url: &str) -> Lab {
+    let mut db = DurablePgCoordinator::connect(url).expect("fresh source database connects");
+    db.init_lab_schema()
+        .expect("the explicitly selected fresh source database initializes CMD.2");
+    let domain = super::unique_domain();
+    db.create_domain(&domain, contract_digest())
+        .expect("private recovery domain is created");
+    db.set_job_epoch(&domain, "private-job", 1)
+        .expect("private recovery job fence is initialized");
+    let root = ScratchRoot::new();
+    fs::set_permissions(&root.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let store =
+        tos_segment_store::SegmentStore::initialize_empty(&root.0, domain.as_bytes(), limits())
+            .expect("private recovery source store initializes");
+    Lab {
+        db,
+        store,
+        _root: root,
+        domain,
+        url: url.to_owned(),
+        attempt_fences: std::collections::HashMap::new(),
+    }
+}
+
+fn json_rows(rows: Vec<postgres::Row>) -> Vec<Value> {
+    rows.into_iter()
+        .map(|row| serde_json::from_str(&row.get::<_, String>(0)).unwrap())
+        .collect()
+}
+
+fn real_recovery_metadata_snapshot(case: &RevisionCase) -> Value {
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let domain = db
+        .query_one(
+            "SELECT row_to_json(d)::text FROM cmd2_domain d WHERE domain=$1",
+            &[&case.lab.domain],
+        )
+        .unwrap()
+        .get::<_, String>(0);
+    let current = db
+        .query_one(
+            "SELECT row_to_json(c)::text FROM cmd2_current c
+             WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &case.target.source_path],
+        )
+        .unwrap()
+        .get::<_, String>(0);
+    let history = json_rows(
+        db.query(
+            "SELECT row_to_json(h)::text FROM cmd2_history h
+             WHERE domain=$1 AND subject=$2 ORDER BY revision",
+            &[&case.lab.domain, &case.target.source_path],
+        )
+        .unwrap(),
+    );
+    let outbox = json_rows(
+        db.query(
+            "SELECT row_to_json(o)::text FROM cmd2_outbox o
+             WHERE domain=$1 ORDER BY commit_seq",
+            &[&case.lab.domain],
+        )
+        .unwrap(),
+    );
+    json!({
+        "domain":serde_json::from_str::<Value>(&domain).unwrap(),
+        "current_record":serde_json::from_str::<Value>(&current).unwrap(),
+        "record_history":history,
+        "outbox":outbox
+    })
+}
+
+fn real_projection_snapshot(case: &RevisionCase, consumer: &str) -> Value {
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let consumer_row = db
+        .query_opt(
+            "SELECT row_to_json(c)::text FROM cmd2_projection_consumer c
+             WHERE domain=$1 AND consumer_id=$2",
+            &[&case.lab.domain, &consumer],
+        )
+        .unwrap()
+        .expect("the projection consumer exists before backup")
+        .get::<_, String>(0);
+    let document_rows = db
+        .query(
+            "SELECT row_to_json(p)::text FROM cmd2_projection_document p
+             WHERE domain=$1 AND consumer_id=$2
+             ORDER BY source_path COLLATE \"C\",document_id COLLATE \"C\"",
+            &[&case.lab.domain, &consumer],
+        )
+        .unwrap()
+        .into_iter()
+        .map(|row| row.get::<_, String>(0))
+        .collect::<Vec<_>>();
+    let documents = projection_documents(&document_rows)
+        .into_values()
+        .collect::<Vec<_>>();
+    let dependencies = projection_dependencies(case, consumer)
+        .into_iter()
+        .flat_map(|((source_path, document_id), paths)| {
+            paths.into_iter().map(move |dependency_path| {
+                json!({
+                    "source_path":source_path,
+                    "document_id":document_id,
+                    "dependency_kind":"source",
+                    "dependency_path":dependency_path
+                })
+            })
+        })
+        .collect::<Vec<_>>();
+    json!({
+        "consumer":serde_json::from_str::<Value>(&consumer_row).unwrap(),
+        "documents":documents,
+        "dependencies":dependencies
+    })
+}
+
+fn project_real_source_to_current(case: &mut RevisionCase, consumer: &str) -> Value {
+    let profile = DurableProjectionProfile {
+        id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+        version: 1,
+        source_contract: contract_digest(),
+    };
+    case.lab.db.init_projection_schema().unwrap();
+    let head = case.lab.head_seq();
+    let max_events = usize::try_from(head).expect("small private source event head");
+    assert!((1..=256).contains(&max_events));
+    let progress = case
+        .lab
+        .db
+        .apply_projection_batch(
+            &case.lab.store,
+            &case.lab.domain,
+            consumer,
+            &profile,
+            &tos_command::source_projection_cli::SourceTextExtractor,
+            DurableProjectionLimits {
+                max_events,
+                ..DurableProjectionLimits::default()
+            },
+        )
+        .expect("the real bounded source history projects through its current head");
+    assert!(matches!(
+        &progress.status,
+        DurableProjectionStatus::Current { through_seq } if *through_seq == head
+    ));
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Current { through_seq } if through_seq == head
+    ));
+    serde_json::to_value(progress).unwrap()
+}
+
+fn real_projection_search(case: &mut RevisionCase, consumer: &str) -> Value {
+    let profile = DurableProjectionProfile {
+        id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+        version: 1,
+        source_contract: contract_digest(),
+    };
+    let result = case
+        .lab
+        .db
+        .search_projection(
+            &case.lab.domain,
+            consumer,
+            &profile,
+            "Quartz",
+            10,
+            Duration::from_secs(15),
+        )
+        .expect("restored source-text projection search succeeds");
+    let DurableProjectionSearch::Current { hits, through_seq } = result else {
+        panic!("the projected source search is current through the requested event");
+    };
+    assert_eq!(through_seq, case.lab.head_seq());
+    assert!(hits.iter().any(|hit| {
+        hit.source_path == case.target.source_path && hit.document_id == case.target.record_id
+    }));
+    serde_json::to_value(json!({"through_seq":through_seq,"hits":hits})).unwrap()
+}
+
+fn current_custody_revision(case: &RevisionCase, source_path: &str) -> u64 {
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    u64::try_from(
+        db.query_one(
+            "SELECT revision FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &source_path],
+        )
+        .unwrap()
+        .get::<_, i64>(0),
+    )
+    .unwrap()
+}
+
+fn cold_exact_source_bytes(case: &mut RevisionCase, source_path: &str, revision: u64) -> Vec<u8> {
+    let retained = case
+        .lab
+        .db
+        .cold_recover_exact(&case.lab.store, &case.lab.domain, source_path, revision)
+        .expect("exact selected source custody revision remains cold-recoverable");
+    case.lab
+        .db
+        .warm_read_selected(&case.lab.store, &retained, 1_048_576)
+        .unwrap()
+}
+
+fn cold_recovery_cut(case: &mut RevisionCase) -> Value {
+    let cut = case
+        .lab
+        .db
+        .cold_verify_cut(&case.lab.store, &case.lab.domain)
+        .expect(
+            "restored or continued PG/STO domain passes cold metadata and custody verification",
+        );
+    json!({
+        "log_digest":cut.log_digest().to_hex(),
+        "through_commit_seq":cut.through_commit_seq(),
+        "historical_members":cut.historical_members()
+    })
+}
+
+fn run_recovery_cli(binary: &Path, operation: &str, args: &[String], pg_url: &str) -> Value {
+    let output = Command::new(binary)
+        .arg(operation)
+        .args(args)
+        .env("TOS_BACKUP_PG_URL", pg_url)
+        .output()
+        .expect("the pinned native backup/restore owner command starts");
+    assert!(
+        output.stdout.len() <= 1_048_576 && output.stderr.len() <= 1_048_576,
+        "native recovery owner output remains bounded"
+    );
+    assert!(
+        output.status.success(),
+        "native {operation} refuses: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout)
+        .expect("the native recovery owner returns one JSON result")
+}
+
+fn recovery_tool_pin(path_name: &str, digest_name: &str) -> (PathBuf, String) {
+    let path = PathBuf::from(
+        std::env::var_os(path_name).unwrap_or_else(|| panic!("{path_name} is required")),
+    );
+    assert!(
+        path.is_absolute(),
+        "{path_name} is an absolute executable path"
+    );
+    let digest = std::env::var(digest_name).unwrap_or_else(|_| panic!("{digest_name} is required"));
+    let observed = Digest256::of_bytes(&fs::read(&path).expect("selected PG tool reads")).to_hex();
+    assert_eq!(
+        digest, observed,
+        "{digest_name} pins the exact owner-selected PG16 tool bytes"
+    );
+    (path, digest)
+}
+
+fn base_recovery_args(
+    operation: &str,
+    case: &RevisionCase,
+    backup_root: &Path,
+    store_root: &Path,
+    tool_path: &Path,
+    tool_digest: &str,
+) -> Vec<String> {
+    let store_limits = limits();
+    let mut args = vec![
+        "--domain".to_owned(),
+        case.lab.domain.clone(),
+        "--store-root".to_owned(),
+        store_root.display().to_string(),
+        "--backup-root".to_owned(),
+        backup_root.display().to_string(),
+        "--pg-tool".to_owned(),
+        tool_path.display().to_string(),
+        "--pg-tool-sha256".to_owned(),
+        tool_digest.to_owned(),
+        "--max-segment-bytes".to_owned(),
+        store_limits.max_segment_bytes.to_string(),
+        "--max-frame-bytes".to_owned(),
+        store_limits.max_frame_bytes.to_string(),
+        "--max-frames".to_owned(),
+        store_limits.max_frames.to_string(),
+        "--max-journal-bytes".to_owned(),
+        store_limits.max_journal_bytes.to_string(),
+        "--max-seconds".to_owned(),
+        "240".to_owned(),
+    ];
+    if operation == "backup" {
+        args.extend(["--confirm-quiescent-owner".to_owned(), "yes".to_owned()]);
+    } else {
+        args.extend(["--confirm-fresh-target-owner".to_owned(), "yes".to_owned()]);
+    }
+    args
+}
+
+fn retarget_revision_owner(case: &mut RevisionCase, store_root: &Path) {
+    let mut owner: Value = serde_json::from_slice(&fs::read(&case.owner_config).unwrap()).unwrap();
+    assert_eq!(
+        owner["schema_version"],
+        "tos_local_corpus_revision_owner_v1"
+    );
+    let original_source_root = case.source_root.to_string_lossy().into_owned();
+    assert_eq!(owner["source_root"], original_source_root);
+    let mut expected = owner.clone();
+    let restored_source_root = store_root.canonicalize().unwrap();
+    expected["source_root"] = json!(restored_source_root);
+    owner["source_root"] = expected["source_root"].clone();
+    assert_eq!(
+        owner, expected,
+        "restoration changes only the bound private store path"
+    );
+    fs::write(&case.owner_config, canonical(&owner)).unwrap();
+    fs::set_permissions(&case.owner_config, fs::Permissions::from_mode(0o600)).unwrap();
+    let metadata = fs::metadata(&case.owner_config).unwrap();
+    assert_eq!(metadata.mode() & 0o777, 0o600);
+    case.source_root = restored_source_root;
+}
+
+fn continue_native_revision_after_restore(
+    case: &mut RevisionCase,
+    software: &SoftwareFixture,
+    binary: &Path,
+    previous_current: &[u8],
+    prior_projection_head: u64,
+    prior_domain: &Value,
+    prior_projection: &Value,
+) -> Value {
+    let target = case.target;
+    let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    let invocation_path = case
+        ._owner_scratch
+        .0
+        .join("restored-revision-invocation.json");
+    invocation(
+        case,
+        software,
+        binary,
+        &worker_path,
+        &invocation_path,
+        &case.owner_config,
+        "tos_local_pg_record_revision_invocation_v1",
+    );
+    let described = invoke(
+        binary,
+        &invocation_path,
+        &case.lab.url,
+        &json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+        false,
+    )
+    .result;
+    assert_eq!(described["source"]["id"], target.record_id);
+    assert_eq!(
+        described["owner_configuration"],
+        owner_configuration_digest(&case.owner_config)
+    );
+    let label = "Парменид Элейский Restored";
+    let preview_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-revise",
+        "fields":{"preferred_label":label},
+        "forms":target.form_ids.iter().zip(target.form_fields)
+            .map(|(form_id,field_id)|json!({"form_id":form_id,"field_id":field_id}))
+            .collect::<Vec<_>>(),
+        "reason":"Bounded native continuation after private PG/STO restoration; no source, semantic, rights, or canon admission."
+    });
+    let preview = invoke(
+        binary,
+        &invocation_path,
+        &case.lab.url,
+        &preview_request,
+        false,
+    )
+    .result;
+    assert_eq!(
+        preview["owner_configuration"],
+        described["owner_configuration"]
+    );
+    let mut request = preview_request;
+    request["operation"] = json!("record.revise");
+    request["command_id"] = json!("test:pg-parmenides-post-restore-correction");
+    for (field, prepared) in [
+        ("expected_configuration", "owner_configuration"),
+        ("expected_dependencies", "expected_dependencies"),
+        ("expected_source", "source"),
+        ("expected_revision", "revision"),
+    ] {
+        request[field] = preview[prepared].clone();
+    }
+    let restored_head = case.lab.head_seq();
+    assert_eq!(restored_head, prior_projection_head);
+    let previous_custody_revision = current_custody_revision(case, target.source_path);
+    assert_eq!(previous_custody_revision, 2);
+    let current_before = source_member(case, target.source_path);
+    assert_eq!(current_before, previous_current);
+    let before_counts =
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
+    let committed = invoke(binary, &invocation_path, &case.lab.url, &request, true);
+    let committed_head = case.lab.head_seq();
+    assert_eq!(committed_head, restored_head + 1);
+    let committed_counts =
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
+    assert_eq!(committed_counts[4], before_counts[4] + 1);
+    let retry = invoke(binary, &invocation_path, &case.lab.url, &request, false);
+    assert_eq!(retry.result["replayed"], true);
+    assert_eq!(case.lab.head_seq(), committed_head);
+    assert_eq!(
+        ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table)),
+        committed_counts,
+        "the exact post-restore retry adds no second commit"
+    );
+    let current = source_member(case, target.source_path);
+    let mut expected: Value = serde_json::from_slice(&current_before).unwrap();
+    expected["preferred_label"] = json!(label);
+    expected["record_version"] = json!(3);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&current).unwrap(),
+        expected,
+        "the second owner-checked native revision continues authored record version three"
+    );
+    assert_eq!(
+        current_custody_revision(case, target.source_path),
+        previous_custody_revision + 1
+    );
+    let forms: Value = serde_json::from_slice(&source_member(case, target.forms_path)).unwrap();
+    assert_eq!(forms["forms"].as_array().unwrap().len(), 3);
+    assert!(
+        forms["forms"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|form| form["form_version"] == 3)
+    );
+    let changed_paths = history_source_paths(case, committed_head);
+    for path in [target.source_path, target.forms_path, target.history_path] {
+        assert!(changed_paths.iter().any(|changed| changed == path));
+    }
+    let new_cut = cold_recovery_cut(case);
+    assert_eq!(new_cut["through_commit_seq"], committed_head);
+    assert_ne!(new_cut["through_commit_seq"], prior_projection_head);
+    assert_eq!(
+        cold_exact_source_bytes(case, target.source_path, previous_custody_revision),
+        current_before
+    );
+    assert_eq!(
+        cold_exact_source_bytes(case, target.source_path, 1),
+        case.original_record
+    );
+    assert_eq!(
+        cold_exact_source_bytes(case, target.source_path, previous_custody_revision + 1),
+        current
+    );
+    let domain_after = real_recovery_metadata_snapshot(case)["domain"].clone();
+    for key in [
+        "rights_version",
+        "rights_allowed",
+        "rule_version",
+        "contract_digest",
+        "source_revision",
+        "source_membership_digest",
+        "source_membership_count",
+        "source_epoch",
+        "source_complete",
+    ] {
+        assert_eq!(
+            domain_after[key], prior_domain[key],
+            "restored source/policy field {key} remains stable during continuation"
+        );
+    }
+    assert_eq!(
+        domain_after["source_generation"], committed_head,
+        "the native revision advances the selected source generation to its commit sequence"
+    );
+    for key in [
+        "selected_generation_digest",
+        "complete_cut_digest",
+        "complete_cut_generation",
+        "source_projection_digest",
+    ] {
+        assert_eq!(
+            domain_after[key],
+            Value::Null,
+            "the earlier selected generation is invalidated by source revision: {key}"
+        );
+    }
+    let projection_profile = DurableProjectionProfile {
+        id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
+        version: 1,
+        source_contract: contract_digest(),
+    };
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, "private-pg-real-backup-restore", &projection_profile, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == prior_projection_head && head_seq == committed_head
+    ));
+    assert_eq!(
+        real_projection_snapshot(case, "private-pg-real-backup-restore"),
+        *prior_projection,
+        "backup projection rows remain at their verified pre-continuation cursor"
+    );
+    json!({
+        "before_head":restored_head,
+        "committed_head":committed_head,
+        "before_counts":before_counts,
+        "committed_counts":committed_counts,
+        "source_path":target.source_path,
+        "previous_custody_revision":previous_custody_revision,
+        "current_custody_revision":previous_custody_revision+1,
+        "current_record_sha256":Digest256::of_bytes(&current).to_hex(),
+        "retained_previous_record_sha256":Digest256::of_bytes(&current_before).to_hex(),
+        "native_invocations":{
+            "describe":described,
+            "reply_dropped":committed.resources,
+            "same_command_retry":retry.resources
+        },
+        "replayed":retry.result["replayed"],
+        "projection_status_after_commit":"pending at the restored pre-write cursor",
+        "cold_cut_after_commit":new_cut
+    })
+}
+
+/// Runs the recovery check on dedicated explicit databases so the shared
+/// postgres_durable_lab URL and its test fixtures remain untouched.
+pub(super) fn run_parmenides_backup_restore_regression() -> Value {
+    let source_url = std::env::var("TOS_CMD2_REAL_SOURCE_BACKUP_PG_URL")
+        .expect("TOS_CMD2_REAL_SOURCE_BACKUP_PG_URL selects a fresh dedicated PG16 database");
+    let restore_url = std::env::var("TOS_CMD2_V2_RESTORE_PG_URL")
+        .expect("TOS_CMD2_V2_RESTORE_PG_URL selects a distinct fresh restore database");
+    let (source_database, source_tables) = recovery_database_state(&source_url);
+    let (restore_database, restore_tables) = recovery_database_state(&restore_url);
+    let shared_url = database_url();
+    let (shared_database, _) = recovery_database_state(&shared_url);
+    assert_ne!(
+        source_database, restore_database,
+        "backup and restore use distinct database names"
+    );
+    assert_ne!(
+        (recovery_pg_endpoint(&source_url), source_database.clone()),
+        (recovery_pg_endpoint(&shared_url), shared_database.clone()),
+        "the backup source never reuses the shared postgres_durable_lab database"
+    );
+    assert_ne!(
+        (recovery_pg_endpoint(&restore_url), restore_database.clone()),
+        (recovery_pg_endpoint(&shared_url), shared_database),
+        "the restore target never reuses the shared postgres_durable_lab database"
+    );
+    assert_eq!(
+        source_tables, 0,
+        "the dedicated source database is empty before CMD.2 initialization"
+    );
+    assert_eq!(
+        restore_tables, 0,
+        "the restore target has no public tables before restore"
+    );
+    let (dump_path, dump_sha) =
+        recovery_tool_pin("TOS_CMD2_PG_DUMP_PATH", "TOS_CMD2_PG_DUMP_SHA256");
+    let (restore_path, restore_sha) =
+        recovery_tool_pin("TOS_CMD2_PG_RESTORE_PATH", "TOS_CMD2_PG_RESTORE_SHA256");
+
+    let deadline = Instant::now() + Duration::from_secs(600);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
+    let repository = repository_root();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let source = source_cut(&repository, 1, deadline, &cancelled);
+    let source_lab = new_real_backup_source_lab(&source_url);
+    let mut case = bootstrap_case_on_lab(
+        source_lab,
+        &software,
+        source,
+        PARMENIDES_TARGET,
+        deadline,
+        &cancelled,
+    );
+    let binary = native_binary();
+    let first_revision = record_correction(&mut case, &software, &binary);
+    let consumer = "private-pg-real-backup-restore";
+    let projection_work = project_real_source_to_current(&mut case, consumer);
+    let projection = real_projection_snapshot(&case, consumer);
+    let projection_search = real_projection_search(&mut case, consumer);
+    let source_path = case.target.source_path;
+    let source_current = source_member(&mut case, source_path);
+    let current_custody = current_custody_revision(&case, source_path);
+    assert_eq!(current_custody, 2);
+    let retained_v1 = cold_exact_source_bytes(&mut case, source_path, 1);
+    assert_eq!(retained_v1, case.original_record);
+    let source_cut_before = cold_recovery_cut(&mut case);
+    assert_eq!(source_cut_before["through_commit_seq"], case.lab.head_seq());
+    let metadata_before = real_recovery_metadata_snapshot(&case);
+
+    let backup_scratch = ScratchRoot::new();
+    fs::set_permissions(&backup_scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let backup_root = backup_scratch.0.canonicalize().unwrap();
+    let backup_args = base_recovery_args(
+        "backup",
+        &case,
+        &backup_root,
+        &case.source_root,
+        &dump_path,
+        &dump_sha,
+    );
+    let backup = run_recovery_cli(&binary, "backup", &backup_args, &source_url);
+    assert_eq!(backup["status"], "backup_complete");
+    assert_eq!(backup["receipt"]["schema"], "tos_cmd2_quiescent_backup_v1");
+    assert_eq!(backup["receipt"]["source_admission"], false);
+    assert_eq!(backup["receipt"]["production_quiescence_verified"], false);
+    let receipt_raw = fs::read(backup_root.join("receipt.json")).unwrap();
+    let receipt_sha = Digest256::of_bytes(&receipt_raw).to_hex();
+    assert_eq!(backup["receipt_sha256"], receipt_sha);
+
+    let restored_scratch = ScratchRoot::new();
+    fs::set_permissions(&restored_scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let restored_root = restored_scratch.0.canonicalize().unwrap();
+    let mut restore_args = base_recovery_args(
+        "restore",
+        &case,
+        &backup_root,
+        &restored_root,
+        &restore_path,
+        &restore_sha,
+    );
+    restore_args.extend(["--receipt-sha256".to_owned(), receipt_sha.clone()]);
+    let restored = run_recovery_cli(&binary, "restore", &restore_args, &restore_url);
+    assert_eq!(restored["status"], "restore_verified");
+    assert_eq!(restored["domain"], case.lab.domain);
+    assert_eq!(restored["source_admission"], false);
+    assert_eq!(restored["source_currentness_granted"], false);
+    assert_eq!(restored["cut"], backup["receipt"]["cut"]);
+
+    let restored_db = DurablePgCoordinator::connect(&restore_url)
+        .expect("verified restore target database reopens");
+    let restored_store = tos_segment_store::SegmentStore::open_existing(&restored_root, limits())
+        .expect("verified restored STO root reopens");
+    let restored_domain = case.lab.domain.clone();
+    case.lab = Lab {
+        db: restored_db,
+        store: restored_store,
+        _root: restored_scratch,
+        domain: restored_domain,
+        url: restore_url,
+        attempt_fences: std::collections::HashMap::new(),
+    };
+    retarget_revision_owner(&mut case, &restored_root);
+
+    let restored_cut = cold_recovery_cut(&mut case);
+    assert_eq!(restored_cut, source_cut_before);
+    assert_eq!(real_recovery_metadata_snapshot(&case), metadata_before);
+    assert_eq!(real_projection_snapshot(&case, consumer), projection);
+    assert_eq!(
+        real_projection_search(&mut case, consumer),
+        projection_search
+    );
+    assert_eq!(
+        current_custody_revision(&case, source_path),
+        current_custody
+    );
+    assert_eq!(source_member(&mut case, source_path), source_current);
+    assert_eq!(
+        cold_exact_source_bytes(&mut case, source_path, 1),
+        retained_v1
+    );
+    assert_eq!(
+        cold_exact_source_bytes(&mut case, source_path, current_custody),
+        source_current
+    );
+    let domain_before_continuation = metadata_before["domain"].clone();
+    let projection_head = case.lab.head_seq();
+    let continuation = continue_native_revision_after_restore(
+        &mut case,
+        &software,
+        &binary,
+        &source_current,
+        projection_head,
+        &domain_before_continuation,
+        &projection,
+    );
+    json!({
+        "domain":case.lab.domain,
+        "source_path":case.target.source_path,
+        "source_current_sha256":Digest256::of_bytes(&source_current).to_hex(),
+        "retained_v1_sha256":Digest256::of_bytes(&retained_v1).to_hex(),
+        "initial_native_revision":first_revision,
+        "projection_work":projection_work,
+        "projection_before_backup":projection,
+        "projection_search_before_and_after_restore":projection_search,
+        "backup":{
+            "status":backup["status"],
+            "receipt_sha256":receipt_sha,
+            "cut":backup["receipt"]["cut"],
+            "source_admission":backup["receipt"]["source_admission"],
+            "production_quiescence_verified":backup["receipt"]["production_quiescence_verified"]
+        },
+        "restore":{
+            "status":restored["status"],
+            "cut":restored["cut"],
+            "source_admission":restored["source_admission"],
+            "source_currentness_granted":restored["source_currentness_granted"],
+            "metadata_and_outbox_exact":true,
+            "projection_consumer_documents_dependencies_exact":true,
+            "cold_current_and_retained_source_bytes_exact":true
+        },
+        "continuation":continuation,
+        "owner_config_path_retargeted_only":true,
+        "claims":{"source_admission":false,"source_currentness_granted":false}
+    })
 }
