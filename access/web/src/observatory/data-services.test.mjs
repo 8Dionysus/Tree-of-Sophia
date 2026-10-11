@@ -27,8 +27,31 @@ test('source-text query posts a JSON object through the existing selected transp
   assert.equal(calls[0].url,'/api/source-text/search');
   assert.equal(calls[0].options.method,'POST');
   assert.equal(calls[0].options.headers['Content-Type'],'application/json');
-  assert.strictEqual(calls[0].options.signal,controller.signal);
+  assert.ok(calls[0].options.signal instanceof AbortSignal);
   assert.deepEqual(JSON.parse(calls[0].options.body),input);
+});
+
+test('source-text query cancellation reaches the selected transport and keeps its reason',async()=>{
+  let fetchSignal,started;
+  const requestStarted=new Promise(resolve=>{started=resolve;});
+  const controller=new AbortController();
+  const data=createObservatoryData({timeoutMs:30000,fetcher:(_url,options)=>{
+    fetchSignal=options.signal;
+    started();
+    // Deliberately uncooperative transport: KnowledgeClient must still finish
+    // the request from its own abort signal without waiting for this promise.
+    return new Promise(()=>{});
+  }});
+  const pending=data.queries.invoke('tos.source-text.search',{
+    query:'fate',document_types:['agent'],source_paths:['ToS/source-witnesses/agents'],limit:12,cursor:null,
+  },{signal:controller.signal});
+  await requestStarted;
+  assert.ok(fetchSignal instanceof AbortSignal);
+  const reason=new DOMException('search cancelled','AbortError');
+  controller.abort(reason);
+  await assert.rejects(pending,error=>error===reason);
+  assert.equal(fetchSignal.aborted,true);
+  assert.strictEqual(fetchSignal.reason,reason);
 });
 
 test('unavailable legacy material keeps its status for the evidence boundary',async()=>{

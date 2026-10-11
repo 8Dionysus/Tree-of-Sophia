@@ -249,7 +249,7 @@ describe("ToS query operations", () => {
     expect(calls[0].options?.signal).toBe(controller.signal);
     expect(calls[0].options?.headers).toMatchObject({"content-type": "application/json"});
     expect(JSON.parse(String(calls[0].options?.body))).toEqual({
-      query: "  Über ", document_types: ["agent"], source_paths: ["ToS/source-witnesses/agents"],
+      query: "  Über  ", document_types: ["agent"], source_paths: ["ToS/source-witnesses/agents"],
       limit: 12, cursor: "opaque-before",
     });
     expect(result).toBe(response);

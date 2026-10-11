@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 // Compare the installed Rust pose path through the real saved-place readers.
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import {validatePose} from '../../../../access/web/src/observatory/view-state.mjs';
 import {validatePoseLegacyOracle} from '../../../../access/web/src/observatory/view-state-legacy-oracle.test-support.mjs';
-import {installClientPacketRules} from '../../../../access/web/src/observatory/client-packet-rules.mjs';
-import {installPoseRules} from '../../../../access/web/src/observatory/view-state-rust.mjs';
 import {capturePlace,readPlaces,savePlace,readResume,RESUME_KEY} from '../../../../access/web/src/observatory/place-model.mjs';
 
 const [bindingPath,wasmPath]=process.argv.slice(2);
 if(!bindingPath||!wasmPath)throw new Error('usage: node pose-wasm-host.mjs BINDING.mjs MODULE_bg.wasm');
+const expectedBindingPath=fileURLToPath(new URL(
+  '../../../../access/deploy/cloudflare-worker/generated/tos_web_rules.js',import.meta.url));
+const expectedWasmPath=fileURLToPath(new URL(
+  '../../../../access/deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
+assert.equal(resolve(bindingPath),expectedBindingPath,'the host must use the generated binding installed for this source tree');
+assert.equal(resolve(wasmPath),expectedWasmPath,'the host must use the WASM paired with that generated binding');
 const pose=()=>({lens:'constellations',yaw:-0,pitch:-.1,zoom:1.3,pan:{x:-0,y:35},selectedId:'opaque:\ud800',relationId:null,
   panelOpen:true,cardTab:'relations',vertices:[{id:'opaque:\ud800',slot:-0,p:[-0,1,2],sourcePosition:[0,-0,2],target:[0,1,-0],volumeZ:-0,sceneText:'discard'}],raw:'discard'});
 let unrelated={};for(let i=0;i<140;i++)unrelated={next:unrelated};
@@ -27,10 +31,8 @@ for(const value of invalid)assert.throws(()=>validatePoseLegacyOracle(structured
 assert.throws(()=>validatePose(structuredClone(valid[0])),
   'the product adapter has no JavaScript fallback before the owner rule is installed');
 
-const rules=await import(pathToFileURL(bindingPath).href);
-await rules.default({module_or_path:await readFile(wasmPath)});
-installPoseRules(rules);
-installClientPacketRules(rules);
+await import(pathToFileURL(bindingPath).href);
+await import('../../../../access/web/src/observatory/human-forms-wasm-test-runtime.mjs');
 for(let index=0;index<valid.length;index++)assert.deepEqual(validatePose(structuredClone(valid[index])),oracle[index],`pose ${index}`);
 for(const value of invalid)assert.throws(()=>validatePose(structuredClone(value)));
 
