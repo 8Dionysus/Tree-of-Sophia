@@ -5,6 +5,7 @@ use crate::{
     Error, KnowledgeRegistry, Result,
     d1_public_capture::{CreationState, PublicCapture},
     knowledge_stage::{CoreRoots, KnowledgeStage},
+    native_normalization_binding::NativeNormalizationBinding,
 };
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -152,8 +153,7 @@ pub(crate) fn build_public_header(
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     source_revision: &str,
-    processor_digest: Digest256,
-    configuration_digest: Digest256,
+    normalization_binding: &NativeNormalizationBinding,
     semantics: ValidatedGraphSemantics,
 ) -> Result<Value> {
     if !stage.public_build() {
@@ -165,8 +165,7 @@ pub(crate) fn build_public_header(
         registry,
         entity_bytes,
         source_revision,
-        processor_digest,
-        configuration_digest,
+        normalization_binding,
         semantics,
     )
 }
@@ -177,8 +176,7 @@ pub(crate) fn build_native_snapshot_header(
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     source_revision: &str,
-    processor_digest: Digest256,
-    configuration_digest: Digest256,
+    normalization_binding: &NativeNormalizationBinding,
     semantics: ValidatedGraphSemantics,
 ) -> Result<Value> {
     if stage.public_build()
@@ -192,8 +190,7 @@ pub(crate) fn build_native_snapshot_header(
         registry,
         entity_bytes,
         source_revision,
-        processor_digest,
-        configuration_digest,
+        normalization_binding,
         semantics,
     )
 }
@@ -204,8 +201,7 @@ fn build_public_header_captured(
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     source_revision: &str,
-    processor_digest: Digest256,
-    configuration_digest: Digest256,
+    normalization_binding: &NativeNormalizationBinding,
     semantics: ValidatedGraphSemantics,
 ) -> Result<Value> {
     let semantic_report = &semantics.report;
@@ -216,8 +212,7 @@ fn build_public_header_captured(
             registry,
             entity_bytes,
             source_revision,
-            processor_digest,
-            configuration_digest,
+            normalization_binding,
             semantics,
             state,
         );
@@ -275,13 +270,7 @@ fn build_public_header_captured(
     let mut header = json!({
         "schema":"tos_knowledge_graph_v1",
         "source_revision":source_revision,
-        "normalization_binding":{
-            "schema":"tos_knowledge_graph_normalization_binding_v1",
-            "processor_digest":processor_digest.to_hex(),
-            "entity_registry_digest":registry.entity_semantic_digest,
-            "relation_registry_digest":registry.relation_semantic_digest,
-            "configuration_digest":configuration_digest.to_hex()
-        },
+        "normalization_binding":normalization_binding.to_value(),
         "query_properties":query_properties,
         "counts":{
             "nodes":roots.nodes,"relations":roots.relations,"sources":sources,
@@ -345,8 +334,7 @@ fn build_owned_header(
     registry: &KnowledgeRegistry,
     entity_bytes: &[u8],
     source_revision: &str,
-    processor: Digest256,
-    configuration: Digest256,
+    normalization_binding: &NativeNormalizationBinding,
     semantics: ValidatedGraphSemantics,
     state: &CreationState<'_>,
 ) -> Result<Value> {
@@ -434,12 +422,14 @@ fn build_owned_header(
             + 20 * 18,
     )?;
     output["source_revision"] = Value::String(source_revision.to_owned());
-    output["normalization_binding"]["processor_digest"] = Value::String(processor.to_hex());
+    output["normalization_binding"]["processor_digest"] =
+        Value::String(normalization_binding.processor_digest.to_hex());
     output["normalization_binding"]["entity_registry_digest"] =
-        Value::String(registry.entity_semantic_digest.clone());
+        Value::String(normalization_binding.entity_registry_digest.clone());
     output["normalization_binding"]["relation_registry_digest"] =
-        Value::String(registry.relation_semantic_digest.clone());
-    output["normalization_binding"]["configuration_digest"] = Value::String(configuration.to_hex());
+        Value::String(normalization_binding.relation_registry_digest.clone());
+    output["normalization_binding"]["configuration_digest"] =
+        Value::String(normalization_binding.configuration_digest.to_hex());
     output["query_properties"] = Value::Array(properties);
     for (key, value) in [("nodes", roots.nodes), ("relations", roots.relations)] {
         output["counts"][key] = Value::from(value);

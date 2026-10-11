@@ -3,7 +3,9 @@
 //! Prepared bibliographic rows remain the authority for associations. This
 //! module writes private base rows and Claim semantics, never admits them.
 use crate::knowledge_global_titles::{GlobalTitleReceipt, endpoint_title, verify_global_titles};
-use crate::knowledge_normalization::{SourceRow, stable_digest, stamp_content_revision};
+use crate::knowledge_normalization::{
+    SourceRow, stable_digest, stamp_addressed_candidate_content_revision, stamp_content_revision,
+};
 use crate::knowledge_philosophy_display::{
     ordinary_philosophy_relation_display, source_navigation_node_display,
 };
@@ -363,6 +365,31 @@ impl<'a> ClaimNormalizer<'a> {
             limits,
         })
     }
+    pub(crate) fn new_for_addressed_candidate(
+        registry: &'a KnowledgeRegistry,
+        entity_bytes: &[u8],
+        relation_bytes: &[u8],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
+        limits: ClaimNormalizeLimits,
+    ) -> Result<Self> {
+        if limits.max_raw_bytes == 0 || limits.max_output_bytes == 0 {
+            return Err(Error::Budget("Claim addressed candidate limits"));
+        }
+        let mut ordinary_limits = limits;
+        ordinary_limits.max_raw_bytes = ordinary_limits.max_raw_bytes.min(8 * 1024 * 1024);
+        ordinary_limits.max_output_bytes = ordinary_limits.max_output_bytes.min(8 * 1024 * 1024);
+        let mut normalizer = Self::new(
+            registry,
+            entity_bytes,
+            relation_bytes,
+            vocabulary,
+            descriptor_bytes,
+            ordinary_limits,
+        )?;
+        normalizer.limits = limits;
+        Ok(normalizer)
+    }
     fn verify(&self, raw: &SeekRow, prepared: &ClaimPrepareReceipt) -> Result<()> {
         if raw.source_graph != self.source_graph
             || prepared.source_graph != self.source_graph
@@ -439,7 +466,15 @@ impl<'a> ClaimNormalizer<'a> {
         predicate: Option<&str>,
         dossier: Option<&str>,
     ) -> Result<Value> {
-        self.normalize_supplied_node_with_source(raw, predicate, dossier)
+        self.normalize_supplied_node_with_source(raw, predicate, dossier, false)
+            .map(|(value, _)| value)
+    }
+    pub(crate) fn normalize_addressed_candidate_node(
+        &self,
+        raw: &SeekRow,
+        dossier: Option<&str>,
+    ) -> Result<Value> {
+        self.normalize_supplied_node_with_source(raw, None, dossier, true)
             .map(|(value, _)| value)
     }
     fn normalize_supplied_node_with_source(
@@ -447,13 +482,29 @@ impl<'a> ClaimNormalizer<'a> {
         raw: &SeekRow,
         predicate: Option<&str>,
         dossier: Option<&str>,
+        addressed_candidate: bool,
     ) -> Result<(Value, Vec<u8>)> {
         self.verify_supplied(raw)?;
         if dossier.is_some_and(|id| id.is_empty() || id.len() > 4096) {
             return Err(Error::Invalid("Claim supplied dossier identifier"));
         }
-        let original = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
-        if required(original.value(), "node_id")? != raw.id {
+        let original = if addressed_candidate {
+            SourceRow::parse_addressed_candidate(
+                &raw.payload,
+                self.limits.max_raw_bytes,
+                self.limits.max_output_bytes,
+            )?
+        } else {
+            SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?
+        };
+        let identity_matches = if addressed_candidate {
+            ["node_id", "id", "path"]
+                .iter()
+                .any(|field| text(original.value().get(*field)) == Some(raw.id.as_str()))
+        } else {
+            required(original.value(), "node_id")? == raw.id
+        };
+        if !identity_matches {
             return Err(Error::Invalid("Claim node ID"));
         }
         let mut item = original.value().clone();
@@ -463,7 +514,15 @@ impl<'a> ClaimNormalizer<'a> {
         layers.dedup();
         item["graph_layers"] = json!(layers);
         let material = encode(&item, self.limits.max_raw_bytes)?;
-        let source = SourceRow::parse(&material, self.limits.max_raw_bytes)?;
+        let source = if addressed_candidate {
+            SourceRow::parse_addressed_candidate(
+                &material,
+                self.limits.max_raw_bytes,
+                self.limits.max_output_bytes,
+            )?
+        } else {
+            SourceRow::parse(&material, self.limits.max_raw_bytes)?
+        };
         let props = &item["properties"];
         let raw_kind = required(&item, "node_kind")?;
         let profile = predicate
@@ -593,7 +652,11 @@ impl<'a> ClaimNormalizer<'a> {
         if let Some(dossier) = dossier {
             output["source_dossier_ref"] = json!(dossier);
         }
-        stamp_content_revision(&mut output, self.limits.max_output_bytes)?;
+        if addressed_candidate {
+            stamp_addressed_candidate_content_revision(&mut output, self.limits.max_output_bytes)?;
+        } else {
+            stamp_content_revision(&mut output, self.limits.max_output_bytes)?;
+        }
         Ok((output, material))
     }
     pub fn finalize_claim(
@@ -1219,6 +1282,7 @@ pub fn materialize_source_claim_nodes(
                     &raw,
                     predicate.as_deref(),
                     dossier.as_deref(),
+                    false,
                 )?;
                 let bytes = encode(&output, normalizer.limits.max_output_bytes)?;
                 charge(&mut work, bytes.len(), normalizer.limits.max_work_bytes)?;

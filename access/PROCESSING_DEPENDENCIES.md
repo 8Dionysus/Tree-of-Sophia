@@ -99,41 +99,55 @@ validation and publication remain separate obligations.
 
 ## Bounded direct-carrier computation
 
-`tos_access.addressed_replacement.replace_direct_carrier_candidate` accepts one
-exact prior normalized direct carrier, its complete replacement source record,
-supplied incident relation rows, all their other endpoint rows, and the exact
-normalization binding and registries. It uses the same local implementation as
-`addressed_update_knowledge_graph`: direct-source/claim/dossier/reference-context
-guards, endpoint statements, inherited views, readable context and content
-revisions remain shared. It does not discover source records or relations.
+The public Rust library API
+`tos_compiler::replace_direct_carrier_candidate` (module `addressed_replacement`)
+accepts one exact prior normalized direct carrier, its complete replacement
+source record, supplied incident relation rows, all their other endpoint rows,
+the supplied prior normalization binding and registries, plus an explicit
+`AddressedNormalizationContext` for the current producer. The context carries
+the current processor digest and exact query-descriptor, entity-registry, and
+relation-registry bytes from the same capture or prepare operation. The
+processor digest comes from that producer's owner evidence: the captured
+repository software binding on the native snapshot route, or the measured
+executing processor on native prepare. This context is a caller-supplied
+current-state claim; the candidate does not establish capture custody. It uses the shared
+`KnowledgeBaseNormalizer`, `NavigationNodeNormalizer`, `ClaimNormalizer`,
+relation normalizer and `ReadableContextCompiler`; it does not discover source
+records or relations, run a complete snapshot rebuild, or publish a graph.
 
-The candidate entry checks normalized identities, source-envelope digests and
-content revisions. These are self-consistency checks, not independently admitted
-baseline provenance. Endpoints exclude the prior carrier; missing required
+The candidate checks normalized identities, source-envelope digests and content
+revisions. The candidate and native producers share one binding helper: it
+combines the caller-supplied current processor digest, semantic digests of the
+parsed registries, and a length-prefixed digest of the exact descriptor and
+registry bytes. The candidate parses and uses those same bytes, then requires
+exact equality with the supplied prior binding. These are self-consistency
+checks, not independently admitted baseline provenance. Endpoints exclude the prior carrier; missing required
 endpoints, duplicate rows and nonincident supplied relations fail. Empty supplied
-incidence is permitted but **never verified complete**. Identity/type changes
-retain the local computation's previous behavior; a candidate cannot authorize
-them or replace the full wrapper's global semantic validation.
+incidence is permitted but **never verified complete**. Claim-enriched and
+record-version carriers remain refused because they require wider owner
+assembly. A candidate cannot authorize source or identity changes or replace
+complete source-transition and global semantic validation.
 
-`ReplacementLimits` defaults to 1024 relations, 2048 other endpoints, 16 MiB of
-compact UTF-8 JSON input (including both registries and binding), and 16 MiB of
-output rows. Counts and input bytes are checked before cloning or normalization;
+`AddressedReplacementLimits` defaults to 1024 relations, 2048 other endpoints,
+16 MiB for compact UTF-8 JSON inputs (supplied rows, registry values, and
+binding) together with the exact descriptor and registry bytes in the current
+context, and 16 MiB of output rows. Counts and input bytes are checked before normalization;
 output bytes are checked after each computed row before it joins the result.
-Only exact JSON types, finite numbers and at most 64 container levels qualify.
-Limits refuse work; they are not a process RSS bound. No partial result escapes.
+The Rust `serde_json::Value` input admits JSON values only and the preflight is
+bounded to 64 container levels. Limits refuse work; they are not a process RSS
+bound. No partial result escapes.
 
 The result contains detached candidate node/relation rows, accounting and an
 explicit `supplied-neighborhood-local-only` scope. It provides no source revision,
 catalog, global semantic validation, incidence completeness or current publication
-claim. Ambient normalization-cache writes are disabled and restored on exit; no
-partial processing run is published. The full wrapper still extracts incidence
-from complete arrays and performs its original global scans/validation, without
-acquiring this new public entry's refusal caps. It shares the computation, not
-the narrower admission profile. Source-owner paired before/after membership and
-source-to-COW-to-prepared publication remain unimplemented.
+claim. The Rust full addressed route,
+`build_native_addressed_knowledge_snapshot_from_capture`, continues to validate a
+complete source transition and rebuild the snapshot; this candidate API is a
+separate bounded library computation and does not replace that route. Source-owner
+paired before/after membership and source-to-COW-to-prepared publication remain
+unimplemented.
 
-Focused tiny-fixture checks: `PYTHONPATH=access/src:access/tests python -m unittest
-test_addressed_replacement test_processing test_builder_ownership`.
+Focused candidate checks: `cargo test -p tos-compiler addressed_replacement::tests`.
 
 Focused checks: `PYTHONPATH=access/src:access/tests python -m unittest
 test_processing_closure`. Existing processing tests retain ownership of full-run

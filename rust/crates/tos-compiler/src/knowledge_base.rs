@@ -1,12 +1,16 @@
 //! Shared bounded base assembly for ordinary owner node/edge carriers.
 //! These pure mechanics normalize selected registry mappings and preserve raw
 //! source records; source adapters still own input completeness and admission.
-use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
+use crate::knowledge_normalization::{
+    SourceRow, stamp_addressed_candidate_content_revision, stamp_content_revision,
+};
 use crate::knowledge_philosophy_display::{
     full_owner_relation_display, full_philosophy_node_display,
 };
 use crate::knowledge_source_navigation_node::{ASSERTION_FIELDS, epistemic, normalized_time};
-use crate::knowledge_source_navigation_relation::direct_assertion_context;
+use crate::knowledge_source_navigation_relation::{
+    direct_assertion_context, direct_assertion_context_addressed_candidate,
+};
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
 use serde_json::{Map, Value, json};
 use std::{
@@ -36,6 +40,7 @@ pub struct KnowledgeBaseNormalizer<'a> {
     limits: BaseNormalizationLimits,
     owner_state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
 }
+
 struct CappedBytes {
     bytes: usize,
     cap: usize,
@@ -261,6 +266,10 @@ fn source_epistemic(item: &Value, default_authority: &str) -> Value {
 // These are conservative logical ownership bounds, not RSS measurements.
 const NODE_SOURCE_DESTINATION_ENVELOPES: usize = 8;
 const FIXED_NODE_SCHEMA_ENVELOPE: usize = 64 * 1024;
+const ENTITY_REGISTRY_REF: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
+const RELATION_REGISTRY_REF: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
+pub(crate) const ADDRESS_UPDATE_SOURCE_GRAPHS: &[&str] =
+    &["philosophy", "canon", "source-navigation", "source-claims"];
 
 fn add_owned_bytes(total: &mut usize, bytes: usize, label: &'static str) -> Result<()> {
     *total = total.checked_add(bytes).ok_or(Error::Budget(label))?;
@@ -607,6 +616,45 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             Some(state),
         )
     }
+    /// Construct the shared base normalizer for an explicitly supplied local
+    /// candidate. The descriptor and registry identities remain checked; the
+    /// candidate source set is only a bounded allowlist, never admission.
+    pub(crate) fn new_for_addressed_candidate(
+        registry: &'a KnowledgeRegistry,
+        entity_bytes: &[u8],
+        relation_bytes: &[u8],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
+        source_graphs: &[String],
+        limits: BaseNormalizationLimits,
+    ) -> Result<Self> {
+        let candidate_output_bytes = limits.max_output_bytes;
+        if candidate_output_bytes == 0 {
+            return Err(Error::Budget("addressed candidate base output bytes"));
+        }
+        let mut ordinary_limits = limits;
+        ordinary_limits.max_output_bytes = ordinary_limits.max_output_bytes.min(8 * 1024 * 1024);
+        let mut normalizer = Self::new(
+            registry,
+            entity_bytes,
+            relation_bytes,
+            vocabulary,
+            descriptor_bytes,
+            ordinary_limits,
+        )?;
+        if source_graphs.is_empty()
+            || source_graphs
+                .iter()
+                .any(|source| !normalizer.sources.contains(source))
+        {
+            return Err(Error::Invalid("owner base candidate source graphs"));
+        }
+        normalizer.limits.max_output_bytes = candidate_output_bytes;
+        normalizer.sources = source_graphs.iter().cloned().collect();
+        normalizer.entity_registry_ref = ENTITY_REGISTRY_REF.into();
+        normalizer.relation_registry_ref = RELATION_REGISTRY_REF.into();
+        Ok(normalizer)
+    }
     /// Require the repository and normalizer to share the exact capture owner.
     pub(crate) fn ensure_same_owned_state(
         &self,
@@ -703,6 +751,22 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             limits,
             owner_state,
         })
+    }
+
+    fn stamp_output_revision(&self, value: &mut Value) -> Result<()> {
+        if self.limits.max_output_bytes > 8 * 1024 * 1024 {
+            stamp_addressed_candidate_content_revision(value, self.limits.max_output_bytes)
+        } else {
+            stamp_content_revision(value, self.limits.max_output_bytes)
+        }
+    }
+
+    fn assertion_context(&self, source: &SourceRow) -> Result<Option<Value>> {
+        if self.limits.max_output_bytes > 8 * 1024 * 1024 {
+            direct_assertion_context_addressed_candidate(source, self.limits.max_output_bytes)
+        } else {
+            direct_assertion_context(source, self.limits.max_output_bytes)
+        }
     }
 
     fn owned_node_output_hold(
@@ -1013,7 +1077,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
     ) -> Result<Value> {
         let mut value =
             self.normalize_node_unstamped(source, source_graph, canonical, overrides)?;
-        stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
+        self.stamp_output_revision(&mut value)?;
         Ok(value)
     }
 
@@ -1147,7 +1211,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
                 ),
             );
         }
-        if let Some(context) = direct_assertion_context(source, self.limits.max_output_bytes)? {
+        if let Some(context) = self.assertion_context(source)? {
             semantics.insert("assertion_contexts".into(), json!([context]));
         }
         if truthy(p("packet_id")) {
@@ -1501,6 +1565,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         let value = self.normalize_relation_unstamped(
             source,
             source_graph,
+            None,
             identity,
             left_title,
             right_title,
@@ -1559,12 +1624,41 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         let mut value = self.normalize_relation_unstamped(
             source,
             source_graph,
+            None,
             identity,
             left_title,
             right_title,
             default_authority,
         )?;
-        stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
+        self.stamp_output_revision(&mut value)?;
+        Ok(value)
+    }
+
+    /// Normalize a supplied incident relation while preserving its declared
+    /// native identity even when that identity is carried outside `edge_id`.
+    pub(crate) fn normalize_addressed_relation(
+        &self,
+        source: &SourceRow,
+        source_graph: &str,
+        native_id: &str,
+        identity: Option<&str>,
+        left_title: &Value,
+        right_title: &Value,
+        default_authority: &str,
+    ) -> Result<Value> {
+        if native_id.trim().is_empty() {
+            return Err(Error::Invalid("owner addressed relation native ID"));
+        }
+        let mut value = self.normalize_relation_unstamped(
+            source,
+            source_graph,
+            Some(native_id),
+            identity,
+            left_title,
+            right_title,
+            default_authority,
+        )?;
+        self.stamp_output_revision(&mut value)?;
         Ok(value)
     }
 
@@ -1572,6 +1666,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         &self,
         source: &SourceRow,
         source_graph: &str,
+        native_override: Option<&str>,
         identity: Option<&str>,
         left_title: &Value,
         right_title: &Value,
@@ -1593,7 +1688,10 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             )
             .map_err(|_| Error::Budget("owner base title bytes"))?;
         }
-        let native = required(source.value(), "edge_id")?;
+        let native = match native_override {
+            Some(native) => native,
+            None => required(source.value(), "edge_id")?,
+        };
         let item = source.value();
         let (from, to) = endpoints(item, source_graph)?;
         let predicate = text(item.get("predicate_id")).unwrap_or("related_to");
@@ -1623,7 +1721,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         }
         let attributes = attrs(item, true)?;
         let mut semantics = Map::new();
-        if let Some(context) = direct_assertion_context(source, self.limits.max_output_bytes)? {
+        if let Some(context) = self.assertion_context(source)? {
             semantics.insert("assertion_contexts".into(), json!([context]));
         }
         for (special, key, roles, forms) in [

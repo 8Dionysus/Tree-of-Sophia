@@ -13,6 +13,7 @@ use tos_foundation::{Digest256Hasher, JsonLimits, JsonMode, parse_json};
 const MAX_SOURCE_ROW_BYTES: usize = 8 * 1024 * 1024;
 const MAX_JSON_VISITS: usize = 1_000_000;
 const MAX_JSON_DEPTH: usize = 96;
+const MAX_ADDRESSED_CANDIDATE_JSON_DEPTH: usize = 64;
 const MAX_INTEGER_DIGITS: usize = 4096;
 const DEFAULT_SOURCE_REF: &str = "ToS/source_home.manifest.json";
 
@@ -21,6 +22,7 @@ const DEFAULT_SOURCE_REF: &str = "ToS/source_home.manifest.json";
 pub struct SourceRow {
     value: Value,
     max_bytes: usize,
+    max_output_bytes: usize,
 }
 
 /// Actual decoded row owns its admission until the row drops. The source tree
@@ -425,7 +427,13 @@ impl SourceRow {
             return Err(Error::Invalid("normalization source object"));
         }
         Ok(OwnedSourceRow {
-            row: Self { value, max_bytes },
+            row: Self {
+                value,
+                max_bytes,
+                max_output_bytes: max_bytes
+                    .saturating_mul(4)
+                    .min(MAX_SOURCE_ROW_BYTES),
+            },
             _hold: Some(hold),
         })
     }
@@ -449,7 +457,13 @@ impl SourceRow {
             if !value.is_object() {
                 return Err(Error::Invalid("normalization source object"));
             }
-            let source = Self { value, max_bytes };
+            let source = Self {
+                value,
+                max_bytes,
+                max_output_bytes: max_bytes
+                    .saturating_mul(4)
+                    .min(MAX_SOURCE_ROW_BYTES),
+            };
             operation(&source)
         })
     }
@@ -465,7 +479,13 @@ impl SourceRow {
         if !value.is_object() {
             return Err(Error::Invalid("normalization source object"));
         }
-        Ok(Self { value, max_bytes })
+        Ok(Self {
+            value,
+            max_bytes,
+            max_output_bytes: max_bytes
+                .saturating_mul(4)
+                .min(MAX_SOURCE_ROW_BYTES),
+        })
     }
 
     pub fn parse(raw: &[u8], max_bytes: usize) -> Result<Self> {
@@ -473,6 +493,27 @@ impl SourceRow {
             return Err(Error::Budget("normalization source row bytes"));
         }
         Self::parse_inner(raw, max_bytes, false)
+    }
+    /// Candidate-only parser with independent caller-supplied row input and
+    /// output ceilings. Ordinary normalizers retain their established 8 MiB
+    /// ceiling; the candidate route defaults to 16 MiB.
+    pub(crate) fn parse_addressed_candidate(
+        raw: &[u8],
+        max_input_bytes: usize,
+        max_output_bytes: usize,
+    ) -> Result<Self> {
+        if max_input_bytes == 0 || max_output_bytes == 0 || raw.len() > max_input_bytes {
+            return Err(Error::Budget("addressed candidate source row bytes"));
+        }
+        let mut row = Self::parse_inner_with_profile(
+            raw,
+            max_input_bytes,
+            true,
+            MAX_ADDRESSED_CANDIDATE_JSON_DEPTH,
+            max_input_bytes,
+        )?;
+        row.max_output_bytes = max_output_bytes;
+        Ok(row)
     }
     /// Computational raw input only; does not widen normalized row semantics.
     pub(crate) fn parse_raw_input(raw: &[u8], max_bytes: usize) -> Result<Self> {
@@ -521,13 +562,37 @@ impl SourceRow {
         if !value.is_object() {
             return Err(Error::Invalid("normalization source object"));
         }
-        Ok((Self { value, max_bytes }, upper))
+        Ok((
+            Self {
+                value,
+                max_bytes,
+                max_output_bytes: max_bytes
+                    .saturating_mul(4)
+                    .min(MAX_SOURCE_ROW_BYTES),
+            },
+            upper,
+        ))
     }
     fn parse_inner(raw: &[u8], max_bytes: usize, classify_budget: bool) -> Result<Self> {
-        let limits = JsonLimits::new(
+        Self::parse_inner_with_profile(
+            raw,
             max_bytes,
+            classify_budget,
             MAX_JSON_DEPTH,
             MAX_JSON_VISITS,
+        )
+    }
+    fn parse_inner_with_profile(
+        raw: &[u8],
+        max_bytes: usize,
+        classify_budget: bool,
+        max_depth: usize,
+        max_visits: usize,
+    ) -> Result<Self> {
+        let limits = JsonLimits::new(
+            max_bytes,
+            max_depth,
+            max_visits,
             MAX_INTEGER_DIGITS,
         )
         .map_err(|_| Error::Budget("normalization JSON limits"))?;
@@ -544,7 +609,13 @@ impl SourceRow {
         if !value.is_object() {
             return Err(Error::Invalid("normalization source object"));
         }
-        Ok(Self { value, max_bytes })
+        Ok(Self {
+            value,
+            max_bytes,
+            max_output_bytes: max_bytes
+                .saturating_mul(4)
+                .min(MAX_SOURCE_ROW_BYTES),
+        })
     }
 
     pub fn value(&self) -> &Value {
@@ -608,10 +679,7 @@ impl SourceRow {
         );
         record.insert("field_map".into(), Value::Object(fields));
         let value = Value::Object(record);
-        check_serialized(
-            &value,
-            self.max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
-        )?;
+        check_serialized(&value, self.max_output_bytes)?;
         Ok(value)
     }
 }
@@ -622,6 +690,21 @@ pub fn stamp_content_revision(value: &mut Value, max_bytes: usize) -> Result<()>
     if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES {
         return Err(Error::Budget("normalization content revision bytes"));
     }
+    stamp_content_revision_inner(value, max_bytes)
+}
+
+/// Candidate-only content revision path with its separately documented row cap.
+pub(crate) fn stamp_addressed_candidate_content_revision(
+    value: &mut Value,
+    max_bytes: usize,
+) -> Result<()> {
+    if max_bytes == 0 {
+        return Err(Error::Budget("addressed candidate content revision bytes"));
+    }
+    stamp_content_revision_inner(value, max_bytes)
+}
+
+fn stamp_content_revision_inner(value: &mut Value, max_bytes: usize) -> Result<()> {
     let object = value
         .as_object_mut()
         .ok_or(Error::Invalid("normalization revision object"))?;

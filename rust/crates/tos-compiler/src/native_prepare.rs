@@ -162,15 +162,6 @@ impl ExecutingProcessor {
         Ok(hash.finalize())
     }
 }
-fn configuration_binding(descriptor: &[u8], entity: &[u8], relation: &[u8]) -> Digest256 {
-    let mut hash = Digest256Hasher::new();
-    for raw in [descriptor, entity, relation] {
-        hash.update(&(raw.len() as u64).to_be_bytes());
-        hash.update(raw);
-    }
-    hash.finalize()
-}
-
 pub struct PrepareRequest<'a> {
     pub source_root: &'a Path,
     pub output_dir: &'a Path,
@@ -473,15 +464,21 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     portabilize_public_stage(&mut stage, &capture, &root)?;
     let semantics = validate_public_semantics(&mut stage, &capture, &registry, &entity, &relation)?;
     let processor = processor_owner.digest;
-    let configuration = configuration_binding(&descriptor, &entity, &relation);
+    let normalization_binding =
+        crate::native_normalization_binding::NativeNormalizationBinding::from_current_inputs(
+            processor,
+            &registry,
+            &descriptor,
+            &entity,
+            &relation,
+        );
     let mut header = build_public_header(
         &mut stage,
         &capture,
         &registry,
         &entity,
         &source_revision,
-        processor,
-        configuration,
+        &normalization_binding,
         semantics,
     )?;
     stage.close_inputs_for_full_components()?;

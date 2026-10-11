@@ -75,7 +75,7 @@ fn bounded_manifest_len(packet: &Value, capture: &PublicCapture) -> Result<usize
     capture.charge_work(count.len as u64)?;
     Ok(count.len)
 }
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::Digest256;
 
 #[derive(Clone, Copy, Debug)]
 pub struct PublicD1BuildLimits {
@@ -415,18 +415,20 @@ fn input(capture: &PublicCapture, path: &str, cap: usize) -> Result<Vec<u8>> {
 
 pub(crate) fn processor_binding(
     root: &PublicRepositoryRoot,
+    registry: &crate::KnowledgeRegistry,
     descriptor: &[u8],
     entity: &[u8],
     relation: &[u8],
-) -> Result<(Digest256, Digest256)> {
+) -> Result<crate::native_normalization_binding::NativeNormalizationBinding> {
     let processor = Digest256::from_hex(root.software_binding())
         .map_err(|_| Error::Invalid("public D1 processor software binding"))?;
-    let mut configuration = Digest256Hasher::new();
-    for raw in [descriptor, entity, relation] {
-        configuration.update(&(raw.len() as u64).to_be_bytes());
-        configuration.update(raw);
-    }
-    Ok((processor, configuration.finalize()))
+    Ok(crate::native_normalization_binding::NativeNormalizationBinding::from_current_inputs(
+        processor,
+        registry,
+        descriptor,
+        entity,
+        relation,
+    ))
 }
 
 /// Build a complete full-only publication from one captured public snapshot.
@@ -653,16 +655,15 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     )?;
     portabilize_public_stage(&mut stage, &capture, source_root)?;
     let semantics = validate_public_semantics(&mut stage, &capture, &registry, &entity, &relation)?;
-    let (processor, configuration) =
-        processor_binding(&public_root, &descriptor, &entity, &relation)?;
+    let normalization_binding =
+        processor_binding(&public_root, &registry, &descriptor, &entity, &relation)?;
     let header = build_public_header(
         &mut stage,
         &capture,
         &registry,
         &entity,
         &source_revision,
-        processor,
-        configuration,
+        &normalization_binding,
         semantics,
     )?;
     stage.close_inputs_for_full_components()?;

@@ -4630,8 +4630,13 @@ fn build_native_snapshot_from_capture_inner(
         Some(state) => saved_lenses_owned(capture, state)?,
         None => saved_lenses(capture)?,
     };
-    let (processor, configuration) =
-        crate::d1_public_build::processor_binding(&repository, &descriptor, &entity, &relation)?;
+    let normalization_binding = crate::d1_public_build::processor_binding(
+        &repository,
+        &registry,
+        &descriptor,
+        &entity,
+        &relation,
+    )?;
     let (header, prepared_catalog, producer) = if let Some(creation) =
         state.filter(|_| payload_layout.uses_carriers())
     {
@@ -4704,8 +4709,7 @@ fn build_native_snapshot_from_capture_inner(
                     &registry,
                     &entity,
                     &source_revision,
-                    processor,
-                    configuration,
+                    &normalization_binding,
                     semantics,
                 )
             })?;
@@ -4759,8 +4763,7 @@ fn build_native_snapshot_from_capture_inner(
                 &registry,
                 &entity,
                 &source_revision,
-                processor,
-                configuration,
+                &normalization_binding,
                 semantics,
             )
         })?;

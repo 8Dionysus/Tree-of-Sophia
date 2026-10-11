@@ -1,6 +1,7 @@
 //! Bounded compilation of a derived source-navigation read model.
 //! This crate writes private candidates; admission, rights and selection remain owner routes.
 
+pub mod addressed_replacement;
 pub mod catalog;
 pub mod d1;
 pub mod d1_prepared_pair;
@@ -56,6 +57,7 @@ mod knowledge_catalog_index;
 mod knowledge_corpus_original;
 mod knowledge_corpus_source;
 mod native_snapshot_originals;
+mod native_normalization_binding;
 pub use knowledge_corpus_original::{
     CORPUS_ORIGINAL_PROFILE, CapturedCorpusOrigin, CapturedCorpusOriginalPlan,
     CorpusOriginalCollection, CorpusOriginalCollectionReceipt, CorpusOriginalMember,
@@ -196,6 +198,7 @@ pub mod source_witness_catalog;
 mod sqlite_budget;
 pub use sqlite_budget::{DedicatedSessionSqliteHeap, dedicated_session_heap_bytes};
 mod vocabulary;
+pub use addressed_replacement::{AddressedReplacementLimits, replace_direct_carrier_candidate};
 pub use knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
 pub use knowledge_full::{
