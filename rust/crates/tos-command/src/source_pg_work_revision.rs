@@ -4,7 +4,8 @@
 //! only the PG adapter's per-record commit/replay proof; it is never projected
 //! as authored source or treated as semantic admission.
 
-use crate::source_cohort::{DurableError, DurableResult, SourceRevisionWrite};
+use crate::durable_adapter::{DurableError, DurableResult};
+use crate::source_cohort::SourceRevisionWrite;
 use crate::source_command::{
     self as cmd, CommandContext, PreparedCommand, SourceCommandError, SourceCommandResult,
 };
@@ -96,7 +97,7 @@ pub(crate) fn publication_digest(publication: &revision::RevisionPublication) ->
         );
         part(
             &mut hasher,
-            &Digest256::of_bytes(&transaction.authorization_raw).as_bytes(),
+            Digest256::of_bytes(&transaction.authorization_raw).as_bytes(),
         );
         for (tag, files) in [
             (b"before".as_slice(), &transaction.before),
@@ -107,7 +108,7 @@ pub(crate) fn publication_digest(publication: &revision::RevisionPublication) ->
             files.sort_by(|left, right| left.path.cmp(&right.path));
             for file in files {
                 part(&mut hasher, file.path.as_str().as_bytes());
-                part(&mut hasher, &Digest256::of_bytes(&file.raw).as_bytes());
+                part(&mut hasher, Digest256::of_bytes(&file.raw).as_bytes());
                 part(&mut hasher, &(file.raw.len() as u64).to_be_bytes());
             }
         }
@@ -884,7 +885,7 @@ pub(crate) fn compound_members_digest(writes: &[SourceRevisionWrite]) -> Digest2
         part(&mut hasher, &write.proposed_revision.to_be_bytes());
         part(
             &mut hasher,
-            &Digest256::of_bytes(&write.exact_bytes).as_bytes(),
+            Digest256::of_bytes(&write.exact_bytes).as_bytes(),
         );
         part(&mut hasher, &(write.exact_bytes.len() as u64).to_be_bytes());
     }
@@ -896,7 +897,7 @@ pub(crate) fn commit_delta_digest(evidence: &CommitEvidence) -> Digest256 {
     part(&mut hasher, b"tos-pg-work-revision-evidence-delta-v1");
     part(
         &mut hasher,
-        &evidence.observation.observation_digest.as_bytes(),
+        evidence.observation.observation_digest.as_bytes(),
     );
     part(&mut hasher, evidence.source_path.as_bytes());
     part(&mut hasher, evidence.record_id.as_bytes());
@@ -927,7 +928,7 @@ pub(crate) fn commit_delta_digest(evidence: &CommitEvidence) -> Digest256 {
     part(&mut hasher, evidence.compound_members_digest.as_bytes());
     part(
         &mut hasher,
-        &Digest256::of_bytes(&evidence.authorization_raw).as_bytes(),
+        Digest256::of_bytes(&evidence.authorization_raw).as_bytes(),
     );
     hasher.finalize()
 }
@@ -1374,9 +1375,9 @@ fn receipt_digest(
     );
     part(&mut hasher, publication_observation.as_bytes());
     part(&mut hasher, compound_members.as_bytes());
-    part(&mut hasher, &Digest256::of_bytes(authorization).as_bytes());
-    part(&mut hasher, &Digest256::of_bytes(before).as_bytes());
-    part(&mut hasher, &Digest256::of_bytes(after).as_bytes());
+    part(&mut hasher, Digest256::of_bytes(authorization).as_bytes());
+    part(&mut hasher, Digest256::of_bytes(before).as_bytes());
+    part(&mut hasher, Digest256::of_bytes(after).as_bytes());
     part(&mut hasher, prepare_id);
     part(&mut hasher, &commit_seq.to_be_bytes());
     hasher.finalize()
@@ -1397,10 +1398,11 @@ fn observation_digest(
     part(&mut hasher, source_path.as_bytes());
     part(&mut hasher, record_id.as_bytes());
     part(&mut hasher, &generation.to_be_bytes());
-    part(
-        &mut hasher,
-        head_receipt.map_or(&[][..], |digest| digest.as_bytes()),
-    );
+    if let Some(digest) = head_receipt.as_ref() {
+        part(&mut hasher, digest.as_bytes());
+    } else {
+        part(&mut hasher, &[]);
+    }
     hasher.finalize()
 }
 

@@ -14,7 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonString, JsonValue, RelativePath,
     canonical_count_v1, python_strip_unicode16_v1,
 };
 use tos_source_store::{
@@ -1057,7 +1057,7 @@ impl RecordRevisionCommandContext for PgRecordRevisionCommandContext {
                     "token",
                     filesystem
                         .token
-                        .clone()
+                        .as_deref()
                         .map(cmd::string)
                         .unwrap_or(JsonValue::Null),
                 ),

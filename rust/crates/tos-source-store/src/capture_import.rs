@@ -852,6 +852,7 @@ pub fn import_git_capture_corpus_v1(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ReadLimits;
     use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
     use std::process::Command;
     use tos_foundation::{JsonMode, RelativePath, parse_json};

@@ -547,7 +547,7 @@ fn work_revision_recorded_at(
             "ready PG Work predecessor archive files absent",
         ))?;
     if archive_files.len() != names.len()
-        || archive_files.keys().any(|name| {
+        || archive_files.iter().any(|(name, _)| {
             name.as_str()
                 .is_none_or(|name| !names.iter().any(|expected| expected == name))
         })

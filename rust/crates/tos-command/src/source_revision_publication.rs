@@ -57,7 +57,7 @@ fn package(
         None,
     )
 }
-fn authorization(
+pub(crate) fn authorization(
     ctx: &CommandContext,
     config: &JsonValue,
     family: RevisionFamily,

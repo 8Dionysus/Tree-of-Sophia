@@ -11,7 +11,7 @@ use super::pg_bootstrap::{
 use super::{absolute, capped, digest, exact, number, text};
 use crate::source_cohort::BootstrapJobMode;
 use crate::source_command::{SourceCommandError, SourceCommandResult};
-use crate::{ColdWorkspaceLimits, DurablePgCoordinator, DurableResult, PrivateGenerationWorkspace};
+use crate::{ColdWorkspaceLimits, DurablePgCoordinator, PrivateGenerationWorkspace};
 use serde_json::{Value, json};
 use std::io::Read;
 use std::path::Path;
@@ -547,19 +547,29 @@ pub(super) fn run(
             owner_check,
         )
         .map_err(source_error)?;
+    let (current_membership_digest, selected_state_digest) = match reopened.selected() {
+        crate::durable_adapter::SelectedSourceGeneration::Addressed(selected) => {
+            (selected.cut.current.commitment, selected.state_digest)
+        }
+        _ => {
+            return Err(SourceCommandError::Conflict(
+                "streamed bootstrap returned a non-addressed generation",
+            ));
+        }
+    };
     Ok(json!({
         "schema_version": RESULT_SCHEMA,
         "domain": selection.domain,
         "source_revision_sha256": selection.source_revision.0.to_prefixed(),
         "source_membership_sha256": selection.membership.digest.to_prefixed(),
         "source_membership_count": selection.membership.count,
-        "current_membership_sha256": reopened.current_membership.digest.to_prefixed(),
-        "current_membership_count": reopened.current_membership.count,
+        "current_membership_sha256": current_membership_digest.to_prefixed(),
+        "current_membership_count": reopened.member_count(),
         "source_complete": true,
         "schema_initialized": selection.initialize_schema,
-        "selected_generation_sha256": reopened.selected.digest().to_prefixed(),
-        "selected_head_seq": reopened.selected.cut().through_commit_seq(),
-        "selected_state_sha256": reopened.selected.cut().state_digest().to_prefixed(),
+        "selected_generation_sha256": reopened.digest().to_prefixed(),
+        "selected_head_seq": reopened.commit_seq(),
+        "selected_state_sha256": selected_state_digest.to_prefixed(),
         "streamed": true,
         "bootstrap_resume_supported": false,
         "logical_source_work": {

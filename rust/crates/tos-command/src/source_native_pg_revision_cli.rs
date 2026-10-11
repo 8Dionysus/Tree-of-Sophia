@@ -455,7 +455,7 @@ pub(super) fn run(
     }
     if work_owner
         && operation == "record.revise"
-        && cmd::field(&request, "expected_publication")? != &Value::Null
+        && cmd::field(&request, "expected_publication")? != &tos_foundation::JsonValue::Null
     {
         return Err(SourceCommandError::Conflict(
             "PG Work route owns a null publication predecessor",
@@ -531,10 +531,8 @@ pub(super) fn run(
                 let work_revision = if let Some(configuration) = configuration.as_ref() {
                     let record_id =
                         cmd::text(configuration, "record_id").map_err(DurableError::Source)?;
-                    let command_id = request
-                        .get("command_id")
-                        .and_then(Value::as_str)
-                        .unwrap_or("");
+                    let command_id =
+                        cmd::text(&request, "command_id").map_err(DurableError::Source)?;
                     Some(session.observe_pg_work_revision(
                         source_path,
                         record_id,

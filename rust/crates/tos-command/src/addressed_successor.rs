@@ -71,7 +71,7 @@ pub(super) fn build_addressed_membership_trees_with_callback(
                 "cold verified membership cursor failed",
             ))),
         });
-        let tree = store
+        let (tree, _tree_work) = store
             .build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
                 kind,
                 entries,
@@ -85,7 +85,7 @@ pub(super) fn build_addressed_membership_trees_with_callback(
             )
             .map_err(DurableError::Storage)?;
         cursor.finish()?;
-        if tree.entries != membership.count(namespace) {
+        if tree.semantic.entries != membership.count(namespace) {
             return Err(DurableError::Corrupt(
                 "addressed bootstrap EOF counts differ",
             ));
@@ -171,7 +171,7 @@ pub(super) fn build_addressed_metadata_tree_with_callback(
         ))),
     });
     let state_bytes = tree_callback_state_bytes(limits)?;
-    let metadata = store
+    let (metadata, _metadata_work) = store
         .build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
             METADATA_KIND,
             entries,

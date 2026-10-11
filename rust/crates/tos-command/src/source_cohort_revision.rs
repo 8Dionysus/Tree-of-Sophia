@@ -461,7 +461,7 @@ impl SourceRevisionReadSession<'_> {
             || record_id.is_empty()
             || record_id.len() > 256
         {
-            return Err(DurableError::Denied("PG Work revision owner identity"));
+            return Err(DurableError::Refused("PG Work revision owner identity"));
         }
         let token = crate::source_pg_work_revision::predicate_token(
             &self.selection.cohort.store_id,
