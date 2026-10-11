@@ -190,6 +190,50 @@ pub struct DurableProjectionProgress {
     pub through_seq: u64,
     pub head_seq: u64,
     pub status: DurableProjectionStatus,
+    pub work: DurableProjectionWork,
+}
+
+/// Logical work performed by this call. Source bytes count payload delivered
+/// from STO, not device I/O or PostgreSQL page reads. Publication counters count
+/// only transactions this worker applied; replayed events can still incur reads.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
+pub struct DurableProjectionWork {
+    pub examined_event_members: u64,
+    pub exact_source_members_read: u64,
+    pub exact_source_bytes_read: u64,
+    pub extracted_documents: u64,
+    pub published_source_paths: u64,
+    pub published_documents: u64,
+}
+
+impl DurableProjectionWork {
+    fn add(&mut self, other: &Self) -> DurableResult<()> {
+        fn checked(left: &mut u64, right: u64) -> DurableResult<()> {
+            *left = left
+                .checked_add(right)
+                .ok_or(DurableError::Refused("projection work counter overflow"))?;
+            Ok(())
+        }
+        checked(
+            &mut self.examined_event_members,
+            other.examined_event_members,
+        )?;
+        checked(
+            &mut self.exact_source_members_read,
+            other.exact_source_members_read,
+        )?;
+        checked(
+            &mut self.exact_source_bytes_read,
+            other.exact_source_bytes_read,
+        )?;
+        checked(&mut self.extracted_documents, other.extracted_documents)?;
+        checked(
+            &mut self.published_source_paths,
+            other.published_source_paths,
+        )?;
+        checked(&mut self.published_documents, other.published_documents)?;
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -312,6 +356,7 @@ struct StagedDocument {
 struct StagedEvent {
     replaced_source_paths: Vec<String>,
     documents: Vec<StagedDocument>,
+    work: DurableProjectionWork,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -403,6 +448,7 @@ impl DurablePgCoordinator {
         initial_snapshot.require_live_projection(profile)?;
         let mut through_seq = initial_cursor;
         let mut applied_events = 0usize;
+        let mut work = DurableProjectionWork::default();
         for event in events {
             if Instant::now() >= deadline {
                 return Err(DurableError::Refused("projection batch deadline exceeded"));
@@ -419,6 +465,12 @@ impl DurablePgCoordinator {
                 ));
             }
             let staged = self.stage_event(store, domain, &event, extractor, limits, deadline)?;
+            work.add(&staged.work)?;
+            let publication_work = DurableProjectionWork {
+                published_source_paths: staged.replaced_source_paths.len() as u64,
+                published_documents: staged.documents.len() as u64,
+                ..DurableProjectionWork::default()
+            };
             match publish_event(
                 &mut self.client,
                 domain,
@@ -432,6 +484,7 @@ impl DurablePgCoordinator {
                 PublishOutcome::Applied(seq) => {
                     through_seq = seq;
                     applied_events += 1;
+                    work.add(&publication_work)?;
                 }
                 PublishOutcome::AlreadyApplied(seq) => {
                     through_seq = seq;
@@ -462,6 +515,7 @@ impl DurablePgCoordinator {
             through_seq,
             head_seq,
             status,
+            work,
         })
     }
 
@@ -620,6 +674,7 @@ impl DurablePgCoordinator {
     ) -> DurableResult<StagedEvent> {
         let mut staged = StagedEvent::default();
         let members = event_members(&mut self.client, domain, event, limits)?;
+        staged.work.examined_event_members = members.len() as u64;
         if event.event_kind != "command" {
             if !members.is_empty() {
                 return Err(DurableError::Corrupt(
@@ -662,6 +717,9 @@ impl DurablePgCoordinator {
                     "projection source byte length differs",
                 ));
             }
+            staged.work.exact_source_members_read += 1;
+            // The checked event-byte sum already bounds these payload bytes.
+            staged.work.exact_source_bytes_read += bytes.len() as u64;
             let documents = extractor.extract(&member.source_path, member.revision, &bytes)?;
             if Instant::now() >= deadline {
                 return Err(DurableError::Refused("projection event deadline exceeded"));
@@ -674,6 +732,7 @@ impl DurablePgCoordinator {
                     "projection event has too many documents",
                 ));
             }
+            staged.work.extracted_documents += documents.len() as u64;
             for document in documents {
                 validate_document(
                     &member.source_path,
