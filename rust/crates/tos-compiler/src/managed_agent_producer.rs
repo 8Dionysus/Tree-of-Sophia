@@ -1303,7 +1303,7 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
                         .ok_or(Error::Invalid("managed metadata version catalogue target"))?,
                 )?;
             }
-        } else if matches!(kind, "tradition" | "region" | "era" | "branch") {
+        } else if matches!(kind.as_str(), "tradition" | "region" | "era" | "branch") {
             if !source_ref.ends_with("/branch.manifest.json")
                 || node
                     .pointer("/properties/branch_path")
