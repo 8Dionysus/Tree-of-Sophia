@@ -1867,14 +1867,41 @@ fn visit_projection_section_with_work(
         }
         let value = projection_value(&row)?;
         let entry = match section {
-            "records" => cmd::array(
-                cmd::field(&value, "records").map_err(source_error)?,
-                "agent",
-            )
-            .map_err(source_error)?
-            .iter()
-            .find(|entry| cmd::text(entry, "record_id").ok() == Some(key.as_str()))
-            .ok_or(DurableError::Corrupt("Agent catalogue entry absent"))?,
+            "records" => {
+                // Metadata index rows span every catalogue family. The full
+                // mixed projection was checked above; bind its indexed ID to
+                // exactly one typed entry rather than interpreting all rows
+                // as Agents. The successor uses these entries to prove that
+                // retained records in every family remain unchanged.
+                let records = cmd::field(&value, "records")
+                    .map_err(source_error)?
+                    .as_object()
+                    .ok_or(DurableError::Corrupt("mixed catalogue records map"))?;
+                let mut selected = None;
+                for (kind, entries) in records {
+                    let kind = kind
+                        .as_str()
+                        .ok_or(DurableError::Corrupt("mixed catalogue family"))?;
+                    for entry in entries
+                        .as_array()
+                        .ok_or(DurableError::Corrupt("mixed catalogue family rows"))?
+                    {
+                        if cmd::text(entry, "record_type").map_err(source_error)? != kind {
+                            return Err(DurableError::Corrupt(
+                                "mixed catalogue entry family differs",
+                            ));
+                        }
+                        if cmd::text(entry, "record_id").map_err(source_error)? == key {
+                            if selected.replace(entry).is_some() {
+                                return Err(DurableError::Corrupt(
+                                    "mixed catalogue indexed identity is ambiguous",
+                                ));
+                            }
+                        }
+                    }
+                }
+                selected.ok_or(DurableError::Corrupt("mixed catalogue entry absent"))?
+            }
             "forms" => cmd::field(
                 cmd::field(&value, "form").map_err(source_error)?,
                 "raw_sha256",

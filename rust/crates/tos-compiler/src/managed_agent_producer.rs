@@ -497,6 +497,89 @@ fn preparation_check(
     parent.check_pin()
 }
 
+fn managed_catalog_filename(entry: &Value, entities: &Value) -> Result<String> {
+    let kind = crate::source_bibliographic_render::text(entry, "record_type")?;
+    let source = crate::source_bibliographic_render::text(entry, "source_record_ref")?;
+    let filename = match kind {
+        "agent" => "agents.jsonl",
+        "place" => "places.jsonl",
+        "organization" => "organizations.jsonl",
+        "work" => "works.jsonl",
+        "expression" => "expressions.jsonl",
+        "edition" => "editions.jsonl",
+        "collection" => "collections.jsonl",
+        "item" => "items.jsonl",
+        "link" => "links.jsonl",
+        "artifact" if source.ends_with("/artifact-witness.json") => "artifacts.jsonl",
+        "composite" if source.ends_with("/composite-witness.json") => "composites.jsonl",
+        _ => {
+            let profiles = entities["types"]
+                .as_array()
+                .ok_or(Error::Invalid("managed entity registry types"))?
+                .iter()
+                .filter(|item| item["source_record_profile"]["record_type"] == kind)
+                .collect::<Vec<_>>();
+            if profiles.len() != 1 {
+                return Err(Error::ManagedSourceUnsupported(
+                    "managed retained catalogue family has no unique owner profile; FullOnly required",
+                ));
+            }
+            let filename = crate::source_bibliographic_render::text(
+                &profiles[0]["source_record_profile"],
+                "catalog_filename",
+            )?;
+            if filename.contains('/') || !filename.ends_with(".jsonl") {
+                return Err(Error::Invalid("managed catalogue family filename"));
+            }
+            return Ok(filename.to_owned());
+        }
+    };
+    Ok(filename.to_owned())
+}
+
+fn contains_exact_string(value: &Value, expected: &str) -> bool {
+    match value {
+        Value::String(value) => value == expected,
+        Value::Array(values) => values
+            .iter()
+            .any(|value| contains_exact_string(value, expected)),
+        Value::Object(values) => values
+            .values()
+            .any(|value| contains_exact_string(value, expected)),
+        _ => false,
+    }
+}
+
+#[derive(Clone)]
+struct ManagedCatalogFact {
+    source_ref: String,
+    source_record_ref: String,
+    old_line: u64,
+    line: u64,
+    old_sha256: String,
+    sha256: String,
+}
+
+fn refresh_managed_catalog_provenance(
+    catalog: &mut Value,
+    id: &str,
+    fact: &ManagedCatalogFact,
+) -> Result<()> {
+    if catalog["current_record_ref"]["id"].as_str() != Some(id)
+        || catalog["source_ref"].as_str() != Some(fact.source_ref.as_str())
+        || catalog["source_record_ref"].as_str() != Some(fact.source_record_ref.as_str())
+        || catalog["line"].as_u64() != Some(fact.old_line)
+        || catalog["sha256"].as_str() != Some(fact.old_sha256.as_str())
+    {
+        return Err(Error::Invalid(
+            "managed retained catalogue provenance changed",
+        ));
+    }
+    catalog["line"] = Value::from(fact.line);
+    catalog["sha256"] = Value::String(fact.sha256.clone());
+    Ok(())
+}
+
 /// One genuine original navigation member from the pinned immutable base.
 /// The existing original-member PK and native-ID index bound the seek; the
 /// canonical/raw/semantic seals still own exact source return.
@@ -963,46 +1046,6 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
     .value()
     .clone();
 
-    let mut entries = std::collections::BTreeMap::<String, Value>::new();
-    let mut last = String::new();
-    let mut catalogue_hash = Digest256Hasher::new();
-    let observed = catalogue(&mut |entry| {
-        preparation_check(validator, l, &parent)?;
-        let id = text(entry, "record_id")?;
-        if id <= last.as_str()
-            || entry["schema_version"] != "tos_source_witness_catalog_entry_v1"
-            || entry["record_type"] != "agent"
-            || entries.len() as u64 >= l.catalog.max_rows
-        {
-            return Err(Error::Invalid(
-                "managed complete ordered Agent catalogue scope",
-            ));
-        }
-        let raw = encode(entry, l.catalog.max_output_row_bytes)?;
-        charge(
-            &mut work,
-            raw.len()
-                .checked_add(1)
-                .ok_or(Error::Budget("managed catalogue line bytes"))?,
-            stage_limits.sqlite.max_work_bytes,
-        )?;
-        catalogue_hash.update(&raw);
-        catalogue_hash.update(b"\n");
-        last = id.to_owned();
-        entries.insert(id.to_owned(), entry.clone());
-        Ok(())
-    })?;
-    if observed != proof.inventory_projection() {
-        return Err(Error::Invalid(
-            "managed current catalogue owner projection EOF/root",
-        ));
-    }
-    let catalogue_sha = format!("sha256:{}", catalogue_hash.finalize().to_hex());
-    let lines = entries
-        .keys()
-        .enumerate()
-        .map(|(n, id)| (id.clone(), n as u64 + 1))
-        .collect::<std::collections::BTreeMap<_, _>>();
     if record_raw.len() > l.catalog.max_row_bytes {
         return Err(Error::Budget("managed addressed Agent source bytes"));
     }
@@ -1016,12 +1059,107 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
             .value()
             .clone();
     let new_id = text(&record, "record_id")?;
+    if record["record_version"] != 1 || record["record_type"] != "agent" {
+        return Err(Error::Invalid("managed addressed initial Agent source"));
+    }
+    let entities = crate::knowledge_normalization::SourceRow::parse(
+        entity_raw,
+        full_limits.max_registry_bytes,
+    )?
+    .value()
+    .clone();
+    let mut entries = std::collections::BTreeMap::<String, Value>::new();
+    let mut families = std::collections::BTreeMap::<String, String>::new();
+    let mut family_types = std::collections::BTreeMap::<String, String>::new();
+    let mut family_lines = std::collections::BTreeMap::<String, u64>::new();
+    let mut family_hashers = std::collections::BTreeMap::<String, Digest256Hasher>::new();
+    let mut lines = std::collections::BTreeMap::<String, u64>::new();
+    let mut old_agent_lines = std::collections::BTreeMap::<String, u64>::new();
+    let mut old_agent_line = 0u64;
+    let mut old_agent_hash = Digest256Hasher::new();
+    let mut catalogue_hash = Digest256Hasher::new();
+    let mut last = String::new();
+    let observed = catalogue(&mut |entry| {
+        preparation_check(validator, l, &parent)?;
+        let id = text(entry, "record_id")?;
+        let kind = text(entry, "record_type")?;
+        let family = managed_catalog_filename(entry, &entities)?;
+        if id <= last.as_str()
+            || entry["schema_version"] != "tos_source_witness_catalog_entry_v1"
+            || entries.len() as u64 >= l.catalog.max_rows
+            || entry
+                .get("source_record_ref")
+                .and_then(Value::as_str)
+                .is_none()
+        {
+            return Err(Error::Invalid(
+                "managed complete ordered mixed catalogue scope",
+            ));
+        }
+        if family_types
+            .get(&family)
+            .is_some_and(|existing| existing != kind)
+        {
+            return Err(Error::ManagedSourceUnsupported(
+                "managed catalogue filename combines record families; FullOnly required",
+            ));
+        }
+        family_types.insert(family.clone(), kind.to_owned());
+        let raw = encode(entry, l.catalog.max_output_row_bytes)?;
+        charge(
+            &mut work,
+            raw.len()
+                .checked_add(1)
+                .ok_or(Error::Budget("managed catalogue line bytes"))?,
+            stage_limits.sqlite.max_work_bytes,
+        )?;
+        catalogue_hash.update(&raw);
+        catalogue_hash.update(b"\n");
+        let line = family_lines
+            .get(&family)
+            .copied()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or(Error::Budget("managed family catalogue line"))?;
+        family_lines.insert(family.clone(), line);
+        let hasher = family_hashers
+            .entry(family.clone())
+            .or_insert_with(Digest256Hasher::new);
+        hasher.update(&raw);
+        hasher.update(b"\n");
+        if family == "agents.jsonl" && id != new_id {
+            old_agent_line = old_agent_line
+                .checked_add(1)
+                .ok_or(Error::Budget("managed old Agent catalogue line"))?;
+            old_agent_lines.insert(id.to_owned(), old_agent_line);
+            old_agent_hash.update(&raw);
+            old_agent_hash.update(b"\n");
+        }
+        last = id.to_owned();
+        lines.insert(id.to_owned(), line);
+        if entries.contains_key(id) || families.contains_key(id) {
+            return Err(Error::Invalid("managed duplicate mixed catalogue identity"));
+        }
+        entries.insert(id.to_owned(), entry.clone());
+        families.insert(id.to_owned(), family);
+        Ok(())
+    })?;
+    if observed != proof.inventory_projection() {
+        return Err(Error::Invalid(
+            "managed current catalogue owner projection EOF/root",
+        ));
+    }
+    let catalogue_sha = format!("sha256:{}", catalogue_hash.finalize().to_hex());
+    let old_agent_sha = format!("sha256:{}", old_agent_hash.finalize().to_hex());
+    let family_shas = family_hashers
+        .into_iter()
+        .map(|(family, hasher)| (family, format!("sha256:{}", hasher.finalize().to_hex())))
+        .collect::<std::collections::BTreeMap<_, _>>();
     let new_entry = entries.get(new_id).ok_or(Error::Invalid(
         "managed new Agent absent from complete catalogue",
     ))?;
-    if new_entry["source_record_ref"] != record_path
-        || record["record_version"] != 1
-        || record["record_type"] != "agent"
+    if families.get(new_id).map(String::as_str) != Some("agents.jsonl")
+        || new_entry["source_record_ref"] != record_path
         || crate::source_witness_catalog::render_catalog_record(
             &record,
             record_path,
@@ -1043,76 +1181,252 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
             .as_array_mut()
             .ok_or(Error::Invalid("managed parent edges"))?,
     );
+    let mut facts = std::collections::BTreeMap::<String, ManagedCatalogFact>::new();
+    for (id, entry) in &entries {
+        let family = families
+            .get(id)
+            .ok_or(Error::Invalid("managed catalogue family index"))?;
+        let sha256 = family_shas
+            .get(family)
+            .ok_or(Error::Invalid("managed catalogue family hash"))?;
+        let line = lines[id];
+        let (old_line, old_sha256) = match (family.as_str(), id.as_str() == new_id) {
+            ("agents.jsonl", false) => (
+                *old_agent_lines
+                    .get(id)
+                    .ok_or(Error::Invalid("managed old Agent catalogue line index"))?,
+                old_agent_sha.clone(),
+            ),
+            _ => (line, sha256.clone()),
+        };
+        facts.insert(
+            id.clone(),
+            ManagedCatalogFact {
+                source_ref: format!("ToS/source-witnesses/catalog/{family}"),
+                source_record_ref: text(entry, "source_record_ref")?.to_owned(),
+                old_line,
+                line,
+                old_sha256,
+                sha256: sha256.clone(),
+            },
+        );
+    }
+    let mut parent_node_ids = std::collections::BTreeSet::new();
+    let mut retained_record_ids = std::collections::BTreeSet::new();
     let mut old_agents = std::collections::BTreeSet::new();
-    for node in &nodes {
-        match node["node_kind"].as_str() {
-            Some("agent") => {
-                let id = text(node, "node_id")?;
-                if id == new_id || !old_agents.insert(id.to_owned()) {
-                    return Err(Error::Invalid("managed creation existing/duplicate Agent"));
-                }
-                let entry = entries.get(id).ok_or(Error::Invalid(
-                    "managed parent Agent missing current catalogue",
-                ))?;
-                let source = &node["properties"]["source_record"];
-                if crate::source_witness_catalog::render_catalog_record(
+    for node in &mut nodes {
+        let id = text(node, "node_id")?.to_owned();
+        let kind = text(node, "node_kind")?.to_owned();
+        let source_ref = text(node, "source_ref")?.to_owned();
+        if !node["label"].is_string()
+            || !node["properties"].is_object()
+            || !parent_node_ids.insert(id.clone())
+            || id == new_id
+            || contains_exact_string(node, new_id)
+            || contains_exact_string(node, record_path)
+        {
+            return Err(Error::Invalid(
+                "managed parent navigation node shape/dependency",
+            ));
+        }
+        if node["properties"].get("source_record").is_some() {
+            let entry = entries.get(&id).ok_or(Error::Invalid(
+                "managed parent source record absent from current catalogue",
+            ))?;
+            let source = &node["properties"]["source_record"];
+            if kind != text(entry, "record_type")?
+                || source_ref != text(entry, "source_record_ref")?
+                || crate::source_witness_catalog::render_catalog_record(
                     source,
-                    text(node, "source_ref")?,
+                    &source_ref,
                     entry.get("source_schema_ref").and_then(Value::as_str),
                     l.catalog.max_row_bytes,
                 )? != *entry
-                {
-                    return Err(Error::Invalid(
-                        "managed unchanged Agent catalogue/source changed",
-                    ));
-                }
-            }
-            Some("record-version") => {}
-            _ => {
-                return Err(Error::ManagedSourceUnsupported(
-                    "managed parent external navigation dependency closure unavailable; FullOnly required",
+                || !retained_record_ids.insert(id.to_owned())
+            {
+                return Err(Error::Invalid(
+                    "managed retained mixed catalogue/source correspondence",
                 ));
             }
-        }
-    }
-    if entries.len()
-        != old_agents
-            .len()
-            .checked_add(1)
-            .ok_or(Error::Budget("managed catalogue row count"))?
-        || edges
-            .iter()
-            .any(|e| e["edge_kind"] != "exact_historical_record_reference")
-    {
-        return Err(Error::ManagedSourceUnsupported(
-            "managed complete catalogue/global incidence closure unavailable; FullOnly required",
-        ));
-    }
-    // Every retained chain/source/form stays exact. Only current catalogue
-    // line/SHA changes, as the maintained Versions provenance requires.
-    for node in &mut nodes {
-        let provenance = if node["node_kind"] == "agent" {
-            &mut node["properties"]["record_history"]["provenance"]
+            if kind == "agent" {
+                old_agents.insert(id.clone());
+            }
+            let catalog = node
+                .pointer_mut("/properties/record_history/provenance/catalog")
+                .ok_or(Error::Invalid(
+                    "managed retained catalogue provenance absent",
+                ))?;
+            refresh_managed_catalog_provenance(
+                catalog,
+                &id,
+                facts
+                    .get(&id)
+                    .ok_or(Error::Invalid("managed retained catalogue fact"))?,
+            )?;
+        } else if kind == "record-version" {
+            let view = node
+                .pointer_mut("/properties/record_version_view")
+                .ok_or(Error::Invalid("managed record-version view absent"))?;
+            if view["schema_version"] != "tos_record_version_view_v1"
+                || !matches!(view["record_kind"].as_str(), Some("claim" | "metadata"))
+                || id
+                    != format!(
+                        "record-version:{}",
+                        crate::source_bibliographic_render::digest(
+                            &view["record_ref"],
+                            l.catalog.max_row_bytes,
+                        )?
+                    )
+            {
+                return Err(Error::Invalid("managed retained record-version identity"));
+            }
+            if view["record_kind"] == "metadata" {
+                let catalog = view
+                    .pointer_mut("/provenance/catalog")
+                    .ok_or(Error::Invalid(
+                        "managed metadata version catalogue provenance absent",
+                    ))?;
+                let current_id = catalog["current_record_ref"]["id"]
+                    .as_str()
+                    .ok_or(Error::Invalid("managed metadata version current identity"))?
+                    .to_owned();
+                if view["record_ref"]["id"].as_str() != Some(current_id.as_str()) {
+                    return Err(Error::Invalid(
+                        "managed metadata version/catalog current identity mismatch",
+                    ));
+                }
+                refresh_managed_catalog_provenance(
+                    catalog,
+                    &current_id,
+                    facts
+                        .get(&current_id)
+                        .ok_or(Error::Invalid("managed metadata version catalogue target"))?,
+                )?;
+            }
+        } else if matches!(kind, "tradition" | "region" | "era" | "branch") {
+            if !source_ref.ends_with("/branch.manifest.json")
+                || node
+                    .pointer("/properties/branch_path")
+                    .and_then(Value::as_str)
+                    .is_none()
+                || node
+                    .pointer("/properties/role")
+                    .and_then(Value::as_str)
+                    .is_none()
+            {
+                return Err(Error::Invalid("managed retained branch navigation node"));
+            }
+        } else if kind == "source_planting" {
+            if !source_ref.ends_with("/source-planting.json")
+                || node.pointer("/properties/discovery_ref").is_none()
+                || node.pointer("/properties/research_ref").is_none()
+            {
+                return Err(Error::Invalid("managed retained source-planting node"));
+            }
+        } else if kind == "source_witness" {
+            if node["identity_status"] != "provisional"
+                || node["properties"] != Value::Object(Default::default())
+                || entries.contains_key(&id)
+            {
+                return Err(Error::Invalid("managed retained source-witness node"));
+            }
+        } else if kind == "file" {
+            let sha = text(&node["properties"], "sha256")?;
+            let digest = sha.strip_prefix("sha256:").unwrap_or(sha);
+            let refs = node["source_refs"]
+                .as_array()
+                .ok_or(Error::Invalid("managed retained file source refs"))?;
+            if id != format!("tos.file.sha256.{sha}")
+                || Digest256::from_hex(digest).is_err()
+                || refs.is_empty()
+                || refs.iter().any(|r| !r.is_string())
+                || node["properties"]["byte_size"].as_u64().is_none()
+                || node["properties"]["media_type"].as_str().is_none()
+            {
+                return Err(Error::Invalid("managed retained file navigation node"));
+            }
+        } else if node["identity_status"] == "source-declared-versioned-record" {
+            let record_id = text(&node["properties"], "record_id")?;
+            let packet_id = text(&node["properties"], "packet_id")?;
+            let version = match node["properties"].get("packet_version") {
+                None | Some(Value::Null) => "None".to_owned(),
+                Some(Value::String(s)) => s.clone(),
+                Some(Value::Number(n)) => n.to_string(),
+                _ => return Err(Error::Invalid("managed retained packet version")),
+            };
+            let namespace =
+                Digest256::of_bytes(format!("{source_ref}:{packet_id}:{version}").as_bytes())
+                    .to_hex();
+            if id != format!("{record_id}@{}", &namespace[..20])
+                || node["properties"]["content_available"].as_bool().is_none()
+                || node["properties"]["publication_posture"].as_str().is_none()
+                || node["properties"].get("content_posture").is_none()
+                || node["properties"].get("review_status").is_none()
+            {
+                return Err(Error::Invalid("managed retained stand-off packet node"));
+            }
         } else {
-            &mut node["properties"]["record_version_view"]["provenance"]
-        };
-        let catalog = provenance.get_mut("catalog").ok_or(Error::Invalid(
-            "managed retained Versions catalogue provenance absent",
-        ))?;
-        let id = catalog["current_record_ref"]["id"]
-            .as_str()
-            .ok_or(Error::Invalid("managed retained current version identity"))?
-            .to_owned();
-        if !old_agents.contains(&id)
-            || catalog["source_record_ref"] != entries[&id]["source_record_ref"]
-            || catalog["source_ref"] != "ToS/source-witnesses/catalog/agents.jsonl"
-        {
-            return Err(Error::Invalid(
-                "managed retained Agent Versions/catalog closure",
+            return Err(Error::ManagedSourceUnsupported(
+                "managed parent navigation node family unsupported; FullOnly required",
             ));
         }
-        catalog["line"] = Value::from(lines[&id]);
-        catalog["sha256"] = Value::String(catalogue_sha.clone());
+    }
+    if retained_record_ids.len()
+        != entries
+            .len()
+            .checked_sub(1)
+            .ok_or(Error::Budget("managed mixed catalogue row count"))?
+        || retained_record_ids.contains(new_id)
+        || old_agents.len()
+            != families
+                .iter()
+                .filter(|(id, family)| id.as_str() != new_id && family.as_str() == "agents.jsonl")
+                .count()
+    {
+        return Err(Error::Invalid(
+            "managed retained mixed catalogue node coverage",
+        ));
+    }
+    for id in entries.keys().filter(|id| id.as_str() != new_id) {
+        if !retained_record_ids.contains(id) {
+            return Err(Error::Invalid("managed current catalogue node missing"));
+        }
+    }
+    let mut edge_ids = std::collections::BTreeSet::new();
+    for edge in &edges {
+        let id = text(edge, "edge_id")?;
+        let from = text(edge, "from_id")?;
+        let to = text(edge, "to_id")?;
+        let kind = text(edge, "edge_kind")?;
+        let refs = edge["source_refs"]
+            .as_array()
+            .ok_or(Error::Invalid("managed retained relation source refs"))?;
+        if !edge_ids.insert(id.to_owned())
+            || !parent_node_ids.contains(from)
+            || !parent_node_ids.contains(to)
+            || !edge["predicate_id"].is_string()
+            || !edge["review_status"].is_string()
+            || refs.iter().any(|r| !r.is_string())
+            || !matches!(
+                kind,
+                "exact_historical_record_reference"
+                    | "authored_branch_hierarchy"
+                    | "authored_source_planting"
+                    | "evidence_claim"
+                    | "authored_item_manifest"
+                    | "stand-off-source-structure"
+            )
+            || contains_exact_string(edge, new_id)
+            || contains_exact_string(edge, record_path)
+        {
+            return Err(Error::ManagedSourceUnsupported(
+                "managed parent navigation relation closure unavailable; FullOnly required",
+            ));
+        }
+    }
+    // Every retained chain/source/form stays exact. Only catalogue provenance
+    // is refreshed; unchanged family hashes/lines must already match the parent.
+    for node in &mut nodes {
         charge(
             &mut work,
             encode(node, l.catalog.max_output_row_bytes)?.len(),
@@ -1164,18 +1478,18 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
             .transpose()?
             .flatten()
     };
-    let entities = crate::knowledge_normalization::SourceRow::parse(
-        entity_raw,
-        full_limits.max_registry_bytes,
-    )?
-    .value()
-    .clone();
     let new = crate::source_bibliographic_navigation::project_managed_initial_agent(
         new_entry,
         &record,
         record_raw,
         &entities,
-        (lines[new_id], catalogue_sha.clone()),
+        (
+            lines[new_id],
+            family_shas
+                .get("agents.jsonl")
+                .ok_or(Error::Invalid("managed current Agent catalogue hash"))?
+                .clone(),
+        ),
         materialized.as_ref().map(|(r, v)| (r.as_str(), v)),
         l,
     )?;
@@ -1188,6 +1502,25 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
     edges.extend(new.edges);
     nodes.sort_by(|a, b| a["node_id"].as_str().cmp(&b["node_id"].as_str()));
     edges.sort_by(|a, b| a["edge_id"].as_str().cmp(&b["edge_id"].as_str()));
+    let mut final_node_ids = std::collections::BTreeSet::new();
+    for node in &nodes {
+        if !final_node_ids.insert(text(node, "node_id")?.to_owned()) {
+            return Err(Error::Invalid(
+                "managed successor duplicate navigation node",
+            ));
+        }
+    }
+    let mut final_edge_ids = std::collections::BTreeSet::new();
+    for edge in &edges {
+        if !final_edge_ids.insert(text(edge, "edge_id")?.to_owned())
+            || !final_node_ids.contains(text(edge, "from_id")?)
+            || !final_node_ids.contains(text(edge, "to_id")?)
+        {
+            return Err(Error::Invalid(
+                "managed successor navigation endpoint closure",
+            ));
+        }
+    }
     projection["counts"]["nodes"] = Value::from(nodes.len());
     projection["counts"]["edges"] = Value::from(edges.len());
     projection["nodes"] = Value::Array(nodes);

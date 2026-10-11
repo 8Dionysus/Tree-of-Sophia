@@ -2717,6 +2717,17 @@ fn maintained_agent_creation_operation<
                         &mut forms,
                         bibliographic_limits,
                     )?;
+                if let Some(path) = &mixed_work_current_path {
+                    let work: serde_json::Value = serde_json::from_slice(&files[path]).unwrap();
+                    let node = navigation.value()["nodes"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|node| node["node_id"] == work["record_id"])
+                        .expect("initial mixed navigation includes Work");
+                    assert_eq!(node["node_kind"], "work");
+                    assert_eq!(node["properties"]["source_record"], work);
+                }
                 if overlay {
                     catalog_epoch = Some(tos_compiler::VersionsCatalogEpochV2::build_with_work(
                         &mut stage,
@@ -2772,6 +2783,10 @@ fn maintained_agent_creation_operation<
     );
     let initial_selected = initial_selected_result.unwrap();
     assert!(!initial_carriers.is_empty());
+    let initial_carrier_ids = initial_carriers
+        .iter()
+        .map(|row| (row.kind, row.id.clone()))
+        .collect::<Vec<_>>();
     drop(initial_carriers); // the next selected model has its own finite carrier set
     let manifest_limits = tos_compiler::ManagedManifestLimitsV2 {
         max_manifest_bytes: 1_048_576,
@@ -4007,6 +4022,14 @@ fn maintained_agent_creation_operation<
             .unwrap()
             .source_catalog_root_sha256()
     );
+    for (kind, id) in &initial_carrier_ids {
+        assert!(
+            successor_carriers
+                .iter()
+                .any(|row| &row.kind == kind && &row.id == id),
+            "the mixed successor preserves every retained node and relation: {id}"
+        );
+    }
     let mut synthetic_read = ManagedFixtureReadGrant::new(&second_selected, successor_carriers);
     let mut no_checkpoints = ManagedFixtureNoCheckpoints;
     let query_budgets = managed_fixture_query_budgets();
@@ -4021,7 +4044,7 @@ fn maintained_agent_creation_operation<
         .expect("actual retained record-history relation")
         .id
         .clone();
-    for request in [
+    let mut selected_requests = vec![
         tos_access::KnowledgeRequest::Catalog,
         tos_access::KnowledgeRequest::Node {
             node_id: "tos.agent.synthetic-durable-current".into(),
@@ -4030,7 +4053,23 @@ fn maintained_agent_creation_operation<
         tos_access::KnowledgeRequest::Relation {
             relation_id: history_edge.clone(),
         },
-    ] {
+    ];
+    let mixed_work_id = mixed_work_current_path.as_ref().map(|path| {
+        let work: serde_json::Value = serde_json::from_slice(&files[path]).unwrap();
+        work["record_id"].as_str().unwrap().to_owned()
+    });
+    if let Some(id) = &mixed_work_id {
+        selected_requests.push(tos_access::KnowledgeRequest::Node {
+            node_id: id.clone(),
+            relation_limit: 16,
+        });
+    }
+    for request in selected_requests {
+        let retained_work = matches!(
+            &request,
+            tos_access::KnowledgeRequest::Node { node_id, .. }
+                if Some(node_id.as_str()) == mixed_work_id.as_deref()
+        );
         let mut catalog = synthetic_read.clone();
         let mut inspect = synthetic_read.clone();
         inspect.operation = if matches!(&request, tos_access::KnowledgeRequest::Relation { .. }) {
@@ -4105,13 +4144,23 @@ fn maintained_agent_creation_operation<
             if schema == "tos_knowledge_node_packet_v2" {
                 assert_eq!(packet["matches"].as_array().unwrap().len(), 1);
                 let attributes = &packet["matches"][0]["attributes"];
-                let record_name = second_path.as_str().rsplit('/').next().unwrap();
-                let body: serde_json::Value =
-                    serde_json::from_slice(&current_package.files()[record_name]).unwrap();
-                let form_name =
-                    record_name.strip_suffix(".json").unwrap().to_owned() + ".human-forms.json";
-                let set: serde_json::Value =
-                    serde_json::from_slice(&current_package.files()[&form_name]).unwrap();
+                let (body, set): (serde_json::Value, serde_json::Value) = if retained_work {
+                    let path = mixed_work_current_path.as_ref().unwrap();
+                    let form_path =
+                        path.strip_suffix(".json").unwrap().to_owned() + ".human-forms.json";
+                    (
+                        serde_json::from_slice(&files[path]).unwrap(),
+                        serde_json::from_slice(&files[&form_path]).unwrap(),
+                    )
+                } else {
+                    let record_name = second_path.as_str().rsplit('/').next().unwrap();
+                    let form_name =
+                        record_name.strip_suffix(".json").unwrap().to_owned() + ".human-forms.json";
+                    (
+                        serde_json::from_slice(&current_package.files()[record_name]).unwrap(),
+                        serde_json::from_slice(&current_package.files()[&form_name]).unwrap(),
+                    )
+                };
                 assert_eq!(attributes["source_record"], body);
                 assert_eq!(
                     attributes["human_forms"],
@@ -4124,10 +4173,38 @@ fn maintained_agent_creation_operation<
                 );
                 assert_eq!(attributes["record_history"]["status"], "available");
                 assert_eq!(attributes["record_history"]["current_ref"], set["subject"]);
-                assert_eq!(
-                    attributes["record_history"]["refs"],
-                    serde_json::json!([set["subject"].clone()])
-                );
+                if retained_work {
+                    let history_path = format!(
+                        "{}/source-revision-history.json",
+                        mixed_work_current_path
+                            .as_ref()
+                            .unwrap()
+                            .rsplit_once('/')
+                            .unwrap()
+                            .0
+                    );
+                    let history: serde_json::Value =
+                        serde_json::from_slice(&files[&history_path]).unwrap();
+                    assert_eq!(
+                        attributes["record_history"]["refs"],
+                        serde_json::json!([
+                            history["receipts"][0]["previous_source"],
+                            set["subject"]
+                        ]),
+                        "the Work retains both exact versions"
+                    );
+                    let provenance = &attributes["record_history"]["provenance"]["catalog"];
+                    assert_eq!(
+                        provenance["source_ref"],
+                        "ToS/source-witnesses/catalog/works.jsonl"
+                    );
+                    assert_eq!(provenance["line"], 1);
+                } else {
+                    assert_eq!(
+                        attributes["record_history"]["refs"],
+                        serde_json::json!([set["subject"].clone()])
+                    );
+                }
                 assert_eq!(attributes["record_history"]["grants_current_use"], false);
             }
         }
