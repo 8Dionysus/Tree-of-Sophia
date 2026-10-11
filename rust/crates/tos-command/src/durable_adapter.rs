@@ -1701,8 +1701,10 @@ impl DurablePgCoordinator {
                 },
             ));
         }
-        if !matches!(mode, source_cohort::CommitMode::Creation { .. })
-            && head != request.full_base_seq
+        if !matches!(
+            mode,
+            source_cohort::CommitMode::Creation { .. } | source_cohort::CommitMode::Revision { .. }
+        ) && head != request.full_base_seq
         {
             return Err(DurableError::Conflict(
                 "FullOnly base drift; re-audit outside lock",

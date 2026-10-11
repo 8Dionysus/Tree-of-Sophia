@@ -88,11 +88,47 @@ bootstrap path; increasing these limits is not that implementation. Run under
 the normal host resource supervisor: deadlines are cooperative around existing
 STO recovery, and a single recovery call can exceed a shorter batch deadline.
 
-This first projection does not connect filesystem `record.revise` to PostgreSQL,
-complete general source-command migration, resolve every knowledge-graph join,
-or replace CLI/HTTP/MCP/Worker knowledge readers. Those remain explicit completion
-requirements. Full Site exports and their existing versioned readers retain
-their compatibility contract while that migration is implemented.
+The source-text projection is not a general source-command migration, does not
+resolve every knowledge-graph join and does not replace CLI/HTTP/MCP/Worker
+knowledge readers. Full Site exports and their existing versioned readers
+retain their compatibility contract while that migration is implemented.
+
+## Native PostgreSQL record revision
+
+The ordinary `--invocation` route also supports a flat corpus
+`tos_local_corpus_revision_owner_v1` owner for `describe`, `prepare-revise` and
+`record.revise`. It uses the existing PostgreSQL 16 NoTls numeric-loopback
+connection selected privately through `TOS_SOURCE_PG_URL`. The invocation's
+`source_selection` has exactly `domain`, `source_contract_sha256`, `store_root`,
+`store_limits`, `job_id` and `job_fence`; the owner configuration's protected
+`source_root` must name that same existing private STO root.
+
+`job_id` and positive `job_fence` select one existing current PG job lease for
+the selected domain. The reader checks that exact pair when opening and closing
+its read epoch, and registration and commit check it again. The route refuses an
+absent or changed lease. It never creates, increments, repairs or substitutes a
+job lease; the real-source lab fixture uses its already registered
+`private-job` fence `1`.
+
+The reader opens the bounded domain/cohort descriptor in a read-only repeatable
+read transaction, then reads only the current owner record's declared source
+references, its immediate flat package members, selected HumanForms and
+publication/revision carriers needed by this request, and the selected
+record/revision schema closure. It reads the explicitly captured software components
+separately. `max_members`, `max_member_bytes` and `max_total_bytes` bound that
+exact combined command context; the selected package is refused if it has more
+than 64 immediate children or any nested directory. This route does not cold
+reopen or materialize the complete source cohort. Current rights, rule version,
+contract and audit/source epoch are checked again at durable registration,
+commit and replay.
+
+`describe` and `prepare-revise` return the maintained owner response without a
+durable attempt. `record.revise` runs the same sealed semantic preparation,
+registers the exact proposal against its PG readset, seals the proposed bytes in
+the selected STO and commits through the ordinary durable owner transaction.
+An exact command retry returns the retained commit receipt. Its result envelope
+has `grants_admission: false`: source admission, external rights, semantic
+acceptance, publication and canon remain separate owner decisions.
 
 Provide a nonempty `TOS_CMD_POSTGRES_URL` for a dedicated isolated PostgreSQL instance and run `cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture` from the OPS-integrated workspace. Explicit PG target execution fails closed without the URL. Destructive child/restore probes remain explicitly ignored and are not part of ordinary CI execution. Tests establish bounded mechanical behavior, not source or rights admission.
 

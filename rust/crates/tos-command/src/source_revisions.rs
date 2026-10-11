@@ -6,6 +6,7 @@
 //! probes and current account observations do not grant
 //! admission; `PreparedCommand::commit` remains a production-admission refusal.
 
+pub(crate) use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_command::{self as cmd, *};
 use crate::source_forms;
 use std::collections::{BTreeMap, BTreeSet};
@@ -902,6 +903,69 @@ impl RecordRead for CommandContext {
     }
     fn check(&self) -> SourceCommandResult<()> {
         CommandContext::check(self)
+    }
+}
+
+/// The semantic record-revision kernel needs command fields for the legacy
+/// prepared plan, while `RecordRead::Identity` binds its actual selected input.
+/// PostgreSQL adapters therefore provide both explicitly without forging a
+/// current SourceRevision.
+pub(crate) trait RecordRevisionCommandContext: RecordRead {
+    fn command_context(&self) -> &CommandContext;
+}
+
+impl RecordRevisionCommandContext for CommandContext {
+    fn command_context(&self) -> &CommandContext {
+        self
+    }
+}
+
+pub(crate) struct PgRecordRevisionCommandContext {
+    command: CommandContext,
+    identity: PgRecordRevisionIdentity,
+}
+
+impl PgRecordRevisionCommandContext {
+    pub(crate) fn new(command: CommandContext, identity: PgRecordRevisionIdentity) -> Self {
+        Self { command, identity }
+    }
+
+    pub(crate) fn into_command_context(self) -> CommandContext {
+        self.command
+    }
+}
+
+impl RecordRead for PgRecordRevisionCommandContext {
+    type Identity = PgRecordRevisionIdentity;
+
+    fn files(&self) -> &[SourceFile] {
+        &self.command.files
+    }
+
+    fn input_identity(&self) -> Self::Identity {
+        self.identity
+    }
+
+    fn effective_uid(&self) -> u64 {
+        self.command.effective_uid
+    }
+
+    fn schema_source_path(&self) -> SourceCommandResult<String> {
+        self.command.schema_source_path()
+    }
+
+    fn writer(&self) -> Option<&CommandContext> {
+        Some(&self.command)
+    }
+
+    fn check(&self) -> SourceCommandResult<()> {
+        self.command.check()
+    }
+}
+
+impl RecordRevisionCommandContext for PgRecordRevisionCommandContext {
+    fn command_context(&self) -> &CommandContext {
+        &self.command
     }
 }
 impl RecordRead for RecordVersionReadInput<'_> {
@@ -1824,15 +1888,19 @@ fn verify_history_accounted(
     }
     Ok((value, bytes_read))
 }
-fn inspect(
+fn inspect<W, C>(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &C,
     config: &JsonValue,
     family: RevisionFamily,
-) -> SourceCommandResult<Inspection> {
+) -> SourceCommandResult<Inspection>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     let source_path = cmd::text(config, "source_path")?;
     let (_, base) = split(source_path)?;
     let files = package(ctx, source_path, family.selected(), None)?;
@@ -2091,18 +2159,22 @@ where
         .map_err(|_| SourceCommandError::Conflict("human form retained lineage"))?;
     Ok(())
 }
-fn result(
-    worker: &mut CutWorkerSchemaExecutor,
+fn result<W, C>(
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &C,
     config: &JsonValue,
     family: RevisionFamily,
     inspection: &Inspection,
     publication: Option<&RevisionPublication>,
     receipt: Option<&JsonValue>,
     replayed: bool,
-) -> SourceCommandResult<JsonValue> {
+) -> SourceCommandResult<JsonValue>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     let [_, formname, _] = names(cmd::text(config, "source_path")?)?;
     let views = match inspection.files.get(&formname) {
         Some(raw) => {
@@ -3718,8 +3790,43 @@ pub(crate) fn prepare_record_revision_inner(
             "schema worker and source command cut differ",
         ));
     }
-    let (config, family) = configuration(ctx)?;
-    let request_value = cmd::parse(&ctx.request_raw)?;
+    prepare_record_revision_with_context(ctx, publication, cut, worker, deadline, cancelled)
+}
+
+pub(crate) fn prepare_pg_record_revision_inner(
+    ctx: &PgRecordRevisionCommandContext,
+    cut: Option<&CorpusCutReader>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<PgRecordRevisionIdentity>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    // The legacy proposal remains bound to the cohort's actual bootstrap
+    // SourceRevision; `ctx.input_identity()` and the worker carry the PG epoch.
+    let publication = read_record_revision_publication(ctx.command_context(), &[])?;
+    prepare_record_revision_with_context(ctx, Some(&publication), cut, worker, deadline, cancelled)
+}
+
+fn prepare_record_revision_with_context<C, W>(
+    ctx: &C,
+    publication: Option<&RevisionPublication>,
+    cut: Option<&CorpusCutReader>,
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand>
+where
+    C: RecordRevisionCommandContext<Identity = W::Identity>,
+    W: RecordSchemaWorker,
+{
+    if worker.input_identity() != ctx.input_identity() {
+        return Err(SourceCommandError::Conflict(
+            "schema worker and selected record revision identity differ",
+        ));
+    }
+    ctx.check()?;
+    let command = ctx.command_context();
+    let (config, family) = configuration(command)?;
+    let request_value = cmd::parse(&command.request_raw)?;
     let operation = request(&request_value, family)?;
     let configuration = cmd::record_digest(&config)?.to_prefixed();
     if family.selected() {
@@ -3731,7 +3838,7 @@ pub(crate) fn prepare_record_revision_inner(
             .iter()
             .map(|t| t.transaction_id.as_str())
             .collect::<Vec<_>>();
-        if read_record_revision_publication(ctx, &ids)? != *publication {
+        if read_record_revision_publication(command, &ids)? != *publication {
             return Err(SourceCommandError::Conflict(
                 "publication observation differs from exact selected owner carriers",
             ));
@@ -3846,7 +3953,7 @@ pub(crate) fn prepare_record_revision_inner(
                     ("status", cmd::string("prepared")),
                 ]),
             )?;
-            return ctx.plan(family.handler_id(), response, changes, false);
+            return command.plan(family.handler_id(), response, changes, false);
         }
         if operation == "record.recover" {
             return Err(SourceCommandError::Conflict(
@@ -3868,7 +3975,7 @@ pub(crate) fn prepare_record_revision_inner(
         false,
     )?;
     if operation == "describe" {
-        return ctx.plan(family.handler_id(), response, vec![], false);
+        return command.plan(family.handler_id(), response, vec![], false);
     }
     if operation == "inspect-version" {
         let requested = cmd::field(&request_value, "source")?;
@@ -3887,7 +3994,7 @@ pub(crate) fn prepare_record_revision_inner(
                 )?;
                 cmd::set(&mut response, "inspected_source", requested.clone())?;
                 cmd::set(&mut response, "files", locations)?;
-                return ctx.plan(family.handler_id(), response, vec![], false);
+                return command.plan(family.handler_id(), response, vec![], false);
             }
         }
         return Err(SourceCommandError::Conflict(
@@ -3935,7 +4042,7 @@ pub(crate) fn prepare_record_revision_inner(
                     .unwrap_or(JsonValue::Null),
             )?;
         }
-        return ctx.plan(family.handler_id(), response, vec![], false);
+        return command.plan(family.handler_id(), response, vec![], false);
     }
     for receipt in cmd::array(&inspection.history, "receipts")? {
         if cmd::field(receipt, "command_id")? == cmd::field(&request_value, "command_id")? {
@@ -3994,7 +4101,7 @@ pub(crate) fn prepare_record_revision_inner(
                 Some(receipt),
                 true,
             )?;
-            return ctx.plan(family.handler_id(), response, vec![], true);
+            return command.plan(family.handler_id(), response, vec![], true);
         }
     }
     if cmd::text(&request_value, "expected_configuration")? != configuration
@@ -4031,7 +4138,7 @@ pub(crate) fn prepare_record_revision_inner(
         family,
         &inspection,
         &request_value,
-        &ctx.recorded_at,
+        &command.recorded_at,
         "record.revise",
     )?;
     let mut changes = retain_archive(ctx, &config, family, &inspection)?;
@@ -4048,7 +4155,7 @@ pub(crate) fn prepare_record_revision_inner(
         Some(&receipt),
         false,
     )?;
-    ctx.plan(family.handler_id(), response, changes, false)
+    command.plan(family.handler_id(), response, changes, false)
 }
 
 const CONTROL_PATH: &str = "ToS/source-witnesses/.metadata-publication.json";

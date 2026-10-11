@@ -63,6 +63,11 @@ pub mod source_native_cli;
 pub mod source_projection_cli;
 pub mod source_search_projection;
 pub use durable_adapter::source_cohort;
+pub(crate) use durable_adapter::source_cohort::SourceRevisionAttempt;
+pub(crate) use durable_adapter::source_cohort::revision::{
+    PgRecordRevisionIdentity, SourceRevisionReadSession, SourceRevisionReadSet,
+    SourceRevisionSelection,
+};
 pub(crate) use source_creation_store::work_transaction as source_work_transaction;
 mod source_assessment_journal;
 pub mod source_forms;
@@ -111,7 +116,7 @@ use tos_foundation::Digest256;
 pub use durable_adapter::durable_projection::{
     DurableProjectionDocument, DurableProjectionExtractor, DurableProjectionHit,
     DurableProjectionLimits, DurableProjectionProfile, DurableProjectionProgress,
-    DurableProjectionSearch, DurableProjectionStatus,
+    DurableProjectionSearch, DurableProjectionStatus, DurableProjectionWork,
 };
 pub use durable_adapter::{
     AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, ColdWorkspaceLimits,

@@ -135,25 +135,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
         source_contract,
     };
     let request = read_request(input)?;
-    let url = std::env::var("TOS_SOURCE_PG_URL").map_err(|_| "TOS_SOURCE_PG_URL required")?;
-    // The same local NoTls transport selection as the existing native owner
-    // backup route; credentials never become command arguments or error output.
-    let mut config = crate::backup_recovery::selected_config(&url)
-        .map_err(|_| "explicit local PostgreSQL selection required")?;
-    config.connect_timeout(Duration::from_secs(5));
-    let mut client = config
-        .connect(postgres::NoTls)
-        .map_err(|_| "selected PostgreSQL unavailable")?;
-    client
-        .batch_execute("SET statement_timeout='15s'; SET lock_timeout='5s'")
-        .map_err(|_| "PostgreSQL session configuration refused")?;
-    let version: i32 = client
-        .query_one("SELECT current_setting('server_version_num')::integer", &[])
-        .map_err(|_| "PostgreSQL version unavailable")?
-        .get(0);
-    if version / 10_000 != 16 {
-        return Err("selected source coordinator requires PostgreSQL 16");
-    }
+    let mut client = connect_selected_source_pg16()?;
     let mut db = DurablePgCoordinator::from_configured_client(client);
     match request {
         Request::Init => {
@@ -237,6 +219,30 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
             }))
         }
     }
+}
+
+/// Open the exact private PostgreSQL transport shared by source projection and
+/// native source revision owners. Credentials remain in the process environment
+/// and connection or SQL errors never include them in the public reason.
+pub(crate) fn connect_selected_source_pg16() -> Result<postgres::Client, &'static str> {
+    let url = std::env::var("TOS_SOURCE_PG_URL").map_err(|_| "TOS_SOURCE_PG_URL required")?;
+    let mut config = crate::backup_recovery::selected_config(&url)
+        .map_err(|_| "explicit local PostgreSQL selection required")?;
+    config.connect_timeout(Duration::from_secs(5));
+    let mut client = config
+        .connect(postgres::NoTls)
+        .map_err(|_| "selected PostgreSQL unavailable")?;
+    client
+        .batch_execute("SET statement_timeout='15s'; SET lock_timeout='5s'")
+        .map_err(|_| "PostgreSQL session configuration refused")?;
+    let version: i32 = client
+        .query_one("SELECT current_setting('server_version_num')::integer", &[])
+        .map_err(|_| "PostgreSQL version unavailable")?
+        .get(0);
+    if version / 10_000 != 16 {
+        return Err("selected source coordinator requires PostgreSQL 16");
+    }
+    Ok(client)
 }
 
 fn open_store(selection: &Selection) -> Result<SegmentStore, &'static str> {

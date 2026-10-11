@@ -42,6 +42,8 @@ mod legacy_claim;
 mod metadata_publication;
 #[path = "source_native_object_link_cli.rs"]
 mod object_link;
+#[path = "source_native_pg_revision_cli.rs"]
+mod pg_revision;
 #[path = "source_native_prepared_transport.rs"]
 mod prepared_transport;
 #[path = "source_native_private_assessment_cli.rs"]
@@ -53,7 +55,7 @@ mod public_text;
 #[path = "source_native_responsibility_cli.rs"]
 mod responsibility;
 #[path = "source_native_revisions_cli.rs"]
-mod revisions;
+pub(crate) mod revisions;
 #[path = "source_native_source_session.rs"]
 mod source_session;
 #[path = "source_native_text_cli.rs"]
@@ -146,8 +148,8 @@ pub fn discover_commands(handler: Option<&str>) -> SourceCommandResult<Value> {
     Ok(catalog)
 }
 
-/// Complete one explicitly selected local invocation. Both protected owner
-/// files are independently reread by the Alignment entry at current use.
+/// Complete one explicitly selected local invocation. Typed owner handlers
+/// reread the protected configuration and invocation at their current-use edge.
 pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {
     run_selected(invocation_path, input, false)
 }
@@ -184,6 +186,17 @@ fn run_selected(
         return Err(SourceCommandError::Denied(
             "private text invocation profile",
         ));
+    }
+    if text(&invocation, "schema_version")? == "tos_local_pg_record_revision_invocation_v1" {
+        return pg_revision::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
     }
     if matches!(
         text(&invocation, "schema_version")?,

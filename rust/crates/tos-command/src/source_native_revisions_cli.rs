@@ -13,8 +13,10 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
     SoftwareComponentSelectionV1,
 };
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
+use tos_validation::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+};
 use tos_validation::{FormatProfile, SchemaResource};
 
 struct V1RecordFiles<'a> {
@@ -351,6 +353,154 @@ fn reserve_transport_read_from(
     transport.set_retained_state_bytes(bytes, deadline, cancelled)
 }
 
+struct SelectedContextBudget {
+    max_members: usize,
+    max_total_bytes: u64,
+    max_member_bytes: usize,
+    members: BTreeMap<String, usize>,
+    total_bytes: u64,
+}
+
+impl SelectedContextBudget {
+    fn new(
+        max_members: usize,
+        max_total_bytes: u64,
+        max_member_bytes: u64,
+    ) -> SourceCommandResult<Self> {
+        if max_members == 0 || max_total_bytes == 0 || max_member_bytes == 0 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected context budget",
+            ));
+        }
+        Ok(Self {
+            max_members,
+            max_total_bytes,
+            max_member_bytes: usize::try_from(max_member_bytes)
+                .map_err(|_| SourceCommandError::Invalid("record revision member byte budget"))?,
+            members: BTreeMap::new(),
+            total_bytes: 0,
+        })
+    }
+
+    fn read_cap(&self, path: &str, requested: usize) -> SourceCommandResult<usize> {
+        let member_cap = requested.min(self.max_member_bytes);
+        let remaining = if self.members.contains_key(path) {
+            self.max_member_bytes as u64
+        } else {
+            self.max_total_bytes.saturating_sub(self.total_bytes)
+        };
+        let cap = member_cap.min(usize::try_from(remaining).unwrap_or(usize::MAX));
+        if cap == 0 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected context byte budget",
+            ));
+        }
+        Ok(cap)
+    }
+
+    fn record(&mut self, path: &str, bytes: usize) -> SourceCommandResult<()> {
+        if bytes > self.max_member_bytes {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected context member byte budget",
+            ));
+        }
+        if let Some(previous) = self.members.get(path) {
+            if *previous != bytes {
+                return Err(SourceCommandError::Conflict(
+                    "record revision selected member size changed",
+                ));
+            }
+            return Ok(());
+        }
+        if self.members.len() >= self.max_members {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected context member budget",
+            ));
+        }
+        let bytes_u64 = u64::try_from(bytes)
+            .map_err(|_| SourceCommandError::Invalid("record revision byte budget"))?;
+        self.total_bytes = self
+            .total_bytes
+            .checked_add(bytes_u64)
+            .filter(|total| *total <= self.max_total_bytes)
+            .ok_or(SourceCommandError::Invalid(
+                "record revision selected context byte budget",
+            ))?;
+        self.members.insert(path.to_owned(), bytes);
+        Ok(())
+    }
+}
+
+struct SelectedContextTransport<'a, T> {
+    inner: &'a mut T,
+    budget: SelectedContextBudget,
+}
+
+impl<'a, T> SelectedContextTransport<'a, T> {
+    fn new(
+        inner: &'a mut T,
+        max_members: usize,
+        max_total_bytes: u64,
+        max_member_bytes: u64,
+    ) -> SourceCommandResult<Self> {
+        Ok(Self {
+            inner,
+            budget: SelectedContextBudget::new(max_members, max_total_bytes, max_member_bytes)?,
+        })
+    }
+
+    fn record_external_member(&mut self, path: &str, bytes: usize) -> SourceCommandResult<()> {
+        self.budget.record(path, bytes)
+    }
+}
+
+impl<T: ReadonlyRecordFiles> ReadonlyRecordFiles for SelectedContextTransport<'_, T> {
+    fn read(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        let cap = self.budget.read_cap(path, max_bytes)?;
+        let raw = self.inner.read(path, cap, deadline, cancelled)?;
+        self.budget.record(path, raw.len())?;
+        Ok(raw)
+    }
+
+    fn list_directory(
+        &mut self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<(String, bool)>> {
+        self.inner.list_directory(path, deadline, cancelled)
+    }
+
+    fn set_retained_state_bytes(
+        &mut self,
+        bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.inner
+            .set_retained_state_bytes(bytes, deadline, cancelled)
+    }
+
+    fn retained_state_bytes(&self) -> usize {
+        self.inner.retained_state_bytes()
+    }
+
+    fn has_file(
+        &mut self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<bool> {
+        self.inner.has_file(path, deadline, cancelled)
+    }
+}
+
 fn bounded_context_files(
     source_path: &str,
     request_raw: &[u8],
@@ -540,13 +690,43 @@ fn context_selected_record(
     )
 }
 
-pub(super) fn context_selected_record_from_transport(
+pub(crate) fn context_selected_record_from_transport(
     configuration_raw: &[u8],
     request_raw: &[u8],
     recorded_at: &str,
     source_path: &str,
     base_revision: SourceRevision,
     transport: &mut impl ReadonlyRecordFiles,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<cmd::CommandContext> {
+    let max_files = cmd::SELECTED_SOURCE_MAX_FILES;
+    let max_bytes = u64::try_from(cmd::SELECTED_SOURCE_MAX_BYTES)
+        .map_err(|_| SourceCommandError::Invalid("record revision context byte budget"))?;
+    let mut budgeted = SelectedContextTransport::new(transport, max_files, max_bytes, 8_388_608)?;
+    context_selected_record_from_budgeted_transport(
+        configuration_raw,
+        request_raw,
+        recorded_at,
+        source_path,
+        base_revision,
+        &mut budgeted,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )
+}
+
+fn context_selected_record_from_budgeted_transport<T: ReadonlyRecordFiles>(
+    configuration_raw: &[u8],
+    request_raw: &[u8],
+    recorded_at: &str,
+    source_path: &str,
+    base_revision: SourceRevision,
+    transport: &mut SelectedContextTransport<'_, T>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     deadline: Instant,
@@ -588,15 +768,30 @@ pub(super) fn context_selected_record_from_transport(
                 "Record revision source/software namespaces overlap",
             ));
         }
-        total = total
+        let member_total = total
             .checked_add(member.size_bytes)
             .filter(|n| *n <= 33_554_432)
             .ok_or(SourceCommandError::Invalid(
                 "Record revision combined selected context byte budget",
             ))?;
+        let member_bytes = usize::try_from(member.size_bytes)
+            .map_err(|_| SourceCommandError::Invalid("Record revision component byte budget"))?;
+        transport.record_external_member(member.path.as_str(), member_bytes)?;
+        total = member_total;
         let raw = software
-            .read_selected_component(components, &member.path, 8_388_608, deadline, cancelled)
+            .read_selected_component(
+                components,
+                &member.path,
+                8_388_608.min(transport.budget.max_member_bytes),
+                deadline,
+                cancelled,
+            )
             .map_err(|_| SourceCommandError::Conflict("Record revision software component read"))?;
+        if raw.len() != member_bytes {
+            return Err(SourceCommandError::Conflict(
+                "Record revision software component size changed",
+            ));
+        }
         files.push(cmd::SourceFile {
             path: member.path.clone(),
             raw,
@@ -612,7 +807,214 @@ pub(super) fn context_selected_record_from_transport(
     })
 }
 
-fn selected_schema_from_context(
+/// The PostgreSQL caller selects the same owner record and schema closure.
+/// Flat owners additionally bind every immediate member of their package;
+/// a directory below it remains outside that owner's declared revision scope.
+pub(crate) fn context_flat_record_from_transport(
+    configuration_raw: &[u8],
+    request_raw: &[u8],
+    recorded_at: &str,
+    source_path: &str,
+    base_revision: SourceRevision,
+    transport: &mut impl ReadonlyRecordFiles,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    max_members: usize,
+    max_total_bytes: u64,
+    max_member_bytes: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<cmd::CommandContext> {
+    let max_total_bytes_usize = usize::try_from(max_total_bytes)
+        .map_err(|_| SourceCommandError::Invalid("revision context byte budget"))?;
+    let configuration = cmd::parse(configuration_raw)?;
+    if cmd::text(&configuration, "schema_version")? != "tos_local_corpus_revision_owner_v1" {
+        return Err(SourceCommandError::Unsupported(
+            "PostgreSQL flat corpus revision owner",
+        ));
+    }
+    let mut budgeted =
+        SelectedContextTransport::new(transport, max_members, max_total_bytes, max_member_bytes)?;
+    let mut context = context_selected_record_from_budgeted_transport(
+        configuration_raw,
+        request_raw,
+        recorded_at,
+        source_path,
+        base_revision,
+        &mut budgeted,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    let (parent, _) = source_path
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("revision selected parent"))?;
+    let children = budgeted.list_directory(parent, deadline, cancelled)?;
+    if children.len() > 64 || children.iter().any(|(_, directory)| *directory) {
+        return Err(SourceCommandError::Unsupported(
+            "flat revision package has descendants or exceeds budget",
+        ));
+    }
+    let mut total = context.files.iter().try_fold(0usize, |total, file| {
+        total
+            .checked_add(file.raw.len())
+            .ok_or(SourceCommandError::Invalid("revision context byte budget"))
+    })?;
+    for (name, _) in children {
+        let path = tos_foundation::RelativePath::parse(&format!("{parent}/{name}"))
+            .map_err(|_| SourceCommandError::Invalid("revision package member"))?;
+        if context.files.iter().any(|file| file.path == path) {
+            continue;
+        }
+        if context.files.len() >= cmd::SELECTED_SOURCE_MAX_FILES {
+            return Err(SourceCommandError::Invalid("revision context file budget"));
+        }
+        budgeted.set_retained_state_bytes(total, deadline, cancelled)?;
+        let raw = budgeted.read(path.as_str(), 2_097_152, deadline, cancelled)?;
+        total = total
+            .checked_add(raw.len())
+            .filter(|n| *n <= max_total_bytes_usize)
+            .ok_or(SourceCommandError::Invalid("revision context byte budget"))?;
+        context.files.push(cmd::SourceFile { path, raw });
+    }
+    context.check()?;
+    Ok(context)
+}
+
+/// Constructed only after the maintained revision rules and schema worker FINAL.
+/// This is semantic preparation; the durable owner still verifies the readset,
+/// current delegation and transaction before admitting its exact changes.
+pub(crate) struct PreparedPgRecordRevision {
+    context: cmd::CommandContext,
+    proposal: cmd::PreparedCommand,
+    identity: crate::source_revisions::PgRecordRevisionIdentity,
+}
+
+impl PreparedPgRecordRevision {
+    pub(crate) fn context(&self) -> &cmd::CommandContext {
+        &self.context
+    }
+    pub(crate) fn proposal(&self) -> &cmd::PreparedCommand {
+        &self.proposal
+    }
+
+    pub(crate) fn identity(&self) -> crate::source_revisions::PgRecordRevisionIdentity {
+        self.identity
+    }
+}
+
+pub(crate) fn prepare_pg_record_revision(
+    invocation: &Value,
+    context: cmd::CommandContext,
+    identity: crate::source_revisions::PgRecordRevisionIdentity,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedPgRecordRevision> {
+    let (_, family) = crate::source_revisions::configuration(&context)?;
+    if family != crate::source_revisions::RevisionFamily::CorpusFlat {
+        return Err(SourceCommandError::Unsupported(
+            "PostgreSQL flat corpus revision owner",
+        ));
+    }
+    let mut worker = selected_candidate_schema_from_context(
+        invocation,
+        &context.files,
+        identity,
+        deadline,
+        cancelled,
+    )?;
+    let read_context =
+        crate::source_revisions::PgRecordRevisionCommandContext::new(context, identity);
+    let result = crate::source_revisions::prepare_pg_record_revision_inner(
+        &read_context,
+        None,
+        &mut worker,
+        deadline,
+        cancelled,
+    );
+    match result {
+        Ok(proposal) => {
+            worker
+                .finish(deadline, cancelled)
+                .map_err(|_| SourceCommandError::Denied("revision worker FINAL"))?;
+            Ok(PreparedPgRecordRevision {
+                context: read_context.into_command_context(),
+                proposal,
+                identity,
+            })
+        }
+        Err(error) => {
+            let _ = worker.finish(deadline, cancelled);
+            Err(error)
+        }
+    }
+}
+
+pub(crate) fn selected_candidate_schema_from_context(
+    invocation: &Value,
+    files: &[cmd::SourceFile],
+    identity: crate::source_revisions::PgRecordRevisionIdentity,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<
+    CandidateCutWorkerSchemaExecutor<crate::source_revisions::PgRecordRevisionIdentity>,
+> {
+    let worker = &invocation["schema_worker"];
+    exact(worker, &["absolute_path", "sha256"])?;
+    let budgets = &invocation["budgets"];
+    let mut worker_budget = ExecutorBudget::laboratory();
+    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
+    worker_budget.address_space_bytes =
+        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
+    let worker_identity = ExactWorkerIdentity {
+        absolute_path: absolute(text(worker, "absolute_path")?)?,
+        sha256: digest(text(worker, "sha256")?)?,
+    };
+    let worker_image =
+        VerifiedWorkerImageHandle::prepare(worker_identity, worker_budget, deadline, cancelled)
+            .map_err(|_| SourceCommandError::Denied("native schema worker image"))?;
+    let limits = CutWorkerLimits {
+        max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
+            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
+        max_receipt_bytes: usize::try_from(capped(budgets, "max_schema_receipt_bytes", 262_144)?)
+            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
+    };
+    let mut resources = Vec::new();
+    for file in files.iter().filter(|file| {
+        file.path.as_str().starts_with("ToS/contracts/")
+            && file.path.as_str().ends_with(".schema.json")
+    }) {
+        if resources.len() >= 128 || file.raw.len() > 4 * 1024 * 1024 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected schema budget",
+            ));
+        }
+        let parsed = cmd::parse(&file.raw)?;
+        let uri = cmd::text(&parsed, "$id")?.to_owned();
+        resources.push((
+            file.path.as_str().to_owned(),
+            SchemaResource {
+                uri,
+                raw: file.raw.clone(),
+            },
+        ));
+    }
+    CandidateCutWorkerSchemaExecutor::from_selected_source_resources(
+        identity,
+        resources,
+        FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
+        worker_budget,
+        limits,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native candidate schema worker"))
+}
+
+pub(crate) fn selected_schema_from_context(
     invocation: &Value,
     files: &[cmd::SourceFile],
     source_revision: SourceRevision,

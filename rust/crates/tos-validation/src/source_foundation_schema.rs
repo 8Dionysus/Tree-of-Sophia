@@ -3505,7 +3505,9 @@ fn manifest_digest(checks: &[SourceFoundationSchemaCheckReport]) -> Digest256 {
     hash.finalize()
 }
 
-fn contract_selection_digest(contracts: &BTreeMap<String, (String, Digest256)>) -> Digest256 {
+pub(crate) fn contract_selection_digest(
+    contracts: &BTreeMap<String, (String, Digest256)>,
+) -> Digest256 {
     let mut hash = Digest256Hasher::new();
     hash.update(b"tos-source-foundation-schema-contract-selection-v1\0");
     hash.update(&(contracts.len() as u64).to_be_bytes());

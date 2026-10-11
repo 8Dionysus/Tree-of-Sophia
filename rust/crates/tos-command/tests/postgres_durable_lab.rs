@@ -29,6 +29,8 @@ use tos_segment_store::{
     SegmentStore, VerificationBudget, describe_placement_partition,
 };
 
+mod postgres_real_revision;
+
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 static INIT_SCHEMA: Once = Once::new();
 
@@ -923,7 +925,6 @@ fn maintained_agent_creation_operation<
         "rust/crates/tos-command/src/source_legacy_historical_claim.rs",
         "rust/crates/tos-command/src/source_forms.rs",
         "rust/crates/tos-command/src/source_private_assessment_sources.rs",
-        "rust/crates/tos-command/src/source_forms.rs",
         "rust/crates/tos-compiler/src/source_witness_catalog.rs",
         "rust/crates/tos-command/src/source_private_profile.rs",
         "rust/crates/tos-command/src/source_sign_native.rs",
@@ -949,10 +950,16 @@ fn maintained_agent_creation_operation<
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
     ];
-    let mut files = inputs
+    let mut input_paths = inputs
         .iter()
-        .map(|p| (p.to_string(), fs::read(repository.join(p)).unwrap()))
-        .collect::<BTreeMap<_, _>>();
+        .map(|path| (*path).to_owned())
+        .collect::<std::collections::BTreeSet<_>>();
+    input_paths.extend(
+        tos_command::source_claims::CLAIM_GROUNDING_RULE_INPUTS
+            .iter()
+            .chain(tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS)
+            .map(|path| (*path).to_owned()),
+    );
     // The actual catalog constructor validates every registry-declared route,
     // including unused profiles. Reuse the source-case's complete finite
     // contract resource closure; do not fake empty routes or patch registries.
@@ -966,9 +973,16 @@ fn maintained_agent_creation_operation<
                 .ends_with(".schema.json")
         {
             let path = format!("ToS/contracts/{}", entry.file_name().to_str().unwrap());
-            files.insert(path, fs::read(entry.path()).unwrap());
+            input_paths.insert(path);
         }
     }
+    let files = input_paths
+        .into_iter()
+        .map(|path| {
+            let raw = fs::read(repository.join(&path)).unwrap();
+            (path, raw)
+        })
+        .collect::<BTreeMap<_, _>>();
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     fs::create_dir_all(isolated.path().join("ToS/source-witnesses/agents")).unwrap();

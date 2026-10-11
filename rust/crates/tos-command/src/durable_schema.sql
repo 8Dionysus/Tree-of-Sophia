@@ -81,6 +81,10 @@ CREATE TABLE IF NOT EXISTS cmd2_attempt (
 ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_reads bytea;
 ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_indexes bytea;
 ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_epoch bigint CHECK (source_epoch > 0);
+-- Revision attempts retain the exact protected owner configuration identity so
+-- process-loss replay cannot bind a new config to an old prepare ID.
+ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_configuration_raw_digest char(64);
+ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_configuration_canonical_digest char(64);
 
 -- Owner-derived unique identities. Original bytes remain in current/history.
 CREATE TABLE IF NOT EXISTS cmd2_source_index (
@@ -168,6 +172,8 @@ CREATE TABLE IF NOT EXISTS cmd2_current (
 -- the complete schema digest binds their physical access contract.
 CREATE INDEX IF NOT EXISTS cmd2_current_source_cold_seek
   ON cmd2_current(domain,prepare_id,member_slot);
+CREATE INDEX IF NOT EXISTS cmd2_current_source_subject_c_seek
+  ON cmd2_current(domain,subject COLLATE "C");
 CREATE INDEX IF NOT EXISTS cmd2_source_index_cold_seek
   ON cmd2_source_index(domain,kind COLLATE "C",token COLLATE "C");
 CREATE INDEX IF NOT EXISTS cmd2_predicate_source_cold_seek

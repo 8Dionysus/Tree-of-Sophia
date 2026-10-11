@@ -33,6 +33,14 @@ use tos_source_store::{
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
+/// The source-file carrier used by the bounded PG revision owner. It is
+/// separate from ORIGINAL/CREATION so a later authored revision cannot be
+/// mistaken for an initial source member or a maintained Agent creation.
+pub(super) const REVISION: &[u8] = b"tos.source-file.revision-v1";
+
+#[path = "source_cohort_revision.rs"]
+pub(crate) mod revision;
+
 const ORIGINAL: &[u8] = b"tos.source-file.original-v1";
 const CREATION: &[u8] = b"tos.source-file.agent-create-v1";
 const OWNER: &str = "native-corpus-create:agent";
@@ -55,7 +63,7 @@ pub(crate) struct ManagedAgentInventory {
 
 /// An initial immutable revision names the bootstrap, never later content.
 /// Later completeness is maintained only by this controlled atomic writer.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ManagedSourceCohort {
     domain: String,
     store_id: [u8; 16],
@@ -88,6 +96,7 @@ impl ManagedSourceCohort {
 
 /// A real current address read. This file's custody revision and the managed
 /// generation are distinct from an authored record version or SourceRevision.
+#[derive(Clone, Debug)]
 pub struct ManagedCurrentMember {
     pub path: RelativePath,
     pub custody_revision: u64,
@@ -157,6 +166,174 @@ fn creation_metadata(package: CreationPackage<'_>) -> SourceMetadata {
             )
         })
         .collect()
+}
+
+fn revision_package(
+    proposal: &cmd::PreparedCommand,
+    readset: &revision::SourceRevisionReadSet,
+) -> DurableResult<(
+    SourceReads,
+    Vec<SourceRevisionWrite>,
+    SourceMetadata,
+    BTreeSet<(String, String, String)>,
+)> {
+    if proposal.operation != "record.revise" || proposal.changes.is_empty() {
+        return Err(DurableError::Refused(
+            "bounded source revision requires a non-empty record.revise delta",
+        ));
+    }
+    if proposal.changes.len() > MAX_MEMBERS {
+        return Err(DurableError::Refused(
+            "bounded source revision member budget",
+        ));
+    }
+    let mut reads = SourceReads {
+        reads: readset.reads.reads.clone(),
+        locators: readset.reads.locators.clone(),
+        managed_original: None,
+    };
+    let dependencies = reads
+        .reads
+        .iter()
+        .filter_map(|read| match read {
+            PredicateRead::Exact { key, .. } => Some(key.clone()),
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let mut changes = proposal.changes.clone();
+    changes.sort_by(|left, right| left.path.cmp(&right.path));
+    if changes.windows(2).any(|pair| pair[0].path == pair[1].path) {
+        return Err(DurableError::Invalid(
+            "source revision writes contain duplicate paths",
+        ));
+    }
+    let mut writes = Vec::with_capacity(changes.len());
+    let mut metadata = SourceMetadata::new();
+    for change in changes {
+        let subject = change.path.as_str().to_owned();
+        if !subject.starts_with("ToS/")
+            || subject.contains("/payload/")
+            || subject.contains("/owner-local/")
+            || subject.ends_with("/.metadata-publication.json")
+        {
+            return Err(DurableError::Refused(
+                "bounded source revision path outside authored metadata",
+            ));
+        }
+        let exact = readset.observations.get(&subject);
+        let expected_predecessor = match (change.before, exact) {
+            (Some(before), Some(observed)) if observed.member.metadata.sha256 == before => {
+                Some((observed.member.custody_revision, before))
+            }
+            (Some(_), _) => {
+                return Err(DurableError::Conflict(
+                    "source revision predecessor body differs from readset",
+                ));
+            }
+            (None, Some(_)) => {
+                return Err(DurableError::Conflict(
+                    "source revision insertion target was read as present",
+                ));
+            }
+            (None, None) => None,
+        };
+        let exact_bytes = change.after.ok_or(DurableError::Refused(
+            "bounded source revision does not admit member deletion",
+        ))?;
+        let proposed_revision = expected_predecessor
+            .map(|(revision, _)| {
+                revision
+                    .checked_add(1)
+                    .ok_or(DurableError::Corrupt("source revision custody overflow"))
+            })
+            .unwrap_or(Ok(1))?;
+        writes.push(SourceRevisionWrite {
+            subject: subject.clone(),
+            expected_predecessor,
+            proposed_revision,
+            exact_bytes,
+        });
+        metadata.insert(
+            subject,
+            SourceFileMetadata {
+                mode: 0o644,
+                dependencies: Some(dependencies.clone()),
+            },
+        );
+    }
+    let predicate_keys = reads
+        .reads
+        .iter()
+        .filter_map(|read| match read {
+            PredicateRead::Generation { predicate, .. }
+                if predicate.owner == OWNER
+                    && !(predicate.scope == "source-cohort" && predicate.token == "generation") =>
+            {
+                Some((
+                    predicate.kind.as_str().to_owned(),
+                    predicate.scope.clone(),
+                    predicate.token.clone(),
+                ))
+            }
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    Ok((reads, writes, metadata, predicate_keys))
+}
+
+fn revision_delta(
+    proposal: &cmd::PreparedCommand,
+    selection: &revision::SourceRevisionSelection,
+    reads: &SourceReads,
+    writes: &[SourceRevisionWrite],
+    metadata: &SourceMetadata,
+) -> DurableResult<Digest256> {
+    let mut hasher = Digest256Hasher::new();
+    part(&mut hasher, b"tos-corpus-flat-record-revision-delta-v1");
+    part(&mut hasher, selection.cohort.domain.as_bytes());
+    part(&mut hasher, selection.contract.as_bytes());
+    part(&mut hasher, &selection.epoch.to_be_bytes());
+    part(&mut hasher, &selection.source_generation.to_be_bytes());
+    part(&mut hasher, &selection.head_seq.to_be_bytes());
+    part(&mut hasher, proposal.handler_id.as_bytes());
+    part(&mut hasher, proposal.operation.as_bytes());
+    part(&mut hasher, proposal.base_revision.0.as_bytes());
+    part(&mut hasher, proposal.request_canonical_sha256.as_bytes());
+    part(&mut hasher, proposal.configuration_raw_sha256.as_bytes());
+    part(
+        &mut hasher,
+        proposal.configuration_canonical_sha256.as_bytes(),
+    );
+    part(
+        &mut hasher,
+        Digest256::of_bytes(&reads_bytes(reads)?).as_bytes(),
+    );
+    for write in writes {
+        part(&mut hasher, write.subject.as_bytes());
+        match write.expected_predecessor {
+            None => part(&mut hasher, b"absent"),
+            Some((revision, digest)) => {
+                part(&mut hasher, b"present");
+                part(&mut hasher, &revision.to_be_bytes());
+                part(&mut hasher, digest.as_bytes());
+            }
+        }
+        part(&mut hasher, &write.proposed_revision.to_be_bytes());
+        part(
+            &mut hasher,
+            Digest256::of_bytes(&write.exact_bytes).as_bytes(),
+        );
+        part(&mut hasher, &(write.exact_bytes.len() as u64).to_be_bytes());
+        if let Some(file) = metadata.get(&write.subject) {
+            part(&mut hasher, &file.mode.to_be_bytes());
+            for dependency in file.dependencies.as_deref().unwrap_or(&[]) {
+                part(&mut hasher, dependency.as_bytes());
+            }
+        }
+    }
+    Ok(hasher.finalize())
 }
 fn row_source_metadata(row: &postgres::Row) -> DurableResult<SourceFileMetadata> {
     let mode = row
@@ -249,10 +426,10 @@ enum SourceRegistrationBasis<'a> {
     CommittedReplay,
 }
 
-struct SourceReads {
-    reads: Vec<PredicateRead>,
-    locators: BTreeMap<String, Digest256>,
-    managed_original: Option<serde_json::Value>,
+pub(crate) struct SourceReads {
+    pub(crate) reads: Vec<PredicateRead>,
+    pub(crate) locators: BTreeMap<String, Digest256>,
+    pub(crate) managed_original: Option<serde_json::Value>,
 }
 /// Caller-owned logical source work for the maintained Agent operation.
 /// It is descriptive accounting, never a source/custody authority. Gate and
@@ -306,6 +483,41 @@ pub struct SourceCreationAttempt {
     projections: ProjectionRows,
     continuation: Option<WarmContinuation>,
 }
+
+/// A bounded authored revision registered against the real current PG/STO
+/// source. The read closure is retained in `cmd2_attempt.source_reads`; the
+/// in-memory copy below is only the typed view used by the current commit.
+pub(crate) struct SourceRevisionAttempt {
+    pub(crate) domain: String,
+    pub(crate) prepare_id: Vec<u8>,
+    pub(crate) fence: u64,
+    pub(crate) command_id: String,
+    pub(crate) raw_request_digest: Digest256,
+    pub(crate) configuration_raw_digest: Digest256,
+    pub(crate) configuration_canonical_digest: Digest256,
+    pub(crate) epoch: u64,
+    pub(crate) source_generation: u64,
+    pub(crate) audit_generation: u64,
+    pub(crate) rights_version: u64,
+    pub(crate) rule_version: u64,
+    pub(crate) job_id: String,
+    pub(crate) job_fence: u64,
+    pub(crate) contract: Digest256,
+    pub(crate) definition: Digest256,
+    pub(crate) delta: Digest256,
+    pub(crate) reads: SourceReads,
+    pub(crate) metadata: SourceMetadata,
+    pub(crate) predicate_keys: BTreeSet<(String, String, String)>,
+    pub(crate) writes: Vec<SourceRevisionWrite>,
+}
+
+#[derive(Clone)]
+pub(crate) struct SourceRevisionWrite {
+    pub(crate) subject: String,
+    pub(crate) expected_predecessor: Option<(u64, Digest256)>,
+    pub(crate) proposed_revision: u64,
+    pub(crate) exact_bytes: Vec<u8>,
+}
 struct WarmContinuation {
     parent: SelectedSourceGeneration,
     fence: std::cell::Cell<u64>,
@@ -323,6 +535,12 @@ pub(super) enum CommitMode<'a> {
     Creation {
         attempt: &'a SourceCreationAttempt,
         owner: &'a CreationOwnerFence<'a>,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    },
+    Revision {
+        attempt: &'a SourceRevisionAttempt,
+        owner_check: &'a dyn Fn() -> DurableResult<()>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
     },
@@ -372,9 +590,12 @@ fn definition() -> Digest256 {
         part(&mut h, b"tos-managed-agent-source-definition-v1");
         for bytes in [
             include_bytes!("source_cohort.rs").as_slice(),
+            include_bytes!("source_cohort_revision.rs").as_slice(),
             include_bytes!("source_creation.rs").as_slice(),
             include_bytes!("source_claims.rs").as_slice(),
             include_bytes!("source_forms.rs").as_slice(),
+            include_bytes!("source_revisions.rs").as_slice(),
+            include_bytes!("source_native_revisions_cli.rs").as_slice(),
         ] {
             part(&mut h, bytes);
         }
@@ -382,24 +603,29 @@ fn definition() -> Digest256 {
     })
 }
 pub(super) fn known_profile(profile: &[u8]) -> bool {
-    [PROFILE_ID, ORIGINAL, CREATION].contains(&profile)
+    [PROFILE_ID, ORIGINAL, CREATION, REVISION].contains(&profile)
 }
 pub(super) fn check_source_member(
     profile: &[u8],
     member: &DurableShadowMember,
 ) -> DurableResult<()> {
-    if ![ORIGINAL, CREATION].contains(&profile)
-        || !member.subject.starts_with("ToS/")
-        || RelativePath::parse(&member.subject).is_err()
-        || member.expected_predecessor.is_some()
-        || member.proposed_revision != 1
-    {
+    let valid_path =
+        member.subject.starts_with("ToS/") && RelativePath::parse(&member.subject).is_ok();
+    let initial = [ORIGINAL, CREATION].contains(&profile)
+        && member.expected_predecessor.is_none()
+        && member.proposed_revision == 1;
+    let successor = profile == REVISION
+        && match member.expected_predecessor {
+            Some((revision, _digest)) => revision.checked_add(1) == Some(member.proposed_revision),
+            None => member.proposed_revision == 1,
+        };
+    if !(known_profile(profile) && valid_path && (initial || successor)) {
         return Err(DurableError::Invalid(
-            "source file profile or initial custody version",
+            "source file profile or custody version",
         ));
     }
-    // Custody version 1 is explicitly a source-file version. It never assigns
-    // or changes an embedded authored record/Claim/form revision.
+    // Custody revisions are carrier versions. They never assign or change an
+    // embedded authored record/Claim/form revision.
     Ok(())
 }
 pub(super) fn check_writer_profile(
@@ -415,6 +641,7 @@ pub(super) fn check_writer_profile(
     if (profile == PROFILE_ID && managed)
         || (profile == ORIGINAL && (!managed || row.get::<_, bool>(1)))
         || (profile == CREATION && (!managed || !row.get::<_, bool>(1)))
+        || (profile == REVISION && (!managed || !row.get::<_, bool>(1)))
         || !known_profile(profile)
     {
         return Err(DurableError::Refused(
@@ -3027,6 +3254,27 @@ impl DurablePgCoordinator {
             .collect()
     }
 
+    pub(crate) fn source_member_locator_digest(
+        &mut self,
+        cohort: &ManagedSourceCohort,
+        path: &RelativePath,
+        expected_revision: u64,
+    ) -> DurableResult<Digest256> {
+        let row = self
+            .client
+            .query_opt(
+                "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
+                &[&cohort.domain, &path.as_str()],
+            )?
+            .ok_or(DurableError::Conflict("current source member absent"))?;
+        if as_u64(row.get("revision"))? != expected_revision {
+            return Err(DurableError::Conflict(
+                "current source member custody revision changed",
+            ));
+        }
+        Ok(metadata_locator_digest(&row))
+    }
+
     fn read_source_member_bound(
         &mut self,
         store: &SegmentStore,
@@ -4111,6 +4359,648 @@ impl DurablePgCoordinator {
             cancelled,
         )
     }
+
+    /// Register one semantically prepared flat record revision against the
+    /// exact PG read epoch. This route carries only the addressed readset and
+    /// proposed STO members; it never reopens the complete source cohort.
+    pub(crate) fn register_source_revision(
+        &mut self,
+        store: &SegmentStore,
+        prepared: &crate::source_native_cli::revisions::PreparedPgRecordRevision,
+        readset: &revision::SourceRevisionReadSet,
+        prepare_id: &[u8],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SourceRevisionAttempt> {
+        active(deadline, cancelled)?;
+        if prepare_id.is_empty() {
+            return Err(DurableError::Invalid("source revision prepare ID empty"));
+        }
+        let selection = &readset.selection;
+        if store.custody_domain() != selection.cohort.domain.as_bytes()
+            || store.store_id() != selection.cohort.store_id
+        {
+            return Err(DurableError::Conflict(
+                "source revision carrier domain differs",
+            ));
+        }
+        let context = prepared.context();
+        let proposal = prepared.proposal();
+        if prepared.identity() != revision::PgRecordRevisionIdentity::from_selection(selection) {
+            return Err(DurableError::Conflict(
+                "source revision semantic preparation read epoch differs",
+            ));
+        }
+        if proposal.operation != "record.revise"
+            || proposal.base_revision != selection.cohort.initial_revision
+            || context.base_revision != selection.cohort.initial_revision
+        {
+            return Err(DurableError::Conflict(
+                "source revision proposal base or operation differs",
+            ));
+        }
+        let (mut reads, writes, metadata, predicate_keys) = revision_package(proposal, readset)?;
+        let request = cmd::parse(&context.request_raw).map_err(source_error)?;
+        let command_id = cmd::text(&request, "command_id").map_err(source_error)?;
+        let raw_request_digest = Digest256::of_bytes(&context.request_raw);
+        let configuration_raw_digest = proposal.configuration_raw_sha256;
+        let configuration_canonical_digest = proposal.configuration_canonical_sha256;
+        let delta = revision_delta(proposal, selection, &reads, &writes, &metadata)?;
+        let domain = selection.cohort.domain.as_str();
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let audit_generation = lock_audit_fence(&mut tx, domain)?;
+        if audit_generation != selection.audit_generation {
+            return Err(DurableError::Conflict(
+                "source revision audit fence changed before registration",
+            ));
+        }
+        let row = tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
+        cohort_matches(&row, &selection.cohort, true)?;
+        if as_u64(row.get("head_seq"))? != selection.head_seq
+            || row.get::<_, Option<i64>>("source_generation")
+                != Some(as_i64(selection.source_generation)?)
+            || as_u64(row.get("rights_version"))? != selection.rights_version
+            || as_u64(row.get("rule_version"))? != selection.rule_version
+            || row.get::<_, String>("contract_digest") != selection.contract.to_hex()
+        {
+            return Err(DurableError::Conflict(
+                "source revision selection changed before registration",
+            ));
+        }
+        let job = tx.query_one(
+            "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2",
+            &[&domain, &selection.job_id],
+        )?;
+        if as_u64(job.get(0))? != selection.job_fence {
+            return Err(DurableError::Conflict(
+                "source revision job lease changed before registration",
+            ));
+        }
+        for write in &writes {
+            if tx
+                .query_opt(
+                    "SELECT 1 FROM cmd2_current WHERE domain=$1 AND subject=$2",
+                    &[&domain, &write.subject],
+                )?
+                .is_none()
+            {
+                if write.expected_predecessor.is_some() {
+                    return Err(DurableError::Conflict(
+                        "source revision predecessor disappeared",
+                    ));
+                }
+                if !reads.reads.iter().any(|read| {
+                    matches!(read, PredicateRead::Absent { namespace, key } if namespace == "source" && key == &write.subject)
+                }) {
+                    reads.reads.push(PredicateRead::Absent {
+                        namespace: "source".to_owned(),
+                        key: write.subject.clone(),
+                    });
+                }
+            } else if write.expected_predecessor.is_none() {
+                return Err(DurableError::Conflict(
+                    "source revision insertion target is occupied",
+                ));
+            }
+        }
+        // The readset is extended with absent archive/member targets while the
+        // same registration transaction owns the audit fence.
+        let delta = revision_delta(proposal, selection, &reads, &writes, &metadata)?;
+        let reads_encoded = reads_bytes(&reads)?;
+        let empty_indexes = indexes_bytes(&IndexRows::new())?;
+        let empty_projections = projections_bytes(&ProjectionRows::new())?;
+        let existing = tx.query_opt(
+            "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
+            &[&domain, &prepare_id],
+        )?;
+        if let Some(existing) = existing {
+            if existing.get::<_, String>("command_id") != command_id
+                || existing.get::<_, String>("raw_request_digest") != raw_request_digest.to_hex()
+                || existing.get::<_, String>("delta_digest") != delta.to_hex()
+                || existing.get::<_, Option<String>>("source_configuration_raw_digest")
+                    != Some(configuration_raw_digest.to_hex())
+                || existing.get::<_, Option<String>>("source_configuration_canonical_digest")
+                    != Some(configuration_canonical_digest.to_hex())
+                || existing.get::<_, Option<Vec<u8>>>("source_reads") != Some(reads_encoded.clone())
+                || existing.get::<_, Option<Vec<u8>>>("source_indexes") != Some(empty_indexes)
+                || existing.get::<_, Option<Vec<u8>>>("source_projections")
+                    != Some(empty_projections)
+                || existing.get::<_, String>("state") == "aborted"
+            {
+                return Err(DurableError::Conflict(
+                    "source revision registration identity differs",
+                ));
+            }
+            let fence = as_u64(existing.get("attempt_fence"))?;
+            let audit_generation = lock_audit_fence(&mut tx, domain)?;
+            tx.commit()?;
+            return Ok(SourceRevisionAttempt {
+                domain: domain.to_owned(),
+                prepare_id: prepare_id.to_vec(),
+                fence,
+                command_id: command_id.to_owned(),
+                raw_request_digest,
+                configuration_raw_digest,
+                configuration_canonical_digest,
+                epoch: selection.epoch,
+                source_generation: selection.source_generation,
+                audit_generation,
+                rights_version: selection.rights_version,
+                rule_version: selection.rule_version,
+                job_id: selection.job_id.clone(),
+                job_fence: selection.job_fence,
+                contract: selection.contract,
+                definition: selection.cohort.definition,
+                delta,
+                reads,
+                metadata,
+                predicate_keys,
+                writes,
+            });
+        }
+        for (kind, scope, token) in &predicate_keys {
+            tx.execute(
+                "INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete)
+                 VALUES($1,$2,$3,$4,$5,$6,0,true) ON CONFLICT DO NOTHING",
+                &[
+                    &domain,
+                    kind,
+                    &OWNER,
+                    scope,
+                    token,
+                    &selection.cohort.definition.to_hex(),
+                ],
+            )?;
+            let predicate = tx.query_one(
+                "SELECT generation,complete,definition_version FROM cmd2_predicate
+                 WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5",
+                &[&domain, kind, &OWNER, scope, token],
+            )?;
+            if !predicate.get::<_, bool>(1)
+                || predicate.get::<_, String>(2) != selection.cohort.definition.to_hex()
+            {
+                return Err(DurableError::Refused(
+                    "source revision predicate lacks complete definition",
+                ));
+            }
+            let expected = reads.reads.iter().find_map(|read| match read {
+                PredicateRead::Generation {
+                    predicate: observed,
+                    observed_generation,
+                } if observed.kind.as_str() == kind
+                    && observed.scope == *scope
+                    && observed.token == *token =>
+                {
+                    Some(*observed_generation)
+                }
+                _ => None,
+            });
+            if expected != Some(as_u64(predicate.get(0))?) {
+                return Err(DurableError::Conflict(
+                    "source revision predicate generation changed",
+                ));
+            }
+        }
+        tx.execute(
+            "INSERT INTO cmd2_attempt(domain,prepare_id,command_id,raw_request_digest,delta_digest,
+             state,attempt_fence,source_reads,source_indexes,source_epoch,source_projections,
+             source_configuration_raw_digest,source_configuration_canonical_digest)
+             VALUES($1,$2,$3,$4,$5,'registered',1,$6,$7,$8,$9,$10,$11)",
+            &[
+                &domain,
+                &prepare_id,
+                &command_id,
+                &raw_request_digest.to_hex(),
+                &delta.to_hex(),
+                &reads_encoded,
+                &empty_indexes,
+                &as_i64(selection.epoch)?,
+                &empty_projections,
+                &configuration_raw_digest.to_hex(),
+                &configuration_canonical_digest.to_hex(),
+            ],
+        )?;
+        // The audited predicate/attempt inserts above advance the fence.  The
+        // attach phase must bind to this post-registration generation, not to
+        // the selection generation captured before those writes.
+        let audit_generation = lock_audit_fence(&mut tx, domain)?;
+        tx.commit()?;
+        Ok(SourceRevisionAttempt {
+            domain: domain.to_owned(),
+            prepare_id: prepare_id.to_vec(),
+            fence: 1,
+            command_id: command_id.to_owned(),
+            raw_request_digest,
+            configuration_raw_digest,
+            configuration_canonical_digest,
+            epoch: selection.epoch,
+            source_generation: selection.source_generation,
+            audit_generation,
+            rights_version: selection.rights_version,
+            rule_version: selection.rule_version,
+            job_id: selection.job_id.clone(),
+            job_fence: selection.job_fence,
+            contract: selection.contract,
+            definition: selection.cohort.definition,
+            delta,
+            reads,
+            metadata,
+            predicate_keys,
+            writes,
+        })
+    }
+
+    /// Reconstruct a ready/committed revision attempt from its exact PG/STO
+    /// carriers after process loss. A merely registered attempt is refused
+    /// because its proposed bytes were never durably sealed.
+    pub(crate) fn recover_source_revision_attempt(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        prepare_id: &[u8],
+        expected_command_id: &str,
+        expected_raw_request_digest: Digest256,
+        expected_configuration_raw_digest: Digest256,
+        expected_configuration_canonical_digest: Digest256,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SourceRevisionAttempt> {
+        active(deadline, cancelled)?;
+        if store.custody_domain() != domain.as_bytes() {
+            return Err(DurableError::Conflict(
+                "source revision recovery custody domain differs",
+            ));
+        }
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence_row = tx.query_one(
+            "SELECT maintenance_state,generation FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        // Writers acquire the audit fence before the domain row.  Recovery
+        // follows the same order so a replay read cannot deadlock a commit
+        // while still refusing maintenance and stale rights before STO reads.
+        let domain_row = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if fence_row.get::<_, String>(0) != "normal"
+            || !domain_row.get::<_, bool>("rights_allowed")
+            || !domain_row.get::<_, bool>("source_complete")
+            || domain_row.get::<_, Option<String>>("schema_profile_digest")
+                != Some(schema_profile_digest().to_hex())
+        {
+            return Err(DurableError::Refused(
+                "source revision recovery current source is not readable",
+            ));
+        }
+        let current_job = tx
+            .query_opt(
+                "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2",
+                &[&domain, &job_id],
+            )?
+            .ok_or(DurableError::Refused(
+                "source revision recovery job lease absent",
+            ))?;
+        if as_u64(current_job.get(0))? != job_fence {
+            return Err(DurableError::Conflict(
+                "source revision recovery job lease changed",
+            ));
+        }
+        let attempt = tx
+            .query_opt(
+                "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR SHARE",
+                &[&domain, &prepare_id],
+            )?
+            .ok_or(DurableError::Refused("source revision attempt absent"))?;
+        let state: String = attempt.get("state");
+        if state == "registered" {
+            return Err(DurableError::Indeterminate(
+                "source revision was registered but not durably sealed",
+            ));
+        }
+        if state != "ready" && state != "committed" {
+            return Err(DurableError::Refused(
+                "source revision attempt is not replayable",
+            ));
+        }
+        let persisted_raw_request_digest =
+            parse_hex(attempt.get::<_, String>("raw_request_digest"))?;
+        let persisted_configuration_raw_digest = parse_hex(
+            attempt
+                .get::<_, Option<String>>("source_configuration_raw_digest")
+                .ok_or(DurableError::Corrupt(
+                    "source revision configuration binding absent",
+                ))?,
+        )?;
+        let persisted_configuration_canonical_digest = parse_hex(
+            attempt
+                .get::<_, Option<String>>("source_configuration_canonical_digest")
+                .ok_or(DurableError::Corrupt(
+                    "source revision canonical configuration binding absent",
+                ))?,
+        )?;
+        if attempt.get::<_, String>("command_id") != expected_command_id
+            || persisted_raw_request_digest != expected_raw_request_digest
+            || persisted_configuration_raw_digest != expected_configuration_raw_digest
+            || persisted_configuration_canonical_digest != expected_configuration_canonical_digest
+        {
+            return Err(DurableError::Conflict(
+                "source revision recovery request/config binding differs",
+            ));
+        }
+        let reads = decode_reads(
+            &attempt
+                .get::<_, Option<Vec<u8>>>("source_reads")
+                .ok_or(DurableError::Corrupt("source revision reads absent"))?,
+        )?;
+        let definition_digest = parse_hex(
+            domain_row
+                .get::<_, Option<String>>("source_definition_digest")
+                .ok_or(DurableError::Corrupt("source revision definition absent"))?,
+        )?;
+        if definition_digest != definition() {
+            return Err(DurableError::Conflict(
+                "source revision recovery definition differs",
+            ));
+        }
+        let members = tx.query(
+            "SELECT * FROM cmd2_member WHERE domain=$1 AND prepare_id=$2
+             ORDER BY member_slot LIMIT $3",
+            &[&domain, &prepare_id, &as_i64((MAX_MEMBERS + 1) as u64)?],
+        )?;
+        if members.is_empty() || members.len() > MAX_MEMBERS {
+            return Err(DurableError::Corrupt(
+                "source revision recovery member count",
+            ));
+        }
+        let persisted = store
+            .recover_attempt_fenced(prepare_id, as_u64(attempt.get("attempt_fence"))?, 0)?
+            .ok_or(DurableError::Indeterminate(
+                "source revision recovery STO intent absent",
+            ))?;
+        let receipts = match persisted {
+            AttemptRecovery::Sealed { receipts } => receipts,
+            _ => {
+                return Err(DurableError::Indeterminate(
+                    "source revision recovery STO intent uncertain",
+                ));
+            }
+        };
+        if receipts.len() != members.len() {
+            return Err(DurableError::Corrupt(
+                "source revision recovery receipt count",
+            ));
+        }
+        let _guard = store.verify_and_hold_fenced(
+            prepare_id,
+            as_u64(attempt.get("attempt_fence"))?,
+            0,
+            &receipts,
+            verification_budget(receipts.len()),
+        )?;
+        let mut writes = Vec::with_capacity(members.len());
+        let mut metadata = SourceMetadata::new();
+        for row in &members {
+            if row.get::<_, String>("profile_id").as_bytes() != REVISION {
+                return Err(DurableError::Corrupt(
+                    "source revision recovery profile differs",
+                ));
+            }
+            let slot = row.get::<_, i32>("member_slot") as u32;
+            let receipt = receipts
+                .iter()
+                .find(|receipt| receipt.binding().member_slot == slot)
+                .ok_or(DurableError::Corrupt(
+                    "source revision recovery receipt slot absent",
+                ))?;
+            let mut exact_bytes = Vec::new();
+            store.read_selected(receipt, 8_388_608, &mut exact_bytes)?;
+            if Digest256::of_bytes(&exact_bytes)
+                != parse_hex(row.get::<_, String>("content_digest"))?
+            {
+                return Err(DurableError::Corrupt(
+                    "source revision recovery STO bytes differ",
+                ));
+            }
+            let expected_predecessor = row
+                .get::<_, Option<i64>>("expected_revision")
+                .map(|revision| {
+                    Ok::<_, DurableError>((
+                        as_u64(revision)?,
+                        parse_hex(row.get::<_, Option<String>>("expected_digest").ok_or(
+                            DurableError::Corrupt("source revision predecessor digest absent"),
+                        )?)?,
+                    ))
+                })
+                .transpose()?;
+            let proposed_revision = as_u64(row.get("proposed_revision"))?;
+            let subject: String = row.get("subject");
+            metadata.insert(subject.clone(), row_source_metadata(row)?);
+            writes.push(SourceRevisionWrite {
+                subject,
+                expected_predecessor,
+                proposed_revision,
+                exact_bytes,
+            });
+        }
+        let predicate_keys = reads
+            .reads
+            .iter()
+            .filter_map(|read| match read {
+                PredicateRead::Generation { predicate, .. }
+                    if predicate.owner == OWNER
+                        && !(predicate.scope == "source-cohort"
+                            && predicate.token == "generation") =>
+                {
+                    Some((
+                        predicate.kind.as_str().to_owned(),
+                        predicate.scope.clone(),
+                        predicate.token.clone(),
+                    ))
+                }
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
+        let source_generation = reads
+            .reads
+            .iter()
+            .find_map(|read| match read {
+                PredicateRead::Generation {
+                    predicate,
+                    observed_generation,
+                } if predicate.scope == "source-cohort" && predicate.token == "generation" => {
+                    Some(*observed_generation)
+                }
+                _ => None,
+            })
+            .ok_or(DurableError::Corrupt(
+                "source revision generation read absent",
+            ))?;
+        let audit_generation = as_u64(
+            tx.query_one(
+                "SELECT generation FROM cmd2_audit_fence WHERE domain=$1",
+                &[&domain],
+            )?
+            .get(0),
+        )?;
+        let contract = parse_hex(domain_row.get::<_, String>("contract_digest"))?;
+        let rights_version = as_u64(domain_row.get("rights_version"))?;
+        let rule_version = as_u64(domain_row.get("rule_version"))?;
+        let epoch = as_u64(
+            attempt
+                .get::<_, Option<i64>>("source_epoch")
+                .ok_or(DurableError::Corrupt("source revision epoch absent"))?,
+        )?;
+        let delta = parse_hex(attempt.get::<_, String>("delta_digest"))?;
+        let fence = as_u64(attempt.get("attempt_fence"))?;
+        tx.commit()?;
+        Ok(SourceRevisionAttempt {
+            domain: domain.to_owned(),
+            prepare_id: prepare_id.to_vec(),
+            fence,
+            command_id: expected_command_id.to_owned(),
+            raw_request_digest: persisted_raw_request_digest,
+            configuration_raw_digest: persisted_configuration_raw_digest,
+            configuration_canonical_digest: persisted_configuration_canonical_digest,
+            epoch,
+            source_generation,
+            audit_generation,
+            rights_version,
+            rule_version,
+            job_id: job_id.to_owned(),
+            job_fence,
+            contract,
+            definition: definition_digest,
+            delta,
+            reads,
+            metadata,
+            predicate_keys,
+            writes,
+        })
+    }
+
+    /// Seal/attach the exact successor STO members, then run the ordinary
+    /// durable PG transaction. The owner callback is re-read inside both the
+    /// owner check and replay outcome fence.
+    pub(crate) fn commit_source_revision(
+        &mut self,
+        store: &SegmentStore,
+        attempt: &SourceRevisionAttempt,
+        contract: Digest256,
+        owner_check: &dyn Fn() -> DurableResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
+        active(deadline, cancelled)?;
+        if attempt.definition != definition()
+            || attempt.contract != contract
+            || store.custody_domain() != attempt.domain.as_bytes()
+        {
+            return Err(DurableError::Conflict(
+                "registered source revision package changed",
+            ));
+        }
+        let identities = attempt
+            .writes
+            .iter()
+            .enumerate()
+            .map(|(slot, write)| ShadowWriteIdentity {
+                member_slot: slot as u32,
+                subject: &write.subject,
+                expected_predecessor: write.expected_predecessor,
+                proposed_revision: write.proposed_revision,
+                exact_bytes: &write.exact_bytes,
+            })
+            .collect::<Vec<_>>();
+        if identities.is_empty() || identities.len() > MAX_MEMBERS {
+            return Err(DurableError::Invalid("source revision member count"));
+        }
+        let state = self.resolve_attempt(&attempt.domain, &attempt.prepare_id)?;
+        let receipts = match state {
+            AttemptResolution::Registered => {
+                let members =
+                    match store.recover_attempt_fenced(&attempt.prepare_id, attempt.fence, 0)? {
+                        None => seal_members(
+                            store,
+                            &attempt.prepare_id,
+                            attempt.fence,
+                            REVISION,
+                            &identities,
+                        )?,
+                        Some(AttemptRecovery::Sealed { receipts }) => {
+                            members_from_receipts(&identities, receipts)?
+                        }
+                        _ => {
+                            return Err(DurableError::Indeterminate(
+                                "source revision seal retains uncertain custody",
+                            ));
+                        }
+                    };
+                self.attach_ready_profile_bound(
+                    store,
+                    &attempt.domain,
+                    &attempt.prepare_id,
+                    attempt.fence,
+                    &members,
+                    REVISION,
+                    Some(attempt.delta),
+                    Some(&attempt.metadata),
+                    Some(attempt.audit_generation),
+                )?;
+                members.into_iter().map(|member| member.receipt).collect()
+            }
+            AttemptResolution::Ready | AttemptResolution::Committed(_) => {
+                match store.recover_attempt_fenced(&attempt.prepare_id, attempt.fence, 0)? {
+                    Some(AttemptRecovery::Sealed { receipts }) => {
+                        let members = members_from_receipts(&identities, receipts)?;
+                        for member in &members {
+                            check_durable_member(
+                                &attempt.domain,
+                                &attempt.prepare_id,
+                                member,
+                                REVISION,
+                            )?;
+                        }
+                        members.into_iter().map(|member| member.receipt).collect()
+                    }
+                    _ => {
+                        return Err(DurableError::Corrupt(
+                            "source revision exact intent/bytes absent",
+                        ));
+                    }
+                }
+            }
+            AttemptResolution::Aborted => {
+                return Err(DurableError::Refused("source revision attempt is aborted"));
+            }
+        };
+        self.commit_durable(
+            store,
+            &CommitShadowAttempt {
+                domain: &attempt.domain,
+                prepare_id: &attempt.prepare_id,
+                attempt_fence: attempt.fence,
+                receipts: &receipts,
+                expected_contract_digest: contract,
+                expected_rule_version: attempt.rule_version,
+                expected_rights_version: attempt.rights_version,
+                job_id: &attempt.job_id,
+                job_fence: attempt.job_fence,
+                full_base_seq: 0,
+            },
+            CommitMode::Revision {
+                attempt,
+                owner_check,
+                deadline,
+                cancelled,
+            },
+        )
+    }
+
     /// Process-loss recovery owns the original managed input and exact output
     /// buffers through retained history. No caller package can issue a write.
     pub fn recover_committed_managed_agent_creation(
@@ -6054,6 +6944,221 @@ pub(super) fn check_commit_owner(
             }
             Ok(())
         }
+        CommitMode::Revision {
+            attempt,
+            owner_check,
+            deadline,
+            cancelled,
+        } => {
+            owner_check()?;
+            let domain = tx.query_one(
+                "SELECT * FROM cmd2_domain WHERE domain=$1",
+                &[&request.domain],
+            )?;
+            let expected_reads = reads_bytes(&attempt.reads)?;
+            let empty_indexes = indexes_bytes(&IndexRows::new())?;
+            let empty_projections = projections_bytes(&ProjectionRows::new())?;
+            if attempt.domain != request.domain
+                || attempt.prepare_id != request.prepare_id
+                || attempt.fence != request.attempt_fence
+                || registered.get::<_, String>("command_id") != attempt.command_id
+                || registered.get::<_, String>("raw_request_digest")
+                    != attempt.raw_request_digest.to_hex()
+                || attempt.definition != definition()
+                || attempt.contract != request.expected_contract_digest
+                || attempt.rule_version != request.expected_rule_version
+                || attempt.rights_version != request.expected_rights_version
+                || attempt.job_id != request.job_id
+                || attempt.job_fence != request.job_fence
+                || domain.get::<_, Option<String>>("source_definition_digest")
+                    != Some(attempt.definition.to_hex())
+                || !domain.get::<_, bool>("source_complete")
+                || as_u64(domain.get("rule_version"))? != request.expected_rule_version
+                || domain.get::<_, String>("contract_digest")
+                    != request.expected_contract_digest.to_hex()
+                || domain.get::<_, Option<String>>("schema_profile_digest")
+                    != Some(schema_profile_digest().to_hex())
+                || registered.get::<_, Option<i64>>("source_epoch") != Some(as_i64(attempt.epoch)?)
+                || registered.get::<_, String>("delta_digest") != attempt.delta.to_hex()
+                || registered.get::<_, Option<String>>("source_configuration_raw_digest")
+                    != Some(attempt.configuration_raw_digest.to_hex())
+                || registered.get::<_, Option<String>>("source_configuration_canonical_digest")
+                    != Some(attempt.configuration_canonical_digest.to_hex())
+                || registered.get::<_, Option<Vec<u8>>>("source_reads") != Some(expected_reads)
+                || registered.get::<_, Option<Vec<u8>>>("source_indexes") != Some(empty_indexes)
+                || registered.get::<_, Option<Vec<u8>>>("source_projections")
+                    != Some(empty_projections)
+                || members
+                    .iter()
+                    .any(|m| m.get::<_, String>("profile_id").as_bytes() != REVISION)
+            {
+                return Err(DurableError::Conflict(
+                    "source revision attempt/cohort exact registered binding changed",
+                ));
+            }
+            let job = tx.query_opt(
+                "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2 FOR UPDATE",
+                &[&request.domain, &request.job_id],
+            )?;
+            if job.map(|row| row.get::<_, i64>(0)) != Some(as_i64(request.job_fence)?) {
+                return Err(DurableError::Refused(
+                    "source revision current job lease changed",
+                ));
+            }
+            let dependencies = attempt
+                .reads
+                .reads
+                .iter()
+                .filter_map(|read| match read {
+                    PredicateRead::Exact { key, .. } => Some(key.clone()),
+                    _ => None,
+                })
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>();
+            for member in members {
+                let carrier = row_source_metadata(member)?;
+                let expected = attempt
+                    .metadata
+                    .get(member.get::<_, String>("subject").as_str())
+                    .ok_or(DurableError::Corrupt(
+                        "source revision carrier metadata absent",
+                    ))?;
+                if carrier != *expected
+                    || carrier.mode != 0o644
+                    || carrier.dependencies != Some(dependencies.clone())
+                {
+                    return Err(DurableError::Conflict(
+                        "source revision carrier metadata differs",
+                    ));
+                }
+            }
+            if !replayed {
+                if domain.get::<_, Option<i64>>("source_epoch") != Some(as_i64(attempt.epoch)?)
+                    || domain.get::<_, Option<i64>>("source_generation")
+                        != Some(as_i64(attempt.source_generation)?)
+                {
+                    return Err(DurableError::Conflict(
+                        "source revision cohort generation changed",
+                    ));
+                }
+                let mut observed = BTreeMap::new();
+                for read in &attempt.reads.reads {
+                    if let PredicateRead::Generation {
+                        predicate,
+                        observed_generation,
+                    } = read
+                    {
+                        if predicate.owner != OWNER
+                            || predicate.definition_version != attempt.definition.to_hex()
+                        {
+                            return Err(DurableError::Conflict(
+                                "source revision predicate owner differs",
+                            ));
+                        }
+                        if predicate.scope == "source-cohort" && predicate.token == "generation" {
+                            if *observed_generation != attempt.source_generation {
+                                return Err(DurableError::Corrupt(
+                                    "source revision generation readset differs",
+                                ));
+                            }
+                            continue;
+                        }
+                        observed.insert(
+                            (
+                                predicate.kind.as_str().to_owned(),
+                                predicate.scope.clone(),
+                                predicate.token.clone(),
+                            ),
+                            *observed_generation,
+                        );
+                    }
+                }
+                let mut keys = attempt.predicate_keys.clone();
+                keys.extend(observed.keys().cloned());
+                for (kind, scope, token) in keys {
+                    tx.execute(
+                        "INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete)
+                         VALUES($1,$2,$3,$4,$5,$6,0,true) ON CONFLICT DO NOTHING",
+                        &[
+                            &request.domain,
+                            &kind,
+                            &OWNER,
+                            &scope,
+                            &token,
+                            &attempt.definition.to_hex(),
+                        ],
+                    )?;
+                    let row = tx.query_one(
+                        "SELECT generation,complete,definition_version FROM cmd2_predicate
+                         WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5 FOR UPDATE",
+                        &[&request.domain, &kind, &OWNER, &scope, &token],
+                    )?;
+                    if !row.get::<_, bool>(1)
+                        || row.get::<_, String>(2) != attempt.definition.to_hex()
+                    {
+                        return Err(DurableError::Refused(
+                            "source revision predicate definition/completeness invalidated",
+                        ));
+                    }
+                    if observed.get(&(kind, scope, token)).is_some_and(|expected| {
+                        as_u64(row.get(0)).map_or(true, |actual| actual != *expected)
+                    }) {
+                        return Err(DurableError::Conflict(
+                            "affected source revision predicate changed",
+                        ));
+                    }
+                }
+                let exact_paths = attempt.reads.locators.keys().collect::<Vec<_>>();
+                let exact_current = tx
+                    .query(
+                        "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=ANY($2)",
+                        &[&request.domain, &exact_paths],
+                    )?
+                    .into_iter()
+                    .map(|row| (row.get::<_, String>("subject"), row))
+                    .collect::<BTreeMap<_, _>>();
+                for read in &attempt.reads.reads {
+                    match read {
+                        PredicateRead::Exact {
+                            key,
+                            expected_version,
+                            expected_digest,
+                            ..
+                        } => {
+                            let row = exact_current.get(key).ok_or(DurableError::Conflict(
+                                "exact source revision read disappeared",
+                            ))?;
+                            if Some(as_u64(row.get("revision"))?) != *expected_version
+                                || Some(parse_hex(row.get("content_digest"))?) != *expected_digest
+                                || attempt.reads.locators.get(key)
+                                    != Some(&metadata_locator_digest(row))
+                            {
+                                return Err(DurableError::Conflict(
+                                    "exact source revision body/version/locator changed",
+                                ));
+                            }
+                        }
+                        PredicateRead::Absent { key, .. } => {
+                            if tx
+                                .query_opt(
+                                    "SELECT 1 FROM cmd2_current WHERE domain=$1 AND subject=$2",
+                                    &[&request.domain, key],
+                                )?
+                                .is_some()
+                            {
+                                return Err(DurableError::Conflict(
+                                    "source revision absence changed",
+                                ));
+                            }
+                        }
+                        PredicateRead::Generation { .. } => {}
+                    }
+                }
+            }
+            active(*deadline, cancelled)?;
+            Ok(())
+        }
     }
 }
 
@@ -6164,20 +7269,58 @@ pub(super) fn apply_source_change(
             tx.execute("UPDATE cmd2_domain SET source_generation=$2,source_projection_digest=NULL,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1 AND source_complete", &[&request.domain,&as_i64(seq)?])?;
             Ok(())
         }
+        CommitMode::Revision { attempt, .. } => {
+            for (kind, scope, token) in &attempt.predicate_keys {
+                let changed = tx.execute(
+                    "UPDATE cmd2_predicate SET generation=generation+1
+                     WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5
+                       AND complete AND definition_version=$6
+                       AND generation<9223372036854775807",
+                    &[
+                        &request.domain,
+                        kind,
+                        &OWNER,
+                        scope,
+                        token,
+                        &attempt.definition.to_hex(),
+                    ],
+                )?;
+                if changed != 1 {
+                    return Err(DurableError::Refused(
+                        "source revision invalidation exhausted or lost complete definition",
+                    ));
+                }
+            }
+            // A bounded revision advances source generation while retaining no
+            // stale selected/current projection identity. The next addressed
+            // reader must consume the new outbox generation and re-establish
+            // its own selection proof.
+            tx.execute(
+                "UPDATE cmd2_domain SET source_generation=$2,
+                    source_projection_digest=NULL,selected_generation_digest=NULL,
+                    complete_cut_digest=NULL,complete_cut_generation=NULL
+                 WHERE domain=$1 AND source_complete",
+                &[&request.domain, &as_i64(seq)?],
+            )?;
+            Ok(())
+        }
     }
 }
 
 pub(super) fn verify_owner_before_outcome(mode: &CommitMode<'_>) -> DurableResult<()> {
-    if let CommitMode::Creation {
-        owner,
-        deadline,
-        cancelled,
-        ..
-    } = mode
-    {
-        owner
-            .verify_current(*deadline, cancelled)
-            .map_err(source_error)?;
+    match mode {
+        CommitMode::Creation {
+            owner,
+            deadline,
+            cancelled,
+            ..
+        } => {
+            owner
+                .verify_current(*deadline, cancelled)
+                .map_err(source_error)?;
+        }
+        CommitMode::Revision { owner_check, .. } => owner_check()?,
+        CommitMode::Shadow | CommitMode::Bootstrap => {}
     }
     Ok(())
 }

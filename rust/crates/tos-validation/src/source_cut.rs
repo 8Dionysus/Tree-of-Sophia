@@ -29,8 +29,8 @@ use crate::item_rules::{
 use crate::provenance_rules::{ProvenanceReport, ProvenanceRules, ProvenanceSource};
 use crate::record_rules::RecordFamily;
 use crate::source_foundation_schema::{
-    CandidateSourceFoundationSchemaSet, SelectedSchemaResource, schema_resource_set_digest,
-    source_foundation_schema_resource_uri,
+    CandidateSourceFoundationSchemaSet, SelectedSchemaResource, contract_selection_digest,
+    schema_resource_set_digest, source_foundation_schema_resource_uri,
 };
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 
@@ -885,6 +885,132 @@ pub struct CandidateCutWorkerSchemaExecutor<I> {
 }
 
 impl<I: Copy + Eq> CandidateCutWorkerSchemaExecutor<I> {
+    /// Prepare the established candidate worker from a caller's exact selected
+    /// schema paths and bytes. This route carries a typed read identity and
+    /// intentionally has no `SourceRevision` or complete-corpus scan.
+    pub fn from_selected_source_resources(
+        input_identity: I,
+        mut selected: Vec<(String, SchemaResource)>,
+        profile: FormatProfile,
+        image: &VerifiedWorkerImageHandle,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        check(deadline, cancelled)?;
+        if profile != FormatProfile::LegacyPythonObserved20260923
+            || selected.is_empty()
+            || selected.len() > SchemaBackendProbe::MAX_RESOURCES
+        {
+            return Err(ItemRefusal::Source(
+                "selected candidate schema resource bounds".into(),
+            ));
+        }
+        selected.sort_by(|left, right| left.0.cmp(&right.0));
+        let mut resources = Vec::with_capacity(selected.len());
+        let mut source_resources = Vec::with_capacity(selected.len());
+        let mut contracts = BTreeMap::new();
+        let mut schema_bytes = 0usize;
+        let mut catalog_entry_schema_present = false;
+        let mut catalog_claim_entry_schema_present = false;
+        for (path, resource) in selected {
+            check(deadline, cancelled)?;
+            if path.len() > crate::source_foundation_schema::MAX_LOCATION_BYTES
+                || !path.starts_with("ToS/contracts/")
+                || !path.ends_with(".schema.json")
+                || RelativePath::parse(&path).is_err()
+                || resource.raw.is_empty()
+                || resource.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+            {
+                return Err(ItemRefusal::Source(
+                    "selected candidate schema resource identity or bounds".into(),
+                ));
+            }
+            let expected_uri_local = format!("https://tree-of-sophia.local/{path}");
+            let expected_uri_legacy = format!("https://treeofsophia.local/{path}");
+            let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+                .map_err(|_| ItemRefusal::Unsupported("selected candidate schema JSON".into()))?;
+            if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str())
+                || (resource.uri != expected_uri_local && resource.uri != expected_uri_legacy)
+            {
+                return Err(ItemRefusal::Source(
+                    "selected candidate schema URI differs from its exact path".into(),
+                ));
+            }
+            schema_bytes = schema_bytes
+                .checked_add(resource.raw.len())
+                .filter(|total| *total <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+                .ok_or(crate::item_budget_origin!())?;
+            let digest = Digest256::of_bytes(&resource.raw);
+            if contracts
+                .insert(path.clone(), (resource.uri.clone(), digest))
+                .is_some()
+            {
+                return Err(ItemRefusal::Source(
+                    "duplicate selected candidate schema path".into(),
+                ));
+            }
+            if path == "ToS/contracts/source-witness-catalog.schema.json" {
+                let definitions = value.get("$defs").and_then(serde_json::Value::as_object);
+                catalog_entry_schema_present = definitions
+                    .and_then(|definitions| definitions.get("entry"))
+                    .is_some_and(serde_json::Value::is_object);
+                catalog_claim_entry_schema_present = definitions
+                    .and_then(|definitions| definitions.get("claim_entry"))
+                    .is_some_and(serde_json::Value::is_object);
+            }
+            source_resources.push(SelectedSchemaResource {
+                path,
+                size_bytes: resource.raw.len() as u64,
+                sha256: digest,
+            });
+            resources.push(resource);
+        }
+        let schema_set_sha256 = schema_resource_set_digest(&resources)
+            .ok_or_else(|| ItemRefusal::Source("selected candidate schema closure".into()))?;
+        let contract_selection_sha256 = contract_selection_digest(&contracts);
+        let source_resource_metadata_state_bytes =
+            crate::source_foundation_schema::selected_source_resource_metadata_state(
+                &source_resources,
+                source_resources.capacity(),
+            )
+            .ok_or(crate::item_budget_origin!())?;
+        let source_resource_metadata_limit =
+            CandidateSourceFoundationSchemaSet::<I>::source_resource_metadata_state_upper_bound(
+                source_resources.len(),
+            )
+            .ok_or(crate::item_budget_origin!())?;
+        if source_resource_metadata_state_bytes > source_resource_metadata_limit {
+            return Err(crate::item_budget_origin!());
+        }
+        let mut limits_hash = Digest256Hasher::new();
+        limits_hash.update(b"tos-selected-candidate-schema-limits-v1\0");
+        for value in [
+            SchemaBackendProbe::MAX_RESOURCES as u64,
+            SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
+            SchemaBackendProbe::MAX_TOTAL_BYTES as u64,
+            limits.max_receipts as u64,
+            limits.max_receipt_bytes as u64,
+        ] {
+            limits_hash.update(&value.to_be_bytes());
+        }
+        let schema_set = CandidateSourceFoundationSchemaSet {
+            input_identity,
+            profile,
+            resources,
+            source_resources,
+            contracts,
+            contract_selection_sha256,
+            schema_set_sha256,
+            limits_sha256: limits_hash.finalize(),
+            schema_bytes,
+            catalog_entry_schema_present,
+            catalog_claim_entry_schema_present,
+        };
+        Self::from_schema_set(schema_set, image, budget, limits, deadline, cancelled)
+    }
+
     /// Consume the exactly selected candidate closure into the established
     /// worker preparation kernel. Resource bytes are moved into that kernel;
     /// only the bounded fixity/path census and selected root bindings remain.
