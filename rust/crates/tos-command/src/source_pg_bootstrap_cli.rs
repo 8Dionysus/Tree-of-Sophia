@@ -9,6 +9,7 @@ use super::{absolute, capped, digest, exact, number, read_absolute, text};
 use crate::source_cohort::BootstrapJobMode;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::CreationFilesystem;
+use crate::source_serialization::ExecutableObservation;
 use crate::{DurableError, DurablePgCoordinator, DurableResult};
 use serde_json::{Value, json};
 use std::fs;
@@ -58,17 +59,17 @@ fn optional_bool(value: &Value, key: &str) -> SourceCommandResult<bool> {
     }
 }
 
-struct SourceSelection {
-    domain: String,
-    contract: Digest256,
-    store_root: PathBuf,
-    store_limits: SegmentLimits,
-    job_id: String,
-    job_fence: u64,
-    job_mode: BootstrapJobMode,
-    initialize_schema: bool,
-    source_revision: SourceRevision,
-    membership: SourceMembershipV1,
+pub(super) struct SourceSelection {
+    pub(super) domain: String,
+    pub(super) contract: Digest256,
+    pub(super) store_root: PathBuf,
+    pub(super) store_limits: SegmentLimits,
+    pub(super) job_id: String,
+    pub(super) job_fence: u64,
+    pub(super) job_mode: BootstrapJobMode,
+    pub(super) initialize_schema: bool,
+    pub(super) source_revision: SourceRevision,
+    pub(super) membership: SourceMembershipV1,
 }
 
 struct ImportBudgets {
@@ -78,7 +79,195 @@ struct ImportBudgets {
     max_member_bytes: u64,
 }
 
-fn selected_source(invocation: &Value) -> SourceCommandResult<SourceSelection> {
+#[derive(Clone, Copy)]
+pub(super) struct SoftwareInputLimits {
+    pub max_members: u64,
+    pub max_total_bytes: u64,
+    pub max_member_bytes: u64,
+}
+
+/// Common protected preparation shared by legacy and streamed bootstrap.
+/// The source cut remains outside this context: streamed callers anchor it by
+/// exact revision and retain their own bounded reader instead of materializing
+/// every source member here.
+pub(super) struct ProtectedBootstrapContext {
+    pub selection: SourceSelection,
+    pub owner_path: PathBuf,
+    pub owner_raw: Vec<u8>,
+    pub owner_fs: CreationFilesystem,
+    pub request_raw: Vec<u8>,
+    pub context: cmd::CommandContext,
+    pub software: SoftwareCaptureReader,
+    pub components: SoftwareComponentSelectionV1,
+    pub expected_executable: Digest256,
+    pub runtime_observation: ExecutableObservation,
+}
+
+impl ProtectedBootstrapContext {
+    pub(super) fn owner_check(
+        &self,
+        invocation_path: &Path,
+        invocation_raw: &[u8],
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        if read_absolute(
+            invocation_path,
+            uid,
+            true,
+            invocation_raw.len(),
+            deadline,
+            cancelled,
+        )
+        .map_err(DurableError::Source)?
+            != invocation_raw
+        {
+            return Err(DurableError::Conflict(
+                "bootstrap invocation changed during import",
+            ));
+        }
+        let (current_owner, current_raw) =
+            CreationFilesystem::select_protected_native_owner_at_root(
+                &self.owner_path,
+                &self.selection.store_root,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+        if current_raw != self.owner_raw {
+            return Err(DurableError::Conflict(
+                "bootstrap owner changed during import",
+            ));
+        }
+        if current_owner.protected_root_identity() != self.owner_fs.protected_root_identity() {
+            return Err(DurableError::Conflict(
+                "bootstrap owner root changed during import",
+            ));
+        }
+        current_owner
+            .current_context(&self.context, deadline, cancelled)
+            .map_err(DurableError::Source)?;
+        if self
+            .runtime_observation
+            .current_digest(deadline, cancelled)
+            .map_err(DurableError::Source)?
+            != self.expected_executable
+        {
+            return Err(DurableError::Conflict(
+                "bootstrap executable changed during import",
+            ));
+        }
+        Ok(())
+    }
+}
+
+pub(super) fn prepare_protected_bootstrap(
+    invocation: &Value,
+    input: impl Read,
+    uid: u32,
+    software_limits: SoftwareInputLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ProtectedBootstrapContext> {
+    let selection = selected_source(invocation)?;
+    let _ = absolute(text(invocation, "native_executable")?)?;
+    let runtime_observation = crate::source_serialization::observe_executable(deadline, cancelled)?;
+    let expected_executable = digest(text(invocation, "native_executable_sha256")?)?;
+    if runtime_observation.current_digest(deadline, cancelled)? != expected_executable {
+        return Err(SourceCommandError::Conflict(
+            "native bootstrap executable identity",
+        ));
+    }
+
+    let owner_path = absolute(text(invocation, "owner_config")?)?;
+    let (owner_fs, owner_raw) = CreationFilesystem::select_protected_native_owner_at_root(
+        &owner_path,
+        &selection.store_root,
+        deadline,
+        cancelled,
+    )?;
+    let owner_value = value(&cmd::parse(&owner_raw)?)?;
+    check_owner_scope(&owner_value, &selection.store_root, &selection)?;
+
+    let request_raw = request_bytes(input)?;
+    let request_value = value(&cmd::parse(&request_raw)?)?;
+    exact(&request_value, &["schema_version", "operation"])?;
+    if text(&request_value, "schema_version")? != "tos_local_source_command_v1"
+        || text(&request_value, "operation")? != "source.bootstrap"
+    {
+        return Err(SourceCommandError::Denied(
+            "PostgreSQL bootstrap request operation",
+        ));
+    }
+
+    let (software, components) = selected_software(
+        invocation,
+        software_limits.max_total_bytes,
+        deadline,
+        cancelled,
+    )?;
+    let mut files = Vec::with_capacity(components.members().count());
+    let mut context_bytes = 0u64;
+    for member in components.members() {
+        if files.len() >= usize::try_from(software_limits.max_members).unwrap_or(usize::MAX)
+            || member.size_bytes > software_limits.max_member_bytes
+        {
+            return Err(SourceCommandError::Invalid(
+                "selected bootstrap software member budget",
+            ));
+        }
+        context_bytes = context_bytes
+            .checked_add(member.size_bytes)
+            .filter(|bytes| *bytes <= software_limits.max_total_bytes)
+            .ok_or(SourceCommandError::Invalid(
+                "selected bootstrap software byte budget",
+            ))?;
+        let raw = software
+            .read_selected_component(
+                &components,
+                &member.path,
+                software_limits.max_member_bytes,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| SourceCommandError::Conflict("selected bootstrap software component"))?;
+        if raw.len() as u64 != member.size_bytes {
+            return Err(SourceCommandError::Conflict(
+                "selected bootstrap software component size changed",
+            ));
+        }
+        files.push(cmd::SourceFile {
+            path: member.path.clone(),
+            raw,
+        });
+    }
+    let context = cmd::CommandContext {
+        base_revision: selection.source_revision,
+        configuration_raw: owner_raw.clone(),
+        request_raw: request_raw.clone(),
+        recorded_at: crate::source_serialization::instant()?,
+        effective_uid: u64::from(uid),
+        files,
+    };
+    context.check_selected_software_inputs(&software, &components, deadline, cancelled)?;
+    owner_fs.current_context(&context, deadline, cancelled)?;
+
+    Ok(ProtectedBootstrapContext {
+        selection,
+        owner_path,
+        owner_raw,
+        owner_fs,
+        request_raw,
+        context,
+        software,
+        components,
+        expected_executable,
+        runtime_observation,
+    })
+}
+
+pub(super) fn selected_source(invocation: &Value) -> SourceCommandResult<SourceSelection> {
     let value = &invocation["source_selection"];
     exact_optional(
         value,
@@ -201,7 +390,7 @@ fn import_budgets(invocation: &Value) -> SourceCommandResult<ImportBudgets> {
     })
 }
 
-fn selected_software(
+pub(super) fn selected_software(
     invocation: &Value,
     max_total_bytes: u64,
     deadline: Instant,
@@ -267,7 +456,7 @@ fn selected_software(
     Ok((software, components))
 }
 
-fn request_bytes(input: impl Read) -> SourceCommandResult<Vec<u8>> {
+pub(super) fn request_bytes(input: impl Read) -> SourceCommandResult<Vec<u8>> {
     let mut raw = Vec::new();
     input
         .take((MAX_REQUEST + 1) as u64)
@@ -281,12 +470,12 @@ fn request_bytes(input: impl Read) -> SourceCommandResult<Vec<u8>> {
     Ok(raw)
 }
 
-fn value(value: &tos_foundation::JsonValue) -> SourceCommandResult<Value> {
+pub(super) fn value(value: &tos_foundation::JsonValue) -> SourceCommandResult<Value> {
     serde_json::from_slice(&cmd::canonical(value)?)
         .map_err(|_| SourceCommandError::Invalid("PostgreSQL bootstrap JSON"))
 }
 
-fn check_owner_scope(
+pub(super) fn check_owner_scope(
     owner: &Value,
     owner_root: &Path,
     selection: &SourceSelection,
@@ -438,7 +627,7 @@ fn initialized_store_empty(directory: &std::fs::File) -> SourceCommandResult<boo
     Ok(true)
 }
 
-fn selected_store(
+pub(super) fn selected_store(
     owner: &CreationFilesystem,
     selection: &SourceSelection,
 ) -> SourceCommandResult<SegmentStore> {
@@ -473,7 +662,7 @@ fn selected_store(
     Ok(store)
 }
 
-fn source_error(error: DurableError) -> SourceCommandError {
+pub(super) fn source_error(error: DurableError) -> SourceCommandError {
     match error {
         DurableError::Source(error) => error,
         DurableError::Conflict(_) => {
@@ -524,35 +713,23 @@ pub(super) fn run(
             "PostgreSQL source bootstrap invocation",
         ));
     }
-    let selection = selected_source(invocation)?;
     let budgets = import_budgets(invocation)?;
-    let _ = absolute(text(invocation, "native_executable")?)?;
-    let runtime_observation = crate::source_serialization::observe_executable(deadline, cancelled)?;
-    let expected_executable = digest(text(invocation, "native_executable_sha256")?)?;
-    if runtime_observation.current_digest(deadline, cancelled)? != expected_executable {
-        return Err(SourceCommandError::Conflict(
-            "native bootstrap executable identity",
-        ));
-    }
-
-    let owner_path = absolute(text(invocation, "owner_config")?)?;
-    let (owner_fs, owner_raw) = CreationFilesystem::select_protected_native_owner_at_root(
-        &owner_path,
-        &selection.store_root,
+    let protected = prepare_protected_bootstrap(
+        invocation,
+        input,
+        uid,
+        SoftwareInputLimits {
+            max_members: budgets.max_members,
+            max_total_bytes: budgets.max_total_bytes,
+            max_member_bytes: budgets.max_member_bytes,
+        },
         deadline,
         cancelled,
     )?;
-    let owner_value = value(&cmd::parse(&owner_raw)?)?;
-    check_owner_scope(&owner_value, &selection.store_root, &selection)?;
-
-    let request_raw = request_bytes(input)?;
-    let request_value = value(&cmd::parse(&request_raw)?)?;
-    exact(&request_value, &["schema_version", "operation"])?;
-    if text(&request_value, "schema_version")? != "tos_local_source_command_v1"
-        || text(&request_value, "operation")? != "source.bootstrap"
-    {
-        return Err(SourceCommandError::Denied(
-            "PostgreSQL bootstrap request operation",
+    let selection = &protected.selection;
+    if digest(text(invocation, "source_revision")?)? != selection.source_revision.0 {
+        return Err(SourceCommandError::Conflict(
+            "source revision selection differs",
         ));
     }
 
@@ -567,7 +744,7 @@ pub(super) fn run(
         source_read_limits,
     )
     .map_err(|_| SourceCommandError::Conflict("selected immutable source store"))?;
-    let revision = SourceRevision(digest(text(invocation, "source_revision")?)?);
+    let revision = selection.source_revision;
     if corpus
         .select_current()
         .map_err(|_| SourceCommandError::Conflict("source current pointer"))?
@@ -590,43 +767,14 @@ pub(super) fn run(
         ));
     }
 
-    let (software, components) =
-        selected_software(invocation, budgets.max_total_bytes, deadline, cancelled)?;
-    let mut files = Vec::with_capacity(components.members().count());
-    let mut context_bytes = 0u64;
-    for member in components.members() {
-        if files.len() >= usize::try_from(budgets.max_members).unwrap_or(usize::MAX)
-            || member.size_bytes > budgets.max_member_bytes
-        {
-            return Err(SourceCommandError::Invalid(
-                "selected bootstrap software member budget",
-            ));
-        }
-        context_bytes = context_bytes
-            .checked_add(member.size_bytes)
-            .filter(|bytes| *bytes <= budgets.max_total_bytes)
-            .ok_or(SourceCommandError::Invalid(
-                "selected bootstrap software byte budget",
-            ))?;
-        let raw = software
-            .read_selected_component(
-                &components,
-                &member.path,
-                budgets.max_member_bytes,
-                deadline,
-                cancelled,
-            )
-            .map_err(|_| SourceCommandError::Conflict("selected bootstrap software component"))?;
-        if raw.len() as u64 != member.size_bytes {
-            return Err(SourceCommandError::Conflict(
-                "selected bootstrap software component size changed",
-            ));
-        }
-        files.push(cmd::SourceFile {
-            path: member.path.clone(),
-            raw,
-        });
-    }
+    let context_bytes = protected
+        .context
+        .files
+        .iter()
+        .try_fold(0u64, |sum, file| sum.checked_add(file.raw.len() as u64))
+        .ok_or(SourceCommandError::Invalid(
+            "selected bootstrap software byte budget",
+        ))?;
     let selected_source_bytes = cut
         .current()
         .members()
@@ -634,7 +782,9 @@ pub(super) fn run(
         .ok_or(SourceCommandError::Invalid(
             "source cut byte budget overflow",
         ))?;
-    let selected_count = files
+    let selected_count = protected
+        .context
+        .files
         .len()
         .checked_add(cut.current().member_count())
         .and_then(|count| u64::try_from(count).ok())
@@ -654,70 +804,21 @@ pub(super) fn run(
             "combined selected bootstrap context budget",
         ));
     }
-    let context = cmd::CommandContext {
-        base_revision: revision,
-        configuration_raw: owner_raw.clone(),
-        request_raw: request_raw.clone(),
-        recorded_at: crate::source_serialization::instant()?,
-        effective_uid: u64::from(uid),
-        files,
-    };
-    context.check_from_selected_captures(&cut, &software, &components, deadline, cancelled)?;
-    owner_fs.current_context(&context, deadline, cancelled)?;
+    protected.context.check_from_selected_captures(
+        &cut,
+        &protected.software,
+        &protected.components,
+        deadline,
+        cancelled,
+    )?;
 
     let mut worker = super::selected_schema(invocation, &cut, deadline, cancelled)?;
     let mut db = DurablePgCoordinator::from_configured_client(
         crate::source_projection_cli::connect_selected_source_pg16()
             .map_err(|_| SourceCommandError::Conflict("selected PostgreSQL unavailable"))?,
     );
-    let owner_check = || -> DurableResult<()> {
-        if read_absolute(
-            invocation_path,
-            uid,
-            true,
-            invocation_raw.len(),
-            deadline,
-            cancelled,
-        )
-        .map_err(DurableError::Source)?
-            != invocation_raw
-        {
-            return Err(DurableError::Conflict(
-                "bootstrap invocation changed during import",
-            ));
-        }
-        let (current_owner, current_raw) =
-            CreationFilesystem::select_protected_native_owner_at_root(
-                &owner_path,
-                &selection.store_root,
-                deadline,
-                cancelled,
-            )
-            .map_err(DurableError::Source)?;
-        if current_raw != owner_raw {
-            return Err(DurableError::Conflict(
-                "bootstrap owner changed during import",
-            ));
-        }
-        if current_owner.protected_root_identity() != owner_fs.protected_root_identity() {
-            return Err(DurableError::Conflict(
-                "bootstrap owner root changed during import",
-            ));
-        }
-        current_owner
-            .current_context(&context, deadline, cancelled)
-            .map_err(DurableError::Source)?;
-        if runtime_observation
-            .current_digest(deadline, cancelled)
-            .map_err(DurableError::Source)?
-            != expected_executable
-        {
-            return Err(DurableError::Conflict(
-                "bootstrap executable changed during import",
-            ));
-        }
-        Ok(())
-    };
+    let owner_check =
+        || protected.owner_check(invocation_path, invocation_raw, uid, deadline, cancelled);
     owner_check().map_err(source_error)?;
 
     if selection.initialize_schema {
@@ -733,7 +834,7 @@ pub(super) fn run(
     // Only the authorized initialization path can create an empty physical
     // store; existing stores are descriptor-anchored and accepted only when
     // all six data directories are empty.
-    let store = selected_store(&owner_fs, &selection)?;
+    let store = selected_store(&protected.owner_fs, selection)?;
     owner_check().map_err(source_error)?;
     if store.custody_domain() != selection.domain.as_bytes() {
         return Err(SourceCommandError::Conflict(
@@ -749,9 +850,9 @@ pub(super) fn run(
             &cut,
             selection.source_revision,
             selection.membership,
-            &context,
-            &software,
-            &components,
+            &protected.context,
+            &protected.software,
+            &protected.components,
             &mut worker,
             selection.contract,
             &selection.job_id,

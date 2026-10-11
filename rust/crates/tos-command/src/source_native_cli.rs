@@ -44,6 +44,8 @@ mod metadata_publication;
 mod object_link;
 #[path = "source_pg_bootstrap_cli.rs"]
 mod pg_bootstrap;
+#[path = "source_pg_bootstrap_streamed_cli.rs"]
+mod pg_bootstrap_streamed;
 #[path = "source_native_pg_creation_cli.rs"]
 mod pg_creation;
 #[path = "source_native_pg_revision_cli.rs"]
@@ -170,7 +172,12 @@ fn run_selected(
     private_owner_process: bool,
 ) -> SourceCommandResult<Value> {
     let cancelled = Arc::new(AtomicBool::new(false));
-    let deadline = Instant::now() + Duration::from_secs(60);
+    // Legacy native families retain their historical 60-second cooperative
+    // deadline. The streamed bootstrap route derives its own bounded whole-
+    // invocation deadline only after the canonical invocation is validated,
+    // before opening source, STO or PostgreSQL state.
+    let invocation_started = Instant::now();
+    let read_deadline = invocation_started + Duration::from_secs(60);
     let uid = rustix::process::getuid().as_raw();
     if rustix::process::geteuid().as_raw() != uid {
         return Err(SourceCommandError::Denied("native command setuid refused"));
@@ -180,18 +187,33 @@ fn run_selected(
             .to_str()
             .ok_or(SourceCommandError::Invalid("native invocation path UTF-8"))?,
     )?;
-    let raw = read_absolute(&selected, uid, true, MAX_INVOCATION, deadline, &cancelled)?;
+    let raw = read_absolute(
+        &selected,
+        uid,
+        true,
+        MAX_INVOCATION,
+        read_deadline,
+        &cancelled,
+    )?;
     let checked = cmd::parse(&raw)?;
     let invocation: Value = serde_json::from_slice(&cmd::canonical(&checked)?)
         .map_err(|_| SourceCommandError::Invalid("native invocation JSON"))?;
-    if private_owner_process
-        && text(&invocation, "schema_version")? != "tos_local_native_source_invocation_v1"
-    {
+    let schema = text(&invocation, "schema_version")?;
+    let deadline = if schema == "tos_local_pg_source_bootstrap_streamed_invocation_v1" {
+        invocation_started
+            .checked_add(pg_bootstrap_streamed::invocation_duration(&invocation)?)
+            .ok_or(SourceCommandError::Invalid(
+                "streamed bootstrap deadline overflow",
+            ))?
+    } else {
+        read_deadline
+    };
+    if private_owner_process && schema != "tos_local_native_source_invocation_v1" {
         return Err(SourceCommandError::Denied(
             "private text invocation profile",
         ));
     }
-    if text(&invocation, "schema_version")? == "tos_local_pg_record_revision_invocation_v1" {
+    if schema == "tos_local_pg_record_revision_invocation_v1" {
         return pg_revision::run(
             &selected,
             &raw,
@@ -202,7 +224,7 @@ fn run_selected(
             &cancelled,
         );
     }
-    if text(&invocation, "schema_version")? == "tos_local_pg_agent_creation_invocation_v1" {
+    if schema == "tos_local_pg_agent_creation_invocation_v1" {
         return pg_creation::run(
             &selected,
             &raw,
@@ -213,7 +235,7 @@ fn run_selected(
             &cancelled,
         );
     }
-    if text(&invocation, "schema_version")? == "tos_local_pg_source_bootstrap_invocation_v1" {
+    if schema == "tos_local_pg_source_bootstrap_invocation_v1" {
         return pg_bootstrap::run(
             &selected,
             &raw,
@@ -224,8 +246,19 @@ fn run_selected(
             &cancelled,
         );
     }
+    if schema == "tos_local_pg_source_bootstrap_streamed_invocation_v1" {
+        return pg_bootstrap_streamed::run(
+            &selected,
+            &raw,
+            &invocation,
+            input,
+            uid,
+            deadline,
+            &cancelled,
+        );
+    }
     if matches!(
-        text(&invocation, "schema_version")?,
+        schema,
         "tos_local_native_corpus_read_invocation_v1"
             | "tos_local_native_corpus_restore_invocation_v1"
     ) {
@@ -246,20 +279,14 @@ fn run_selected(
             &invocation_fence,
         );
     }
-    let claim_invocation =
-        text(&invocation, "schema_version")? == "tos_local_native_claim_invocation_v1";
-    let item_invocation =
-        text(&invocation, "schema_version")? == "tos_local_native_item_invocation_v1";
-    let collection_invocation =
-        text(&invocation, "schema_version")? == "tos_local_native_collection_invocation_v1";
-    let agent_publication_invocation =
-        text(&invocation, "schema_version")? == "tos_local_native_agent_publication_invocation_v1";
-    let metadata_publication_invocation = text(&invocation, "schema_version")?
-        == "tos_local_native_metadata_publication_invocation_v1";
-    let source_invocation =
-        text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
-    let assessment_read_invocation =
-        text(&invocation, "schema_version")? == "tos_local_native_assessment_read_invocation_v1";
+    let claim_invocation = schema == "tos_local_native_claim_invocation_v1";
+    let item_invocation = schema == "tos_local_native_item_invocation_v1";
+    let collection_invocation = schema == "tos_local_native_collection_invocation_v1";
+    let agent_publication_invocation = schema == "tos_local_native_agent_publication_invocation_v1";
+    let metadata_publication_invocation =
+        schema == "tos_local_native_metadata_publication_invocation_v1";
+    let source_invocation = schema == "tos_local_native_source_invocation_v1";
+    let assessment_read_invocation = schema == "tos_local_native_assessment_read_invocation_v1";
     let mut keys = vec![
         "schema_version",
         "owner_config",
@@ -319,7 +346,7 @@ fn run_selected(
         && !agent_publication_invocation
         && !metadata_publication_invocation
         && !collection_invocation
-        && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
+        && schema != "tos_local_native_owner_invocation_v1"
     {
         return Err(SourceCommandError::Invalid("native invocation profile"));
     }

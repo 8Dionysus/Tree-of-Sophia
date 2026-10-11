@@ -14,6 +14,11 @@ const HISTORY_KIND: &[u8] = b"cmd2-history-addressed-v2";
 const CURRENT_KIND: &[u8] = b"cmd2-current-addressed-v2";
 const MAX_DESCRIPTOR: usize = 65536;
 
+fn tree_callback_state_bytes(limits: AuthenticatedTreeLimitsV1) -> DurableResult<usize> {
+    usize::try_from(limits.max_total_bytes)
+        .map_err(|_| DurableError::Refused("addressed tree state bound"))
+}
+
 // Both compatibility migration and direct streamed cold assessment consume the
 // SAME verified membership carrier. This helper creates no cold/source grant:
 // the caller must already own its complete receipt/history/pin assessment.
@@ -24,8 +29,33 @@ pub(super) fn build_addressed_membership_trees(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeDescriptorV2)> {
+    let mut owner_check = || true;
+    build_addressed_membership_trees_with_callback(
+        store,
+        membership,
+        limits,
+        deadline,
+        cancelled,
+        &mut owner_check,
+    )
+}
+
+pub(super) fn build_addressed_membership_trees_with_callback(
+    store: &SegmentStore,
+    membership: &MembershipInstallation<'_>,
+    limits: AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    owner_check: &mut dyn FnMut() -> bool,
+) -> DurableResult<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeDescriptorV2)> {
     membership.audited_root.require_store(store)?;
-    let build = |namespace, kind| -> DurableResult<AuthenticatedTreeDescriptorV2> {
+    if !owner_check() {
+        return Err(DurableError::Conflict(
+            "addressed membership owner fence changed",
+        ));
+    }
+    let state_bytes = tree_callback_state_bytes(limits)?;
+    let mut build = |namespace, kind| -> DurableResult<AuthenticatedTreeDescriptorV2> {
         let mut cursor = membership.cursor(namespace)?;
         let entries = std::iter::from_fn(|| match cursor.next_row() {
             Ok(Some(row)) => Some((|| {
@@ -41,7 +71,19 @@ pub(super) fn build_addressed_membership_trees(
                 "cold verified membership cursor failed",
             ))),
         });
-        let tree = store.build_authenticated_tree_v2(kind, entries, limits, deadline, cancelled)?;
+        let tree = store
+            .build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
+                kind,
+                entries,
+                limits,
+                None,
+                state_bytes,
+                0,
+                deadline,
+                cancelled,
+                owner_check,
+            )
+            .map_err(DurableError::Storage)?;
         cursor.finish()?;
         if tree.entries != membership.count(namespace) {
             return Err(DurableError::Corrupt(
@@ -73,6 +115,32 @@ pub(super) fn build_addressed_metadata_tree(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<AuthenticatedTreeDescriptorV2> {
+    let mut owner_check = || true;
+    build_addressed_metadata_tree_with_callback(
+        tx,
+        store,
+        domain,
+        limits,
+        deadline,
+        cancelled,
+        &mut owner_check,
+    )
+}
+
+pub(super) fn build_addressed_metadata_tree_with_callback(
+    tx: &mut Transaction<'_>,
+    store: &SegmentStore,
+    domain: &str,
+    limits: AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    owner_check: &mut dyn FnMut() -> bool,
+) -> DurableResult<AuthenticatedTreeDescriptorV2> {
+    if !owner_check() {
+        return Err(DurableError::Conflict(
+            "addressed metadata owner fence changed",
+        ));
+    }
     let mut clauses = Vec::new();
     for table in audit_delta::MetadataTable::ALL {
         clauses.push(format!(
@@ -102,10 +170,27 @@ pub(super) fn build_addressed_metadata_tree(
             "cold metadata database cursor failed",
         ))),
     });
-    let metadata =
-        store.build_authenticated_tree_v2(METADATA_KIND, entries, limits, deadline, cancelled)?;
+    let state_bytes = tree_callback_state_bytes(limits)?;
+    let metadata = store
+        .build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
+            METADATA_KIND,
+            entries,
+            limits,
+            None,
+            state_bytes,
+            0,
+            deadline,
+            cancelled,
+            owner_check,
+        )
+        .map_err(DurableError::Storage)?;
     drop(rows);
     active(deadline, cancelled)?;
+    if !owner_check() {
+        return Err(DurableError::Conflict(
+            "addressed metadata owner fence changed",
+        ));
+    }
     Ok(metadata)
 }
 
@@ -526,12 +611,35 @@ impl DurablePgCoordinator {
     pub(super) fn select_addressed_selection_controlled(
         &mut self,
         store: &SegmentStore,
+        candidate: VerifiedAddressedGeneration,
+        cohort: &ManagedSourceCohort,
+        owner: Option<&CreationOwnerFence<'_>>,
+        max_statement_ms: Option<u64>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<VerifiedAddressedGeneration> {
+        self.select_addressed_selection_controlled_with_callback(
+            store,
+            candidate,
+            cohort,
+            owner,
+            max_statement_ms,
+            deadline,
+            cancelled,
+            None,
+        )
+    }
+
+    pub(super) fn select_addressed_selection_controlled_with_callback(
+        &mut self,
+        store: &SegmentStore,
         mut candidate: VerifiedAddressedGeneration,
         cohort: &ManagedSourceCohort,
         owner: Option<&CreationOwnerFence<'_>>,
         max_statement_ms: Option<u64>,
         deadline: Instant,
         cancelled: &AtomicBool,
+        protected_check: Option<&dyn Fn() -> DurableResult<()>>,
     ) -> DurableResult<VerifiedAddressedGeneration> {
         active(deadline, cancelled)?;
         candidate.audited_root.require_store(store)?;
@@ -598,6 +706,9 @@ impl DurablePgCoordinator {
                 cancelled,
             )?;
         }
+        if let Some(check) = protected_check {
+            check()?;
+        }
         tx.execute("UPDATE cmd2_domain SET published_seq=$2,complete_cut_digest=$3,complete_cut_generation=$4,selected_generation_digest=$5,source_projection_digest=$6 WHERE domain=$1",
             &[&cut.domain,&as_i64(cut.through_seq)?,&candidate.state_digest.to_hex(),&as_i64(anticipated)?,
               &candidate.digest.to_hex(),&cut.inventory.root().to_hex()])?;
@@ -626,6 +737,9 @@ impl DurablePgCoordinator {
                 deadline,
                 cancelled,
             )?;
+        }
+        if let Some(check) = protected_check {
+            check()?;
         }
         tx.commit()?;
         candidate.selected_audit_generation = observed;

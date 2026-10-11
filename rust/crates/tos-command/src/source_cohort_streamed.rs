@@ -62,6 +62,7 @@ struct StreamedSourceReadEpoch<'a, 'db> {
     index: &'a RefCell<&'a mut SourceAssessmentIndex>,
     index_work: &'a RefCell<&'a mut SourceAssessmentWork>,
     body_work: &'a mut StreamedColdSourceWorkV1,
+    max_member_bytes: u64,
     store: &'a SegmentStore,
     context: &'a CommandContext,
     domain: &'a str,
@@ -84,7 +85,11 @@ impl ReadonlyRecordFiles for StreamedSourceReadEpoch<'_, '_> {
             self.cold.audited_root.require_store(self.store)?;
             let path = RelativePath::parse(name)
                 .map_err(|_| DurableError::Invalid("streamed source member path"))?;
-            if max_bytes == 0 || max_bytes > 8_388_608 {
+            if max_bytes == 0
+                || self.max_member_bytes == 0
+                || self.max_member_bytes > usize::MAX as u64
+                || max_bytes as u64 > self.max_member_bytes
+            {
                 return Err(DurableError::Refused(
                     "streamed source per-member byte bound",
                 ));
@@ -245,7 +250,7 @@ fn verify_original_content(
     if current.revision != revision
         || current.membership != membership
         || max_member_bytes == 0
-        || max_member_bytes > 8_388_608
+        || max_member_bytes > usize::MAX as u64
     {
         return Err(DurableError::Conflict(
             "streamed original selection differs",
@@ -332,6 +337,7 @@ fn index_current_source(
     original_content: &VerifiedStreamedOriginalContentV1,
     index: &mut SourceAssessmentIndex,
     limits: SourceAssessmentLimits,
+    max_member_bytes: u64,
     index_work: &mut SourceAssessmentWork,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -346,7 +352,9 @@ fn index_current_source(
     if as_u64(admitted.get(0))? != cold.current_members
         || cold.current_members > limits.max_rows
         || as_u64(admitted.get(1))? > limits.max_logical_bytes
-        || as_u64(admitted.get(2))? > 8_388_608
+        || max_member_bytes == 0
+        || max_member_bytes > usize::MAX as u64
+        || as_u64(admitted.get(2))? > max_member_bytes
         || as_u64(admitted.get(3))? > limits.max_value_bytes as u64
         || as_u64(admitted.get(4))? > limits.max_value_bytes as u64
         || as_u64(admitted.get(5))? > limits.max_logical_bytes
@@ -598,7 +606,13 @@ fn stage_current_agent_identities(
         let path = RelativePath::parse(&member.path)
             .map_err(|_| DurableError::Corrupt("streamed staged path"))?;
         let raw = epoch
-            .read(&member.path, 8_388_608, deadline, cancelled)
+            .read(
+                &member.path,
+                usize::try_from(epoch.max_member_bytes)
+                    .map_err(|_| DurableError::Refused("streamed member byte bound"))?,
+                deadline,
+                cancelled,
+            )
             .map_err(source_error)?;
         let file = SourceFile { path, raw };
         let index = epoch.index;
@@ -765,7 +779,13 @@ fn render_current_agent_projections(
         let path = RelativePath::parse(&member.path)
             .map_err(|_| DurableError::Corrupt("streamed projected path"))?;
         let raw = epoch
-            .read(&member.path, 8_388_608, deadline, cancelled)
+            .read(
+                &member.path,
+                usize::try_from(epoch.max_member_bytes)
+                    .map_err(|_| DurableError::Refused("streamed member byte bound"))?,
+                deadline,
+                cancelled,
+            )
             .map_err(source_error)?;
         let file = SourceFile { path, raw };
         let index = epoch.index;
@@ -1056,7 +1076,9 @@ fn build_assessed_inventory(
     tree_work: &mut tos_segment_store::AuthenticatedTreeWorkV1,
     deadline: Instant,
     cancelled: &AtomicBool,
+    owner_check: &dyn Fn() -> DurableResult<()>,
 ) -> DurableResult<super::addressed_inventory::AddressedInventoryV2> {
+    owner_check()?;
     let mut after = None::<String>;
     let mut ended = false;
     let projections = std::iter::from_fn(|| {
@@ -1087,7 +1109,8 @@ fn build_assessed_inventory(
             }
         }
     });
-    super::addressed_inventory::AddressedInventoryV2::build_from_assessed_projections(
+    let mut tree_owner_check = || owner_check().is_ok();
+    let result = super::addressed_inventory::AddressedInventoryV2::build_from_assessed_projections_with_callback(
         store,
         projections,
         assessment.members,
@@ -1095,7 +1118,10 @@ fn build_assessed_inventory(
         deadline,
         cancelled,
         tree_work,
-    )
+        &mut tree_owner_check,
+    );
+    owner_check()?;
+    result
 }
 
 // Aggregate admission is a resource boundary only. Exact rows are subsequently
@@ -1275,6 +1301,7 @@ fn assess_held_current_source(
     context: &CommandContext,
     index: &mut SourceAssessmentIndex,
     limits: SourceAssessmentLimits,
+    max_member_bytes: u64,
     index_work: &mut SourceAssessmentWork,
     body_work: &mut StreamedColdSourceWorkV1,
     worker: &mut CutWorkerSchemaExecutor,
@@ -1285,6 +1312,7 @@ fn assess_held_current_source(
     tree_work: &mut tos_segment_store::AuthenticatedTreeWorkV1,
     deadline: Instant,
     cancelled: &AtomicBool,
+    owner_check: &dyn Fn() -> DurableResult<()>,
 ) -> DurableResult<(
     CompleteStreamedOwnerAssessmentV1,
     super::addressed_inventory::AddressedInventoryV2,
@@ -1306,6 +1334,7 @@ fn assess_held_current_source(
         original_content,
         index,
         limits,
+        max_member_bytes,
         index_work,
         deadline,
         cancelled,
@@ -1320,6 +1349,7 @@ fn assess_held_current_source(
             index: &index_cell,
             index_work: &work_cell,
             body_work,
+            max_member_bytes,
             store,
             context,
             domain,
@@ -1391,6 +1421,7 @@ fn assess_held_current_source(
         tree_work,
         deadline,
         cancelled,
+        owner_check,
     )?;
     active(deadline, cancelled)?;
     Ok((assessment, inventory))
@@ -1401,6 +1432,10 @@ fn assess_held_current_source(
 /// independent physical limits.
 #[derive(Clone, Copy, Debug)]
 pub struct StreamedColdSourceLimitsV1 {
+    /// Per-source-member read ceiling for this streamed operation. Legacy
+    /// callers set the historical 8 MiB profile explicitly; streamed owners
+    /// may select a larger bounded member envelope for real source cuts.
+    pub max_member_bytes: u64,
     pub max_rows: u64,
     pub max_logical_bytes: u64,
     pub max_key_bytes: usize,
@@ -1411,6 +1446,9 @@ pub struct StreamedColdSourceLimitsV1 {
 }
 impl StreamedColdSourceLimitsV1 {
     pub(super) fn index_limits(self) -> DurableResult<SourceAssessmentLimits> {
+        if self.max_member_bytes == 0 || self.max_member_bytes > usize::MAX as u64 {
+            return Err(DurableError::Refused("streamed source member byte bound"));
+        }
         SourceAssessmentLimits {
             max_rows: self.max_rows,
             max_logical_bytes: self.max_logical_bytes,
@@ -1451,6 +1489,8 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: std::sync::Arc<AtomicBool>,
     ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
+        let owner_cancelled = std::sync::Arc::clone(&cancelled);
+        let owner_check = move || active(deadline, &owner_cancelled);
         self.complete_streamed_source_generation(
             store,
             None,
@@ -1472,6 +1512,7 @@ impl DurablePgCoordinator {
             tree_work,
             deadline,
             cancelled,
+            &owner_check,
         )
     }
 
@@ -1494,6 +1535,7 @@ impl DurablePgCoordinator {
         tree_work: &mut tos_segment_store::AuthenticatedTreeWorkV1,
         deadline: Instant,
         cancelled: std::sync::Arc<AtomicBool>,
+        owner_check: &dyn Fn() -> DurableResult<()>,
     ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
         let observed = seed.observation();
         let domain = observed.domain.clone();
@@ -1520,6 +1562,7 @@ impl DurablePgCoordinator {
             tree_work,
             deadline,
             cancelled,
+            owner_check,
         )
     }
 
@@ -1545,11 +1588,13 @@ impl DurablePgCoordinator {
         tree_work: &mut tos_segment_store::AuthenticatedTreeWorkV1,
         deadline: Instant,
         cancelled: std::sync::Arc<AtomicBool>,
+        owner_check: &dyn Fn() -> DurableResult<()>,
     ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
         let mut index_work = SourceAssessmentWork::default();
         let result =
             (|| -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
                 active(deadline, &cancelled)?;
+                owner_check()?;
                 let limits = source_limits.index_limits()?;
                 let generation_profile = generation_profile.validate(workspace)?;
                 if context.base_revision != initial_revision
@@ -1562,11 +1607,12 @@ impl DurablePgCoordinator {
                 context
                     .check_selected_software_inputs(software, components, deadline, &cancelled)
                     .map_err(source_error)?;
+                owner_check()?;
                 let original_content = verify_original_content(
                     original,
                     initial_revision,
                     initial_membership,
-                    8_388_608,
+                    source_limits.max_member_bytes,
                     deadline,
                     &cancelled,
                     body_work,
@@ -1579,6 +1625,7 @@ impl DurablePgCoordinator {
                     deadline,
                     &cancelled,
                 )?;
+                owner_check()?;
                 if let Some(seed) = seed.as_ref() {
                     let observed = seed.observation();
                     if observed.domain != domain
@@ -1693,6 +1740,7 @@ impl DurablePgCoordinator {
                     context,
                     &mut index,
                     limits,
+                    source_limits.max_member_bytes,
                     &mut index_work,
                     body_work,
                     worker,
@@ -1703,10 +1751,12 @@ impl DurablePgCoordinator {
                     tree_work,
                     deadline,
                     &cancelled,
+                    owner_check,
                 )?;
                 // Locks remain held. Completion includes empty and absent predicates;
                 // only existing owned definitions are re-enabled, never invented grants.
                 active(deadline, &cancelled)?;
+                owner_check()?;
                 set_streamed_pg_limits(
                     &mut tx,
                     generation_profile.max_sql_statement_ms,
@@ -1715,6 +1765,7 @@ impl DurablePgCoordinator {
                 )?;
                 tx.execute("UPDATE cmd2_predicate SET complete=true WHERE domain=$1 AND owner=$2 AND definition_version=$3",
             &[&domain, &OWNER, &cohort.definition.to_hex()])?;
+                owner_check()?;
                 set_streamed_pg_limits(
                     &mut tx,
                     generation_profile.max_sql_statement_ms,
@@ -1724,13 +1775,16 @@ impl DurablePgCoordinator {
                 tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,source_projection_digest=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1",
             &[&domain, &assessment.projection_digest.to_hex()])?;
                 active(deadline, &cancelled)?;
+                owner_check()?;
                 set_streamed_pg_limits(
                     &mut tx,
                     generation_profile.max_sql_statement_ms,
                     deadline,
                     &cancelled,
                 )?;
+                owner_check()?;
                 let completed_audit = lock_audit_fence(&mut tx, domain)?;
+                owner_check()?;
                 set_streamed_pg_limits(
                     &mut tx,
                     generation_profile.max_sql_statement_ms,
@@ -1738,6 +1792,7 @@ impl DurablePgCoordinator {
                     &cancelled,
                 )?;
                 tx.commit()?;
+                owner_check()?;
                 let verified = self.cold_verify_cut_streamed(
                     store,
                     domain,
@@ -1758,6 +1813,7 @@ impl DurablePgCoordinator {
                         "streamed completed assessment raced mutation",
                     ));
                 }
+                owner_check()?;
                 let mut tx = self
                     .client
                     .build_transaction()
@@ -1770,6 +1826,7 @@ impl DurablePgCoordinator {
                     &cancelled,
                 )?;
                 tx.batch_execute("SET LOCAL work_mem='4MB'")?;
+                owner_check()?;
                 if lock_audit_fence(&mut tx, domain)? != verified.audit_generation {
                     return Err(DurableError::Conflict("streamed addressed audit changed"));
                 }
@@ -1811,28 +1868,35 @@ impl DurablePgCoordinator {
                     }),
                 )
                 .map_err(super::addressed_successor::delta_error)?;
+                owner_check()?;
                 set_streamed_pg_limits(
                     &mut tx,
                     generation_profile.max_sql_statement_ms,
                     deadline,
                     &cancelled,
                 )?;
-                let metadata = super::addressed_successor::build_addressed_metadata_tree(
-                    &mut tx,
-                    store,
-                    domain,
-                    tree_limits,
-                    deadline,
-                    &cancelled,
-                )?;
+                let mut tree_owner_check = || owner_check().is_ok();
+                let metadata =
+                    super::addressed_successor::build_addressed_metadata_tree_with_callback(
+                        &mut tx,
+                        store,
+                        domain,
+                        tree_limits,
+                        deadline,
+                        &cancelled,
+                        &mut tree_owner_check,
+                    )?;
+                owner_check()?;
                 let (history, current) =
-                    super::addressed_successor::build_addressed_membership_trees(
+                    super::addressed_successor::build_addressed_membership_trees_with_callback(
                         store,
                         &verified.installation(store),
                         tree_limits,
                         deadline,
                         &cancelled,
+                        &mut tree_owner_check,
                     )?;
+                owner_check()?;
                 let cut = super::addressed_successor::AddressedCutV2 {
                     store_id: store.store_id(),
                     domain_digest: store.domain_digest(),
@@ -1849,6 +1913,7 @@ impl DurablePgCoordinator {
                     inventory,
                 };
                 active(deadline, &cancelled)?;
+                owner_check()?;
                 set_streamed_pg_limits(
                     &mut tx,
                     generation_profile.max_sql_statement_ms,
@@ -1856,6 +1921,7 @@ impl DurablePgCoordinator {
                     &cancelled,
                 )?;
                 tx.commit()?;
+                owner_check()?;
                 let candidate = self.install_addressed_selection(
                     store,
                     cut,
@@ -1864,7 +1930,8 @@ impl DurablePgCoordinator {
                     deadline,
                     &cancelled,
                 )?;
-                let selected = self.select_addressed_selection_controlled(
+                owner_check()?;
+                let selected = self.select_addressed_selection_controlled_with_callback(
                     store,
                     candidate,
                     &cohort,
@@ -1872,7 +1939,9 @@ impl DurablePgCoordinator {
                     Some(generation_profile.max_sql_statement_ms),
                     deadline,
                     &cancelled,
+                    Some(owner_check),
                 )?;
+                owner_check()?;
                 Ok(
             crate::source_current_cut::ManagedCurrentSourceGeneration::from_verified_addressed(
                 store, cohort, selected,

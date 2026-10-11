@@ -22,6 +22,11 @@ const MAX_PROJECTION_BYTES: u64 = 64 * 1024 * 1024;
 // independent of the number of cohort members.
 const MAX_PROFILE_COUNT: u64 = cmd::SELECTED_SOURCE_MAX_FILES as u64;
 
+fn tree_callback_state_bytes(limits: AuthenticatedTreeLimitsV1) -> DurableResult<usize> {
+    usize::try_from(limits.max_total_bytes)
+        .map_err(|_| DurableError::Refused("authenticated inventory tree state bound"))
+}
+
 #[derive(Clone, Debug)]
 pub(super) struct AddressedInventoryV2 {
     projections: AuthenticatedTreeDescriptorV2,
@@ -215,7 +220,41 @@ impl AddressedInventoryV2 {
     where
         I: IntoIterator<Item = DurableResult<(String, Vec<u8>)>>,
     {
+        let mut owner_check = || true;
+        Self::build_from_assessed_projections_with_callback(
+            store,
+            projections,
+            expected_count,
+            limits,
+            deadline,
+            cancelled,
+            work,
+            &mut owner_check,
+        )
+    }
+
+    /// Streamed cold assessment variant. The callback is checked by the STO
+    /// tree writer before each irreversible node operation; it is supplied by
+    /// the protected owner route and does not grant source admission.
+    pub(super) fn build_from_assessed_projections_with_callback<I>(
+        store: &SegmentStore,
+        projections: I,
+        expected_count: u64,
+        limits: AuthenticatedTreeLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut AuthenticatedTreeWorkV1,
+        owner_check: &mut dyn FnMut() -> bool,
+    ) -> DurableResult<Self>
+    where
+        I: IntoIterator<Item = DurableResult<(String, Vec<u8>)>>,
+    {
         active(deadline, cancelled)?;
+        if !owner_check() {
+            return Err(DurableError::Conflict(
+                "streamed inventory owner fence changed",
+            ));
+        }
         if expected_count > limits.max_rows {
             return Err(DurableError::Refused("streamed inventory row bound"));
         }
@@ -272,12 +311,17 @@ impl AddressedInventoryV2 {
                 }
             }
         });
-        let result = store.build_authenticated_tree_v2_with_work(
+        let state_bytes = tree_callback_state_bytes(limits)?;
+        let result = store.build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
             PROJECTION_KIND,
             entries,
             limits,
+            None,
+            state_bytes,
+            0,
             deadline,
             cancelled,
+            owner_check,
         );
         if let Some(error) = failure {
             return Err(error);
@@ -290,8 +334,13 @@ impl AddressedInventoryV2 {
                 "streamed inventory EOF/count differs",
             ));
         }
+        if !owner_check() {
+            return Err(DurableError::Conflict(
+                "streamed inventory owner fence changed",
+            ));
+        }
         let (profile_tree, profile_work) = store
-            .build_authenticated_tree_v2_with_work(
+            .build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
                 PROFILE_KIND,
                 profiles.into_iter().map(|(path, digest)| {
                     Ok(AuthenticatedTreeEntryV1 {
@@ -300,8 +349,12 @@ impl AddressedInventoryV2 {
                     })
                 }),
                 limits,
+                None,
+                state_bytes,
+                0,
                 deadline,
                 cancelled,
+                owner_check,
             )
             .map_err(tree_error)?;
         add_tree_work(work, profile_work)?;

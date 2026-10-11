@@ -4,7 +4,6 @@ use super::*;
 use tos_source_store::{StreamedCorpusCutReaderV1, StreamedSourceMemberV1};
 
 const BATCH_BODY_BYTES: usize = 32 * 1024 * 1024;
-const MEMBER_BYTES: u64 = 8 * 1024 * 1024;
 
 /// Only this module can mint a seed, after genuine original EOF and the actual
 /// durable commits. The finishing assessor consumes it and rechecks its fence.
@@ -84,6 +83,7 @@ impl DurablePgCoordinator {
         contract: Digest256,
         max_rows: u64,
         max_source_bytes: u64,
+        max_member_bytes: u64,
         max_dependency_bytes_per_member: usize,
         schema_source_path: &str,
         workspace: &super::PrivateGenerationWorkspace,
@@ -95,8 +95,15 @@ impl DurablePgCoordinator {
         tree_work: &mut tos_segment_store::AuthenticatedTreeWorkV1,
         deadline: Instant,
         cancelled: std::sync::Arc<AtomicBool>,
+        owner_check: &dyn Fn() -> DurableResult<()>,
     ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
         active(deadline, &cancelled)?;
+        owner_check()?;
+        if max_member_bytes > BATCH_BODY_BYTES as u64 {
+            return Err(DurableError::Refused(
+                "bootstrap member exceeds fixed batch body bound",
+            ));
+        }
         source_limits.index_limits()?;
         let generation_profile = generation_profile.validate(workspace)?;
         let seed = self.seed_fresh_source_bootstrap_streamed(
@@ -111,11 +118,13 @@ impl DurablePgCoordinator {
             contract,
             max_rows,
             max_source_bytes,
+            max_member_bytes,
             max_dependency_bytes_per_member,
             generation_profile.max_commit_seq,
             body_work,
             deadline,
             &cancelled,
+            owner_check,
         )?;
         self.complete_fresh_source_bootstrap_streamed(
             store,
@@ -135,6 +144,7 @@ impl DurablePgCoordinator {
             tree_work,
             deadline,
             cancelled,
+            owner_check,
         )
     }
 
@@ -154,13 +164,16 @@ impl DurablePgCoordinator {
         contract: Digest256,
         max_rows: u64,
         max_source_bytes: u64,
+        max_member_bytes: u64,
         max_dependency_bytes_per_member: usize,
         max_commit_seq: u64,
         body_work: &mut super::source_cohort_streamed::StreamedColdSourceWorkV1,
         deadline: Instant,
         cancelled: &AtomicBool,
+        owner_check: &dyn Fn() -> DurableResult<()>,
     ) -> DurableResult<FreshSourceBootstrapV1> {
         active(deadline, cancelled)?;
+        owner_check()?;
         // The authenticated reader checked these ceilings while building its
         // index. Refuse an incompatible profile before creating a domain;
         // do not rescan every member merely to repeat that proof.
@@ -180,10 +193,13 @@ impl DurablePgCoordinator {
             || selected.member_count > max_rows
             || max_source_bytes == 0
             || max_source_bytes == u64::MAX
+            || max_member_bytes == 0
+            || max_member_bytes == u64::MAX
+            || max_member_bytes > BATCH_BODY_BYTES as u64
             || max_dependency_bytes_per_member == 0
             || max_dependency_bytes_per_member == usize::MAX
             || input_limits.max_total_bytes > max_source_bytes
-            || input_limits.max_member_bytes > MEMBER_BYTES
+            || input_limits.max_member_bytes > max_member_bytes
         {
             return Err(DurableError::Refused(
                 "bootstrap independent input selection",
@@ -192,7 +208,9 @@ impl DurablePgCoordinator {
         context
             .check_selected_software_inputs(software, components, deadline, cancelled)
             .map_err(source_error)?;
+        owner_check()?;
         self.create_domain(domain, contract)?;
+        owner_check()?;
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
         lock_audit_fence(&mut tx, domain)?;
@@ -220,11 +238,14 @@ impl DurablePgCoordinator {
         }
         tx.execute("UPDATE cmd2_domain SET source_revision=$2,source_membership_digest=$3,source_membership_count=$4,source_epoch=1,source_generation=0,source_complete=false,source_definition_digest=$5 WHERE domain=$1",
             &[&domain, &revision.0.to_hex(), &membership.digest.to_hex(), &as_i64(membership.count)?, &definition().to_hex()])?;
+        owner_check()?;
         tx.commit()?;
+        owner_check()?;
         self.set_job_epoch(domain, "source-bootstrap", 1)?;
+        owner_check()?;
 
         let mut stream = original
-            .stream_with_member_limit(revision, MEMBER_BYTES)
+            .stream_with_member_limit(revision, max_member_bytes)
             .map_err(|_| DurableError::Refused("bootstrap original stream"))?;
         let mut files = Vec::new();
         let mut metadata = SourceMetadata::new();
@@ -262,6 +283,7 @@ impl DurablePgCoordinator {
                     max_commit_seq,
                     deadline,
                     cancelled,
+                    owner_check,
                 )?;
                 batch = batch
                     .checked_add(1)
@@ -292,6 +314,7 @@ impl DurablePgCoordinator {
             return Err(DurableError::Refused("bootstrap incomplete original EOF"));
         }
         if !files.is_empty() {
+            owner_check()?;
             head = self.commit_streamed_bootstrap_batch(
                 store,
                 domain,
@@ -304,8 +327,10 @@ impl DurablePgCoordinator {
                 max_commit_seq,
                 deadline,
                 cancelled,
+                owner_check,
             )?;
         }
+        owner_check()?;
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
         let audit = lock_audit_fence(&mut tx, domain)?;
@@ -333,7 +358,9 @@ impl DurablePgCoordinator {
             return Err(DurableError::Conflict("bootstrap completion fence changed"));
         }
         active(deadline, cancelled)?;
+        owner_check()?;
         tx.commit()?;
+        owner_check()?;
         Ok(FreshSourceBootstrapV1 {
             observed: FreshSourceBootstrapObservationV1 {
                 domain: domain.to_owned(),
@@ -361,8 +388,10 @@ impl DurablePgCoordinator {
         max_commit_seq: u64,
         deadline: Instant,
         cancelled: &AtomicBool,
+        owner_check: &dyn Fn() -> DurableResult<()>,
     ) -> DurableResult<u64> {
         active(deadline, cancelled)?;
+        owner_check()?;
         // Refuse before registering or sealing a batch that cannot commit.
         // The transactional check below remains authoritative against drift.
         if head >= max_commit_seq {
@@ -387,7 +416,9 @@ impl DurablePgCoordinator {
             raw_request_digest: revision.0,
             delta_digest: durable_shadow_delta_prepared(&identities),
         })?;
+        owner_check()?;
         let members = seal_members(store, &prepare, fence, ORIGINAL, &identities)?;
+        owner_check()?;
         self.attach_ready_profile(
             store,
             domain,
@@ -398,6 +429,7 @@ impl DurablePgCoordinator {
             None,
             Some(metadata),
         )?;
+        owner_check()?;
         let receipts = members
             .iter()
             .map(|m| m.receipt.clone())
@@ -416,15 +448,11 @@ impl DurablePgCoordinator {
                 job_fence: 1,
                 full_base_seq: head,
             },
-            // This lower-level streamed route has no protected invocation.
-            // Its caller owns admission; retain its cancellation/deadline
-            // check at the same transaction boundaries as a CLI owner check.
-            CommitMode::Bootstrap {
-                owner_check: &|| active(deadline, cancelled),
-            },
+            CommitMode::Bootstrap { owner_check },
             max_commit_seq,
         )?;
         active(deadline, cancelled)?;
+        owner_check()?;
         Ok(receipt.commit_seq)
     }
 }

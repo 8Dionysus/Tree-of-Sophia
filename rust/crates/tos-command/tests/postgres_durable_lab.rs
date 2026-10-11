@@ -1644,6 +1644,7 @@ fn maintained_agent_creation_operation<
             &cancelled,
         )
         .unwrap();
+        let owner_check = || -> tos_command::DurableResult<()> { Ok(()) };
         let mut tree_work = tos_segment_store::AuthenticatedTreeWorkV1::default();
         let result = lab.db.bootstrap_source_cohort_streamed(
             &lab.store,
@@ -1658,11 +1659,13 @@ fn maintained_agent_creation_operation<
             contract_digest(),
             2048,
             33_554_432,
+            8_388_608,
             1_048_576,
             "ToS/contracts/corpus-record.schema.json",
             &bootstrap_workspace,
             generation_profile,
             tos_command::source_cohort::StreamedColdSourceLimitsV1 {
+                max_member_bytes: 8_388_608,
                 max_rows: 100_000,
                 max_logical_bytes: 64 * 1024 * 1024,
                 max_key_bytes: 4096,
@@ -1683,6 +1686,7 @@ fn maintained_agent_creation_operation<
             &mut tree_work,
             deadline,
             std::sync::Arc::clone(&cancelled),
+            &owner_check,
         );
         eprintln!(
             "CMD2_STREAMED_BOOTSTRAP result_ok={} source_work={work:?} tree_work={tree_work:?}",
@@ -3405,6 +3409,7 @@ fn maintained_agent_creation_operation<
                 &generation_workspace,
                 generation_profile,
                 tos_command::source_cohort::StreamedColdSourceLimitsV1 {
+                    max_member_bytes: 8_388_608,
                     max_rows: 100_000,
                     max_logical_bytes: 64 * 1024 * 1024,
                     max_key_bytes: 4096,

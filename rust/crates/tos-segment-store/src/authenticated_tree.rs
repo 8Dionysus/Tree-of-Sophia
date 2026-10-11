@@ -1794,10 +1794,14 @@ impl<'a, 'shared> PackWriterV2<'a, 'shared> {
             return Err(budget("authenticated pack exceeds operation budget"));
         }
         let digest = Digest256::of_bytes(&active.raw);
-        let io_ledger = self.io_ledger.as_deref();
         let payload_bytes = active.raw.len() as u64;
-        charge_tree_read(io_ledger, payload_bytes)?;
-        charge_tree_write(io_ledger, payload_bytes)?;
+        charge_tree_read(self.io_ledger.as_deref(), payload_bytes)?;
+        charge_tree_write(self.io_ledger.as_deref(), payload_bytes)?;
+        // The shared callback is the caller's final admission/work edge.
+        // Node preparation may have taken substantial bounded work since the
+        // previous debit; refuse before the immutable pack reaches STO.
+        self.debit_shared_work()?;
+        let io_ledger = self.io_ledger.as_deref();
         let install = self.store.install_authenticated_blob_accounted(
             digest,
             &active.raw,
@@ -1914,7 +1918,8 @@ impl SegmentStore {
     }
 
     /// State-limited bulk build that also debits the caller's shared
-    /// invocation work meter before each tree-node visit or node creation.
+    /// invocation work meter before each tree-node visit, node creation and
+    /// immutable pack installation.
     pub fn build_authenticated_tree_v2_with_work_and_io_and_state_and_callback<I>(
         &self,
         kind: &[u8],
@@ -6165,6 +6170,70 @@ mod tests {
             deadline,
             &cancelled,
         );
+    }
+
+    #[test]
+    fn shared_callback_can_refuse_final_pack_install() {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let cancelled = AtomicBool::new(false);
+        let limits = tree_limits();
+        let build = |store: &SegmentStore, callback: &mut dyn FnMut() -> bool| {
+            store
+                .build_authenticated_tree_v2_with_work_and_io_and_state_and_callback(
+                    b"test/callback-pack-install",
+                    [AuthenticatedTreeEntryV1 {
+                        key: b"one".to_vec(),
+                        value: b"value".to_vec(),
+                    }]
+                    .into_iter()
+                    .map(Ok),
+                    limits,
+                    None,
+                    usize::try_from(limits.max_total_bytes).expect("tree state bound"),
+                    0,
+                    deadline,
+                    &cancelled,
+                    callback,
+                )
+                .map(|_| ())
+        };
+
+        // Establish the exact number of node-preparation and final-pack
+        // callback edges for this input, then refuse precisely that final
+        // edge in a fresh store.
+        let baseline_root = PrivateRoot::new();
+        let baseline_store = SegmentStore::initialize_empty(
+            &baseline_root.0,
+            b"private-tree-domain",
+            store_limits(),
+        )
+        .expect("initialize baseline store");
+        let mut baseline_calls = 0u64;
+        let mut permit_all = || {
+            baseline_calls = baseline_calls.saturating_add(1);
+            true
+        };
+        build(&baseline_store, &mut permit_all).expect("baseline build");
+        assert!(baseline_calls >= 2);
+
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-tree-domain", store_limits())
+            .expect("initialize refusal store");
+        let before = fs::read_dir(root.0.join("generations"))
+            .expect("read generation directory")
+            .count();
+        let mut callback_calls = 0u64;
+        let mut callback = || {
+            callback_calls = callback_calls.saturating_add(1);
+            callback_calls < baseline_calls
+        };
+        let result = build(&store, &mut callback);
+        assert!(result.is_err());
+        assert_eq!(callback_calls, baseline_calls);
+        let after = fs::read_dir(root.0.join("generations"))
+            .expect("read generation directory after refusal")
+            .count();
+        assert_eq!(after, before);
     }
 
     #[test]
