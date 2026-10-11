@@ -2194,6 +2194,27 @@ fn maintained_agent_creation_operation<
         .unwrap();
     assert!(replay.replayed);
     assert_eq!(replay.commit_seq, a.commit_seq);
+    // Every explicit addressed cold selection uses the same four-row leaf
+    // profile, including the retained transitional V1 descriptor. Selecting
+    // a broad single-leaf profile here then reading with a four-row ceiling
+    // would correctly refuse the stored geometry. Each audit gets its own
+    // scratch workspace because its written-byte accounting is cumulative.
+    let new_generation_workspace = |scratch: &ScratchRoot| {
+        PrivateGenerationWorkspace::open(
+            &scratch.0,
+            ColdWorkspaceLimits {
+                max_scratch_written_bytes: 64 * 1024 * 1024,
+                max_run_bytes: 16 * 1024,
+                max_runs: 128,
+                merge_fan_in: 4,
+                max_rows: 4096,
+                max_key_bytes: 4096,
+            },
+        )
+        .unwrap()
+    };
+    let reopened_generation_scratch = ScratchRoot::new();
+    let reopened_generation_workspace = new_generation_workspace(&reopened_generation_scratch);
     let copied = ScratchRoot::new();
     copy_store_tree(&lab._root.0, &copied.0);
     let reopened_store = SegmentStore::open_existing(&copied.0, limits()).unwrap();
@@ -2209,7 +2230,7 @@ fn maintained_agent_creation_operation<
             &software,
             &components,
             &mut new_worker(&cut),
-            None,
+            Some((&reopened_generation_workspace, generation_profile)),
             deadline,
             &cancelled,
         )
@@ -2351,6 +2372,8 @@ fn maintained_agent_creation_operation<
             )
             .is_err()
     );
+    let verified_generation_scratch = ScratchRoot::new();
+    let verified_generation_workspace = new_generation_workspace(&verified_generation_scratch);
     let verified = if addressed {
         reopened_db.cold_reopen_source_cohort_addressed_reselect(
             &reopened_store,
@@ -2362,7 +2385,7 @@ fn maintained_agent_creation_operation<
             &software,
             &components,
             &mut new_worker(&cut),
-            None,
+            Some((&verified_generation_workspace, generation_profile)),
             deadline,
             &cancelled,
         )
@@ -2417,18 +2440,7 @@ fn maintained_agent_creation_operation<
     // A genuine complete v1 export establishes the initial full producer
     // correspondence once. Warm successors do not re-export authored bodies.
     let generation_scratch = ScratchRoot::new();
-    let generation_workspace = PrivateGenerationWorkspace::open(
-        &generation_scratch.0,
-        ColdWorkspaceLimits {
-            max_scratch_written_bytes: 64 * 1024 * 1024,
-            max_run_bytes: 16 * 1024,
-            max_runs: 128,
-            merge_fan_in: 4,
-            max_rows: 4096,
-            max_key_bytes: 4096,
-        },
-    )
-    .unwrap();
+    let generation_workspace = new_generation_workspace(&generation_scratch);
     let export = if addressed {
         tos_command::source_current_cut::select_current_source_cut_addressed(
             &mut reopened_db,
