@@ -109,6 +109,7 @@ struct RevisionTarget {
     forms_path: &'static str,
     history_path: &'static str,
     record_id: &'static str,
+    record_type: &'static str,
     command_id: &'static str,
     form_ids: &'static [&'static str],
     form_fields: &'static [&'static str],
@@ -124,6 +125,7 @@ const PARMENIDES_TARGET: RevisionTarget = RevisionTarget {
     forms_path: FORMS_PATH,
     history_path: HISTORY_PATH,
     record_id: "tos.agent.parmenides-of-elea",
+    record_type: "agent",
     command_id: "test:pg-parmenides-correction",
     form_ids: FORM_IDS,
     form_fields: FORM_FIELDS,
@@ -141,6 +143,7 @@ const NIETZSCHE_TARGET: RevisionTarget = RevisionTarget {
     forms_path: NIETZSCHE_FORMS_PATH,
     history_path: NIETZSCHE_HISTORY_PATH,
     record_id: "tos.agent.friedrich-nietzsche",
+    record_type: "agent",
     command_id: "test:pg-nietzsche-shared-source-correction",
     form_ids: NIETZSCHE_FORM_IDS,
     form_fields: NIETZSCHE_FORM_FIELDS,
@@ -148,6 +151,37 @@ const NIETZSCHE_TARGET: RevisionTarget = RevisionTarget {
     preferred_label: "Friedrich Nietzsche Quartz",
     notes: None,
     resulting_version: 4,
+    resulting_form_version: 3,
+};
+
+const WORK_SOURCE_PATH: &str = "ToS/source-witnesses/works/justus-lipsius/de-constantia/work.json";
+const WORK_FORMS_PATH: &str =
+    "ToS/source-witnesses/works/justus-lipsius/de-constantia/work.human-forms.json";
+const WORK_HISTORY_PATH: &str =
+    "ToS/source-witnesses/works/justus-lipsius/de-constantia/source-revision-history.json";
+const WORK_FORM_IDS: &[&str] = &[
+    "tos.form.work.justus-lipsius.de-constantia.name-ru",
+    "tos.form.work.justus-lipsius.de-constantia.name-alt",
+    "tos.form.work.justus-lipsius.de-constantia.note-ru",
+];
+const WORK_FORM_FIELDS: &[&str] = &[
+    "metadata.preferred-name",
+    "metadata.variant-name:0",
+    "metadata.source-note",
+];
+const WORK_TARGET: RevisionTarget = RevisionTarget {
+    source_path: WORK_SOURCE_PATH,
+    forms_path: WORK_FORMS_PATH,
+    history_path: WORK_HISTORY_PATH,
+    record_id: "tos.work.justus-lipsius.de-constantia",
+    record_type: "work",
+    command_id: "test:pg-work-metadata-revision",
+    form_ids: WORK_FORM_IDS,
+    form_fields: WORK_FORM_FIELDS,
+    allowed_fields: &["preferred_label"],
+    preferred_label: "О постоянстве (De constantia) Quartz",
+    notes: None,
+    resulting_version: 3,
     resulting_form_version: 3,
 };
 
@@ -414,6 +448,76 @@ fn selected_shared_source_members(
     members
 }
 
+fn selected_work_source_members(repository: &Path, private_root: &Path) -> SourceMembers {
+    fs::create_dir_all(private_root).unwrap();
+    fs::set_permissions(private_root, fs::Permissions::from_mode(0o700)).unwrap();
+    let mut members = SourceMembers::new();
+    let work_directory = Path::new(WORK_SOURCE_PATH).parent().unwrap();
+    let source_directory = repository.join(work_directory);
+    let mut entries = fs::read_dir(&source_directory)
+        .expect("selected actual Work package opens")
+        .map(|entry| entry.unwrap())
+        .collect::<Vec<_>>();
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        assert!(entry.file_type().unwrap().is_file());
+        let relative = format!(
+            "{}/{}",
+            work_directory.display(),
+            entry.file_name().to_str().unwrap()
+        );
+        copy_repository_member(repository, private_root, &mut members, &relative);
+    }
+
+    let record: Value = serde_json::from_slice(&members[WORK_SOURCE_PATH].0).unwrap();
+    for reference in record["source_refs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+    {
+        if reference.starts_with("ToS/") {
+            let relative = RelativePath::parse(reference).unwrap();
+            copy_repository_member(repository, private_root, &mut members, relative.as_str());
+        }
+    }
+
+    // The selected revision verifier reconstructs the retained prefix of the
+    // Work history. Copy exactly the referenced manifests and their blobs.
+    let history: Value = serde_json::from_slice(&members[WORK_HISTORY_PATH].0).unwrap();
+    for receipt in history["receipts"].as_array().unwrap() {
+        let archive = RelativePath::parse(receipt["archive_path"].as_str().unwrap()).unwrap();
+        let manifest_path = format!("{}/manifest.json", archive.as_str());
+        copy_repository_member(repository, private_root, &mut members, &manifest_path);
+        let manifest: Value = serde_json::from_slice(&members[&manifest_path].0).unwrap();
+        for binding in manifest["files"].as_object().unwrap().values() {
+            let blob = binding["blob"].as_str().unwrap();
+            let blob_path = RelativePath::parse(&format!("{}/{}", archive.as_str(), blob)).unwrap();
+            copy_repository_member(repository, private_root, &mut members, blob_path.as_str());
+        }
+    }
+
+    for path in SHARED_SOURCE {
+        copy_repository_member(repository, private_root, &mut members, path);
+    }
+    for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_file()
+            && entry
+                .file_name()
+                .to_str()
+                .unwrap()
+                .ends_with(".schema.json")
+        {
+            let path = format!("ToS/contracts/{}", entry.file_name().to_str().unwrap());
+            copy_repository_member(repository, private_root, &mut members, &path);
+        }
+    }
+    assert!(members.len() <= 512);
+    assert!(members.values().map(|(raw, _)| raw.len()).sum::<usize>() <= 16 * 1024 * 1024);
+    members
+}
+
 fn source_counters(members: &SourceMembers) -> Value {
     let contract_members = members
         .iter()
@@ -477,6 +581,18 @@ fn source_cut(
     fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
     let copy_root = scratch.0.join("source-copy");
     let members = selected_members(repository, &copy_root, records);
+    source_cut_from_members(scratch, copy_root, members, deadline, cancelled)
+}
+
+fn work_source_cut(
+    repository: &Path,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCutFixture {
+    let scratch = ScratchRoot::new();
+    fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let copy_root = scratch.0.join("source-copy");
+    let members = selected_work_source_members(repository, &copy_root);
     source_cut_from_members(scratch, copy_root, members, deadline, cancelled)
 }
 
@@ -721,6 +837,21 @@ fn bootstrap_case(
     )
 }
 
+fn bootstrap_work_case(
+    repository: &Path,
+    software_fixture: &SoftwareFixture,
+    deadline: Instant,
+    cancelled: &std::sync::Arc<AtomicBool>,
+) -> RevisionCase {
+    bootstrap_case_from_cut(
+        software_fixture,
+        work_source_cut(repository, deadline, cancelled),
+        WORK_TARGET,
+        deadline,
+        cancelled,
+    )
+}
+
 fn bootstrap_shared_case(
     repository: &Path,
     software_fixture: &SoftwareFixture,
@@ -799,7 +930,7 @@ fn bootstrap_case_on_lab(
     let record: Value = serde_json::from_slice(&record_raw).unwrap();
     let uid = rustix::process::getuid().as_raw();
     let config = json!({
-        "schema_version":"tos_local_corpus_revision_owner_v1",
+        "schema_version":if target.record_type == "work" { "tos_local_corpus_revision_owner_v3" } else { "tos_local_corpus_revision_owner_v1" },
         "uid":uid,
         "principal_id":"test:private-pg-source-revision",
         "source_root":source_root,
@@ -810,7 +941,7 @@ fn bootstrap_case_on_lab(
         "allowed_fields":target.allowed_fields,
         "allowed_operations":["record.revise"],
         "expires_at":"2099-01-01T00:00:00Z",
-        "record_type":"agent"
+        "record_type":target.record_type
     });
     let owner_raw = canonical(&config);
     fs::write(&owner_config, &owner_raw).unwrap();
@@ -2643,6 +2774,9 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     ] {
         request[field] = preview[prepared].clone();
     }
+    if target.record_type == "work" {
+        request["expected_publication"] = Value::Null;
+    }
     let before_head = case.lab.head_seq();
     let before_counts =
         ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
@@ -2725,6 +2859,36 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         case.original_record,
         "the previous source bytes are exactly recoverable"
     );
+    case.lab
+        .db
+        .cold_verify_cut(&case.lab.store, &case.lab.domain)
+        .expect("the Work revision is part of a cold-verified source generation");
+    let current_custody_revision: i64 = Client::connect(&case.lab.url, NoTls)
+        .unwrap()
+        .query_one(
+            "SELECT revision FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &record_path],
+        )
+        .unwrap()
+        .get(0);
+    let cold_current = case
+        .lab
+        .db
+        .cold_recover_exact(
+            &case.lab.store,
+            &case.lab.domain,
+            target.source_path,
+            current_custody_revision.try_into().unwrap(),
+        )
+        .expect("the current Work revision has an exact cold locator");
+    assert_eq!(
+        case.lab
+            .db
+            .warm_read_selected(&case.lab.store, &cold_current, 1_048_576)
+            .unwrap(),
+        current_record,
+        "cold reopen returns the exact revised Work bytes"
+    );
     let mut updated = BTreeSet::from([
         target.source_path.to_owned(),
         target.forms_path.to_owned(),
@@ -2768,7 +2932,11 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     }
     let archive_manifest: Value =
         serde_json::from_slice(&source_member(case, &archive_manifest_path)).unwrap();
-    let binding = &archive_manifest["files"]["agent.json"];
+    let record_basename = Path::new(target.source_path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .expect("selected source record has a UTF-8 basename");
+    let binding = &archive_manifest["files"][record_basename];
     let blob_path = format!("{archive_path}/{}", binding["blob"].as_str().unwrap());
     assert_eq!(source_member(case, &blob_path), case.original_record);
     json!({
@@ -3711,6 +3879,274 @@ fn real_nietzsche_shared_revision_reprojects_all_three_forms_at_1_and_3_records(
         "TOS_PG_REAL_SHARED_PROJECTION {}",
         serde_json::to_string(&output).unwrap()
     );
+}
+
+#[test]
+fn real_pg_selected_work_revision_replays_and_cold_reads_exact_history() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
+    let repository = repository_root();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let mut case = bootstrap_work_case(&repository, &software, deadline, &cancelled);
+    let mut provisioner = Client::connect(&case.lab.url, NoTls).unwrap();
+    let extension_present: bool = provisioner
+        .query_one(
+            "SELECT to_regclass('cmd2_work_revision_history_v1') IS NOT NULL",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    if !extension_present {
+        provisioner
+            .batch_execute(include_str!("../src/source_pg_work_revision_v1.sql"))
+            .expect("the optional Work revision extension is explicitly provisioned");
+    }
+    drop(provisioner);
+    let result = record_correction(&mut case, &software, &native_binary());
+    assert_eq!(result["record_id"], WORK_TARGET.record_id);
+    assert_eq!(result["source_path"], WORK_TARGET.source_path);
+    assert_eq!(result["replayed"], true);
+    assert_eq!(
+        result["native_invocations"]["same_command_retry"]["replayed"],
+        true
+    );
+    assert_eq!(
+        result["source_read_work"]["historical_source_members_read"], 6,
+        "exact Work retry reopens three predecessor and three successor source members"
+    );
+    assert!(
+        result["source_read_work"]["historical_source_bytes_read"]
+            .as_u64()
+            .is_some_and(|bytes| bytes > 0),
+        "Work retry reports bytes read from exact immutable source versions"
+    );
+    assert_eq!(case.lab.head_seq(), result["committed_head"]);
+    let extension_rows = Client::connect(&case.lab.url, NoTls)
+        .unwrap()
+        .query(
+            "SELECT generation,command_id,commit_seq,receipt_digest::text
+             FROM cmd2_work_revision_history_v1 WHERE domain=$1
+             ORDER BY generation",
+            &[&case.lab.domain],
+        )
+        .unwrap();
+    assert_eq!(extension_rows.len(), 1);
+    assert_eq!(extension_rows[0].get::<_, i64>(0), 1);
+    assert_eq!(
+        extension_rows[0].get::<_, String>(1),
+        WORK_TARGET.command_id
+    );
+    assert_eq!(
+        extension_rows[0].get::<_, i64>(2),
+        result["committed_head"].as_i64().unwrap()
+    );
+    assert_eq!(extension_rows[0].get::<_, String>(3).len(), 64);
+    println!(
+        "TOS_PG_REAL_WORK_REVISION {}",
+        serde_json::to_string(&json!({
+            "record_id":WORK_TARGET.record_id,
+            "source_path":WORK_TARGET.source_path,
+            "owner_family":"tos_local_corpus_revision_owner_v3",
+            "revision":result
+        }))
+        .unwrap()
+    );
+}
+
+#[test]
+fn real_pg_selected_work_revision_recovers_ready_attempt_and_cold_reads_exact_history() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
+    let repository = repository_root();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let mut case = bootstrap_work_case(&repository, &software, deadline, &cancelled);
+    let mut provisioner = Client::connect(&case.lab.url, NoTls).unwrap();
+    let extension_present: bool = provisioner
+        .query_one(
+            "SELECT to_regclass('cmd2_work_revision_history_v1') IS NOT NULL",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    if !extension_present {
+        provisioner
+            .batch_execute(include_str!("../src/source_pg_work_revision_v1.sql"))
+            .expect("the optional Work revision extension is explicitly provisioned");
+    }
+    drop(provisioner);
+
+    let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
+    let binary = native_binary();
+    let invocation_path = case._owner_scratch.0.join("ready-revision-invocation.json");
+    invocation(
+        &case,
+        &software,
+        &binary,
+        &worker_path,
+        &invocation_path,
+        &case.owner_config,
+        "tos_local_pg_record_revision_invocation_v1",
+    );
+    let described = invoke(
+        &binary,
+        &invocation_path,
+        &case.lab.url,
+        &json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+        false,
+    )
+    .result;
+    let mut fields = json!({"preferred_label":WORK_TARGET.preferred_label});
+    if let Some(notes) = WORK_TARGET.notes {
+        fields["notes"] = json!(notes);
+    }
+    let preview_request = json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-revise",
+        "fields":fields,
+        "forms":WORK_TARGET.form_ids.iter().zip(WORK_TARGET.form_fields).map(|(form_id,field_id)| json!({"form_id":form_id,"field_id":field_id})).collect::<Vec<_>>(),
+        "reason":"Isolated PG mechanics fixture only; no source, semantic, rights, or canon admission."
+    });
+    let preview = invoke(
+        &binary,
+        &invocation_path,
+        &case.lab.url,
+        &preview_request,
+        false,
+    )
+    .result;
+    assert_eq!(
+        preview["owner_configuration"],
+        described["owner_configuration"]
+    );
+    let mut request = preview_request;
+    request["operation"] = json!("record.revise");
+    request["command_id"] = json!(WORK_TARGET.command_id);
+    for (field, prepared) in [
+        ("expected_configuration", "owner_configuration"),
+        ("expected_dependencies", "expected_dependencies"),
+        ("expected_source", "source"),
+        ("expected_revision", "revision"),
+    ] {
+        request[field] = preview[prepared].clone();
+    }
+    request["expected_publication"] = Value::Null;
+    let before_head = case.lab.head_seq();
+
+    // Force the first PG apply transaction to fail after the source successor
+    // is durably sealed and the attempt reaches `ready`. A retry must recover
+    // that exact package and reuse its recorded_at before ordinary preparation.
+    let digest = Digest256::of_bytes(case.lab.domain.as_bytes()).to_hex();
+    let suffix = &digest[..24];
+    let function = format!("tos_test_fail_work_apply_{suffix}");
+    let trigger = format!("tos_test_fail_work_apply_{suffix}");
+    let domain_literal = case.lab.domain.replace('\'', "''");
+    let mut interrupt = Client::connect(&case.lab.url, NoTls).unwrap();
+    interrupt
+        .batch_execute(&format!(
+            "CREATE FUNCTION public.{function}() RETURNS trigger LANGUAGE plpgsql AS $$
+             BEGIN
+               IF NEW.domain = '{domain_literal}' THEN
+                 RAISE EXCEPTION 'intentional ready-work interrupt';
+               END IF;
+               RETURN NEW;
+             END $$;
+             CREATE TRIGGER {trigger} BEFORE INSERT OR UPDATE ON cmd2_current
+             FOR EACH ROW EXECUTE FUNCTION public.{function}();"
+        ))
+        .expect("the isolated fixture can interrupt only its own domain apply");
+    drop(interrupt);
+    let interrupted = invoke_with_expected_exit(
+        &binary,
+        &invocation_path,
+        &case.lab.url,
+        &request,
+        false,
+        false,
+        "tos_local_pg_record_revision_result_v1",
+        None,
+        true,
+    );
+    let mut cleanup = Client::connect(&case.lab.url, NoTls).unwrap();
+    cleanup
+        .batch_execute(&format!(
+            "DROP TRIGGER {trigger} ON cmd2_current; DROP FUNCTION public.{function}();"
+        ))
+        .expect("the one-shot fixture interrupt is removed");
+    drop(cleanup);
+    assert!(interrupted.result["refused"].as_bool().unwrap());
+    assert!(
+        interrupted.result["stderr"]
+            .as_str()
+            .unwrap()
+            .contains("intentional ready-work interrupt")
+    );
+    assert_eq!(case.lab.head_seq(), before_head);
+    let state: String = Client::connect(&case.lab.url, NoTls)
+        .unwrap()
+        .query_one(
+            "SELECT state FROM cmd2_attempt WHERE domain=$1 AND command_id=$2",
+            &[&case.lab.domain, &WORK_TARGET.command_id],
+        )
+        .expect("the interrupted exact attempt is retained")
+        .get(0);
+    assert_eq!(state, "ready");
+
+    let retry = invoke(&binary, &invocation_path, &case.lab.url, &request, false).result;
+    assert_eq!(retry["replayed"], false);
+    let committed_head = case.lab.head_seq();
+    assert_eq!(committed_head, before_head + 1);
+    assert_eq!(retry["record_id"], WORK_TARGET.record_id);
+    assert_eq!(retry["source_path"], WORK_TARGET.source_path);
+
+    let committed_replay = invoke(&binary, &invocation_path, &case.lab.url, &request, false).result;
+    assert_eq!(committed_replay["replayed"], true);
+    assert_eq!(case.lab.head_seq(), committed_head);
+    let original_cold = case
+        .lab
+        .db
+        .cold_recover_exact(
+            &case.lab.store,
+            &case.lab.domain,
+            WORK_TARGET.source_path,
+            1,
+        )
+        .expect("the original Work revision remains cold-recoverable");
+    assert_eq!(
+        case.lab
+            .db
+            .warm_read_selected(&case.lab.store, &original_cold, 1_048_576)
+            .unwrap(),
+        case.original_record
+    );
+    let current_revision: i64 = Client::connect(&case.lab.url, NoTls)
+        .unwrap()
+        .query_one(
+            "SELECT revision FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&case.lab.domain, &WORK_TARGET.source_path],
+        )
+        .unwrap()
+        .get(0);
+    let current_cold = case
+        .lab
+        .db
+        .cold_recover_exact(
+            &case.lab.store,
+            &case.lab.domain,
+            WORK_TARGET.source_path,
+            current_revision.try_into().unwrap(),
+        )
+        .expect("the recovered Work successor has an exact cold locator");
+    assert_eq!(
+        case.lab
+            .db
+            .warm_read_selected(&case.lab.store, &current_cold, 1_048_576)
+            .unwrap(),
+        source_member(&mut case, WORK_TARGET.source_path)
+    );
+    case.lab
+        .db
+        .cold_verify_cut(&case.lab.store, &case.lab.domain)
+        .expect("the recovered ready revision is part of a cold-verified source generation");
 }
 
 #[test]

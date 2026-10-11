@@ -124,6 +124,7 @@ pub(crate) struct SourceRevisionReadSet {
     pub(crate) reads: SourceReads,
     pub(crate) observations: BTreeMap<String, SourceRevisionObservation>,
     pub(crate) work: SourceRevisionReadWork,
+    pub(crate) work_revision: Option<crate::source_pg_work_revision::Observation>,
 }
 
 #[derive(Clone, Debug)]
@@ -148,6 +149,9 @@ pub(crate) struct PgSourceUniqueIndexObservation {
 pub(crate) struct SourceRevisionReadWork {
     pub(crate) exact_source_members_read: u64,
     pub(crate) exact_source_bytes_read: u64,
+    /// Exact immutable source versions reopened for Work-revision replay.
+    pub(crate) historical_source_members_read: u64,
+    pub(crate) historical_source_bytes_read: u64,
     pub(crate) custody_metadata_bytes_read: u64,
     pub(crate) segment_bytes_read: u64,
     pub(crate) committed_member_rows_examined: u64,
@@ -165,6 +169,7 @@ pub(crate) struct SourceRevisionReadSession<'a> {
     retained_state_bytes: usize,
     predicate_reads: BTreeSet<(String, String, String)>,
     work: SourceRevisionReadWork,
+    work_revision: Option<crate::source_pg_work_revision::Observation>,
 }
 
 impl SourceRevisionReadSet {
@@ -226,6 +231,7 @@ impl DurablePgCoordinator {
             retained_state_bytes: 0,
             predicate_reads: BTreeSet::new(),
             work: SourceRevisionReadWork::default(),
+            work_revision: None,
         };
         let result = operation(&mut session)?;
         session.verify_fresh(deadline, cancelled)?;
@@ -234,6 +240,7 @@ impl DurablePgCoordinator {
             reads: session.reads,
             observations: session.observations,
             work: session.work,
+            work_revision: session.work_revision,
         };
         Ok((result, readset))
     }
@@ -363,6 +370,274 @@ impl SourceRevisionReadSession<'_> {
 
     pub(crate) fn work(&self) -> SourceRevisionReadWork {
         self.work
+    }
+
+    pub(crate) fn ready_work_recorded_at(
+        &mut self,
+        binding: &super::WorkRevisionRecoveryBinding,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<String>> {
+        active(deadline, cancelled)?;
+        let state = self.coordinator.client.query_opt(
+            "SELECT state FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&binding.domain, &binding.prepare_id],
+        )?;
+        let Some(state) = state else {
+            return Ok(None);
+        };
+        match state.get::<_, String>(0).as_str() {
+            "committed" => return Ok(None),
+            "ready" => {}
+            "registered" => {
+                return Err(DurableError::Indeterminate(
+                    "source revision was registered but not durably sealed",
+                ));
+            }
+            _ => {
+                return Err(DurableError::Refused(
+                    "source revision attempt is not replayable",
+                ));
+            }
+        }
+        let attempt = self.coordinator.recover_source_revision_attempt(
+            self.store,
+            &binding.domain,
+            &binding.prepare_id,
+            &binding.command_id,
+            binding.raw_request_digest,
+            binding.owner_configuration_raw_digest,
+            binding.owner_configuration_canonical_digest,
+            &binding.job_id,
+            binding.job_fence,
+            Some(binding),
+            deadline,
+            cancelled,
+        )?;
+        if attempt.work_revision.is_some() {
+            return Ok(None);
+        }
+        if attempt.epoch != self.selection.epoch
+            || attempt.source_generation != self.selection.source_generation
+            || attempt.contract != self.selection.contract
+            || attempt.definition != self.selection.cohort.definition
+            || attempt.rights_version != self.selection.rights_version
+            || attempt.rule_version != self.selection.rule_version
+            || attempt.job_id != self.selection.job_id
+            || attempt.job_fence != self.selection.job_fence
+        {
+            return Err(DurableError::Conflict(
+                "ready source revision selection changed",
+            ));
+        }
+        attempt
+            .recovered_work_recorded_at
+            .map(Some)
+            .ok_or(DurableError::Corrupt(
+                "ready PG Work timestamp evidence absent",
+            ))
+    }
+
+    /// Observe the optional, explicitly provisioned Work-revision journal and
+    /// its record-scoped predicate in the same fenced PG read transaction.
+    pub(crate) fn observe_pg_work_revision(
+        &mut self,
+        source_path: &str,
+        record_id: &str,
+        requested_command_id: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<crate::source_pg_work_revision::Observation> {
+        active(deadline, cancelled)?;
+        if self.work_revision.is_some() {
+            return Err(DurableError::Conflict(
+                "PG Work revision observed more than once",
+            ));
+        }
+        let path = RelativePath::parse(source_path)
+            .map_err(|_| DurableError::Invalid("PG Work source path"))?;
+        if !path.as_str().starts_with("ToS/source-witnesses/works/")
+            || !path.as_str().ends_with("/work.json")
+            || record_id.is_empty()
+            || record_id.len() > 256
+        {
+            return Err(DurableError::Denied("PG Work revision owner identity"));
+        }
+        let token = crate::source_pg_work_revision::predicate_token(
+            &self.selection.cohort.store_id,
+            source_path,
+            record_id,
+        );
+        let domain = self.selection.cohort.domain.as_str();
+        let mut tx = self.coordinator.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let fence = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence
+             WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        let gate = tx.query_one(
+            "SELECT rights_allowed,source_complete,source_generation,source_epoch,
+                    contract_digest,source_definition_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if fence.get::<_, String>(1) != "normal"
+            || as_u64(fence.get(0))? != self.selection.audit_generation
+            || !gate.get::<_, bool>(0)
+            || !gate.get::<_, bool>(1)
+            || gate.get::<_, Option<i64>>(2) != Some(as_i64(self.selection.source_generation)?)
+            || gate.get::<_, Option<i64>>(3) != Some(as_i64(self.selection.epoch)?)
+            || gate.get::<_, String>(4) != self.selection.contract.to_hex()
+            || gate.get::<_, Option<String>>(5) != Some(self.selection.cohort.definition.to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "PG Work revision read epoch changed",
+            ));
+        }
+        crate::source_pg_work_revision::require_schema_v1(&mut tx, deadline, cancelled)?;
+        let predicate = tx.query_opt(
+            "SELECT generation,complete,definition_version FROM cmd2_predicate
+             WHERE domain=$1 AND kind='range' AND owner=$2 AND scope=$3 AND token=$4",
+            &[
+                &domain,
+                &OWNER,
+                &crate::source_pg_work_revision::PREDICATE_SCOPE,
+                &token,
+            ],
+        )?;
+        let generation = predicate
+            .as_ref()
+            .map(|row| as_u64(row.get(0)))
+            .transpose()?
+            .unwrap_or(0);
+        if predicate.as_ref().is_some_and(|row| {
+            !row.get::<_, bool>(1)
+                || row.get::<_, String>(2) != self.selection.cohort.definition.to_hex()
+        }) {
+            return Err(DurableError::Conflict(
+                "PG Work revision predicate definition differs",
+            ));
+        }
+        let mut observation = crate::source_pg_work_revision::observe(
+            &mut tx,
+            domain,
+            self.selection.cohort.store_id,
+            source_path,
+            record_id,
+            generation,
+            requested_command_id,
+        )?;
+        tx.commit()?;
+        if let Some(selected) = observation.selected_refs.take() {
+            let mut before = Vec::new();
+            let mut after = Vec::new();
+            for reference in &selected.before {
+                if let Some(file) =
+                    self.read_historical_work_member(reference, deadline, cancelled)?
+                {
+                    before.push(file);
+                }
+            }
+            for reference in &selected.after {
+                if let Some(file) =
+                    self.read_historical_work_member(reference, deadline, cancelled)?
+                {
+                    after.push(file);
+                }
+            }
+            observation.retained_bytes = observation
+                .retained_bytes
+                .checked_add(
+                    before
+                        .iter()
+                        .chain(&after)
+                        .try_fold(0usize, |total, file| {
+                            total
+                                .checked_add(file.raw.capacity())
+                                .and_then(|bytes| bytes.checked_add(file.path.as_str().len()))
+                        })
+                        .ok_or(DurableError::Refused("PG Work replay state overflow"))?,
+                )
+                .filter(|bytes| *bytes <= MAX_RETAINED_STATE_BYTES)
+                .ok_or(DurableError::Refused("PG Work replay state budget"))?;
+            observation.selected = Some(crate::source_revisions::RetainedRevisionTransaction {
+                transaction_id: selected.transaction_id,
+                status: crate::source_revisions::RevisionTransactionStatus::Committed,
+                authorization_raw: selected.authorization_raw,
+                before,
+                after,
+            });
+        }
+        self.record_predicate(
+            "range",
+            crate::source_pg_work_revision::PREDICATE_SCOPE,
+            &token,
+            generation,
+        );
+        self.retained_state_bytes = self
+            .retained_state_bytes
+            .checked_add(observation.retained_bytes)
+            .filter(|bytes| *bytes <= MAX_RETAINED_STATE_BYTES)
+            .ok_or(DurableError::Refused(
+                "PG Work revision reader state budget",
+            ))?;
+        self.work_revision = Some(observation.clone());
+        Ok(observation)
+    }
+
+    fn read_historical_work_member(
+        &mut self,
+        reference: &crate::source_pg_work_revision::MemberVersionRef,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<crate::source_command::SourceFile>> {
+        active(deadline, cancelled)?;
+        let (Some(revision), Some(expected_digest)) = (reference.revision, reference.digest) else {
+            if reference.revision.is_none() && reference.digest.is_none() {
+                return Ok(None);
+            }
+            return Err(DurableError::Corrupt(
+                "PG Work historical reference binding",
+            ));
+        };
+        let path = RelativePath::parse(&reference.path)
+            .map_err(|_| DurableError::Corrupt("PG Work historical reference path"))?;
+        let (row, raw, _placement, work) = self.coordinator.read_committed_source_selected(
+            self.store,
+            &self.selection.cohort.domain,
+            path.as_str(),
+            Some(revision),
+            8_388_608,
+            deadline,
+            cancelled,
+            |row| cohort_matches(row, &self.selection.cohort, true),
+        )?;
+        if as_u64(row.get("revision"))? != revision
+            || parse_hex(row.get::<_, String>("content_digest"))? != expected_digest
+            || Digest256::of_bytes(&raw) != expected_digest
+        {
+            return Err(DurableError::Conflict(
+                "PG Work historical member reference differs",
+            ));
+        }
+        Self::charge_work(&mut self.work.exact_source_members_read, 1)?;
+        Self::charge_work(&mut self.work.exact_source_bytes_read, raw.len() as u64)?;
+        Self::charge_work(&mut self.work.historical_source_members_read, 1)?;
+        Self::charge_work(
+            &mut self.work.historical_source_bytes_read,
+            raw.len() as u64,
+        )?;
+        Self::charge_work(
+            &mut self.work.custody_metadata_bytes_read,
+            work.custody_metadata_bytes_read,
+        )?;
+        Self::charge_work(&mut self.work.segment_bytes_read, work.segment_bytes_read)?;
+        Self::charge_work(
+            &mut self.work.committed_member_rows_examined,
+            work.committed_member_rows_examined,
+        )?;
+        Ok(Some(crate::source_command::SourceFile { path, raw }))
     }
 
     fn charge_work(counter: &mut u64, amount: u64) -> DurableResult<()> {

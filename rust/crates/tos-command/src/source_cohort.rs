@@ -307,6 +307,7 @@ fn revision_delta(
     reads: &SourceReads,
     writes: &[SourceRevisionWrite],
     metadata: &SourceMetadata,
+    work_revision: Option<&crate::source_pg_work_revision::CommitEvidence>,
 ) -> DurableResult<Digest256> {
     let mut hasher = Digest256Hasher::new();
     part(&mut hasher, b"tos-corpus-flat-record-revision-delta-v1");
@@ -328,6 +329,13 @@ fn revision_delta(
         &mut hasher,
         Digest256::of_bytes(&reads_bytes(reads)?).as_bytes(),
     );
+    if let Some(evidence) = work_revision {
+        part(&mut hasher, b"pg-work-revision-v1");
+        part(
+            &mut hasher,
+            crate::source_pg_work_revision::commit_delta_digest(evidence).as_bytes(),
+        );
+    }
     for write in writes {
         part(&mut hasher, write.subject.as_bytes());
         match write.expected_predecessor {
@@ -409,6 +417,216 @@ pub(super) fn hash_source_metadata(h: &mut Digest256Hasher, row: &postgres::Row)
         }
     }
 }
+
+fn work_revision_recorded_at(
+    writes: &[SourceRevisionWrite],
+    binding: &WorkRevisionRecoveryBinding,
+) -> DurableResult<String> {
+    let names = source_revisions::names(&binding.source_path).map_err(source_error)?;
+    let (parent, _) = binding
+        .source_path
+        .rsplit_once('/')
+        .ok_or(DurableError::Corrupt("PG Work recovery source parent"))?;
+    let expected = BTreeSet::from([
+        binding.source_path.clone(),
+        format!("{parent}/{}", names[1]),
+        format!("{parent}/{}", source_revisions::HISTORY),
+    ]);
+    let mut actual = writes
+        .iter()
+        .map(|write| write.subject.clone())
+        .collect::<BTreeSet<_>>();
+    if expected.len() != 3 || actual.len() != writes.len() || !expected.is_subset(&actual) {
+        return Err(DurableError::Corrupt(
+            "ready PG Work recovery write scope differs",
+        ));
+    }
+    let record_raw = writes
+        .iter()
+        .find(|write| write.subject == binding.source_path)
+        .ok_or(DurableError::Corrupt(
+            "ready PG Work recovery record absent",
+        ))?;
+    let record = cmd::parse(&record_raw.exact_bytes).map_err(source_error)?;
+    if cmd::text(&record, "record_type").map_err(source_error)? != "work"
+        || cmd::text(&record, "id").map_err(source_error)? != binding.record_id
+    {
+        return Err(DurableError::Conflict(
+            "ready PG Work recovery record identity differs",
+        ));
+    }
+    let mut package = source_revisions::Package::new();
+    for name in &names {
+        let path = format!("{parent}/{name}");
+        let write =
+            writes
+                .iter()
+                .find(|write| write.subject == path)
+                .ok_or(DurableError::Corrupt(
+                    "ready PG Work recovery member absent",
+                ))?;
+        package.insert(name.clone(), write.exact_bytes.clone());
+    }
+    let history = source_revisions::history(&package, &record).map_err(source_error)?;
+    let latest = cmd::array(&history, "receipts")
+        .map_err(source_error)?
+        .last()
+        .ok_or(DurableError::Corrupt(
+            "ready PG Work recovery receipt absent",
+        ))?;
+    if cmd::text(latest, "command_id").map_err(source_error)? != binding.command_id
+        || cmd::text(latest, "request_digest").map_err(source_error)?
+            != binding.request_canonical_digest.to_prefixed()
+        || cmd::text(latest, "owner_configuration").map_err(source_error)?
+            != binding.owner_configuration_canonical_digest.to_prefixed()
+        || cmd::text(
+            cmd::field(latest, "publication").map_err(source_error)?,
+            "transaction_id",
+        )
+        .map_err(source_error)?
+            != binding.transaction_id
+    {
+        return Err(DurableError::Conflict(
+            "ready PG Work recovery receipt binding differs",
+        ));
+    }
+    let recorded_at = cmd::text(latest, "recorded_at")
+        .map_err(source_error)?
+        .to_owned();
+    source_revisions::validate_instant(&recorded_at).map_err(source_error)?;
+
+    // A Work revision also writes the immutable archive for the predecessor
+    // package. Admit only its exact owner-derived manifest and the blobs bound
+    // by that manifest; arbitrary extra writes are not part of ready recovery.
+    let archive = source_revisions::archive_path(
+        &cmd::object(vec![("record_id", cmd::string(&binding.record_id))]),
+        cmd::text(latest, "previous_revision").map_err(source_error)?,
+    )
+    .map_err(source_error)?;
+    let manifest_path = format!("{archive}/manifest.json");
+    let manifest_write = writes
+        .iter()
+        .find(|write| write.subject == manifest_path)
+        .ok_or(DurableError::Corrupt(
+            "ready PG Work predecessor archive manifest absent",
+        ))?;
+    let manifest = cmd::parse(&manifest_write.exact_bytes).map_err(source_error)?;
+    cmd::exact_keys(
+        &manifest,
+        &[
+            "schema_version",
+            "source_path",
+            "source",
+            "revision",
+            "files",
+            "publication_protocol",
+        ],
+    )
+    .map_err(source_error)?;
+    if cmd::text(&manifest, "schema_version").map_err(source_error)?
+        != "tos_source_package_archive_v2"
+        || cmd::text(&manifest, "source_path").map_err(source_error)? != binding.source_path
+        || !cmd::same(
+            cmd::field(&manifest, "source").map_err(source_error)?,
+            cmd::field(latest, "previous_source").map_err(source_error)?,
+        )
+        .map_err(source_error)?
+        || cmd::text(&manifest, "revision").map_err(source_error)?
+            != cmd::text(latest, "previous_revision").map_err(source_error)?
+        || cmd::text(&manifest, "publication_protocol").map_err(source_error)?
+            != "tos_selected_source_metadata_v1"
+    {
+        return Err(DurableError::Conflict(
+            "ready PG Work predecessor archive binding differs",
+        ));
+    }
+    let archive_files = cmd::field(&manifest, "files")
+        .map_err(source_error)?
+        .as_object()
+        .ok_or(DurableError::Corrupt(
+            "ready PG Work predecessor archive files absent",
+        ))?;
+    if archive_files.len() != names.len()
+        || archive_files.keys().any(|name| {
+            name.as_str()
+                .is_none_or(|name| !names.iter().any(|expected| expected == name))
+        })
+    {
+        return Err(DurableError::Conflict(
+            "ready PG Work predecessor archive package differs",
+        ));
+    }
+    let mut expected_writes = expected;
+    expected_writes.insert(manifest_path);
+    let mut archive_package = source_revisions::Package::new();
+    let mut archive_package_bytes = 0usize;
+    for (name, archive_binding) in archive_files {
+        let name = name
+            .as_str()
+            .ok_or(DurableError::Corrupt("ready PG Work archive filename"))?;
+        cmd::exact_keys(archive_binding, &["blob", "sha256", "bytes"]).map_err(source_error)?;
+        let digest = cmd::text(archive_binding, "sha256").map_err(source_error)?;
+        let blob = cmd::text(archive_binding, "blob").map_err(source_error)?;
+        let blob_digest = digest
+            .strip_prefix("sha256:")
+            .ok_or(DurableError::Corrupt("ready PG Work archive blob digest"))?;
+        if blob != format!("{blob_digest}.blob") {
+            return Err(DurableError::Conflict(
+                "ready PG Work archive blob locator differs",
+            ));
+        }
+        let blob_path = format!("{archive}/{blob}");
+        let blob_write = writes
+            .iter()
+            .find(|write| write.subject == blob_path)
+            .ok_or(DurableError::Corrupt(
+                "ready PG Work predecessor archive blob absent",
+            ))?;
+        archive_package_bytes = archive_package_bytes
+            .checked_add(blob_write.exact_bytes.len())
+            .filter(|bytes| blob_write.exact_bytes.len() <= 2_097_152 && *bytes <= 8_388_608)
+            .ok_or(DurableError::Refused(
+                "ready PG Work predecessor archive byte budget",
+            ))?;
+        if Digest256::of_bytes(&blob_write.exact_bytes).to_prefixed() != digest
+            || u64::try_from(blob_write.exact_bytes.len()).ok()
+                != Some(cmd::integer(archive_binding, "bytes").map_err(source_error)?)
+        {
+            return Err(DurableError::Conflict(
+                "ready PG Work predecessor archive blob differs",
+            ));
+        }
+        archive_package.insert(name.to_owned(), blob_write.exact_bytes.clone());
+        expected_writes.insert(blob_path);
+    }
+    if actual != expected_writes {
+        return Err(DurableError::Corrupt(
+            "ready PG Work recovery write scope differs",
+        ));
+    }
+    let previous_revision = cmd::text(latest, "previous_revision").map_err(source_error)?;
+    if source_revisions::revision(&archive_package).map_err(source_error)? != previous_revision {
+        return Err(DurableError::Conflict(
+            "ready PG Work predecessor archive revision differs",
+        ));
+    }
+    let archived_record = cmd::parse(archive_package.get(&names[0]).ok_or(
+        DurableError::Corrupt("ready PG Work predecessor archive record absent"),
+    )?)
+    .map_err(source_error)?;
+    if !cmd::same(
+        &source_forms::metadata_subject(&archived_record).map_err(source_error)?,
+        cmd::field(latest, "previous_source").map_err(source_error)?,
+    )
+    .map_err(source_error)?
+    {
+        return Err(DurableError::Conflict(
+            "ready PG Work predecessor archive source differs",
+        ));
+    }
+    Ok(recorded_at)
+}
+
 fn expose_metadata(
     row: &postgres::Row,
     path: &RelativePath,
@@ -533,6 +751,23 @@ pub(crate) struct SourceRevisionAttempt {
     pub(crate) indexes: IndexRows,
     pub(crate) predicate_keys: BTreeSet<(String, String, String)>,
     pub(crate) writes: Vec<SourceRevisionWrite>,
+    pub(crate) work_revision: Option<crate::source_pg_work_revision::CommitEvidence>,
+    pub(crate) recovered_work_recorded_at: Option<String>,
+}
+
+pub(crate) struct WorkRevisionRecoveryBinding {
+    pub(crate) domain: String,
+    pub(crate) prepare_id: Vec<u8>,
+    pub(crate) raw_request_digest: Digest256,
+    pub(crate) owner_configuration_raw_digest: Digest256,
+    pub(crate) source_path: String,
+    pub(crate) record_id: String,
+    pub(crate) command_id: String,
+    pub(crate) transaction_id: String,
+    pub(crate) request_canonical_digest: Digest256,
+    pub(crate) owner_configuration_canonical_digest: Digest256,
+    pub(crate) job_id: String,
+    pub(crate) job_fence: u64,
 }
 
 #[derive(Clone)]
@@ -4807,12 +5042,33 @@ impl DurablePgCoordinator {
             ));
         }
         let (mut reads, writes, metadata, _) = revision_package(proposal, readset)?;
+        let work_revision = match prepared.work_revision() {
+            Some(observation) => Some(crate::source_pg_work_revision::make_commit_evidence(
+                context,
+                proposal,
+                observation,
+                prepared
+                    .publication_observation_digest()
+                    .ok_or(DurableError::Corrupt(
+                        "PG Work publication observation digest absent",
+                    ))?,
+                &writes,
+            )?),
+            None => None,
+        };
         let request = cmd::parse(&context.request_raw).map_err(source_error)?;
         let command_id = cmd::text(&request, "command_id").map_err(source_error)?;
         let raw_request_digest = Digest256::of_bytes(&context.request_raw);
         let configuration_raw_digest = proposal.configuration_raw_sha256;
         let configuration_canonical_digest = proposal.configuration_canonical_sha256;
-        let delta = revision_delta(proposal, selection, &reads, &writes, &metadata)?;
+        let delta = revision_delta(
+            proposal,
+            selection,
+            &reads,
+            &writes,
+            &metadata,
+            work_revision.as_ref(),
+        )?;
         let domain = selection.cohort.domain.as_str();
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
@@ -4895,7 +5151,14 @@ impl DurablePgCoordinator {
             .collect::<BTreeSet<_>>();
         // The readset is extended with absent archive/member targets while the
         // same registration transaction owns the audit fence.
-        let delta = revision_delta(proposal, selection, &reads, &writes, &metadata)?;
+        let delta = revision_delta(
+            proposal,
+            selection,
+            &reads,
+            &writes,
+            &metadata,
+            work_revision.as_ref(),
+        )?;
         let reads_encoded = reads_bytes(&reads)?;
         let indexes_encoded = indexes_bytes(&indexes)?;
         let empty_projections = projections_bytes(&ProjectionRows::new())?;
@@ -4948,6 +5211,8 @@ impl DurablePgCoordinator {
                 indexes,
                 predicate_keys,
                 writes,
+                work_revision,
+                recovered_work_recorded_at: None,
             });
         }
         for (kind, scope, token) in &predicate_keys {
@@ -5040,6 +5305,8 @@ impl DurablePgCoordinator {
             indexes,
             predicate_keys,
             writes,
+            work_revision,
+            recovered_work_recorded_at: None,
         })
     }
 
@@ -5057,6 +5324,7 @@ impl DurablePgCoordinator {
         expected_configuration_canonical_digest: Digest256,
         job_id: &str,
         job_fence: u64,
+        work_recovery: Option<&WorkRevisionRecoveryBinding>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceRevisionAttempt> {
@@ -5149,6 +5417,30 @@ impl DurablePgCoordinator {
                 .get::<_, Option<Vec<u8>>>("source_reads")
                 .ok_or(DurableError::Corrupt("source revision reads absent"))?,
         )?;
+        let has_work_revision = reads.reads.iter().any(|read| {
+            matches!(read, PredicateRead::Generation { predicate, .. }
+                if predicate.scope == crate::source_pg_work_revision::PREDICATE_SCOPE)
+        });
+        let work_revision = if has_work_revision {
+            if state != "committed" && !(state == "ready" && work_recovery.is_some()) {
+                return Err(DurableError::Indeterminate(
+                    "PG Work revision retry must reselect its exact current request",
+                ));
+            }
+            crate::source_pg_work_revision::require_schema_v1(&mut tx, deadline, cancelled)?;
+            if state == "committed" {
+                Some(crate::source_pg_work_revision::load_committed(
+                    &mut tx,
+                    domain,
+                    prepare_id,
+                    store.store_id(),
+                )?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         let definition_digest = parse_hex(
             domain_row
                 .get::<_, Option<String>>("source_definition_digest")
@@ -5239,6 +5531,42 @@ impl DurablePgCoordinator {
                 exact_bytes,
             });
         }
+        if let Some(evidence) = work_revision.as_ref() {
+            let observed_generation = reads
+                .reads
+                .iter()
+                .find_map(|read| match read {
+                    PredicateRead::Generation {
+                        predicate,
+                        observed_generation,
+                    } if predicate.scope == crate::source_pg_work_revision::PREDICATE_SCOPE => {
+                        Some(*observed_generation)
+                    }
+                    _ => None,
+                })
+                .ok_or(DurableError::Corrupt("PG Work predicate read absent"))?;
+            crate::source_pg_work_revision::validate_attempt_evidence(
+                evidence,
+                domain,
+                store.store_id(),
+                expected_command_id,
+                persisted_raw_request_digest,
+                persisted_configuration_raw_digest,
+                persisted_configuration_canonical_digest,
+                observed_generation,
+                &writes,
+            )?;
+        }
+        let recovered_work_recorded_at = if state == "ready" && has_work_revision {
+            Some(work_revision_recorded_at(
+                &writes,
+                work_recovery.ok_or(DurableError::Corrupt(
+                    "ready PG Work revision recovery binding absent",
+                ))?,
+            )?)
+        } else {
+            None
+        };
         let indexes = decode_indexes(
             &attempt
                 .get::<_, Option<Vec<u8>>>("source_indexes")
@@ -5336,6 +5664,8 @@ impl DurablePgCoordinator {
             indexes,
             predicate_keys,
             writes,
+            work_revision,
+            recovered_work_recorded_at,
         })
     }
 
@@ -7617,6 +7947,47 @@ pub(super) fn check_commit_owner(
                     "source revision attempt/cohort exact registered binding changed",
                 ));
             }
+            let requires_work_revision = attempt.reads.reads.iter().any(|read| {
+                matches!(read, PredicateRead::Generation { predicate, .. }
+                    if predicate.scope == crate::source_pg_work_revision::PREDICATE_SCOPE)
+            });
+            match (requires_work_revision, attempt.work_revision.as_ref()) {
+                (true, Some(evidence)) => {
+                    let observed_generation = attempt
+                        .reads
+                        .reads
+                        .iter()
+                        .find_map(|read| match read {
+                            PredicateRead::Generation {
+                                predicate,
+                                observed_generation,
+                            } if predicate.scope
+                                == crate::source_pg_work_revision::PREDICATE_SCOPE =>
+                            {
+                                Some(*observed_generation)
+                            }
+                            _ => None,
+                        })
+                        .ok_or(DurableError::Corrupt("PG Work predicate read absent"))?;
+                    crate::source_pg_work_revision::validate_attempt_evidence(
+                        evidence,
+                        &request.domain,
+                        evidence.observation.store_id,
+                        &attempt.command_id,
+                        attempt.raw_request_digest,
+                        attempt.configuration_raw_digest,
+                        attempt.configuration_canonical_digest,
+                        observed_generation,
+                        &attempt.writes,
+                    )?;
+                }
+                (false, None) => {}
+                _ => {
+                    return Err(DurableError::Conflict(
+                        "PG Work revision evidence/attempt binding differs",
+                    ));
+                }
+            }
             let job = tx.query_opt(
                 "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2 FOR UPDATE",
                 &[&request.domain, &request.job_id],
@@ -7923,7 +8294,12 @@ pub(super) fn apply_source_change(
             tx.execute("UPDATE cmd2_domain SET source_generation=$2,source_projection_digest=NULL,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1 AND source_complete", &[&request.domain,&as_i64(seq)?])?;
             Ok(())
         }
-        CommitMode::Revision { attempt, .. } => {
+        CommitMode::Revision {
+            attempt,
+            deadline,
+            cancelled,
+            ..
+        } => {
             for (kind, token, path) in &attempt.indexes {
                 if kind != "path" || token != path || !path.starts_with("ToS/") {
                     return Err(DurableError::Corrupt(
@@ -7969,6 +8345,21 @@ pub(super) fn apply_source_change(
                         "source revision invalidation exhausted or lost complete definition",
                     ));
                 }
+            }
+            if let Some(evidence) = &attempt.work_revision {
+                crate::source_pg_work_revision::apply_source_change(
+                    tx,
+                    &request.domain,
+                    evidence.observation.store_id,
+                    &request.prepare_id,
+                    seq,
+                    evidence.observation.generation,
+                    attempt.definition,
+                    evidence,
+                    crate::source_pg_work_revision::compound_members_digest(&attempt.writes),
+                    *deadline,
+                    cancelled,
+                )?;
             }
             // A bounded revision advances source generation while retaining no
             // stale selected/current projection identity. The next addressed

@@ -325,9 +325,12 @@ pub(super) fn run(
         cancelled,
     )?;
     let owner = cmd::parse(&owner_raw)?;
-    if cmd::text(&owner, "schema_version")? != "tos_local_corpus_revision_owner_v1" {
+    let owner_schema = cmd::text(&owner, "schema_version")?;
+    let work_owner = owner_schema == "tos_local_corpus_revision_owner_v3"
+        && cmd::text(&owner, "record_type")? == "work";
+    if owner_schema != "tos_local_corpus_revision_owner_v1" && !work_owner {
         return Err(SourceCommandError::Unsupported(
-            "PostgreSQL flat corpus revision owner",
+            "PostgreSQL flat or selected Work revision owner",
         ));
     }
     let request_raw = request_bytes(input)?;
@@ -341,6 +344,14 @@ pub(super) fn run(
     if !matches!(operation, "describe" | "prepare-revise" | "record.revise") {
         return Err(SourceCommandError::Unsupported(
             "PostgreSQL record revision operation",
+        ));
+    }
+    if work_owner
+        && operation == "record.revise"
+        && cmd::field(&request, "expected_publication")? != &Value::Null
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG Work route owns a null publication predecessor",
         ));
     }
     let selected_store_root = selection
@@ -381,28 +392,102 @@ pub(super) fn run(
                 }
                 let identity =
                     crate::source_revisions::PgRecordRevisionIdentity::from_selection(&selected);
-                let recorded_at =
-                    crate::source_serialization::instant().map_err(DurableError::Source)?;
-                let context = super::revisions::context_flat_record_from_transport(
-                    &owner_raw,
-                    &request_raw,
-                    &recorded_at,
-                    source_path,
-                    selected.cohort.initial_revision(),
-                    session,
-                    &software,
-                    &components,
-                    max_members,
-                    max_total_bytes,
-                    max_member_bytes,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(DurableError::Source)?;
+                let configuration = if work_owner {
+                    Some(cmd::parse(&owner_raw).map_err(DurableError::Source)?)
+                } else {
+                    None
+                };
+                let work_revision = if let Some(configuration) = configuration.as_ref() {
+                    let record_id =
+                        cmd::text(configuration, "record_id").map_err(DurableError::Source)?;
+                    let command_id = request
+                        .get("command_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    Some(session.observe_pg_work_revision(
+                        source_path,
+                        record_id,
+                        command_id,
+                        deadline,
+                        cancelled,
+                    )?)
+                } else {
+                    None
+                };
+                let recorded_at = if let Some(configuration) = configuration.as_ref()
+                    && operation == "record.revise"
+                {
+                    let command_id =
+                        cmd::text(&request, "command_id").map_err(DurableError::Source)?;
+                    let binding = crate::source_cohort::WorkRevisionRecoveryBinding {
+                        domain: selection.domain.clone(),
+                        prepare_id: prepare_id(&selection.domain, command_id),
+                        raw_request_digest: Digest256::of_bytes(&request_raw),
+                        owner_configuration_raw_digest: Digest256::of_bytes(&owner_raw),
+                        source_path: source_path.to_owned(),
+                        record_id: cmd::text(configuration, "record_id")
+                            .map_err(DurableError::Source)?
+                            .to_owned(),
+                        command_id: command_id.to_owned(),
+                        transaction_id: crate::source_revisions::transaction_id(&request)
+                            .map_err(DurableError::Source)?,
+                        request_canonical_digest: cmd::record_digest(&request)
+                            .map_err(DurableError::Source)?,
+                        owner_configuration_canonical_digest: cmd::record_digest(configuration)
+                            .map_err(DurableError::Source)?,
+                        job_id: selection.job_id.clone(),
+                        job_fence: selection.job_fence,
+                    };
+                    match session.ready_work_recorded_at(&binding, deadline, cancelled)? {
+                        Some(recorded_at) => recorded_at,
+                        None => {
+                            crate::source_serialization::instant().map_err(DurableError::Source)?
+                        }
+                    }
+                } else {
+                    crate::source_serialization::instant().map_err(DurableError::Source)?
+                };
+                let context = if work_owner {
+                    super::revisions::context_selected_record_from_transport(
+                        &owner_raw,
+                        &request_raw,
+                        &recorded_at,
+                        source_path,
+                        selected.cohort.initial_revision(),
+                        session,
+                        &software,
+                        &components,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?
+                } else {
+                    super::revisions::context_flat_record_from_transport(
+                        &owner_raw,
+                        &request_raw,
+                        &recorded_at,
+                        source_path,
+                        selected.cohort.initial_revision(),
+                        session,
+                        &software,
+                        &components,
+                        max_members,
+                        max_total_bytes,
+                        max_member_bytes,
+                        deadline,
+                        cancelled,
+                    )
+                    .map_err(DurableError::Source)?
+                };
                 check_context_budget(&context, max_members, max_total_bytes, max_member_bytes)
                     .map_err(DurableError::Source)?;
-                super::revisions::prepare_pg_record_revision(
-                    invocation, context, identity, deadline, cancelled,
+                super::revisions::prepare_pg_record_revision_with_work(
+                    invocation,
+                    context,
+                    identity,
+                    work_revision,
+                    deadline,
+                    cancelled,
                 )
                 .map_err(DurableError::Source)
             },
@@ -419,6 +504,8 @@ pub(super) fn run(
         "scope":"bounded PG/STO source selection; software capture and physical I/O excluded",
         "exact_source_members_read":source_work.exact_source_members_read,
         "exact_source_bytes_read":source_work.exact_source_bytes_read,
+        "historical_source_members_read":source_work.historical_source_members_read,
+        "historical_source_bytes_read":source_work.historical_source_bytes_read,
         "custody_metadata_bytes_read":source_work.custody_metadata_bytes_read,
         "segment_bytes_read":source_work.segment_bytes_read,
         "committed_member_rows_examined":source_work.committed_member_rows_examined,
@@ -440,6 +527,7 @@ pub(super) fn run(
                 prepared.proposal().configuration_canonical_sha256,
                 &selection.job_id,
                 selection.job_fence,
+                None,
                 deadline,
                 cancelled,
             )

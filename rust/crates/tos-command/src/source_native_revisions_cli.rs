@@ -893,6 +893,8 @@ pub(crate) struct PreparedPgRecordRevision {
     context: cmd::CommandContext,
     proposal: cmd::PreparedCommand,
     identity: crate::source_revisions::PgRecordRevisionIdentity,
+    work_revision: Option<crate::source_pg_work_revision::Observation>,
+    publication_observation_digest: Option<Digest256>,
 }
 
 impl PreparedPgRecordRevision {
@@ -906,6 +908,12 @@ impl PreparedPgRecordRevision {
     pub(crate) fn identity(&self) -> crate::source_revisions::PgRecordRevisionIdentity {
         self.identity
     }
+    pub(crate) fn work_revision(&self) -> Option<&crate::source_pg_work_revision::Observation> {
+        self.work_revision.as_ref()
+    }
+    pub(crate) fn publication_observation_digest(&self) -> Option<Digest256> {
+        self.publication_observation_digest
+    }
 }
 
 pub(crate) fn prepare_pg_record_revision(
@@ -915,10 +923,31 @@ pub(crate) fn prepare_pg_record_revision(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedPgRecordRevision> {
+    prepare_pg_record_revision_with_work(invocation, context, identity, None, deadline, cancelled)
+}
+
+pub(crate) fn prepare_pg_record_revision_with_work(
+    invocation: &Value,
+    context: cmd::CommandContext,
+    identity: crate::source_revisions::PgRecordRevisionIdentity,
+    work_revision: Option<crate::source_pg_work_revision::Observation>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedPgRecordRevision> {
     let (_, family) = crate::source_revisions::configuration(&context)?;
-    if family != crate::source_revisions::RevisionFamily::CorpusFlat {
+    let work_owner = family == crate::source_revisions::RevisionFamily::CorpusSelectedV3
+        && crate::source_command::text(
+            &crate::source_command::parse(&context.configuration_raw)?,
+            "record_type",
+        )? == "work";
+    if family != crate::source_revisions::RevisionFamily::CorpusFlat && !work_owner {
         return Err(SourceCommandError::Unsupported(
-            "PostgreSQL flat corpus revision owner",
+            "PostgreSQL flat or selected Work revision owner",
+        ));
+    }
+    if work_owner != work_revision.is_some() {
+        return Err(SourceCommandError::Conflict(
+            "PG Work read observation differs from owner",
         ));
     }
     let mut worker = selected_candidate_schema_from_context(
@@ -928,8 +957,11 @@ pub(crate) fn prepare_pg_record_revision(
         deadline,
         cancelled,
     )?;
-    let read_context =
-        crate::source_revisions::PgRecordRevisionCommandContext::new(context, identity);
+    let read_context = crate::source_revisions::PgRecordRevisionCommandContext::new_with_work(
+        context,
+        identity,
+        work_revision,
+    );
     let result = crate::source_revisions::prepare_pg_record_revision_inner(
         &read_context,
         None,
@@ -942,10 +974,14 @@ pub(crate) fn prepare_pg_record_revision(
             worker
                 .finish(deadline, cancelled)
                 .map_err(|_| SourceCommandError::Denied("revision worker FINAL"))?;
+            let (context, work_revision, publication_observation_digest) =
+                read_context.into_parts();
             Ok(PreparedPgRecordRevision {
-                context: read_context.into_command_context(),
+                context,
                 proposal,
                 identity,
+                work_revision,
+                publication_observation_digest,
             })
         }
         Err(error) => {

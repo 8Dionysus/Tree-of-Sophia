@@ -495,6 +495,58 @@ fn frozen_domain(
         "cmd2_source_index",
         "cmd2_predicate",
     ];
+    let work_revision_presence = db.query_one(
+        "SELECT to_regclass(format('%I.%I',current_schema(),'cmd2_work_revision_history_v1')) IS NOT NULL,
+                EXISTS(SELECT 1 FROM cmd2_predicate WHERE domain=$1 AND scope='pg-work-revision-v1'),
+                coalesce(to_regclass('cmd2_predicate')=to_regclass(format('%I.%I',current_schema(),'cmd2_predicate')),false),
+                coalesce(to_regclass('cmd2_work_revision_history_v1')=to_regclass(format('%I.%I',current_schema(),'cmd2_work_revision_history_v1')),false)",
+        &[&domain],
+    ).map_err(|_| error())?;
+    let work_revision_table: bool = work_revision_presence.get(0);
+    let work_revision_predicate: bool = work_revision_presence.get(1);
+    require(
+        work_revision_presence.get::<_, bool>(2)
+            && (!work_revision_table || work_revision_presence.get::<_, bool>(3)),
+    )?;
+    require(work_revision_table || !work_revision_predicate)?;
+    let work_revision_metadata = if work_revision_table {
+        let mut tx = db.transaction().map_err(|_| error())?;
+        crate::source_pg_work_revision::require_schema_v1(&mut tx, d, c).map_err(|_| error())?;
+        tx.commit().map_err(|_| error())?;
+        tables.push("cmd2_work_revision_history_v1");
+        let cap = i64::try_from(profile.max_metadata_rows.checked_add(1).ok_or_else(error)?)
+            .map_err(|_| error())?;
+        let rows = db
+            .query(
+                "SELECT row_to_json(t)::text FROM (
+                 SELECT * FROM cmd2_work_revision_history_v1 WHERE domain=$1
+                 ORDER BY source_path COLLATE \"C\",record_id COLLATE \"C\",generation
+                 LIMIT $2
+             ) t",
+                &[&domain, &cap],
+            )
+            .map_err(|_| error())?;
+        require(rows.len() as u64 <= profile.max_metadata_rows)?;
+        let mut root = Digest256Hasher::new();
+        root.update(b"tos-backup-pg-work-revision-history-v1\0");
+        let mut bytes = 0u64;
+        for row in &rows {
+            let raw: String = row.get(0);
+            let raw = raw.as_bytes();
+            bytes = bytes.checked_add(raw.len() as u64).ok_or_else(error)?;
+            require(bytes <= profile.max_metadata_bytes && raw.len() <= 131_072)?;
+            root.update(&(raw.len() as u64).to_be_bytes());
+            root.update(raw);
+        }
+        Some(json!({
+            "schema_sha256":tos_foundation::Digest256::of_bytes(include_bytes!("source_pg_work_revision_v1.sql")).to_hex(),
+            "rows":rows.len(),
+            "bytes":bytes,
+            "row_root":root.finalize().to_hex(),
+        }))
+    } else {
+        None
+    };
     if addressed {
         let marker = db.query_opt("SELECT p.profile_digest,p.baseline_generation,f.generation FROM cmd2_audit_delta_v1_domain p JOIN cmd2_audit_fence f USING(domain) WHERE p.domain=$1", &[&domain]).map_err(|_| error())?;
         if let Some(marker) = marker {
@@ -602,6 +654,9 @@ fn frozen_domain(
     }
     active(d, c)?;
     let mut result = json!({"rows":total_rows,"bytes":total_bytes,"counts":counts});
+    if let Some(identity) = work_revision_metadata {
+        result["pg_work_revision_v1"] = identity;
+    }
     if addressed {
         result["addressed_audit_v1"] = Value::Object(journal_roots);
     }

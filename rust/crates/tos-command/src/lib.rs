@@ -82,6 +82,7 @@ mod source_private_assessment_sources;
 pub use source_private_assessment_sources::{
     NativeTextUnitResolutionForConformance, resolve_native_text_units_for_conformance,
 };
+pub(crate) mod source_pg_work_revision;
 pub mod source_revisions;
 mod source_serialization;
 mod source_sign;

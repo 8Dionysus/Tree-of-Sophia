@@ -9,6 +9,7 @@
 pub(crate) use crate::source_cohort::revision::PgRecordRevisionIdentity;
 use crate::source_command::{self as cmd, *};
 use crate::source_forms;
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
@@ -29,7 +30,7 @@ use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdenti
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
-const HISTORY: &str = "source-revision-history.json";
+pub(crate) const HISTORY: &str = "source-revision-history.json";
 const PROTOCOL: &str = "tos_selected_source_metadata_v1";
 const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const CORPUS_SCHEMA: &str = "ToS/contracts/corpus-record.schema.json";
@@ -912,26 +913,56 @@ impl RecordRead for CommandContext {
 /// current SourceRevision.
 pub(crate) trait RecordRevisionCommandContext: RecordRead {
     fn command_context(&self) -> &CommandContext;
+    fn read_publication(&self, selected_ids: &[&str]) -> SourceCommandResult<RevisionPublication>;
 }
 
 impl RecordRevisionCommandContext for CommandContext {
     fn command_context(&self) -> &CommandContext {
         self
     }
+
+    fn read_publication(&self, selected_ids: &[&str]) -> SourceCommandResult<RevisionPublication> {
+        read_record_revision_publication(self, selected_ids)
+    }
 }
 
 pub(crate) struct PgRecordRevisionCommandContext {
     command: CommandContext,
     identity: PgRecordRevisionIdentity,
+    work_revision: Option<crate::source_pg_work_revision::Observation>,
+    publication_observation_digest: Cell<Option<Digest256>>,
 }
 
 impl PgRecordRevisionCommandContext {
     pub(crate) fn new(command: CommandContext, identity: PgRecordRevisionIdentity) -> Self {
-        Self { command, identity }
+        Self::new_with_work(command, identity, None)
     }
 
-    pub(crate) fn into_command_context(self) -> CommandContext {
-        self.command
+    pub(crate) fn new_with_work(
+        command: CommandContext,
+        identity: PgRecordRevisionIdentity,
+        work_revision: Option<crate::source_pg_work_revision::Observation>,
+    ) -> Self {
+        Self {
+            command,
+            identity,
+            work_revision,
+            publication_observation_digest: Cell::new(None),
+        }
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        CommandContext,
+        Option<crate::source_pg_work_revision::Observation>,
+        Option<Digest256>,
+    ) {
+        (
+            self.command,
+            self.work_revision,
+            self.publication_observation_digest.get(),
+        )
     }
 }
 
@@ -966,6 +997,107 @@ impl RecordRead for PgRecordRevisionCommandContext {
 impl RecordRevisionCommandContext for PgRecordRevisionCommandContext {
     fn command_context(&self) -> &CommandContext {
         &self.command
+    }
+
+    fn read_publication(&self, selected_ids: &[&str]) -> SourceCommandResult<RevisionPublication> {
+        let Some(observation) = &self.work_revision else {
+            return read_record_revision_publication(&self.command, selected_ids);
+        };
+        let filesystem = read_record_revision_publication(&self.command, &[])?;
+        let config = cmd::parse(&self.command.configuration_raw)?;
+        let source_path = cmd::text(&config, "source_path")?;
+        let record_id = cmd::text(&config, "record_id")?;
+        for pending in filesystem
+            .transactions
+            .iter()
+            .filter(|transaction| transaction.status == RevisionTransactionStatus::Pending)
+        {
+            let same_identity =
+                cmd::parse(&pending.authorization_raw)
+                    .ok()
+                    .is_some_and(|authorization| {
+                        cmd::text(&authorization, "source_path").ok() == Some(source_path)
+                            && cmd::text(&authorization, "record_id").ok() == Some(record_id)
+                    });
+            let parent = split(source_path)?.0;
+            let selected = names(source_path)?
+                .map(|name| format!("{parent}/{name}"))
+                .into_iter()
+                .collect::<BTreeSet<_>>();
+            let paths_are_disjoint = (!pending.before.is_empty() || !pending.after.is_empty())
+                && pending
+                    .before
+                    .iter()
+                    .chain(&pending.after)
+                    .all(|file| !selected.contains(file.path.as_str()));
+            if same_identity || !paths_are_disjoint {
+                return Err(SourceCommandError::Conflict(
+                    "same-record filesystem publication is pending",
+                ));
+            }
+        }
+        let selected = observation.selected.as_ref();
+        let expected_ids = selected
+            .map(|transaction| vec![transaction.transaction_id.as_str()])
+            .unwrap_or_default();
+        if expected_ids != selected_ids {
+            return Err(SourceCommandError::Conflict(
+                "PG Work replay selection differs from request",
+            ));
+        }
+        let publication = RevisionPublication {
+            token: None,
+            transactions: selected.cloned().into_iter().collect(),
+        };
+        let mut hasher = Digest256Hasher::new();
+        hasher.update(b"tos-pg-work-publication-observation-v1\0");
+        hasher.update(
+            Digest256::of_bytes(&cmd::canonical(&cmd::object(vec![
+                (
+                    "token",
+                    filesystem
+                        .token
+                        .clone()
+                        .map(cmd::string)
+                        .unwrap_or(JsonValue::Null),
+                ),
+                (
+                    "transactions",
+                    JsonValue::Array(
+                        filesystem
+                            .transactions
+                            .iter()
+                            .map(|transaction| {
+                                cmd::object(vec![
+                                    ("transaction_id", cmd::string(&transaction.transaction_id)),
+                                    (
+                                        "authorization",
+                                        cmd::string(
+                                            &Digest256::of_bytes(&transaction.authorization_raw)
+                                                .to_prefixed(),
+                                        ),
+                                    ),
+                                ])
+                            })
+                            .collect(),
+                    ),
+                ),
+            ]))?)
+            .as_bytes(),
+        );
+        hasher.update(observation.observation_digest.as_bytes());
+        hasher.update(crate::source_pg_work_revision::publication_digest(&publication).as_bytes());
+        let observed_digest = hasher.finalize();
+        if self
+            .publication_observation_digest
+            .replace(Some(observed_digest))
+            .is_some_and(|previous| previous != observed_digest)
+        {
+            return Err(SourceCommandError::Conflict(
+                "PG Work publication observation changed during preparation",
+            ));
+        }
+        Ok(publication)
     }
 }
 impl RecordRead for RecordVersionReadInput<'_> {
@@ -3802,7 +3934,13 @@ pub(crate) fn prepare_pg_record_revision_inner(
 ) -> SourceCommandResult<PreparedCommand> {
     // The legacy proposal remains bound to the cohort's actual bootstrap
     // SourceRevision; `ctx.input_identity()` and the worker carry the PG epoch.
-    let publication = read_record_revision_publication(ctx.command_context(), &[])?;
+    let selected_ids = ctx
+        .work_revision
+        .as_ref()
+        .and_then(|observation| observation.selected.as_ref())
+        .map(|transaction| vec![transaction.transaction_id.as_str()])
+        .unwrap_or_default();
+    let publication = ctx.read_publication(&selected_ids)?;
     prepare_record_revision_with_context(ctx, Some(&publication), cut, worker, deadline, cancelled)
 }
 
@@ -3838,7 +3976,7 @@ where
             .iter()
             .map(|t| t.transaction_id.as_str())
             .collect::<Vec<_>>();
-        if read_record_revision_publication(command, &ids)? != *publication {
+        if ctx.read_publication(&ids)? != *publication {
             return Err(SourceCommandError::Conflict(
                 "publication observation differs from exact selected owner carriers",
             ));
