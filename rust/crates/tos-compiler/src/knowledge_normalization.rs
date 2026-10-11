@@ -430,9 +430,7 @@ impl SourceRow {
             row: Self {
                 value,
                 max_bytes,
-                max_output_bytes: max_bytes
-                    .saturating_mul(4)
-                    .min(MAX_SOURCE_ROW_BYTES),
+                max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
             },
             _hold: Some(hold),
         })
@@ -460,9 +458,7 @@ impl SourceRow {
             let source = Self {
                 value,
                 max_bytes,
-                max_output_bytes: max_bytes
-                    .saturating_mul(4)
-                    .min(MAX_SOURCE_ROW_BYTES),
+                max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
             };
             operation(&source)
         })
@@ -482,9 +478,7 @@ impl SourceRow {
         Ok(Self {
             value,
             max_bytes,
-            max_output_bytes: max_bytes
-                .saturating_mul(4)
-                .min(MAX_SOURCE_ROW_BYTES),
+            max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
         })
     }
 
@@ -566,9 +560,7 @@ impl SourceRow {
             Self {
                 value,
                 max_bytes,
-                max_output_bytes: max_bytes
-                    .saturating_mul(4)
-                    .min(MAX_SOURCE_ROW_BYTES),
+                max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
             },
             upper,
         ))
@@ -589,13 +581,8 @@ impl SourceRow {
         max_depth: usize,
         max_visits: usize,
     ) -> Result<Self> {
-        let limits = JsonLimits::new(
-            max_bytes,
-            max_depth,
-            max_visits,
-            MAX_INTEGER_DIGITS,
-        )
-        .map_err(|_| Error::Budget("normalization JSON limits"))?;
+        let limits = JsonLimits::new(max_bytes, max_depth, max_visits, MAX_INTEGER_DIGITS)
+            .map_err(|_| Error::Budget("normalization JSON limits"))?;
         parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|error| {
             if classify_budget && error.code == tos_foundation::FoundationErrorCode::BudgetExceeded
             {
@@ -612,9 +599,7 @@ impl SourceRow {
         Ok(Self {
             value,
             max_bytes,
-            max_output_bytes: max_bytes
-                .saturating_mul(4)
-                .min(MAX_SOURCE_ROW_BYTES),
+            max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
         })
     }
 

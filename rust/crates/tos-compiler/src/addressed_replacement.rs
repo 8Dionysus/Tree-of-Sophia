@@ -3,6 +3,7 @@
 //! This route consumes only caller-supplied rows. It does not prove complete
 //! incidence, source admission, global semantics, catalog state or publication.
 
+use crate::knowledge_base::ADDRESS_UPDATE_SOURCE_GRAPHS;
 use crate::knowledge_normalization::{
     SourceRow, stable_digest, stamp_addressed_candidate_content_revision,
 };
@@ -13,7 +14,6 @@ use crate::knowledge_source_claims::{ClaimNormalizeLimits, ClaimNormalizer};
 use crate::knowledge_source_navigation_node::{NavigationNodeLimits, NavigationNodeNormalizer};
 use crate::knowledge_source_navigation_relation::direct_assertion_context_addressed_candidate;
 use crate::knowledge_stage::SeekRow;
-use crate::knowledge_base::ADDRESS_UPDATE_SOURCE_GRAPHS;
 use crate::{
     BaseNodeOverrides, BaseNormalizationLimits, Error, KnowledgeBaseNormalizer, KnowledgeRegistry,
     NATIVE_KNOWLEDGE_ADAPTER_PROFILES, QueryVocabulary, Result,
@@ -242,9 +242,7 @@ fn row_identity(row: &Value) -> Result<(&str, &str, &str)> {
         text(row.get("source_graph")).ok_or(Error::Invalid("addressed row source graph"))?;
     let id = text(row.get("id")).ok_or(Error::Invalid("addressed row normalized ID"))?;
     let native = text(row.get("native_id")).ok_or(Error::Invalid("addressed row native ID"))?;
-    if !id.starts_with(&format!("{source}:"))
-        || id.len() == source.len() + 1
-    {
+    if !id.starts_with(&format!("{source}:")) || id.len() == source.len() + 1 {
         return Err(Error::Invalid("addressed row normalized/source identity"));
     }
     Ok((source, id, native))
@@ -935,13 +933,12 @@ mod tests {
                 "properties":{"summary":format!("{label} summary")}
             });
             let bytes = serde_json::to_vec(&raw).unwrap();
-            let source =
-                SourceRow::parse_addressed_candidate(
-                    &bytes,
-                    DEFAULT_INPUT_BYTES,
-                    DEFAULT_OUTPUT_BYTES,
-                )
-                    .unwrap();
+            let source = SourceRow::parse_addressed_candidate(
+                &bytes,
+                DEFAULT_INPUT_BYTES,
+                DEFAULT_OUTPUT_BYTES,
+            )
+            .unwrap();
             normalizer
                 .normalize_node(&source, "philosophy", false, BaseNodeOverrides::default())
                 .unwrap()
@@ -965,13 +962,12 @@ mod tests {
             "properties":{}
         });
         let edge_bytes = serde_json::to_vec(&edge).unwrap();
-        let source =
-            SourceRow::parse_addressed_candidate(
-                &edge_bytes,
-                DEFAULT_INPUT_BYTES,
-                DEFAULT_OUTPUT_BYTES,
-            )
-                .unwrap();
+        let source = SourceRow::parse_addressed_candidate(
+            &edge_bytes,
+            DEFAULT_INPUT_BYTES,
+            DEFAULT_OUTPUT_BYTES,
+        )
+        .unwrap();
         let relation = normalizer
             .normalize_addressed_relation(
                 &source,
@@ -1140,7 +1136,13 @@ mod tests {
 
         let mut changed_registry_bytes = fixture;
         changed_registry_bytes.entity_bytes.push(b' ');
-        assert!(run(&changed_registry_bytes, AddressedReplacementLimits::default()).is_err());
+        assert!(
+            run(
+                &changed_registry_bytes,
+                AddressedReplacementLimits::default()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1161,20 +1163,20 @@ mod tests {
         assert!(candidate["relations"].as_array().unwrap().is_empty());
         assert_eq!(candidate["scope"]["complete_incidence_verified"], false);
         assert_eq!(candidate["scope"]["published"], false);
-        assert!(!candidate["node"]["view_ids"]
-            .as_array()
-            .unwrap()
-            .contains(&json!("inherited-only")));
+        assert!(
+            !candidate["node"]["view_ids"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("inherited-only"))
+        );
 
         let row = br#"{"node_id":"bounded"}"#;
         const CANDIDATE_ROW_BUDGET: usize = 16 * 1024 * 1024;
         assert!(SourceRow::parse(row, CANDIDATE_ROW_BUDGET).is_err());
-        assert!(SourceRow::parse_addressed_candidate(
-            row,
-            CANDIDATE_ROW_BUDGET,
-            CANDIDATE_ROW_BUDGET,
-        )
-        .is_ok());
+        assert!(
+            SourceRow::parse_addressed_candidate(row, CANDIDATE_ROW_BUDGET, CANDIDATE_ROW_BUDGET,)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1197,30 +1199,36 @@ mod tests {
             max_output_bytes: accounting["output_row_bytes"].as_u64().unwrap() as usize,
         };
         assert_eq!(run(&fixture, exact).unwrap(), result);
-        assert!(run(
-            &fixture,
-            AddressedReplacementLimits {
-                max_relations: exact.max_relations - 1,
-                ..exact
-            }
-        )
-        .is_err());
-        assert!(run(
-            &fixture,
-            AddressedReplacementLimits {
-                max_endpoints: exact.max_endpoints - 1,
-                ..exact
-            }
-        )
-        .is_err());
-        assert!(run(
-            &fixture,
-            AddressedReplacementLimits {
-                max_input_bytes: exact.max_input_bytes - 1,
-                ..exact
-            }
-        )
-        .is_err());
+        assert!(
+            run(
+                &fixture,
+                AddressedReplacementLimits {
+                    max_relations: exact.max_relations - 1,
+                    ..exact
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            run(
+                &fixture,
+                AddressedReplacementLimits {
+                    max_endpoints: exact.max_endpoints - 1,
+                    ..exact
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            run(
+                &fixture,
+                AddressedReplacementLimits {
+                    max_input_bytes: exact.max_input_bytes - 1,
+                    ..exact
+                }
+            )
+            .is_err()
+        );
         let below_output = AddressedReplacementLimits {
             max_output_bytes: exact.max_output_bytes - 1,
             ..exact
@@ -1229,11 +1237,8 @@ mod tests {
 
         let mut larger_prior = fixture.clone();
         larger_prior.prior["input_only_padding"] = json!("x".repeat(64 * 1024));
-        stamp_addressed_candidate_content_revision(
-            &mut larger_prior.prior,
-            DEFAULT_INPUT_BYTES,
-        )
-        .unwrap();
+        stamp_addressed_candidate_content_revision(&mut larger_prior.prior, DEFAULT_INPUT_BYTES)
+            .unwrap();
         let independent_caps = AddressedReplacementLimits {
             max_output_bytes: exact.max_output_bytes,
             ..AddressedReplacementLimits::default()

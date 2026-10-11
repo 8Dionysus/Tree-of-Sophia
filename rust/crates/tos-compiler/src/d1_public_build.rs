@@ -422,13 +422,11 @@ pub(crate) fn processor_binding(
 ) -> Result<crate::native_normalization_binding::NativeNormalizationBinding> {
     let processor = Digest256::from_hex(root.software_binding())
         .map_err(|_| Error::Invalid("public D1 processor software binding"))?;
-    Ok(crate::native_normalization_binding::NativeNormalizationBinding::from_current_inputs(
-        processor,
-        registry,
-        descriptor,
-        entity,
-        relation,
-    ))
+    Ok(
+        crate::native_normalization_binding::NativeNormalizationBinding::from_current_inputs(
+            processor, registry, descriptor, entity, relation,
+        ),
+    )
 }
 
 /// Build a complete full-only publication from one captured public snapshot.

@@ -981,12 +981,7 @@ impl ReadableContextCompiler {
         expected_sha256: &str,
         limits: ReadableContextLimits,
     ) -> Result<Option<Self>> {
-        Self::from_selected_registry_bytes_with_max_input(
-            raw,
-            expected_sha256,
-            limits,
-            usize::MAX,
-        )
+        Self::from_selected_registry_bytes_with_max_input(raw, expected_sha256, limits, usize::MAX)
     }
 
     fn from_selected_registry_bytes_with_max_input(
