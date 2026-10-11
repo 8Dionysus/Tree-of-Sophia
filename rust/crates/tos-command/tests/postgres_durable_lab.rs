@@ -2198,8 +2198,23 @@ fn maintained_agent_creation_operation<
     copy_store_tree(&lab._root.0, &copied.0);
     let reopened_store = SegmentStore::open_existing(&copied.0, limits()).unwrap();
     let mut reopened_db = DurablePgCoordinator::connect(&url).unwrap();
-    let reopened = reopened_db
-        .cold_reopen_source_cohort(
+    let reopened = if addressed {
+        reopened_db.cold_reopen_source_cohort_addressed_reselect(
+            &reopened_store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            None,
+            deadline,
+            &cancelled,
+        )
+    } else {
+        reopened_db.cold_reopen_source_cohort(
             &reopened_store,
             &lab.domain,
             &cut,
@@ -2212,7 +2227,8 @@ fn maintained_agent_creation_operation<
             deadline,
             &cancelled,
         )
-        .unwrap();
+    }
+    .unwrap();
     for (path, expected_raw) in &mixed_source_members {
         assert_eq!(
             reopened.files.get(path),
@@ -2335,8 +2351,23 @@ fn maintained_agent_creation_operation<
             )
             .is_err()
     );
-    let verified = reopened_db
-        .cold_reopen_source_cohort(
+    let verified = if addressed {
+        reopened_db.cold_reopen_source_cohort_addressed_reselect(
+            &reopened_store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            None,
+            deadline,
+            &cancelled,
+        )
+    } else {
+        reopened_db.cold_reopen_source_cohort(
             &reopened_store,
             &lab.domain,
             &cut,
@@ -2349,7 +2380,8 @@ fn maintained_agent_creation_operation<
             deadline,
             &cancelled,
         )
-        .unwrap();
+    }
+    .unwrap();
     assert!(verified.cohort.epoch() > initial_cohort.epoch());
     let mut replay_attempt_worker = new_worker(&cut);
     let replay_attempt = reopened_db
@@ -2397,44 +2429,59 @@ fn maintained_agent_creation_operation<
         },
     )
     .unwrap();
-    let export = tos_command::source_current_cut::select_current_source_cut(
-        &mut reopened_db,
-        &reopened_store,
-        &lab.domain,
-        &cut,
-        revision,
-        membership,
-        &contexts[0],
-        &software,
-        &components,
-        &mut new_worker(&cut),
-        Some((&generation_workspace, generation_profile)),
-        &isolated,
-        None,
-        read_limits,
-        CutReadLimits {
-            max_revisions: 4,
-            max_members: 2048,
-            max_total_bytes: 33_554_432,
-            max_member_bytes: 8_388_608,
-        },
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
     let export = if addressed {
-        tos_command::source_current_cut::migrate_current_source_cut_addressed(
+        tos_command::source_current_cut::select_current_source_cut_addressed(
             &mut reopened_db,
             &reopened_store,
-            export,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            Some((&generation_workspace, generation_profile)),
+            &isolated,
+            None,
+            read_limits,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 2048,
+                max_total_bytes: 33_554_432,
+                max_member_bytes: 8_388_608,
+            },
             tree_limits,
             deadline,
             &cancelled,
         )
-        .unwrap()
     } else {
-        export
-    };
+        tos_command::source_current_cut::select_current_source_cut(
+            &mut reopened_db,
+            &reopened_store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            Some((&generation_workspace, generation_profile)),
+            &isolated,
+            None,
+            read_limits,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 2048,
+                max_total_bytes: 33_554_432,
+                max_member_bytes: 8_388_608,
+            },
+            deadline,
+            &cancelled,
+        )
+    }
+    .unwrap();
     let mut descriptor: serde_json::Value = serde_json::from_slice(
         &fs::read(
             repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),

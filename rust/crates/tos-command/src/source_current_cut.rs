@@ -887,12 +887,109 @@ pub fn select_current_source_cut(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<ManagedCurrentSourceCut> {
+    select_current_source_cut_inner(
+        coordinator,
+        store,
+        domain,
+        original,
+        initial_revision,
+        initial_membership,
+        bootstrap_context,
+        software,
+        components,
+        worker,
+        streamed,
+        isolated,
+        parent,
+        read_limits,
+        cut_limits,
+        None,
+        deadline,
+        cancel,
+    )
+}
+
+/// Explicit complete compatibility export from an addressed source generation.
+/// Re-selects the retained addressed descriptor through the full current source,
+/// index and custody audit, then exports the exact current and historical bytes.
+/// This bounded cold/export operation is not the ordinary mutation or query path.
+/// The legacy export above continues to refuse an active addressed protocol.
+/// The caller must explicitly install the addressed audit profile in the
+/// selected private database before opting into this operation.
+pub fn select_current_source_cut_addressed(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    domain: &str,
+    original: &CorpusCutReader,
+    initial_revision: SourceRevision,
+    initial_membership: SourceMembershipV1,
+    bootstrap_context: &CommandContext,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    streamed: Option<(
+        &crate::durable_adapter::PrivateGenerationWorkspace,
+        crate::durable_adapter::StreamedGenerationProfile,
+    )>,
+    isolated: &IsolatedCreationRoot,
+    parent: Option<&ManagedCurrentSourceCut>,
+    read_limits: ReadLimits,
+    cut_limits: CutReadLimits,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<ManagedCurrentSourceCut> {
+    select_current_source_cut_inner(
+        coordinator,
+        store,
+        domain,
+        original,
+        initial_revision,
+        initial_membership,
+        bootstrap_context,
+        software,
+        components,
+        worker,
+        streamed,
+        isolated,
+        parent,
+        read_limits,
+        cut_limits,
+        Some(tree_limits),
+        deadline,
+        cancel,
+    )
+}
+
+fn select_current_source_cut_inner(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    domain: &str,
+    original: &CorpusCutReader,
+    initial_revision: SourceRevision,
+    initial_membership: SourceMembershipV1,
+    bootstrap_context: &CommandContext,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    streamed: Option<(
+        &crate::durable_adapter::PrivateGenerationWorkspace,
+        crate::durable_adapter::StreamedGenerationProfile,
+    )>,
+    isolated: &IsolatedCreationRoot,
+    parent: Option<&ManagedCurrentSourceCut>,
+    read_limits: ReadLimits,
+    cut_limits: CutReadLimits,
+    addressed_tree_limits: Option<tos_segment_store::AuthenticatedTreeLimitsV1>,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<ManagedCurrentSourceCut> {
     active(deadline, cancel)?;
     read_limits
         .validate()
         .map_err(|_| Error::Invalid("current cut read profile"))?;
-    let reopened = match streamed {
-        Some((workspace, profile)) => coordinator.cold_reopen_source_cohort_streamed(
+    let reopened = if addressed_tree_limits.is_some() {
+        coordinator.cold_reopen_source_cohort_addressed_reselect(
             store,
             domain,
             original,
@@ -902,24 +999,41 @@ pub fn select_current_source_cut(
             software,
             components,
             worker,
-            workspace,
-            profile,
+            streamed,
             deadline,
             cancel,
-        ),
-        None => coordinator.cold_reopen_source_cohort(
-            store,
-            domain,
-            original,
-            initial_revision,
-            initial_membership,
-            bootstrap_context,
-            software,
-            components,
-            worker,
-            deadline,
-            cancel,
-        ),
+        )
+    } else {
+        match streamed {
+            Some((workspace, profile)) => coordinator.cold_reopen_source_cohort_streamed(
+                store,
+                domain,
+                original,
+                initial_revision,
+                initial_membership,
+                bootstrap_context,
+                software,
+                components,
+                worker,
+                workspace,
+                profile,
+                deadline,
+                cancel,
+            ),
+            None => coordinator.cold_reopen_source_cohort(
+                store,
+                domain,
+                original,
+                initial_revision,
+                initial_membership,
+                bootstrap_context,
+                software,
+                components,
+                worker,
+                deadline,
+                cancel,
+            ),
+        }
     }
     .map_err(durable)?;
     let total = reopened
@@ -1078,7 +1192,7 @@ pub fn select_current_source_cut(
             "managed generation and source cohort differ",
         ));
     }
-    Ok(ManagedCurrentSourceCut {
+    let export = ManagedCurrentSourceCut {
         generation: ManagedCurrentSourceGeneration {
             store_id: store.store_id(),
             cohort: reopened.cohort,
@@ -1087,5 +1201,16 @@ pub fn select_current_source_cut(
         cut,
         membership: reopened.current_membership,
         files: reopened.files,
-    })
+    };
+    match addressed_tree_limits {
+        Some(tree_limits) => migrate_current_source_cut_addressed(
+            coordinator,
+            store,
+            export,
+            tree_limits,
+            deadline,
+            cancel,
+        ),
+        None => Ok(export),
+    }
 }

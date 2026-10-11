@@ -6770,7 +6770,7 @@ impl DurablePgCoordinator {
     /// selection is accepted only when its exact V1 cold-open still matches
     /// this database; re-binding an interrupted V1 checkpoint across a restored
     /// database identity remains unsupported and fails closed.
-    pub(crate) fn cold_reopen_source_cohort_addressed_reselect(
+    pub fn cold_reopen_source_cohort_addressed_reselect(
         &mut self,
         store: &SegmentStore,
         domain: &str,

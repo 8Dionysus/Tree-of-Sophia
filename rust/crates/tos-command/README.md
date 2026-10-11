@@ -38,6 +38,13 @@ and absence predicates continue to protect global identities and homes. The
 addressed inventory uses commitment version 3 and retained coverage uses
 version 4; older Agent-only versions require a fresh mixed-source bootstrap.
 
+An active addressed source selection uses the explicit addressed cold-reselection
+API. `select_current_source_cut_addressed` performs the source/index/custody audit
+and a bounded complete compatibility export, then restores the addressed selection.
+The legacy cold/export entry refuses an active addressed protocol. These explicit
+restore/export operations do not replace the ordinary addressed mutation path.
+
+
 ## Private PostgreSQL source-text projection
 
 [TOS-D-0071](../../../docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md)
