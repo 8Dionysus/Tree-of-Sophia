@@ -612,6 +612,287 @@ fn postgres_projection_resumes_committed_source_events() {
     );
 }
 
+const PROJECTION_RECORD_PATH: &str = "ToS/source-witnesses/agents/lab-pair/agent.json";
+const PROJECTION_FORMS_PATH: &str = "ToS/source-witnesses/agents/lab-pair/agent.human-forms.json";
+
+struct PairedProjectionExtractor;
+
+impl tos_command::DurableProjectionExtractor for PairedProjectionExtractor {
+    fn extract(
+        &self,
+        _source_path: &str,
+        _revision: u64,
+        _exact_source_bytes: &[u8],
+    ) -> tos_command::DurableResult<Vec<tos_command::DurableProjectionDocument>> {
+        Ok(Vec::new())
+    }
+
+    fn required_source_paths(
+        &self,
+        root_path: &str,
+        _revision: u64,
+        _raw: &[u8],
+    ) -> tos_command::DurableResult<Vec<String>> {
+        Ok((root_path == PROJECTION_FORMS_PATH)
+            .then(|| PROJECTION_RECORD_PATH.to_owned())
+            .into_iter()
+            .collect())
+    }
+
+    fn extract_with_sources(
+        &self,
+        source_path: &str,
+        revision: u64,
+        exact_source_bytes: &[u8],
+        selected_inputs: &[tos_command::DurableProjectionSource],
+    ) -> tos_command::DurableResult<Vec<tos_command::DurableProjectionDocument>> {
+        if source_path != PROJECTION_FORMS_PATH {
+            return if selected_inputs.is_empty() {
+                Ok(Vec::new())
+            } else {
+                Err(DurableError::Invalid(
+                    "unexpected projection companion source",
+                ))
+            };
+        }
+        if selected_inputs.is_empty() {
+            return Ok(Vec::new());
+        }
+        if selected_inputs.len() != 1 || selected_inputs[0].source_path != PROJECTION_RECORD_PATH {
+            return Err(DurableError::Invalid("projection companion source differs"));
+        }
+        let forms = projection_lab_payload(source_path, exact_source_bytes)?;
+        let record = projection_lab_payload(
+            PROJECTION_RECORD_PATH,
+            &selected_inputs[0].exact_source_bytes,
+        )?;
+        Ok(vec![tos_command::DurableProjectionDocument {
+            document_id: "joined-form".into(),
+            identity: "lab-pair-form".into(),
+            document_type: "lab.form".into(),
+            title: "Lab paired form".into(),
+            body: format!(
+                "forms:{forms}@{revision};record:{record}@{}",
+                selected_inputs[0].revision
+            ),
+            aliases: Vec::new(),
+            dependency_paths: vec![source_path.to_owned(), PROJECTION_RECORD_PATH.to_owned()],
+        }])
+    }
+}
+
+fn projection_lab_payload<'a>(
+    source_path: &str,
+    exact_source_bytes: &'a [u8],
+) -> tos_command::DurableResult<&'a str> {
+    if exact_source_bytes.len() < 18 {
+        return Err(DurableError::Invalid("projection lab frame is short"));
+    }
+    let subject_length =
+        u16::from_be_bytes([exact_source_bytes[16], exact_source_bytes[17]]) as usize;
+    let payload_offset = 18usize
+        .checked_add(subject_length)
+        .ok_or(DurableError::Invalid(
+            "projection lab frame length overflow",
+        ))?;
+    if payload_offset > exact_source_bytes.len()
+        || &exact_source_bytes[18..payload_offset] != source_path.as_bytes()
+    {
+        return Err(DurableError::Invalid("projection lab subject differs"));
+    }
+    std::str::from_utf8(&exact_source_bytes[payload_offset..])
+        .map_err(|_| DurableError::Invalid("projection lab payload is not UTF-8"))
+}
+
+fn mark_projection_member_as_source(lab: &Lab, prepare_id: &[u8], subject: &str) {
+    let mut client = Client::connect(&lab.url, NoTls).expect("lab PostgreSQL connects");
+    let changed = client
+        .execute(
+            "UPDATE cmd2_member SET source_mode=420,source_dependencies=ARRAY[]::text[]
+             WHERE domain=$1 AND prepare_id=$2 AND subject=$3",
+            &[&lab.domain, &prepare_id, &subject],
+        )
+        .expect("source fixture metadata attaches to the selected member");
+    assert_eq!(changed, 1);
+}
+
+#[test]
+fn v2_projection_replays_exact_event_cut_and_reverse_dependents() {
+    let url = database_url();
+    let mut lab = Lab::new(&url);
+    lab.db
+        .init_projection_schema()
+        .expect("projection schema initializes");
+
+    let record_v1 = b"record-v1";
+    let forms_v1 = b"forms-v1";
+    let first_members = lab.prepare(
+        b"projection-pair-1",
+        "projection-pair-1",
+        &[
+            MemberSpec::first(PROJECTION_RECORD_PATH, record_v1),
+            MemberSpec::first(PROJECTION_FORMS_PATH, forms_v1),
+        ],
+    );
+    mark_projection_member_as_source(&lab, b"projection-pair-1", PROJECTION_RECORD_PATH);
+    mark_projection_member_as_source(&lab, b"projection-pair-1", PROJECTION_FORMS_PATH);
+    assert_eq!(
+        lab.commit(b"projection-pair-1", &first_members, 0, 1)
+            .unwrap()
+            .commit_seq,
+        1
+    );
+
+    let record_v1_bytes = tos_command::lab_record_bytes(PROJECTION_RECORD_PATH, 1, record_v1);
+    let record_v2 = b"record-v2";
+    let second_members = lab.prepare(
+        b"projection-pair-2",
+        "projection-pair-2",
+        &[MemberSpec {
+            subject: PROJECTION_RECORD_PATH,
+            revision: 2,
+            predecessor: Some((1, Digest256::of_bytes(&record_v1_bytes))),
+            payload: record_v2,
+        }],
+    );
+    mark_projection_member_as_source(&lab, b"projection-pair-2", PROJECTION_RECORD_PATH);
+    assert_eq!(
+        lab.commit(b"projection-pair-2", &second_members, 1, 1)
+            .unwrap()
+            .commit_seq,
+        2
+    );
+
+    let record_v2_bytes = tos_command::lab_record_bytes(PROJECTION_RECORD_PATH, 2, record_v2);
+    let third_members = lab.prepare(
+        b"projection-pair-3",
+        "projection-pair-3",
+        &[MemberSpec {
+            subject: PROJECTION_RECORD_PATH,
+            revision: 3,
+            predecessor: Some((2, Digest256::of_bytes(&record_v2_bytes))),
+            payload: b"record-no-longer-source",
+        }],
+    );
+    // The newest mate is intentionally non-source. The forms root remains a
+    // source, so the reverse dependency must remove its prior joined result.
+    assert_eq!(
+        lab.commit(b"projection-pair-3", &third_members, 2, 1)
+            .unwrap()
+            .commit_seq,
+        3
+    );
+
+    let profile = tos_command::DurableProjectionProfile {
+        id: "lab-paired-source-v2".into(),
+        version: 2,
+        source_contract: contract_digest(),
+    };
+    let consumer = "lab-paired-source-consumer";
+    let limits = tos_command::DurableProjectionLimits {
+        max_events: 1,
+        max_dependencies: 2,
+        ..tos_command::DurableProjectionLimits::default()
+    };
+
+    let first_batch = lab
+        .db
+        .apply_projection_batch(
+            &lab.store,
+            &lab.domain,
+            consumer,
+            &profile,
+            &PairedProjectionExtractor,
+            limits,
+        )
+        .expect("first bounded replay applies the event-cut source pair");
+    assert_eq!(first_batch.through_seq, 1);
+    assert!(matches!(
+        first_batch.status,
+        tos_command::DurableProjectionStatus::Pending {
+            through_seq: 1,
+            head_seq: 3
+        }
+    ));
+    let mut query = Client::connect(&url, NoTls).expect("lab PostgreSQL connects");
+    let joined_at_first_cut = query
+        .query_one(
+            "SELECT d.body,d.source_revision FROM cmd2_projection_document d
+             WHERE d.domain=$1 AND d.consumer_id=$2 AND d.source_path=$3
+               AND d.document_id='joined-form'",
+            &[&lab.domain, &consumer, &PROJECTION_FORMS_PATH],
+        )
+        .expect("first event projects the unchanged dependent root");
+    assert_eq!(
+        joined_at_first_cut.get::<_, String>(0),
+        "forms:forms-v1@1;record:record-v1@1"
+    );
+    assert_eq!(joined_at_first_cut.get::<_, i64>(1), 1);
+    let current_record_revision: i64 = query
+        .query_one(
+            "SELECT revision FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&lab.domain, &PROJECTION_RECORD_PATH],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(current_record_revision, 3);
+
+    let second_batch = lab
+        .db
+        .apply_projection_batch(
+            &lab.store,
+            &lab.domain,
+            consumer,
+            &profile,
+            &PairedProjectionExtractor,
+            limits,
+        )
+        .expect("companion-only event reprojects its indexed dependent root");
+    assert_eq!(second_batch.through_seq, 2);
+    assert_eq!(second_batch.work.examined_related_roots, 1);
+    assert_eq!(second_batch.work.examined_dependency_paths, 1);
+    assert_eq!(second_batch.work.exact_source_members_read, 2);
+    let joined_at_second_cut = query
+        .query_one(
+            "SELECT d.body,d.source_revision FROM cmd2_projection_document d
+             WHERE d.domain=$1 AND d.consumer_id=$2 AND d.source_path=$3
+               AND d.document_id='joined-form'",
+            &[&lab.domain, &consumer, &PROJECTION_FORMS_PATH],
+        )
+        .expect("second event keeps the forms root and exact predecessor revision");
+    assert_eq!(
+        joined_at_second_cut.get::<_, String>(0),
+        "forms:forms-v1@1;record:record-v2@2"
+    );
+    assert_eq!(joined_at_second_cut.get::<_, i64>(1), 1);
+
+    let third_batch = lab
+        .db
+        .apply_projection_batch(
+            &lab.store,
+            &lab.domain,
+            consumer,
+            &profile,
+            &PairedProjectionExtractor,
+            limits,
+        )
+        .expect("non-source mate event removes the stale joined dependent");
+    assert!(matches!(
+        third_batch.status,
+        tos_command::DurableProjectionStatus::Current { through_seq: 3 }
+    ));
+    assert_eq!(third_batch.work.examined_related_roots, 1);
+    let remaining_forms: i64 = query
+        .query_one(
+            "SELECT count(*) FROM cmd2_projection_document d
+             WHERE d.domain=$1 AND d.consumer_id=$2 AND d.source_path=$3",
+            &[&lab.domain, &consumer, &PROJECTION_FORMS_PATH],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(remaining_forms, 0);
+}
+
 // Transport phases execute in children of the same protected fixture image
 // under the maintained 64 MiB file limit. Their receipts describe transport;
 // the parent independently cold-verifies the restored source before reading.

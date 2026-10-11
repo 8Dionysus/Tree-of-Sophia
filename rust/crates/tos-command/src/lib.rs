@@ -116,7 +116,8 @@ use tos_foundation::Digest256;
 pub use durable_adapter::durable_projection::{
     DurableProjectionDocument, DurableProjectionExtractor, DurableProjectionHit,
     DurableProjectionLimits, DurableProjectionProfile, DurableProjectionProgress,
-    DurableProjectionSearch, DurableProjectionStatus, DurableProjectionWork,
+    DurableProjectionSearch, DurableProjectionSource, DurableProjectionStatus,
+    DurableProjectionWork,
 };
 pub use durable_adapter::{
     AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, ColdWorkspaceLimits,

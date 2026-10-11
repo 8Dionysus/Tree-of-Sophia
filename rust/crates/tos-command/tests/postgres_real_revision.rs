@@ -70,6 +70,22 @@ const HISTORY_PATH: &str =
 const CREATED_RECORD_PATH: &str = "ToS/source-witnesses/agents/pg-real-addition-fixture/agent.json";
 const CREATED_RECORD_ID: &str = "tos.agent.pg-real-addition-fixture";
 const CREATED_FORM_ID: &str = "tos.form.pg-real-addition-fixture.preferred-name";
+const NIETZSCHE_DIR: &str = "friedrich-nietzsche";
+const NIETZSCHE_RECORD_PATH: &str = "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json";
+const NIETZSCHE_FORMS_PATH: &str =
+    "ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json";
+const NIETZSCHE_HISTORY_PATH: &str =
+    "ToS/source-witnesses/agents/friedrich-nietzsche/source-revision-history.json";
+const NIETZSCHE_FORM_IDS: &[&str] = &[
+    "tos.form.metadata.ee414f73c4461ed7de9865bd361798a4fc4ad33b4c9014cd42f69b8868cf0eb3",
+    "tos.form.metadata.ef612d54f6556810586d9fcbb0c77cfb0058a7f8f0dfde43a47f9d4df5102484",
+    "tos.form.metadata.c2976c14db396fd6f5a82355a301899a7cf5e18fcf6455cbea0ca056146cce6d",
+];
+const NIETZSCHE_FORM_FIELDS: &[&str] = &[
+    "metadata.preferred-name",
+    "metadata.source-note",
+    "metadata.variant-name:0",
+];
 const FORM_IDS: &[&str] = &[
     "tos.form.parmenides-survival.parmenides.name-ru",
     "tos.form.parmenides-survival.parmenides.name-en",
@@ -82,6 +98,54 @@ const FORM_FIELDS: &[&str] = &[
 ];
 
 type SourceMembers = BTreeMap<String, (Vec<u8>, u32)>;
+
+#[derive(Clone, Copy)]
+struct RevisionTarget {
+    source_path: &'static str,
+    forms_path: &'static str,
+    history_path: &'static str,
+    record_id: &'static str,
+    command_id: &'static str,
+    form_ids: &'static [&'static str],
+    form_fields: &'static [&'static str],
+    allowed_fields: &'static [&'static str],
+    preferred_label: &'static str,
+    notes: Option<&'static str>,
+    resulting_version: u64,
+    resulting_form_version: u64,
+}
+
+const PARMENIDES_TARGET: RevisionTarget = RevisionTarget {
+    source_path: RECORD_PATH,
+    forms_path: FORMS_PATH,
+    history_path: HISTORY_PATH,
+    record_id: "tos.agent.parmenides-of-elea",
+    command_id: "test:pg-parmenides-correction",
+    form_ids: FORM_IDS,
+    form_fields: FORM_FIELDS,
+    allowed_fields: &["preferred_label", "notes"],
+    preferred_label: "Парменид Элейский Quartz",
+    notes: Some(
+        "Частная интеграционная фикстура PostgreSQL; семантическое признание не выполнялось.",
+    ),
+    resulting_version: 2,
+    resulting_form_version: 2,
+};
+
+const NIETZSCHE_TARGET: RevisionTarget = RevisionTarget {
+    source_path: NIETZSCHE_RECORD_PATH,
+    forms_path: NIETZSCHE_FORMS_PATH,
+    history_path: NIETZSCHE_HISTORY_PATH,
+    record_id: "tos.agent.friedrich-nietzsche",
+    command_id: "test:pg-nietzsche-shared-source-correction",
+    form_ids: NIETZSCHE_FORM_IDS,
+    form_fields: NIETZSCHE_FORM_FIELDS,
+    allowed_fields: &["preferred_label"],
+    preferred_label: "Friedrich Nietzsche Quartz",
+    notes: None,
+    resulting_version: 4,
+    resulting_form_version: 3,
+};
 
 fn software_component_paths() -> Vec<String> {
     let mut paths = SOFTWARE_COMPONENTS
@@ -221,6 +285,126 @@ fn selected_members(repository: &Path, private_root: &Path, count: usize) -> Sou
     members
 }
 
+fn selected_shared_source_members(
+    repository: &Path,
+    private_root: &Path,
+    count: usize,
+) -> SourceMembers {
+    assert!(count == 1 || count == 3);
+    fs::create_dir_all(private_root).unwrap();
+    fs::set_permissions(private_root, fs::Permissions::from_mode(0o700)).unwrap();
+    let selected = if count == 1 {
+        vec![NIETZSCHE_DIR]
+    } else {
+        vec![NIETZSCHE_DIR, "parmenides-of-elea", "justus-lipsius"]
+    };
+    let mut members = SourceMembers::new();
+    for name in selected {
+        let relative_dir = format!("ToS/source-witnesses/agents/{name}");
+        let source_dir = repository.join(&relative_dir);
+        let mut entries = fs::read_dir(&source_dir)
+            .expect("selected actual Agent package opens")
+            .map(|entry| entry.unwrap())
+            .collect::<Vec<_>>();
+        entries.sort_by_key(|entry| entry.file_name());
+        assert!(
+            entries.len() == 3 || entries.len() == 6,
+            "selected package has its exact authored flat inventory"
+        );
+        for entry in entries {
+            assert!(entry.file_type().unwrap().is_file());
+            let relative_path = format!("{relative_dir}/{}", entry.file_name().to_str().unwrap());
+            copy_repository_member(repository, private_root, &mut members, &relative_path);
+        }
+        let record_path = format!("{relative_dir}/agent.json");
+        let record: Value = serde_json::from_slice(&members[&record_path].0).unwrap();
+        for reference in record["source_refs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+        {
+            if reference.starts_with("ToS/") {
+                let relative = RelativePath::parse(reference)
+                    .expect("authored local source reference is a safe repository path");
+                copy_repository_member(repository, private_root, &mut members, relative.as_str());
+            }
+        }
+        if name == NIETZSCHE_DIR {
+            let history_path = format!("{relative_dir}/source-revision-history.json");
+            let history: Value = serde_json::from_slice(&members[&history_path].0).unwrap();
+            let receipts = history["receipts"]
+                .as_array()
+                .filter(|receipts| !receipts.is_empty())
+                .expect("the current Nietzsche history has retained prior revisions");
+            for receipt in receipts {
+                let archive_path = RelativePath::parse(
+                    receipt["archive_path"]
+                        .as_str()
+                        .expect("history names its exact retained archive"),
+                )
+                .expect("the retained archive path is safe");
+                let manifest_path = format!("{}/manifest.json", archive_path.as_str());
+                copy_repository_member(repository, private_root, &mut members, &manifest_path);
+                let manifest: Value = serde_json::from_slice(&members[&manifest_path].0).unwrap();
+                let archived_files = manifest["files"]
+                    .as_object()
+                    .expect("the selected retained archive has its file map");
+                assert_eq!(manifest["schema_version"], "tos_source_package_archive_v2");
+                assert_eq!(
+                    archived_files
+                        .keys()
+                        .map(String::as_str)
+                        .collect::<BTreeSet<_>>(),
+                    BTreeSet::from(["agent.json", "agent.human-forms.json"]),
+                    "the retained Nietzsche revision has its exact record and HumanForms members"
+                );
+                for binding in archived_files.values() {
+                    let blob = binding["blob"]
+                        .as_str()
+                        .expect("archive manifest names exact blob bytes");
+                    let blob_path =
+                        RelativePath::parse(&format!("{}/{}", archive_path.as_str(), blob))
+                            .expect("retained archive blob path is safe");
+                    copy_repository_member(
+                        repository,
+                        private_root,
+                        &mut members,
+                        blob_path.as_str(),
+                    );
+                    let (raw, _) = &members[blob_path.as_str()];
+                    assert_eq!(raw.len() as u64, binding["bytes"].as_u64().unwrap());
+                    let expected_sha256 = format!("sha256:{}", Digest256::of_bytes(raw).to_hex());
+                    assert_eq!(
+                        binding["sha256"].as_str(),
+                        Some(expected_sha256.as_str()),
+                        "the selected archive blob matches its exact manifest digest"
+                    );
+                }
+            }
+        }
+    }
+    for path in SHARED_SOURCE {
+        copy_repository_member(repository, private_root, &mut members, path);
+    }
+    for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_file()
+            && entry
+                .file_name()
+                .to_str()
+                .unwrap()
+                .ends_with(".schema.json")
+        {
+            let path = format!("ToS/contracts/{}", entry.file_name().to_str().unwrap());
+            copy_repository_member(repository, private_root, &mut members, &path);
+        }
+    }
+    assert!(members.len() <= 512);
+    assert!(members.values().map(|(raw, _)| raw.len()).sum::<usize>() <= 16 * 1024 * 1024);
+    members
+}
+
 fn source_counters(members: &SourceMembers) -> Value {
     let contract_members = members
         .iter()
@@ -238,7 +422,9 @@ fn source_counters(members: &SourceMembers) -> Value {
         .filter(|(path, _)| {
             AGENT_DIRS
                 .iter()
+                .chain(std::iter::once(&NIETZSCHE_DIR))
                 .any(|name| path.starts_with(&format!("ToS/source-witnesses/agents/{name}/")))
+                || path.starts_with("ToS/source-witnesses/.record-revisions/")
         })
         .collect::<Vec<_>>();
     let reference_members = members
@@ -282,6 +468,29 @@ fn source_cut(
     fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
     let copy_root = scratch.0.join("source-copy");
     let members = selected_members(repository, &copy_root, records);
+    source_cut_from_members(scratch, copy_root, members, deadline, cancelled)
+}
+
+fn shared_source_cut(
+    repository: &Path,
+    records: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCutFixture {
+    let scratch = ScratchRoot::new();
+    fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
+    let copy_root = scratch.0.join("source-copy");
+    let members = selected_shared_source_members(repository, &copy_root, records);
+    source_cut_from_members(scratch, copy_root, members, deadline, cancelled)
+}
+
+fn source_cut_from_members(
+    scratch: ScratchRoot,
+    copy_root: PathBuf,
+    members: SourceMembers,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCutFixture {
     let source_root = scratch.0.join("snapshot");
     fs::create_dir_all(source_root.join("objects")).unwrap();
     fs::create_dir_all(source_root.join("revisions")).unwrap();
@@ -483,6 +692,7 @@ struct RevisionCase {
     all_source: SourceMembers,
     initial_head: u64,
     owner_config: PathBuf,
+    target: RevisionTarget,
 }
 
 fn bootstrap_case(
@@ -492,10 +702,43 @@ fn bootstrap_case(
     deadline: Instant,
     cancelled: &std::sync::Arc<AtomicBool>,
 ) -> RevisionCase {
+    let source = source_cut(repository, count, deadline, cancelled);
+    bootstrap_case_from_cut(
+        software_fixture,
+        source,
+        PARMENIDES_TARGET,
+        deadline,
+        cancelled,
+    )
+}
+
+fn bootstrap_shared_case(
+    repository: &Path,
+    software_fixture: &SoftwareFixture,
+    count: usize,
+    deadline: Instant,
+    cancelled: &std::sync::Arc<AtomicBool>,
+) -> RevisionCase {
+    let source = shared_source_cut(repository, count, deadline, cancelled);
+    bootstrap_case_from_cut(
+        software_fixture,
+        source,
+        NIETZSCHE_TARGET,
+        deadline,
+        cancelled,
+    )
+}
+
+fn bootstrap_case_from_cut(
+    software_fixture: &SoftwareFixture,
+    source: SourceCutFixture,
+    target: RevisionTarget,
+    deadline: Instant,
+    cancelled: &std::sync::Arc<AtomicBool>,
+) -> RevisionCase {
     let mut lab = Lab::new(&database_url());
     fs::set_permissions(&lab._root.0, fs::Permissions::from_mode(0o700)).unwrap();
     let source_root = lab._root.0.canonicalize().unwrap();
-    let source = source_cut(repository, count, deadline, cancelled);
     let (software, components) = software_reader(software_fixture, deadline, cancelled);
     let worker_path = PathBuf::from(
         std::env::var_os("TOS_SCHEMA_WORKER_PATH")
@@ -526,7 +769,7 @@ fn bootstrap_case(
         .canonicalize()
         .unwrap()
         .join("revision-owner.json");
-    let record_raw = source.members[RECORD_PATH].0.clone();
+    let record_raw = source.members[target.source_path].0.clone();
     let record: Value = serde_json::from_slice(&record_raw).unwrap();
     let uid = rustix::process::getuid().as_raw();
     let config = json!({
@@ -534,11 +777,11 @@ fn bootstrap_case(
         "uid":uid,
         "principal_id":"test:private-pg-source-revision",
         "source_root":source_root,
-        "source_path":RECORD_PATH,
+        "source_path":target.source_path,
         "record_id":record["record_id"],
         "authority_ref":"test:bounded-pg-source-revision",
-        "allowed_form_ids":FORM_IDS,
-        "allowed_fields":["preferred_label","notes"],
+        "allowed_form_ids":target.form_ids,
+        "allowed_fields":target.allowed_fields,
         "allowed_operations":["record.revise"],
         "expires_at":"2099-01-01T00:00:00Z",
         "record_type":"agent"
@@ -594,7 +837,7 @@ fn bootstrap_case(
     worker.finish(deadline, cancelled).unwrap();
     let initial_head = lab.head_seq();
     assert!(initial_head > 0 && initial_head <= 64);
-    assert_eq!(initial.files.get(RECORD_PATH), Some(&record_raw));
+    assert_eq!(initial.files.get(target.source_path), Some(&record_raw));
     RevisionCase {
         _owner_scratch: owner_scratch,
         lab,
@@ -604,6 +847,7 @@ fn bootstrap_case(
         all_source: source.members,
         initial_head,
         owner_config,
+        target,
     }
 }
 
@@ -1354,6 +1598,32 @@ fn projection_documents(rows: &[String]) -> BTreeMap<(String, String), Value> {
         .collect()
 }
 
+fn projection_dependencies(
+    case: &RevisionCase,
+    consumer: &str,
+) -> BTreeMap<(String, String), BTreeSet<String>> {
+    let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
+    let rows = db
+        .query(
+            "SELECT source_path,document_id,dependency_path
+             FROM cmd2_projection_dependency
+             WHERE domain=$1 AND consumer_id=$2 AND dependency_kind='source'
+             ORDER BY source_path COLLATE \"C\",document_id COLLATE \"C\",dependency_path COLLATE \"C\"",
+            &[&case.lab.domain, &consumer],
+        )
+        .unwrap();
+    let mut dependencies = BTreeMap::<(String, String), BTreeSet<String>>::new();
+    for row in rows {
+        let key = (row.get::<_, String>(0), row.get::<_, String>(1));
+        let path = row.get::<_, String>(2);
+        assert!(
+            dependencies.entry(key).or_default().insert(path),
+            "one source dependency edge exists per document/path pair"
+        );
+    }
+    dependencies
+}
+
 fn assert_bounded_committed_member_rows(work: &Value, scope: &str) {
     let exact_members = work["exact_source_members_read"]
         .as_u64()
@@ -1392,7 +1662,12 @@ fn history_source_paths(case: &RevisionCase, seq: u64) -> Vec<String> {
 fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary: &Path) -> Value {
     let worker_path = PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").unwrap());
     let invocation_path = case.source_root.join("revision-invocation.json");
-    let record_path = RECORD_PATH.to_owned();
+    let target = case.target;
+    let record_path = target.source_path.to_owned();
+    let original_authored_record_version = serde_json::from_slice::<Value>(&case.original_record)
+        .unwrap()["record_version"]
+        .as_u64()
+        .expect("authored record version is present");
     invocation(
         case,
         software,
@@ -1402,17 +1677,27 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         &case.owner_config,
         "tos_local_pg_record_revision_invocation_v1",
     );
-    let source_before_drift = source_member(case, RECORD_PATH);
+    let source_before_drift = source_member(case, target.source_path);
     let before_fault_counts =
         ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table));
     let db = Client::connect(&case.lab.url, NoTls).unwrap();
     let selected_row = db
         .query_one(
-            "SELECT source_mode,content_digest,source_dependencies
+            "SELECT revision,source_mode,content_digest,source_dependencies
              FROM cmd2_current WHERE domain=$1 AND subject=$2",
             &[&case.lab.domain, &record_path],
         )
         .expect("selected current source row exists");
+    let original_custody_revision = u64::try_from(selected_row.get::<_, i64>("revision"))
+        .expect("the selected prior durable revision is positive");
+    assert_eq!(
+        original_custody_revision, 1,
+        "each isolated fixture begins at durable custody revision one, independently of the authored record_version"
+    );
+    if target.record_id == NIETZSCHE_TARGET.record_id {
+        assert_eq!(original_authored_record_version, 3);
+        assert_ne!(original_custody_revision, original_authored_record_version);
+    }
     let original_source_mode = selected_row.get::<_, i32>("source_mode");
     let original_content_digest = selected_row.get::<_, String>("content_digest");
     let original_dependencies = selected_row.get::<_, Option<Vec<String>>>("source_dependencies");
@@ -1445,12 +1730,13 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
     let drifted_row = db
         .query_one(
-            "SELECT source_mode,content_digest,source_dependencies
+            "SELECT revision,source_mode,content_digest,source_dependencies
              FROM cmd2_current WHERE domain=$1 AND subject=$2",
             &[&case.lab.domain, &record_path],
         )
         .expect("selected current source remains available after refusal");
     let observed_drifted_source_mode = drifted_row.get::<_, i32>("source_mode");
+    let observed_drifted_custody_revision = drifted_row.get::<_, i64>("revision");
     let observed_drifted_content_digest = drifted_row.get::<_, String>("content_digest");
     let observed_drifted_dependencies =
         drifted_row.get::<_, Option<Vec<String>>>("source_dependencies");
@@ -1465,13 +1751,15 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     );
     let restored_row = db
         .query_one(
-            "SELECT source_mode,content_digest,source_dependencies
+            "SELECT revision,source_mode,content_digest,source_dependencies
              FROM cmd2_current WHERE domain=$1 AND subject=$2",
             &[&case.lab.domain, &record_path],
         )
         .expect("selected current source is restored");
     let restored_source_mode = restored_row.get::<_, i32>("source_mode");
+    let restored_custody_revision = restored_row.get::<_, i64>("revision");
     assert_eq!(restored_source_mode, original_source_mode);
+    assert_eq!(restored_custody_revision, original_custody_revision as i64);
     assert_eq!(
         restored_row.get::<_, String>("content_digest"),
         original_content_digest
@@ -1490,9 +1778,13 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         "native describe refuses the current/history source-mode mismatch: {refusal_text}"
     );
     assert_eq!(observed_drifted_source_mode, drifted_source_mode);
+    assert_eq!(
+        observed_drifted_custody_revision,
+        original_custody_revision as i64
+    );
     assert_eq!(observed_drifted_content_digest, original_content_digest);
     assert_eq!(observed_drifted_dependencies, original_dependencies);
-    assert_eq!(source_member(case, RECORD_PATH), source_before_drift);
+    assert_eq!(source_member(case, target.source_path), source_before_drift);
     assert_eq!(
         ["current", "history", "receipt", "log", "outbox"].map(|table| case.lab.count(table)),
         before_fault_counts,
@@ -1509,16 +1801,17 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     let describe_resources = described_call.resources;
     assert_eq!(
         described["owner_configuration"]["record_id"],
-        "tos.agent.parmenides-of-elea"
+        target.record_id
     );
+    let mut fields = json!({"preferred_label":target.preferred_label});
+    if let Some(notes) = target.notes {
+        fields["notes"] = json!(notes);
+    }
     let preview_request = json!({
         "schema_version":"tos_local_source_command_v1",
         "operation":"prepare-revise",
-        "fields":{
-            "preferred_label":"Парменид Элейский Quartz",
-            "notes":"Частная интеграционная фикстура PostgreSQL; семантическое признание не выполнялось."
-        },
-        "forms":FORM_IDS.iter().zip(FORM_FIELDS).map(|(form_id,field_id)| json!({"form_id":form_id,"field_id":field_id})).collect::<Vec<_>>(),
+        "fields":fields,
+        "forms":target.form_ids.iter().zip(target.form_fields).map(|(form_id,field_id)| json!({"form_id":form_id,"field_id":field_id})).collect::<Vec<_>>(),
         "reason":"Isolated PG mechanics fixture only; no source, semantic, rights, or canon admission."
     });
     let preview_call = invoke(
@@ -1536,7 +1829,7 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     );
     let mut request = preview_request;
     request["operation"] = json!("record.revise");
-    request["command_id"] = json!("test:pg-parmenides-correction");
+    request["command_id"] = json!(target.command_id);
     for (field, prepared) in [
         ("expected_configuration", "owner_configuration"),
         ("expected_dependencies", "expected_dependencies"),
@@ -1566,7 +1859,7 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         before_counts[4] + 1,
         "one outbox event is committed"
     );
-    let current_record = source_member(case, RECORD_PATH);
+    let current_record = source_member(case, target.source_path);
     let retry_call = invoke(binary, &invocation_path, &case.lab.url, &request, false);
     let retry = retry_call.result;
     let retry_resources = retry_call.resources;
@@ -1580,40 +1873,45 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         committed_counts,
         "exact retry leaves every durable counter unchanged"
     );
-    assert_eq!(source_member(case, RECORD_PATH), current_record);
+    assert_eq!(source_member(case, target.source_path), current_record);
     let after: Value = serde_json::from_slice(&current_record).unwrap();
     let mut expected: Value = serde_json::from_slice(&case.original_record).unwrap();
-    expected["preferred_label"] = json!("Парменид Элейский Quartz");
-    expected["notes"] = json!(
-        "Частная интеграционная фикстура PostgreSQL; семантическое признание не выполнялось."
-    );
-    expected["record_version"] = json!(2);
+    expected["preferred_label"] = json!(target.preferred_label);
+    if let Some(notes) = target.notes {
+        expected["notes"] = json!(notes);
+    }
+    expected["record_version"] = json!(target.resulting_version);
     assert_eq!(
         after, expected,
         "the PG current source matches the prepared correction"
     );
     assert_ne!(before_counts, committed_counts);
     let paths = history_source_paths(case, committed_head);
-    for required in [RECORD_PATH, FORMS_PATH, HISTORY_PATH] {
+    for required in [target.source_path, target.forms_path, target.history_path] {
         assert!(
             paths.iter().any(|path| path == required),
             "revision records {required}"
         );
     }
-    let forms: Value = serde_json::from_slice(&source_member(case, FORMS_PATH)).unwrap();
+    let forms: Value = serde_json::from_slice(&source_member(case, target.forms_path)).unwrap();
     assert_eq!(forms["forms"].as_array().unwrap().len(), 3);
     assert!(
         forms["forms"]
             .as_array()
             .unwrap()
             .iter()
-            .all(|form| form["form_version"] == 2)
+            .all(|form| form["form_version"] == target.resulting_form_version)
     );
     let retained = case
         .lab
         .db
-        .cold_recover_exact(&case.lab.store, &case.lab.domain, RECORD_PATH, 1)
-        .expect("the original Parmenides record locator remains retained");
+        .cold_recover_exact(
+            &case.lab.store,
+            &case.lab.domain,
+            target.source_path,
+            original_custody_revision,
+        )
+        .expect("the original record locator remains retained");
     assert_eq!(
         case.lab
             .db
@@ -1623,12 +1921,13 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         "the previous source bytes are exactly recoverable"
     );
     let mut updated = BTreeSet::from([
-        RECORD_PATH.to_owned(),
-        FORMS_PATH.to_owned(),
-        HISTORY_PATH.to_owned(),
+        target.source_path.to_owned(),
+        target.forms_path.to_owned(),
+        target.history_path.to_owned(),
     ]);
     let archive_path = {
-        let history: Value = serde_json::from_slice(&source_member(case, HISTORY_PATH)).unwrap();
+        let history: Value =
+            serde_json::from_slice(&source_member(case, target.history_path)).unwrap();
         history["receipts"].as_array().unwrap().last().unwrap()["archive_path"]
             .as_str()
             .unwrap()
@@ -1636,9 +1935,9 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     };
     assert!(
         paths.iter().all(|path| {
-            path == RECORD_PATH
-                || path == FORMS_PATH
-                || path == HISTORY_PATH
+            path == target.source_path
+                || path == target.forms_path
+                || path == target.history_path
                 || path.starts_with(&format!("{archive_path}/"))
         }),
         "the durable event is limited to the selected package and retained archive"
@@ -1668,6 +1967,10 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
     let blob_path = format!("{archive_path}/{}", binding["blob"].as_str().unwrap());
     assert_eq!(source_member(case, &blob_path), case.original_record);
     json!({
+        "record_id":target.record_id,
+        "source_path":target.source_path,
+        "previous_custody_revision":original_custody_revision,
+        "previous_authored_record_version":original_authored_record_version,
         "before_head":before_head,
         "committed_head":committed_head,
         "before_counts":before_counts,
@@ -2082,6 +2385,204 @@ fn project_case(
     })
 }
 
+fn project_nietzsche_shared_case(
+    case: &mut RevisionCase,
+    software: &SoftwareFixture,
+    records: usize,
+    binary: &Path,
+) -> Value {
+    let consumer = format!("private-pg-real-shared-source-{records}");
+    let profile = DurableProjectionProfile {
+        id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE_V2.to_owned(),
+        version: 2,
+        source_contract: contract_digest(),
+    };
+    case.lab.db.init_projection_schema().unwrap();
+    let extractor = tos_command::source_projection_cli::SourceTextExtractorV2;
+    let initial_head = case.lab.head_seq();
+    let initial_limit = usize::try_from(initial_head).unwrap();
+    assert!((1..=256).contains(&initial_limit));
+    let initial = case
+        .lab
+        .db
+        .apply_projection_batch(
+            &case.lab.store,
+            &case.lab.domain,
+            &consumer,
+            &profile,
+            &extractor,
+            DurableProjectionLimits {
+                max_events: initial_limit,
+                max_dependencies: 2,
+                ..DurableProjectionLimits::default()
+            },
+        )
+        .expect("the v2 consumer selects paired source bytes at each committed event cut");
+    let initial_work = serde_json::to_value(&initial.work).unwrap();
+    assert!(matches!(
+        initial.status,
+        DurableProjectionStatus::Current { through_seq } if through_seq == initial_head
+    ));
+    let before_rows = projection_rows(case, &consumer);
+    let before_documents = projection_documents(&before_rows);
+    let metadata_key = (
+        NIETZSCHE_RECORD_PATH.to_owned(),
+        NIETZSCHE_TARGET.record_id.to_owned(),
+    );
+    assert!(before_documents.contains_key(&metadata_key));
+    let form_keys = NIETZSCHE_FORM_IDS
+        .iter()
+        .map(|form_id| (NIETZSCHE_FORMS_PATH.to_owned(), (*form_id).to_owned()))
+        .collect::<BTreeSet<_>>();
+    assert!(
+        form_keys
+            .iter()
+            .all(|key| before_documents.contains_key(key))
+    );
+    let expected_form_dependencies = BTreeSet::from([
+        NIETZSCHE_FORMS_PATH.to_owned(),
+        NIETZSCHE_RECORD_PATH.to_owned(),
+    ]);
+    let before_dependencies = projection_dependencies(case, &consumer);
+    for key in &form_keys {
+        assert_eq!(
+            before_dependencies.get(key),
+            Some(&expected_form_dependencies),
+            "each current source-copy form is attributed to its HumanForms and exact Agent metadata"
+        );
+    }
+    assert_eq!(
+        before_dependencies.get(&metadata_key),
+        Some(&BTreeSet::from([NIETZSCHE_RECORD_PATH.to_owned()])),
+        "the record text document keeps its exact one-source dependency"
+    );
+
+    let receipt = record_correction(case, software, binary);
+    let revision_head = case.lab.head_seq();
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == initial_head && head_seq == revision_head
+    ));
+    let applied = case
+        .lab
+        .db
+        .apply_projection_batch(
+            &case.lab.store,
+            &case.lab.domain,
+            &consumer,
+            &profile,
+            &extractor,
+            DurableProjectionLimits {
+                max_events: 1,
+                max_dependencies: 2,
+                ..DurableProjectionLimits::default()
+            },
+        )
+        .expect("the joined projection applies the native shared-source revision");
+    let revision_work = serde_json::to_value(&applied.work).unwrap();
+    assert_eq!(revision_work["extracted_documents"], 4);
+    assert_eq!(revision_work["published_documents"], 4);
+    assert!(matches!(
+        applied.status,
+        DurableProjectionStatus::Current { through_seq } if through_seq == revision_head
+    ));
+    let after_rows = projection_rows(case, &consumer);
+    let after_documents = projection_documents(&after_rows);
+    assert_eq!(before_documents.len(), after_documents.len());
+    assert_eq!(
+        before_documents.keys().collect::<Vec<_>>(),
+        after_documents.keys().collect::<Vec<_>>(),
+        "the correction replaces existing source documents without changing cardinality"
+    );
+    let changed_documents = before_documents
+        .iter()
+        .filter(|(key, before)| after_documents.get(*key) != Some(*before))
+        .map(|(key, _)| (*key).clone())
+        .collect::<BTreeSet<_>>();
+    let expected_changed =
+        BTreeSet::from_iter(std::iter::once(metadata_key.clone()).chain(form_keys.iter().cloned()));
+    assert_eq!(
+        changed_documents, expected_changed,
+        "one metadata revision rebinds exactly its record and three source-copy form documents"
+    );
+    let after_dependencies = projection_dependencies(case, &consumer);
+    for (form_id, role) in NIETZSCHE_FORM_IDS.iter().zip(["name", "hover", "name"]) {
+        let key = (NIETZSCHE_FORMS_PATH.to_owned(), (*form_id).to_owned());
+        assert_eq!(
+            after_dependencies.get(&key),
+            Some(&expected_form_dependencies),
+            "every published source-copy form retains its exact shared metadata dependency"
+        );
+        let document = &after_documents[&key];
+        assert_eq!(document["identity"].as_str(), Some(*form_id));
+        assert_eq!(
+            document["document_type"].as_str(),
+            Some(if role == "hover" {
+                "human_form/hover"
+            } else {
+                "human_form/name"
+            })
+        );
+    }
+    assert_eq!(
+        after_dependencies.get(&metadata_key),
+        Some(&BTreeSet::from([NIETZSCHE_RECORD_PATH.to_owned()])),
+        "the revised main-source document remains directly attributed"
+    );
+    let unaffected = |docs: &BTreeMap<(String, String), Value>| {
+        docs.iter()
+            .filter(|(key, _)| !expected_changed.contains(*key))
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect::<BTreeMap<_, _>>()
+    };
+    assert_eq!(
+        unaffected(&before_documents),
+        unaffected(&after_documents),
+        "no unrelated source document is rewritten"
+    );
+    let search = case
+        .lab
+        .db
+        .search_projection(
+            &case.lab.domain,
+            &consumer,
+            &profile,
+            "Quartz",
+            10,
+            Duration::from_secs(15),
+        )
+        .unwrap();
+    let search_ids = match search {
+        DurableProjectionSearch::Current { hits, through_seq } => {
+            assert_eq!(through_seq, revision_head);
+            hits.into_iter()
+                .map(|hit| hit.document_id)
+                .collect::<BTreeSet<_>>()
+        }
+        state => panic!("revised source-copy projection is searchable: {state:?}"),
+    };
+    assert!(search_ids.contains(NIETZSCHE_TARGET.record_id));
+    assert!(search_ids.contains(NIETZSCHE_FORM_IDS[0]));
+    json!({
+        "consumer":consumer,
+        "profile":profile.id,
+        "initial_documents":before_rows.len(),
+        "final_documents":after_rows.len(),
+        "projection_cursor":revision_head,
+        "changed_documents":changed_documents,
+        "source_copy_form_ids":NIETZSCHE_FORM_IDS,
+        "source_copy_dependencies":expected_form_dependencies,
+        "search_query":"Quartz",
+        "search_hits":search_ids,
+        "projection_work":{"bootstrap":initial_work,"revision":revision_work},
+        "revision":receipt
+    })
+}
+
 #[test]
 fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_paths() {
     let deadline = Instant::now() + Duration::from_secs(240);
@@ -2178,6 +2679,81 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
     });
     println!(
         "TOS_PG_REAL_REVISION {}",
+        serde_json::to_string(&output).unwrap()
+    );
+}
+
+#[test]
+fn real_nietzsche_shared_revision_reprojects_all_three_forms_at_1_and_3_records() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
+    let repository = repository_root();
+    let software = software_fixture(&repository, deadline, &cancelled);
+    let mut one = bootstrap_shared_case(&repository, &software, 1, deadline, &cancelled);
+    let mut three = bootstrap_shared_case(&repository, &software, 3, deadline, &cancelled);
+    let binary = native_binary();
+    let one_projection = project_nietzsche_shared_case(&mut one, &software, 1, &binary);
+    let three_projection = project_nietzsche_shared_case(&mut three, &software, 3, &binary);
+    for (records, projection) in [(1, &one_projection), (3, &three_projection)] {
+        assert_bounded_committed_member_rows(
+            &projection["projection_work"]["bootstrap"],
+            &format!("{records}-record v2 bootstrap projection"),
+        );
+        assert_bounded_committed_member_rows(
+            &projection["projection_work"]["revision"],
+            &format!("{records}-record joined revision projection"),
+        );
+        assert_bounded_committed_member_rows(
+            &projection["revision"]["source_read_work"],
+            &format!("{records}-record native Nietzsche revision"),
+        );
+    }
+    for counter in [
+        "examined_event_members",
+        "exact_source_members_read",
+        "exact_source_bytes_read",
+        "segment_bytes_read",
+        "examined_related_roots",
+        "examined_dependency_paths",
+        "extracted_documents",
+        "published_source_paths",
+        "published_documents",
+    ] {
+        assert_eq!(
+            one_projection["projection_work"]["revision"][counter],
+            three_projection["projection_work"]["revision"][counter],
+            "the same Nietzsche shared-source revision has the same {counter} projection work at 1 and 3 records"
+        );
+    }
+    let one_source_read_work = &one_projection["revision"]["source_read_work"];
+    let three_source_read_work = &three_projection["revision"]["source_read_work"];
+    for counter in [
+        "exact_source_members_read",
+        "exact_source_bytes_read",
+        "segment_bytes_read",
+        "metadata_member_lookups",
+        "directory_index_rows_examined",
+        "unique_index_lookups",
+    ] {
+        assert_eq!(
+            one_source_read_work[counter], three_source_read_work[counter],
+            "the same native Nietzsche correction has the same {counter} source-selection work at 1 and 3 records"
+        );
+    }
+    let output = json!({
+        "schema_version":"tos_cmd2_real_shared_source_projection_test_v1",
+        "source_record":NIETZSCHE_TARGET.record_id,
+        "independent_growth_records":["tos.agent.parmenides-of-elea","tos.agent.justus-lipsius"],
+        "form_ids":NIETZSCHE_FORM_IDS,
+        "bootstrap_cases":[
+            {"record_count":1,"source":source_counters(&one.all_source),"projection":one_projection},
+            {"record_count":3,"source":source_counters(&three.all_source),"projection":three_projection}
+        ],
+        "authored_repository_mutated":false,
+        "semantic_admission":false
+    });
+    println!(
+        "TOS_PG_REAL_SHARED_PROJECTION {}",
         serde_json::to_string(&output).unwrap()
     );
 }

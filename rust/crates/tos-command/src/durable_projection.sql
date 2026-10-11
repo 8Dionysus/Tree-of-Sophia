@@ -6,6 +6,10 @@
 CREATE INDEX IF NOT EXISTS cmd2_history_projection_event_seek
   ON cmd2_history(domain,commit_seq,member_slot);
 
+-- Bounded historical lookup for a selected source path at an outbox event cut.
+CREATE INDEX IF NOT EXISTS cmd2_history_projection_subject_cut_seek
+  ON cmd2_history(domain,subject,commit_seq DESC);
+
 CREATE TABLE IF NOT EXISTS cmd2_projection_consumer (
   domain text NOT NULL REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
   consumer_id text NOT NULL CHECK (octet_length(consumer_id) BETWEEN 1 AND 256),

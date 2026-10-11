@@ -3,7 +3,7 @@
 
 use crate::{
     DurablePgCoordinator, DurableProjectionDocument, DurableProjectionExtractor,
-    DurableProjectionLimits, DurableProjectionProfile, DurableResult,
+    DurableProjectionLimits, DurableProjectionProfile, DurableProjectionSource, DurableResult,
 };
 use base64::Engine;
 use serde::Deserialize;
@@ -22,8 +22,10 @@ Selection: tos_source_projection_selection_v1; existing domain, exact source
 contract digest, consumer, private STO root and explicit store limits.
 Requests: init, apply, status, search, exact-source. Init installs derived tables only.
 Apply resumes the durable outbox cursor; search uses selected text token matching.
+Profiles: tos_source_selected_text_v1 (direct fields),
+tos_source_selected_text_v2 (also bound Agent source-copy HumanForms).
 Source admission, external rights and public activation remain owner operations.
-This initial profile does not replace the full knowledge API or export readers.
+These profiles do not replace the full knowledge API or export readers.
 ";
 
 #[derive(Deserialize)]
@@ -68,22 +70,101 @@ impl DurableProjectionExtractor for SourceTextExtractor {
         exact_source_bytes: &[u8],
     ) -> DurableResult<Vec<DurableProjectionDocument>> {
         crate::source_search_projection::project_source_text(source_path, exact_source_bytes)
-            .map(|documents| {
-                documents
-                    .into_iter()
-                    .map(|document| DurableProjectionDocument {
-                        document_id: document.id.clone(),
-                        identity: document.id,
-                        document_type: document.kind,
-                        title: document.title,
-                        body: document.body,
-                        aliases: document.aliases,
-                        dependency_paths: document.dependencies,
-                    })
-                    .collect()
-            })
+            .map(projection_documents)
             .map_err(crate::DurableError::Invalid)
     }
+}
+
+/// The explicit v2 profile also resolves current Agent source-copy forms from
+/// the exact sibling metadata supplied by the worker at the same event cut.
+pub struct SourceTextExtractorV2;
+
+impl DurableProjectionExtractor for SourceTextExtractorV2 {
+    fn extract(
+        &self,
+        source_path: &str,
+        _revision: u64,
+        exact_source_bytes: &[u8],
+    ) -> DurableResult<Vec<DurableProjectionDocument>> {
+        crate::source_search_projection::project_source_text_v2(
+            source_path,
+            exact_source_bytes,
+            None,
+        )
+        .map(projection_documents)
+        .map_err(crate::DurableError::Invalid)
+    }
+
+    fn affected_source_paths(&self, changed_path: &str) -> DurableResult<Vec<String>> {
+        Ok(
+            crate::source_search_projection::agent_human_forms_path_for_metadata(changed_path)
+                .into_iter()
+                .collect(),
+        )
+    }
+
+    fn required_source_paths(
+        &self,
+        root_path: &str,
+        _revision: u64,
+        _exact_source_bytes: &[u8],
+    ) -> DurableResult<Vec<String>> {
+        Ok(
+            crate::source_search_projection::agent_metadata_path_for_human_forms(root_path)
+                .into_iter()
+                .collect(),
+        )
+    }
+
+    fn extract_with_sources(
+        &self,
+        source_path: &str,
+        _revision: u64,
+        exact_source_bytes: &[u8],
+        selected_inputs: &[DurableProjectionSource],
+    ) -> DurableResult<Vec<DurableProjectionDocument>> {
+        let expected =
+            crate::source_search_projection::agent_metadata_path_for_human_forms(source_path);
+        if selected_inputs.len() > 1
+            || selected_inputs.iter().any(|input| {
+                Some(input.source_path.as_str()) != expected.as_deref() || input.revision == 0
+            })
+        {
+            return Err(crate::DurableError::Invalid(
+                "source-copy projection selected sibling differs",
+            ));
+        }
+        let sibling = selected_inputs.first().map(|input| {
+            (
+                input.source_path.as_str(),
+                input.exact_source_bytes.as_slice(),
+            )
+        });
+        crate::source_search_projection::project_source_text_v2(
+            source_path,
+            exact_source_bytes,
+            sibling,
+        )
+        .map(projection_documents)
+        .map_err(crate::DurableError::Invalid)
+    }
+}
+
+fn projection_documents(
+    documents: Vec<crate::source_search_projection::SourceSearchDocument>,
+) -> Vec<DurableProjectionDocument> {
+    documents
+        .into_iter()
+        .map(|document| DurableProjectionDocument {
+            document_id: document.id.clone(),
+            identity: document.id,
+            document_type: document.kind,
+            title: document.title,
+            body: document.body,
+            aliases: document.aliases,
+            dependency_paths: document.dependencies,
+        })
+        .collect()
 }
 
 fn read_request(input: impl Read) -> Result<Request, &'static str> {
@@ -118,8 +199,12 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
     .map_err(|_| "private selection is absent, unsafe or changed")?;
     let selection: Selection =
         serde_json::from_slice(&selection_bytes).map_err(|_| "invalid projection selection")?;
+    let version = match selection.profile.as_str() {
+        crate::source_search_projection::SOURCE_SEARCH_PROFILE => 1,
+        crate::source_search_projection::SOURCE_SEARCH_PROFILE_V2 => 2,
+        _ => return Err("unsupported projection profile"),
+    };
     if selection.schema_version != "tos_source_projection_selection_v1"
-        || selection.profile != crate::source_search_projection::SOURCE_SEARCH_PROFILE
         || selection.domain.is_empty()
         || selection.domain.len() > 1024
         || selection.consumer.is_empty()
@@ -131,7 +216,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
         .map_err(|_| "invalid source contract digest")?;
     let profile = DurableProjectionProfile {
         id: selection.profile.clone(),
-        version: 1,
+        version,
         source_contract,
     };
     let request = read_request(input)?;
@@ -180,7 +265,13 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
             let store = open_store(&selection)?;
             let limits = DurableProjectionLimits {
                 max_events,
+                max_dependencies: if version == 2 { 2 } else { 1 },
                 ..Default::default()
+            };
+            let extractor: &dyn DurableProjectionExtractor = if version == 2 {
+                &SourceTextExtractorV2
+            } else {
+                &SourceTextExtractor
             };
             let result = db
                 .apply_projection_batch(
@@ -188,7 +279,7 @@ pub fn run(selection_path: &Path, input: impl Read) -> Result<Value, &'static st
                     &selection.domain,
                     &selection.consumer,
                     &profile,
-                    &SourceTextExtractor,
+                    extractor,
                     limits,
                 )
                 .map_err(|_| "projection update refused; committed progress retained")?;

@@ -2,6 +2,7 @@
 //! history. This is a private projection mechanic, not source admission or an
 //! external owner's authority.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::{Duration, Instant};
 
 use postgres::{IsolationLevel, Row, Transaction};
@@ -18,11 +19,13 @@ const MAX_PROFILE_FIELD_BYTES: usize = 128;
 const MAX_DOCUMENT_ID_BYTES: usize = 256;
 const MAX_SHORT_TEXT_BYTES: usize = 16 * 1024;
 const MAX_QUERY_BYTES: usize = 4096;
+const MAX_PROJECTION_PATH_BYTES: usize = 4096;
 const MAX_QUERY_RESULTS: usize = 50;
 
 /// Immutable owner-selected extractor identity. `source_contract` must match
 /// the current CMD domain contract; changing any extractor behavior requires
-/// a new version or contract digest and a new consumer.
+/// a new version or contract digest and a new consumer. Version 2 consumers
+/// begin at sequence zero so every joined projection has a complete event cut.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DurableProjectionProfile {
     pub id: String,
@@ -41,8 +44,8 @@ impl DurableProjectionProfile {
 }
 
 /// One normalized document emitted from one exact source member. Version 1
-/// accepts only the direct-source dependency equal to `source_path`; enriched
-/// joins need a separately declared extractor profile and dependency policy.
+/// accepts only the direct-source dependency equal to `source_path`; version 2
+/// permits one explicitly selected companion source in its dependency set.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct DurableProjectionDocument {
     pub document_id: String,
@@ -54,8 +57,19 @@ pub struct DurableProjectionDocument {
     pub dependency_paths: Vec<String>,
 }
 
+/// One exact historical source input selected by the projection worker.
+/// Bytes are read from the committed STO locator only after the event-cut
+/// history row and source path have been selected.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DurableProjectionSource {
+    pub source_path: String,
+    pub revision: u64,
+    pub exact_source_bytes: Vec<u8>,
+}
+
 /// Pure source-byte extractor. Implementations must not read ambient files,
 /// databases, rights, or current projections; all derived inputs are explicit.
+/// The default methods preserve the original single-source closure contract.
 pub trait DurableProjectionExtractor {
     fn extract(
         &self,
@@ -63,6 +77,42 @@ pub trait DurableProjectionExtractor {
         revision: u64,
         exact_source_bytes: &[u8],
     ) -> DurableResult<Vec<DurableProjectionDocument>>;
+
+    /// Select bounded additional root records when a committed source changes.
+    /// Returned paths are candidates only; the worker resolves them at the
+    /// event cut and supplies exact bytes explicitly.
+    fn affected_source_paths(&self, _changed_path: &str) -> DurableResult<Vec<String>> {
+        Ok(Vec::new())
+    }
+
+    /// Select exact companion source addresses required to derive this root.
+    /// Missing or non-source companions are omitted from `selected_inputs`;
+    /// extractors can then preserve a stale or source-only result.
+    fn required_source_paths(
+        &self,
+        _root_path: &str,
+        _revision: u64,
+        _raw: &[u8],
+    ) -> DurableResult<Vec<String>> {
+        Ok(Vec::new())
+    }
+
+    /// Extract using exact selected companion bytes. Legacy implementations
+    /// remain valid for roots with no companion inputs and fail closed otherwise.
+    fn extract_with_sources(
+        &self,
+        source_path: &str,
+        revision: u64,
+        exact_source_bytes: &[u8],
+        selected_inputs: &[DurableProjectionSource],
+    ) -> DurableResult<Vec<DurableProjectionDocument>> {
+        if !selected_inputs.is_empty() {
+            return Err(DurableError::Refused(
+                "projection extractor does not accept selected source inputs",
+            ));
+        }
+        self.extract(source_path, revision, exact_source_bytes)
+    }
 }
 
 impl<F> DurableProjectionExtractor for F
@@ -123,7 +173,7 @@ impl DurableProjectionLimits {
             || self.max_event_bytes > i64::MAX as u64
             || self.max_document_bytes == 0
             || self.max_document_bytes as u64 > self.max_event_bytes
-            || self.max_dependencies != 1
+            || !matches!(self.max_dependencies, 1 | 2)
             || self.max_aliases > 1024
             || self.max_query_bytes == 0
             || self.max_query_bytes > 64 * 1024
@@ -204,6 +254,8 @@ pub struct DurableProjectionWork {
     pub custody_metadata_bytes_read: u64,
     pub segment_bytes_read: u64,
     pub committed_member_rows_examined: u64,
+    pub examined_related_roots: u64,
+    pub examined_dependency_paths: u64,
     pub extracted_documents: u64,
     pub published_source_paths: u64,
     pub published_documents: u64,
@@ -237,6 +289,14 @@ impl DurableProjectionWork {
         checked(
             &mut self.committed_member_rows_examined,
             other.committed_member_rows_examined,
+        )?;
+        checked(
+            &mut self.examined_related_roots,
+            other.examined_related_roots,
+        )?;
+        checked(
+            &mut self.examined_dependency_paths,
+            other.examined_dependency_paths,
         )?;
         checked(&mut self.extracted_documents, other.extracted_documents)?;
         checked(
@@ -357,6 +417,14 @@ struct EventMember {
     is_source: bool,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct ProjectionSourceVersion {
+    revision: u64,
+    commit_seq: u64,
+    content_length: u64,
+    is_source: bool,
+}
+
 #[derive(Clone, Debug)]
 struct StagedDocument {
     source_path: String,
@@ -431,7 +499,7 @@ impl DurablePgCoordinator {
     /// Each event must fit the explicit member and byte limits; this initial
     /// reader profile supports bounded selected source events, not a paged
     /// full-corpus bootstrap.
-    pub fn apply_projection_batch<E: DurableProjectionExtractor>(
+    pub fn apply_projection_batch<E: DurableProjectionExtractor + ?Sized>(
         &mut self,
         store: &SegmentStore,
         domain: &str,
@@ -476,7 +544,16 @@ impl DurablePgCoordinator {
                     "projection outbox sequence has a gap",
                 ));
             }
-            let staged = self.stage_event(store, domain, &event, extractor, limits, deadline)?;
+            let staged = self.stage_event(
+                store,
+                domain,
+                consumer_id,
+                &event,
+                profile,
+                extractor,
+                limits,
+                deadline,
+            )?;
             work.add(&staged.work)?;
             let publication_work = DurableProjectionWork {
                 published_source_paths: staged.replaced_source_paths.len() as u64,
@@ -675,11 +752,13 @@ impl DurablePgCoordinator {
         Ok(DurableProjectionSearch::Current { hits, through_seq })
     }
 
-    fn stage_event<E: DurableProjectionExtractor>(
+    fn stage_event<E: DurableProjectionExtractor + ?Sized>(
         &mut self,
         store: &SegmentStore,
         domain: &str,
+        consumer_id: &str,
         event: &ProjectionEvent,
+        profile: &DurableProjectionProfile,
         extractor: &E,
         limits: DurableProjectionLimits,
         deadline: Instant,
@@ -695,97 +774,562 @@ impl DurablePgCoordinator {
             }
             return Ok(staged);
         }
+
         let mut event_bytes = 0u64;
+        let mut path_budget = BTreeSet::new();
+        let mut payload_budget = BTreeSet::new();
+        let mut changed_by_path = BTreeMap::new();
+        let mut source_versions = BTreeMap::new();
+        let mut replaced_paths = BTreeSet::new();
         for member in members {
-            event_bytes = event_bytes
-                .checked_add(member.content_length)
-                .and_then(|bytes| bytes.checked_add(member.source_path.len() as u64))
-                .ok_or(DurableError::Refused("projection event byte overflow"))?;
-            if event_bytes > limits.max_event_bytes {
-                return Err(DurableError::Refused(
-                    "projection event exceeds byte budget",
-                ));
-            }
-            // Any changed subject invalidates a same-named projected source path;
-            // a non-source revision deliberately deletes an older source document.
-            staged
-                .replaced_source_paths
-                .push(member.source_path.clone());
-            if !member.is_source {
-                continue;
-            }
-            if Instant::now() >= deadline {
-                return Err(DurableError::Refused("projection event deadline exceeded"));
-            }
-            validate_relative_path(&member.source_path)?;
-            let (_, bytes, _, source_work) = self.read_committed_source_selected(
-                store,
-                domain,
-                &member.source_path,
-                Some(member.revision),
-                limits.max_event_bytes,
-                deadline,
-                &std::sync::atomic::AtomicBool::new(false),
-                |_| Ok(()),
+            add_projection_bytes(
+                &mut event_bytes,
+                member
+                    .content_length
+                    .checked_add(member.source_path.len() as u64)
+                    .ok_or(DurableError::Refused("projection event byte overflow"))?,
+                limits,
             )?;
-            if Instant::now() >= deadline {
-                return Err(DurableError::Refused("projection event deadline exceeded"));
+            path_budget.insert(member.source_path.clone());
+            payload_budget.insert(member.source_path.clone());
+            replaced_paths.insert(member.source_path.clone());
+            source_versions.insert(
+                member.source_path.clone(),
+                Some(ProjectionSourceVersion {
+                    revision: member.revision,
+                    commit_seq: event.commit_seq,
+                    content_length: member.content_length,
+                    is_source: member.is_source,
+                }),
+            );
+            changed_by_path.insert(member.source_path.clone(), member);
+        }
+
+        // Version 1 preserves its original single-member behavior exactly.
+        // Version 2 adds roots selected by the extractor and by the durable
+        // reverse dependency index, all bounded before any source payload read.
+        let mut root_paths = BTreeSet::new();
+        let mut related_roots = BTreeSet::new();
+        for member in changed_by_path.values() {
+            if member.is_source {
+                root_paths.insert(member.source_path.clone());
             }
-            if bytes.len() as u64 != member.content_length {
-                return Err(DurableError::Corrupt(
-                    "projection source byte length differs",
-                ));
-            }
-            staged.work.exact_source_members_read += 1;
-            // The checked event-byte sum already bounds these payload bytes.
-            staged.work.exact_source_bytes_read += bytes.len() as u64;
-            staged.work.custody_metadata_bytes_read = staged
-                .work
-                .custody_metadata_bytes_read
-                .checked_add(source_work.custody_metadata_bytes_read)
-                .ok_or(DurableError::Refused(
-                    "projection custody metadata byte overflow",
-                ))?;
-            staged.work.segment_bytes_read = staged
-                .work
-                .segment_bytes_read
-                .checked_add(source_work.segment_bytes_read)
-                .ok_or(DurableError::Refused(
-                    "projection segment read byte overflow",
-                ))?;
-            staged.work.committed_member_rows_examined = staged
-                .work
-                .committed_member_rows_examined
-                .checked_add(source_work.committed_member_rows_examined)
-                .ok_or(DurableError::Refused(
-                    "projection committed member count overflow",
-                ))?;
-            let documents = extractor.extract(&member.source_path, member.revision, &bytes)?;
-            if Instant::now() >= deadline {
-                return Err(DurableError::Refused("projection event deadline exceeded"));
-            }
-            let remaining_documents = limits
-                .max_event_documents
-                .saturating_sub(staged.documents.len());
-            if documents.len() > remaining_documents {
-                return Err(DurableError::Refused(
-                    "projection event has too many documents",
-                ));
-            }
-            staged.work.extracted_documents += documents.len() as u64;
-            for document in documents {
-                validate_document(
+            if profile.version == 2 {
+                validate_relative_path(&member.source_path)?;
+                let extractor_roots = extractor.affected_source_paths(&member.source_path)?;
+                if extractor_roots.len() > limits.max_event_members {
+                    return Err(DurableError::Refused(
+                        "projection extractor selected too many related roots",
+                    ));
+                }
+                for path in extractor_roots {
+                    validate_relative_path(&path)?;
+                    if path != member.source_path {
+                        related_roots.insert(path.clone());
+                        root_paths.insert(path);
+                    }
+                }
+                for path in projection_reverse_dependents(
+                    &mut self.client,
+                    domain,
+                    consumer_id,
                     &member.source_path,
-                    document,
-                    &mut staged,
+                    limits,
+                )? {
+                    if path != member.source_path {
+                        related_roots.insert(path.clone());
+                        root_paths.insert(path);
+                    }
+                }
+            }
+        }
+        if root_paths.len() > limits.max_event_members {
+            return Err(DurableError::Refused(
+                "projection event has too many affected roots",
+            ));
+        }
+        staged.work.examined_related_roots = u64::try_from(related_roots.len())
+            .map_err(|_| DurableError::Refused("projection related-root count overflow"))?;
+        for path in &root_paths {
+            replaced_paths.insert(path.clone());
+            if path_budget.insert(path.clone()) {
+                add_projection_bytes(&mut event_bytes, path.len() as u64, limits)?;
+            }
+            if path_budget.len() > limits.max_event_members {
+                return Err(DurableError::Refused(
+                    "projection event exceeds related path budget",
+                ));
+            }
+        }
+        staged.replaced_source_paths = replaced_paths.into_iter().collect();
+
+        if profile.version != 2 {
+            for member in changed_by_path.values().filter(|member| member.is_source) {
+                if Instant::now() >= deadline {
+                    return Err(DurableError::Refused("projection event deadline exceeded"));
+                }
+                validate_relative_path(&member.source_path)?;
+                let source = read_projection_source(
+                    self,
+                    store,
+                    domain,
+                    &member.source_path,
                     member.revision,
+                    member.content_length,
+                    event.commit_seq,
+                    limits,
+                    false,
+                    deadline,
+                    &mut event_bytes,
+                    &mut staged.work,
+                )?;
+                let documents = extractor.extract(
+                    &source.source_path,
+                    source.revision,
+                    &source.exact_source_bytes,
+                )?;
+                validate_extracted_documents(
+                    &mut staged,
+                    &source.source_path,
+                    source.revision,
+                    documents,
+                    profile.version,
+                    &BTreeSet::from([source.source_path.clone()]),
                     limits,
                     &mut event_bytes,
                 )?;
             }
+            return Ok(staged);
+        }
+
+        let mut loaded_sources = BTreeMap::new();
+        for root_path in root_paths {
+            if Instant::now() >= deadline {
+                return Err(DurableError::Refused("projection event deadline exceeded"));
+            }
+            let root_version = projection_source_version_at_event(
+                &mut self.client,
+                domain,
+                &root_path,
+                event.commit_seq,
+                limits,
+                &mut source_versions,
+            )?;
+            let Some(root_version) = root_version.filter(|version| version.is_source) else {
+                continue;
+            };
+            let root_source = match loaded_sources.get(&root_path).cloned() {
+                Some(source) => source,
+                None => {
+                    if payload_budget.insert(root_path.clone()) {
+                        add_projection_bytes(
+                            &mut event_bytes,
+                            root_version.content_length,
+                            limits,
+                        )?;
+                    }
+                    let source = read_projection_source(
+                        self,
+                        store,
+                        domain,
+                        &root_path,
+                        root_version.revision,
+                        root_version.content_length,
+                        root_version.commit_seq,
+                        limits,
+                        true,
+                        deadline,
+                        &mut event_bytes,
+                        &mut staged.work,
+                    )?;
+                    loaded_sources.insert(root_path.clone(), source.clone());
+                    source
+                }
+            };
+
+            let requested = extractor.required_source_paths(
+                &root_path,
+                root_source.revision,
+                &root_source.exact_source_bytes,
+            )?;
+            if requested.len() > limits.max_event_members {
+                return Err(DurableError::Refused(
+                    "projection extractor selected too many dependency paths",
+                ));
+            }
+            if profile.version != 2 && !requested.is_empty() {
+                return Err(DurableError::Refused(
+                    "version 1 projection cannot select companion sources",
+                ));
+            }
+            let mut required_paths = Vec::new();
+            let mut unique_required = BTreeSet::new();
+            for path in requested {
+                validate_relative_path(&path)?;
+                if path == root_path || !unique_required.insert(path.clone()) {
+                    continue;
+                }
+                if path_budget.insert(path.clone()) {
+                    add_projection_bytes(&mut event_bytes, path.len() as u64, limits)?;
+                }
+                if path_budget.len() > limits.max_event_members {
+                    return Err(DurableError::Refused(
+                        "projection event exceeds dependency path budget",
+                    ));
+                }
+                required_paths.push(path);
+            }
+            staged.work.examined_dependency_paths = staged
+                .work
+                .examined_dependency_paths
+                .checked_add(required_paths.len() as u64)
+                .ok_or(DurableError::Refused(
+                    "projection dependency path count overflow",
+                ))?;
+
+            // Resolve every requested address at the event cut before reading
+            // any companion bytes. An absent or non-source latest row stays
+            // absent, allowing an extractor to remove stale joined output.
+            let mut required_versions = Vec::with_capacity(required_paths.len());
+            for path in &required_paths {
+                let version = projection_source_version_at_event(
+                    &mut self.client,
+                    domain,
+                    path,
+                    event.commit_seq,
+                    limits,
+                    &mut source_versions,
+                )?;
+                required_versions.push((path.clone(), version));
+            }
+
+            let mut selected_inputs = Vec::new();
+            for (path, version) in required_versions {
+                let Some(version) = version.filter(|version| version.is_source) else {
+                    continue;
+                };
+                let input = match loaded_sources.get(&path).cloned() {
+                    Some(source) => source,
+                    None => {
+                        if payload_budget.insert(path.clone()) {
+                            add_projection_bytes(&mut event_bytes, version.content_length, limits)?;
+                        }
+                        let source = read_projection_source(
+                            self,
+                            store,
+                            domain,
+                            &path,
+                            version.revision,
+                            version.content_length,
+                            version.commit_seq,
+                            limits,
+                            true,
+                            deadline,
+                            &mut event_bytes,
+                            &mut staged.work,
+                        )?;
+                        loaded_sources.insert(path.clone(), source.clone());
+                        source
+                    }
+                };
+                selected_inputs.push(input);
+            }
+            let mut selected_paths = BTreeSet::from([root_path.clone()]);
+            selected_paths.extend(
+                selected_inputs
+                    .iter()
+                    .map(|input| input.source_path.clone()),
+            );
+            let documents = extractor.extract_with_sources(
+                &root_path,
+                root_source.revision,
+                &root_source.exact_source_bytes,
+                &selected_inputs,
+            )?;
+            validate_extracted_documents(
+                &mut staged,
+                &root_path,
+                root_source.revision,
+                documents,
+                profile.version,
+                &selected_paths,
+                limits,
+                &mut event_bytes,
+            )?;
         }
         Ok(staged)
     }
+}
+
+fn projection_source_version_at_event(
+    client: &mut postgres::Client,
+    domain: &str,
+    source_path: &str,
+    event_seq: u64,
+    limits: DurableProjectionLimits,
+    cache: &mut BTreeMap<String, Option<ProjectionSourceVersion>>,
+) -> DurableResult<Option<ProjectionSourceVersion>> {
+    if let Some(version) = cache.get(source_path) {
+        return Ok(*version);
+    }
+    let mut tx = client
+        .build_transaction()
+        .isolation_level(IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()?;
+    set_local_timeouts(&mut tx, limits.statement_timeout)?;
+    let row = tx.query_opt(
+        "SELECT h.revision,h.commit_seq,h.content_length,h.source_mode
+         FROM cmd2_history h
+         WHERE h.domain=$1 AND h.subject=$2 AND h.commit_seq<=$3
+         ORDER BY h.commit_seq DESC LIMIT 1",
+        &[&domain, &source_path, &as_i64(event_seq)?],
+    )?;
+    let version = row
+        .map(|row| -> DurableResult<ProjectionSourceVersion> {
+            Ok(ProjectionSourceVersion {
+                revision: as_u64(row.get("revision"))?,
+                commit_seq: as_u64(row.get("commit_seq"))?,
+                content_length: as_u64(row.get("content_length"))?,
+                is_source: row.get::<_, Option<i32>>("source_mode").is_some(),
+            })
+        })
+        .transpose()?;
+    tx.commit()?;
+    cache.insert(source_path.to_owned(), version);
+    Ok(version)
+}
+
+fn projection_reverse_dependents(
+    client: &mut postgres::Client,
+    domain: &str,
+    consumer_id: &str,
+    changed_path: &str,
+    limits: DurableProjectionLimits,
+) -> DurableResult<Vec<String>> {
+    let max_rows = limits
+        .max_event_members
+        .checked_add(1)
+        .and_then(|count| i64::try_from(count).ok())
+        .ok_or(DurableError::Invalid("projection related-root limit"))?;
+    let mut tx = client
+        .build_transaction()
+        .isolation_level(IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()?;
+    set_local_timeouts(&mut tx, limits.statement_timeout)?;
+    let rows = tx.query(
+        "SELECT DISTINCT (left(source_path,4097) COLLATE \"C\") AS source_path,
+                octet_length(source_path) AS path_bytes
+         FROM cmd2_projection_dependency
+         WHERE domain=$1 AND consumer_id=$2 AND dependency_kind='source'
+           AND dependency_path COLLATE \"C\" = $3 COLLATE \"C\"
+         ORDER BY 1 LIMIT $4",
+        &[&domain, &consumer_id, &changed_path, &max_rows],
+    )?;
+    if rows.len() > limits.max_event_members {
+        return Err(DurableError::Refused(
+            "projection reverse dependency set exceeds path budget",
+        ));
+    }
+    let mut paths = Vec::with_capacity(rows.len());
+    for row in rows {
+        let path: String = row.get("source_path");
+        let path_bytes: i32 = row.get("path_bytes");
+        if path_bytes < 0
+            || path_bytes as usize > MAX_PROJECTION_PATH_BYTES
+            || path_bytes as usize != path.len()
+        {
+            return Err(DurableError::Refused(
+                "projection dependent source path exceeds byte budget",
+            ));
+        }
+        validate_relative_path(&path)?;
+        paths.push(path);
+    }
+    tx.commit()?;
+    Ok(paths)
+}
+
+fn read_projection_source(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    domain: &str,
+    source_path: &str,
+    revision: u64,
+    content_length: u64,
+    commit_seq: u64,
+    limits: DurableProjectionLimits,
+    count_physical_bytes_in_event_budget: bool,
+    deadline: Instant,
+    event_bytes: &mut u64,
+    work: &mut DurableProjectionWork,
+) -> DurableResult<DurableProjectionSource> {
+    if Instant::now() >= deadline {
+        return Err(DurableError::Refused("projection event deadline exceeded"));
+    }
+    let read_limit =
+        if count_physical_bytes_in_event_budget {
+            let prior_read_bytes = work
+                .exact_source_bytes_read
+                .checked_add(work.custody_metadata_bytes_read)
+                .and_then(|bytes| bytes.checked_add(work.segment_bytes_read))
+                .ok_or(DurableError::Refused(
+                    "projection source read byte overflow",
+                ))?;
+            let remaining_read_bytes = limits.max_event_bytes.checked_sub(prior_read_bytes).ok_or(
+                DurableError::Refused("projection event exceeds read byte budget"),
+            )?;
+            if content_length > remaining_read_bytes {
+                return Err(DurableError::Refused(
+                    "projection event exceeds selected source read budget",
+                ));
+            }
+            remaining_read_bytes.max(1)
+        } else {
+            limits.max_event_bytes
+        };
+    let (history_row, exact_source_bytes, _, source_work) = coordinator
+        .read_committed_source_selected(
+            store,
+            domain,
+            source_path,
+            Some(revision),
+            read_limit,
+            deadline,
+            &std::sync::atomic::AtomicBool::new(false),
+            |_| Ok(()),
+        )?;
+    if Instant::now() >= deadline {
+        return Err(DurableError::Refused("projection event deadline exceeded"));
+    }
+    if exact_source_bytes.len() as u64 != content_length {
+        return Err(DurableError::Corrupt(
+            "projection source byte length differs",
+        ));
+    }
+    if history_row.get::<_, String>("subject") != source_path
+        || as_u64(history_row.get("revision"))? != revision
+        || as_u64(history_row.get("commit_seq"))? != commit_seq
+    {
+        return Err(DurableError::Conflict(
+            "projection source history is outside selected event cut",
+        ));
+    }
+    add_projection_work_counter(
+        &mut work.exact_source_members_read,
+        1,
+        "projection source read count overflow",
+    )?;
+    add_projection_work_counter(
+        &mut work.exact_source_bytes_read,
+        exact_source_bytes.len() as u64,
+        "projection source byte count overflow",
+    )?;
+    add_projection_work_counter(
+        &mut work.custody_metadata_bytes_read,
+        source_work.custody_metadata_bytes_read,
+        "projection custody metadata byte overflow",
+    )?;
+    add_projection_work_counter(
+        &mut work.segment_bytes_read,
+        source_work.segment_bytes_read,
+        "projection segment read byte overflow",
+    )?;
+    add_projection_work_counter(
+        &mut work.committed_member_rows_examined,
+        source_work.committed_member_rows_examined,
+        "projection committed member count overflow",
+    )?;
+    let actual_read_bytes = work
+        .exact_source_bytes_read
+        .checked_add(work.custody_metadata_bytes_read)
+        .and_then(|bytes| bytes.checked_add(work.segment_bytes_read))
+        .ok_or(DurableError::Refused(
+            "projection source read byte overflow",
+        ))?;
+    if count_physical_bytes_in_event_budget && actual_read_bytes > limits.max_event_bytes {
+        return Err(DurableError::Refused(
+            "projection event exceeds selected source read budget",
+        ));
+    }
+    let extra_bytes = source_work
+        .custody_metadata_bytes_read
+        .checked_add(source_work.segment_bytes_read)
+        .ok_or(DurableError::Refused("projection read byte overflow"))?;
+    if count_physical_bytes_in_event_budget {
+        add_projection_bytes(event_bytes, extra_bytes, limits)?;
+    }
+    Ok(DurableProjectionSource {
+        source_path: source_path.to_owned(),
+        revision,
+        exact_source_bytes,
+    })
+}
+
+fn add_projection_bytes(
+    total: &mut u64,
+    addition: u64,
+    limits: DurableProjectionLimits,
+) -> DurableResult<()> {
+    *total = total
+        .checked_add(addition)
+        .ok_or(DurableError::Refused("projection event byte overflow"))?;
+    if *total > limits.max_event_bytes {
+        return Err(DurableError::Refused(
+            "projection event exceeds byte budget",
+        ));
+    }
+    Ok(())
+}
+
+fn add_projection_work_counter(
+    counter: &mut u64,
+    addition: u64,
+    error: &'static str,
+) -> DurableResult<()> {
+    *counter = counter
+        .checked_add(addition)
+        .ok_or(DurableError::Refused(error))?;
+    Ok(())
+}
+
+fn validate_extracted_documents(
+    staged: &mut StagedEvent,
+    source_path: &str,
+    revision: u64,
+    documents: Vec<DurableProjectionDocument>,
+    profile_version: u32,
+    selected_paths: &BTreeSet<String>,
+    limits: DurableProjectionLimits,
+    event_bytes: &mut u64,
+) -> DurableResult<()> {
+    let remaining_documents = limits
+        .max_event_documents
+        .saturating_sub(staged.documents.len());
+    if documents.len() > remaining_documents {
+        return Err(DurableError::Refused(
+            "projection event has too many documents",
+        ));
+    }
+    add_projection_work_counter(
+        &mut staged.work.extracted_documents,
+        documents.len() as u64,
+        "projection extracted document count overflow",
+    )?;
+    for document in documents {
+        validate_document(
+            source_path,
+            selected_paths,
+            profile_version,
+            document,
+            staged,
+            revision,
+            limits,
+            event_bytes,
+        )?;
+    }
+    Ok(())
 }
 
 fn ensure_consumer(
@@ -1042,7 +1586,10 @@ fn event_members(
     for row in &rows {
         let subject: String = row.get("subject");
         let subject_bytes: i32 = row.get("subject_bytes");
-        if subject_bytes < 0 || subject_bytes > 4096 || subject.len() > 4096 {
+        if subject_bytes < 0
+            || subject_bytes as usize > MAX_PROJECTION_PATH_BYTES
+            || subject.len() > MAX_PROJECTION_PATH_BYTES
+        {
             return Err(DurableError::Refused(
                 "projection source path exceeds byte budget",
             ));
@@ -1167,6 +1714,8 @@ fn member_rows_root(rows: &[Row]) -> Digest256 {
 
 fn validate_document(
     source_path: &str,
+    selected_paths: &BTreeSet<String>,
+    profile_version: u32,
     document: DurableProjectionDocument,
     staged: &mut StagedEvent,
     revision: u64,
@@ -1200,19 +1749,31 @@ fn validate_document(
             "projection document has too many aliases",
         ));
     }
-    if document.dependency_paths.len() != limits.max_dependencies {
+    let dependency_limit = if profile_version == 2 {
+        limits.max_dependencies.min(2)
+    } else {
+        1
+    };
+    if document.dependency_paths.is_empty()
+        || document.dependency_paths.len() > dependency_limit
+        || (profile_version != 2 && document.dependency_paths.len() != 1)
+    {
         return Err(DurableError::Refused(
             "projection dependency set differs from profile",
         ));
     }
+    let mut unique_dependencies = BTreeSet::new();
     for dependency in &document.dependency_paths {
         validate_relative_path(dependency)?;
+        if !unique_dependencies.insert(dependency) || !selected_paths.contains(dependency) {
+            return Err(DurableError::Refused(
+                "projection dependency is duplicate or was not selected",
+            ));
+        }
     }
-    if document.dependency_paths.len() != 1
-        || document.dependency_paths.first().map(String::as_str) != Some(source_path)
-    {
+    if document.dependency_paths.first().map(String::as_str) != Some(source_path) {
         return Err(DurableError::Refused(
-            "projection dependency is not the source record",
+            "projection dependency root differs from source record",
         ));
     }
     for alias in &document.aliases {
@@ -1239,6 +1800,11 @@ fn validate_document(
     document_bytes = document_bytes
         .checked_add(document.aliases.len().saturating_sub(1))
         .ok_or(DurableError::Refused("projection document byte overflow"))?;
+    for dependency in document.dependency_paths.iter().skip(1) {
+        document_bytes = document_bytes
+            .checked_add(dependency.len())
+            .ok_or(DurableError::Refused("projection document byte overflow"))?;
+    }
     if document_bytes > limits.max_document_bytes {
         return Err(DurableError::Refused(
             "projection document exceeds byte budget",
@@ -1501,7 +2067,7 @@ fn validate_text(value: &str, field: &'static str) -> DurableResult<()> {
 }
 
 fn validate_relative_path(path: &str) -> DurableResult<()> {
-    if path.len() > 4096 || RelativePath::parse(path).is_err() {
+    if path.len() > MAX_PROJECTION_PATH_BYTES || RelativePath::parse(path).is_err() {
         Err(DurableError::Invalid("projection source path"))
     } else {
         Ok(())

@@ -88,6 +88,22 @@ alias and body use weights A, B and C, followed by stable byte-order ties. This
 is a separate search contract from whole-JSON substring search. There is no
 pagination or total-count claim in this first profile.
 
+The explicit `tos_source_selected_text_v2` profile adds current source-copy
+HumanForms for Agent records. It resolves only the sibling pair
+`ToS/source-witnesses/agents/<slug>/agent.json` and
+`agent.human-forms.json`, using the shared source-copy materializer. The form set
+must name the exact subject identity, version and digest. Freeform and direct
+record text keep the v1 field selection; templates and prior forms remain
+outside the profile. A missing or stale subject produces no source-copy text.
+
+Select v2 with a new consumer ID and replay from zero; changing the profile of
+an existing consumer is refused. The worker reads paired sources at the event's
+commit sequence, follows bounded reverse dependencies and includes the exact
+sibling candidate when a record changes. It publishes the affected documents
+and cursor atomically. A direct document has one source dependency; a
+materialized source-copy form has the form file and record as two dependencies.
+The per-event limits still bound the selected roots, input bytes and output.
+
 A consumer is bound to its explicit profile/version/source contract. Search
 requires its committed cursor to reach the current source head and holds current
 local rights during the read. Pending or stale output is not delivered as current

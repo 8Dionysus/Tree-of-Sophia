@@ -5,20 +5,29 @@
 //! for the complete knowledge graph. IDs remain separate from indexed text;
 //! `subject` is only the source-path dependency locator.
 //!
-//! The profile selects corpus/historical record `preferred_label` as title,
+//! Both profiles select corpus/historical record `preferred_label` as title,
 //! `variant_labels[].value` as aliases, and their declared `notes` (plus
 //! corpus `edition_statement`) as body. Historical claims contribute only
-//! `supporting_quotes[].exact`. Human forms contribute only `freeform.text`;
+//! `supporting_quotes[].exact`. V1 human forms contribute only `freeform.text`;
 //! current forms only are considered; name-role text is a title and other
 //! roles are body. Selected body fragments are joined in source order with one
 //! newline. Open qualifiers, refs, IDs, prior forms, source-copy bindings,
 //! templates, and metadata are never flattened.
+//! V2 also materializes current Agent source-copy forms from an explicitly
+//! supplied adjacent metadata source, preserving exact subject bindings and
+//! recording both source paths as dependencies.
 
 use serde_json::Value;
-use tos_foundation::{FoundationErrorCode, JsonLimits, JsonMode, parse_json_with_state_budget};
+use tos_foundation::{
+    FoundationErrorCode, JsonLimits, JsonMode, JsonValue, parse_json_with_state_budget,
+};
 
 /// Version of the field selection implemented by [`project_source_text`].
 pub const SOURCE_SEARCH_PROFILE: &str = "tos_source_selected_text_v1";
+
+/// Version of the selected-text profile that additionally resolves current
+/// Agent source-copy forms from their exact adjacent `agent.json` input.
+pub const SOURCE_SEARCH_PROFILE_V2: &str = "tos_source_selected_text_v2";
 
 const CORPUS_RECORD_TYPES: &[&str] = &[
     "agent",
@@ -41,6 +50,7 @@ const MAX_PROJECTED_DOCUMENTS: usize = 256;
 const MAX_PROJECTED_TEXT_BYTES: usize = 1024 * 1024;
 const MAX_PROJECTED_ALIASES: usize = 64;
 const MAX_SUBJECT_PATH_BYTES: usize = 4096;
+const AGENT_SOURCE_PATH_PREFIX: &str = "ToS/source-witnesses/agents/";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceSearchDocument {
@@ -101,6 +111,208 @@ pub fn project_source_text(
         // silently treating the source as unrelated.
         Err(_) => Err("source JSON parser disagreement"),
     }
+}
+
+/// Return the exact adjacent Agent HumanForms path for a canonical Agent
+/// metadata source path.
+pub fn agent_human_forms_path_for_metadata(record_path: &str) -> Option<String> {
+    let slug = agent_slug(record_path, "/agent.json")?;
+    let path = format!("{AGENT_SOURCE_PATH_PREFIX}{slug}/agent.human-forms.json");
+    (path.len() <= MAX_SUBJECT_PATH_BYTES).then_some(path)
+}
+
+/// Return the exact adjacent Agent metadata path for a canonical HumanForms
+/// source path.
+pub fn agent_metadata_path_for_human_forms(forms_path: &str) -> Option<String> {
+    let slug = agent_slug(forms_path, "/agent.human-forms.json")?;
+    let path = format!("{AGENT_SOURCE_PATH_PREFIX}{slug}/agent.json");
+    (path.len() <= MAX_SUBJECT_PATH_BYTES).then_some(path)
+}
+
+fn agent_slug<'a>(path: &'a str, suffix: &str) -> Option<&'a str> {
+    if path.len() > MAX_SUBJECT_PATH_BYTES {
+        return None;
+    }
+    let slug = path
+        .strip_prefix(AGENT_SOURCE_PATH_PREFIX)?
+        .strip_suffix(suffix)?;
+    if slug.is_empty()
+        || slug == "."
+        || slug == ".."
+        || slug.contains('/')
+        || slug.contains('\\')
+        || slug.contains('\0')
+    {
+        return None;
+    }
+    Some(slug)
+}
+
+/// Projects an exact source file under the v2 selected-text profile.
+///
+/// V2 preserves v1 behavior for all source paths. For an Agent HumanForms
+/// file, an optional exact adjacent metadata input enables current
+/// source-copy forms through the maintained source-copy kernel. No filesystem
+/// reads or inferred references are performed; a supplied sibling must use
+/// the path returned by [`agent_metadata_path_for_human_forms`]. Materialized
+/// form documents depend on both the HumanForms root and Agent metadata, in
+/// that order. Non-ready materializations (including stale bindings) are not
+/// indexed.
+pub fn project_source_text_v2(
+    root_path: &str,
+    exact_root_bytes: &[u8],
+    exact_sibling_metadata: Option<(&str, &[u8])>,
+) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    let mut documents = project_source_text(root_path, exact_root_bytes)?;
+    let Some(expected_metadata_path) = agent_metadata_path_for_human_forms(root_path) else {
+        return if exact_sibling_metadata.is_some() {
+            Err("sibling metadata input is unsupported for source path")
+        } else {
+            Ok(documents)
+        };
+    };
+    let Some((metadata_path, metadata_bytes)) = exact_sibling_metadata else {
+        return Ok(documents);
+    };
+    if metadata_path != expected_metadata_path.as_str() {
+        return Err("sibling metadata path does not match HumanForms source");
+    }
+    if metadata_path.len() > MAX_SUBJECT_PATH_BYTES {
+        return Err("sibling metadata path exceeds byte limit");
+    }
+
+    let forms = parse_foundation_json(exact_root_bytes)?;
+    if forms
+        .object_get("schema_version")
+        .and_then(JsonValue::as_str)
+        != Some("tos_human_form_set_v1")
+    {
+        return Ok(documents);
+    }
+    let metadata = parse_foundation_json(metadata_bytes)?;
+    if metadata
+        .object_get("schema_version")
+        .and_then(JsonValue::as_str)
+        != Some("tos_corpus_record_v1")
+        || metadata
+            .object_get("record_type")
+            .and_then(JsonValue::as_str)
+            != Some("agent")
+    {
+        return Ok(documents);
+    }
+
+    let materializations =
+        tos_validation::source_forms::source_copy_kernel::materialize_source_forms(
+            &metadata, &forms,
+        )
+        .map_err(|_| "source-copy materialization failed")?;
+    let mut additions = Vec::new();
+    additions
+        .try_reserve_exact(materializations.len())
+        .map_err(|_| "source-copy document allocation refused")?;
+    for view in materializations {
+        if view.object_get("state").and_then(JsonValue::as_str) != Some("ready")
+            || view.object_get("derivation").and_then(JsonValue::as_str) != Some("source-copy")
+        {
+            continue;
+        }
+        let form = view
+            .object_get("form")
+            .ok_or("source-copy materialization omitted form reference")?;
+        let id = form
+            .object_get("id")
+            .and_then(JsonValue::as_str)
+            .filter(|id| !id.trim().is_empty())
+            .ok_or("source-copy materialization omitted form ID")?;
+        let role = view
+            .object_get("role")
+            .and_then(JsonValue::as_str)
+            .filter(|role| !role.trim().is_empty())
+            .ok_or("source-copy materialization omitted role")?;
+        let display_text = view
+            .object_get("display_text")
+            .and_then(JsonValue::as_str)
+            .filter(|text| !text.trim().is_empty())
+            .ok_or("source-copy materialization omitted display text")?;
+        let text = bounded_text(display_text, "form text")?;
+        let (title, body) = if role == "name" {
+            (text, String::new())
+        } else {
+            (String::new(), text)
+        };
+        let mut document = document(
+            root_path,
+            id,
+            format!("human_form/{role}"),
+            title,
+            Vec::new(),
+            body,
+        )?;
+        append_dependency(&mut document, metadata_path)?;
+        additions.push(document);
+    }
+    if documents.len().saturating_add(additions.len()) > MAX_PROJECTED_DOCUMENTS {
+        return Err("source exceeds document limit");
+    }
+    documents
+        .try_reserve(additions.len())
+        .map_err(|_| "source document allocation refused")?;
+    documents.extend(additions);
+    Ok(documents)
+}
+
+fn parse_foundation_json(raw: &[u8]) -> Result<JsonValue, &'static str> {
+    if raw.len() > MAX_SOURCE_BYTES {
+        return Err("source exceeds byte limit");
+    }
+    let limits = JsonLimits {
+        max_bytes: MAX_SOURCE_BYTES,
+        max_depth: MAX_JSON_DEPTH,
+        max_visits: MAX_JSON_VISITS,
+        max_integer_digits: 4_300,
+    };
+    match parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, MAX_JSON_STATE_BYTES)
+    {
+        Ok(document) => Ok(document.into_root()),
+        Err(error) if error.code == FoundationErrorCode::BudgetExceeded => {
+            Err("source JSON exceeds parse budget")
+        }
+        Err(_) => Err("malformed paired source JSON"),
+    }
+}
+
+fn append_dependency(
+    document: &mut SourceSearchDocument,
+    dependency: &str,
+) -> Result<(), &'static str> {
+    if dependency.trim().is_empty() || dependency.len() > MAX_SUBJECT_PATH_BYTES {
+        return Err("dependency path exceeds byte limit");
+    }
+    let mut retained_text_bytes = document.id.len();
+    for length in [
+        document.kind.len(),
+        document.title.len(),
+        document.body.len(),
+        dependency.len(),
+    ]
+    .into_iter()
+    .chain(document.aliases.iter().map(String::len))
+    .chain(document.dependencies.iter().map(String::len))
+    {
+        retained_text_bytes = retained_text_bytes
+            .checked_add(length)
+            .ok_or("projected document exceeds byte limit")?;
+    }
+    if retained_text_bytes > MAX_PROJECTED_TEXT_BYTES {
+        return Err("projected document exceeds byte limit");
+    }
+    document
+        .dependencies
+        .try_reserve_exact(1)
+        .map_err(|_| "dependency allocation refused")?;
+    document.dependencies.push(dependency.to_owned());
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -491,10 +703,103 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    const NIETZSCHE_AGENT_PATH: &str = "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json";
+    const NIETZSCHE_FORMS_PATH: &str =
+        "ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json";
+    const NIETZSCHE_AGENT_BYTES: &[u8] =
+        include_bytes!("../../../../ToS/source-witnesses/agents/friedrich-nietzsche/agent.json");
+    const NIETZSCHE_FORMS_BYTES: &[u8] = include_bytes!(
+        "../../../../ToS/source-witnesses/agents/friedrich-nietzsche/agent.human-forms.json"
+    );
     const HISTORY_CLAIMS_PATH: &str = concat!(
         "ToS/source-witnesses/history/",
         "friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl"
     );
+
+    #[test]
+    fn v2_maps_only_the_exact_adjacent_agent_source_paths() {
+        assert_eq!(
+            agent_human_forms_path_for_metadata(NIETZSCHE_AGENT_PATH).as_deref(),
+            Some(NIETZSCHE_FORMS_PATH)
+        );
+        assert_eq!(
+            agent_metadata_path_for_human_forms(NIETZSCHE_FORMS_PATH).as_deref(),
+            Some(NIETZSCHE_AGENT_PATH)
+        );
+        assert!(
+            agent_human_forms_path_for_metadata("ToS/source-witnesses/works/foo/work.json")
+                .is_none()
+        );
+        assert!(
+            agent_metadata_path_for_human_forms(
+                "ToS/source-witnesses/agents/a/b/agent.human-forms.json"
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn v2_materializes_only_current_ready_agent_source_copy_forms() {
+        let documents = project_source_text_v2(
+            NIETZSCHE_FORMS_PATH,
+            NIETZSCHE_FORMS_BYTES,
+            Some((NIETZSCHE_AGENT_PATH, NIETZSCHE_AGENT_BYTES)),
+        )
+        .unwrap();
+
+        assert_eq!(documents.len(), 3);
+        let name = documents
+            .iter()
+            .find(|document| {
+                document
+                    .id
+                    .ends_with("ee414f73c4461ed7de9865bd361798a4fc4ad33b4c9014cd42f69b8868cf0eb3")
+            })
+            .unwrap();
+        assert_eq!(name.kind, "human_form/name");
+        assert_eq!(name.title, "Friedrich Nietzsche");
+        assert_eq!(name.body, "");
+        let hover = documents
+            .iter()
+            .find(|document| document.kind == "human_form/hover")
+            .unwrap();
+        assert_eq!(
+            hover.body,
+            "Author identity is established for the current route. The DNB/GND authority identifier is reconciled through the exact Ecce Homo work and 1908-edition discovery record."
+        );
+        assert!(documents.iter().all(|document| {
+            document.dependencies == [NIETZSCHE_FORMS_PATH, NIETZSCHE_AGENT_PATH]
+        }));
+    }
+
+    #[test]
+    fn v2_withholds_source_copy_when_exact_agent_input_makes_pair_stale() {
+        let changed_agent = std::str::from_utf8(NIETZSCHE_AGENT_BYTES)
+            .unwrap()
+            .replacen("Friedrich Nietzsche", "Changed Nietzsche", 1);
+        let documents = project_source_text_v2(
+            NIETZSCHE_FORMS_PATH,
+            NIETZSCHE_FORMS_BYTES,
+            Some((NIETZSCHE_AGENT_PATH, changed_agent.as_bytes())),
+        )
+        .unwrap();
+        assert!(documents.is_empty());
+    }
+
+    #[test]
+    fn v2_rejects_non_adjacent_sibling_bytes() {
+        assert_eq!(
+            project_source_text_v2(
+                NIETZSCHE_FORMS_PATH,
+                NIETZSCHE_FORMS_BYTES,
+                Some((
+                    "ToS/source-witnesses/agents/other/agent.json",
+                    NIETZSCHE_AGENT_BYTES
+                )),
+            ),
+            Err("sibling metadata path does not match HumanForms source")
+        );
+    }
 
     #[test]
     fn corpus_projection_keeps_selected_text_and_locator_separate() {
