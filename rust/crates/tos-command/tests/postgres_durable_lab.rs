@@ -2461,6 +2461,48 @@ fn maintained_agent_creation_operation<
                 && row.contains("Synthetic custody subject")
         }));
 
+        // A committed event is complete only when its history members match
+        // the retained transaction receipt. A missing row must not let this
+        // consumer publish a partial result and claim the current source head.
+        let missing_history: String = projection_sql
+            .query_one(
+                "DELETE FROM cmd2_history h WHERE domain=$1 AND commit_seq=$2
+                 AND subject=$3 RETURNING row_to_json(h)::text",
+                &[
+                    &lab.domain,
+                    &(second_receipt.commit_seq as i64),
+                    &changed_paths[0],
+                ],
+            )
+            .unwrap()
+            .get(0);
+        assert!(matches!(
+            reopened_db.apply_projection_batch(
+                &reopened_store,
+                &lab.domain,
+                projection_consumer,
+                &projection_profile,
+                &source_extractor,
+                one_event,
+            ),
+            Err(tos_command::DurableError::Corrupt(_))
+        ));
+        assert_eq!(read_projection_rows(), old_projection_rows);
+        assert!(matches!(
+            reopened_db.projection_status(
+                &lab.domain, projection_consumer, &projection_profile,
+                Duration::from_secs(15),
+            ).unwrap(),
+            tos_command::DurableProjectionStatus::Pending { through_seq, head_seq }
+                if through_seq == a.commit_seq && head_seq == second_receipt.commit_seq
+        ));
+        // Restore this isolated fault-injection fixture's exact row so the
+        // independent interruption/resume checks below use a valid source.
+        projection_sql.execute(
+            "INSERT INTO cmd2_history SELECT (json_populate_record(NULL::cmd2_history,$1::text::json)).*",
+            &[&missing_history],
+        ).unwrap();
+
         // Fail after one event member has been extracted. No document delete,
         // insert, or cursor advance may escape the failed compound event.
         let extractor_calls = std::cell::Cell::new(0usize);

@@ -15,6 +15,7 @@
 //! templates, and metadata are never flattened.
 
 use serde_json::Value;
+use tos_foundation::{FoundationErrorCode, JsonLimits, JsonMode, parse_json_with_state_budget};
 
 /// Version of the field selection implemented by [`project_source_text`].
 pub const SOURCE_SEARCH_PROFILE: &str = "tos_source_selected_text_v1";
@@ -31,6 +32,15 @@ const CORPUS_RECORD_TYPES: &[&str] = &[
 ];
 const HISTORICAL_RECORD_TYPES: &[&str] =
     &["historical-event", "historical-process", "historical-state"];
+const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+const MAX_JSON_DEPTH: usize = 64;
+const MAX_JSON_VISITS: usize = 300_000;
+const MAX_JSON_STATE_BYTES: usize = 64 * 1024 * 1024;
+const MAX_JSONL_LINES: usize = 16_384;
+const MAX_PROJECTED_DOCUMENTS: usize = 256;
+const MAX_PROJECTED_TEXT_BYTES: usize = 1024 * 1024;
+const MAX_PROJECTED_ALIASES: usize = 64;
+const MAX_SUBJECT_PATH_BYTES: usize = 4096;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceSearchDocument {
@@ -59,11 +69,14 @@ pub fn project_source_text(
     subject: &str,
     raw: &[u8],
 ) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    if raw.len() > MAX_SOURCE_BYTES {
+        return Err("source exceeds byte limit");
+    }
     if subject.trim().is_empty() {
         return Err("subject path is empty");
     }
-    if subject.contains('#') {
-        return Ok(Vec::new());
+    if subject.len() > MAX_SUBJECT_PATH_BYTES {
+        return Err("subject path exceeds byte limit");
     }
     if subject.ends_with(".jsonl") {
         return project_jsonl(subject, raw);
@@ -72,22 +85,73 @@ pub fn project_source_text(
         return Ok(Vec::new());
     }
 
+    match preflight_json(raw, MAX_JSON_VISITS) {
+        Ok(_) => {}
+        Err(PreflightError::Budget) => return Err("source JSON exceeds parse budget"),
+        Err(PreflightError::Invalid) if contains_recognized_wrapper(raw) => {
+            return Err("malformed recognized source record");
+        }
+        Err(PreflightError::Invalid) => return Ok(Vec::new()),
+    }
+
     match serde_json::from_slice::<Value>(raw) {
         Ok(value) => project_value(subject, &value),
-        Err(_) if contains_recognized_wrapper(raw) => Err("malformed recognized source record"),
-        Err(_) => Ok(Vec::new()),
+        // The bounded strict parser above accepted the exact bytes. A serde
+        // disagreement is an implementation error; fail closed instead of
+        // silently treating the source as unrelated.
+        Err(_) => Err("source JSON parser disagreement"),
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PreflightError {
+    Budget,
+    Invalid,
+}
+
+/// Applies the maintained strict JSON grammar and its visit/depth/state
+/// budgets to the exact bytes before the serde projection tree is allocated.
+fn preflight_json(raw: &[u8], max_visits: usize) -> Result<usize, PreflightError> {
+    let limits = JsonLimits {
+        max_bytes: MAX_SOURCE_BYTES,
+        max_depth: MAX_JSON_DEPTH,
+        max_visits,
+        max_integer_digits: 4_300,
+    };
+    match parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, MAX_JSON_STATE_BYTES)
+    {
+        Ok(document) => Ok(document.visits()),
+        Err(error) if error.code == FoundationErrorCode::BudgetExceeded => {
+            Err(PreflightError::Budget)
+        }
+        Err(_) => Err(PreflightError::Invalid),
     }
 }
 
 fn project_jsonl(subject: &str, raw: &[u8]) -> Result<Vec<SourceSearchDocument>, &'static str> {
     let mut documents = Vec::new();
+    let mut visits_remaining = MAX_JSON_VISITS;
+    let mut lines = 0usize;
     for line in raw
         .split(|byte| *byte == b'\n')
         .filter(|line| line.iter().any(|byte| !byte.is_ascii_whitespace()))
     {
+        lines += 1;
+        if lines > MAX_JSONL_LINES {
+            return Err("source JSONL exceeds line limit");
+        }
+        let visits = preflight_json(line, visits_remaining).map_err(|error| match error {
+            PreflightError::Budget => "source JSONL exceeds parse budget",
+            PreflightError::Invalid => "malformed source JSONL line",
+        })?;
+        visits_remaining = visits_remaining.saturating_sub(visits);
         let value =
-            serde_json::from_slice::<Value>(line).map_err(|_| "malformed source JSONL line")?;
-        documents.extend(project_value(subject, &value)?);
+            serde_json::from_slice::<Value>(line).map_err(|_| "source JSON parser disagreement")?;
+        let next = project_value(subject, &value)?;
+        if documents.len().saturating_add(next.len()) > MAX_PROJECTED_DOCUMENTS {
+            return Err("source JSONL exceeds document limit");
+        }
+        documents.extend(next);
     }
     Ok(documents)
 }
@@ -153,12 +217,31 @@ fn optional_text<'a>(
     }
 }
 
-fn selected_body(parts: impl IntoIterator<Item = String>) -> String {
-    parts
-        .into_iter()
-        .filter(|part| !part.trim().is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
+fn selected_body(
+    parts: impl IntoIterator<Item = Result<String, &'static str>>,
+) -> Result<String, &'static str> {
+    // Source input is byte-capped before parsing. The worker also imposes a
+    // per-document text ceiling; enforce it while joining rather than first
+    // retaining a temporary vector of copied fragments.
+    let mut body = String::new();
+    for part in parts {
+        let part = part?;
+        if part.trim().is_empty() {
+            continue;
+        }
+        let separator: usize = if body.is_empty() { 0 } else { 1 };
+        let additional = separator.saturating_add(part.len());
+        if body.len().saturating_add(additional) > MAX_PROJECTED_TEXT_BYTES {
+            return Err("projected body exceeds byte limit");
+        }
+        body.try_reserve(additional)
+            .map_err(|_| "projected body allocation refused")?;
+        if separator != 0 {
+            body.push('\n');
+        }
+        body.push_str(&part);
+    }
+    Ok(body)
 }
 
 fn document(
@@ -171,6 +254,31 @@ fn document(
 ) -> Result<SourceSearchDocument, &'static str> {
     if subject.trim().is_empty() {
         return Err("subject path is empty");
+    }
+    if id.len() > 256 {
+        return Err("document ID exceeds byte limit");
+    }
+    if kind.len() > MAX_PROJECTED_TEXT_BYTES
+        || title.len() > MAX_PROJECTED_TEXT_BYTES
+        || body.len() > MAX_PROJECTED_TEXT_BYTES
+        || aliases.len() > MAX_PROJECTED_ALIASES
+    {
+        return Err("projected document exceeds field limit");
+    }
+    let retained_text_bytes = aliases
+        .iter()
+        .try_fold(
+            id.len() + kind.len() + title.len() + body.len() + subject.len(),
+            |sum, alias| {
+                if alias.len() > MAX_PROJECTED_TEXT_BYTES {
+                    return None;
+                }
+                sum.checked_add(alias.len())
+            },
+        )
+        .ok_or("projected document exceeds byte limit")?;
+    if retained_text_bytes > MAX_PROJECTED_TEXT_BYTES {
+        return Err("projected document exceeds byte limit");
     }
     Ok(SourceSearchDocument {
         id: id.to_owned(),
@@ -204,10 +312,37 @@ fn aliases(value: &Value) -> Result<Vec<String>, &'static str> {
         return Ok(Vec::new());
     };
     let labels = labels.as_array().ok_or("variant_labels")?;
-    labels
-        .iter()
-        .map(|label| required_text(label, "value").map(str::to_owned))
-        .collect()
+    if labels.len() > MAX_PROJECTED_ALIASES {
+        return Err("variant_labels exceeds count limit");
+    }
+    let mut projected = Vec::new();
+    projected
+        .try_reserve_exact(labels.len())
+        .map_err(|_| "variant label allocation refused")?;
+    let mut bytes = 0usize;
+    for label in labels {
+        let text = required_text(label, "value")?;
+        bytes = bytes
+            .checked_add(text.len())
+            .ok_or("variant labels exceed byte limit")?;
+        if bytes > MAX_PROJECTED_TEXT_BYTES {
+            return Err("variant labels exceed byte limit");
+        }
+        projected.push(bounded_text(text, "variant label")?);
+    }
+    Ok(projected)
+}
+
+fn bounded_text(text: &str, field: &'static str) -> Result<String, &'static str> {
+    if text.len() > MAX_PROJECTED_TEXT_BYTES {
+        return Err(field);
+    }
+    let mut result = String::new();
+    result
+        .try_reserve_exact(text.len())
+        .map_err(|_| "projected text allocation refused")?;
+    result.push_str(text);
+    Ok(result)
 }
 
 fn project_corpus_record(
@@ -216,14 +351,14 @@ fn project_corpus_record(
 ) -> Result<Vec<SourceSearchDocument>, &'static str> {
     let id = required_text(value, "record_id")?;
     let kind = corpus_kind(value, "record_type", "corpus_record")?;
-    let title = required_text(value, "preferred_label")?.to_owned();
+    let title = bounded_text(required_text(value, "preferred_label")?, "preferred_label")?;
     let aliases = aliases(value)?;
     let mut body_parts = Vec::new();
     if let Some(notes) = optional_text(value, "notes")? {
-        body_parts.push(notes.to_owned());
+        body_parts.push(bounded_text(notes, "notes"));
     }
     if let Some(edition_statement) = optional_text(value, "edition_statement")? {
-        body_parts.push(edition_statement.to_owned());
+        body_parts.push(bounded_text(edition_statement, "edition_statement"));
     }
     Ok(vec![document(
         subject,
@@ -231,7 +366,7 @@ fn project_corpus_record(
         kind,
         title,
         aliases,
-        selected_body(body_parts),
+        selected_body(body_parts)?,
     )?])
 }
 
@@ -241,13 +376,13 @@ fn project_historical_record(
 ) -> Result<Vec<SourceSearchDocument>, &'static str> {
     let id = required_text(value, "record_id")?;
     let kind = corpus_kind(value, "record_type", "historical_record")?;
-    let title = required_text(value, "preferred_label")?.to_owned();
+    let title = bounded_text(required_text(value, "preferred_label")?, "preferred_label")?;
     let aliases = aliases(value)?;
     let body = selected_body(
         optional_text(value, "notes")?
-            .into_iter()
-            .map(str::to_owned),
-    );
+            .map(|text| bounded_text(text, "notes"))
+            .into_iter(),
+    )?;
     Ok(vec![document(subject, id, kind, title, aliases, body)?])
 }
 
@@ -261,12 +396,10 @@ fn project_historical_claim(
         Some(Value::Array(quotes)) => quotes.as_slice(),
         Some(_) => return Err("supporting_quotes"),
     };
-    let body = selected_body(
-        quotes
-            .iter()
-            .map(|quote| required_text(quote, "exact").map(str::to_owned))
-            .collect::<Result<Vec<_>, _>>()?,
-    );
+    let body =
+        selected_body(quotes.iter().map(|quote| {
+            required_text(quote, "exact").and_then(|text| bounded_text(text, "exact"))
+        }))?;
     Ok(vec![document(
         subject,
         id,
@@ -286,6 +419,9 @@ fn project_human_form_set(
         .and_then(Value::as_array)
         .filter(|forms| !forms.is_empty())
         .ok_or("forms")?;
+    if forms.len() > MAX_PROJECTED_DOCUMENTS {
+        return Err("forms exceeds document limit");
+    }
     forms
         .iter()
         .map(|form| project_human_form(subject, form))
@@ -335,9 +471,9 @@ fn project_human_form(
         return Ok(None);
     };
     let (title, body) = if role == "name" {
-        (text.to_owned(), String::new())
+        (bounded_text(text, "form text")?, String::new())
     } else {
-        (String::new(), text.to_owned())
+        (String::new(), bounded_text(text, "form text")?)
     };
     document(
         subject,
@@ -403,6 +539,41 @@ mod tests {
         );
         assert!(!docs[0].body.contains("tos.agent.socrates"));
         assert!(!docs[0].body.contains("private/source.json"));
+    }
+
+    #[test]
+    fn exact_source_path_with_hash_is_not_treated_as_a_reference() {
+        let raw = json!({
+            "schema_version": "tos_corpus_record_v1",
+            "record_id": "tos.agent.socrates",
+            "record_type": "agent",
+            "preferred_label": "Socrates",
+            "variant_labels": [],
+            "notes": "A philosopher."
+        });
+        let source_path = "ToS/source-witnesses/agents/socrates#record.json";
+        let docs = project_source_text(source_path, raw.to_string().as_bytes()).unwrap();
+        assert_eq!(docs.len(), 1);
+        assert_eq!(docs[0].dependencies, [source_path]);
+    }
+
+    #[test]
+    fn source_byte_limit_is_checked_before_extension_filtering() {
+        let raw = vec![b'x'; MAX_SOURCE_BYTES + 1];
+        assert_eq!(
+            project_source_text("unindexed.rs", &raw),
+            Err("source exceeds byte limit")
+        );
+    }
+
+    #[test]
+    fn nested_unrecognized_json_still_has_a_parse_budget() {
+        let depth = MAX_JSON_DEPTH + 1;
+        let raw = format!("{}null{}", "[".repeat(depth), "]".repeat(depth));
+        assert_eq!(
+            project_source_text("ToS/unrelated.json", raw.as_bytes()),
+            Err("source JSON exceeds parse budget")
+        );
     }
 
     #[test]

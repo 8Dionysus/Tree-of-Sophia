@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use postgres::{IsolationLevel, Row, Transaction};
 use serde::Serialize;
-use tos_foundation::{Digest256, RelativePath};
+use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::SegmentStore;
 
 use super::{DurableError, DurablePgCoordinator, DurableResult, as_i64, as_u64};
@@ -878,14 +878,46 @@ fn event_members(
         .read_only(true)
         .start()?;
     set_local_timeouts(&mut tx, limits.statement_timeout)?;
+    let event_row = tx
+        .query_opt(
+            "SELECT l.event_kind,l.command_id,o.event_id
+             FROM cmd2_log l JOIN cmd2_outbox o USING(domain,commit_seq)
+             WHERE l.domain=$1 AND l.commit_seq=$2",
+            &[&domain, &as_i64(event.commit_seq)?],
+        )?
+        .ok_or(DurableError::Corrupt(
+            "projection event lacks its committed log/outbox pair",
+        ))?;
+    if event_row.get::<_, String>("event_kind") != event.event_kind {
+        return Err(DurableError::Corrupt(
+            "projection event kind differs from committed log",
+        ));
+    }
+    let expected_members_root = if event.event_kind == "command" {
+        Some(verify_committed_command_membership(
+            &mut tx, domain, event, limits, &event_row,
+        )?)
+    } else {
+        if event.event_kind == "rights"
+            && event_row.get::<_, String>("event_id")
+                != format!("rights.revoke:{}", event.commit_seq)
+        {
+            return Err(DurableError::Corrupt(
+                "projection rights outbox identity differs",
+            ));
+        }
+        None
+    };
     let max_rows = limits
         .max_event_members
+        .min(super::MAX_MEMBERS)
         .checked_add(1)
         .and_then(|n| i64::try_from(n).ok())
         .ok_or(DurableError::Invalid("projection member limit"))?;
     let rows = tx.query(
-        "SELECT left(subject,4097) AS subject,octet_length(subject) AS subject_bytes,
-                revision,content_length,source_mode
+        "SELECT member_slot,left(subject,4097) AS subject,
+                octet_length(subject) AS subject_bytes,revision AS proposed_revision,
+                sto_receipt_id,content_digest,content_length,source_mode,source_dependencies
          FROM cmd2_history WHERE domain=$1 AND commit_seq=$2
          ORDER BY member_slot LIMIT $3",
         &[&domain, &as_i64(event.commit_seq)?, &max_rows],
@@ -895,22 +927,38 @@ fn event_members(
             "projection event has too many source members",
         ));
     }
+    if rows.len() > super::MAX_MEMBERS {
+        return Err(DurableError::Corrupt(
+            "projection event exceeds committed member ceiling",
+        ));
+    }
     if event.event_kind != "command" && !rows.is_empty() {
         return Err(DurableError::Corrupt(
             "non-command event owns source history",
         ));
     }
-    let mut members = Vec::with_capacity(rows.len());
-    let mut total = 0u64;
-    for row in rows {
-        let source_path: String = row.get("subject");
+    for row in &rows {
+        let subject: String = row.get("subject");
         let subject_bytes: i32 = row.get("subject_bytes");
-        if subject_bytes < 0 || subject_bytes > 4096 || source_path.len() > 4096 {
+        if subject_bytes < 0 || subject_bytes > 4096 || subject.len() > 4096 {
             return Err(DurableError::Refused(
                 "projection source path exceeds byte budget",
             ));
         }
-        let revision = as_u64(row.get("revision"))?;
+    }
+    if let Some(expected_root) = expected_members_root {
+        let actual_root = member_rows_root(&rows);
+        if actual_root != expected_root {
+            return Err(DurableError::Corrupt(
+                "committed event history membership differs from receipt",
+            ));
+        }
+    }
+    let mut members = Vec::with_capacity(rows.len());
+    let mut total = 0u64;
+    for row in rows {
+        let source_path: String = row.get("subject");
+        let revision = as_u64(row.get("proposed_revision"))?;
         let content_length = as_u64(row.get("content_length"))?;
         total = total
             .checked_add(content_length)
@@ -933,6 +981,86 @@ fn event_members(
     }
     tx.commit()?;
     Ok(members)
+}
+
+/// Verify one bounded command event against its committed receipt and complete
+/// prepared membership before using its history rows to replace documents.
+/// Both member reads are index-bounded by the profile and the coordinator's
+/// existing per-command member ceiling; no domain-wide history scan is needed.
+fn verify_committed_command_membership(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    event: &ProjectionEvent,
+    limits: DurableProjectionLimits,
+    event_row: &Row,
+) -> DurableResult<Digest256> {
+    let command_id: String = event_row.get("command_id");
+    let expected_event_id = format!("{domain}:{}", event.commit_seq);
+    if event_row.get::<_, String>("event_id") != expected_event_id {
+        return Err(DurableError::Corrupt(
+            "projection command outbox identity differs",
+        ));
+    }
+
+    let attempt = tx
+        .query_opt(
+            "SELECT * FROM cmd2_attempt WHERE domain=$1 AND command_id=$2",
+            &[&domain, &command_id],
+        )?
+        .ok_or(DurableError::Corrupt(
+            "projection command attempt is absent",
+        ))?;
+    let attempt_seq: Option<i64> = attempt.get("commit_seq");
+    let event_seq = as_i64(event.commit_seq)?;
+    if attempt.get::<_, String>("state") != "committed" || attempt_seq != Some(event_seq) {
+        return Err(DurableError::Corrupt(
+            "projection command attempt differs from committed event",
+        ));
+    }
+
+    let prepare_id: Vec<u8> = attempt.get("prepare_id");
+    let member_limit = limits.max_event_members.min(super::MAX_MEMBERS);
+    let query_limit = member_limit
+        .checked_add(1)
+        .and_then(|count| i64::try_from(count).ok())
+        .ok_or(DurableError::Invalid("projection member limit"))?;
+    // Pre-admit the parent receipt verifier's complete member read. The
+    // transaction is repeatable-read, so this count cannot grow between reads.
+    let member_probe = tx.query(
+        "SELECT member_slot FROM cmd2_member
+         WHERE domain=$1 AND prepare_id=$2 ORDER BY member_slot LIMIT $3",
+        &[&domain, &prepare_id, &query_limit],
+    )?;
+    if member_probe.len() > super::MAX_MEMBERS {
+        return Err(DurableError::Corrupt(
+            "committed command exceeds member ceiling",
+        ));
+    }
+    if member_probe.len() > limits.max_event_members {
+        return Err(DurableError::Refused(
+            "projection event has too many source members",
+        ));
+    }
+    if member_probe.is_empty() {
+        return Err(DurableError::Corrupt("committed command has no members"));
+    }
+    let receipt = super::receipt_from_committed_attempt(tx, &attempt)?;
+    if receipt.domain != domain || receipt.commit_seq != event.commit_seq {
+        return Err(DurableError::Corrupt(
+            "projection command receipt differs from event",
+        ));
+    }
+    Ok(receipt.member_root)
+}
+
+fn member_rows_root(rows: &[Row]) -> Digest256 {
+    let mut hasher = Digest256Hasher::new();
+    super::part(&mut hasher, b"cmd2-member-root-v1");
+    super::part(&mut hasher, &(rows.len() as u64).to_be_bytes());
+    for row in rows {
+        super::update_member_root(&mut hasher, row);
+    }
+    hasher.finalize()
 }
 
 fn validate_document(
