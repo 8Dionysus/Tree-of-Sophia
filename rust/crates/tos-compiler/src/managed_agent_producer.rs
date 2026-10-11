@@ -1281,6 +1281,7 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
                 return Err(Error::Invalid("managed retained record-version identity"));
             }
             if view["record_kind"] == "metadata" {
+                let record_id = view["record_ref"]["id"].as_str().map(str::to_owned);
                 let catalog = view
                     .pointer_mut("/provenance/catalog")
                     .ok_or(Error::Invalid(
@@ -1290,7 +1291,7 @@ pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
                     .as_str()
                     .ok_or(Error::Invalid("managed metadata version current identity"))?
                     .to_owned();
-                if view["record_ref"]["id"].as_str() != Some(current_id.as_str()) {
+                if record_id.as_deref() != Some(current_id.as_str()) {
                     return Err(Error::Invalid(
                         "managed metadata version/catalog current identity mismatch",
                     ));
