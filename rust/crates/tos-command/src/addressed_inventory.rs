@@ -1813,7 +1813,7 @@ pub(super) fn collect_agent_profile_contributions(
         .ok_or(DurableError::Corrupt("mixed inventory records map"))?;
     let has_agent_record = records
         .iter()
-        .find(|(kind, _)| kind.as_str() == "agent")
+        .find(|(kind, _)| kind.as_str() == Some("agent"))
         .and_then(|(_, records)| records.as_array())
         .is_some_and(|records| !records.is_empty());
     let is_agent_form = subject.ends_with("/agent.human-forms.json")
@@ -1986,7 +1986,7 @@ fn parse_mixed_projection(
         .as_object()
         .ok_or(DurableError::Corrupt("mixed projection records map"))?;
     for kind in crate::source_claims::NATIVE_CATALOG_KINDS {
-        if !records.iter().any(|(key, _)| key.as_str() == *kind) {
+        if !records.iter().any(|(key, _)| key.as_str() == Some(*kind)) {
             return Err(DurableError::Corrupt(
                 "mixed projection native kind coverage",
             ));
