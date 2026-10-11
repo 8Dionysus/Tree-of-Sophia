@@ -19,6 +19,16 @@ use std::{
 };
 use tos_foundation::Digest256;
 
+macro_rules! processing_fingerprint {
+    ($handler:literal, [$($source:expr),+ $(,)?] $(,)?) => {{
+        static FINGERPRINT: std::sync::OnceLock<tos_foundation::Digest256> =
+            std::sync::OnceLock::new();
+        *FINGERPRINT.get_or_init(|| {
+            crate::processing_cache::rust_source_fingerprint($handler, &[$($source),+])
+        })
+    }};
+}
+
 #[derive(Clone, Copy, Default)]
 pub struct BaseNodeOverrides<'a> {
     pub native_id: Option<&'a str>,
@@ -781,7 +791,9 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         run: crate::processing_cache::ProcessingRunHandle,
     ) -> Result<Self> {
         if self.owner_state.is_some() {
-            return Err(Error::Invalid("processing cache is unavailable for owned creation state"));
+            return Err(Error::Invalid(
+                "processing cache is unavailable for owned creation state",
+            ));
         }
         self.processing_run = Some(run);
         Ok(self)
@@ -832,9 +844,9 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             "kind_id":overrides.kind_id,
             "max_output_bytes":self.limits.max_output_bytes,
         });
-        let fingerprint = crate::processing_cache::rust_source_fingerprint(
+        let fingerprint = processing_fingerprint!(
             "knowledge_base::normalize_node",
-            &[
+            [
                 include_bytes!("knowledge_base.rs"),
                 include_bytes!("knowledge_normalization.rs"),
                 include_bytes!("knowledge_seal.rs"),
@@ -851,12 +863,8 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             &parameters,
             &[input, configuration],
             || {
-                let mut value = self.normalize_node_unstamped(
-                    source,
-                    source_graph,
-                    canonical,
-                    overrides,
-                )?;
+                let mut value =
+                    self.normalize_node_unstamped(source, source_graph, canonical, overrides)?;
                 stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
                 Ok(value)
             },
@@ -870,14 +878,17 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         node_id: &str,
         title: &Value,
     ) -> Result<crate::processing_cache::ProcessingValue> {
-        let (dependency, derived_title) = if let Some(node) = run.result(&format!("node:{node_id}")) {
+        let (dependency, derived_title) = if let Some(node) = run.result(&format!("node:{node_id}"))
+        {
             let derived = node
                 .value()
                 .pointer("/display/title")
                 .filter(|title| title.is_object())
                 .ok_or(Error::Invalid("processing endpoint node title absent"))?;
             if derived != title {
-                return Err(Error::Invalid("processing endpoint title producer mismatch"));
+                return Err(Error::Invalid(
+                    "processing endpoint title producer mismatch",
+                ));
             }
             (node.clone(), derived.clone())
         } else {
@@ -886,9 +897,9 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
                 title.clone(),
             )
         };
-        let fingerprint = crate::processing_cache::rust_source_fingerprint(
+        let fingerprint = processing_fingerprint!(
             "knowledge_global_titles::endpoint_title",
-            &[
+            [
                 include_bytes!("knowledge_global_titles.rs"),
                 include_bytes!("knowledge_seal.rs"),
             ],
@@ -928,9 +939,9 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             "default_authority":default_authority,
             "max_output_bytes":self.limits.max_output_bytes,
         });
-        let fingerprint = crate::processing_cache::rust_source_fingerprint(
+        let fingerprint = processing_fingerprint!(
             "knowledge_base::normalize_relation",
-            &[
+            [
                 include_bytes!("knowledge_base.rs"),
                 include_bytes!("knowledge_normalization.rs"),
                 include_bytes!("knowledge_seal.rs"),
@@ -1978,4 +1989,178 @@ fn endpoints(item: &Value, source: &str) -> Result<(String, String)> {
             text(item.get("to_id")).unwrap_or("unknown-target")
         ),
     ))
+}
+
+#[cfg(test)]
+mod processing_cache_tests {
+    use super::*;
+    use crate::processing_cache::{
+        ClosureLimits, ProcessingCache, ProcessingCacheLimits, ProcessingReadSnapshot,
+    };
+    use crate::{KnowledgeRegistry, QueryVocabulary};
+    use rusqlite::{Connection, OpenFlags};
+
+    const DESCRIPTOR: &[u8] = include_bytes!("../tests/fixtures/query-vocabulary.v1.json");
+    const ENTITIES: &[u8] =
+        include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
+    const RELATIONS: &[u8] =
+        include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json");
+
+    fn vocabulary() -> QueryVocabulary {
+        QueryVocabulary::parse(
+            DESCRIPTOR,
+            &[
+                "philosophy-node-edge-v1",
+                "canon-node-relation-v1",
+                "candidate-relation-v1",
+                "source-navigation-node-edge-v1",
+                "reified-bibliographic-claims-v1",
+                "declared-identity-and-source-ref-joins-v1",
+                "repository-topology-v1",
+                "indexed-node-edge-v1",
+            ],
+        )
+        .unwrap()
+    }
+
+    fn normalizer<'a>(
+        registry: &'a KnowledgeRegistry,
+        vocabulary: &QueryVocabulary,
+    ) -> KnowledgeBaseNormalizer<'a> {
+        KnowledgeBaseNormalizer::new(
+            registry,
+            ENTITIES,
+            RELATIONS,
+            vocabulary,
+            DESCRIPTOR,
+            BaseNormalizationLimits {
+                max_registry_bytes: 4 * 1024 * 1024,
+                max_output_bytes: 65536,
+            },
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn actual_node_relation_producer_reuses_outputs_and_keeps_reverse_chain() {
+        let registry = KnowledgeRegistry::parse(ENTITIES, RELATIONS).unwrap();
+        let vocabulary = vocabulary();
+        let a = SourceRow::parse(
+            br#"{"node_id":"node-a","node_type":"concept","label":"Alpha","source_refs":["fixture"]}"#,
+            65536,
+        )
+        .unwrap();
+        let b = SourceRow::parse(
+            br#"{"node_id":"node-b","node_type":"concept","label":"Beta","source_refs":["fixture"]}"#,
+            65536,
+        )
+        .unwrap();
+        let edge = SourceRow::parse(
+            br#"{"edge_id":"edge-ab","from_id":"node-a","to_id":"node-b","predicate_id":"related_to","source_refs":["fixture"]}"#,
+            65536,
+        )
+        .unwrap();
+        let uncached = normalizer(&registry, &vocabulary);
+        let expected_a = uncached
+            .normalize_node(&a, "philosophy", false, BaseNodeOverrides::default())
+            .unwrap();
+        let expected_b = uncached
+            .normalize_node(&b, "philosophy", false, BaseNodeOverrides::default())
+            .unwrap();
+        let expected_edge = uncached
+            .normalize_relation(
+                &edge,
+                "philosophy",
+                None,
+                &expected_a["display"]["title"],
+                &expected_b["display"]["title"],
+                "derived-export",
+            )
+            .unwrap();
+
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("processing.sqlite");
+        let cache = ProcessingCache::open(&path).unwrap();
+        let mut cold = cache.begin_run().unwrap();
+        let cold_id = cold.id();
+        let cold_normalizer = normalizer(&registry, &vocabulary)
+            .with_processing_run(cold.handle())
+            .unwrap();
+        let cold_a = cold_normalizer
+            .normalize_node(&a, "philosophy", false, BaseNodeOverrides::default())
+            .unwrap();
+        let cold_b = cold_normalizer
+            .normalize_node(&b, "philosophy", false, BaseNodeOverrides::default())
+            .unwrap();
+        let cold_edge = cold_normalizer
+            .normalize_relation(
+                &edge,
+                "philosophy",
+                None,
+                &cold_a["display"]["title"],
+                &cold_b["display"]["title"],
+                "derived-export",
+            )
+            .unwrap();
+        assert_eq!(
+            (cold_a.clone(), cold_b.clone(), cold_edge.clone()),
+            (
+                expected_a.clone(),
+                expected_b.clone(),
+                expected_edge.clone()
+            )
+        );
+        cold.finish().unwrap();
+
+        let db = Connection::open_with_flags(
+            &path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .unwrap();
+        db.execute_batch("PRAGMA query_only=ON; BEGIN").unwrap();
+        let closure = ProcessingReadSnapshot::new(&db, ProcessingCacheLimits::default())
+            .unwrap()
+            .dependency_closure(
+                &cold_id,
+                &["source-node:philosophy:node-a".to_owned()],
+                ClosureLimits::default(),
+            )
+            .unwrap();
+        let ids = closure
+            .nodes
+            .iter()
+            .map(|node| node.id.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert!(ids.contains("node:philosophy:node-a"));
+        assert!(ids.contains("endpoint-title:philosophy:node-a"));
+        assert!(ids.contains("relation:philosophy:edge-ab"));
+        db.execute_batch("ROLLBACK").unwrap();
+
+        let mut warm = cache.begin_run().unwrap();
+        let warm_normalizer = normalizer(&registry, &vocabulary)
+            .with_processing_run(warm.handle())
+            .unwrap();
+        let warm_a = warm_normalizer
+            .normalize_node(&a, "philosophy", false, BaseNodeOverrides::default())
+            .unwrap();
+        let warm_b = warm_normalizer
+            .normalize_node(&b, "philosophy", false, BaseNodeOverrides::default())
+            .unwrap();
+        let warm_edge = warm_normalizer
+            .normalize_relation(
+                &edge,
+                "philosophy",
+                None,
+                &warm_a["display"]["title"],
+                &warm_b["display"]["title"],
+                "derived-export",
+            )
+            .unwrap();
+        assert_eq!(
+            (warm_a, warm_b, warm_edge),
+            (expected_a, expected_b, expected_edge)
+        );
+        warm.finish().unwrap();
+        assert!(warm.report().unwrap().reused >= 3);
+    }
 }

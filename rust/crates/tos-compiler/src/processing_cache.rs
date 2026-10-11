@@ -11,8 +11,8 @@ use serde_json::{Value, json};
 use std::{
     cell::{Cell, RefCell},
     collections::{BTreeMap, BTreeSet, HashMap, VecDeque},
-    path::Path,
     io::{self, Write},
+    path::Path,
     rc::Rc,
     sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
@@ -128,10 +128,7 @@ impl ProcessingCache {
         Self::open_with_limits(path, ProcessingCacheLimits::default())
     }
 
-    pub fn open_with_limits(
-        path: impl AsRef<Path>,
-        limits: ProcessingCacheLimits,
-    ) -> Result<Self> {
+    pub fn open_with_limits(path: impl AsRef<Path>, limits: ProcessingCacheLimits) -> Result<Self> {
         let db = Connection::open(path)?;
         Self::from_connection_with_limits(db, limits)
     }
@@ -149,15 +146,17 @@ impl ProcessingCache {
         limits.validate()?;
         db.busy_timeout(std::time::Duration::from_secs(5))?;
         if db.is_autocommit() == false {
-            return Err(Error::Invalid("processing cache initialization needs autocommit"));
+            return Err(Error::Invalid(
+                "processing cache initialization needs autocommit",
+            ));
         }
         let journal_mode: String = db.query_row("PRAGMA journal_mode=WAL", [], |row| row.get(0))?;
         if journal_mode != "wal" && journal_mode != "memory" {
             return Err(Error::Invalid("processing cache requires WAL journal mode"));
         }
         immediate_transaction(&db, || {
-        db.execute_batch(
-            "CREATE TABLE IF NOT EXISTS tos_rust_processing_runs (
+            db.execute_batch(
+                "CREATE TABLE IF NOT EXISTS tos_rust_processing_runs (
                 id TEXT PRIMARY KEY, status TEXT NOT NULL, error_kind TEXT
              );
              CREATE TABLE IF NOT EXISTS tos_rust_processing_tasks (
@@ -177,15 +176,69 @@ impl ProcessingCache {
              );
              CREATE INDEX IF NOT EXISTS tos_rust_processing_outputs_age
                 ON tos_rust_processing_outputs(used,cache_key);
+             CREATE TABLE IF NOT EXISTS tos_rust_processing_output_usage (
+                singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                bytes INTEGER NOT NULL CHECK(bytes>=0),
+                entries INTEGER NOT NULL CHECK(entries>=0)
+             );
+             CREATE TABLE IF NOT EXISTS tos_rust_processing_meta (
+                key TEXT PRIMARY KEY, value TEXT NOT NULL
+             );
+             CREATE TRIGGER IF NOT EXISTS tos_rust_processing_output_usage_insert
+                AFTER INSERT ON tos_rust_processing_outputs BEGIN
+                    UPDATE tos_rust_processing_output_usage
+                    SET bytes=bytes+NEW.bytes,entries=entries+1 WHERE singleton=1;
+                END;
+             CREATE TRIGGER IF NOT EXISTS tos_rust_processing_output_usage_delete
+                AFTER DELETE ON tos_rust_processing_outputs BEGIN
+                    UPDATE tos_rust_processing_output_usage
+                    SET bytes=bytes-OLD.bytes,entries=entries-1 WHERE singleton=1;
+                END;
+             CREATE TRIGGER IF NOT EXISTS tos_rust_processing_output_usage_update
+                AFTER UPDATE OF bytes ON tos_rust_processing_outputs BEGIN
+                    UPDATE tos_rust_processing_output_usage
+                    SET bytes=bytes-OLD.bytes+NEW.bytes WHERE singleton=1;
+                END;
              CREATE TABLE IF NOT EXISTS tos_rust_processing_publication (
                 singleton INTEGER PRIMARY KEY CHECK(singleton=1), run_id TEXT NOT NULL
              );
              CREATE TABLE IF NOT EXISTS tos_rust_processing_run_bases (
                 run_id TEXT PRIMARY KEY, base_run_id TEXT
              );",
-        )?;
-        Ok(())
+            )?;
+            Ok(())
         })?;
+        let usage_ready: bool = db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM tos_rust_processing_meta WHERE key='output-usage-v1')",
+            [],
+            |row| row.get(0),
+        )?;
+        if !usage_ready {
+            immediate_transaction(&db, || {
+                let became_ready: bool = db.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM tos_rust_processing_meta WHERE key='output-usage-v1')",
+                    [],
+                    |row| row.get(0),
+                )?;
+                if became_ready {
+                    return Ok(());
+                }
+                let (bytes, entries): (i64, i64) = db.query_row(
+                    "SELECT coalesce(sum(bytes),0),count(*) FROM tos_rust_processing_outputs",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )?;
+                db.execute(
+                    "INSERT INTO tos_rust_processing_output_usage(singleton,bytes,entries) VALUES (1,?1,?2)",
+                    params![bytes, entries],
+                )?;
+                db.execute(
+                    "INSERT INTO tos_rust_processing_meta(key,value) VALUES ('output-usage-v1','ready')",
+                    [],
+                )?;
+                Ok(())
+            })?;
+        }
         // Never infer that another process's run is abandoned merely because
         // this connection opened. Incomplete runs remain non-readable until
         // explicit recovery under externally exclusive cache use.
@@ -228,6 +281,7 @@ impl ProcessingCache {
                 baseline,
                 definitions: HashMap::new(),
                 results: HashMap::new(),
+                latest_outputs: HashMap::new(),
                 failed: false,
                 finished: false,
                 executed: 0,
@@ -284,44 +338,57 @@ impl ProcessingCache {
     /// completed outputs remain independently reusable.
     pub fn prune_history(&self, keep_runs: usize) -> Result<usize> {
         if keep_runs == 0 {
-            return Err(Error::Invalid("processing history retention must be positive"));
+            return Err(Error::Invalid(
+                "processing history retention must be positive",
+            ));
         }
         let db = self.shared.db.borrow();
         immediate_transaction(&db, || {
-        let mut latest = db.prepare("SELECT id FROM tos_rust_processing_runs ORDER BY rowid DESC LIMIT ?1")?;
-        let mut keep = latest
-            .query_map([keep_runs as i64], |row| row.get::<_, String>(0))?
-            .collect::<std::result::Result<BTreeSet<_>, _>>()?;
-        if let Some(active) = db
-            .query_row(
-                "SELECT run_id FROM tos_rust_processing_publication WHERE singleton=1",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()?
-        {
-            keep.insert(active);
-        }
-        let mut running_statement = db.prepare("SELECT id FROM tos_rust_processing_runs WHERE status='running'")?;
-        let running = running_statement
-            .query_map([], |row| row.get::<_, String>(0))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-        keep.extend(running);
-        let mut all_statement = db.prepare("SELECT id FROM tos_rust_processing_runs")?;
-        let all = all_statement
-            .query_map([], |row| row.get::<_, String>(0))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-        let mut retired = 0;
-        for id in all {
-            if !keep.contains(&id) {
-                db.execute("DELETE FROM tos_rust_processing_run_bases WHERE run_id=?1", [&id])?;
-                db.execute("DELETE FROM tos_rust_processing_dependencies WHERE run_id=?1", [&id])?;
-                db.execute("DELETE FROM tos_rust_processing_tasks WHERE run_id=?1", [&id])?;
-                db.execute("DELETE FROM tos_rust_processing_runs WHERE id=?1", [&id])?;
-                retired += 1;
+            let mut latest =
+                db.prepare("SELECT id FROM tos_rust_processing_runs ORDER BY rowid DESC LIMIT ?1")?;
+            let mut keep = latest
+                .query_map([keep_runs as i64], |row| row.get::<_, String>(0))?
+                .collect::<std::result::Result<BTreeSet<_>, _>>()?;
+            if let Some(active) = db
+                .query_row(
+                    "SELECT run_id FROM tos_rust_processing_publication WHERE singleton=1",
+                    [],
+                    |row| row.get::<_, String>(0),
+                )
+                .optional()?
+            {
+                keep.insert(active);
             }
-        }
-        Ok(retired)
+            let mut running_statement =
+                db.prepare("SELECT id FROM tos_rust_processing_runs WHERE status='running'")?;
+            let running = running_statement
+                .query_map([], |row| row.get::<_, String>(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            keep.extend(running);
+            let mut all_statement = db.prepare("SELECT id FROM tos_rust_processing_runs")?;
+            let all = all_statement
+                .query_map([], |row| row.get::<_, String>(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            let mut retired = 0;
+            for id in all {
+                if !keep.contains(&id) {
+                    db.execute(
+                        "DELETE FROM tos_rust_processing_run_bases WHERE run_id=?1",
+                        [&id],
+                    )?;
+                    db.execute(
+                        "DELETE FROM tos_rust_processing_dependencies WHERE run_id=?1",
+                        [&id],
+                    )?;
+                    db.execute(
+                        "DELETE FROM tos_rust_processing_tasks WHERE run_id=?1",
+                        [&id],
+                    )?;
+                    db.execute("DELETE FROM tos_rust_processing_runs WHERE id=?1", [&id])?;
+                    retired += 1;
+                }
+            }
+            Ok(retired)
         })
     }
 }
@@ -431,6 +498,24 @@ impl ProcessingRunHandle {
         self.0.borrow().results.get(id).cloned()
     }
 
+    /// Return the most recent recognized producer output for a node or
+    /// relation identity. Arbitrary input/task JSON `id` fields are not
+    /// treated as owner identities.
+    pub fn latest_output(&self, namespace: &str, stable_id: &str) -> Option<ProcessingValue> {
+        let run = self.0.borrow();
+        if !matches!(namespace, "node" | "relation")
+            || stable_id.is_empty()
+            || stable_id.len() > run.shared.limits.max_identifier_bytes
+            || stable_id.contains('\0')
+        {
+            return None;
+        }
+        let result_id = run
+            .latest_outputs
+            .get(&(namespace.to_owned(), stable_id.to_owned()))?;
+        run.results.get(result_id).cloned()
+    }
+
     fn finish(&self) -> Result<()> {
         self.0.borrow_mut().finish()
     }
@@ -445,6 +530,7 @@ struct ProcessingRunInner {
     baseline: Option<String>,
     definitions: HashMap<String, String>,
     results: HashMap<String, ProcessingValue>,
+    latest_outputs: HashMap<(String, String), String>,
     failed: bool,
     finished: bool,
     executed: u64,
@@ -479,19 +565,29 @@ impl ProcessingRunInner {
     }
 
     fn queue_pending(&mut self, task: PendingTask) -> Result<()> {
-        let mut bytes = task.id.capacity()
+        let mut bytes = task
+            .id
+            .capacity()
             .checked_add(task.cache_key.as_ref().map_or(0, String::capacity))
             .and_then(|n| n.checked_add(task.output_digest.as_ref().map_or(0, String::capacity)))
-            .and_then(|n| n.checked_add(task.dependencies.capacity() * std::mem::size_of::<String>()))
+            .and_then(|n| {
+                n.checked_add(task.dependencies.capacity() * std::mem::size_of::<String>())
+            })
             .ok_or(Error::Budget("processing pending metadata"))?;
         for dependency in &task.dependencies {
-            bytes = bytes.checked_add(dependency.capacity())
+            bytes = bytes
+                .checked_add(dependency.capacity())
                 .ok_or(Error::Budget("processing pending metadata"))?;
         }
-        let next = self.pending_metadata_bytes.checked_add(bytes)
+        let next = self
+            .pending_metadata_bytes
+            .checked_add(bytes)
             .ok_or(Error::Budget("processing pending metadata"))?;
         if next > self.shared.limits.max_pending_metadata_bytes {
-            return self.poison("pending-metadata-budget", Error::Budget("processing pending metadata"));
+            return self.poison(
+                "pending-metadata-budget",
+                Error::Budget("processing pending metadata"),
+            );
         }
         self.pending_metadata_bytes = next;
         self.pending.push(task);
@@ -531,7 +627,14 @@ impl ProcessingRunInner {
                 "INSERT INTO tos_rust_processing_dependencies(run_id,task_id,dependency_id) VALUES (?1,?2,?3)",
             )?;
             for task in &self.pending {
-                tasks.execute(params![self.run_id, task.id, task.category, task.cache_key, task.output_digest, task.status])?;
+                tasks.execute(params![
+                    self.run_id,
+                    task.id,
+                    task.category,
+                    task.cache_key,
+                    task.output_digest,
+                    task.status
+                ])?;
                 for dependency in &task.dependencies {
                     edges.execute(params![self.run_id, task.id, dependency])?;
                 }
@@ -556,8 +659,11 @@ impl ProcessingRunInner {
         if self.pending.is_empty() && self.pending_touches.is_empty() {
             return Ok(());
         }
-        let db = self.shared.db.borrow();
-        immediate_transaction(&db, || self.persist_pending(&db))?;
+        let shared = Rc::clone(&self.shared);
+        {
+            let db = shared.db.borrow();
+            immediate_transaction(&db, || self.persist_pending(&db))?;
+        }
         self.clear_pending();
         Ok(())
     }
@@ -567,7 +673,9 @@ impl ProcessingRunInner {
         if let Err(error) = validate_identifier(id, self.shared.limits.max_identifier_bytes) {
             return self.poison("invalid-input-identity", error);
         }
-        if self.results.len() >= self.shared.limits.max_tasks_per_run && !self.results.contains_key(id) {
+        if self.results.len() >= self.shared.limits.max_tasks_per_run
+            && !self.results.contains_key(id)
+        {
             self.failed = true;
             self.fail("task-limit")?;
             return Err(Error::Budget("processing tasks per run"));
@@ -597,10 +705,14 @@ impl ProcessingRunInner {
             output_digest: digest.clone(),
             value: Rc::new(value.clone()),
         };
-        self.retain_result(result.clone(), &definition)?;
+        self.retain_result(result.clone(), &definition, None)?;
         self.queue_pending(PendingTask {
-            id: id.to_owned(), category: "input", cache_key: None,
-            output_digest: Some(digest), status: "complete", dependencies: Vec::new(),
+            id: id.to_owned(),
+            category: "input",
+            cache_key: None,
+            output_digest: Some(digest),
+            status: "complete",
+            dependencies: Vec::new(),
         })?;
         self.definitions.insert(id.to_owned(), definition);
         Ok(result)
@@ -618,23 +730,33 @@ impl ProcessingRunInner {
     ) -> Result<ProcessingValue> {
         self.active()?;
         for identity in [id, kind, handler] {
-            if let Err(error) = validate_identifier(identity, self.shared.limits.max_identifier_bytes) {
+            if let Err(error) =
+                validate_identifier(identity, self.shared.limits.max_identifier_bytes)
+            {
                 return self.poison("invalid-task-identity", error);
             }
         }
-        if self.results.len() >= self.shared.limits.max_tasks_per_run && !self.results.contains_key(id) {
+        if self.results.len() >= self.shared.limits.max_tasks_per_run
+            && !self.results.contains_key(id)
+        {
             self.failed = true;
             self.fail("task-limit")?;
             return Err(Error::Budget("processing tasks per run"));
         }
-        if dependencies.iter().any(|dependency| dependency.run_id != self.run_id) {
+        if dependencies
+            .iter()
+            .any(|dependency| dependency.run_id != self.run_id)
+        {
             return self.poison(
                 "foreign-dependency",
                 Error::Invalid("processing dependency belongs to another run"),
             );
         }
         if dependencies.len() > self.shared.limits.max_tasks_per_run {
-            return self.poison("dependency-limit", Error::Budget("processing dependencies per task"));
+            return self.poison(
+                "dependency-limit",
+                Error::Budget("processing dependencies per task"),
+            );
         }
         let mut dependency_bytes = 0usize;
         for dependency in dependencies {
@@ -643,13 +765,22 @@ impl ProcessingRunInner {
                 .and_then(|bytes| bytes.checked_add(dependency.output_digest.len() + 8))
             {
                 Some(bytes) => bytes,
-                None => return self.poison("dependency-budget", Error::Budget("processing dependency key")),
+                None => {
+                    return self.poison(
+                        "dependency-budget",
+                        Error::Budget("processing dependency key"),
+                    );
+                }
             };
             if dependency_bytes > self.shared.limits.max_input_bytes {
-                return self.poison("dependency-budget", Error::Budget("processing dependency key"));
+                return self.poison(
+                    "dependency-budget",
+                    Error::Budget("processing dependency key"),
+                );
             }
         }
-        let parameters_bytes = match canonical_value(parameters, self.shared.limits.max_input_bytes) {
+        let parameters_bytes = match canonical_value(parameters, self.shared.limits.max_input_bytes)
+        {
             Ok(bytes) => bytes,
             Err(error) => return self.poison("task-parameter-budget", error),
         };
@@ -704,24 +835,34 @@ impl ProcessingRunInner {
         if let Some((value, output_digest)) = cached {
             self.queue_touch(&cache_key)?;
             self.queue_pending(PendingTask {
-                id: id.to_owned(), category: "task", cache_key: Some(cache_key),
-                output_digest: Some(output_digest.clone()), status: "complete",
+                id: id.to_owned(),
+                category: "task",
+                cache_key: Some(cache_key),
+                output_digest: Some(output_digest.clone()),
+                status: "complete",
                 dependencies: dependency_ids,
             })?;
             self.reused += 1;
             self.by_kind.entry(kind.to_owned()).or_default().1 += 1;
             let result = ProcessingValue {
-                run_id: self.run_id.clone(), id: id.to_owned(), kind: "task".to_owned(),
-                output_digest, value: Rc::new(value),
+                run_id: self.run_id.clone(),
+                id: id.to_owned(),
+                kind: "task".to_owned(),
+                output_digest,
+                value: Rc::new(value),
             };
-            self.retain_result(result.clone(), &definition)?;
+            self.retain_result(result.clone(), &definition, Some(kind))?;
             self.definitions.insert(id.to_owned(), definition);
             return Ok(result);
         }
 
         self.queue_pending(PendingTask {
-            id: id.to_owned(), category: "task", cache_key: Some(cache_key.clone()),
-            output_digest: None, status: "running", dependencies: dependency_ids,
+            id: id.to_owned(),
+            category: "task",
+            cache_key: Some(cache_key.clone()),
+            output_digest: None,
+            status: "running",
+            dependencies: dependency_ids,
         })?;
         if let Err(error) = self.flush_pending() {
             return self.poison("receipt-flush", error);
@@ -743,7 +884,13 @@ impl ProcessingRunInner {
         let stored = {
             let db = self.shared.db.borrow();
             immediate_transaction(&db, || {
-                let stored = write_output(&db, &cache_key, &payload, &payload_digest, self.shared.limits)?;
+                let stored = write_output(
+                    &db,
+                    &cache_key,
+                    &payload,
+                    &payload_digest,
+                    self.shared.limits,
+                )?;
                 self.evicted += trim_outputs(&db, self.shared.limits)?;
                 let updated = db.execute(
                     "UPDATE tos_rust_processing_tasks SET status='complete',output_digest=?1 WHERE run_id=?2 AND id=?3 AND status='running'",
@@ -765,44 +912,108 @@ impl ProcessingRunInner {
         self.executed += 1;
         self.by_kind.entry(kind.to_owned()).or_default().0 += 1;
         let result = ProcessingValue {
-            run_id: self.run_id.clone(), id: id.to_owned(), kind: "task".to_owned(),
-            output_digest: digest, value: Rc::new(value),
+            run_id: self.run_id.clone(),
+            id: id.to_owned(),
+            kind: "task".to_owned(),
+            output_digest: digest,
+            value: Rc::new(value),
         };
-        self.retain_result(result.clone(), &definition)?;
+        self.retain_result(result.clone(), &definition, Some(kind))?;
         self.definitions.insert(id.to_owned(), definition);
         Ok(result)
     }
 
-    fn retain_result(&mut self, result: ProcessingValue, definition: &str) -> Result<()> {
-        let json_bytes = match crate::knowledge_normalization::serde_retained_heap_upper(result.value(), 0) {
-            Ok(bytes) => bytes,
-            Err(error) => return self.poison("retained-state-budget", error),
-        };
+    fn retain_result(
+        &mut self,
+        result: ProcessingValue,
+        definition: &str,
+        producer_kind: Option<&str>,
+    ) -> Result<()> {
+        let json_bytes =
+            match crate::knowledge_normalization::serde_retained_heap_upper(result.value(), 0) {
+                Ok(bytes) => bytes,
+                Err(error) => return self.poison("retained-state-budget", error),
+            };
         let metadata_bytes = std::mem::size_of::<ProcessingValue>()
             .checked_add(result.run_id.capacity())
             .and_then(|size| size.checked_add(result.id.capacity()))
             .and_then(|size| size.checked_add(result.kind.capacity()))
             .and_then(|size| size.checked_add(result.output_digest.capacity()));
-        let retained = metadata_bytes.and_then(|metadata_bytes| json_bytes
-            .checked_add(std::mem::size_of::<Rc<Value>>())
-            .and_then(|size| size.checked_add(metadata_bytes.saturating_mul(2)))
-            .and_then(|size| size.checked_add(std::mem::size_of::<(String, ProcessingValue)>() + result.id.capacity()))
-            .and_then(|size| size.checked_add(std::mem::size_of::<(String, String)>() + definition.len())));
+        let output_namespace = match producer_kind {
+            Some(
+                "node"
+                | "claim-node"
+                | "claim-finalization"
+                | "literal-claim-contribution"
+                | "final-node"
+                | "readable-node",
+            ) => Some("node"),
+            Some("relation" | "claim-relation" | "final-relation" | "readable-relation") => {
+                Some("relation")
+            }
+            _ => None,
+        };
+        let output_identity = output_namespace.and_then(|namespace| {
+            result
+                .value()
+                .get("id")
+                .and_then(Value::as_str)
+                .filter(|identity| {
+                    !identity.is_empty()
+                        && identity.len() <= self.shared.limits.max_identifier_bytes
+                        && !identity.contains('\0')
+                })
+                .map(|identity| (namespace.to_owned(), identity.to_owned()))
+        });
+        let output_index_bytes = output_identity.as_ref().map_or(0, |(namespace, identity)| {
+            std::mem::size_of::<(String, String, String)>()
+                + namespace.capacity()
+                + identity.capacity()
+                + result.id.capacity()
+        });
+        let retained = metadata_bytes.and_then(|metadata_bytes| {
+            json_bytes
+                .checked_add(std::mem::size_of::<Rc<Value>>())
+                .and_then(|size| size.checked_add(metadata_bytes.saturating_mul(2)))
+                .and_then(|size| size.checked_add(output_index_bytes))
+                .and_then(|size| {
+                    size.checked_add(
+                        std::mem::size_of::<(String, ProcessingValue)>() + result.id.capacity(),
+                    )
+                })
+                .and_then(|size| {
+                    size.checked_add(std::mem::size_of::<(String, String)>() + definition.len())
+                })
+        });
         let retained = match retained {
             Some(bytes) => bytes,
-            None => return self.poison("retained-state-budget", Error::Budget("processing retained state")),
+            None => {
+                return self.poison(
+                    "retained-state-budget",
+                    Error::Budget("processing retained state"),
+                );
+            }
         };
-        let next = self
-            .retained_state_bytes
-            .checked_add(retained);
+        let next = self.retained_state_bytes.checked_add(retained);
         let next = match next {
             Some(bytes) => bytes,
-            None => return self.poison("retained-state-budget", Error::Budget("processing retained state")),
+            None => {
+                return self.poison(
+                    "retained-state-budget",
+                    Error::Budget("processing retained state"),
+                );
+            }
         };
         if next > self.shared.limits.max_retained_state_bytes {
-            return self.poison("retained-state-budget", Error::Budget("processing retained state"));
+            return self.poison(
+                "retained-state-budget",
+                Error::Budget("processing retained state"),
+            );
         }
         self.retained_state_bytes = next;
+        if let Some(identity) = output_identity {
+            self.latest_outputs.insert(identity, result.id.clone());
+        }
         self.results.insert(result.id.clone(), result);
         Ok(())
     }
@@ -834,33 +1045,36 @@ impl ProcessingRunInner {
             self.finished = true;
             return Ok(());
         }
-        let db = self.shared.db.borrow();
-        let superseded = immediate_transaction(&db, || {
-            self.persist_pending(&db)?;
-            let current: Option<String> = db
-                .query_row(
-                    "SELECT run_id FROM tos_rust_processing_publication WHERE singleton=1",
-                    [],
-                    |row| row.get(0),
-                )
-                .optional()?;
-            if current != self.baseline {
+        let shared = Rc::clone(&self.shared);
+        let superseded = {
+            let db = shared.db.borrow();
+            immediate_transaction(&db, || {
+                self.persist_pending(&db)?;
+                let current: Option<String> = db
+                    .query_row(
+                        "SELECT run_id FROM tos_rust_processing_publication WHERE singleton=1",
+                        [],
+                        |row| row.get(0),
+                    )
+                    .optional()?;
+                if current != self.baseline {
+                    db.execute(
+                        "UPDATE tos_rust_processing_runs SET status='superseded',error_kind='baseline-changed' WHERE id=?1",
+                        [&self.run_id],
+                    )?;
+                    return Ok(true);
+                }
                 db.execute(
-                    "UPDATE tos_rust_processing_runs SET status='superseded',error_kind='baseline-changed' WHERE id=?1",
+                    "UPDATE tos_rust_processing_runs SET status='complete',error_kind=NULL WHERE id=?1",
                     [&self.run_id],
                 )?;
-                return Ok(true);
-            }
-            db.execute(
-                "UPDATE tos_rust_processing_runs SET status='complete',error_kind=NULL WHERE id=?1",
-                [&self.run_id],
-            )?;
-            db.execute(
-                "INSERT INTO tos_rust_processing_publication(singleton,run_id) VALUES (1,?1) ON CONFLICT(singleton) DO UPDATE SET run_id=excluded.run_id",
-                [&self.run_id],
-            )?;
-            Ok(false)
-        })?;
+                db.execute(
+                    "INSERT INTO tos_rust_processing_publication(singleton,run_id) VALUES (1,?1) ON CONFLICT(singleton) DO UPDATE SET run_id=excluded.run_id",
+                    [&self.run_id],
+                )?;
+                Ok(false)
+            })?
+        };
         self.clear_pending();
         if superseded {
             self.finished = true;
@@ -879,19 +1093,22 @@ impl ProcessingRunInner {
         } else {
             error_kind
         };
-        let db = self.shared.db.borrow();
-        immediate_transaction(&db, || {
-            self.persist_pending(&db)?;
-            db.execute(
-                "UPDATE tos_rust_processing_runs SET status='failed',error_kind=?1 WHERE id=?2 AND status='running'",
-                params![safe_kind, self.run_id],
-            )?;
-            db.execute(
-                "UPDATE tos_rust_processing_tasks SET status='interrupted' WHERE run_id=?1 AND status='running'",
-                [&self.run_id],
-            )?;
-            Ok(())
-        })?;
+        let shared = Rc::clone(&self.shared);
+        {
+            let db = shared.db.borrow();
+            immediate_transaction(&db, || {
+                self.persist_pending(&db)?;
+                db.execute(
+                    "UPDATE tos_rust_processing_runs SET status='failed',error_kind=?1 WHERE id=?2 AND status='running'",
+                    params![safe_kind, self.run_id],
+                )?;
+                db.execute(
+                    "UPDATE tos_rust_processing_tasks SET status='interrupted' WHERE run_id=?1 AND status='running'",
+                    [&self.run_id],
+                )?;
+                Ok(())
+            })?;
+        }
         self.clear_pending();
         self.finished = true;
         Ok(())
@@ -910,15 +1127,19 @@ impl ProcessingRunInner {
             [],
             |row| Ok((row.get::<_, i64>(0)? as u64, row.get::<_, i64>(1)? as u64)),
         )?;
-        let input_changes = input_change_counts(&db, &self.run_id, self.baseline.as_deref(), &status)?;
+        let input_changes =
+            input_change_counts(&db, &self.run_id, self.baseline.as_deref(), &status)?;
         let removed_task_ids = if status == "complete" {
             let base = self.baseline.as_deref().unwrap_or("");
-            let mut current_statement = db.prepare("SELECT id FROM tos_rust_processing_tasks WHERE run_id=?1")?;
+            let mut current_statement =
+                db.prepare("SELECT id FROM tos_rust_processing_tasks WHERE run_id=?1")?;
             let current = current_statement
                 .query_map([&self.run_id], |row| row.get::<_, String>(0))?
                 .collect::<std::result::Result<BTreeSet<_>, _>>()?;
-            let mut base_statement = db.prepare("SELECT id FROM tos_rust_processing_tasks WHERE run_id=?1")?;
-            base_statement.query_map([base], |row| row.get::<_, String>(0))?
+            let mut base_statement =
+                db.prepare("SELECT id FROM tos_rust_processing_tasks WHERE run_id=?1")?;
+            base_statement
+                .query_map([base], |row| row.get::<_, String>(0))?
                 .collect::<std::result::Result<Vec<_>, _>>()?
                 .into_iter()
                 .filter(|id| !current.contains(id))
@@ -1092,7 +1313,9 @@ impl<'a> ProcessingReadSnapshot<'a> {
         limits.validate()?;
         validate_identifier(run_id, limits.max_identifier_bytes)?;
         if changed_ids.is_empty() {
-            return Err(Error::Invalid("processing closure needs a changed identity"));
+            return Err(Error::Invalid(
+                "processing closure needs a changed identity",
+            ));
         }
         if changed_ids.len() > limits.max_nodes {
             return Err(Error::Budget("processing closure node budget"));
@@ -1109,9 +1332,9 @@ impl<'a> ProcessingReadSnapshot<'a> {
             return Err(Error::Invalid("exact completed processing run required"));
         }
         let index_columns = {
-            let mut statement = self.db.prepare(
-                "PRAGMA index_info(tos_rust_processing_dependencies_reverse)",
-            )?;
+            let mut statement = self
+                .db
+                .prepare("PRAGMA index_info(tos_rust_processing_dependencies_reverse)")?;
             statement
                 .query_map([], |row| row.get::<_, String>(2))?
                 .collect::<std::result::Result<Vec<_>, _>>()?
@@ -1165,7 +1388,9 @@ impl<'a> ProcessingReadSnapshot<'a> {
                 )
                 .optional()?;
             let Some((Some(kind), Some(digest), Some(status))) = row else {
-                return Err(Error::Invalid("processing closure seed or dependency absent"));
+                return Err(Error::Invalid(
+                    "processing closure seed or dependency absent",
+                ));
             };
             if !matches!(kind.as_str(), "input" | "task")
                 || status != "complete"
@@ -1189,14 +1414,21 @@ impl<'a> ProcessingReadSnapshot<'a> {
                    FROM tos_rust_processing_dependencies INDEXED BY tos_rust_processing_dependencies_reverse\
                   WHERE run_id=?1 AND dependency_id=?2 ORDER BY task_id LIMIT ?3",
             )?;
-            let rows = statement.query_map(params![run_id, current, remaining as i64 + 1, limits.max_identifier_bytes as i64], |row| {
-                row.get::<_, Option<String>>(0)
-            })?;
+            let rows = statement.query_map(
+                params![
+                    run_id,
+                    current,
+                    remaining as i64 + 1,
+                    limits.max_identifier_bytes as i64
+                ],
+                |row| row.get::<_, Option<String>>(0),
+            )?;
             for row in rows {
                 if packet.edges.len() >= limits.max_edges {
                     return Err(Error::Budget("processing closure edge budget"));
                 }
-                let consumer = row?.ok_or(Error::Invalid("malformed processing dependency identity"))?;
+                let consumer =
+                    row?.ok_or(Error::Invalid("malformed processing dependency identity"))?;
                 if seen.insert(consumer.clone()) {
                     if seen.len() > limits.max_nodes {
                         return Err(Error::Budget("processing closure node budget"));
@@ -1212,7 +1444,10 @@ impl<'a> ProcessingReadSnapshot<'a> {
                     &mut used,
                     limits,
                 )?;
-                children.entry(current.clone()).or_default().push(consumer.clone());
+                children
+                    .entry(current.clone())
+                    .or_default()
+                    .push(consumer.clone());
                 *indegrees.entry(consumer).or_default() += 1;
             }
         }
@@ -1221,13 +1456,23 @@ impl<'a> ProcessingReadSnapshot<'a> {
             .iter()
             .map(|node| (node.id.clone(), node.kind.clone()))
             .collect();
-        if packet.nodes.iter().any(|node| {
-            node.kind == "input" && indegrees.get(&node.id).copied().unwrap_or(0) > 0
-        }) {
+        if packet
+            .nodes
+            .iter()
+            .any(|node| node.kind == "input" && indegrees.get(&node.id).copied().unwrap_or(0) > 0)
+        {
             return Err(Error::Invalid("processing input cannot depend on a task"));
         }
-        let consumers = packet.edges.iter().map(|edge| edge.task_id.as_str()).collect::<BTreeSet<_>>();
-        if packet.nodes.iter().any(|node| node.kind == "input" && consumers.contains(node.id.as_str())) {
+        let consumers = packet
+            .edges
+            .iter()
+            .map(|edge| edge.task_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if packet
+            .nodes
+            .iter()
+            .any(|node| node.kind == "input" && consumers.contains(node.id.as_str()))
+        {
             return Err(Error::Invalid("processing input cannot depend on a task"));
         }
         // Kahn's algorithm detects damaged cycles instead of returning a partial closure.
@@ -1252,7 +1497,9 @@ impl<'a> ProcessingReadSnapshot<'a> {
             }
         }
         if visited != packet.nodes.len() || kinds.len() != packet.nodes.len() {
-            return Err(Error::Invalid("cyclic or duplicate processing closure nodes"));
+            return Err(Error::Invalid(
+                "cyclic or duplicate processing closure nodes",
+            ));
         }
         Ok(packet)
     }
@@ -1285,7 +1532,9 @@ impl<'a> ProcessingReadSnapshot<'a> {
             )
             .optional()?;
         let Some((Some(status), base_run_id, true, true)) = run else {
-            return Err(Error::Invalid("processing run or baseline metadata retired"));
+            return Err(Error::Invalid(
+                "processing run or baseline metadata retired",
+            ));
         };
         if let Some(base) = base_run_id.as_deref() {
             let retained: bool = self.db.query_row(
@@ -1317,17 +1566,26 @@ impl<'a> ProcessingReadSnapshot<'a> {
                FROM changes WHERE id>?4{source_filter} ORDER BY id LIMIT ?5"
         );
         let mut statement = self.db.prepare(&sql)?;
-        let rows = statement.query_map(
-            params![run_id, base, status, after, limit as i64 + 1, self.limits.max_identifier_bytes as i64],
-            |row| {
-                Ok((
-                    row.get::<_, Option<String>>(0)?,
-                    row.get::<_, Option<String>>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                    row.get::<_, Option<String>>(3)?,
-                ))
-            },
-        )?.collect::<std::result::Result<Vec<_>, _>>()?;
+        let rows = statement
+            .query_map(
+                params![
+                    run_id,
+                    base,
+                    status,
+                    after,
+                    limit as i64 + 1,
+                    self.limits.max_identifier_bytes as i64
+                ],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<String>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                    ))
+                },
+            )?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
         let mut rows = rows
             .into_iter()
             .map(|(id, before, after, change)| {
@@ -1335,15 +1593,22 @@ impl<'a> ProcessingReadSnapshot<'a> {
                 let change = change.ok_or(Error::Invalid("malformed processing input change"))?;
                 let digests_valid = match change.as_str() {
                     "added" => before.is_none() && after.as_deref().is_some_and(valid_digest),
-                    "changed" => before.as_deref().is_some_and(valid_digest)
-                        && after.as_deref().is_some_and(valid_digest),
+                    "changed" => {
+                        before.as_deref().is_some_and(valid_digest)
+                            && after.as_deref().is_some_and(valid_digest)
+                    }
                     "removed" => before.as_deref().is_some_and(valid_digest) && after.is_none(),
                     _ => false,
                 };
                 if !digests_valid {
                     return Err(Error::Invalid("malformed processing input digest"));
                 }
-                Ok(ProcessingInputChange { id, before, after, change })
+                Ok(ProcessingInputChange {
+                    id,
+                    before,
+                    after,
+                    change,
+                })
             })
             .collect::<Result<Vec<_>>>()?;
         let has_more = rows.len() > limit;
@@ -1356,7 +1621,11 @@ impl<'a> ProcessingReadSnapshot<'a> {
         Ok(ProcessingInputChanges {
             run_id: run_id.to_owned(),
             base_run_id,
-            coverage: if status == "complete" { "complete" } else { "partial" },
+            coverage: if status == "complete" {
+                "complete"
+            } else {
+                "partial"
+            },
             items,
             next_after,
             is_semantic_acceptance: false,
@@ -1390,8 +1659,11 @@ pub fn processing_dependency_closure(
     changed_ids: &[String],
     limits: ClosureLimits,
 ) -> Result<ProcessingDependencyClosure> {
-    ProcessingReadSnapshot::new(db, ProcessingCacheLimits::default())?
-        .dependency_closure(run_id, changed_ids, limits)
+    ProcessingReadSnapshot::new(db, ProcessingCacheLimits::default())?.dependency_closure(
+        run_id,
+        changed_ids,
+        limits,
+    )
 }
 
 /// Read one bounded input-delta page through a caller-owned active read
@@ -1403,8 +1675,12 @@ pub fn processing_input_changes(
     limit: usize,
     source_only: bool,
 ) -> Result<ProcessingInputChanges> {
-    ProcessingReadSnapshot::new(db, ProcessingCacheLimits::default())?
-        .input_changes(run_id, after, limit, source_only)
+    ProcessingReadSnapshot::new(db, ProcessingCacheLimits::default())?.input_changes(
+        run_id,
+        after,
+        limit,
+        source_only,
+    )
 }
 
 /// Fingerprint a handler from the exact Rust source files that implement its
@@ -1428,10 +1704,14 @@ fn append_closure_node(
     used: &mut usize,
     limits: ClosureLimits,
 ) -> Result<()> {
-    let size = serde_json::to_vec(&json!({"id":node.id,"kind":node.kind,"output_digest":node.output_digest}))
-        .map_err(|_| Error::Invalid("processing closure node encoding"))?
-        .len();
-    *used = used.checked_add(size + usize::from(!packet.nodes.is_empty())).ok_or(Error::Budget("processing closure result bytes"))?;
+    let size = serde_json::to_vec(
+        &json!({"id":node.id,"kind":node.kind,"output_digest":node.output_digest}),
+    )
+    .map_err(|_| Error::Invalid("processing closure node encoding"))?
+    .len();
+    *used = used
+        .checked_add(size + usize::from(!packet.nodes.is_empty()))
+        .ok_or(Error::Budget("processing closure result bytes"))?;
     if *used > limits.max_result_bytes {
         return Err(Error::Budget("processing closure result bytes"));
     }
@@ -1448,10 +1728,13 @@ fn append_closure_edge(
     used: &mut usize,
     limits: ClosureLimits,
 ) -> Result<()> {
-    let size = serde_json::to_vec(&json!({"dependency_id":edge.dependency_id,"task_id":edge.task_id}))
-        .map_err(|_| Error::Invalid("processing closure edge encoding"))?
-        .len();
-    *used = used.checked_add(size + usize::from(!packet.edges.is_empty())).ok_or(Error::Budget("processing closure result bytes"))?;
+    let size =
+        serde_json::to_vec(&json!({"dependency_id":edge.dependency_id,"task_id":edge.task_id}))
+            .map_err(|_| Error::Invalid("processing closure edge encoding"))?
+            .len();
+    *used = used
+        .checked_add(size + usize::from(!packet.edges.is_empty()))
+        .ok_or(Error::Budget("processing closure result bytes"))?;
     if *used > limits.max_result_bytes {
         return Err(Error::Budget("processing closure result bytes"));
     }
@@ -1488,7 +1771,10 @@ struct CappedJsonWriter {
 
 impl Write for CappedJsonWriter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        let next = self.bytes.len().checked_add(bytes.len())
+        let next = self
+            .bytes
+            .len()
+            .checked_add(bytes.len())
             .ok_or_else(|| io::Error::other("processing JSON size"))?;
         if next > self.max {
             return Err(io::Error::other("processing JSON cap"));
@@ -1496,15 +1782,21 @@ impl Write for CappedJsonWriter {
         self.bytes.extend_from_slice(bytes);
         Ok(bytes.len())
     }
-    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 fn ordered_value(value: &Value, max_bytes: usize) -> Result<Vec<u8>> {
     if max_bytes == 0 || max_bytes > MAX_CANONICAL_VALUE_BYTES {
         return Err(Error::Budget("processing JSON bytes"));
     }
-    let mut writer = CappedJsonWriter { bytes: Vec::new(), max: max_bytes };
-    serde_json::to_writer(&mut writer, value).map_err(|_| Error::Budget("processing JSON bytes"))?;
+    let mut writer = CappedJsonWriter {
+        bytes: Vec::new(),
+        max: max_bytes,
+    };
+    serde_json::to_writer(&mut writer, value)
+        .map_err(|_| Error::Budget("processing JSON bytes"))?;
     Ok(writer.bytes)
 }
 
@@ -1604,10 +1896,13 @@ fn read_output(
     {
         None
     } else {
-        decode_strict_value(&payload, max_output_bytes).ok().and_then(|value| {
-            canonical_value(&value, max_output_bytes).ok()
-                .map(|canonical| (value, Digest256::of_bytes(&canonical).to_hex()))
-        })
+        decode_strict_value(&payload, max_output_bytes)
+            .ok()
+            .and_then(|value| {
+                canonical_value(&value, max_output_bytes)
+                    .ok()
+                    .map(|canonical| (value, Digest256::of_bytes(&canonical).to_hex()))
+            })
     };
     let Some((value, output_digest)) = decoded else {
         return Ok(None);
@@ -1622,7 +1917,8 @@ fn write_output(
     digest: &str,
     limits: ProcessingCacheLimits,
 ) -> Result<bool> {
-    let bytes = u64::try_from(payload.len()).map_err(|_| Error::Budget("processing output size"))?;
+    let bytes =
+        u64::try_from(payload.len()).map_err(|_| Error::Budget("processing output size"))?;
     if bytes > limits.max_payload_bytes {
         return Ok(false);
     }
@@ -1639,27 +1935,24 @@ fn trim_outputs(db: &Connection, limits: ProcessingCacheLimits) -> Result<u64> {
     let mut evicted = 0u64;
     loop {
         let (bytes, entries): (u64, u64) = db.query_row(
-            "SELECT coalesce(sum(bytes),0),count(*) FROM tos_rust_processing_outputs",
+            "SELECT bytes,entries FROM tos_rust_processing_output_usage WHERE singleton=1",
             [],
             |row| Ok((row.get::<_, i64>(0)? as u64, row.get::<_, i64>(1)? as u64)),
         )?;
         if bytes <= limits.max_payload_bytes && entries <= limits.max_entries {
             return Ok(evicted);
         }
-        let key: Option<String> = db
-            .query_row(
-                "SELECT cache_key FROM tos_rust_processing_outputs ORDER BY used,cache_key LIMIT 1",
-                [],
-                |row| row.get(0),
-            )
-            .optional()?;
-        let Some(key) = key else {
+        let deleted = db.execute(
+            "DELETE FROM tos_rust_processing_outputs WHERE cache_key IN\
+                (SELECT cache_key FROM tos_rust_processing_outputs ORDER BY used,cache_key LIMIT 128)",
+            [],
+        )?;
+        if deleted == 0 {
             return Ok(evicted);
-        };
-        evicted += db.execute(
-            "DELETE FROM tos_rust_processing_outputs WHERE cache_key=?1",
-            [key],
-        )? as u64;
+        }
+        evicted = evicted
+            .checked_add(deleted as u64)
+            .ok_or(Error::Budget("processing evicted output count"))?;
     }
 }
 
@@ -1695,58 +1988,125 @@ mod tests {
 
     #[test]
     fn rust_namespace_reuses_outputs_and_publishes_exact_closure() {
-        let cache = ProcessingCache::from_connection(Connection::open_in_memory().unwrap()).unwrap();
+        let cache =
+            ProcessingCache::from_connection(Connection::open_in_memory().unwrap()).unwrap();
         let mut first = cache.begin_run().unwrap();
-        let source = first.input("source-node:work", &json!({"id":"work","title":"One"})).unwrap();
-        let node = first.evaluate_task(
-            "node:work", "node", "knowledge_base::normalize_node", fingerprint(b"knowledge_base.rs:normalize_node-v1"),
-            &json!({"source_graph":"philosophy"}), &[source.clone()], || Ok(json!({"id":"work","display":{"title":"One"}})),
-        ).unwrap();
-        let title = first.evaluate_task(
-            "endpoint-title:work", "endpoint-title", "knowledge_global_titles::title", fingerprint(b"knowledge_global_titles.rs:title-v1"),
-            &json!({"node_id":"work"}), &[node.clone()], || Ok(json!({"title":"One"})),
-        ).unwrap();
-        let edge = first.evaluate_task(
-            "relation:edge", "relation", "knowledge_base::normalize_relation", fingerprint(b"knowledge_base.rs:normalize_relation-v1"),
-            &json!({"id":"edge"}), &[source, title], || Ok(json!({"id":"edge"})),
-        ).unwrap();
+        let source = first
+            .input("source-node:work", &json!({"id":"work","title":"One"}))
+            .unwrap();
+        let node = first
+            .evaluate_task(
+                "node:work",
+                "node",
+                "knowledge_base::normalize_node",
+                fingerprint(b"knowledge_base.rs:normalize_node-v1"),
+                &json!({"source_graph":"philosophy"}),
+                &[source.clone()],
+                || Ok(json!({"id":"work","display":{"title":"One"}})),
+            )
+            .unwrap();
+        let title = first
+            .evaluate_task(
+                "endpoint-title:work",
+                "endpoint-title",
+                "knowledge_global_titles::title",
+                fingerprint(b"knowledge_global_titles.rs:title-v1"),
+                &json!({"node_id":"work"}),
+                &[node.clone()],
+                || Ok(json!({"title":"One"})),
+            )
+            .unwrap();
+        let edge = first
+            .evaluate_task(
+                "relation:edge",
+                "relation",
+                "knowledge_base::normalize_relation",
+                fingerprint(b"knowledge_base.rs:normalize_relation-v1"),
+                &json!({"id":"edge"}),
+                &[source, title],
+                || Ok(json!({"id":"edge"})),
+            )
+            .unwrap();
         assert_eq!(edge.kind(), "task");
         let first_id = first.id();
         first.finish().unwrap();
         let db = cache.shared.db.borrow();
         db.execute_batch("BEGIN").unwrap();
-        let closure = ProcessingReadSnapshot::new(&db, ProcessingCacheLimits::default()).unwrap()
-            .dependency_closure(&first_id, &["source-node:work".to_owned()], ClosureLimits::default()).unwrap();
+        let closure = ProcessingReadSnapshot::new(&db, ProcessingCacheLimits::default())
+            .unwrap()
+            .dependency_closure(
+                &first_id,
+                &["source-node:work".to_owned()],
+                ClosureLimits::default(),
+            )
+            .unwrap();
         db.execute_batch("ROLLBACK").unwrap();
-        assert!(closure.nodes.iter().any(|node| node.id == "endpoint-title:work"));
+        assert!(
+            closure
+                .nodes
+                .iter()
+                .any(|node| node.id == "endpoint-title:work")
+        );
         assert!(closure.nodes.iter().any(|node| node.id == "relation:edge"));
         assert!(!closure.is_semantic_acceptance);
         drop(db);
 
         let mut second = cache.begin_run().unwrap();
-        let source = second.input("source-node:work", &json!({"id":"work","title":"One"})).unwrap();
-        let node = second.evaluate_task(
-            "node:work", "node", "knowledge_base::normalize_node", fingerprint(b"knowledge_base.rs:normalize_node-v1"),
-            &json!({"source_graph":"philosophy"}), &[source.clone()], || panic!("cache hit expected"),
-        ).unwrap();
-        assert_eq!(node.output_digest(), closure.nodes.iter().find(|node| node.id == "node:work").unwrap().output_digest);
+        let source = second
+            .input("source-node:work", &json!({"id":"work","title":"One"}))
+            .unwrap();
+        let node = second
+            .evaluate_task(
+                "node:work",
+                "node",
+                "knowledge_base::normalize_node",
+                fingerprint(b"knowledge_base.rs:normalize_node-v1"),
+                &json!({"source_graph":"philosophy"}),
+                &[source.clone()],
+                || panic!("cache hit expected"),
+            )
+            .unwrap();
+        assert_eq!(
+            node.output_digest(),
+            closure
+                .nodes
+                .iter()
+                .find(|node| node.id == "node:work")
+                .unwrap()
+                .output_digest
+        );
         second.finish().unwrap();
     }
 
     #[test]
     fn dropped_run_and_python_namespace_do_not_publish_or_migrate() {
         let db = Connection::open_in_memory().unwrap();
-        db.execute_batch("CREATE TABLE completed_steps(cache_key TEXT PRIMARY KEY,payload TEXT NOT NULL);").unwrap();
-        db.execute("INSERT INTO completed_steps VALUES ('old','{}')", []).unwrap();
+        db.execute_batch(
+            "CREATE TABLE completed_steps(cache_key TEXT PRIMARY KEY,payload TEXT NOT NULL);",
+        )
+        .unwrap();
+        db.execute("INSERT INTO completed_steps VALUES ('old','{}')", [])
+            .unwrap();
         let cache = ProcessingCache::from_connection(db).unwrap();
         let mut run = cache.begin_run().unwrap();
         let input = run.input("source-row:a", &json!({"id":"a"})).unwrap();
-        run.evaluate_task("node:a", "node", "handler", fingerprint(b"handler.rs"), &json!({}), &[input], || Ok(json!({"id":"a"}))).unwrap();
+        run.evaluate_task(
+            "node:a",
+            "node",
+            "handler",
+            fingerprint(b"handler.rs"),
+            &json!({}),
+            &[input],
+            || Ok(json!({"id":"a"})),
+        )
+        .unwrap();
         drop(run);
         assert!(cache.active_run_id().unwrap().is_none());
         let db = cache.shared.db.borrow();
         db.execute_batch("BEGIN").unwrap();
-        let old_tables: i64 = db.query_row("SELECT count(*) FROM completed_steps", [], |row| row.get(0)).unwrap();
+        let old_tables: i64 = db
+            .query_row("SELECT count(*) FROM completed_steps", [], |row| row.get(0))
+            .unwrap();
         assert_eq!(old_tables, 1);
         db.execute_batch("ROLLBACK").unwrap();
     }
@@ -1759,11 +2119,20 @@ mod tests {
         let tasks = (0..12).map(|index| index.to_string()).collect::<Vec<_>>();
         let mut first = cache.begin_run().unwrap();
         for index in &tasks {
-            let source = first.input(&format!("source:{index}"), &json!({"index":index})).unwrap();
-            first.evaluate_task(
-                &format!("task:{index}"), "node", "test-handler", fingerprint(b"test-handler.rs:v1"),
-                &json!({}), &[source], || Ok(json!({"value":index})),
-            ).unwrap();
+            let source = first
+                .input(&format!("source:{index}"), &json!({"index":index}))
+                .unwrap();
+            first
+                .evaluate_task(
+                    &format!("task:{index}"),
+                    "node",
+                    "test-handler",
+                    fingerprint(b"test-handler.rs:v1"),
+                    &json!({}),
+                    &[source],
+                    || Ok(json!({"value":index})),
+                )
+                .unwrap();
         }
         first.finish().unwrap();
         drop(first);
@@ -1772,22 +2141,40 @@ mod tests {
         COMMIT_TRACE_COUNT.store(0, Ordering::Relaxed);
         cache.shared.db.borrow().commit_hook(Some(count_commit));
         for index in &tasks {
-            let source = warm.input(&format!("source:{index}"), &json!({"index":index})).unwrap();
+            let source = warm
+                .input(&format!("source:{index}"), &json!({"index":index}))
+                .unwrap();
             warm.evaluate_task(
-                &format!("task:{index}"), "node", "test-handler", fingerprint(b"test-handler.rs:v1"),
-                &json!({}), &[source], || panic!("warm cache hit expected"),
-            ).unwrap();
+                &format!("task:{index}"),
+                "node",
+                "test-handler",
+                fingerprint(b"test-handler.rs:v1"),
+                &json!({}),
+                &[source],
+                || panic!("warm cache hit expected"),
+            )
+            .unwrap();
         }
         assert_eq!(COMMIT_TRACE_COUNT.load(Ordering::Relaxed), 0);
         let source = warm.input("source:new", &json!({"index":"new"})).unwrap();
         warm.evaluate_task(
-            "task:new", "node", "test-handler", fingerprint(b"test-handler.rs:v1"),
-            &json!({}), &[source], || Ok(json!({"value":"new"})),
-        ).unwrap();
+            "task:new",
+            "node",
+            "test-handler",
+            fingerprint(b"test-handler.rs:v1"),
+            &json!({}),
+            &[source],
+            || Ok(json!({"value":"new"})),
+        )
+        .unwrap();
         let observer = Connection::open(&path).unwrap();
-        let durable: i64 = observer.query_row(
-            "SELECT count(*) FROM tos_rust_processing_outputs", [], |row| row.get(0),
-        ).unwrap();
+        let durable: i64 = observer
+            .query_row(
+                "SELECT count(*) FROM tos_rust_processing_outputs",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
         assert_eq!(durable, 13);
         cache.shared.db.borrow().commit_hook(None::<fn() -> bool>);
         warm.finish().unwrap();
@@ -1801,60 +2188,254 @@ mod tests {
         let mut run = cache.begin_run().unwrap();
         let input = run.input("source:a", &json!({"label":"Alpha"})).unwrap();
         run.evaluate_task(
-            "node:a", "node", "test-handler", fingerprint(b"test-handler.rs:v1"),
-            &json!({}), &[input], || Ok(json!({"label":"Alpha"})),
-        ).unwrap();
+            "node:a",
+            "node",
+            "test-handler",
+            fingerprint(b"test-handler.rs:v1"),
+            &json!({}),
+            &[input],
+            || Ok(json!({"label":"Alpha"})),
+        )
+        .unwrap();
         let run_id = run.id();
         run.finish().unwrap();
 
         let reader = Connection::open(&path).unwrap();
         reader.execute_batch("PRAGMA query_only=ON; BEGIN").unwrap();
-        let expected = ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default()).unwrap()
-            .dependency_closure(&run_id, &["source:a".to_owned()], ClosureLimits::default()).unwrap();
+        let expected = ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default())
+            .unwrap()
+            .dependency_closure(&run_id, &["source:a".to_owned()], ClosureLimits::default())
+            .unwrap();
         {
             let writer = cache.shared.db.borrow();
             immediate_transaction(&writer, || {
-                writer.execute("DELETE FROM tos_rust_processing_run_bases WHERE run_id=?1", [&run_id])?;
-                writer.execute("DELETE FROM tos_rust_processing_dependencies WHERE run_id=?1", [&run_id])?;
-                writer.execute("DELETE FROM tos_rust_processing_tasks WHERE run_id=?1", [&run_id])?;
-                writer.execute("DELETE FROM tos_rust_processing_runs WHERE id=?1", [&run_id])?;
+                writer.execute(
+                    "DELETE FROM tos_rust_processing_run_bases WHERE run_id=?1",
+                    [&run_id],
+                )?;
+                writer.execute(
+                    "DELETE FROM tos_rust_processing_dependencies WHERE run_id=?1",
+                    [&run_id],
+                )?;
+                writer.execute(
+                    "DELETE FROM tos_rust_processing_tasks WHERE run_id=?1",
+                    [&run_id],
+                )?;
+                writer.execute(
+                    "DELETE FROM tos_rust_processing_runs WHERE id=?1",
+                    [&run_id],
+                )?;
                 Ok(())
-            }).unwrap();
+            })
+            .unwrap();
         }
-        let pinned = ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default()).unwrap()
-            .dependency_closure(&run_id, &["source:a".to_owned()], ClosureLimits::default()).unwrap();
+        let pinned = ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default())
+            .unwrap()
+            .dependency_closure(&run_id, &["source:a".to_owned()], ClosureLimits::default())
+            .unwrap();
         assert_eq!(pinned.nodes.len(), expected.nodes.len());
         reader.execute_batch("ROLLBACK; BEGIN").unwrap();
-        assert!(ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default()).unwrap()
-            .dependency_closure(&run_id, &["source:a".to_owned()], ClosureLimits::default()).is_err());
+        assert!(
+            ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default())
+                .unwrap()
+                .dependency_closure(&run_id, &["source:a".to_owned()], ClosureLimits::default())
+                .is_err()
+        );
     }
 
     #[test]
     fn closure_refuses_duplicate_seed_but_deduplicates_shared_paths() {
-        let cache = ProcessingCache::from_connection(Connection::open_in_memory().unwrap()).unwrap();
+        let cache =
+            ProcessingCache::from_connection(Connection::open_in_memory().unwrap()).unwrap();
         let mut run = cache.begin_run().unwrap();
         let source = run.input("source:a", &json!({"id":"a"})).unwrap();
-        let node = run.evaluate_task(
-            "node:a", "node", "test-handler", fingerprint(b"test-handler.rs:v1"),
-            &json!({}), &[source.clone()], || Ok(json!({"id":"a"})),
-        ).unwrap();
+        let node = run
+            .evaluate_task(
+                "node:a",
+                "node",
+                "test-handler",
+                fingerprint(b"test-handler.rs:v1"),
+                &json!({}),
+                &[source.clone()],
+                || Ok(json!({"id":"a"})),
+            )
+            .unwrap();
         run.evaluate_task(
-            "final:a", "final", "test-finalizer", fingerprint(b"test-finalizer.rs:v1"),
-            &json!({}), &[source, node], || Ok(json!({"id":"a"})),
-        ).unwrap();
+            "final:a",
+            "final-node",
+            "test-finalizer",
+            fingerprint(b"test-finalizer.rs:v1"),
+            &json!({}),
+            &[source, node],
+            || Ok(json!({"id":"a"})),
+        )
+        .unwrap();
+        assert_eq!(
+            run.handle().latest_output("node", "a").unwrap().id(),
+            "final:a"
+        );
         let run_id = run.id();
         run.finish().unwrap();
         let db = cache.shared.db.borrow();
         db.execute_batch("BEGIN").unwrap();
         let snapshot = ProcessingReadSnapshot::new(&db, ProcessingCacheLimits::default()).unwrap();
-        assert!(snapshot.dependency_closure(
-            &run_id, &["source:a".to_owned(), "source:a".to_owned()], ClosureLimits::default(),
-        ).is_err());
-        let closure = snapshot.dependency_closure(
-            &run_id, &["source:a".to_owned(), "node:a".to_owned()], ClosureLimits::default(),
-        ).unwrap();
-        assert_eq!(closure.nodes.iter().filter(|node| node.id == "final:a").count(), 1);
-        assert_eq!(closure.edges.iter().filter(|edge| edge.task_id == "final:a").count(), 2);
+        assert!(
+            snapshot
+                .dependency_closure(
+                    &run_id,
+                    &["source:a".to_owned(), "source:a".to_owned()],
+                    ClosureLimits::default(),
+                )
+                .is_err()
+        );
+        let closure = snapshot
+            .dependency_closure(
+                &run_id,
+                &["source:a".to_owned(), "node:a".to_owned()],
+                ClosureLimits::default(),
+            )
+            .unwrap();
+        assert_eq!(
+            closure
+                .nodes
+                .iter()
+                .filter(|node| node.id == "final:a")
+                .count(),
+            1
+        );
+        assert_eq!(
+            closure
+                .edges
+                .iter()
+                .filter(|edge| edge.task_id == "final:a")
+                .count(),
+            2
+        );
         db.execute_batch("ROLLBACK").unwrap();
+    }
+
+    #[test]
+    fn publication_cas_failure_recovery_input_invalidation_and_corruption_miss() {
+        let cache =
+            ProcessingCache::from_connection(Connection::open_in_memory().unwrap()).unwrap();
+        let mut winner = cache.begin_run().unwrap();
+        let winner_input = winner.input("source:row", &json!({"version":1})).unwrap();
+        winner
+            .evaluate_task(
+                "node:row",
+                "node",
+                "test-normalizer",
+                fingerprint(b"test-normalizer-v1"),
+                &json!({"graph":"test"}),
+                &[winner_input],
+                || Ok(json!({"id":"row","version":1})),
+            )
+            .unwrap();
+        let winner_id = winner.id();
+        let mut competing = cache.begin_run().unwrap();
+        let competing_input = competing
+            .input("source:row", &json!({"version":1}))
+            .unwrap();
+        competing
+            .evaluate_task(
+                "node:row",
+                "node",
+                "test-normalizer",
+                fingerprint(b"test-normalizer-v1"),
+                &json!({"graph":"test"}),
+                &[competing_input],
+                || panic!("competing full run should share the durable pure output"),
+            )
+            .unwrap();
+        let competing_id = competing.id();
+        winner.finish().unwrap();
+        assert!(competing.finish().is_err());
+        assert_eq!(
+            cache.active_run_id().unwrap().as_deref(),
+            Some(winner_id.as_str())
+        );
+
+        let mut failed = cache.begin_run().unwrap();
+        let changed = failed.input("source:row", &json!({"version":2})).unwrap();
+        assert!(
+            failed
+                .evaluate_task(
+                    "node:row",
+                    "node",
+                    "test-normalizer",
+                    fingerprint(b"test-normalizer-v1"),
+                    &json!({"graph":"test"}),
+                    &[changed],
+                    || Err(Error::Invalid("fixture handler failure")),
+                )
+                .is_err()
+        );
+        assert_eq!(failed.report().unwrap().status, "failed");
+        assert_eq!(
+            cache.active_run_id().unwrap().as_deref(),
+            Some(winner_id.as_str())
+        );
+
+        let mut recovered = cache.begin_run().unwrap();
+        let changed = recovered
+            .input("source:row", &json!({"version":2}))
+            .unwrap();
+        let recovered_node = recovered
+            .evaluate_task(
+                "node:row",
+                "node",
+                "test-normalizer",
+                fingerprint(b"test-normalizer-v1"),
+                &json!({"graph":"test"}),
+                &[changed],
+                || Ok(json!({"id":"row","version":2})),
+            )
+            .unwrap();
+        assert_eq!(recovered_node.value(), &json!({"id":"row","version":2}));
+        let recovered_id = recovered.id();
+        recovered.finish().unwrap();
+        assert_eq!(recovered.report().unwrap().input_changes["changed"], 1);
+
+        let key: String = cache
+            .shared
+            .db
+            .borrow()
+            .query_row(
+                "SELECT cache_key FROM tos_rust_processing_tasks WHERE run_id=?1 AND id='node:row'",
+                [&winner_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        cache
+            .shared
+            .db
+            .borrow()
+            .execute(
+                "UPDATE tos_rust_processing_outputs SET payload=x'7b7d' WHERE cache_key=?1",
+                [&key],
+            )
+            .unwrap();
+        let recomputed = AtomicUsize::new(0);
+        let mut after_corruption = cache.begin_run().unwrap();
+        let original = after_corruption
+            .input("source:row", &json!({"version":1}))
+            .unwrap();
+        after_corruption
+            .evaluate_task(
+                "node:row",
+                "node",
+                "test-normalizer",
+                fingerprint(b"test-normalizer-v1"),
+                &json!({"graph":"test"}),
+                &[original],
+                || {
+                    recomputed.fetch_add(1, Ordering::Relaxed);
+                    Ok(json!({"id":"row","version":1}))
+                },
+            )
+            .unwrap();
+        assert_eq!(recomputed.load(Ordering::Relaxed), 1);
+        after_corruption.finish().unwrap();
+        assert_ne!(recovered_id, competing_id);
     }
 }

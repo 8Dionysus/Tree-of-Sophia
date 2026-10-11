@@ -17,12 +17,205 @@ use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, SeekRow, Writ
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, canonical_raw_bytes_v1,
 };
 
+macro_rules! processing_fingerprint {
+    ($handler:literal, [$($source:expr),+ $(,)?] $(,)?) => {{
+        static FINGERPRINT: std::sync::OnceLock<tos_foundation::Digest256> =
+            std::sync::OnceLock::new();
+        *FINGERPRINT.get_or_init(|| {
+            crate::processing_cache::rust_source_fingerprint($handler, &[$($source),+])
+        })
+    }};
+}
+
 const PROFILE: &str = "reified-bibliographic-claims-v1";
+
+fn processing_config(normalizer: &ClaimNormalizer<'_>) -> Result<Value> {
+    let digest = stable_digest(&json!({
+        "source_graph": &normalizer.source_graph,
+        "navigation_graph": &normalizer.navigation_graph,
+        "entity_ref": &normalizer.entity_ref,
+        "relation_ref": &normalizer.relation_ref,
+        "dossier_kinds": &normalizer.dossier_kinds,
+        "types": &normalizer.types,
+        "relations": &normalizer.relations,
+        "limits": {
+            "max_raw_bytes": normalizer.limits.max_raw_bytes,
+            "max_output_bytes": normalizer.limits.max_output_bytes,
+            "max_contexts": normalizer.limits.max_contexts,
+        },
+    }))?;
+    Ok(json!({"sha256":digest}))
+}
+
+fn processing_source_input(
+    run: &crate::processing_cache::ProcessingRunHandle,
+    label: &str,
+    graph: &str,
+    id: &str,
+    bytes: &[u8],
+) -> Result<crate::processing_cache::ProcessingValue> {
+    run.input(
+        &format!("{label}:{graph}:{id}"),
+        &json!({"sha256":Digest256::of_bytes(bytes).to_hex(),"bytes":bytes.len()}),
+    )
+}
+
+fn processing_group(
+    run: &crate::processing_cache::ProcessingRunHandle,
+    stage: &mut KnowledgeStage<'_>,
+    prepared: &ClaimPrepareReceipt,
+    receipt: &ClaimContextReceipt,
+    reference: &str,
+    limits: ClaimNormalizeLimits,
+) -> Result<crate::processing_cache::ProcessingValue> {
+    let id = format!("claim-context-group:{}:{reference}", prepared.source_graph);
+    if let Some(result) = run.result(&id) {
+        return Ok(result);
+    }
+    let contexts = claim_contexts(stage, receipt, &prepared.source_graph, reference, limits)?;
+    let owners: Vec<(String, Vec<u8>)> = stage.with_connection(WritePhase::Sort, |db| {
+        let mut query = db.prepare(
+            "SELECT CASE WHEN typeof(owner_native_id)='text' AND length(CAST(owner_native_id AS BLOB))<=4096 THEN owner_native_id ELSE NULL END, CASE WHEN typeof(owner_sha256)='blob' AND length(owner_sha256)=32 THEN owner_sha256 ELSE NULL END FROM knowledge_claim_context_groups WHERE source_graph=?1 AND claim_ref=?2 ORDER BY encounter LIMIT ?3",
+        )?;
+        let rows = query.query_map(
+            params![prepared.source_graph, reference, limits.max_contexts + 1],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+    })?;
+    if owners.len() > limits.max_contexts || owners.len() != contexts.len() {
+        return Err(Error::Budget("Claim context group dependencies"));
+    }
+    let mut dependencies = Vec::with_capacity(owners.len());
+    for (index, (native_id, owner_sha)) in owners.iter().enumerate() {
+        if owner_sha.len() != 32 {
+            return Err(Error::Invalid("Claim context source digest"));
+        }
+        let base_id = format!("claim-node:{}:{native_id}", prepared.source_graph);
+        let source = if let Some(node) = run.result(&base_id) {
+            node
+        } else {
+            let raw = stage
+                .scoped_raw_by_id(&prepared.source_graph, "nodes", native_id)?
+                .ok_or(Error::Invalid("Claim context source absent"))?;
+            if Digest256::of_bytes(&raw.payload).as_bytes().as_slice() != owner_sha.as_slice() {
+                return Err(Error::Invalid("Claim context source digest"));
+            }
+            processing_source_input(
+                run,
+                "claim-context-source",
+                &prepared.source_graph,
+                native_id,
+                &raw.payload,
+            )?
+        };
+        dependencies.push(source);
+        let context_input = run.input(
+            &format!(
+                "claim-context-value:{}:{reference}:{index}",
+                prepared.source_graph
+            ),
+            &json!({"sha256":stable_digest(&contexts[index])?,"encounter":index}),
+        )?;
+        dependencies.push(context_input);
+    }
+    let fingerprint = processing_fingerprint!(
+        "knowledge_source_claims::ordered_context_group",
+        [
+            include_bytes!("knowledge_source_claims.rs"),
+            include_bytes!("knowledge_source_claims_prepare.rs"),
+            include_bytes!("processing_cache.rs"),
+        ],
+    );
+    run.evaluate_task(
+        &id,
+        "claim-context-group",
+        "knowledge_source_claims::ordered_context_group",
+        fingerprint,
+        &json!({"source_graph":prepared.source_graph,"claim_ref":reference,"max_contexts":limits.max_contexts}),
+        &dependencies,
+        || Ok(Value::Array(contexts)),
+    )
+}
+
+fn processing_endpoint_title(
+    run: &crate::processing_cache::ProcessingRunHandle,
+    node_id: &str,
+    title: &Value,
+) -> Result<crate::processing_cache::ProcessingValue> {
+    let task_id = format!("endpoint-title:{node_id}");
+    if let Some(previous) = run.result(&task_id) {
+        if previous.value() != title {
+            return Err(Error::Invalid("Claim endpoint title producer mismatch"));
+        }
+        return Ok(previous);
+    }
+    let (source, derived) = if let Some(node) = run
+        .result(&format!("node:{node_id}"))
+        .or_else(|| run.result(&format!("claim-node:{node_id}")))
+    {
+        let derived = node
+            .value()
+            .pointer("/display/title")
+            .filter(|value| value.is_object())
+            .ok_or(Error::Invalid("Claim endpoint node title absent"))?;
+        if derived != title {
+            return Err(Error::Invalid("Claim endpoint title producer mismatch"));
+        }
+        let derived = derived.clone();
+        (node, derived)
+    } else {
+        (
+            run.input(&format!("source-endpoint-title:{node_id}"), title)?,
+            title.clone(),
+        )
+    };
+    let fingerprint = processing_fingerprint!(
+        "knowledge_global_titles::endpoint_title",
+        [
+            include_bytes!("knowledge_global_titles.rs"),
+            include_bytes!("knowledge_seal.rs"),
+            include_bytes!("processing_cache.rs"),
+        ],
+    );
+    run.evaluate_task(
+        &task_id,
+        "endpoint-title",
+        "knowledge_global_titles::endpoint_title",
+        fingerprint,
+        &json!({"node_id":node_id}),
+        &[source],
+        || Ok(derived),
+    )
+}
+
+fn processing_current_node(
+    run: &crate::processing_cache::ProcessingRunHandle,
+    stable_id: &str,
+    input_id: &str,
+    value: &Value,
+) -> Result<crate::processing_cache::ProcessingValue> {
+    for task_id in [
+        format!("node:{stable_id}"),
+        format!("claim-node:{stable_id}"),
+    ] {
+        if let Some(previous) = run.result(&task_id) {
+            if previous.value() == value {
+                return Ok(previous);
+            }
+        }
+    }
+    let bytes = encode(value, 8 * 1024 * 1024)?;
+    run.input(
+        input_id,
+        &json!({"sha256":Digest256::of_bytes(&bytes).to_hex(),"bytes":bytes.len()}),
+    )
+}
 
 /// Exact Python bibliography materialization adds its graph layer before
 /// normalization. Preserve the original member order for readable copies;
@@ -312,6 +505,7 @@ pub struct ClaimNormalizer<'a> {
     types: BTreeMap<String, Value>,
     relations: BTreeMap<String, Value>,
     limits: ClaimNormalizeLimits,
+    processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
 }
 impl<'a> ClaimNormalizer<'a> {
     pub fn new(
@@ -363,6 +557,7 @@ impl<'a> ClaimNormalizer<'a> {
                 .map(|e| Ok((required(e, "relation_type_id")?.to_owned(), e.clone())))
                 .collect::<Result<_>>()?,
             limits,
+            processing_run: None,
         })
     }
     pub(crate) fn new_for_addressed_candidate(
@@ -389,6 +584,14 @@ impl<'a> ClaimNormalizer<'a> {
         )?;
         normalizer.limits = limits;
         Ok(normalizer)
+    }
+
+    pub fn with_processing_run(
+        mut self,
+        run: crate::processing_cache::ProcessingRunHandle,
+    ) -> Self {
+        self.processing_run = Some(run);
+        self
     }
     fn verify(&self, raw: &SeekRow, prepared: &ClaimPrepareReceipt) -> Result<()> {
         if raw.source_graph != self.source_graph
@@ -427,6 +630,20 @@ impl<'a> ClaimNormalizer<'a> {
             .get("source_claim_profile")
             .cloned()
             .unwrap_or_else(|| json!({})))
+    }
+    fn claim_policy_value(&self, predicate: &str) -> Result<Value> {
+        let resolved = self
+            .registry
+            .relation(&self.source_graph, predicate, "claim-predicate");
+        Ok(json!({
+            "source_graph":self.source_graph,
+            "source_predicate_id":predicate,
+            "relation_type_id":resolved.type_id,
+            "predicate_mapping_status":if resolved.mapped {"mapped"} else {"unmapped"},
+            "registry_ref":self.relation_ref,
+            "registry_sha256":self.registry.relation_sha256,
+            "source_claim_profile":self.profile(predicate)?,
+        }))
     }
     fn ancestors(&self, id: &str) -> Result<Vec<String>> {
         let mut seen = BTreeSet::new();
@@ -1278,12 +1495,79 @@ pub fn materialize_source_claim_nodes(
                     .ok_or(Error::Budget("Claim retained source material state"))?;
                 let _material_hold = stage.owned_creation_state()
                     .map(|state| state.hold(material_reservation)).transpose()?;
-                let (output, material) = normalizer.normalize_supplied_node_with_source(
-                    &raw,
-                    predicate.as_deref(),
-                    dossier.as_deref(),
-                    false,
-                )?;
+                let (output, material) = if let Some(run) = &normalizer.processing_run {
+                    let source = processing_source_input(
+                        run,
+                        "claim-node-source",
+                        &prepared.source_graph,
+                        &raw.id,
+                        &raw.payload,
+                    )?;
+                    let predicate_input = run.input(
+                        &format!("claim-node-predicate:{}:{}", prepared.source_graph, raw.id),
+                        &json!({"predicate":predicate}),
+                    )?;
+                    let dossier_input = run.input(
+                        &format!("claim-node-dossier:{}:{}", prepared.source_graph, raw.id),
+                        &json!({"dossier":dossier}),
+                    )?;
+                    let config = run.input(
+                        &format!("claim-normalizer-config:{}", prepared.source_graph),
+                        &processing_config(normalizer)?,
+                    )?;
+                    let fingerprint = processing_fingerprint!(
+                        "knowledge_source_claims::normalize_supplied_node_with_source",
+                        [
+include_bytes!("knowledge_source_claims.rs"),
+                            include_bytes!("knowledge_source_navigation_node.rs"),
+                            include_bytes!("knowledge_philosophy_display.rs"),
+                            include_bytes!("knowledge_normalization.rs"),
+                            include_bytes!("knowledge_seal.rs"),
+                            include_bytes!("processing_cache.rs"),
+                        ],
+                    );
+                    let task = run.evaluate_task(
+                        &format!("claim-node:{}:{}", prepared.source_graph, raw.id),
+                        "claim-node",
+                        "knowledge_source_claims::normalize_supplied_node_with_source",
+                        fingerprint,
+                        &json!({"source_graph":prepared.source_graph,"native_id":raw.id,"source_cut":prepared.source_cut,"max_raw_bytes":normalizer.limits.max_raw_bytes,"max_output_bytes":normalizer.limits.max_output_bytes}),
+                        &[source, predicate_input, dossier_input, config],
+                        || {
+                            let (output, material) = normalizer
+                                .normalize_supplied_node_with_source(
+                                    &raw,
+                                    predicate.as_deref(),
+                                    dossier.as_deref(),
+                                    false,
+                                )?;
+                            let material = String::from_utf8(material)
+                                .map_err(|_| Error::Invalid("Claim ordered material UTF8"))?;
+                            Ok(json!({"output":output,"material":material}))
+                        },
+                    )?;
+                    let output = task
+                        .value()
+                        .get("output")
+                        .cloned()
+                        .ok_or(Error::Invalid("cached Claim node output"))?;
+                    let material = task
+                        .value()
+                        .get("material")
+                        .and_then(Value::as_str)
+                        .ok_or(Error::Invalid("cached Claim node material"))?
+                        .as_bytes()
+                        .to_vec();
+                    SourceRow::parse(&material, normalizer.limits.max_raw_bytes)?;
+                    (output, material)
+                } else {
+                    normalizer.normalize_supplied_node_with_source(
+                        &raw,
+                        predicate.as_deref(),
+                        dossier.as_deref(),
+                                    false,
+                    )?
+                };
                 let bytes = encode(&output, normalizer.limits.max_output_bytes)?;
                 charge(&mut work, bytes.len(), normalizer.limits.max_work_bytes)?;
                 stage.insert_node_with_exact_source(NodeRow {
@@ -1668,24 +1952,127 @@ pub fn materialize_source_claim_relations(
                     reference,
                     normalizer.limits,
                 )?;
-                let output = normalizer.normalize_base_relation(
-                    &raw,
-                    prepared,
-                    object.value(),
-                    target.value(),
-                    &left,
-                    &right,
-                    &group,
-                )?;
+                let (output, material) = if let Some(run) = &normalizer.processing_run {
+                    let source_input = processing_source_input(
+                        run,
+                        "claim-edge-source",
+                        &prepared.source_graph,
+                        &raw.id,
+                        &raw.payload,
+                    )?;
+                    let object_input = processing_source_input(
+                        run,
+                        "claim-edge-object",
+                        &prepared.source_graph,
+                        &object_id,
+                        &object_row
+                            .as_ref()
+                            .ok_or(Error::Invalid("Claim edge object absent"))?
+                            .payload,
+                    )?;
+                    let target_id = required(item, "to_id")?;
+                    let target_input = processing_source_input(
+                        run,
+                        "claim-edge-target",
+                        &prepared.source_graph,
+                        target_id,
+                        &target_row
+                            .as_ref()
+                            .ok_or(Error::Invalid("Claim edge target absent"))?
+                            .payload,
+                    )?;
+                    let left_id = format!("{from_graph}:{}", required(item, "from_id")?);
+                    let right_id = format!("{to_graph}:{target_id}");
+                    let left_title = processing_endpoint_title(run, &left_id, &left)?;
+                    let right_title = processing_endpoint_title(run, &right_id, &right)?;
+                    let group_task = processing_group(
+                        run,
+                        stage,
+                        prepared,
+                        contexts,
+                        reference,
+                        normalizer.limits,
+                    )?;
+                    let config = run.input(
+                        &format!("claim-normalizer-config:{}", prepared.source_graph),
+                        &processing_config(normalizer)?,
+                    )?;
+                    let fingerprint = processing_fingerprint!(
+                        "knowledge_source_claims::normalize_base_relation",
+                        [
+include_bytes!("knowledge_source_claims.rs"),
+                            include_bytes!("knowledge_global_titles.rs"),
+                            include_bytes!("knowledge_source_claims_prepare.rs"),
+                            include_bytes!("knowledge_normalization.rs"),
+                            include_bytes!("knowledge_philosophy_display.rs"),
+                            include_bytes!("knowledge_seal.rs"),
+                            include_bytes!("processing_cache.rs"),
+                        ],
+                    );
+                    let task = run.evaluate_task(
+                        &format!("claim-relation:{}:{}", prepared.source_graph, raw.id),
+                        "claim-relation",
+                        "knowledge_source_claims::normalize_base_relation",
+                        fingerprint,
+                        &json!({"source_graph":prepared.source_graph,"edge_id":raw.id,"prepared_dependency_root":prepared.dependency_root_sha256,"max_raw_bytes":normalizer.limits.max_raw_bytes,"max_output_bytes":normalizer.limits.max_output_bytes}),
+                        &[source_input, object_input, target_input, left_title, right_title, group_task, config],
+                        || {
+                            let output = normalizer.normalize_base_relation(
+                                &raw,
+                                prepared,
+                                object.value(),
+                                target.value(),
+                                &left,
+                                &right,
+                                &group,
+                            )?;
+                            let material = ordered_claim_relation_material(
+                                &raw.payload,
+                                output
+                                    .pointer("/source_record/payload")
+                                    .ok_or(Error::Invalid("Claim normalized source payload"))?,
+                                normalizer.limits.max_raw_bytes,
+                            )?;
+                            let material = String::from_utf8(material)
+                                .map_err(|_| Error::Invalid("Claim ordered material UTF8"))?;
+                            Ok(json!({"output":output,"material":material}))
+                        },
+                    )?;
+                    let output = task
+                        .value()
+                        .get("output")
+                        .cloned()
+                        .ok_or(Error::Invalid("cached Claim relation output"))?;
+                    let material = task
+                        .value()
+                        .get("material")
+                        .and_then(Value::as_str)
+                        .ok_or(Error::Invalid("cached Claim relation material"))?
+                        .as_bytes()
+                        .to_vec();
+                    SourceRow::parse(&material, normalizer.limits.max_raw_bytes)?;
+                    (output, material)
+                } else {
+                    let output = normalizer.normalize_base_relation(
+                        &raw,
+                        prepared,
+                        object.value(),
+                        target.value(),
+                        &left,
+                        &right,
+                        &group,
+                    )?;
+                    let material = ordered_claim_relation_material(
+                        &raw.payload,
+                        output
+                            .pointer("/source_record/payload")
+                            .ok_or(Error::Invalid("Claim normalized source payload"))?,
+                        normalizer.limits.max_raw_bytes,
+                    )?;
+                    (output, material)
+                };
                 let bytes = encode(&output, normalizer.limits.max_output_bytes)?;
                 charge(&mut work, bytes.len(), normalizer.limits.max_work_bytes)?;
-                let material = ordered_claim_relation_material(
-                    &raw.payload,
-                    output
-                        .pointer("/source_record/payload")
-                        .ok_or(Error::Invalid("Claim normalized source payload"))?,
-                    normalizer.limits.max_raw_bytes,
-                )?;
                 charge(&mut work, material.len(), normalizer.limits.max_work_bytes)?;
                 stage.with_connection(WritePhase::Sort,|db|{db.execute("INSERT INTO knowledge_claim_relation_material VALUES (?1,?2,?3,?4,?5,?6,?7)",params![prepared.source_graph,required(&output,"id")?,raw.id,&Digest256::of_bytes(&raw.payload).as_bytes()[..],material.len() as i64,&Digest256::of_bytes(&material).as_bytes()[..],material])?;Ok(())})?;
                 stage.insert_relation_with_exact_source(RelationRow {
@@ -1737,6 +2124,8 @@ pub fn finalize_source_claims(
         let mut count = 0;
         let mut root = Digest256Hasher::new();
         let mut work = 0;
+        let mut latest_literal: HashMap<String, crate::processing_cache::ProcessingValue> =
+            HashMap::new();
         loop {
             let (write_rows, write_bytes) = stage.write_page_limits();
             let page_rows = normalizer
@@ -1777,14 +2166,207 @@ pub fn finalize_source_claims(
                                 normalizer.limits.max_output_bytes,
                             )?);
                         }
-                        let output = normalizer.finalize_claim(
-                            &endpoints[0],
-                            &endpoints[1],
-                            &endpoints[2],
-                            trace,
-                        )?;
+                        let output = if let Some(run) = &normalizer.processing_run {
+                            let claim_id = required(trace, "claim_node_id")?;
+                            let subject_id = required(trace, "subject_node_id")?;
+                            let object_id = required(trace, "object_node_id")?;
+                            let stable_ids = [claim_id, subject_id, object_id]
+                                .map(|native| format!("{}:{native}", prepared.source_graph));
+                            let mut dependencies = Vec::with_capacity(5);
+                            for (index, value) in endpoints.iter().enumerate() {
+                                dependencies.push(processing_current_node(
+                                    run,
+                                    &stable_ids[index],
+                                    &format!("claim-finalize-node:{}:{}", raw.id, index),
+                                    value,
+                                )?);
+                            }
+                            let trace_input = processing_source_input(
+                                run,
+                                "claim-finalize-trace",
+                                &prepared.source_graph,
+                                &raw.id,
+                                &raw.payload,
+                            )?;
+                            dependencies.push(trace_input.clone());
+                            let predicate = required(trace, "predicate")?;
+                            let association = run.input(
+                                &format!("claim-association:{}:{}", prepared.source_graph, raw.id),
+                                &json!({
+                                    "schema":"tos_claim_association_v1",
+                                    "source_graph":prepared.source_graph,
+                                    "claim_node_id":stable_ids[0],
+                                    "subject_node_id":stable_ids[1],
+                                    "object_node_id":stable_ids[2],
+                                    "predicate_id":predicate,
+                                    "prepared_dependency_root_sha256":prepared.dependency_root_sha256,
+                                }),
+                            )?;
+                            let relation_registry = run.input(
+                                "source-registry:relations",
+                                &json!({
+                                    "registry_ref":normalizer.relation_ref,
+                                    "sha256":normalizer.registry.relation_sha256,
+                                }),
+                            )?;
+                            let policy_fingerprint = processing_fingerprint!(
+                                "knowledge_source_claims::claim_policy",
+                                [
+include_bytes!("knowledge_source_claims.rs"),
+                                    include_bytes!("knowledge_registry.rs"),
+                                    include_bytes!("processing_cache.rs"),
+                                ],
+                            );
+                            let expected_policy = normalizer.claim_policy_value(predicate)?;
+                            let claim_policy = run.evaluate_task(
+                                &format!("claim-policy:{}:{}", prepared.source_graph, raw.id),
+                                "claim-policy",
+                                "knowledge_source_claims::claim_policy",
+                                policy_fingerprint,
+                                &json!({"source_graph":prepared.source_graph,"trace_id":raw.id,"predicate_id":predicate}),
+                                &[relation_registry, trace_input.clone()],
+                                || Ok(expected_policy.clone()),
+                            )?;
+                            let config = run.input(
+                                &format!("claim-normalizer-config:{}", prepared.source_graph),
+                                &processing_config(normalizer)?,
+                            )?;
+                            dependencies.push(config);
+                            let fingerprint = processing_fingerprint!(
+                                "knowledge_source_claims::finalize_claim",
+                                [
+include_bytes!("knowledge_source_claims.rs"),
+                                    include_bytes!("knowledge_source_claims_prepare.rs"),
+                                    include_bytes!("knowledge_normalization.rs"),
+                                    include_bytes!("knowledge_seal.rs"),
+                                    include_bytes!("processing_cache.rs"),
+                                ],
+                            );
+                            let task = run.evaluate_task(
+                                &format!("claim-update:{}:{}", prepared.source_graph, raw.id),
+                                "claim-finalization",
+                                "knowledge_source_claims::finalize_claim",
+                                fingerprint,
+                                &json!({"source_graph":prepared.source_graph,"trace_id":raw.id,"dependency_root":prepared.dependency_root_sha256,"max_output_bytes":normalizer.limits.max_output_bytes}),
+                                &[dependencies.as_slice(), &[association.clone(), claim_policy.clone()]].concat(),
+                                || {
+                                    if expected_policy != normalizer.claim_policy_value(predicate)? {
+                                        return Err(Error::Invalid("Claim policy producer mismatch"));
+                                    }
+                                    normalizer.finalize_claim(
+                                        &endpoints[0],
+                                        &endpoints[1],
+                                        &endpoints[2],
+                                        trace,
+                                    )
+                                },
+                            )?;
+                            let output = task.value().clone();
+                            if required(&output, "id")? != stable_ids[0] {
+                                return Err(Error::Invalid("cached Claim update identity"));
+                            }
+                            let object_stable_id = stable_ids[2].clone();
+                            if endpoints[2]
+                                .pointer("/source_record/payload/node_kind")
+                                .and_then(Value::as_str)
+                                == Some("literal")
+                            {
+                                let group = claim_contexts(
+                                    stage,
+                                    contexts,
+                                    &prepared.source_graph,
+                                    &raw.id,
+                                    normalizer.limits,
+                                )?;
+                                if !group.is_empty() {
+                                    let group_task = processing_group(
+                                        run,
+                                        stage,
+                                        prepared,
+                                        contexts,
+                                        &raw.id,
+                                        normalizer.limits,
+                                    )?;
+                                    if group_task.value() != &json!(group) {
+                                        return Err(Error::Invalid("cached Claim context group differs from stage"));
+                                    }
+                                    let literal_kind = endpoints[2]
+                                        .pointer("/source_record/payload/node_kind")
+                                        .and_then(Value::as_str)
+                                        .ok_or(Error::Invalid("Claim literal raw node kind absent"))?;
+                                    let literal_kind_input = run.input(
+                                        &format!("literal-node-kind:{}:{}", prepared.source_graph, object_id),
+                                        &json!({"raw_node_kind":literal_kind}),
+                                    )?;
+                                    let mut contribution_dependencies = vec![processing_current_node(
+                                        run,
+                                        &object_stable_id,
+                                        &format!("literal-claim-current:{}", raw.id),
+                                        &endpoints[2],
+                                    )?];
+                                    contribution_dependencies.push(trace_input.clone());
+                                    contribution_dependencies.push(association.clone());
+                                    contribution_dependencies.push(literal_kind_input);
+                                    if let Some(previous) = latest_literal.get(&object_stable_id) {
+                                        contribution_dependencies.push(previous.clone());
+                                    }
+                                    contribution_dependencies.push(group_task);
+                                    let literal_fingerprint = processing_fingerprint!(
+                                        "knowledge_source_claims::literal_claim_contribution",
+                                        [
+include_bytes!("knowledge_source_claims.rs"),
+                                            include_bytes!("knowledge_normalization.rs"),
+                                            include_bytes!("knowledge_seal.rs"),
+                                            include_bytes!("processing_cache.rs"),
+                                        ],
+                                    );
+                                    let contribution = run.evaluate_task(
+                                        &format!("literal-claim-contribution:{}:{}", prepared.source_graph, raw.id),
+                                        "literal-claim-contribution",
+                                        "knowledge_source_claims::literal_claim_contribution",
+                                        literal_fingerprint,
+                                        &json!({"source_graph":prepared.source_graph,"trace_id":raw.id,"object_id":object_stable_id,"max_contexts":normalizer.limits.max_contexts,"max_output_bytes":normalizer.limits.max_output_bytes}),
+                                        &contribution_dependencies,
+                                        || {
+                                            let mut object = endpoints[2].clone();
+                                            let semantics = object["semantics"]
+                                                .as_object_mut()
+                                                .ok_or(Error::Invalid("Claim literal semantics"))?;
+                                            let existing = semantics
+                                                .entry("assertion_contexts")
+                                                .or_insert_with(|| json!([]))
+                                                .as_array_mut()
+                                                .ok_or(Error::Invalid("Claim literal contexts"))?;
+                                            for context in group {
+                                                if !existing.contains(&context) {
+                                                    existing.push(context);
+                                                }
+                                            }
+                                            if existing.len() > normalizer.limits.max_contexts {
+                                                return Err(Error::Budget("Claim literal accumulated contexts"));
+                                            }
+                                            stamp_content_revision(&mut object, normalizer.limits.max_output_bytes)?;
+                                            Ok(object)
+                                        },
+                                    )?;
+                                    if required(contribution.value(), "id")? != object_stable_id {
+                                        return Err(Error::Invalid("cached Claim literal identity"));
+                                    }
+                                    update_node(stage, contribution.value(), normalizer.limits.max_output_bytes)?;
+                                    latest_literal.insert(object_stable_id, contribution);
+                                }
+                            }
+                            output
+                        } else {
+                            normalizer.finalize_claim(
+                                &endpoints[0],
+                                &endpoints[1],
+                                &endpoints[2],
+                                trace,
+                            )?
+                        };
                         update_node(stage, &output, normalizer.limits.max_output_bytes)?;
-                        if endpoints[2]
+                        if normalizer.processing_run.is_none() && endpoints[2]
                             .pointer("/source_record/payload/node_kind")
                             .and_then(Value::as_str)
                             == Some("literal")

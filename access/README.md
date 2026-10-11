@@ -38,6 +38,10 @@ and [compressed-search bootstrap and rollback](../rust/crates/tos-compiler/tests
 The old Python cache/delta scheduler and its test harness are not active runtime
 contracts; the native compiler publishes its owned full candidate and native
 search writers own their separate bounded bootstrap/delta routes.
+The offline Rust source compiler offers an optional, explicitly located
+processing DAG/cache in [`PROCESSING_DEPENDENCIES.md`](PROCESSING_DEPENDENCIES.md).
+It uses only the `tos_rust_processing_*` SQLite namespace and ignores the
+retired Python tables; cache metadata does not authorize source or publication.
 
 The installed `tos` command is loopback-only for HTTP by default and uses stdio
 for MCP unless an explicit loopback-only HTTP transport is selected. The

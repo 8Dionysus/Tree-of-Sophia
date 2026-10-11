@@ -57,4 +57,13 @@ interrupted-run restart, processor changes, retired tasks, cycle/identity
 rejection and competing publication. A green execution report does not prove
 corpus completeness, source acceptance, deployment or UI behavior.
 
-Current implementation boundary: [edge build](../../access/deploy/cloudflare-worker/README.md).
+## Current implementation status
+
+The Python scheduler and cache described by the original implementation route
+have been retired. The optional native implementation lives in
+[`tos_compiler::processing_cache`](../../access/PROCESSING_DEPENDENCIES.md): it
+uses exact Rust handler-source fingerprints and its own `tos_rust_processing_*`
+SQLite namespace. This preserves the DAG, output-cache, and baseline-CAS intent
+above without reusing Python cache records. It remains processing metadata, not
+source authority or publication; the staged Worker D1 [edge-build route](../../access/deploy/cloudflare-worker/README.md)
+is still separate.

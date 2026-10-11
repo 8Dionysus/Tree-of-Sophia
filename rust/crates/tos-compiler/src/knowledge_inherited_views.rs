@@ -500,7 +500,11 @@ pub fn endpoint_inherited_relation_ids(
     endpoint_id: &str,
     max_relations: usize,
 ) -> Result<Vec<String>> {
-    if endpoint_id.is_empty() || endpoint_id.len() > 4096 || max_relations == 0 || max_relations > 65_536 {
+    if endpoint_id.is_empty()
+        || endpoint_id.len() > 4096
+        || max_relations == 0
+        || max_relations > 65_536
+    {
         return Err(Error::Budget("inherited endpoint relation lookup"));
     }
     stage.with_connection(WritePhase::Sort, |db| {

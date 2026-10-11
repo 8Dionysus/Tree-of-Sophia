@@ -17,6 +17,16 @@ use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::Digest256;
 
+macro_rules! processing_fingerprint {
+    ($handler:literal, [$($source:expr),+ $(,)?] $(,)?) => {{
+        static FINGERPRINT: std::sync::OnceLock<tos_foundation::Digest256> =
+            std::sync::OnceLock::new();
+        *FINGERPRINT.get_or_init(|| {
+            crate::processing_cache::rust_source_fingerprint($handler, &[$($source),+])
+        })
+    }};
+}
+
 const ADAPTER_PROFILE: &str = "source-navigation-node-edge-v1";
 const SHARED_ID_GRAMMAR: &str = "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$";
 const RECORD_SCHEMA: &str = "tos_record_version_view_v1";
@@ -1378,9 +1388,9 @@ impl<'a> NavigationNodeNormalizer<'a> {
                     },
                 }),
             )?;
-            let fingerprint = crate::processing_cache::rust_source_fingerprint(
+            let fingerprint = processing_fingerprint!(
                 "knowledge_source_navigation_node::normalize_base",
-                &[
+                [
                     include_bytes!("knowledge_source_navigation_node.rs"),
                     include_bytes!("knowledge_philosophy_display.rs"),
                     include_bytes!("knowledge_normalization.rs"),
@@ -1396,7 +1406,9 @@ impl<'a> NavigationNodeNormalizer<'a> {
                 &json!({"source_graph":raw.source_graph,"native_id":raw.id}),
                 &[source, configuration],
                 || Ok(self.normalize_supplied_node(raw)?.value),
-            )?.value().clone()
+            )?
+            .value()
+            .clone()
         } else {
             self.normalize_supplied_node(raw)?.value
         };

@@ -15,6 +15,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use tos_foundation::{Digest256, Digest256Hasher};
 
+macro_rules! processing_fingerprint {
+    ($handler:literal, [$($source:expr),+ $(,)?] $(,)?) => {{
+        static FINGERPRINT: std::sync::OnceLock<tos_foundation::Digest256> =
+            std::sync::OnceLock::new();
+        *FINGERPRINT.get_or_init(|| {
+            crate::processing_cache::rust_source_fingerprint($handler, &[$($source),+])
+        })
+    }};
+}
+
 const PROFILE: &str = "source-navigation-node-edge-v1";
 const ASSERTION_FIELDS: &[&str] = &[
     "claim_id",
@@ -395,7 +405,10 @@ impl<'a> NavigationRelationNormalizer<'a> {
             }),
         )?;
         let configuration = run.input(
-            &format!("normalizer-config:navigation-relation:{}", self.source_graph),
+            &format!(
+                "normalizer-config:navigation-relation:{}",
+                self.source_graph
+            ),
             &json!({
                 "source_graph":self.source_graph,
                 "relation_registry_ref":self.relation_registry_ref,
@@ -422,19 +435,49 @@ impl<'a> NavigationRelationNormalizer<'a> {
         };
         let from = endpoint("from_id", "from_source_graph")?;
         let to = endpoint("to_id", "to_source_graph")?;
-        let left_source = if let Some(node) = run.result(&format!("node:{from}")) {
-            node
-        } else {
-            run.input(&format!("source-endpoint-title:{from}"), global.left_title)?
-        };
-        let right_source = if let Some(node) = run.result(&format!("node:{to}")) {
-            node
-        } else {
-            run.input(&format!("source-endpoint-title:{to}"), global.right_title)?
-        };
-        let title_fingerprint = crate::processing_cache::rust_source_fingerprint(
+        let (left_source, left_title_value) =
+            if let Some(node) = run.result(&format!("node:{from}")) {
+                let derived = node
+                    .value()
+                    .pointer("/display/title")
+                    .filter(|title| title.is_object())
+                    .ok_or(Error::Invalid("navigation endpoint node title absent"))?;
+                if derived != global.left_title {
+                    return Err(Error::Invalid(
+                        "navigation endpoint title producer mismatch",
+                    ));
+                }
+                let derived = derived.clone();
+                (node, derived)
+            } else {
+                (
+                    run.input(&format!("source-endpoint-title:{from}"), global.left_title)?,
+                    global.left_title.clone(),
+                )
+            };
+        let (right_source, right_title_value) =
+            if let Some(node) = run.result(&format!("node:{to}")) {
+                let derived = node
+                    .value()
+                    .pointer("/display/title")
+                    .filter(|title| title.is_object())
+                    .ok_or(Error::Invalid("navigation endpoint node title absent"))?;
+                if derived != global.right_title {
+                    return Err(Error::Invalid(
+                        "navigation endpoint title producer mismatch",
+                    ));
+                }
+                let derived = derived.clone();
+                (node, derived)
+            } else {
+                (
+                    run.input(&format!("source-endpoint-title:{to}"), global.right_title)?,
+                    global.right_title.clone(),
+                )
+            };
+        let title_fingerprint = processing_fingerprint!(
             "knowledge_global_titles::endpoint_title",
-            &[
+            [
                 include_bytes!("knowledge_global_titles.rs"),
                 include_bytes!("knowledge_seal.rs"),
                 include_bytes!("processing_cache.rs"),
@@ -447,7 +490,7 @@ impl<'a> NavigationRelationNormalizer<'a> {
             title_fingerprint,
             &json!({"node_id":from}),
             &[left_source],
-            || Ok(global.left_title.clone()),
+            || Ok(left_title_value),
         )?;
         let right_title = run.evaluate_task(
             &format!("endpoint-title:{to}"),
@@ -456,7 +499,7 @@ impl<'a> NavigationRelationNormalizer<'a> {
             title_fingerprint,
             &json!({"node_id":to}),
             &[right_source],
-            || Ok(global.right_title.clone()),
+            || Ok(right_title_value),
         )?;
 
         let claim_ref = item.get("claim_ref").and_then(Value::as_str);
@@ -474,9 +517,9 @@ impl<'a> NavigationRelationNormalizer<'a> {
                     context,
                 )?);
             }
-            let context_fingerprint = crate::processing_cache::rust_source_fingerprint(
+            let context_fingerprint = processing_fingerprint!(
                 "knowledge_source_claims::ordered_context_group",
-                &[
+                [
                     include_bytes!("knowledge_source_claims.rs"),
                     include_bytes!("knowledge_source_navigation_relation.rs"),
                     include_bytes!("knowledge_normalization.rs"),
@@ -495,9 +538,9 @@ impl<'a> NavigationRelationNormalizer<'a> {
             relation_dependencies.push(group);
         }
 
-        let relation_fingerprint = crate::processing_cache::rust_source_fingerprint(
+        let relation_fingerprint = processing_fingerprint!(
             "knowledge_source_navigation_relation::normalize_base",
-            &[
+            [
                 include_bytes!("knowledge_source_navigation_relation.rs"),
                 include_bytes!("knowledge_philosophy_display.rs"),
                 include_bytes!("knowledge_normalization.rs"),
@@ -521,13 +564,17 @@ impl<'a> NavigationRelationNormalizer<'a> {
                 "claim_group_root_sha256":global.claim_group_root_sha256,
             }),
             &relation_dependencies,
-            || Ok(self.normalize_base_uncached(raw, prepared, dependency, global)?.value),
+            || {
+                Ok(self
+                    .normalize_base_uncached(raw, prepared, dependency, global)?
+                    .value)
+            },
         )?;
         let value = relation.value().clone();
         let content_revision = required(&value, "content_revision")?.to_owned();
-        let relation_views_fingerprint = crate::processing_cache::rust_source_fingerprint(
+        let relation_views_fingerprint = processing_fingerprint!(
             "knowledge_source_navigation_relation::relation_views",
-            &[
+            [
                 include_bytes!("knowledge_source_navigation_relation.rs"),
                 include_bytes!("processing_cache.rs"),
             ],

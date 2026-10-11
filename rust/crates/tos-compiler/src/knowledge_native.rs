@@ -803,6 +803,10 @@ pub(crate) fn materialize_native_sources_with_observer(
                 descriptor_bytes,
                 limits.claims,
             )?;
+            let normalizer = match additional.processing_run.as_ref() {
+                Some(run) => normalizer.with_processing_run(run.clone()),
+                None => normalizer,
+            };
             materialize_source_claim_nodes(stage, &prepared, &normalizer)?;
             Some((prepared, normalizer))
         } else {
@@ -1212,7 +1216,7 @@ pub(crate) fn materialize_native_sources_with_observer(
         )?;
         phases.next("finalize");
         let final_rows =
-            crate::knowledge_native_finalize::finalize_native_graph_rows_with_observer(
+            crate::knowledge_native_finalize::finalize_native_graph_rows_with_observer_processing(
                 stage,
                 registry,
                 entity_bytes,
@@ -1263,6 +1267,7 @@ pub(crate) fn materialize_native_sources_with_observer(
                     Ok(None)
                 },
                 observer,
+                additional.processing_run.as_ref(),
             )?;
         phases.next("cleanup");
         // Complete actual rows now own final roots. Cleanup checks raw family

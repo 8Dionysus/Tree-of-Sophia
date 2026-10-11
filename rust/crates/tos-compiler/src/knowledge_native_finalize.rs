@@ -2,17 +2,29 @@
 //! Global inheritance precedes readable context and final revision stamping.
 //! Source witnesses stay private until this pass has consumed them.
 
-use crate::knowledge_inherited_views::{InheritedViewReceipt, endpoint_inherited_views};
+use crate::knowledge_inherited_views::{
+    InheritedViewReceipt, endpoint_inherited_relation_ids, endpoint_inherited_views,
+};
 use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
 use crate::knowledge_stage::{KnowledgeStage, NormalizedLogical, WritePhase};
 use crate::{
     Error, KnowledgeRegistry, ReadableContextCarrier, ReadableContextCompiler,
     ReadableContextLimits, Result, ordered_readable_witness,
 };
-use rusqlite::params;
-use serde_json::Value;
+use rusqlite::{OptionalExtension, params};
+use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use tos_foundation::Digest256;
+
+macro_rules! processing_fingerprint {
+    ($handler:literal, [$($source:expr),+ $(,)?] $(,)?) => {{
+        static FINGERPRINT: std::sync::OnceLock<tos_foundation::Digest256> =
+            std::sync::OnceLock::new();
+        *FINGERPRINT.get_or_init(|| {
+            crate::processing_cache::rust_source_fingerprint($handler, &[$($source),+])
+        })
+    }};
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct NativeFinalizeLimits {
@@ -187,6 +199,153 @@ pub(crate) trait FinalRowObserver {
     ) -> Result<()>;
 }
 
+fn processing_base_row(
+    run: &crate::processing_cache::ProcessingRunHandle,
+    row: &RowRef<'_>,
+    relation: bool,
+    value: &Value,
+) -> Result<crate::processing_cache::ProcessingValue> {
+    let kind = if relation { "relation" } else { "node" };
+    let task_id = format!("{kind}:{}", row.id);
+    if let Some(previous) = run.result(&task_id) {
+        if previous.value() == value {
+            return Ok(previous);
+        }
+    }
+    if let Some(previous) = run.latest_output(kind, row.id) {
+        if previous.value() != value {
+            return Err(Error::Invalid(
+                "processing final row differs from latest producer",
+            ));
+        }
+        return Ok(previous);
+    }
+    if let Some(previous) = run.result(&task_id) {
+        return Err(Error::Invalid("processing base row differs from producer"));
+    }
+    let input = run.input(
+        &format!("normalized-row:{kind}:{}", row.id),
+        &json!({
+            "source_graph":row.source,
+            "stable_id":row.id,
+            "row_sha256":row.digest.to_hex(),
+            "row_bytes":row.payload.len(),
+        }),
+    )?;
+    let fingerprint = processing_fingerprint!(
+        "knowledge_native_finalize::bind_base_row",
+        [
+            include_bytes!("knowledge_native_finalize.rs"),
+            include_bytes!("knowledge_stage.rs"),
+            include_bytes!("processing_cache.rs"),
+        ],
+    );
+    run.evaluate_task(
+        &task_id,
+        kind,
+        "knowledge_native_finalize::bind_base_row",
+        fingerprint,
+        &json!({"source_graph":row.source,"stable_id":row.id,"table":if relation {"relations"} else {"nodes"}}),
+        &[input],
+        || Ok(value.clone()),
+    )
+}
+
+fn processing_relation_views(
+    run: &crate::processing_cache::ProcessingRunHandle,
+    stage: &mut KnowledgeStage<'_>,
+    relation_id: &str,
+    max_row_bytes: usize,
+) -> Result<crate::processing_cache::ProcessingValue> {
+    let selected: (Option<Vec<u8>>, i64, Option<Vec<u8>>) = stage.with_connection(
+        WritePhase::Sort,
+        |db| {
+            db.query_row(
+                "SELECT CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND payload_len<=?2 THEN payload END,\
+                        payload_len,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 END\
+                   FROM knowledge_relations WHERE id=?1",
+                params![relation_id, max_row_bytes as i64],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()?
+            .ok_or(Error::Invalid("inherited relation row absent"))
+        },
+    )?;
+    let (Some(payload), payload_len, Some(sha)) = selected else {
+        return Err(Error::Invalid("inherited relation row projection"));
+    };
+    if payload_len < 0
+        || payload_len as usize != payload.len()
+        || sha.as_slice() != Digest256::of_bytes(&payload).as_bytes()
+    {
+        return Err(Error::Invalid("inherited relation row digest"));
+    }
+    let value: Value =
+        serde_json::from_slice(&payload).map_err(|_| Error::Invalid("inherited relation JSON"))?;
+    if value.get("id").and_then(Value::as_str) != Some(relation_id) {
+        return Err(Error::Invalid("inherited relation identity"));
+    }
+    let base = if let Some(previous) = run.result(&format!("relation:{relation_id}")) {
+        if previous.value() != &value {
+            return Err(Error::Invalid("processing relation differs from stage row"));
+        }
+        previous
+    } else {
+        let input = run.input(
+            &format!("normalized-row:relation:{relation_id}"),
+            &json!({
+                "stable_id":relation_id,
+                "row_sha256":Digest256::of_bytes(&payload).to_hex(),
+                "row_bytes":payload.len(),
+            }),
+        )?;
+        let fingerprint = processing_fingerprint!(
+            "knowledge_native_finalize::bind_relation_row",
+            [
+                include_bytes!("knowledge_native_finalize.rs"),
+                include_bytes!("knowledge_stage.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        run.evaluate_task(
+            &format!("relation:{relation_id}"),
+            "relation",
+            "knowledge_native_finalize::bind_relation_row",
+            fingerprint,
+            &json!({"stable_id":relation_id}),
+            &[input],
+            || Ok(value.clone()),
+        )?
+    };
+    let views = value
+        .get("view_ids")
+        .and_then(Value::as_array)
+        .cloned()
+        .ok_or(Error::Invalid("inherited relation view IDs"))?;
+    if let Some(previous) = run.result(&format!("relation-views:{relation_id}")) {
+        if previous.value() != &Value::Array(views) {
+            return Err(Error::Invalid("processing relation views differ from row"));
+        }
+        return Ok(previous);
+    }
+    let fingerprint = processing_fingerprint!(
+        "knowledge_native_finalize::relation_views",
+        [
+            include_bytes!("knowledge_native_finalize.rs"),
+            include_bytes!("processing_cache.rs"),
+        ],
+    );
+    run.evaluate_task(
+        &format!("relation-views:{relation_id}"),
+        "relation-views",
+        "knowledge_native_finalize::relation_views",
+        fingerprint,
+        &json!({"relation_id":relation_id}),
+        &[base],
+        || Ok(Value::Array(views)),
+    )
+}
+
 pub(crate) fn finalize_native_graph_rows_with_observer<F, G>(
     stage: &mut KnowledgeStage<'_>,
     registry: &KnowledgeRegistry,
@@ -196,6 +355,34 @@ pub(crate) fn finalize_native_graph_rows_with_observer<F, G>(
     mut claim_sources: F,
     mut source_material: G,
     mut observer: Option<&mut dyn FinalRowObserver>,
+) -> Result<NativeFinalizeReceipt>
+where
+    F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,
+    G: FnMut(&mut KnowledgeStage<'_>, bool, &str, &str, &str) -> Result<Option<Vec<u8>>>,
+{
+    finalize_native_graph_rows_with_observer_processing(
+        stage,
+        registry,
+        entity_registry_bytes,
+        inherited,
+        limits,
+        claim_sources,
+        source_material,
+        observer,
+        None,
+    )
+}
+
+pub(crate) fn finalize_native_graph_rows_with_observer_processing<F, G>(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    inherited: &InheritedViewReceipt,
+    limits: NativeFinalizeLimits,
+    mut claim_sources: F,
+    mut source_material: G,
+    mut observer: Option<&mut dyn FinalRowObserver>,
+    processing_run: Option<&crate::processing_cache::ProcessingRunHandle>,
 ) -> Result<NativeFinalizeReceipt>
 where
     F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,
@@ -286,7 +473,139 @@ where
                         return Err(Error::Invalid("native final row identity"));
                     }
                     let mut changed = false;
-                    if table == "knowledge_nodes" {
+                    let mut final_processing = None;
+                    if let Some(run) = processing_run {
+                        let relation = table == "knowledge_relations";
+                        let base = processing_base_row(run, &row, relation, &value)?;
+                        if relation {
+                            let views = processing_relation_views(
+                                run,
+                                stage,
+                                row.id,
+                                limits.max_row_bytes,
+                            )?;
+                            let fingerprint = processing_fingerprint!(
+                                "knowledge_native_finalize::final_relation",
+                                [
+include_bytes!("knowledge_native_finalize.rs"),
+                                    include_bytes!("processing_cache.rs"),
+                                ],
+                            );
+                            let final_row = run.evaluate_task(
+                                &format!("final-relation:{}", row.id),
+                                "final-relation",
+                                "knowledge_native_finalize::final_relation",
+                                fingerprint,
+                                &json!({"source_graph":row.source,"stable_id":row.id}),
+                                &[base, views],
+                                || Ok(value.clone()),
+                            )?;
+                            changed = final_row.value() != &value;
+                            value = final_row.value().clone();
+                            final_processing = Some(final_row);
+                        } else {
+                            let exact_views = endpoint_inherited_views(
+                                stage,
+                                row.id,
+                                limits.max_view_ids_per_node,
+                            )?;
+                            let relation_ids = endpoint_inherited_relation_ids(
+                                stage,
+                                row.id,
+                                limits.max_rows.min(65_536) as usize,
+                            )?;
+                            let mut relation_views = Vec::with_capacity(relation_ids.len());
+                            for relation_id in &relation_ids {
+                                relation_views.push(processing_relation_views(
+                                    run,
+                                    stage,
+                                    relation_id,
+                                    limits.max_row_bytes,
+                                )?);
+                            }
+                            let inherited_fingerprint =
+                                processing_fingerprint!(
+                                    "knowledge_inherited_views::endpoint_inherited_views",
+                                    [
+include_bytes!("knowledge_inherited_views.rs"),
+                                        include_bytes!("processing_cache.rs"),
+                                    ],
+                                );
+                            let inherited = run.evaluate_task(
+                                &format!("inherited-views:{}", row.id),
+                                "inherited-views",
+                                "knowledge_inherited_views::endpoint_inherited_views",
+                                inherited_fingerprint,
+                                &json!({"endpoint_id":row.id,"max_views":limits.max_view_ids_per_node}),
+                                &relation_views,
+                                || {
+                                    let mut values = BTreeSet::new();
+                                    for relation in &relation_views {
+                                        for item in relation
+                                            .value()
+                                            .as_array()
+                                            .ok_or(Error::Invalid("processing relation views array"))?
+                                        {
+                                            values.insert(
+                                                item.as_str()
+                                                    .ok_or(Error::Invalid("processing relation view token"))?
+                                                    .to_owned(),
+                                            );
+                                        }
+                                    }
+                                    Ok(Value::Array(values.into_iter().map(Value::String).collect()))
+                                },
+                            )?;
+                            if inherited.value() != &json!(exact_views) {
+                                return Err(Error::Invalid("processing inherited views differ from index"));
+                            }
+                            let final_fingerprint =
+                                processing_fingerprint!(
+                                    "knowledge_native_finalize::final_node",
+                                    [
+include_bytes!("knowledge_native_finalize.rs"),
+                                        include_bytes!("knowledge_normalization.rs"),
+                                        include_bytes!("knowledge_seal.rs"),
+                                        include_bytes!("processing_cache.rs"),
+                                    ],
+                                );
+                            let final_row = run.evaluate_task(
+                                &format!("final-node:{}", row.id),
+                                "final-node",
+                                "knowledge_native_finalize::final_node",
+                                final_fingerprint,
+                                &json!({"source_graph":row.source,"stable_id":row.id,"max_views":limits.max_view_ids_per_node}),
+                                &[base, inherited],
+                                || {
+                                    let mut result = value.clone();
+                                    let current = result
+                                        .get("view_ids")
+                                        .and_then(Value::as_array)
+                                        .ok_or(Error::Invalid("native node view IDs"))?;
+                                    let mut union = BTreeSet::new();
+                                    for item in current {
+                                        union.insert(
+                                            item.as_str()
+                                                .ok_or(Error::Invalid("native node view token"))?
+                                                .to_owned(),
+                                        );
+                                    }
+                                    union.extend(exact_views.iter().cloned());
+                                    if union.len() > limits.max_view_ids_per_node {
+                                        return Err(Error::Budget("native finalized view IDs"));
+                                    }
+                                    result["view_ids"] = Value::Array(
+                                        union.into_iter().map(Value::String).collect(),
+                                    );
+                                    stamp_content_revision(&mut result, limits.max_row_bytes)?;
+                                    Ok(result)
+                                },
+                            )?;
+                            changed = final_row.value() != &value;
+                            value = final_row.value().clone();
+                            final_processing = Some(final_row);
+                        }
+                    } else if table == "knowledge_nodes" {
                         let views =
                             endpoint_inherited_views(stage, row.id, limits.max_view_ids_per_node)?;
                         if !views.is_empty() {
@@ -414,8 +733,31 @@ where
                             }
                         }
                         let mut sources = Vec::new();
+                        let mut context_dependencies = Vec::new();
+                        let mut context_group = Vec::new();
                         for reference in keys {
-                            sources.extend(claim_sources(stage, row.source, &reference)?);
+                            let reference_sources = claim_sources(stage, row.source, &reference)?;
+                            let mut source_ids = Vec::new();
+                            for (index, source) in reference_sources.iter().enumerate() {
+                                if let Some(run) = processing_run {
+                                    context_dependencies.push(run.input(
+                                        &format!("claim-context-source:{table}:{}:{reference}:{index}", row.id),
+                                        &json!({
+                                            "sha256":Digest256::of_bytes(source).to_hex(),
+                                            "bytes":source.len(),
+                                        }),
+                                    )?);
+                                }
+                                source_ids.push(json!({
+                                    "sha256":Digest256::of_bytes(source).to_hex(),
+                                    "bytes":source.len(),
+                                }));
+                            }
+                            context_group.push(json!({
+                                "claim_ref":reference,
+                                "sources":source_ids,
+                            }));
+                            sources.extend(reference_sources);
                         }
                         if sources.len() > limits.max_context_sources {
                             return Err(Error::Budget("native referenced source witnesses"));
@@ -437,14 +779,92 @@ where
                         if work > limits.max_work_bytes {
                             return Err(Error::Budget("native final source work"));
                         }
-                        match compiler.compile(&raw, Some(&witness))? {
-                            ReadableContextCarrier::Absent => {
-                                value.as_object_mut().unwrap().remove("readable_context");
-                            }
-                            ReadableContextCarrier::Sidecar(raw) => {
-                                value["readable_context"] = serde_json::from_slice(&raw)
-                                    .map_err(|_| Error::Invalid("native readable sidecar"))?;
+                        if let Some(run) = processing_run {
+                            let owner_input = run.input(
+                                &format!("source-witness:{table}:{}", row.id),
+                                &json!({
+                                    "sha256":Digest256::of_bytes(&owner).to_hex(),
+                                    "bytes":owner.len(),
+                                }),
+                            )?;
+                            let group_fingerprint =
+                                processing_fingerprint!(
+                                    "knowledge_source_claims::ordered_context_group",
+                                    [
+include_bytes!("knowledge_source_claims.rs"),
+                                        include_bytes!("knowledge_native_finalize.rs"),
+                                        include_bytes!("processing_cache.rs"),
+                                    ],
+                                );
+                            let group = run.evaluate_task(
+                                &format!("claim-context-group:{table}:{}", row.id),
+                                "claim-context-group",
+                                "knowledge_source_claims::ordered_context_group",
+                                group_fingerprint,
+                                &json!({"stable_id":row.id,"group_count":context_group.len()}),
+                                &context_dependencies,
+                                || Ok(Value::Array(context_group)),
+                            )?;
+                            let final_task = final_processing
+                                .clone()
+                                .ok_or(Error::Invalid("native final processing task absent"))?;
+                            let readable_kind = if table == "knowledge_nodes" {
+                                "readable-node"
+                            } else {
+                                "readable-relation"
+                            };
+                            let readable_fingerprint =
+                                processing_fingerprint!(
+                                    "knowledge_native_finalize::compile_readable_context",
+                                    [
+include_bytes!("knowledge_native_finalize.rs"),
+                                        include_bytes!("knowledge_readable_context.rs"),
+                                        include_bytes!("knowledge_source_claims.rs"),
+                                        include_bytes!("knowledge_normalization.rs"),
+                                        include_bytes!("knowledge_seal.rs"),
+                                        include_bytes!("processing_cache.rs"),
+                                    ],
+                                );
+                            let readable_task = run.evaluate_task(
+                                &format!("{readable_kind}:{}", row.id),
+                                readable_kind,
+                                "knowledge_native_finalize::compile_readable_context",
+                                readable_fingerprint,
+                                &json!({"source_graph":row.source,"stable_id":row.id,"max_row_bytes":limits.max_row_bytes}),
+                                &[final_task, owner_input, group],
+                                || {
+                                    let mut result = value.clone();
+                                    match compiler
+                                        .as_ref()
+                                        .ok_or(Error::Invalid("native readable compiler absent"))?
+                                        .compile(&raw, Some(&witness))?
+                                    {
+                                        ReadableContextCarrier::Absent => {
+                                            result.as_object_mut().unwrap().remove("readable_context");
+                                        }
+                                        ReadableContextCarrier::Sidecar(raw) => {
+                                            result["readable_context"] = serde_json::from_slice(&raw)
+                                                .map_err(|_| Error::Invalid("native readable sidecar"))?;
+                                        }
+                                    }
+                                    stamp_content_revision(&mut result, limits.max_row_bytes)?;
+                                    Ok(result)
+                                },
+                            )?;
+                            value = readable_task.value().clone();
+                            if value.get("readable_context").is_some() {
                                 readable += 1;
+                            }
+                        } else {
+                            match compiler.compile(&raw, Some(&witness))? {
+                                ReadableContextCarrier::Absent => {
+                                    value.as_object_mut().unwrap().remove("readable_context");
+                                }
+                                ReadableContextCarrier::Sidecar(raw) => {
+                                    value["readable_context"] = serde_json::from_slice(&raw)
+                                        .map_err(|_| Error::Invalid("native readable sidecar"))?;
+                                    readable += 1;
+                                }
                             }
                         }
                         changed = true;

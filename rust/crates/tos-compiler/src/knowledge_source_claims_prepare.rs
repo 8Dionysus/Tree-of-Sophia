@@ -826,6 +826,7 @@ mod tests {
             ClaimNormalizeLimits, ClaimNormalizer, claim_context_sources, claim_contexts,
             finalize_source_claims, materialize_source_claim_nodes, prepare_claim_context_groups,
         };
+        use crate::processing_cache::{ClosureLimits, ProcessingCache};
         let fixture: Value = serde_json::from_slice(include_bytes!(
             "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
         ))
@@ -940,6 +941,10 @@ mod tests {
             max_contexts: 16,
             max_work_bytes: 8 * 1024 * 1024,
         };
+        let cache_path = path("processing-cache");
+        let cache = ProcessingCache::open(&cache_path).unwrap();
+        let mut processing = cache.begin_run().unwrap();
+        let processing_id = processing.id();
         let normalizer = ClaimNormalizer::new(
             &registry,
             entity,
@@ -948,7 +953,8 @@ mod tests {
             descriptor,
             normalize_limits,
         )
-        .unwrap();
+        .unwrap()
+        .with_processing_run(processing.handle());
         assert_eq!(
             materialize_source_claim_nodes(&mut stage, &prepared, &normalizer).unwrap(),
             6
@@ -1105,8 +1111,165 @@ mod tests {
                 .1;
             assert_eq!(stable_digest(&output).unwrap(), digest);
         }
+        crate::knowledge_global_titles::order_native_graph_rows(&mut stage, 32, 8 * 1024 * 1024)
+            .unwrap();
+        let roots = stage.core_roots().unwrap();
+        let source_cut = stage.exact_receipt().unwrap().binding.source_cut.clone();
+        let inherited = crate::knowledge_inherited_views::prepare_global_inherited_views(
+            &mut stage,
+            &crate::knowledge_inherited_views::CompleteRelationSeal {
+                source_cut,
+                relation_count: roots.relations,
+                relation_root_sha256: roots.relation_sha256,
+            },
+            crate::knowledge_inherited_views::InheritedViewLimits {
+                max_relations: 32,
+                max_endpoint_evidence_rows: 64,
+                max_view_tokens: 32,
+                max_page_rows: 2,
+                max_page_bytes: 2 * 262144,
+                max_row_bytes: 262144,
+                max_work_bytes: 8 * 1024 * 1024,
+            },
+        )
+        .unwrap();
+        let processing_handle = processing.handle();
+        let finalized =
+            crate::knowledge_native_finalize::finalize_native_graph_rows_with_observer_processing(
+                &mut stage,
+                &registry,
+                entity,
+                &inherited,
+                crate::knowledge_native_finalize::NativeFinalizeLimits {
+                    max_rows: 32,
+                    max_page_rows: 2,
+                    max_page_bytes: 2 * 262144,
+                    max_row_bytes: 262144,
+                    max_view_ids_per_node: 64,
+                    max_context_sources: 16,
+                    max_work_bytes: 8 * 1024 * 1024,
+                },
+                |stage, graph, reference| {
+                    claim_context_sources(stage, &contexts, graph, reference, normalize_limits)
+                },
+                |_, _, _, _, _| Ok(None),
+                None,
+                Some(&processing_handle),
+            )
+            .unwrap();
+        assert!(finalized.nodes > 0);
+        assert!(finalized.readable_rows > 0);
+        processing.finish().unwrap();
+        let read_db = rusqlite::Connection::open_with_flags(
+            &cache_path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        read_db.execute_batch("BEGIN DEFERRED").unwrap();
+        let closure = crate::processing_cache::processing_dependency_closure(
+            &read_db,
+            &processing_id,
+            &[format!("claim-node-source:source-claims:{claim_id}")],
+            ClosureLimits::default(),
+        )
+        .unwrap();
+        let task_ids = closure
+            .nodes
+            .iter()
+            .map(|node| node.id.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert!(task_ids.contains(&format!(
+            "claim-update:source-claims:{}",
+            trace["claim_ref"].as_str().unwrap()
+        )));
+        let trace_id = trace["claim_ref"].as_str().unwrap();
+        assert!(task_ids.contains(&format!("final-node:source-claims:{claim_id}")));
+        assert!(task_ids.contains(&format!("readable-node:source-claims:{claim_id}")));
+
+        let registry_closure = crate::processing_cache::processing_dependency_closure(
+            &read_db,
+            &processing_id,
+            &["source-registry:relations".to_owned()],
+            ClosureLimits::default(),
+        )
+        .unwrap();
+        assert!(
+            registry_closure
+                .nodes
+                .iter()
+                .any(|node| { node.id == format!("claim-policy:source-claims:{trace_id}") })
+        );
+
+        let trace_closure = crate::processing_cache::processing_dependency_closure(
+            &read_db,
+            &processing_id,
+            &[format!("claim-finalize-trace:source-claims:{trace_id}")],
+            ClosureLimits::default(),
+        )
+        .unwrap();
+        assert!(
+            trace_closure
+                .nodes
+                .iter()
+                .any(|node| { node.id == format!("claim-policy:source-claims:{trace_id}") })
+        );
+
+        let association_closure = crate::processing_cache::processing_dependency_closure(
+            &read_db,
+            &processing_id,
+            &[format!("claim-association:source-claims:{trace_id}")],
+            ClosureLimits::default(),
+        )
+        .unwrap();
+        assert!(
+            association_closure
+                .nodes
+                .iter()
+                .any(|node| { node.id == format!("claim-update:source-claims:{trace_id}") })
+        );
+
+        let literal_closure = crate::processing_cache::processing_dependency_closure(
+            &read_db,
+            &processing_id,
+            &[format!("literal-node-kind:source-claims:{object_id}")],
+            ClosureLimits::default(),
+        )
+        .unwrap();
+        assert!(literal_closure.nodes.iter().any(|node| {
+            node.id == format!("literal-claim-contribution:source-claims:{trace_id}")
+        }));
+        assert!(
+            literal_closure
+                .nodes
+                .iter()
+                .any(|node| { node.id == format!("final-node:source-claims:{object_id}") })
+        );
+        assert!(
+            literal_closure
+                .nodes
+                .iter()
+                .any(|node| { node.id == format!("readable-node:source-claims:{object_id}") })
+        );
+
+        let context_closure = crate::processing_cache::processing_dependency_closure(
+            &read_db,
+            &processing_id,
+            &[format!("claim-context-group:source-claims:{trace_id}")],
+            ClosureLimits::default(),
+        )
+        .unwrap();
+        assert!(context_closure.nodes.iter().any(|node| {
+            node.id == format!("literal-claim-contribution:source-claims:{trace_id}")
+        }));
+        read_db.execute_batch("ROLLBACK").unwrap();
+        drop(read_db);
         drop(stage);
         fs::remove_dir(candidate.parent().unwrap()).unwrap();
+        drop(normalizer);
+        drop(processing_handle);
+        drop(processing);
+        drop(cache);
+        fs::remove_dir_all(cache_path.parent().unwrap()).unwrap();
     }
     #[test]
     fn missing_duplicate_and_ref_mismatch_refuse() {
