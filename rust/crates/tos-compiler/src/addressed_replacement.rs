@@ -906,7 +906,7 @@ mod tests {
         }
     }
 
-    fn fixture() -> Fixture {
+    fn make_fixture() -> Fixture {
         let entities: Value = serde_json::from_slice(ENTITY_REGISTRY_REF_BYTES).unwrap();
         let relations: Value = serde_json::from_slice(RELATION_REGISTRY_REF_BYTES).unwrap();
         let entity_bytes = ENTITY_REGISTRY_REF_BYTES.to_vec();
@@ -1030,7 +1030,7 @@ mod tests {
 
     #[test]
     fn bounded_candidate_recomputes_only_supplied_neighborhood() {
-        let fixture = fixture();
+        let fixture = make_fixture();
         let candidate = run(&fixture, AddressedReplacementLimits::default()).unwrap();
         let framed = serde_json::to_vec(&json!([
             fixture.prior.clone(),
@@ -1085,15 +1085,15 @@ mod tests {
 
     #[test]
     fn candidate_rejects_corrupt_source_and_content_revisions_and_missing_endpoint() {
-        let mut fixture = fixture();
+        let mut fixture = make_fixture();
         fixture.relation["source_record"]["payload"]["unknown"] = json!(true);
         assert!(run(&fixture, AddressedReplacementLimits::default()).is_err());
 
-        let mut fixture = fixture();
+        let mut fixture = make_fixture();
         fixture.prior["display"]["title"]["default"] = json!("changed without revision");
         assert!(run(&fixture, AddressedReplacementLimits::default()).is_err());
 
-        let fixture = fixture();
+        let fixture = make_fixture();
         assert!(
             replace_direct_carrier_candidate(
                 &fixture.prior,
@@ -1112,7 +1112,7 @@ mod tests {
 
     #[test]
     fn exact_normalization_binding_is_recomputed() {
-        let fixture = fixture();
+        let fixture = make_fixture();
         for field in [
             "processor_digest",
             "configuration_digest",
@@ -1130,7 +1130,7 @@ mod tests {
 
     #[test]
     fn current_normalizer_processor_and_exact_descriptor_are_required() {
-        let fixture = fixture();
+        let fixture = make_fixture();
         let mut changed_processor = fixture.clone();
         changed_processor.processor_digest = "1".repeat(64);
         assert!(run(&changed_processor, AddressedReplacementLimits::default()).is_err());
@@ -1152,7 +1152,7 @@ mod tests {
 
     #[test]
     fn empty_incidence_stays_unverified_and_candidate_row_cap_is_isolated() {
-        let fixture = fixture();
+        let fixture = make_fixture();
         let candidate = replace_direct_carrier_candidate(
             &fixture.prior,
             &fixture.replacement,
@@ -1186,7 +1186,7 @@ mod tests {
 
     #[test]
     fn exact_accounting_boundaries_and_detached_inputs_hold() {
-        let fixture = fixture();
+        let fixture = make_fixture();
         let before = (
             fixture.prior.clone(),
             fixture.replacement.clone(),
