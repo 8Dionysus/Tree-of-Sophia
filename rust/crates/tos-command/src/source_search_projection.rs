@@ -17,7 +17,6 @@
 //! supplied adjacent metadata source, preserving exact subject bindings and
 //! recording both source paths as dependencies.
 
-use serde_json::Value;
 use tos_foundation::{
     FoundationErrorCode, JsonLimits, JsonMode, JsonValue, parse_json_with_state_budget,
 };
@@ -48,6 +47,7 @@ const MAX_JSON_STATE_BYTES: usize = 64 * 1024 * 1024;
 const MAX_JSONL_LINES: usize = 16_384;
 const MAX_PROJECTED_DOCUMENTS: usize = 256;
 const MAX_PROJECTED_TEXT_BYTES: usize = 1024 * 1024;
+const MAX_PROJECTED_RETAINED_BYTES: usize = 32 * 1024 * 1024;
 const MAX_PROJECTED_ALIASES: usize = 64;
 const MAX_SUBJECT_PATH_BYTES: usize = 4096;
 const AGENT_SOURCE_PATH_PREFIX: &str = "ToS/source-witnesses/agents/";
@@ -95,22 +95,17 @@ pub fn project_source_text(
         return Ok(Vec::new());
     }
 
-    match preflight_json(raw, MAX_JSON_VISITS) {
-        Ok(_) => {}
-        Err(PreflightError::Budget) => return Err("source JSON exceeds parse budget"),
-        Err(PreflightError::Invalid) if contains_recognized_wrapper(raw) => {
+    let value = match parse_source_json(raw, MAX_JSON_VISITS, MAX_JSON_STATE_BYTES) {
+        Ok((value, _)) => value,
+        Err(SourceParseError::Budget) => return Err("source JSON exceeds parse budget"),
+        Err(SourceParseError::Invalid) if contains_recognized_wrapper(raw) => {
             return Err("malformed recognized source record");
         }
-        Err(PreflightError::Invalid) => return Ok(Vec::new()),
-    }
-
-    match serde_json::from_slice::<Value>(raw) {
-        Ok(value) => project_value(subject, &value),
-        // The bounded strict parser above accepted the exact bytes. A serde
-        // disagreement is an implementation error; fail closed instead of
-        // silently treating the source as unrelated.
-        Err(_) => Err("source JSON parser disagreement"),
-    }
+        Err(SourceParseError::Invalid) => return Ok(Vec::new()),
+    };
+    let mut projection = Projection::default();
+    project_value(subject, &value, &mut projection)?;
+    Ok(projection.documents)
 }
 
 /// Return the exact adjacent Agent HumanForms path for a canonical Agent
@@ -163,16 +158,17 @@ pub fn project_source_text_v2(
     exact_root_bytes: &[u8],
     exact_sibling_metadata: Option<(&str, &[u8])>,
 ) -> Result<Vec<SourceSearchDocument>, &'static str> {
-    let mut documents = project_source_text(root_path, exact_root_bytes)?;
+    let mut projection =
+        Projection::from_documents(project_source_text(root_path, exact_root_bytes)?)?;
     let Some(expected_metadata_path) = agent_metadata_path_for_human_forms(root_path) else {
         return if exact_sibling_metadata.is_some() {
             Err("sibling metadata input is unsupported for source path")
         } else {
-            Ok(documents)
+            Ok(projection.documents)
         };
     };
     let Some((metadata_path, metadata_bytes)) = exact_sibling_metadata else {
-        return Ok(documents);
+        return Ok(projection.documents);
     };
     if metadata_path != expected_metadata_path.as_str() {
         return Err("sibling metadata path does not match HumanForms source");
@@ -181,15 +177,32 @@ pub fn project_source_text_v2(
         return Err("sibling metadata path exceeds byte limit");
     }
 
-    let forms = parse_foundation_json(exact_root_bytes)?;
+    let (forms, forms_visits, forms_retained) = parse_foundation_json(
+        exact_root_bytes,
+        MAX_JSON_VISITS,
+        MAX_JSON_STATE_BYTES.saturating_sub(projection.retained_bytes),
+    )?;
     if forms
         .object_get("schema_version")
         .and_then(JsonValue::as_str)
         != Some("tos_human_form_set_v1")
     {
-        return Ok(documents);
+        return Ok(projection.documents);
     }
-    let metadata = parse_foundation_json(metadata_bytes)?;
+    if forms
+        .object_get("forms")
+        .and_then(JsonValue::as_array)
+        .is_none_or(|forms| forms.len() > MAX_PROJECTED_DOCUMENTS)
+    {
+        return Err("source exceeds document limit");
+    }
+    let (metadata, _, _) = parse_foundation_json(
+        metadata_bytes,
+        MAX_JSON_VISITS.saturating_sub(forms_visits),
+        MAX_JSON_STATE_BYTES
+            .saturating_sub(projection.retained_bytes)
+            .saturating_sub(forms_retained),
+    )?;
     if metadata
         .object_get("schema_version")
         .and_then(JsonValue::as_str)
@@ -199,18 +212,16 @@ pub fn project_source_text_v2(
             .and_then(JsonValue::as_str)
             != Some("agent")
     {
-        return Ok(documents);
+        return Ok(projection.documents);
     }
-
     let materializations =
         tos_validation::source_forms::source_copy_kernel::materialize_source_forms(
             &metadata, &forms,
         )
         .map_err(|_| "source-copy materialization failed")?;
-    let mut additions = Vec::new();
-    additions
-        .try_reserve_exact(materializations.len())
-        .map_err(|_| "source-copy document allocation refused")?;
+    if materializations.len() > MAX_PROJECTED_DOCUMENTS {
+        return Err("source exceeds document limit");
+    }
     for view in materializations {
         if view.object_get("state").and_then(JsonValue::as_str) != Some("ready")
             || view.object_get("derivation").and_then(JsonValue::as_str) != Some("source-copy")
@@ -250,36 +261,81 @@ pub fn project_source_text_v2(
             body,
         )?;
         append_dependency(&mut document, metadata_path)?;
-        additions.push(document);
+        projection.push(document)?;
     }
-    if documents.len().saturating_add(additions.len()) > MAX_PROJECTED_DOCUMENTS {
-        return Err("source exceeds document limit");
-    }
-    documents
-        .try_reserve(additions.len())
-        .map_err(|_| "source document allocation refused")?;
-    documents.extend(additions);
-    Ok(documents)
+    Ok(projection.documents)
 }
 
-fn parse_foundation_json(raw: &[u8]) -> Result<JsonValue, &'static str> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SourceParseError {
+    Budget,
+    Invalid,
+}
+
+fn parse_foundation_json(
+    raw: &[u8],
+    max_visits: usize,
+    available_state_bytes: usize,
+) -> Result<(JsonValue, usize, usize), &'static str> {
     if raw.len() > MAX_SOURCE_BYTES {
         return Err("source exceeds byte limit");
     }
     let limits = JsonLimits {
         max_bytes: MAX_SOURCE_BYTES,
         max_depth: MAX_JSON_DEPTH,
-        max_visits: MAX_JSON_VISITS,
+        max_visits,
         max_integer_digits: 4_300,
     };
-    match parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, MAX_JSON_STATE_BYTES)
-    {
-        Ok(document) => Ok(document.into_root()),
+    let document = match parse_json_with_state_budget(
+        raw,
+        JsonMode::PublishedStrict,
+        limits,
+        available_state_bytes,
+    ) {
+        Ok(document) => document,
         Err(error) if error.code == FoundationErrorCode::BudgetExceeded => {
-            Err("source JSON exceeds parse budget")
+            return Err("source JSON exceeds parse budget");
         }
-        Err(_) => Err("malformed paired source JSON"),
+        Err(_) => return Err("malformed paired source JSON"),
+    };
+    if !source_json_is_utf8(document.root()) {
+        return Err("malformed paired source JSON");
     }
+    let visits = document.visits();
+    let retained_bytes = document
+        .root()
+        .retained_storage_bytes()
+        .map_err(|_| "source JSON exceeds parse budget")?;
+    Ok((document.into_root(), visits, retained_bytes))
+}
+
+/// Source JSON historically had to be accepted by serde_json after the
+/// bounded parser. Preserve its UTF-8 string rule without allocating another
+/// tree, including for otherwise ignored keys and fields.
+fn source_json_is_utf8(value: &JsonValue) -> bool {
+    match value {
+        JsonValue::String(text) => text.as_str().is_some(),
+        JsonValue::Array(values) => values.iter().all(source_json_is_utf8),
+        JsonValue::Object(entries) => entries
+            .iter()
+            .all(|(key, value)| key.as_str().is_some() && source_json_is_utf8(value)),
+        JsonValue::Null | JsonValue::Bool(_) | JsonValue::Number(_) => true,
+    }
+}
+
+fn parse_source_json(
+    raw: &[u8],
+    max_visits: usize,
+    available_state_bytes: usize,
+) -> Result<(JsonValue, usize), SourceParseError> {
+    let (value, visits, _) = parse_foundation_json(raw, max_visits, available_state_bytes)
+        .map_err(|error| match error {
+            "source exceeds byte limit" | "source JSON exceeds parse budget" => {
+                SourceParseError::Budget
+            }
+            _ => SourceParseError::Invalid,
+        })?;
+    Ok((value, visits))
 }
 
 fn append_dependency(
@@ -315,33 +371,8 @@ fn append_dependency(
     Ok(())
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PreflightError {
-    Budget,
-    Invalid,
-}
-
-/// Applies the maintained strict JSON grammar and its visit/depth/state
-/// budgets to the exact bytes before the serde projection tree is allocated.
-fn preflight_json(raw: &[u8], max_visits: usize) -> Result<usize, PreflightError> {
-    let limits = JsonLimits {
-        max_bytes: MAX_SOURCE_BYTES,
-        max_depth: MAX_JSON_DEPTH,
-        max_visits,
-        max_integer_digits: 4_300,
-    };
-    match parse_json_with_state_budget(raw, JsonMode::PublishedStrict, limits, MAX_JSON_STATE_BYTES)
-    {
-        Ok(document) => Ok(document.visits()),
-        Err(error) if error.code == FoundationErrorCode::BudgetExceeded => {
-            Err(PreflightError::Budget)
-        }
-        Err(_) => Err(PreflightError::Invalid),
-    }
-}
-
 fn project_jsonl(subject: &str, raw: &[u8]) -> Result<Vec<SourceSearchDocument>, &'static str> {
-    let mut documents = Vec::new();
+    let mut projection = Projection::default();
     let mut visits_remaining = MAX_JSON_VISITS;
     let mut lines = 0usize;
     for line in raw
@@ -352,42 +383,111 @@ fn project_jsonl(subject: &str, raw: &[u8]) -> Result<Vec<SourceSearchDocument>,
         if lines > MAX_JSONL_LINES {
             return Err("source JSONL exceeds line limit");
         }
-        let visits = preflight_json(line, visits_remaining).map_err(|error| match error {
-            PreflightError::Budget => "source JSONL exceeds parse budget",
-            PreflightError::Invalid => "malformed source JSONL line",
-        })?;
+        let (value, visits) = parse_source_json(line, visits_remaining, MAX_JSON_STATE_BYTES)
+            .map_err(|error| match error {
+                SourceParseError::Budget => "source JSONL exceeds parse budget",
+                SourceParseError::Invalid => "malformed source JSONL line",
+            })?;
         visits_remaining = visits_remaining.saturating_sub(visits);
-        let value =
-            serde_json::from_slice::<Value>(line).map_err(|_| "source JSON parser disagreement")?;
-        let next = project_value(subject, &value)?;
-        if documents.len().saturating_add(next.len()) > MAX_PROJECTED_DOCUMENTS {
-            return Err("source JSONL exceeds document limit");
-        }
-        documents.extend(next);
+        project_value(subject, &value, &mut projection)?;
     }
-    Ok(documents)
+    Ok(projection.documents)
 }
 
-fn project_value(subject: &str, value: &Value) -> Result<Vec<SourceSearchDocument>, &'static str> {
-    let Some(root) = value.as_object() else {
-        return Ok(Vec::new());
+#[derive(Default)]
+struct Projection {
+    documents: Vec<SourceSearchDocument>,
+    retained_bytes: usize,
+}
+
+impl Projection {
+    fn from_documents(documents: Vec<SourceSearchDocument>) -> Result<Self, &'static str> {
+        if documents.len() > MAX_PROJECTED_DOCUMENTS {
+            return Err("source exceeds document limit");
+        }
+        let retained_bytes = documents.iter().try_fold(0usize, |total, document| {
+            document_retained_bytes(document)
+                .ok()
+                .and_then(|bytes| total.checked_add(bytes))
+        });
+        let retained_bytes = retained_bytes.ok_or("projected output exceeds byte limit")?;
+        if retained_bytes > MAX_PROJECTED_RETAINED_BYTES {
+            return Err("projected output exceeds byte limit");
+        }
+        Ok(Self {
+            documents,
+            retained_bytes,
+        })
+    }
+
+    fn push(&mut self, document: SourceSearchDocument) -> Result<(), &'static str> {
+        let bytes = document_retained_bytes(&document)?;
+        let next = self
+            .retained_bytes
+            .checked_add(bytes)
+            .ok_or("projected output exceeds byte limit")?;
+        if self.documents.len() >= MAX_PROJECTED_DOCUMENTS {
+            return Err("source exceeds document limit");
+        }
+        if next > MAX_PROJECTED_RETAINED_BYTES {
+            return Err("projected output exceeds byte limit");
+        }
+        self.documents
+            .try_reserve_exact(1)
+            .map_err(|_| "source document allocation refused")?;
+        self.documents.push(document);
+        self.retained_bytes = next;
+        Ok(())
+    }
+}
+
+fn document_retained_bytes(document: &SourceSearchDocument) -> Result<usize, &'static str> {
+    document
+        .id
+        .len()
+        .checked_add(document.kind.len())
+        .and_then(|bytes| bytes.checked_add(document.title.len()))
+        .and_then(|bytes| bytes.checked_add(document.body.len()))
+        .and_then(|bytes| {
+            document
+                .aliases
+                .iter()
+                .chain(document.dependencies.iter())
+                .try_fold(bytes, |total, value| total.checked_add(value.len()))
+        })
+        .ok_or("projected output exceeds byte limit")
+}
+
+fn project_value(
+    subject: &str,
+    value: &JsonValue,
+    projection: &mut Projection,
+) -> Result<(), &'static str> {
+    if value.as_object().is_none() {
+        return Ok(());
     };
-    let Some(schema_version) = root.get("schema_version").and_then(Value::as_str) else {
-        return Ok(Vec::new());
+    let Some(schema_version) = value
+        .object_get("schema_version")
+        .and_then(JsonValue::as_str)
+    else {
+        return Ok(());
     };
 
     match schema_version {
-        "tos_corpus_record_v1" => project_corpus_record(subject, value),
-        "tos_historical_record_v1" => project_historical_record(subject, value),
-        "tos_historical_claim_v1" => project_historical_claim(subject, value),
-        "tos_human_form_set_v1" => project_human_form_set(subject, value),
+        "tos_corpus_record_v1" => project_corpus_record(subject, value, projection),
+        "tos_historical_record_v1" => project_historical_record(subject, value, projection),
+        "tos_historical_claim_v1" => project_historical_claim(subject, value, projection),
+        "tos_human_form_set_v1" => project_human_form_set(subject, value, projection),
         "tos_human_form_v1" => {
-            project_human_form(subject, value).map(|document| document.into_iter().collect())
+            if let Some(document) = project_human_form(subject, value)? {
+                projection.push(document)?;
+            }
+            Ok(())
         }
         // There is no maintained tos_corpus_record_v2 contract in this
         // checkout. Do not guess that its fields match v1.
-        "tos_corpus_record_v2" | "tos_source_text_unit_packet_v1" => Ok(Vec::new()),
-        _ => Ok(Vec::new()),
+        "tos_corpus_record_v2" | "tos_source_text_unit_packet_v1" => Ok(()),
+        _ => Ok(()),
     }
 }
 
@@ -410,21 +510,24 @@ fn contains_recognized_wrapper(raw: &[u8]) -> bool {
     })
 }
 
-fn required_text<'a>(value: &'a Value, field: &'static str) -> Result<&'a str, &'static str> {
+fn required_text<'a>(value: &'a JsonValue, field: &'static str) -> Result<&'a str, &'static str> {
     value
-        .get(field)
-        .and_then(Value::as_str)
+        .object_get(field)
+        .and_then(JsonValue::as_str)
         .filter(|text| !text.trim().is_empty())
         .ok_or(field)
 }
 
 fn optional_text<'a>(
-    value: &'a Value,
+    value: &'a JsonValue,
     field: &'static str,
 ) -> Result<Option<&'a str>, &'static str> {
-    match value.get(field) {
-        None | Some(Value::Null) => Ok(None),
-        Some(Value::String(text)) => Ok((!text.trim().is_empty()).then_some(text.as_str())),
+    match value.object_get(field) {
+        None | Some(JsonValue::Null) => Ok(None),
+        Some(JsonValue::String(text)) => {
+            let text = text.as_str().ok_or(field)?;
+            Ok((!text.trim().is_empty()).then_some(text))
+        }
         Some(_) => Err(field),
     }
 }
@@ -503,7 +606,7 @@ fn document(
 }
 
 fn corpus_kind(
-    value: &Value,
+    value: &JsonValue,
     field: &'static str,
     family: &'static str,
 ) -> Result<String, &'static str> {
@@ -519,8 +622,8 @@ fn corpus_kind(
     Ok(format!("{family}/{value}"))
 }
 
-fn aliases(value: &Value) -> Result<Vec<String>, &'static str> {
-    let Some(labels) = value.get("variant_labels") else {
+fn aliases(value: &JsonValue) -> Result<Vec<String>, &'static str> {
+    let Some(labels) = value.object_get("variant_labels") else {
         return Ok(Vec::new());
     };
     let labels = labels.as_array().ok_or("variant_labels")?;
@@ -559,8 +662,9 @@ fn bounded_text(text: &str, field: &'static str) -> Result<String, &'static str>
 
 fn project_corpus_record(
     subject: &str,
-    value: &Value,
-) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    value: &JsonValue,
+    projection: &mut Projection,
+) -> Result<(), &'static str> {
     let id = required_text(value, "record_id")?;
     let kind = corpus_kind(value, "record_type", "corpus_record")?;
     let title = bounded_text(required_text(value, "preferred_label")?, "preferred_label")?;
@@ -572,20 +676,21 @@ fn project_corpus_record(
     if let Some(edition_statement) = optional_text(value, "edition_statement")? {
         body_parts.push(bounded_text(edition_statement, "edition_statement"));
     }
-    Ok(vec![document(
+    projection.push(document(
         subject,
         id,
         kind,
         title,
         aliases,
         selected_body(body_parts)?,
-    )?])
+    )?)
 }
 
 fn project_historical_record(
     subject: &str,
-    value: &Value,
-) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    value: &JsonValue,
+    projection: &mut Projection,
+) -> Result<(), &'static str> {
     let id = required_text(value, "record_id")?;
     let kind = corpus_kind(value, "record_type", "historical_record")?;
     let title = bounded_text(required_text(value, "preferred_label")?, "preferred_label")?;
@@ -595,55 +700,58 @@ fn project_historical_record(
             .map(|text| bounded_text(text, "notes"))
             .into_iter(),
     )?;
-    Ok(vec![document(subject, id, kind, title, aliases, body)?])
+    projection.push(document(subject, id, kind, title, aliases, body)?)
 }
 
 fn project_historical_claim(
     subject: &str,
-    value: &Value,
-) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    value: &JsonValue,
+    projection: &mut Projection,
+) -> Result<(), &'static str> {
     let id = required_text(value, "claim_id")?;
-    let quotes = match value.get("supporting_quotes") {
+    let quotes = match value.object_get("supporting_quotes") {
         None => &[][..],
-        Some(Value::Array(quotes)) => quotes.as_slice(),
+        Some(JsonValue::Array(quotes)) => quotes.as_slice(),
         Some(_) => return Err("supporting_quotes"),
     };
     let body =
         selected_body(quotes.iter().map(|quote| {
             required_text(quote, "exact").and_then(|text| bounded_text(text, "exact"))
         }))?;
-    Ok(vec![document(
+    projection.push(document(
         subject,
         id,
         "historical_claim".to_owned(),
         String::new(),
         Vec::new(),
         body,
-    )?])
+    )?)
 }
 
 fn project_human_form_set(
     subject: &str,
-    value: &Value,
-) -> Result<Vec<SourceSearchDocument>, &'static str> {
+    value: &JsonValue,
+    projection: &mut Projection,
+) -> Result<(), &'static str> {
     let forms = value
-        .get("forms")
-        .and_then(Value::as_array)
+        .object_get("forms")
+        .and_then(JsonValue::as_array)
         .filter(|forms| !forms.is_empty())
         .ok_or("forms")?;
     if forms.len() > MAX_PROJECTED_DOCUMENTS {
         return Err("forms exceeds document limit");
     }
-    forms
-        .iter()
-        .map(|form| project_human_form(subject, form))
-        .collect::<Result<Vec<_>, _>>()
-        .map(|documents| documents.into_iter().flatten().collect())
+    for form in forms {
+        if let Some(document) = project_human_form(subject, form)? {
+            projection.push(document)?;
+        }
+    }
+    Ok(())
 }
 
 fn project_human_form(
     subject: &str,
-    value: &Value,
+    value: &JsonValue,
 ) -> Result<Option<SourceSearchDocument>, &'static str> {
     if required_text(value, "schema_version")? != "tos_human_form_v1" {
         return Err("schema_version");
@@ -663,7 +771,7 @@ fn project_human_form(
     {
         return Err("role");
     }
-    let content = value.get("content").ok_or("content")?;
+    let content = value.object_get("content").ok_or("content")?;
     let content_kind = required_text(content, "kind")?;
     let text = match content_kind {
         "freeform" => Some(required_text(content, "text")?),
@@ -672,7 +780,10 @@ fn project_human_form(
             None
         }
         "template" => {
-            if !content.get("template").is_some_and(Value::is_object) {
+            if !content
+                .object_get("template")
+                .is_some_and(|template| template.as_object().is_some())
+            {
                 return Err("template");
             }
             None
@@ -878,6 +989,33 @@ mod tests {
         assert_eq!(
             project_source_text("ToS/unrelated.json", raw.as_bytes()),
             Err("source JSON exceeds parse budget")
+        );
+    }
+
+    #[test]
+    fn recognized_jsonl_output_has_a_total_document_limit() {
+        let record = concat!(
+            r#"{"schema_version":"tos_historical_claim_v1","claim_id":"tos.claim.x","#,
+            r#"supporting_quotes":[]}"#
+        );
+        let raw = std::iter::repeat(record)
+            .take(MAX_PROJECTED_DOCUMENTS + 1)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert_eq!(
+            project_source_text(HISTORY_CLAIMS_PATH, raw.as_bytes()),
+            Err("source exceeds document limit")
+        );
+    }
+
+    #[test]
+    fn strict_parser_rejects_duplicate_decoded_field_names() {
+        assert_eq!(
+            project_source_text(
+                "record.json",
+                br#"{"schema_version":"tos_corpus_record_v1","record_id":"first","record\u005fid":"second"}"#,
+            ),
+            Err("malformed recognized source record")
         );
     }
 
