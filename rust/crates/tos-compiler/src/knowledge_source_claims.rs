@@ -200,6 +200,14 @@ fn processing_current_node(
     input_id: &str,
     value: &Value,
 ) -> Result<crate::processing_cache::ProcessingValue> {
+    if let Some(previous) = run.latest_output("node", stable_id) {
+        if previous.value() != value {
+            return Err(Error::Invalid(
+                "current Claim endpoint differs from producer",
+            ));
+        }
+        return Ok(previous);
+    }
     for task_id in [
         format!("node:{stable_id}"),
         format!("claim-node:{stable_id}"),
@@ -1527,8 +1535,8 @@ include_bytes!("knowledge_source_claims.rs"),
                         ],
                     );
                     let task = run.evaluate_task(
-                        &format!("claim-node:{}:{}", prepared.source_graph, raw.id),
-                        "claim-node",
+                        &format!("claim-node-material:{}:{}", prepared.source_graph, raw.id),
+                        "claim-node-material",
                         "knowledge_source_claims::normalize_supplied_node_with_source",
                         fingerprint,
                         &json!({"source_graph":prepared.source_graph,"native_id":raw.id,"source_cut":prepared.source_cut,"max_raw_bytes":normalizer.limits.max_raw_bytes,"max_output_bytes":normalizer.limits.max_output_bytes}),
@@ -1546,11 +1554,6 @@ include_bytes!("knowledge_source_claims.rs"),
                             Ok(json!({"output":output,"material":material}))
                         },
                     )?;
-                    let output = task
-                        .value()
-                        .get("output")
-                        .cloned()
-                        .ok_or(Error::Invalid("cached Claim node output"))?;
                     let material = task
                         .value()
                         .get("material")
@@ -1559,7 +1562,17 @@ include_bytes!("knowledge_source_claims.rs"),
                         .as_bytes()
                         .to_vec();
                     SourceRow::parse(&material, normalizer.limits.max_raw_bytes)?;
-                    (output, material)
+                    let node = run.evaluate_task(
+                        &format!("claim-node:{}:{}", prepared.source_graph, raw.id),
+                        "claim-node",
+                        "knowledge_source_claims::normalized_node_projection",
+                        fingerprint,
+                        &json!({"source_graph":prepared.source_graph,"native_id":raw.id}),
+                        std::slice::from_ref(&task),
+                        || task.value().get("output").cloned()
+                            .ok_or(Error::Invalid("cached Claim node output")),
+                    )?;
+                    (node.value().clone(), material)
                 } else {
                     normalizer.normalize_supplied_node_with_source(
                         &raw,

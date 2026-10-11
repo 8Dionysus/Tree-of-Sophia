@@ -56,8 +56,8 @@ pub mod knowledge_canon_source;
 mod knowledge_catalog_index;
 mod knowledge_corpus_original;
 mod knowledge_corpus_source;
-mod native_snapshot_originals;
 mod native_normalization_binding;
+mod native_snapshot_originals;
 pub use knowledge_corpus_original::{
     CORPUS_ORIGINAL_PROFILE, CapturedCorpusOrigin, CapturedCorpusOriginalPlan,
     CorpusOriginalCollection, CorpusOriginalCollectionReceipt, CorpusOriginalMember,
