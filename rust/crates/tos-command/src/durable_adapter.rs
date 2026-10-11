@@ -2243,9 +2243,27 @@ impl DurablePgCoordinator {
         let current = if revision.is_none() {
             Some(
                 tx.query_opt(
-                    "SELECT c.*,to_jsonb(c)=to_jsonb(h) AS matches_history
+                    "SELECT c.*,(
+                         (to_jsonb(c)-'inventory_projection')=(to_jsonb(h)-'inventory_projection')
+                         AND CASE WHEN p.effective_seq IS NULL
+                             THEN (h.inventory_projection IS NULL OR octet_length(h.inventory_projection)<=1048576)
+                                 AND c.inventory_projection IS NOT DISTINCT FROM h.inventory_projection
+                             ELSE p.source_revision=h.revision AND p.content_digest=h.content_digest
+                                 AND p.definition_digest=d.source_definition_digest
+                                 AND p.inventory_projection IS NOT NULL
+                                 AND octet_length(p.inventory_projection)<=1048576
+                                 AND c.inventory_projection IS NOT DISTINCT FROM p.inventory_projection
+                             END) IS TRUE AS matches_history
                      FROM cmd2_current c JOIN cmd2_history h
                        ON h.domain=c.domain AND h.subject=c.subject AND h.revision=c.revision
+                     JOIN cmd2_domain d ON d.domain=c.domain
+                     LEFT JOIN LATERAL (
+                         SELECT source_revision,content_digest,definition_digest,inventory_projection,effective_seq
+                         FROM cmd2_source_inventory_projection
+                         WHERE domain=c.domain AND subject=c.subject AND effective_seq>=h.commit_seq
+                           AND effective_seq<=d.head_seq
+                         ORDER BY effective_seq DESC LIMIT 1
+                     ) p ON TRUE
                      WHERE c.domain=$1 AND c.subject=$2",
                     &[&domain, &subject],
                 )?
@@ -2816,6 +2834,54 @@ impl DurablePgCoordinator {
                 "history extends beyond committed head",
             ));
         }
+        // Current is an exact metadata projection of its latest immutable
+        // history row, except for the separately versioned inventory view.
+        // Resolve that view at the committed head and fail closed when a
+        // present overlay is stale or malformed; never accept a NULL overlay
+        // merely because the current projection is also NULL.
+        if tx
+            .query_opt(
+                "SELECT 1
+                 FROM cmd2_current c
+                 LEFT JOIN LATERAL (
+                   SELECT * FROM cmd2_history h
+                   WHERE h.domain=c.domain AND h.subject=c.subject
+                   ORDER BY h.revision DESC LIMIT 1
+                 ) h ON TRUE
+                 JOIN cmd2_domain d ON d.domain=c.domain
+                 LEFT JOIN LATERAL (
+                   SELECT source_revision,content_digest,definition_digest,
+                          inventory_projection,effective_seq
+                   FROM cmd2_source_inventory_projection
+                   WHERE domain=c.domain AND subject=c.subject
+                     AND effective_seq>=h.commit_seq AND effective_seq<=d.head_seq
+                   ORDER BY effective_seq DESC LIMIT 1
+                 ) p ON TRUE
+                 WHERE c.domain=$1 AND (
+                   h.subject IS NULL
+                   OR (to_jsonb(c)-'inventory_projection')
+                        IS DISTINCT FROM (to_jsonb(h)-'inventory_projection')
+                   OR CASE WHEN p.effective_seq IS NULL THEN
+                        (h.inventory_projection IS NULL
+                          OR octet_length(h.inventory_projection)<=1048576)
+                        AND c.inventory_projection IS NOT DISTINCT FROM h.inventory_projection
+                      ELSE p.source_revision=h.revision
+                        AND p.content_digest=h.content_digest
+                        AND p.definition_digest=d.source_definition_digest
+                        AND p.inventory_projection IS NOT NULL
+                        AND octet_length(p.inventory_projection)<=1048576
+                        AND c.inventory_projection IS NOT DISTINCT FROM p.inventory_projection
+                      END IS NOT TRUE
+                 )
+                 LIMIT 1",
+                &[&domain],
+            )?
+            .is_some()
+        {
+            return Err(DurableError::Corrupt(
+                "current locator differs from latest history",
+            ));
+        }
         let mut current_members = 0u64;
         let mut current_rows = Vec::new();
         let (history_spool, current_spool, history_membership_root, current_membership_root) =
@@ -2858,27 +2924,10 @@ impl DurablePgCoordinator {
                 if ordered_count != historical_members {
                     return Err(DurableError::Corrupt("ordered history membership differs"));
                 }
-                // The primary-key predecessor seek uses one index lookup per
-                // current subject. Composite JSON equality compares every
-                // current/history column, including source-owner metadata.
                 // The sorted physical stream below independently proves that
-                // every historical subject occurs exactly once in current.
-                if tx
-                    .query_opt(
-                        "SELECT 1 FROM cmd2_current c LEFT JOIN LATERAL
-                       (SELECT * FROM cmd2_history h
-                        WHERE h.domain=c.domain AND h.subject=c.subject
-                        ORDER BY h.revision DESC LIMIT 1) h ON true
-                     WHERE c.domain=$1 AND
-                       (h.subject IS NULL OR to_jsonb(c) IS DISTINCT FROM to_jsonb(h)) LIMIT 1",
-                        &[&domain],
-                    )?
-                    .is_some()
-                {
-                    return Err(DurableError::Corrupt(
-                        "current locator differs from latest history",
-                    ));
-                }
+                // every historical subject occurs exactly once in current;
+                // the shared current/history/projection check above already
+                // validates each current member's effective inventory view.
                 current_members = as_u64(
                     tx.query_one(
                         "SELECT count(*) FROM cmd2_current WHERE domain=$1",

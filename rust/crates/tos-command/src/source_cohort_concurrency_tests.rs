@@ -543,13 +543,43 @@ fn retained_projection_overlay_is_temporal_and_never_falls_back_when_stale() {
     );
     assert_eq!(
         retained_projection_at(&mut fixture, &subject, later_seq),
-        Some(overlay_projection),
+        Some(overlay_projection.clone()),
         "the latest as-of cut uses the exact canonical overlay bytes"
     );
     assert_eq!(
         history_projection_snapshot(&mut fixture),
         history_before_overlay,
         "the overlay adds as-of projection state without rewriting retained history"
+    );
+
+    // A current projection can advance without rewriting its immutable source
+    // history. Exact reads still verify every source locator/owner column and
+    // the effective derived projection independently.
+    fixture
+        .coordinator
+        .client
+        .execute(
+            "UPDATE cmd2_current SET inventory_projection=$3 WHERE domain=$1 AND subject=$2",
+            &[&fixture.domain, &subject, &overlay_projection],
+        )
+        .unwrap();
+    let (current_row, exact_bytes, _, _) = fixture
+        .coordinator
+        .read_committed_source_selected(
+            &fixture.store,
+            &fixture.domain,
+            &subject,
+            None,
+            8_388_608,
+            deadline,
+            &cancelled,
+            |_| Ok(()),
+        )
+        .expect("current exact read accepts the correctly bound effective projection");
+    assert_eq!(Digest256::of_bytes(&exact_bytes).to_hex(), source_digest);
+    assert_eq!(
+        current_row.get::<_, Option<Vec<u8>>>("inventory_projection"),
+        Some(overlay_projection)
     );
 
     let stale_digest = "0".repeat(64);
@@ -563,6 +593,21 @@ fn retained_projection_overlay_is_temporal_and_never_falls_back_when_stale() {
             &[&fixture.domain, &subject, &later_seq, &stale_digest],
         )
         .expect("the schema allows a digest mismatch so the reader can fail closed");
+    assert!(matches!(
+        fixture.coordinator.read_committed_source_selected(
+            &fixture.store,
+            &fixture.domain,
+            &subject,
+            None,
+            8_388_608,
+            deadline,
+            &cancelled,
+            |_| Ok(()),
+        ),
+        Err(DurableError::Corrupt(
+            "selected current metadata differs from history"
+        ))
+    ));
     assert_eq!(
         retained_projection_at(&mut fixture, &subject, before_seq),
         Some(original_projection),

@@ -1019,62 +1019,91 @@ fn pg_real_projection_interrupt_child_entry() {
     panic!("projection child unexpectedly completed before its parent killed it");
 }
 
-/// Opens the committed database through a new process after the extraction
-/// process was killed, then resumes from the still-committed projection cursor.
+/// Applies one pending committed source event in a fresh process using the
+/// explicitly selected bounded v1 or v2 source projection profile.
 #[test]
-fn pg_real_projection_resume_child_entry() {
-    if std::env::var_os("TOS_PG_REAL_PROJECTION_RESUME").is_none() {
+fn pg_real_projection_apply_child_entry() {
+    if std::env::var_os("TOS_PG_REAL_PROJECTION_APPLY").is_none() {
         return;
     }
     let domain = std::env::var("TOS_PG_REAL_PROJECTION_DOMAIN").unwrap();
     let consumer = std::env::var("TOS_PG_REAL_PROJECTION_CONSUMER").unwrap();
+    let profile_id = std::env::var("TOS_PG_REAL_PROJECTION_PROFILE").unwrap();
     let store_root = PathBuf::from(std::env::var_os("TOS_PG_REAL_PROJECTION_STORE").unwrap());
     let mut db = tos_command::DurablePgCoordinator::connect(&super::database_url()).unwrap();
     let store =
         tos_segment_store::SegmentStore::open_existing(&store_root, super::limits()).unwrap();
+    let version = if profile_id == tos_command::source_search_projection::SOURCE_SEARCH_PROFILE {
+        1
+    } else if profile_id == tos_command::source_search_projection::SOURCE_SEARCH_PROFILE_V2 {
+        2
+    } else {
+        panic!("unsupported bounded projection profile: {profile_id}");
+    };
     let profile = tos_command::DurableProjectionProfile {
-        id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
-        version: 1,
+        id: profile_id.clone(),
+        version,
         source_contract: super::contract_digest(),
     };
-    let progress = db
-        .apply_projection_batch(
+    let limits = tos_command::DurableProjectionLimits {
+        max_events: 1,
+        max_dependencies: if version == 2 { 2 } else { 1 },
+        ..tos_command::DurableProjectionLimits::default()
+    };
+    let progress = if version == 1 {
+        db.apply_projection_batch(
             &store,
             &domain,
             &consumer,
             &profile,
             &tos_command::source_projection_cli::SourceTextExtractor,
-            tos_command::DurableProjectionLimits {
-                max_events: 1,
-                ..tos_command::DurableProjectionLimits::default()
-            },
+            limits,
         )
-        .expect("fresh process resumes the committed source event");
+    } else {
+        db.apply_projection_batch(
+            &store,
+            &domain,
+            &consumer,
+            &profile,
+            &tos_command::source_projection_cli::SourceTextExtractorV2,
+            limits,
+        )
+    }
+    .expect("fresh process applies the committed source event");
     assert!(matches!(
         progress.status,
         tos_command::DurableProjectionStatus::Current { .. }
     ));
     let work = serde_json::to_value(&progress.work).unwrap();
     println!(
-        "TOS_PG_REAL_PROJECTION_RESUME_RESULT {}",
-        serde_json::to_string(&work).unwrap()
+        "TOS_PG_REAL_PROJECTION_APPLY_RESULT {}",
+        serde_json::to_string(&json!({"profile":profile_id,"work":work})).unwrap()
     );
 }
 
-fn resume_projection_in_fresh_process(case: &RevisionCase, consumer: &str) -> (Value, Value) {
+fn apply_projection_in_fresh_process(
+    case: &RevisionCase,
+    consumer: &str,
+    profile_id: &str,
+) -> (Value, Value) {
+    assert!(
+        profile_id == tos_command::source_search_projection::SOURCE_SEARCH_PROFILE
+            || profile_id == tos_command::source_search_projection::SOURCE_SEARCH_PROFILE_V2
+    );
     let started = Instant::now();
     let pg_cgroup_before = isolated_pg_cgroup_snapshot();
     let executable = std::env::current_exe().expect("integration test executable is available");
     let mut command = Command::new(executable);
     command.process_group(0);
     let mut child = command
-        .arg("pg_real_projection_resume_child_entry")
+        .arg("pg_real_projection_apply_child_entry")
         .arg("--nocapture")
         .env("TOS_CMD_POSTGRES_URL", &case.lab.url)
         .env("TOS_SOURCE_PG_URL", &case.lab.url)
-        .env("TOS_PG_REAL_PROJECTION_RESUME", "1")
+        .env("TOS_PG_REAL_PROJECTION_APPLY", "1")
         .env("TOS_PG_REAL_PROJECTION_DOMAIN", &case.lab.domain)
         .env("TOS_PG_REAL_PROJECTION_CONSUMER", consumer)
+        .env("TOS_PG_REAL_PROJECTION_PROFILE", profile_id)
         .env("TOS_PG_REAL_PROJECTION_STORE", &case.lab._root.0)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -1156,15 +1185,18 @@ fn resume_projection_in_fresh_process(case: &RevisionCase, consumer: &str) -> (V
         String::from_utf8_lossy(&stdout),
         String::from_utf8_lossy(&stderr)
     );
-    let prefix = b"TOS_PG_REAL_PROJECTION_RESUME_RESULT ";
-    let work = stdout
+    let prefix = b"TOS_PG_REAL_PROJECTION_APPLY_RESULT ";
+    let report: Value = stdout
         .split(|byte| *byte == b'\n')
         .find_map(|line| line.strip_prefix(prefix))
         .map(|line| serde_json::from_slice(line).expect("child work report is JSON"))
         .expect("fresh projection process reports its logical work");
+    assert_eq!(report["profile"].as_str(), Some(profile_id));
+    let work = report["work"].clone();
     let pg_cgroup_after = isolated_pg_cgroup_snapshot();
     let resources = json!({
         "scope":"fresh projection child direct-process wait4 rusage and /proc PID I/O; excludes PostgreSQL server",
+        "profile":profile_id,
         "wall_micros":u64::try_from(started.elapsed().as_micros()).unwrap(),
         "wait4_user_cpu_micros":timeval_micros(usage.ru_utime),
         "wait4_system_cpu_micros":timeval_micros(usage.ru_stime),
@@ -2169,7 +2201,6 @@ fn project_case(
     binary: &Path,
 ) -> Value {
     let consumer = format!("private-pg-real-revision-{records}");
-    let creation = create_agent(case, software, binary);
     let profile = DurableProjectionProfile {
         id: tos_command::source_search_projection::SOURCE_SEARCH_PROFILE.to_owned(),
         version: 1,
@@ -2177,10 +2208,10 @@ fn project_case(
     };
     case.lab.db.init_projection_schema().unwrap();
     let extractor = tos_command::source_projection_cli::SourceTextExtractor;
-    let initial_head = case.lab.head_seq();
-    let initial_limit = usize::try_from(initial_head).unwrap();
-    assert!((1..=256).contains(&initial_limit));
-    let initial = case
+    let baseline_head = case.lab.head_seq();
+    let baseline_limit = usize::try_from(baseline_head).unwrap();
+    assert!((1..=256).contains(&baseline_limit));
+    let baseline = case
         .lab
         .db
         .apply_projection_batch(
@@ -2190,15 +2221,63 @@ fn project_case(
             &profile,
             &extractor,
             DurableProjectionLimits {
-                max_events: initial_limit,
+                max_events: baseline_limit,
                 ..DurableProjectionLimits::default()
             },
         )
-        .expect("all bounded bootstrap events project from committed STO bytes");
-    let initial_work = serde_json::to_value(&initial.work).unwrap();
+        .expect("the bounded baseline projects from committed STO bytes before the addition");
+    let baseline_work = serde_json::to_value(&baseline.work).unwrap();
     assert!(matches!(
-        initial.status,
-        DurableProjectionStatus::Current { through_seq } if through_seq == initial_head
+        baseline.status,
+        DurableProjectionStatus::Current { through_seq } if through_seq == baseline_head
+    ));
+    let baseline_rows = projection_rows(case, &consumer);
+    assert!(
+        baseline_rows
+            .iter()
+            .any(|row| row.contains("tos.agent.parmenides-of-elea"))
+    );
+    assert!(
+        baseline_rows
+            .iter()
+            .all(|row| !row.contains(CREATED_RECORD_ID)),
+        "the new Agent is absent from the projection baseline"
+    );
+    if records == 3 {
+        assert!(
+            baseline_rows
+                .iter()
+                .any(|row| row.contains("tos.agent.justus-lipsius"))
+        );
+        assert!(
+            baseline_rows
+                .iter()
+                .any(|row| row.contains("tos.agent.hans-hahn"))
+        );
+    }
+
+    let creation = create_agent(case, software, binary);
+    let addition_head = case.lab.head_seq();
+    assert_eq!(addition_head, baseline_head + 1);
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Pending { through_seq, head_seq }
+            if through_seq == baseline_head && head_seq == addition_head
+    ));
+    let (addition_work, addition_apply_resources) = apply_projection_in_fresh_process(
+        case,
+        &consumer,
+        tos_command::source_search_projection::SOURCE_SEARCH_PROFILE,
+    );
+    assert!(matches!(
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
+        DurableProjectionStatus::Current { through_seq } if through_seq == addition_head
     ));
     let before_rows = projection_rows(case, &consumer);
     assert!(
@@ -2210,20 +2289,45 @@ fn project_case(
         before_rows
             .iter()
             .any(|row| row.contains(CREATED_RECORD_ID)),
-        "the initial Agent addition is published in the selected-text projection"
+        "the new Agent event publishes its selected-text document"
     );
-    if records == 3 {
-        assert!(
-            before_rows
-                .iter()
-                .any(|row| row.contains("tos.agent.justus-lipsius"))
-        );
-        assert!(
-            before_rows
-                .iter()
-                .any(|row| row.contains("tos.agent.hans-hahn"))
+    let baseline_documents = projection_documents(&baseline_rows);
+    let before_documents = projection_documents(&before_rows);
+    let created_key = (CREATED_RECORD_PATH.to_owned(), CREATED_RECORD_ID.to_owned());
+    let mut expected_documents = baseline_documents.keys().cloned().collect::<BTreeSet<_>>();
+    assert!(expected_documents.insert(created_key.clone()));
+    assert_eq!(
+        before_documents.keys().cloned().collect::<BTreeSet<_>>(),
+        expected_documents,
+        "the addition publishes exactly one new document"
+    );
+    for (key, document) in &baseline_documents {
+        assert_eq!(
+            before_documents.get(key),
+            Some(document),
+            "the addition leaves baseline projection document {key:?} unchanged"
         );
     }
+    assert_eq!(addition_work["extracted_documents"], 1);
+    assert_eq!(addition_work["published_documents"], 1);
+    let addition_search = case
+        .lab
+        .db
+        .search_projection(
+            &case.lab.domain,
+            &consumer,
+            &profile,
+            "Sundial",
+            10,
+            Duration::from_secs(15),
+        )
+        .unwrap();
+    assert!(matches!(
+        addition_search,
+        DurableProjectionSearch::Current { ref hits, through_seq }
+            if through_seq == addition_head
+                && hits.iter().any(|hit| hit.document_id == CREATED_RECORD_ID)
+    ));
     let receipt = record_correction(case, software, binary);
     let created_record = source_member(case, CREATED_RECORD_PATH);
     assert_eq!(
@@ -2238,7 +2342,7 @@ fn project_case(
             .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
             .unwrap(),
         DurableProjectionStatus::Pending { through_seq, head_seq }
-            if through_seq == initial_head && head_seq == revision_head
+            if through_seq == addition_head && head_seq == revision_head
     ));
     let interrupted_process_resources = kill_projection_child(case, &consumer);
     assert_eq!(
@@ -2255,10 +2359,13 @@ fn project_case(
             .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
             .unwrap(),
         DurableProjectionStatus::Pending { through_seq, head_seq }
-            if through_seq == initial_head && head_seq == revision_head
+            if through_seq == addition_head && head_seq == revision_head
     ));
-    let (revision_work, resume_process_resources) =
-        resume_projection_in_fresh_process(case, &consumer);
+    let (revision_work, resume_process_resources) = apply_projection_in_fresh_process(
+        case,
+        &consumer,
+        tos_command::source_search_projection::SOURCE_SEARCH_PROFILE,
+    );
     let revision_apply_resources = json!({
         "scope":"fresh-process single revision apply_projection_batch; direct-child wait4 rusage and /proc PID I/O exclude PostgreSQL server",
         "resume_process":resume_process_resources,
@@ -2365,15 +2472,21 @@ fn project_case(
     );
     json!({
         "consumer":consumer,
-        "initial_documents":before_rows.len(),
+        "baseline_documents":baseline_rows.len(),
+        "documents_after_addition":before_rows.len(),
         "final_documents":after_rows.len(),
+        "baseline_head":baseline_head,
+        "addition_head":addition_head,
         "projection_cursor":case.lab.head_seq(),
         "new_text_search":"Quartz",
         "projection_work":{
             "scope":"logical projection work; segment_bytes_read counts selected STO frame and envelope bytes read, while physical device I/O is separate; publication counters cover work applied by this consumer",
-            "bootstrap":initial_work,
+            "bootstrap":baseline_work,
+            "addition":addition_work,
             "revision":revision_work
         },
+        "addition_projection_head":addition_head,
+        "addition_apply_resources":addition_apply_resources,
         "revision_apply_resources":revision_apply_resources,
         "initial_agent_creation":creation,
         "revision":receipt
@@ -2462,27 +2575,18 @@ fn project_nietzsche_shared_case(
         DurableProjectionStatus::Pending { through_seq, head_seq }
             if through_seq == initial_head && head_seq == revision_head
     ));
-    let applied = case
-        .lab
-        .db
-        .apply_projection_batch(
-            &case.lab.store,
-            &case.lab.domain,
-            &consumer,
-            &profile,
-            &extractor,
-            DurableProjectionLimits {
-                max_events: 1,
-                max_dependencies: 2,
-                ..DurableProjectionLimits::default()
-            },
-        )
-        .expect("the joined projection applies the native shared-source revision");
-    let revision_work = serde_json::to_value(&applied.work).unwrap();
+    let (revision_work, revision_apply_resources) = apply_projection_in_fresh_process(
+        case,
+        &consumer,
+        tos_command::source_search_projection::SOURCE_SEARCH_PROFILE_V2,
+    );
     assert_eq!(revision_work["extracted_documents"], 4);
     assert_eq!(revision_work["published_documents"], 4);
     assert!(matches!(
-        applied.status,
+        case.lab
+            .db
+            .projection_status(&case.lab.domain, &consumer, &profile, Duration::from_secs(15))
+            .unwrap(),
         DurableProjectionStatus::Current { through_seq } if through_seq == revision_head
     ));
     let after_rows = projection_rows(case, &consumer);
@@ -2574,6 +2678,7 @@ fn project_nietzsche_shared_case(
         "search_query":"Quartz",
         "search_hits":search_ids,
         "projection_work":{"bootstrap":initial_work,"revision":revision_work},
+        "revision_apply_resources":revision_apply_resources,
         "revision":receipt
     })
 }
@@ -2595,6 +2700,10 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
             &format!("{records}-record bootstrap projection"),
         );
         assert_bounded_committed_member_rows(
+            &projection["projection_work"]["addition"],
+            &format!("{records}-record new Agent projection"),
+        );
+        assert_bounded_committed_member_rows(
             &projection["projection_work"]["revision"],
             &format!("{records}-record revision projection"),
         );
@@ -2612,6 +2721,23 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
         "exact_source_members_read",
         "exact_source_bytes_read",
         "segment_bytes_read",
+        "committed_member_rows_examined",
+        "extracted_documents",
+        "published_source_paths",
+        "published_documents",
+    ] {
+        assert_eq!(
+            one_projection["projection_work"]["addition"][counter],
+            three_projection["projection_work"]["addition"][counter],
+            "the same new Agent event has the same {counter} projection work at 1 and 3 records"
+        );
+    }
+    for counter in [
+        "examined_event_members",
+        "exact_source_members_read",
+        "exact_source_bytes_read",
+        "segment_bytes_read",
+        "committed_member_rows_examined",
         "extracted_documents",
         "published_source_paths",
         "published_documents",
