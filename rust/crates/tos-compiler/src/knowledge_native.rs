@@ -838,6 +838,10 @@ pub(crate) fn materialize_native_sources_with_observer(
                 limits.philosophy,
                 stage.owned_creation_state(),
             )?;
+            let normalizer = match additional.processing_run.as_ref() {
+                Some(run) => normalizer.with_processing_run(run.clone())?,
+                None => normalizer,
+            };
             materialize_philosophy_nodes(stage, &normalizer, &prepared)?;
             Some((prepared, normalizer))
         } else {
@@ -880,6 +884,10 @@ pub(crate) fn materialize_native_sources_with_observer(
                     additional.canon,
                 )?
             };
+            let normalizer = match additional.processing_run.as_ref() {
+                Some(run) => normalizer.with_processing_run(run.clone())?,
+                None => normalizer,
+            };
             materialize_canon_nodes(stage, &normalizer, &prepared)?;
             Some((prepared, normalizer))
         } else {
@@ -916,6 +924,10 @@ pub(crate) fn materialize_native_sources_with_observer(
                     descriptor_bytes,
                     additional.canon,
                 )?
+            };
+            let normalizer = match additional.processing_run.as_ref() {
+                Some(run) => normalizer.with_processing_run(run.clone())?,
+                None => normalizer,
             };
             Some((prepared, normalizer))
         } else {

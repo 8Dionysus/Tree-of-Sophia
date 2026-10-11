@@ -53,6 +53,26 @@ pub struct CanonNormalizer<'a> {
     shared: KnowledgeBaseNormalizer<'a>,
     limits: CanonMaterializeLimits,
     prepared_projection: bool,
+    processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
+}
+
+fn processing_fingerprint() -> Digest256 {
+    static FINGERPRINT: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
+    *FINGERPRINT.get_or_init(|| {
+        crate::processing_cache::rust_source_fingerprint(
+            "knowledge_canon_materialize::normalize",
+            &[
+                include_bytes!("knowledge_canon_materialize.rs"),
+                include_bytes!("knowledge_candidates.rs"),
+                include_bytes!("knowledge_base.rs"),
+                include_bytes!("knowledge_normalization.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("knowledge_philosophy_display.rs"),
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        )
+    })
 }
 impl<'a> CanonNormalizer<'a> {
     pub fn new(
@@ -156,7 +176,61 @@ impl<'a> CanonNormalizer<'a> {
             shared,
             limits,
             prepared_projection,
+            processing_run: None,
         })
+    }
+
+    /// Opt in to the bounded Rust processing cache for canon and candidate
+    /// source normalization. The task result includes this family's retained
+    /// source metadata, so final-row lineage matches the exact emitted row.
+    pub fn with_processing_run(
+        mut self,
+        run: crate::processing_cache::ProcessingRunHandle,
+    ) -> Result<Self> {
+        self.shared = self.shared.with_processing_run(run.clone())?;
+        self.processing_run = Some(run);
+        Ok(self)
+    }
+
+    fn attach_node_source_record(
+        &self,
+        value: &mut Value,
+        source: &SourceRow,
+        digest: Option<&str>,
+    ) -> Result<()> {
+        let Some(digest) = digest else {
+            return Ok(());
+        };
+        value["attributes"]["source_record"] = source.value()["properties"].clone();
+        value["attributes"]["source_sha256"] = json!(digest);
+        value["attributes"]["source_file_sha256"] = source
+            .value()
+            .get("source_sha256")
+            .cloned()
+            .unwrap_or(Value::Null);
+        let map = value["source_record"]["field_map"]
+            .as_object_mut()
+            .ok_or(Error::Invalid("canon normalized source field map"))?;
+        for (key, path) in [
+            ("attributes.source_record", "/properties"),
+            ("attributes.source_sha256", "/source_record_sha256"),
+            ("attributes.source_file_sha256", "/source_sha256"),
+        ] {
+            map.insert(key.into(), json!(path));
+        }
+        Ok(())
+    }
+
+    fn attach_relation_source_record(
+        &self,
+        normalized: &mut Value,
+        source: &SourceRow,
+    ) -> Result<()> {
+        let attributes = normalized["attributes"]
+            .as_object()
+            .ok_or(Error::Invalid("canon prepared relation attributes"))?;
+        normalized["source_record"] = source.source_record(attributes)?;
+        Ok(())
     }
     pub fn source_graph(&self) -> &str {
         &self.source_graph
@@ -224,32 +298,37 @@ impl<'a> CanonNormalizer<'a> {
         } else {
             canonical_digest(&raw, source.value(), self.limits.max_raw_bytes)?
         };
-        let mut value = self.shared.normalize_node(
-            &source,
-            &self.source_graph,
-            true,
-            BaseNodeOverrides::default(),
-        )?;
-        if let Some(digest) = digest {
-            value["attributes"]["source_record"] = source.value()["properties"].clone();
-            value["attributes"]["source_sha256"] = json!(digest);
-            value["attributes"]["source_file_sha256"] = source
-                .value()
-                .get("source_sha256")
-                .cloned()
-                .unwrap_or(Value::Null);
-            let map = value["source_record"]["field_map"]
-                .as_object_mut()
-                .ok_or(Error::Invalid("canon normalized source field map"))?;
-            for (key, path) in [
-                ("attributes.source_record", "/properties"),
-                ("attributes.source_sha256", "/source_record_sha256"),
-                ("attributes.source_file_sha256", "/source_sha256"),
-            ] {
-                map.insert(key.into(), json!(path));
+        let value = if let Some(run) = &self.processing_run {
+            let parameters = json!({
+                "profile":self.profile,
+                "prepared_projection":self.prepared_projection,
+                "canonical_record_digest":digest,
+            });
+            self.shared.normalize_node_with_processing_handler(
+                run,
+                &source,
+                &self.source_graph,
+                true,
+                BaseNodeOverrides::default(),
+                "knowledge_canon_materialize::normalize",
+                processing_fingerprint(),
+                &parameters,
+                &[],
+                |value| self.attach_node_source_record(value, &source, digest.as_deref()),
+            )?
+        } else {
+            let mut value = self.shared.normalize_node(
+                &source,
+                &self.source_graph,
+                true,
+                BaseNodeOverrides::default(),
+            )?;
+            if digest.is_some() {
+                self.attach_node_source_record(&mut value, &source, digest.as_deref())?;
+                stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
             }
-            stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
-        }
+            value
+        };
         Ok(value)
     }
     pub fn normalize_relation(
@@ -331,31 +410,73 @@ impl<'a> CanonNormalizer<'a> {
                     return Err(Error::Budget("canon prepared edge identity bytes"));
                 }
                 let adapted_source = SourceRow::parse(&adapted_raw, self.limits.max_raw_bytes)?;
-                let mut normalized = self.shared.normalize_relation(
-                    &adapted_source,
-                    &self.source_graph,
-                    Some(identity),
-                    left,
-                    right,
-                    authority,
-                )?;
-                let attributes = normalized["attributes"]
-                    .as_object()
-                    .ok_or(Error::Invalid("canon prepared relation attributes"))?;
-                let source_record = source.source_record(attributes)?;
-                normalized["source_record"] = source_record;
-                stamp_content_revision(&mut normalized, self.limits.max_output_bytes)?;
+                let mut normalized = if let Some(run) = &self.processing_run {
+                    let original = run.input(
+                        &format!("source-relation-original:{}:{identity}", self.source_graph),
+                        source.value(),
+                    )?;
+                    self.shared.normalize_relation_with_processing_handler(
+                        run,
+                        &adapted_source,
+                        &self.source_graph,
+                        Some(identity),
+                        left,
+                        right,
+                        authority,
+                        "knowledge_canon_materialize::normalize",
+                        processing_fingerprint(),
+                        &json!({
+                            "profile":self.profile,
+                            "prepared_projection":self.prepared_projection,
+                            "adapted_edge_identity":edge_id,
+                        }),
+                        &[original],
+                        |normalized| self.attach_relation_source_record(normalized, &source),
+                    )?
+                } else {
+                    let mut normalized = self.shared.normalize_relation(
+                        &adapted_source,
+                        &self.source_graph,
+                        Some(identity),
+                        left,
+                        right,
+                        authority,
+                    )?;
+                    self.attach_relation_source_record(&mut normalized, &source)?;
+                    stamp_content_revision(&mut normalized, self.limits.max_output_bytes)?;
+                    normalized
+                };
                 return Ok(normalized);
             }
         }
-        self.shared.normalize_relation(
-            &source,
-            &self.source_graph,
-            Some(identity),
-            left,
-            right,
-            authority,
-        )
+        if let Some(run) = &self.processing_run {
+            self.shared.normalize_relation_with_processing_handler(
+                run,
+                &source,
+                &self.source_graph,
+                Some(identity),
+                left,
+                right,
+                authority,
+                "knowledge_canon_materialize::normalize",
+                processing_fingerprint(),
+                &json!({
+                    "profile":self.profile,
+                    "prepared_projection":self.prepared_projection,
+                }),
+                &[],
+                |_| Ok(()),
+            )
+        } else {
+            self.shared.normalize_relation(
+                &source,
+                &self.source_graph,
+                Some(identity),
+                left,
+                right,
+                authority,
+            )
+        }
     }
 }
 /// Exact ordered source-material witness for the all-source finalizer. Relation
@@ -782,6 +903,11 @@ mod tests {
     /// Revision literals come from CMP-canon-candidates-oracle.py (CPython).
     #[test]
     fn python_oracle_raw_canon_and_candidate_native_bases() {
+        use crate::processing_cache::{
+            ClosureLimits, ProcessingCache, ProcessingCacheLimits, ProcessingReadSnapshot,
+        };
+        use rusqlite::{Connection, OpenFlags};
+
         let entity =
             include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
         let relations =
@@ -979,9 +1105,63 @@ mod tests {
             pack["content_revision"],
             "8d98cc7ce0901552668ec3eb7f0c3df7020aa799bcab6f308981c951eafaadc6"
         );
+        let candidate_relation = pn
+            .normalize_relation(
+                &mut stage,
+                &candidate,
+                "candidate-intake:pack-a:edge-a",
+                &left,
+                &right,
+            )
+            .unwrap();
+        let processing_path = dir.join("processing.sqlite");
+        let cache = ProcessingCache::open(&processing_path).unwrap();
+        let mut processing = cache.begin_run().unwrap();
+        let cold_run_id = processing.id();
+        let cached_cn =
+            CanonNormalizer::new(&registry, entity, relations, &vocabulary, descriptor, ml)
+                .unwrap()
+                .with_processing_run(processing.handle())
+                .unwrap();
+        let cached_pn =
+            candidate_normalizer(&registry, entity, relations, &vocabulary, descriptor, ml)
+                .unwrap()
+                .with_processing_run(processing.handle())
+                .unwrap();
+        assert_eq!(
+            cached_cn
+                .normalize_node(&mut stage, &canon, "tos.concept.alpha")
+                .unwrap(),
+            node
+        );
+        assert_eq!(
+            cached_cn
+                .normalize_relation(&mut stage, &canon, &proposals[0].identity_id, &left, &right)
+                .unwrap(),
+            local
+        );
+        assert_eq!(
+            cached_cn
+                .normalize_relation(&mut stage, &canon, "pack-a:edge-a", &left, &right)
+                .unwrap(),
+            pack
+        );
+        assert_eq!(
+            cached_pn
+                .normalize_relation(
+                    &mut stage,
+                    &candidate,
+                    "candidate-intake:pack-a:edge-a",
+                    &left,
+                    &right,
+                )
+                .unwrap(),
+            candidate_relation
+        );
+        materialize_canon_nodes(&mut stage, &cached_cn, &canon).unwrap();
         materialize_canon_relations(
             &mut stage,
-            &cn,
+            &cached_cn,
             &canon,
             "canon-fixture-cut",
             &"3".repeat(64),
@@ -990,13 +1170,106 @@ mod tests {
         .unwrap();
         materialize_candidate_relations(
             &mut stage,
-            &pn,
+            &cached_pn,
             &candidate,
             "canon-fixture-cut",
             &"3".repeat(64),
             |_, _, _| Ok((left.clone(), right.clone())),
         )
         .unwrap();
+        processing.finish().unwrap();
+        let reader = Connection::open_with_flags(
+            &processing_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .unwrap();
+        reader.execute_batch("PRAGMA query_only=ON; BEGIN").unwrap();
+        let snapshot =
+            ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default()).unwrap();
+        let canon_closure = snapshot
+            .dependency_closure(
+                &cold_run_id,
+                &["source-node:canon:tos.concept.alpha".to_owned()],
+                ClosureLimits::default(),
+            )
+            .unwrap();
+        let canon_ids = canon_closure
+            .nodes
+            .iter()
+            .map(|item| item.id.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert!(canon_ids.contains("node:canon:tos.concept.alpha"));
+        assert!(canon_ids.contains("endpoint-title:canon:tos.concept.alpha"));
+        let canon_relation_closure = snapshot
+            .dependency_closure(
+                &cold_run_id,
+                &["source-relation:canon:pack-a:edge-a".to_owned()],
+                ClosureLimits::default(),
+            )
+            .unwrap();
+        assert!(
+            canon_relation_closure
+                .nodes
+                .iter()
+                .any(|item| item.id == "relation:canon:pack-a:edge-a")
+        );
+        let candidate_closure = snapshot
+            .dependency_closure(
+                &cold_run_id,
+                &["source-relation:candidate-intake:candidate-intake:pack-a:edge-a".to_owned()],
+                ClosureLimits::default(),
+            )
+            .unwrap();
+        assert!(
+            candidate_closure
+                .nodes
+                .iter()
+                .any(|item| item.id == "relation:candidate-intake:candidate-intake:pack-a:edge-a")
+        );
+        reader.execute_batch("ROLLBACK").unwrap();
+        let mut warm = cache.begin_run().unwrap();
+        let warm_cn =
+            CanonNormalizer::new(&registry, entity, relations, &vocabulary, descriptor, ml)
+                .unwrap()
+                .with_processing_run(warm.handle())
+                .unwrap();
+        let warm_pn =
+            candidate_normalizer(&registry, entity, relations, &vocabulary, descriptor, ml)
+                .unwrap()
+                .with_processing_run(warm.handle())
+                .unwrap();
+        assert_eq!(
+            warm_cn
+                .normalize_node(&mut stage, &canon, "tos.concept.alpha")
+                .unwrap(),
+            node
+        );
+        assert_eq!(
+            warm_cn
+                .normalize_relation(&mut stage, &canon, &proposals[0].identity_id, &left, &right)
+                .unwrap(),
+            local
+        );
+        assert_eq!(
+            warm_cn
+                .normalize_relation(&mut stage, &canon, "pack-a:edge-a", &left, &right)
+                .unwrap(),
+            pack
+        );
+        assert_eq!(
+            warm_pn
+                .normalize_relation(
+                    &mut stage,
+                    &candidate,
+                    "candidate-intake:pack-a:edge-a",
+                    &left,
+                    &right,
+                )
+                .unwrap(),
+            candidate_relation
+        );
+        warm.finish().unwrap();
+        assert!(warm.report().unwrap().reused >= 4);
         let source = source_material(
             &mut stage,
             &candidate,
@@ -1010,7 +1283,16 @@ mod tests {
         assert_eq!(material["source_ref"], "ToS/candidate-intake/a/edges.csv");
         crate::order_native_graph_rows(&mut stage, 16, 65536).unwrap();
         assert_eq!(stage.core_roots().unwrap().relations, 3);
+        drop(warm_pn);
+        drop(warm_cn);
+        drop(warm);
+        drop(cached_pn);
+        drop(cached_cn);
+        drop(processing);
+        drop(snapshot);
+        drop(reader);
         drop(stage);
-        fs::remove_dir(&dir).unwrap();
+        drop(cache);
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

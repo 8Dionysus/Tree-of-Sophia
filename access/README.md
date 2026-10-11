@@ -40,6 +40,8 @@ contracts; the native compiler publishes its owned full candidate and native
 search writers own their separate bounded bootstrap/delta routes.
 The offline Rust source compiler offers an optional, explicitly located
 processing DAG/cache in [`PROCESSING_DEPENDENCIES.md`](PROCESSING_DEPENDENCIES.md).
+Callers opt in through `NativeFamilyInputs.processing_run`; the default build
+and installed CLI do not create a processing cache.
 It uses only the `tos_rust_processing_*` SQLite namespace and ignores the
 retired Python tables; cache metadata does not authorize source or publication.
 

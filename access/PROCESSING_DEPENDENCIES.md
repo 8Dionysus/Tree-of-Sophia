@@ -14,9 +14,12 @@ canon, or publication authorities.
 Rust `processing_dependency_closure` and `processing_input_changes` provide
 bounded reads. The caller opens the exact cache file read-only and owns a live
 SQLite transaction; the read functions do not initialize or migrate schema,
-or begin, commit, or roll back the caller's transaction. They inspect **one
-explicitly named completed run** and fail closed when required retained
-evidence is absent.
+or begin, commit, or roll back the caller's transaction. Closure reads require
+one explicitly named completed run. Input-delta reads accept one explicitly
+named retained run in running, complete, failed, skipped, superseded, or
+interrupted state; they report added and changed inputs from that run, but
+report removed inputs only when the run completed. Both fail closed when
+required retained evidence is absent.
 
 ```rust
 let db = rusqlite::Connection::open_with_flags(
@@ -49,7 +52,14 @@ bounded by the selected closure, not a count/diff of all tasks. Malformed or
 cyclic retained evidence, missing seed identities, retired/incomplete runs and
 exhausted budgets return an error. **No partial result is a complete closure.**
 
-The opt-in producer currently records these concrete links within the same run:
+The source compiler opts in only when its caller supplies a
+`ProcessingRunHandle` through `NativeFamilyInputs.processing_run`; the default
+build and installed CLI do not create a cache. The native source producers for
+Navigation, Philosophy, Canon, Candidate Intake, Claims, Repository and the
+shared semantic-join base use the same DAG. Canon and Philosophy family
+normalizers keep their source-record decoration inside the cached result;
+Candidate Intake contributes relations but no node producer. These producers
+record the following concrete links within the same run:
 
 - `source-node` -> `node` -> `final-node` -> `readable-node`;
 - `source-relation` -> `relation` -> `readable-relation`;

@@ -825,6 +825,50 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         canonical: bool,
         overrides: BaseNodeOverrides<'_>,
     ) -> Result<Value> {
+        let fingerprint = processing_fingerprint!(
+            "knowledge_base::normalize_node",
+            [
+                include_bytes!("knowledge_base.rs"),
+                include_bytes!("knowledge_normalization.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("knowledge_philosophy_display.rs"),
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        self.normalize_node_with_processing_handler(
+            run,
+            source,
+            source_graph,
+            canonical,
+            overrides,
+            "knowledge_base::normalize_node",
+            fingerprint,
+            &Value::Null,
+            &[],
+            |_| Ok(()),
+        )
+    }
+
+    /// Normalize through the shared source-row mechanics while binding an
+    /// enclosing family handler's exact source fingerprint and any final
+    /// family-owned decoration into the same node producer result.
+    pub(crate) fn normalize_node_with_processing_handler<F>(
+        &self,
+        run: &crate::processing_cache::ProcessingRunHandle,
+        source: &SourceRow,
+        source_graph: &str,
+        canonical: bool,
+        overrides: BaseNodeOverrides<'_>,
+        handler: &str,
+        fingerprint: Digest256,
+        handler_parameters: &Value,
+        additional_dependencies: &[crate::processing_cache::ProcessingValue],
+        postprocess: F,
+    ) -> Result<Value>
+    where
+        F: FnOnce(&mut Value) -> Result<()>,
+    {
         let item = source.value();
         let native = overrides
             .native_id
@@ -843,28 +887,21 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             "identity_id":identity,
             "kind_id":overrides.kind_id,
             "max_output_bytes":self.limits.max_output_bytes,
+            "handler_parameters":handler_parameters,
         });
-        let fingerprint = processing_fingerprint!(
-            "knowledge_base::normalize_node",
-            [
-                include_bytes!("knowledge_base.rs"),
-                include_bytes!("knowledge_normalization.rs"),
-                include_bytes!("knowledge_seal.rs"),
-                include_bytes!("knowledge_philosophy_display.rs"),
-                include_bytes!("knowledge_source_navigation_relation.rs"),
-                include_bytes!("processing_cache.rs"),
-            ],
-        );
+        let mut dependencies = vec![input, configuration];
+        dependencies.extend_from_slice(additional_dependencies);
         let result = run.evaluate_task(
             &format!("node:{normalized_id}"),
             "node",
-            "knowledge_base::normalize_node",
+            handler,
             fingerprint,
             &parameters,
-            &[input, configuration],
+            &dependencies,
             || {
                 let mut value =
                     self.normalize_node_unstamped(source, source_graph, canonical, overrides)?;
+                postprocess(&mut value)?;
                 stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
                 Ok(value)
             },
@@ -925,6 +962,54 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         right_title: &Value,
         default_authority: &str,
     ) -> Result<Value> {
+        let fingerprint = processing_fingerprint!(
+            "knowledge_base::normalize_relation",
+            [
+                include_bytes!("knowledge_base.rs"),
+                include_bytes!("knowledge_normalization.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("knowledge_philosophy_display.rs"),
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        );
+        self.normalize_relation_with_processing_handler(
+            run,
+            source,
+            source_graph,
+            identity,
+            left_title,
+            right_title,
+            default_authority,
+            "knowledge_base::normalize_relation",
+            fingerprint,
+            &Value::Null,
+            &[],
+            |_| Ok(()),
+        )
+    }
+
+    /// Relation counterpart to `normalize_node_with_processing_handler`.
+    /// Enclosing source families can retain one exact producer task while
+    /// sharing endpoint-title bindings and base projection mechanics.
+    pub(crate) fn normalize_relation_with_processing_handler<F>(
+        &self,
+        run: &crate::processing_cache::ProcessingRunHandle,
+        source: &SourceRow,
+        source_graph: &str,
+        identity: Option<&str>,
+        left_title: &Value,
+        right_title: &Value,
+        default_authority: &str,
+        handler: &str,
+        fingerprint: Digest256,
+        handler_parameters: &Value,
+        additional_dependencies: &[crate::processing_cache::ProcessingValue],
+        postprocess: F,
+    ) -> Result<Value>
+    where
+        F: FnOnce(&mut Value) -> Result<()>,
+    {
         let item = source.value();
         let native = required(item, "edge_id")?;
         let id = format!("{source_graph}:{}", identity.unwrap_or(native));
@@ -938,25 +1023,17 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             "identity":identity,
             "default_authority":default_authority,
             "max_output_bytes":self.limits.max_output_bytes,
+            "handler_parameters":handler_parameters,
         });
-        let fingerprint = processing_fingerprint!(
-            "knowledge_base::normalize_relation",
-            [
-                include_bytes!("knowledge_base.rs"),
-                include_bytes!("knowledge_normalization.rs"),
-                include_bytes!("knowledge_seal.rs"),
-                include_bytes!("knowledge_philosophy_display.rs"),
-                include_bytes!("knowledge_source_navigation_relation.rs"),
-                include_bytes!("processing_cache.rs"),
-            ],
-        );
+        let mut dependencies = vec![source_value, configuration, left.clone(), right.clone()];
+        dependencies.extend_from_slice(additional_dependencies);
         let result = run.evaluate_task(
             &format!("relation:{id}"),
             "relation",
-            "knowledge_base::normalize_relation",
+            handler,
             fingerprint,
             &parameters,
-            &[source_value, configuration, left.clone(), right.clone()],
+            &dependencies,
             || {
                 let mut value = self.normalize_relation_unstamped(
                     source,
@@ -967,6 +1044,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
                     right.value(),
                     default_authority,
                 )?;
+                postprocess(&mut value)?;
                 stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
                 Ok(value)
             },

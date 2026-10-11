@@ -985,10 +985,15 @@ mod tests {
     // the exact authored registries below, never pre-normalized test carriers.
     #[test]
     fn python_oracle_raw_philosophy_materializes_native_graph_bases() {
+        use crate::processing_cache::{
+            ClosureLimits, ProcessingCache, ProcessingCacheLimits, ProcessingReadSnapshot,
+        };
         use crate::{
             KnowledgeRegistry, PhilosophyMaterializeLimits, PhilosophyNormalizer,
-            materialize_philosophy_nodes, materialize_philosophy_relations,
+            PhilosophyRelationGlobalInputs, materialize_philosophy_nodes,
+            materialize_philosophy_relations,
         };
+        use rusqlite::{Connection, OpenFlags};
         let entity =
             include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
         let relation =
@@ -1081,6 +1086,36 @@ mod tests {
         let first = normalizer
             .normalize_node(&mut stage, &prepared, "n:a")
             .unwrap();
+        let second = normalizer
+            .normalize_node(&mut stage, &prepared, "n:b")
+            .unwrap();
+        let title_root = "0".repeat(64);
+        let expected_relation = normalizer
+            .normalize_relation(
+                &mut stage,
+                &prepared,
+                "e:ab",
+                PhilosophyRelationGlobalInputs {
+                    source_cut: &prepared.source_cut,
+                    endpoint_title_root_sha256: &title_root,
+                    left_title: &first.value()["display"]["title"],
+                    right_title: &second.value()["display"]["title"],
+                },
+            )
+            .unwrap();
+        let processing_path = candidate.parent().unwrap().join("processing.sqlite");
+        let cache = ProcessingCache::open(&processing_path).unwrap();
+        let mut processing = cache.begin_run().unwrap();
+        let cold_run_id = processing.id();
+        let normalizer = normalizer.with_processing_run(processing.handle()).unwrap();
+        let cold_first = normalizer
+            .normalize_node(&mut stage, &prepared, "n:a")
+            .unwrap();
+        let cold_second = normalizer
+            .normalize_node(&mut stage, &prepared, "n:b")
+            .unwrap();
+        assert_eq!(cold_first.value(), first.value());
+        assert_eq!(cold_second.value(), second.value());
         assert_eq!(first.ordered_source_raw(), rows[0].2.as_bytes());
         let nodes = materialize_philosophy_nodes(&mut stage, &normalizer, &prepared).unwrap();
         assert_eq!(nodes.rows, 2);
@@ -1107,12 +1142,81 @@ mod tests {
             &normalizer,
             &prepared,
             &prepared.source_cut,
-            &"0".repeat(64),
+            &title_root,
             title_lookup,
         )
         .unwrap();
         assert_eq!(relations.rows, 1);
         assert!(!relations.finalization_complete);
+        processing.finish().unwrap();
+        let reader = Connection::open_with_flags(
+            &processing_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .unwrap();
+        reader.execute_batch("PRAGMA query_only=ON; BEGIN").unwrap();
+        let closure = ProcessingReadSnapshot::new(&reader, ProcessingCacheLimits::default())
+            .unwrap()
+            .dependency_closure(
+                &cold_run_id,
+                &["source-node:philosophy:n:a".to_owned()],
+                ClosureLimits::default(),
+            )
+            .unwrap();
+        let ids = closure
+            .nodes
+            .iter()
+            .map(|node| node.id.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert!(ids.contains("node:philosophy:n:a"));
+        assert!(ids.contains("endpoint-title:philosophy:n:a"));
+        assert!(ids.contains("relation:philosophy:e:ab"));
+        reader.execute_batch("ROLLBACK").unwrap();
+        let mut warm = cache.begin_run().unwrap();
+        let warm_normalizer = PhilosophyNormalizer::new(
+            &registry,
+            entity,
+            relation,
+            &vocabulary,
+            descriptor,
+            PhilosophyMaterializeLimits {
+                max_raw_bytes: 4096,
+                max_output_bytes: 32768,
+                max_registry_bytes: 4 * 1024 * 1024,
+                max_page_rows: 1,
+                max_rows: 16,
+                max_work_bytes: 128 * 1024,
+            },
+        )
+        .unwrap()
+        .with_processing_run(warm.handle())
+        .unwrap();
+        assert_eq!(
+            warm_normalizer
+                .normalize_node(&mut stage, &prepared, "n:a")
+                .unwrap()
+                .value(),
+            first.value()
+        );
+        assert_eq!(
+            warm_normalizer
+                .normalize_relation(
+                    &mut stage,
+                    &prepared,
+                    "e:ab",
+                    PhilosophyRelationGlobalInputs {
+                        source_cut: &prepared.source_cut,
+                        endpoint_title_root_sha256: &title_root,
+                        left_title: &first.value()["display"]["title"],
+                        right_title: &second.value()["display"]["title"],
+                    },
+                )
+                .unwrap()
+                .value(),
+            expected_relation.value()
+        );
+        warm.finish().unwrap();
+        assert!(warm.report().unwrap().reused >= 2);
         stage
             .with_connection(WritePhase::Sort, |db| {
                 for (table, id, revision) in [
@@ -1188,7 +1292,13 @@ mod tests {
                 Ok(())
             })
             .unwrap();
+        drop(warm_normalizer);
+        drop(normalizer);
+        drop(warm);
+        drop(processing);
+        drop(reader);
         drop(stage);
-        fs::remove_dir(candidate.parent().unwrap()).unwrap();
+        drop(cache);
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
     }
 }

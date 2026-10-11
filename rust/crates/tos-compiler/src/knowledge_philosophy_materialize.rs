@@ -74,6 +74,25 @@ pub struct PhilosophyNormalizer<'a> {
     source_graph: String,
     shared: KnowledgeBaseNormalizer<'a>,
     limits: PhilosophyMaterializeLimits,
+    processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
+}
+
+fn processing_fingerprint() -> Digest256 {
+    static FINGERPRINT: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
+    *FINGERPRINT.get_or_init(|| {
+        crate::processing_cache::rust_source_fingerprint(
+            "knowledge_philosophy_materialize::normalize",
+            &[
+                include_bytes!("knowledge_philosophy_materialize.rs"),
+                include_bytes!("knowledge_base.rs"),
+                include_bytes!("knowledge_normalization.rs"),
+                include_bytes!("knowledge_seal.rs"),
+                include_bytes!("knowledge_philosophy_display.rs"),
+                include_bytes!("knowledge_source_navigation_relation.rs"),
+                include_bytes!("processing_cache.rs"),
+            ],
+        )
+    })
 }
 
 fn required<'a>(value: &'a Value, field: &str) -> Result<&'a str> {
@@ -165,7 +184,20 @@ impl<'a> PhilosophyNormalizer<'a> {
             source_graph: sources[0].source_graph_id.clone(),
             shared,
             limits,
+            processing_run: None,
         })
+    }
+
+    /// Opt in to the same bounded Rust normalization DAG used by the other
+    /// native producer families. Owned CreationState keeps its own retention
+    /// path and refuses this additional cache state.
+    pub fn with_processing_run(
+        mut self,
+        run: crate::processing_cache::ProcessingRunHandle,
+    ) -> Result<Self> {
+        self.shared = self.shared.with_processing_run(run.clone())?;
+        self.processing_run = Some(run);
+        Ok(self)
     }
     fn bind(&self, stage: &KnowledgeStage<'_>, prepared: &PhilosophyPrepareReceipt) -> Result<()> {
         if prepared.source_graph != self.source_graph
@@ -269,12 +301,27 @@ impl<'a> PhilosophyNormalizer<'a> {
         if required(source.value(), "node_id")? != native {
             return Err(Error::Invalid("philosophy raw node identity"));
         }
-        let value = self.shared.normalize_node(
-            &source,
-            &self.source_graph,
-            false,
-            BaseNodeOverrides::default(),
-        )?;
+        let value = if let Some(run) = &self.processing_run {
+            self.shared.normalize_node_with_processing_handler(
+                run,
+                &source,
+                &self.source_graph,
+                false,
+                BaseNodeOverrides::default(),
+                "knowledge_philosophy_materialize::normalize",
+                processing_fingerprint(),
+                &Value::Null,
+                &[],
+                |_| Ok(()),
+            )?
+        } else {
+            self.shared.normalize_node(
+                &source,
+                &self.source_graph,
+                false,
+                BaseNodeOverrides::default(),
+            )?
+        };
         Ok(self.base(value, raw, prepared, None))
     }
     pub fn relation_endpoints(
@@ -304,14 +351,31 @@ impl<'a> PhilosophyNormalizer<'a> {
         if required(source.value(), "edge_id")? != native {
             return Err(Error::Invalid("philosophy raw edge identity"));
         }
-        let value = self.shared.normalize_relation(
-            &source,
-            &self.source_graph,
-            None,
-            global.left_title,
-            global.right_title,
-            "derived-export",
-        )?;
+        let value = if let Some(run) = &self.processing_run {
+            self.shared.normalize_relation_with_processing_handler(
+                run,
+                &source,
+                &self.source_graph,
+                None,
+                global.left_title,
+                global.right_title,
+                "derived-export",
+                "knowledge_philosophy_materialize::normalize",
+                processing_fingerprint(),
+                &Value::Null,
+                &[],
+                |_| Ok(()),
+            )?
+        } else {
+            self.shared.normalize_relation(
+                &source,
+                &self.source_graph,
+                None,
+                global.left_title,
+                global.right_title,
+                "derived-export",
+            )?
+        };
         Ok(self.base(
             value,
             raw,
