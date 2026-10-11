@@ -1977,6 +1977,7 @@ fn native_corpus_composition_case(installed: bool) {
             max_row_bytes: limits.catalog.max_output_row_bytes,
             max_page_rows: 16,
         },
+        processing_run: None,
     };
     phase(started, deadline, "selected-model-start");
     selected_isolation.enabled.store(true, Ordering::Relaxed);
