@@ -1106,13 +1106,7 @@ mod tests {
             "8d98cc7ce0901552668ec3eb7f0c3df7020aa799bcab6f308981c951eafaadc6"
         );
         let candidate_relation = pn
-            .normalize_relation(
-                &mut stage,
-                &candidate,
-                "candidate-intake:pack-a:edge-a",
-                &left,
-                &right,
-            )
+            .normalize_relation(&mut stage, &candidate, "pack-a:edge-a", &left, &right)
             .unwrap();
         let processing_path = dir.join("processing.sqlite");
         let cache = ProcessingCache::open(&processing_path).unwrap();
@@ -1148,13 +1142,7 @@ mod tests {
         );
         assert_eq!(
             cached_pn
-                .normalize_relation(
-                    &mut stage,
-                    &candidate,
-                    "candidate-intake:pack-a:edge-a",
-                    &left,
-                    &right,
-                )
+                .normalize_relation(&mut stage, &candidate, "pack-a:edge-a", &left, &right,)
                 .unwrap(),
             candidate_relation
         );
@@ -1216,7 +1204,7 @@ mod tests {
         let candidate_closure = snapshot
             .dependency_closure(
                 &cold_run_id,
-                &["source-relation:candidate-intake:candidate-intake:pack-a:edge-a".to_owned()],
+                &["source-relation:candidate-intake:pack-a:edge-a".to_owned()],
                 ClosureLimits::default(),
             )
             .unwrap();
@@ -1224,7 +1212,7 @@ mod tests {
             candidate_closure
                 .nodes
                 .iter()
-                .any(|item| item.id == "relation:candidate-intake:candidate-intake:pack-a:edge-a")
+                .any(|item| item.id == "relation:candidate-intake:pack-a:edge-a")
         );
         reader.execute_batch("ROLLBACK").unwrap();
         let mut warm = cache.begin_run().unwrap();
@@ -1258,13 +1246,7 @@ mod tests {
         );
         assert_eq!(
             warm_pn
-                .normalize_relation(
-                    &mut stage,
-                    &candidate,
-                    "candidate-intake:pack-a:edge-a",
-                    &left,
-                    &right,
-                )
+                .normalize_relation(&mut stage, &candidate, "pack-a:edge-a", &left, &right,)
                 .unwrap(),
             candidate_relation
         );

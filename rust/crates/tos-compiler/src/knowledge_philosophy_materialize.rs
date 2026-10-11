@@ -301,10 +301,14 @@ impl<'a> PhilosophyNormalizer<'a> {
         if required(source.value(), "node_id")? != native {
             return Err(Error::Invalid("philosophy raw node identity"));
         }
-        let value = if let Some(run) = &self.processing_run {
+        let value = self.normalize_source_node(&source)?;
+        Ok(self.base(value, raw, prepared, None))
+    }
+    fn normalize_source_node(&self, source: &SourceRow) -> Result<Value> {
+        if let Some(run) = &self.processing_run {
             self.shared.normalize_node_with_processing_handler(
                 run,
-                &source,
+                source,
                 &self.source_graph,
                 false,
                 BaseNodeOverrides::default(),
@@ -313,17 +317,17 @@ impl<'a> PhilosophyNormalizer<'a> {
                 &Value::Null,
                 &[],
                 |_| Ok(()),
-            )?
+            )
         } else {
             self.shared.normalize_node(
-                &source,
+                source,
                 &self.source_graph,
                 false,
                 BaseNodeOverrides::default(),
-            )?
-        };
-        Ok(self.base(value, raw, prepared, None))
+            )
+        }
     }
+
     pub fn relation_endpoints(
         &self,
         stage: &mut KnowledgeStage<'_>,
@@ -351,37 +355,46 @@ impl<'a> PhilosophyNormalizer<'a> {
         if required(source.value(), "edge_id")? != native {
             return Err(Error::Invalid("philosophy raw edge identity"));
         }
-        let value = if let Some(run) = &self.processing_run {
-            self.shared.normalize_relation_with_processing_handler(
-                run,
-                &source,
-                &self.source_graph,
-                None,
-                global.left_title,
-                global.right_title,
-                "derived-export",
-                "knowledge_philosophy_materialize::normalize",
-                processing_fingerprint(),
-                &Value::Null,
-                &[],
-                |_| Ok(()),
-            )?
-        } else {
-            self.shared.normalize_relation(
-                &source,
-                &self.source_graph,
-                None,
-                global.left_title,
-                global.right_title,
-                "derived-export",
-            )?
-        };
+        let value =
+            self.normalize_source_relation(&source, global.left_title, global.right_title)?;
         Ok(self.base(
             value,
             raw,
             prepared,
             Some(global.endpoint_title_root_sha256.into()),
         ))
+    }
+    fn normalize_source_relation(
+        &self,
+        source: &SourceRow,
+        left_title: &Value,
+        right_title: &Value,
+    ) -> Result<Value> {
+        if let Some(run) = &self.processing_run {
+            self.shared.normalize_relation_with_processing_handler(
+                run,
+                source,
+                &self.source_graph,
+                None,
+                left_title,
+                right_title,
+                "derived-export",
+                "knowledge_philosophy_materialize::normalize",
+                processing_fingerprint(),
+                &Value::Null,
+                &[],
+                |_| Ok(()),
+            )
+        } else {
+            self.shared.normalize_relation(
+                source,
+                &self.source_graph,
+                None,
+                left_title,
+                right_title,
+                "derived-export",
+            )
+        }
     }
 }
 
@@ -559,21 +572,9 @@ where
                         }
                     } else {
                         let value = if let Some((left, right)) = &endpoint_titles {
-                            normalizer.shared.normalize_relation(
-                                &source,
-                                &normalizer.source_graph,
-                                None,
-                                left,
-                                right,
-                                "derived-export",
-                            )?
+                            normalizer.normalize_source_relation(&source, left, right)?
                         } else {
-                            normalizer.shared.normalize_node(
-                                &source,
-                                &normalizer.source_graph,
-                                false,
-                                BaseNodeOverrides::default(),
-                            )?
+                            normalizer.normalize_source_node(&source)?
                         };
                         let bytes = serde_json::to_vec(&value)
                             .map_err(|_| Error::Invalid("philosophy normalized serialization"))?;
