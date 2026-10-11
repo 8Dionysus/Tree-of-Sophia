@@ -668,9 +668,7 @@ pub(super) fn source_error(error: DurableError) -> SourceCommandError {
         DurableError::Conflict(_) => {
             SourceCommandError::Conflict("PostgreSQL bootstrap selection changed")
         }
-        DurableError::Refused(_) => {
-            SourceCommandError::Denied("PostgreSQL bootstrap state refused")
-        }
+        DurableError::Refused(reason) => SourceCommandError::Denied(reason),
         DurableError::Invalid(_) | DurableError::Corrupt(_) => {
             SourceCommandError::Invalid("PostgreSQL bootstrap metadata")
         }
