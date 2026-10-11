@@ -2578,7 +2578,7 @@ fn record_correction(case: &mut RevisionCase, software: &SoftwareFixture, binary
         "native describe refuses the corrupted current metadata"
     );
     assert!(
-        refusal_text.contains("PostgreSQL source revision metadata"),
+        refusal_text.contains("bounded source revision read metadata"),
         "native describe refuses the current/history source-mode mismatch: {refusal_text}"
     );
     assert_eq!(observed_drifted_source_mode, drifted_source_mode);
@@ -3757,7 +3757,7 @@ fn real_source_bootstrap_initializes_absent_schema_cold_selects_and_refuses_rein
         assert_eq!(current_schema, pg_schema);
         let absent: bool = selected
             .query_one(
-                "SELECT to_regclass(format('%I.cmd2_domain', $1)) IS NULL",
+                "SELECT to_regclass(format('%I.cmd2_domain', $1::text)) IS NULL",
                 &[&pg_schema],
             )
             .unwrap()

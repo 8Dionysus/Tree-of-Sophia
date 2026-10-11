@@ -1730,7 +1730,7 @@ mod tests {
     fn owner_max_identity_and_path_fields_remain_searchable_and_cursor_bounded() {
         let long_path = format!("ToS/{}", "😀".repeat(1023));
         assert_eq!(long_path.len(), MAX_SOURCE_PATH_BYTES);
-        assert_eq!(long_path.chars().count(), 1024);
+        assert_eq!(long_path.chars().count(), 1027);
         let long_identity = "x".repeat(MAX_DOCUMENT_IDENTITY_BYTES);
         let first_id = "a".repeat(MAX_DOCUMENT_ID_BYTES);
         let second_id = "b".repeat(MAX_DOCUMENT_ID_BYTES);
@@ -1840,7 +1840,8 @@ mod tests {
         assert!(rendered.contains("prefix needle suffix"));
         assert!(rendered.contains("custody_revision"));
         assert!(!rendered.contains("aliases"));
-        assert!(!rendered.contains("body\""));
+        assert!(rendered.contains("\"excerpt_field\":\"body\""));
+        assert!(!rendered.contains("\"body\":"));
     }
 
     #[test]

@@ -31,6 +31,7 @@ const REQUIRED_SOURCE_INPUTS: &[&str] = &[
     "ToS/contracts/corpus-record.schema.json",
     "ToS/contracts/human-form.schema.json",
     "ToS/contracts/human-form-set.schema.json",
+    "ToS/contracts/knowledge-assessment.schema.json",
     "ToS/contracts/human-form-template.schema.json",
     "ToS/contracts/provenance-event-v2.schema.json",
 ];

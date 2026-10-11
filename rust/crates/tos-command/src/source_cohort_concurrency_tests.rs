@@ -5,6 +5,7 @@ use super::*;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::fs;
+use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -842,6 +843,10 @@ fn lab_fixture(deadline: Instant, cancelled: &AtomicBool) -> Fixture {
         .unwrap();
     coordinator.set_job_epoch(&domain, JOB_ID, 1).unwrap();
     let store_root = root.path().join("store");
+    fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&store_root)
+        .expect("create the private existing root required by SegmentStore");
     let store = SegmentStore::initialize_empty(
         &store_root,
         domain.as_bytes(),
