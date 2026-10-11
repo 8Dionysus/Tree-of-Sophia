@@ -398,7 +398,7 @@ pub(crate) fn durable(error: DurableError) -> Error {
     match error {
         DurableError::Source(error) => error,
         DurableError::Conflict(_) => Error::Conflict("managed current selection changed"),
-        DurableError::Refused(_) => Error::Denied("managed current selection refused"),
+        DurableError::Refused(reason) => Error::Denied(reason),
         // These are source-owned static labels. Never expose database messages,
         // SQL or the optional storage io::Error (which may carry private paths).
         DurableError::Storage(error) => Error::Invalid(error.detail),

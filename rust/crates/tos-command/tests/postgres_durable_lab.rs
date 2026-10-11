@@ -1637,6 +1637,16 @@ fn maintained_agent_creation_operation<
             addressed,
             "streamed bootstrap requires the addressed consumer"
         );
+        // The schema reader requests an 8 MiB ceiling, while this selected
+        // source profile permits only the largest actual authored member.
+        // A wider caller ceiling must not reject a member that fits both.
+        let source_member_cap = cut
+            .current()
+            .members()
+            .map(|member| member.size_bytes)
+            .max()
+            .unwrap();
+        assert!(source_member_cap > 0 && source_member_cap < 8_388_608);
         let bootstrap_scratch = ScratchRoot::new();
         let bootstrap_workspace = PrivateGenerationWorkspace::open(
             &bootstrap_scratch.0,
@@ -1749,7 +1759,7 @@ fn maintained_agent_creation_operation<
             &bootstrap_workspace,
             generation_profile,
             tos_command::source_cohort::StreamedColdSourceLimitsV1 {
-                max_member_bytes: 8_388_608,
+                max_member_bytes: source_member_cap,
                 max_rows: 100_000,
                 max_logical_bytes: 64 * 1024 * 1024,
                 max_key_bytes: 4096,

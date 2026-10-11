@@ -88,7 +88,6 @@ impl ReadonlyRecordFiles for StreamedSourceReadEpoch<'_, '_> {
             if max_bytes == 0
                 || self.max_member_bytes == 0
                 || self.max_member_bytes > usize::MAX as u64
-                || max_bytes as u64 > self.max_member_bytes
             {
                 return Err(DurableError::Refused(
                     "streamed source per-member byte bound",
@@ -117,7 +116,12 @@ impl ReadonlyRecordFiles for StreamedSourceReadEpoch<'_, '_> {
                 .ok_or(DurableError::Refused(
                     "streamed selected source member absent",
                 ))?;
-            if member.size_bytes > max_bytes as u64 {
+            // The caller supplies a hard maximum for this read; the selected
+            // source profile independently caps every authored member. A
+            // caller may request a wider ceiling than the cut, but neither
+            // bound is relaxed for bytes actually returned.
+            let effective_max_bytes = (max_bytes as u64).min(self.max_member_bytes);
+            if member.size_bytes > effective_max_bytes {
                 return Err(DurableError::Refused("streamed current member byte bound"));
             }
             let encoded = self
@@ -173,7 +177,7 @@ impl ReadonlyRecordFiles for StreamedSourceReadEpoch<'_, '_> {
             }
             let mut raw = Vec::new();
             self.store
-                .read_selected(receipt, max_bytes as u64, &mut raw)?;
+                .read_selected(receipt, effective_max_bytes, &mut raw)?;
             // Preserve successful returned work even if subsequent semantic or
             // deadline verification refuses the operation.
             ManagedSourceWorkV1::charge(&mut self.body_work.current_bodies_returned, 1)?;
