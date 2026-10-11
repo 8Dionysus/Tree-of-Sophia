@@ -4197,7 +4197,7 @@ fn real_pg_selected_work_revision_recovers_ready_attempt_and_cold_reads_exact_hi
     assert_eq!(retry["replayed"], false);
     let committed_head = case.lab.head_seq();
     assert_eq!(committed_head, before_head + 1);
-    assert_eq!(retry["record_id"], WORK_TARGET.record_id);
+    assert_eq!(retry["source"]["id"], WORK_TARGET.record_id);
     assert_eq!(retry["source_path"], WORK_TARGET.source_path);
 
     let committed_replay = invoke(&binary, &invocation_path, &case.lab.url, &request, false).result;

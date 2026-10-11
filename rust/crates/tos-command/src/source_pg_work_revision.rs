@@ -23,6 +23,7 @@ const TABLE: &str = "cmd2_work_revision_history_v1";
 pub(crate) const MAX_TRANSACTIONS: usize = 128;
 const MAX_AUTHORIZATION_BYTES: usize = 65_536;
 const MAX_RETAINED_BYTES: usize = 1_048_576;
+const MAX_PREPARE_ID_BYTES: usize = u16::MAX as usize;
 const REF_MAGIC: &[u8; 8] = b"TOSWREF1";
 
 #[derive(Clone, Debug)]
@@ -520,6 +521,7 @@ fn decode_receipt_row(
         || authorization_raw.is_empty()
         || authorization_raw.len() > MAX_AUTHORIZATION_BYTES
         || prepare_id.is_empty()
+        || prepare_id.len() > MAX_PREPARE_ID_BYTES
         || commit_seq == 0
         || generation == 0
     {
@@ -626,7 +628,7 @@ fn verify_receipt_chain(
                 coalesce(bool_or(expected_publication IS NOT NULL
                     OR octet_length(source_path)>4096 OR octet_length(record_id)>1024
                     OR octet_length(transaction_id)>128 OR octet_length(command_id)>1024
-                    OR octet_length(prepare_id)<>16),false)
+                    OR octet_length(prepare_id)<1 OR octet_length(prepare_id)>65535),false)
          FROM (
              SELECT domain,source_path,record_id,generation,transaction_id,command_id,
                     expected_publication,authorization_raw,before_refs,after_refs,prepare_id
@@ -1076,6 +1078,9 @@ pub(crate) fn apply_source_change(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<()> {
+    if prepare_id.is_empty() || prepare_id.len() > MAX_PREPARE_ID_BYTES {
+        return Err(DurableError::Invalid("PG Work revision prepare ID length"));
+    }
     require_schema_v1(tx, deadline, cancelled)?;
     if evidence.observation.domain != domain
         || evidence.observation.store_id != store_id
@@ -1165,15 +1170,25 @@ pub(crate) fn apply_source_change(
     }
     let before_raw = encode_refs(&evidence.before, &evidence.source_path)?;
     let after_raw = encode_refs(&evidence.after, &evidence.source_path)?;
-    let new_retained_bytes = evidence
-        .authorization_raw
-        .len()
-        .checked_add(before_raw.len())
-        .and_then(|bytes| bytes.checked_add(after_raw.len()))
-        .and_then(|bytes| bytes.checked_add(chain.retained_bytes))
-        .ok_or(DurableError::Refused(
-            "PG Work revision retained evidence overflow",
-        ))?;
+    // Match the SQL census exactly: all variable-width fields represented by
+    // the receipt row count toward the same bounded retained-evidence budget.
+    let new_retained_bytes = [
+        domain.len(),
+        evidence.source_path.len(),
+        evidence.record_id.len(),
+        evidence.transaction_id.len(),
+        evidence.command_id.len(),
+        evidence.expected_publication.as_deref().map_or(0, str::len),
+        evidence.authorization_raw.len(),
+        before_raw.len(),
+        after_raw.len(),
+        prepare_id.len(),
+    ]
+    .into_iter()
+    .try_fold(chain.retained_bytes, usize::checked_add)
+    .ok_or(DurableError::Refused(
+        "PG Work revision retained evidence overflow",
+    ))?;
     if new_retained_bytes > MAX_RETAINED_BYTES {
         return Err(DurableError::Refused(
             "PG Work revision retained evidence budget",

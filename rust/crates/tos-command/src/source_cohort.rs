@@ -5069,8 +5069,8 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceRevisionAttempt> {
         active(deadline, cancelled)?;
-        if prepare_id.is_empty() {
-            return Err(DurableError::Invalid("source revision prepare ID empty"));
+        if prepare_id.is_empty() || prepare_id.len() > u16::MAX as usize {
+            return Err(DurableError::Invalid("source revision prepare ID length"));
         }
         let selection = &readset.selection;
         if store.custody_domain() != selection.cohort.domain.as_bytes()
